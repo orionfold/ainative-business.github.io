@@ -1,0 +1,5 @@
+[functions.waitlist-signup]
+verify_jwt = false
+
+[functions.confirm-email]
+verify_jwt = false

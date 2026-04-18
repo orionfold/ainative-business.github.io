@@ -1,5 +1,10 @@
 ---
 import SectionLabel from '../ui/SectionLabel.astro';
+import { PARTS, CHAPTERS } from '../../lib/book/content';
+
+const totalReadingTime = CHAPTERS.reduce((sum, ch) => sum + ch.readingTime, 0);
+const totalWords = CHAPTERS.reduce((sum, ch) => sum + ch.wordCount, 0);
+const totalPages = Math.ceil(totalWords / 250);
 
 const quotes = [
   {
@@ -51,10 +56,11 @@ const quotes = [
 
       <!-- Metadata pills -->
       <div data-animate class="flex items-center gap-1.5 flex-wrap justify-center lg:justify-start mb-6" style="transition-delay: 120ms">
-        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">13 Chapters</span>
-        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">4 Parts</span>
-        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">~182 Min Read</span>
-        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">~151 Pages</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">{CHAPTERS.length} Chapters</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">{PARTS.length} Parts</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">~{totalReadingTime} Min Read</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">{totalWords.toLocaleString()} Words</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">~{totalPages} Pages</span>
       </div>
 
       <!-- CTA -->

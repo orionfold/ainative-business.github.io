@@ -162,7 +162,7 @@ const endpoint = 'https://stagent.supabase.co/functions/v1/waitlist-signup';
         const data = await res.json();
 
         if (!res.ok) {
-          showError(data.error || 'Something went wrong. Please try again.');
+          showError(data.error || data.message || 'Something went wrong. Please try again.');
           submitBtn.disabled = false;
           if (isIconOnly) { submitBtn.replaceChildren(...originalChildren); submitBtn.classList.remove('animate-pulse'); }
           else { submitBtn.textContent = originalText; }

@@ -161,7 +161,7 @@ async function sendConfirmationEmail(email: string, token: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "ainative <team@ainative.business>",
+      from: "AI Native research <team@ainative.business>",
       reply_to: "sehgal.manav@gmail.com",
       to: [email],
       subject: "Confirm your AI Native research subscription",

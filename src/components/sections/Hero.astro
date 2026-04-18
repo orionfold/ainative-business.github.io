@@ -2,6 +2,10 @@
 import WaitlistForm from '../ui/WaitlistForm.astro';
 import BusinessConstellation from '../svg/BusinessConstellation.astro';
 import TechTicker from './TechTicker.astro';
+
+// Email CTA is hidden until ainative.business is verified in Resend.
+// Flip to true to re-enable the hero subscribe block.
+const showEmailCTA = false;
 ---
 <section class="relative min-h-[calc(100dvh-80px)] flex items-center px-6 overflow-x-clip pt-16 pb-24">
   <!-- Dual atmospheric glow -->
@@ -31,26 +35,30 @@ import TechTicker from './TechTicker.astro';
         The book and the companion software. A personal research project by Manav Sehgal. Free and open source.
       </p>
 
-      <!-- Email CTA -->
-      <p class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mt-10 mb-2 max-w-sm mx-auto lg:mx-0">
-        Stay updated on AI Native research
-      </p>
-      <div class="mb-6 max-w-sm mx-auto lg:mx-0">
-        <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
-          <div class="flex items-center px-4 py-2 border-b border-primary/10">
-            <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Email</span>
+      {showEmailCTA && (
+        <Fragment>
+          <!-- Email CTA -->
+          <p class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mt-10 mb-2 max-w-sm mx-auto lg:mx-0">
+            Stay updated on AI Native research
+          </p>
+          <div class="mb-6 max-w-sm mx-auto lg:mx-0">
+            <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+              <div class="flex items-center px-4 py-2 border-b border-primary/10">
+                <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Email</span>
+              </div>
+              <div class="bg-surface-raised px-4 py-3">
+                <WaitlistForm
+                  variant="hero"
+                  id="hero-waitlist"
+                  source="research-newsletter"
+                  buttonText="Subscribe"
+                  iconOnly
+                />
+              </div>
+            </div>
           </div>
-          <div class="bg-surface-raised px-4 py-3">
-            <WaitlistForm
-              variant="hero"
-              id="hero-waitlist"
-              source="research-newsletter"
-              buttonText="Subscribe"
-              iconOnly
-            />
-          </div>
-        </div>
-      </div>
+        </Fragment>
+      )}
 
       <!-- Value proposition pills -->
       <div

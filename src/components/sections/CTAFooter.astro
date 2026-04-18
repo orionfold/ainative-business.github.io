@@ -1,6 +1,10 @@
 ---
 import AmberRule from '../ui/AmberRule.astro';
 import WaitlistForm from '../ui/WaitlistForm.astro';
+
+// Email CTA is hidden until ainative.business is verified in Resend.
+// Flip to true to re-enable the footer subscribe form.
+const showEmailCTA = false;
 ---
 <section class="py-32 px-6">
   <div id="waitlist" class="scroll-mt-24">
@@ -18,14 +22,16 @@ import WaitlistForm from '../ui/WaitlistForm.astro';
       Read the book and follow the research.
     </p>
 
-    <div data-animate class="max-w-md mx-auto mb-10" style="transition-delay: 200ms">
-      <WaitlistForm
-        variant="cta"
-        id="cta-footer-waitlist"
-        source="research-newsletter"
-        buttonText="Subscribe"
-      />
-    </div>
+    {showEmailCTA && (
+      <div data-animate class="max-w-md mx-auto mb-10" style="transition-delay: 200ms">
+        <WaitlistForm
+          variant="cta"
+          id="cta-footer-waitlist"
+          source="research-newsletter"
+          buttonText="Subscribe"
+        />
+      </div>
+    )}
 
     <div data-animate-stagger class="flex flex-col sm:flex-row items-center justify-center gap-4" style="transition-delay: 280ms">
       <a
