@@ -162,6 +162,7 @@ async function sendConfirmationEmail(email: string, token: string) {
     },
     body: JSON.stringify({
       from: "ainative <team@ainative.business>",
+      reply_to: "sehgal.manav@gmail.com",
       to: [email],
       subject: "Confirm your AI Native research subscription",
       text: confirmationEmailText(confirmUrl),
@@ -178,21 +179,24 @@ async function sendConfirmationEmail(email: string, token: string) {
 function confirmationEmailText(confirmUrl: string): string {
   return `Hi,
 
-Thanks for subscribing to AI Native research -- a personal research
-project by Manav Sehgal exploring what an AI-native operating system
-looks like.
+Thanks for subscribing to AI Native research.
+
+This is the personal research project by Manav Sehgal behind the
+AI Native Business book and the ainative companion software —
+free, open source, and local-first.
 
 Click the link below to confirm your email:
 
 ${confirmUrl}
 
-You'll get updates when new chapters, articles, or lab releases ship.
+You'll get updates when new book chapters, research papers, or
+companion software releases ship.
 
-This link expires in 7 days. If you didn't request this,
-you can safely ignore this email.
+This link expires in 7 days. If you didn't request this, you can
+safely ignore this email.
 
 --
-ainative | ainative.business
+ainative | https://ainative.business
 The operating system for the agentic economy
 `;
 }
