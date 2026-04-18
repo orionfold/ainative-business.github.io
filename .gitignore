@@ -11,6 +11,7 @@ output/
 .claude/settings.local.json
 .claude/skills/apply-product-release/
 .claude/skills/skill-creator/
+.claude/worktrees/
 .superpowers/
 architecture-*.png
 hero-carousel-dot-click.png
