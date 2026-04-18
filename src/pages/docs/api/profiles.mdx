@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Profiles API
 
-Profiles define agent behavior — the system prompt (SKILL.md), allowed tools, MCP servers, and per-runtime overrides. Profiles are stored as YAML + Markdown on disk and support three scopes: built-in (shipped with ainative), user (`~/.claude/skills/`), and project (`.claude/skills/`). The Profiles API covers CRUD, behavioral testing, learned context management, AI-assisted generation, and GitHub import.
+Profiles define agent behavior — the system prompt (SKILL.md), allowed tools, MCP servers, and per-runtime overrides. Profiles are stored as YAML + Markdown on disk and support three scopes: built-in (shipped with `ainative-business`), user (`~/.claude/skills/`), and project (`.claude/skills/`). The Profiles API covers CRUD, behavioral testing, learned context management, AI-assisted generation, and GitHub import.
 
 ## Quick Start
 
@@ -819,7 +819,7 @@ Scan a skills repository to see what profiles are available before committing to
 interface DiscoveredSkill {
   path: string;
   name: string;
-  format: 'ainative' | 'skill-md-only';
+  format: '`ainative-business`' | 'skill-md-only';
 }
 interface ScanResult {
   owner: string;
@@ -862,7 +862,7 @@ Example response:
   "commitSha": "a1b2c3d4e5f6789012345678901234567890abcd",
   "repoUrl": "https://github.com/acme/ainative-skills",
   "skills": [
-    { "path": ".claude/skills/security-reviewer", "name": "security-reviewer", "format": "ainative" },
+    { "path": ".claude/skills/security-reviewer", "name": "security-reviewer", "format": "`ainative-business`" },
     { "path": ".claude/skills/data-analyst", "name": "data-analyst", "format": "skill-md-only" }
   ]
 }

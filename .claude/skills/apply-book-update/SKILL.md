@@ -318,7 +318,7 @@ Report any unresolved hits in the Step 7 change report under a "⚠️ Drift aud
 
 ### Step 6c: Commercial Framing Drift Audit
 
-ainative.io is positioned as a personal research project, not a commercial funnel. Any re-introduction of "founding member" language, Maven/LinkedIn links, or Stage 2 "Orionfold LLC" references must fail the sync. Run this audit after every chapter sync — even if the product repo changed only markdown, a copy-paste could leak commercial framing back in.
+ainative.business is positioned as a personal research project, not a commercial funnel. Any re-introduction of "founding member" language, Maven/LinkedIn links, or Stage 2 "Orionfold LLC" references must fail the sync. Run this audit after every chapter sync — even if the product repo changed only markdown, a copy-paste could leak commercial framing back in.
 
 ```bash
 cd /Users/manavsehgal/Developer/ainative.business

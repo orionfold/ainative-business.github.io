@@ -211,7 +211,7 @@ export const timeline: TimelineItem[] = [
   },
   {
     year: '2026',
-    project: 'ainative',
+    project: 'ainative-business',
     role: 'The book and the companion software',
     description:
       'Shipped a local-first AI business operating system that orchestrates agents across your entire company — with 6-runtime execution, smart routing, governance, cost controls, chat UI, multi-channel delivery (Slack/Telegram), 37 workflow patterns, 45+ database tables, and a living book documenting the journey. 100% free community edition — no tiers, no telemetry.',

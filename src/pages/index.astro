@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import Nav from '../components/Nav.astro';
 import Hero from '../components/sections/Hero.astro';
+import Book from '../components/sections/Book.astro';
 import Problem from '../components/sections/Problem.astro';
 import PersonaLanes from '../components/sections/PersonaLanes.astro';
 import Proof from '../components/sections/Proof.astro';
@@ -26,7 +27,7 @@ const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'ainative',
+    name: 'ainative-business',
     applicationCategory: 'BusinessApplication',
     operatingSystem: 'macOS, Windows, Linux',
     description: SITE.description,
@@ -56,34 +57,34 @@ const jsonLd = [
     mainEntity: [
       {
         '@type': 'Question',
-        name: 'What is ainative?',
+        name: 'What is ainative-business?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'ainative is the companion software for the AI Native Business book by Manav Sehgal. It is a local-first builder scaffold that lets you run AI agents across marketing, sales, and operations with governed execution, reusable profiles, workflow blueprints, and human-in-the-loop oversight.',
+          text: 'ainative-business is the companion software for the AI Native Business book by Manav Sehgal. It is a local-first builder scaffold that lets you run AI agents across marketing, sales, and operations with governed execution, reusable profiles, workflow blueprints, and human-in-the-loop oversight.',
         },
       },
       {
         '@type': 'Question',
-        name: 'What makes ainative different from other AI agent tools?',
+        name: 'What makes ainative-business different from other AI agent tools?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'ainative is the only book-companion platform combining full-stack agent orchestration with enterprise-grade governance. It supports 6 AI runtimes, 56+ specialist agent profiles, 37 workflow patterns, multi-channel delivery, chat system, heartbeat scheduling, and a local-first architecture that keeps your data on your machine. Every feature is free and unlimited — no tiers, no paywalls.',
+          text: 'ainative-business is the only book-companion platform combining full-stack agent orchestration with enterprise-grade governance. It supports 6 AI runtimes, 56+ specialist agent profiles, 37 workflow patterns, multi-channel delivery, chat system, heartbeat scheduling, and a local-first architecture that keeps your data on your machine. Every feature is free and unlimited — no tiers, no paywalls.',
         },
       },
       {
         '@type': 'Question',
-        name: 'What technology stack does ainative use?',
+        name: 'What technology stack does ainative-business use?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'ainative is built with Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, SQLite via Drizzle ORM, and governed runtime integrations for both the Claude Agent SDK and OpenAI Codex App Server.',
+          text: 'ainative-business is built with Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, SQLite via Drizzle ORM, and governed runtime integrations for both the Claude Agent SDK and OpenAI Codex App Server.',
         },
       },
       {
         '@type': 'Question',
-        name: 'Is ainative open source?',
+        name: 'Is ainative-business open source?',
         acceptedAnswer: {
           '@type': 'Answer',
-          text: 'Yes, ainative is fully open source under the Apache 2.0 license.',
+          text: 'Yes, ainative-business is fully open source under the Apache 2.0 license.',
         },
       },
     ],
@@ -94,6 +95,7 @@ const jsonLd = [
   <Nav />
   <main>
     <Hero />
+    <Book />
     <Problem />
     <PersonaLanes />
     <Proof />

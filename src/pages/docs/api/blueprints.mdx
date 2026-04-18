@@ -162,7 +162,7 @@ Example response:
       { "name": "Style Review", "profileId": "code-reviewer", "promptTemplate": "Check code style and patterns in {{repo_url}}", "requiresApproval": false },
       { "name": "Final Report", "profileId": "technical-writer", "promptTemplate": "Compile findings into a review report focusing on {{focus_areas}}", "requiresApproval": true }
     ],
-    "author": "ainative Team",
+    "author": "`ainative-business` Team",
     "estimatedDuration": "10–15 minutes",
     "difficulty": "beginner"
   }
@@ -271,7 +271,7 @@ print(f"Registered: {blueprint['id']}")`} />
 **Errors:**
 - `400` — URL missing, not a GitHub URL, fetch failed, or YAML validation error
 
-Import a blueprint directly from a GitHub repository — ainative fetches the YAML, validates it, and registers it:
+Import a blueprint directly from a GitHub repository — `ainative-business` fetches the YAML, validates it, and registers it:
 
 <CodeExample ts={`// Import a blueprint from GitHub — validates and registers automatically
 const { id, name }: { id: string; name: string } = await fetch('/api/blueprints/import', {

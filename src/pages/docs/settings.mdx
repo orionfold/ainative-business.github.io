@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/DocsLayout.astro
 title: "Settings"
-description: "Authentication, permissions, cost guardrails, and workspace data management for ainative."
+description: "Authentication, permissions, cost guardrails, and workspace data management for ainative-business."
 ---
 
 import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 # Settings
 
-The settings page is where operators define how ainative authenticates, which tool requests can be trusted by default, how much provider activity is allowed to cost, and how the local workspace data should be managed.
+The settings page is where operators define how `ainative-business` authenticates, which tool requests can be trusted by default, how much provider activity is allowed to cost, and how the local workspace data should be managed.
 
 <BrowserFrame src="/screenshots/settings-list.png" alt="Settings with Providers and Runtimes, task routing options, Anthropic OAuth, OpenAI API, and Ollama local models" />
 
@@ -28,7 +28,7 @@ The settings page is where operators define how ainative authenticates, which to
 - **Data Management** — Seed sample data for evaluation or clear all data (respects table relationships) when resetting the workspace.
 - **Local-First Configuration** — Settings are managed close to the workspace instead of hidden inside a remote SaaS control plane.
 
-The Providers & Runtimes section manages connections for Anthropic (OAuth or API Key), OpenAI (API Key), and Ollama (local endpoint). A task routing selector lets operators choose between Latency, Cost, Quality, or Manual mode to control how ainative picks a runtime when creating tasks.
+The Providers & Runtimes section manages connections for Anthropic (OAuth or API Key), OpenAI (API Key), and Ollama (local endpoint). A task routing selector lets operators choose between Latency, Cost, Quality, or Manual mode to control how `ainative-business` picks a runtime when creating tasks.
 
 <BrowserFrame src="/screenshots/settings-browser-tools.png" alt="Settings authentication with Claude OAuth and API Key methods, OpenAI Codex Runtime configuration, and connection test buttons" />
 
