@@ -16,10 +16,6 @@ import MarketGrowth from '../../components/svg/MarketGrowth.astro'
 import GovernanceMatrix from '../../components/svg/GovernanceMatrix.astro'
 import GovernanceFlow from '../../components/svg/GovernanceFlow.astro'
 import SystemArchitecture from '../../components/svg/SystemArchitecture.astro'
-import WaitlistForm from '../../components/ui/WaitlistForm.astro'
-
-{/* Advisory CTA is hidden until ainative.business is verified in Resend. Flip to true to re-enable the "Book a Conversation" block below. */}
-export const showEmailCTA = false
 
 # AI Transformation Research
 
@@ -319,19 +315,6 @@ Use `ainative-business` as the infrastructure layer for client deployments. Reus
 ### For PE Operating Partners
 
 We help design, deploy, and govern AI agent operations across portfolio companies — from strategy through implementation.
-
-{showEmailCTA && (
-  <div class="not-prose mt-6 max-w-md">
-    <p class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted/50 mb-3">Book a Conversation</p>
-    <WaitlistForm
-      variant="cta"
-      id="research-advisory"
-      source="research-advisory"
-      buttonText="Book a Conversation"
-      successMessage="We'll reach out shortly to schedule a conversation."
-    />
-  </div>
-)}
 
 ---
 
