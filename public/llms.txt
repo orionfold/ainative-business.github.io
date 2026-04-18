@@ -1,10 +1,10 @@
-# Stagent
+# ainative
 
-> Desktop-native, open-source harness that turns high-level goals into observable, long-running agent workflows — across any model, any tool, any timeline.
+> Companion software for the AI Native Business book by Manav Sehgal. A personal research project exploring what it takes to build AI-native businesses on a shoestring. Local-first, open source, free.
 
 ## About
 
-Stagent is the harness layer for multi-agent autonomous orchestration. It is a Tauri-based desktop application (Rust + TypeScript) that consumes infrastructure, application, and orchestration layers as commodity inputs and composes them into goal-oriented, persistent, memory-native multi-agent execution.
+ainative is a builder scaffold for AI-native businesses. It pairs with the AI Native Business book — a 14-chapter playbook for autonomous business systems — and gives readers a working factory to study and extend. Same runtime, same governance, same local-first architecture as before.
 
 ### Five Differentiation Pillars
 
@@ -25,17 +25,18 @@ Stagent is the harness layer for multi-agent autonomous orchestration. It is a T
 
 - License: Apache 2.0
 - Stage: Pre-alpha (active development)
-- Founder: Manav Sehgal
+- Author: Manav Sehgal
 
 ## Documentation
 
-- [Homepage](https://stagent.io): Product overview, architecture, competitive analysis, roadmap
-- [Research Paper](https://stagent.io/research/): Full technical paper — "The Harness Layer: Multi-Agent Autonomous Orchestration for Long-Horizon Task Completion"
+- [Homepage](https://ainative.business): Book + companion software overview, architecture, research
+- [The Book](https://ainative.business/book/): AI Native Business — the 14-chapter playbook
+- [Research](https://ainative.business/research/): Solo-builder case study and supporting research papers
 
 ## Source Code
 
-- [GitHub Repository](https://github.com/manavsehgal/stagent)
+- [GitHub Repository](https://github.com/manavsehgal/ainative)
 
 ## Optional
 
-- [Sitemap](https://stagent.io/sitemap-index.xml)
+- [Sitemap](https://ainative.business/sitemap-index.xml)

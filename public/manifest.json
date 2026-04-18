@@ -1,24 +1,24 @@
 {
-  "name": "Stagent",
-  "short_name": "Stagent",
-  "description": "Your business, run by AI. Orchestrate AI agents across marketing, sales, and operations — governed, auditable, and under your control.",
+  "name": "ainative",
+  "short_name": "ainative",
+  "description": "Companion software for the AI Native Business book. Local-first builder scaffold for AI-native businesses.",
   "start_url": "/",
   "display": "browser",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/stagent-s-64.png",
+      "src": "/ainative-s-64.png",
       "type": "image/png",
       "sizes": "64x64"
     },
     {
-      "src": "/stagent-s-128.png",
+      "src": "/ainative-s-128.png",
       "type": "image/png",
       "sizes": "128x128"
     },
     {
-      "src": "/stagent-s-512.png",
+      "src": "/ainative-s-512.png",
       "type": "image/png",
       "sizes": "512x512"
     }

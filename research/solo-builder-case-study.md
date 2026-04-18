@@ -1,6 +1,6 @@
 # Case Study: Building a Domain Application in One Day with AI Agent Infrastructure
 
-**A Solo Founder's Wealth Manager Build on Stagent — From Zero to Prediction Market Integration in 11 Commits**
+**A Solo Founder's Wealth Manager Build on ainative — From Zero to Prediction Market Integration in 11 Commits**
 
 **Author:** Manav Sehgal
 **Published:** April 2026
@@ -12,14 +12,14 @@
 
 ## Abstract
 
-This paper presents a detailed case study of building a full-featured wealth management application — including prediction market integration, divergence detection, scenario modeling, and conviction synthesis — in a single day using Stagent's AI agent infrastructure. Drawing from verifiable git history (11 commits, 7,435 lines of code, 44 files), we demonstrate that solo founders can build sophisticated domain applications at speeds previously requiring engineering teams, when the underlying infrastructure handles orchestration, governance, scheduling, and data management. The build also produced a significant platform improvement (schedule collision prevention), illustrating the self-reinforcing feedback loop between domain applications and the platforms they run on. We position this case study as evidence for the emerging "AI-native builder" pattern — individual knowledge workers who shape general-purpose AI infrastructure around their specific domain expertise.
+This paper presents a detailed case study of building a full-featured wealth management application — including prediction market integration, divergence detection, scenario modeling, and conviction synthesis — in a single day using ainative's AI agent infrastructure. Drawing from verifiable git history (11 commits, 7,435 lines of code, 44 files), we demonstrate that solo founders can build sophisticated domain applications at speeds previously requiring engineering teams, when the underlying infrastructure handles orchestration, governance, scheduling, and data management. The build also produced a significant platform improvement (schedule collision prevention), illustrating the self-reinforcing feedback loop between domain applications and the platforms they run on. We position this case study as evidence for the emerging "AI-native builder" pattern — individual knowledge workers who shape general-purpose AI infrastructure around their specific domain expertise.
 
 ---
 
 ## Table of Contents
 
 1. [The Solo Builder Thesis](#1-the-solo-builder-thesis)
-2. [Background: Stagent as Application Infrastructure](#2-background-stagent-as-application-infrastructure)
+2. [Background: ainative as Application Infrastructure](#2-background-ainative-as-application-infrastructure)
 3. [The Wealth Manager Build: Timeline and Architecture](#3-the-wealth-manager-build-timeline-and-architecture)
 4. [Prediction Market Integration: A Case for Composable Intelligence](#4-prediction-market-integration-a-case-for-composable-intelligence)
 5. [Platform Feedback Loop: Schedule Collision Prevention](#5-platform-feedback-loop-schedule-collision-prevention)
@@ -58,11 +58,11 @@ Industry research on AI agent productivity typically relies on surveys, projecti
 
 ---
 
-## 2. Background: Stagent as Application Infrastructure
+## 2. Background: ainative as Application Infrastructure
 
 ### Platform Architecture
 
-Stagent is a local-first AI agent workspace built on Next.js 16, React 19, and SQLite (WAL mode). It provides:
+The ainative platform is a local-first AI agent workspace built on Next.js 16, React 19, and SQLite (WAL mode). It provides:
 
 - **44+ database tables** for structured data, documents, workflows, schedules, and agent logs
 - **52+ specialist agent profiles** with configurable tool permissions and behavioral constraints
@@ -73,11 +73,11 @@ Stagent is a local-first AI agent workspace built on Next.js 16, React 19, and S
 
 ### The Composability Principle
 
-The critical architectural property for this case study is composability. Stagent's components — tables, workflows, schedules, profiles, documents — are designed as orthogonal primitives that combine without special integration. A workflow can read from any table, write to any document, fire on any schedule, and use any agent profile. This means a domain application does not require new infrastructure. It requires new configurations of existing infrastructure.
+The critical architectural property for this case study is composability. ainative's components — tables, workflows, schedules, profiles, documents — are designed as orthogonal primitives that combine without special integration. A workflow can read from any table, write to any document, fire on any schedule, and use any agent profile. This means a domain application does not require new infrastructure. It requires new configurations of existing infrastructure.
 
 ### The Self-Building Property
 
-Stagent uses its own capabilities to produce its documentation, generate its book chapters, and monitor its codebase for drift. This "self-building" property — detailed in Chapter 11 of the AI Native book — establishes that the platform is not merely a product but a dependency for its own development team. The wealth manager build extends this property: the platform's creator used the platform to build a domain application, discovering and fixing platform issues in the process.
+The ainative platform uses its own capabilities to produce its documentation, generate its book chapters, and monitor its codebase for drift. This "self-building" property — detailed in Chapter 11 of the AI Native book — establishes that the platform is not merely a product but a dependency for its own development team. The wealth manager build extends this property: the platform's creator used the platform to build a domain application, discovering and fixing platform issues in the process.
 
 ---
 
@@ -115,12 +115,12 @@ The wealth manager application comprises:
 
 ### Architectural Decision: No New Infrastructure
 
-The most significant architectural decision was to build entirely on Stagent's existing data model. Portfolio positions, prediction markets, alerts, and transactions are all stored in `userTables` and `userTableRows` — the same structured data tables used by any Stagent project.
+The most significant architectural decision was to build entirely on ainative's existing data model. Portfolio positions, prediction markets, alerts, and transactions are all stored in `userTables` and `userTableRows` — the same structured data tables used by any ainative project.
 
 This decision had three consequences:
 
 1. **Zero database migration.** No new tables were created at the SQLite level. All domain entities are rows in existing tables.
-2. **Full agent compatibility.** Any Stagent agent can read, write, and query wealth manager data using the same table tools (query_table, search_table, add_rows, update_row) available in every project.
+2. **Full agent compatibility.** Any ainative agent can read, write, and query wealth manager data using the same table tools (query_table, search_table, add_rows, update_row) available in every project.
 3. **Workflow reuse.** The rebalance analyzer and scenario modeler are workflow definitions — not new workflow engines. They run on the existing workflow execution infrastructure.
 
 ---
@@ -159,7 +159,7 @@ Layers D/E/F (independent, parallel):
 Synthesis: Daily Conviction Brief (CIO morning note)
 ```
 
-This architecture is itself a workflow pattern — the same planner-executor-with-parallel-branches pattern available in Stagent's workflow engine. The human's development process mirrored the patterns the platform provides for agent execution.
+This architecture is itself a workflow pattern — the same planner-executor-with-parallel-branches pattern available in ainative's workflow engine. The human's development process mirrored the patterns the platform provides for agent execution.
 
 ### The Divergence Detection Model
 
@@ -209,7 +209,7 @@ The schedule collision prevention fix (commit #11) was substantial — 1,015 lin
 
 ### The Feedback Loop
 
-This fix was merged to the `main` branch while the wealth manager remained on its feature branch. The improvement benefits every Stagent user — anyone running multiple schedules in any project. The platform got better because a domain application stressed it in a way that automated testing had not.
+This fix was merged to the `main` branch while the wealth manager remained on its feature branch. The improvement benefits every ainative user — anyone running multiple schedules in any project. The platform got better because a domain application stressed it in a way that automated testing had not.
 
 This is the self-reinforcing feedback loop that makes platform-building different from product-building:
 
@@ -247,19 +247,19 @@ Geoffrey Huntley's observation applies: the strongest signal a system works is i
 
 ### Infrastructure Leverage Analysis
 
-To estimate the infrastructure leverage provided by Stagent, we enumerate the systems that the wealth manager uses but did not build:
+To estimate the infrastructure leverage provided by ainative, we enumerate the systems that the wealth manager uses but did not build:
 
 | Infrastructure Component | Approximate Equivalent Build Cost | Provided By |
 |-------------------------|----------------------------------|-------------|
-| SQLite database with WAL mode | 2,000-5,000 lines | Stagent core |
-| Schema + migration system | 3,000-5,000 lines | Drizzle ORM + Stagent schema |
-| Workflow execution engine | 5,000-8,000 lines | Stagent workflow engine |
-| Schedule/cron system | 2,000-4,000 lines | Stagent scheduler |
-| Agent runtime (LLM integration) | 8,000-15,000 lines | Stagent agent runtime |
-| Governance/approval layer | 3,000-5,000 lines | Stagent permissions |
-| Cost metering system | 1,000-2,000 lines | Stagent ledger |
+| SQLite database with WAL mode | 2,000-5,000 lines | ainative core |
+| Schema + migration system | 3,000-5,000 lines | Drizzle ORM + ainative schema |
+| Workflow execution engine | 5,000-8,000 lines | ainative workflow engine |
+| Schedule/cron system | 2,000-4,000 lines | ainative scheduler |
+| Agent runtime (LLM integration) | 8,000-15,000 lines | ainative agent runtime |
+| Governance/approval layer | 3,000-5,000 lines | ainative permissions |
+| Cost metering system | 1,000-2,000 lines | ainative ledger |
 | UI framework + components | 5,000-10,000 lines | Next.js + shadcn/ui |
-| Authentication + settings | 2,000-3,000 lines | Stagent settings |
+| Authentication + settings | 2,000-3,000 lines | ainative settings |
 | **Total infrastructure** | **31,000-57,000 lines** | **Already existed** |
 
 **Infrastructure leverage ratio:** The builder wrote 7,435 lines of domain code on top of an estimated 31,000-57,000 lines of infrastructure. This represents a **4.2-7.7x leverage factor** — the builder produced a system that would have required 38,000-64,000 total lines by writing only 12-19% of the code.
@@ -280,7 +280,7 @@ For context, we estimate the time a solo full-stack developer would require to b
 | Testing + debugging | 3-5 days |
 | **Total** | **25-40 working days** |
 
-The wealth manager was built in 1 day on Stagent versus an estimated 25-40 days from scratch — a **25-40x time compression ratio**. This ratio will vary by domain, developer skill, and application complexity, but the order of magnitude is significant.
+The wealth manager was built in 1 day on ainative versus an estimated 25-40 days from scratch — a **25-40x time compression ratio**. This ratio will vary by domain, developer skill, and application complexity, but the order of magnitude is significant.
 
 ---
 
@@ -296,7 +296,7 @@ This mirrors the pattern described by Dorsey and Botha in their Sequoia essay: "
 
 ### The "Make It Your Own" Pattern
 
-The most significant implication may be for Stagent's market positioning. The wealth manager demonstrates that Stagent is not limited to project management and task execution. It is a platform that individual knowledge workers can shape around their own domain:
+The most significant implication may be for ainative's market positioning. The wealth manager demonstrates that ainative is not limited to project management and task execution. It is a platform that individual knowledge workers can shape around their own domain:
 
 | Domain | Equivalent Build Pattern |
 |--------|------------------------|
@@ -307,13 +307,13 @@ The most significant implication may be for Stagent's market positioning. The we
 | **Clinical Research** | Trials → regulatory tracking → endpoint monitoring → safety synthesis |
 | **Content Operations** | Calendar → audience analytics → competitor monitoring → editorial planning |
 
-In each case, the pattern is identical: domain entities stored in Stagent tables, monitored by Stagent schedules, processed by Stagent workflows, analyzed by Stagent agents, governed by Stagent approval gates. The domain logic — the TypeScript functions that encode expertise — is the builder's contribution. Everything else is inherited.
+In each case, the pattern is identical: domain entities stored in ainative tables, monitored by ainative schedules, processed by ainative workflows, analyzed by ainative agents, governed by ainative approval gates. The domain logic — the TypeScript functions that encode expertise — is the builder's contribution. Everything else is inherited.
 
 ### The Self-Reinforcing Ecosystem
 
-If multiple builders follow this pattern — each shaping Stagent around their own domain — the ecosystem effects are multiplicative:
+If multiple builders follow this pattern — each shaping ainative around their own domain — the ecosystem effects are multiplicative:
 
-1. **Platform improvements compound.** Each domain application discovers edge cases. Each fix benefits all users. The schedule collision prevention fix discovered during the wealth manager build improved scheduling for every Stagent project.
+1. **Platform improvements compound.** Each domain application discovers edge cases. Each fix benefits all users. The schedule collision prevention fix discovered during the wealth manager build improved scheduling for every ainative project.
 
 2. **Profiles become reusable.** The wealth-manager agent profile could be published to a profile marketplace, allowing other builders to start with financial analysis capabilities without building them from scratch.
 
@@ -321,7 +321,7 @@ If multiple builders follow this pattern — each shaping Stagent around their o
 
 4. **Domain data enriches the platform.** If prediction market integration proves valuable for wealth management, the same integration pattern could be offered as a built-in capability for any project that benefits from forward-looking probability data.
 
-This is the marketplace flywheel described in Stagent's research paper ("The 10x Vision"), but grounded in a specific example rather than a projection.
+This is the marketplace flywheel described in ainative's research paper ("The 10x Vision"), but grounded in a specific example rather than a projection.
 
 ---
 
@@ -329,7 +329,7 @@ This is the marketplace flywheel described in Stagent's research paper ("The 10x
 
 ### Single Case Study
 
-This paper presents a single case study by the platform's creator. The builder had intimate knowledge of Stagent's architecture, APIs, and conventions. A third-party builder would face a learning curve that our metrics do not capture. Future research should document builds by external developers across multiple domains to establish reproducibility.
+This paper presents a single case study by the platform's creator. The builder had intimate knowledge of ainative's architecture, APIs, and conventions. A third-party builder would face a learning curve that our metrics do not capture. Future research should document builds by external developers across multiple domains to establish reproducibility.
 
 ### Build Quality Assessment
 
@@ -337,7 +337,7 @@ We report lines of code and feature count but do not assess code quality, test c
 
 ### Domain Specificity
 
-The wealth management domain is well-suited to Stagent's primitives: structured data, time-series monitoring, workflow-driven analysis, and human-in-the-loop decisions. Domains with different characteristics — real-time collaboration, media processing, physical-world interaction — may not benefit equally from this architecture.
+The wealth management domain is well-suited to ainative's primitives: structured data, time-series monitoring, workflow-driven analysis, and human-in-the-loop decisions. Domains with different characteristics — real-time collaboration, media processing, physical-world interaction — may not benefit equally from this architecture.
 
 ### Future Work
 
@@ -363,8 +363,8 @@ The wealth management domain is well-suited to Stagent's primitives: structured 
 - Geoffrey Huntley — Ralph Wiggum technique: bash loop AI development
 - Leopold Aschenbrenner — "Situational Awareness" (2024)
 - Polymarket — Gamma API, CLOB API, Data API documentation
-- Stagent — AI Native: Building Autonomous Business Systems with AI Agents (Book, 2026)
-- Stagent — AI Transformation Research: Building and Governing AI-Native Businesses (March 2026)
+- ainative — AI Native: Building Autonomous Business Systems with AI Agents (Book, 2026)
+- ainative — AI Transformation Research: Building and Governing AI-Native Businesses (March 2026)
 - Rothschild et al. — "The Agentic Economy" (ACM, 2025)
 
 ---

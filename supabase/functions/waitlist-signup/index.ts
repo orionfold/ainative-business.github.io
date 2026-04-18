@@ -1,8 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ALLOWED_ORIGINS = [
-  "https://stagent.io",
-  "https://stagent.github.io",
+  "https://ainative.business",
 ];
 
 function getCorsHeaders(req: Request) {
@@ -152,6 +151,7 @@ async function sendConfirmationEmail(email: string, token: string) {
     throw new Error("RESEND_API_KEY not configured");
   }
 
+  // Supabase project URL — predates the rename; project rename is operational, not a code change
   const confirmUrl = `https://stagent.supabase.co/functions/v1/confirm-email?token=${token}`;
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -161,7 +161,7 @@ async function sendConfirmationEmail(email: string, token: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: "Stagent <team@stagent.io>",
+      from: "ainative <team@ainative.business>",
       to: [email],
       subject: "Confirm your AI Native research subscription",
       text: confirmationEmailText(confirmUrl),
@@ -192,7 +192,7 @@ This link expires in 7 days. If you didn't request this,
 you can safely ignore this email.
 
 --
-Stagent | stagent.io
+ainative | ainative.business
 The operating system for the agentic economy
 `;
 }

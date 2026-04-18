@@ -57,17 +57,17 @@ const domains = [
 const totalEndpoints = domains.reduce((sum, g) => sum + g.items.reduce((s, i) => s + i.endpoints, 0), 0);
 const totalDomains = domains.reduce((sum, g) => sum + g.items.length, 0);
 ---
-<ApiDocsLayout title="API Reference" description="Complete REST API reference for Stagent — 120+ endpoints across 26 domains for building integrations and automations.">
+<ApiDocsLayout title="API Reference" description="Complete REST API reference for ainative — 120+ endpoints across 26 domains for building integrations and automations.">
   <h1>API Reference</h1>
   <p>
-    Stagent exposes a local REST API with <strong>{totalEndpoints} endpoints</strong> across <strong>{totalDomains} domains</strong>.
+    ainative exposes a local REST API with <strong>{totalEndpoints} endpoints</strong> across <strong>{totalDomains} domains</strong>.
     All endpoints accept and return JSON. Authentication is handled by provider API keys configured in Settings.
   </p>
 
   <div class="not-prose mt-4 mb-8 p-4 rounded-lg border border-border bg-surface-raised/50">
     <h4 class="font-mono text-xs uppercase tracking-widest text-text-muted mb-2">Base URL</h4>
     <code class="font-mono text-sm text-primary">http://localhost:3000</code>
-    <p class="text-xs text-text-dim mt-2 mb-0">Stagent runs locally. All API calls are made to your local instance.</p>
+    <p class="text-xs text-text-dim mt-2 mb-0">ainative runs locally. All API calls are made to your local instance.</p>
   </div>
 
   <div class="not-prose mb-6 flex flex-wrap gap-4 text-xs font-mono">

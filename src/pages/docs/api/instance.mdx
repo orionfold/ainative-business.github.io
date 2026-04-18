@@ -1,7 +1,7 @@
 ---
 layout: ../../../layouts/ApiDocsLayout.astro
 title: "Instance API"
-description: "Manage Stagent instance lifecycle — read configuration and guardrails, run initialization, detect and apply upstream upgrades, and poll upgrade availability."
+description: "Manage ainative instance lifecycle — read configuration and guardrails, run initialization, detect and apply upstream upgrades, and poll upgrade availability."
 ---
 
 import EndpointCard from '../../../components/api/EndpointCard.astro'
@@ -10,9 +10,9 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Instance API
 
-The Instance API manages the Stagent process lifecycle on a self-hosted installation. It exposes instance configuration (branch name, data directory, guardrails), idempotent initialization, and the full upgrade detection + application flow. The upgrade system uses a background poller that compares the local branch against `origin/main`; when commits are available, the operator spawns an `upgrade-assistant` task that performs a guided git merge.
+The Instance API manages the ainative process lifecycle on a self-hosted installation. It exposes instance configuration (branch name, data directory, guardrails), idempotent initialization, and the full upgrade detection + application flow. The upgrade system uses a background poller that compares the local branch against `origin/main`; when commits are available, the operator spawns an `upgrade-assistant` task that performs a guided git merge.
 
-When running on the canonical Stagent development repository (`STAGENT_DEV_MODE=true` or the `.git/stagent-dev-mode` sentinel), all endpoints return safe synthetic responses so that dev-environment state never bleeds into production UIs.
+When running on the canonical ainative development repository (`AINATIVE_DEV_MODE=true` or the `.git/ainative-dev-mode` sentinel), all endpoints return safe synthetic responses so that dev-environment state never bleeds into production UIs.
 
 ## Quick Start
 
@@ -157,7 +157,7 @@ Example response:
   "devMode": false,
   "config": {
     "branchName": "instance/team-prod",
-    "dataDir": "/Users/team/.stagent",
+    "dataDir": "/Users/team/.ainative",
     "createdAt": "2026-03-01T09:00:00.000Z"
   },
   "guardrails": {
@@ -440,7 +440,7 @@ Example response:
 
 ## Dev Mode
 
-When `STAGENT_DEV_MODE=true` is set in the environment or the `.git/stagent-dev-mode` sentinel file is present, the Instance API operates in dev mode:
+When `AINATIVE_DEV_MODE=true` is set in the environment or the `.git/ainative-dev-mode` sentinel file is present, the Instance API operates in dev mode:
 
 - `GET /api/instance/config` — returns `{ devMode: true, config: null, guardrails: null, upgrade: null }`
 - `GET /api/instance/upgrade/status` — returns a synthetic state with `upgradeAvailable: false`

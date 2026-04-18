@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/DocsLayout.astro
 title: "Agent Integration"
-description: "Dual-runtime execution, profile-backed policies, governed tool use, and monitoring in Stagent."
+description: "Dual-runtime execution, profile-backed policies, governed tool use, and monitoring in ainative."
 ---
 
 import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 # Agent Integration
 
-Stagent integrates both Claude Agent SDK and Codex App Server execution into an operator-facing workspace instead of exposing raw provider runtimes directly. Profiles, tasks, inbox decisions, monitor logs, and usage records all shape how the agent layer behaves.
+ainative integrates both Claude Agent SDK and Codex App Server execution into an operator-facing workspace instead of exposing raw provider runtimes directly. Profiles, tasks, inbox decisions, monitor logs, and usage records all shape how the agent layer behaves.
 
 <BrowserFrame src="/screenshots/profiles-detail.png" alt="Code Reviewer profile detail with identity, configuration, runtime coverage, tools and policy" />
 
@@ -28,7 +28,7 @@ Stagent integrates both Claude Agent SDK and Codex App Server execution into an 
 ## Execution Flow
 
 1. An operator creates or queues a task from the dashboard, a project, a workflow, or a schedule.
-2. Stagent resolves which profile and project context should be applied to the run.
+2. ainative resolves which profile and project context should be applied to the run.
 3. The execution layer resolves the selected runtime and starts the provider session or thread.
 4. Tool requests and runtime questions create inbox items when human approval or clarification is required.
 5. Monitor logs continue updating while the agent waits, resumes, completes, or fails.
@@ -36,7 +36,7 @@ Stagent integrates both Claude Agent SDK and Codex App Server execution into an 
 
 ## How It Works
 
-Stagent wraps the underlying runtimes with operational primitives that humans can supervise. That wrapper is what turns a raw model session into a governed system: profiles make behavior repeatable, the inbox makes decisions explicit, the monitor keeps execution observable, and the shared usage ledger keeps cost legible.
+ainative wraps the underlying runtimes with operational primitives that humans can supervise. That wrapper is what turns a raw model session into a governed system: profiles make behavior repeatable, the inbox makes decisions explicit, the monitor keeps execution observable, and the shared usage ledger keeps cost legible.
 
 The integration surface is therefore broader than a single callback. It spans the settings page, profiles catalog, execution dashboard, inbox, monitoring view, and cost dashboard as one coordinated control plane.
 
@@ -62,7 +62,7 @@ The agent reaches for a source you do not trust. You deny the tool request, prov
 
 **Developer** · *Refactoring 50 files without starting over*
 
-Your agent fails halfway through a large run. Because the execution record lives inside Stagent’s operational surfaces, you can review the monitor output, inspect the task, fix the issue, and resume from a known state instead of starting blind.
+Your agent fails halfway through a large run. Because the execution record lives inside ainative’s operational surfaces, you can review the monitor output, inspect the task, fix the issue, and resume from a known state instead of starting blind.
 
 ### First-Time Agent Delegation
 

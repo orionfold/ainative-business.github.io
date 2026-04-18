@@ -21,9 +21,9 @@ import { PathSelector } from "./path-selector";
 import { PathProgress } from "./path-progress";
 import { getReadingPath, getNextPathChapter, isChapterInPath } from "../../lib/book/reading-paths";
 
-const PREFS_KEY = "stagent-book-prefs";
-const PROGRESS_KEY = "stagent-book-progress";
-const BOOKMARKS_KEY = "stagent-book-bookmarks";
+const PREFS_KEY = "ainative-book-prefs";
+const PROGRESS_KEY = "ainative-book-progress";
+const BOOKMARKS_KEY = "ainative-book-bookmarks";
 
 function getSiteTheme(): ReaderPreferences["theme"] {
   if (typeof window === "undefined") return "light";
@@ -166,16 +166,16 @@ export function BookReader({
     setPrefs(loadPrefs());
     setProgress(loadProgress());
     setBookmarks(loadBookmarks());
-    const savedPath = localStorage.getItem("stagent-book-path");
+    const savedPath = localStorage.getItem("ainative-book-path");
     if (savedPath) setActivePath(savedPath);
   }, []);
 
   const handlePathChange = useCallback((pathId: string | null) => {
     setActivePath(pathId);
     if (pathId) {
-      localStorage.setItem("stagent-book-path", pathId);
+      localStorage.setItem("ainative-book-path", pathId);
     } else {
-      localStorage.removeItem("stagent-book-path");
+      localStorage.removeItem("ainative-book-path");
     }
   }, []);
 
@@ -366,16 +366,16 @@ export function BookReader({
           <a
             href="/"
             className="text-xs text-text-muted hover:text-primary transition-colors no-underline hidden sm:inline-flex items-center gap-1.5"
-            title="Back to Stagent"
+            title="Back to ainative"
           >
             <img
-              src="/stagent-s-64.png"
-              alt="Stagent"
+              src="/ainative-s-64.png"
+              alt="ainative"
               width="20"
               height="20"
               className="h-5 w-5 shrink-0"
             />
-            <span className="hidden md:inline font-semibold tracking-tight">Stagent</span>
+            <span className="hidden md:inline font-semibold tracking-tight">ainative</span>
           </a>
           <span className="text-text-muted/30 hidden sm:inline">/</span>
           <a

@@ -159,7 +159,7 @@ export const CHAPTERS: BookChapter[] = [
     id: "ch-11",
     number: 11,
     title: "The Machine That Builds Machines",
-    subtitle: "Stagent Building Itself Using Itself",
+    subtitle: "ainative Building Itself Using Itself",
     part: PARTS[3],
     readingTime: 14,
     wordCount: 3281,

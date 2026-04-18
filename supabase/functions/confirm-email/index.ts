@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const SITE = "https://stagent.io";
+const SITE = "https://ainative.business";
 
 function redirect(path: string) {
   return new Response(null, {

@@ -1,4 +1,4 @@
-# Stagent Development Metrics
+# ainative Development Metrics
 
 ## [2026-03-02 22:00] Metrics Snapshot
 

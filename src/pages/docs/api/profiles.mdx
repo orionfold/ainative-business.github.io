@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Profiles API
 
-Profiles define agent behavior — the system prompt (SKILL.md), allowed tools, MCP servers, and per-runtime overrides. Profiles are stored as YAML + Markdown on disk and support three scopes: built-in (shipped with Stagent), user (`~/.claude/skills/`), and project (`.claude/skills/`). The Profiles API covers CRUD, behavioral testing, learned context management, AI-assisted generation, and GitHub import.
+Profiles define agent behavior — the system prompt (SKILL.md), allowed tools, MCP servers, and per-runtime overrides. Profiles are stored as YAML + Markdown on disk and support three scopes: built-in (shipped with ainative), user (`~/.claude/skills/`), and project (`.claude/skills/`). The Profiles API covers CRUD, behavioral testing, learned context management, AI-assisted generation, and GitHub import.
 
 ## Quick Start
 
@@ -751,7 +751,7 @@ const { id, name }: { id: string; name: string } = await fetch('/api/profiles/im
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    url: 'https://github.com/acme/stagent-profiles/tree/main/.claude/skills/security-reviewer',
+    url: 'https://github.com/acme/ainative-profiles/tree/main/.claude/skills/security-reviewer',
   }),
 }).then(r => r.json());
 
@@ -760,7 +760,7 @@ console.log(\`Imported "\${name}" as \${id}\`);`} python={`import requests
 # Import a profile from GitHub
 response = requests.post(
     "http://localhost:3000/api/profiles/import",
-    json={"url": "https://github.com/acme/stagent-profiles/tree/main/.claude/skills/security-reviewer"},
+    json={"url": "https://github.com/acme/ainative-profiles/tree/main/.claude/skills/security-reviewer"},
 )
 data: dict = response.json()
 
@@ -798,7 +798,7 @@ Import entire GitHub repositories of skills in a multi-step flow: scan the repo 
 
 ### Scan Repository
 
-<EndpointCard method="POST" path="/api/profiles/import-repo/scan" description="Scan a GitHub repository to discover importable skill directories. Returns a list of discovered skills with their detected formats (stagent-native or SKILL.md-only).">
+<EndpointCard method="POST" path="/api/profiles/import-repo/scan" description="Scan a GitHub repository to discover importable skill directories. Returns a list of discovered skills with their detected formats (ainative-native or SKILL.md-only).">
 
 <SchemaTable title="Request Body" fields={[
   { name: 'url', type: 'string (URL)', required: true, description: 'GitHub URL of the repository to scan (github.com or raw.githubusercontent.com)' },
@@ -819,7 +819,7 @@ Scan a skills repository to see what profiles are available before committing to
 interface DiscoveredSkill {
   path: string;
   name: string;
-  format: 'stagent' | 'skill-md-only';
+  format: 'ainative' | 'skill-md-only';
 }
 interface ScanResult {
   owner: string;
@@ -834,7 +834,7 @@ const scan: ScanResult = await fetch('/api/profiles/import-repo/scan', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    url: 'https://github.com/acme/stagent-skills',
+    url: 'https://github.com/acme/ainative-skills',
   }),
 }).then(r => r.json());
 
@@ -844,7 +844,7 @@ scan.skills.forEach(s => console.log(\`  \${s.name} (\${s.format}) — \${s.path
 # Step 1: Scan a GitHub repository for importable skills
 response = requests.post(
     "http://localhost:3000/api/profiles/import-repo/scan",
-    json={"url": "https://github.com/acme/stagent-skills"},
+    json={"url": "https://github.com/acme/ainative-skills"},
 )
 scan: dict = response.json()
 
@@ -857,12 +857,12 @@ Example response:
 ```json
 {
   "owner": "acme",
-  "repo": "stagent-skills",
+  "repo": "ainative-skills",
   "branch": "main",
   "commitSha": "a1b2c3d4e5f6789012345678901234567890abcd",
-  "repoUrl": "https://github.com/acme/stagent-skills",
+  "repoUrl": "https://github.com/acme/ainative-skills",
   "skills": [
-    { "path": ".claude/skills/security-reviewer", "name": "security-reviewer", "format": "stagent" },
+    { "path": ".claude/skills/security-reviewer", "name": "security-reviewer", "format": "ainative" },
     { "path": ".claude/skills/data-analyst", "name": "data-analyst", "format": "skill-md-only" }
   ]
 }
@@ -1000,9 +1000,9 @@ const result: ImportResult = await fetch('/api/profiles/import-repo/confirm', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    repoUrl: 'https://github.com/acme/stagent-skills',
+    repoUrl: 'https://github.com/acme/ainative-skills',
     owner: 'acme',
-    repo: 'stagent-skills',
+    repo: 'ainative-skills',
     branch: 'main',
     commitSha: 'a1b2c3d4e5f6789012345678901234567890abcd',
     imports: previews
@@ -1040,9 +1040,9 @@ imports = [
 result = requests.post(
     "http://localhost:3000/api/profiles/import-repo/confirm",
     json={
-        "repoUrl": "https://github.com/acme/stagent-skills",
+        "repoUrl": "https://github.com/acme/ainative-skills",
         "owner": "acme",
-        "repo": "stagent-skills",
+        "repo": "ainative-skills",
         "branch": "main",
         "commitSha": "a1b2c3d4e5f6789012345678901234567890abcd",
         "imports": imports,

@@ -1,17 +1,17 @@
 ---
-name: stagent-stats
-description: Collect development metrics (LOC, tests, commits, features, infrastructure, velocity, business functionality) from the Stagent project and write a timestamped report to stagent-stats.md and stats/YYYY-MM-DD-HHMM.md. Then update all stat locations across the marketing website. Use when the user asks to check project stats, update metrics, or track development velocity.
+name: ainative-stats
+description: Collect development metrics (LOC, tests, commits, features, infrastructure, velocity, business functionality) from the ainative project and write a timestamped report to ainative-stats.md and stats/YYYY-MM-DD-HHMM.md. Then update all stat locations across the marketing website. Use when the user asks to check project stats, update metrics, or track development velocity.
 ---
 
-This skill collects comprehensive development metrics from the Stagent project and writes them to `stagent-stats.md` as a timestamped entry and saves each snapshot to an individual file in `stats/`. Each run appends a new entry, building a time-series of project velocity with per-day and per-feature efficiency ratios. It then propagates the collected stats to all locations across the marketing website.
+This skill collects comprehensive development metrics from the ainative project and writes them to `ainative-stats.md` as a timestamped entry and saves each snapshot to an individual file in `stats/`. Each run appends a new entry, building a time-series of project velocity with per-day and per-feature efficiency ratios. It then propagates the collected stats to all locations across the marketing website.
 
 ## Target Project
 
-The Stagent codebase lives at `/Users/manavsehgal/Developer/stagent/`. All metric collection commands run against that directory. The report file `stagent-stats.md` is written to the current working directory.
+The ainative codebase lives at `/Users/manavsehgal/Developer/ainative/`. All metric collection commands run against that directory. The report file `ainative-stats.md` is written to the current working directory.
 
 ## Architecture
 
-Stagent is a pure **Next.js 16 + React 19** web application with local SQLite storage via Drizzle ORM. AI integration uses the **Claude Agent SDK** v0.2.71. There is no Rust, Tauri, or native desktop component.
+ainative is a pure **Next.js 16 + React 19** web application with local SQLite storage via Drizzle ORM. AI integration uses the **Claude Agent SDK** v0.2.71. There is no Rust, Tauri, or native desktop component.
 
 ## Collection Steps
 
@@ -25,14 +25,14 @@ If `tokei` is missing, fall back to `find + wc -l` for LOC counting. Note any mi
 
 ### 2. Collect LOC
 
-Run `tokei` on the Stagent project root:
+Run `tokei` on the ainative project root:
 ```bash
-tokei /Users/manavsehgal/Developer/stagent/ --sort code -t=TypeScript,TSX,CSS,JSON
+tokei /Users/manavsehgal/Developer/ainative/ --sort code -t=TypeScript,TSX,CSS,JSON
 ```
 
 If `tokei` is unavailable, use:
 ```bash
-find /Users/manavsehgal/Developer/stagent/src -name '*.ts' -o -name '*.tsx' | xargs wc -l
+find /Users/manavsehgal/Developer/ainative/src -name '*.ts' -o -name '*.tsx' | xargs wc -l
 ```
 
 Record: TypeScript production LOC, TypeScript test LOC, total LOC.
@@ -41,7 +41,7 @@ Record: TypeScript production LOC, TypeScript test LOC, total LOC.
 
 Count test functions (Vitest only — no Playwright or Rust tests):
 ```bash
-grep -r "it(\|test(" /Users/manavsehgal/Developer/stagent/src --include="*.test.ts" --include="*.test.tsx" --include="*.spec.ts" | wc -l
+grep -r "it(\|test(" /Users/manavsehgal/Developer/ainative/src --include="*.test.ts" --include="*.test.tsx" --include="*.spec.ts" | wc -l
 ```
 
 Record: Vitest count, total.
@@ -49,7 +49,7 @@ Record: Vitest count, total.
 ### 4. Git Velocity
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent/
+cd /Users/manavsehgal/Developer/ainative/
 git rev-list --count HEAD
 git log --oneline --since="$(git log --reverse --format='%aI' | head -1)" | wc -l
 git log --reverse --format='%aI' | head -1  # first commit timestamp
@@ -79,7 +79,7 @@ Compute:
 
 ```bash
 # Count features from roadmap
-cat /Users/manavsehgal/Developer/stagent/features/roadmap.md
+cat /Users/manavsehgal/Developer/ainative/features/roadmap.md
 ```
 
 Count completed vs total features from the roadmap file. List completed feature names.
@@ -88,25 +88,25 @@ Count completed vs total features from the roadmap file. List completed feature 
 
 ```bash
 # API routes
-find /Users/manavsehgal/Developer/stagent/src/app/api -name "route.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src/app/api -name "route.ts" 2>/dev/null | wc -l
 
 # Database tables
-grep -c "export const" /Users/manavsehgal/Developer/stagent/src/db/schema.ts 2>/dev/null || echo 0
+grep -c "export const" /Users/manavsehgal/Developer/ainative/src/db/schema.ts 2>/dev/null || echo 0
 
 # React components
-find /Users/manavsehgal/Developer/stagent/src/components -name "*.tsx" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src/components -name "*.tsx" 2>/dev/null | wc -l
 
 # Pages (operator surfaces)
-find /Users/manavsehgal/Developer/stagent/src/app -name "page.tsx" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src/app -name "page.tsx" 2>/dev/null | wc -l
 
 # Agent profiles
-find /Users/manavsehgal/Developer/stagent/src -path "*/agents/*" -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src -path "*/agents/*" -name "*.ts" 2>/dev/null | wc -l
 
 # Service modules
-find /Users/manavsehgal/Developer/stagent/src/services -maxdepth 1 -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src/services -maxdepth 1 -name "*.ts" 2>/dev/null | wc -l
 
 # Workflow patterns
-find /Users/manavsehgal/Developer/stagent/src -path "*/workflows/*" -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/Developer/ainative/src -path "*/workflows/*" -name "*.ts" 2>/dev/null | wc -l
 ```
 
 ### 7. Quality Indicators
@@ -118,7 +118,7 @@ Note TypeScript strict mode and ESLint config status if available.
 Count the pre-built business primitives that ship with the product — these represent out-of-the-box value, not just code infrastructure.
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent/
+cd /Users/manavsehgal/Developer/ainative/
 
 # Workflow blueprints (YAML files in builtins)
 find src/lib/workflows/blueprints/builtins -name "*.yaml" 2>/dev/null | wc -l
@@ -180,7 +180,7 @@ Record these business functionality counts:
 
 ### 8. Write Report
 
-Read the existing `stagent-stats.md` file if it exists. Append a new timestamped entry in this format:
+Read the existing `ainative-stats.md` file if it exists. Append a new timestamped entry in this format:
 
 ```markdown
 ## [YYYY-MM-DD HH:MM] Metrics Snapshot
@@ -229,7 +229,7 @@ Read the existing `stagent-stats.md` file if it exists. Append a new timestamped
 
 ### 9. Trend Comparison
 
-If previous entries exist in `stagent-stats.md`, compute and display deltas:
+If previous entries exist in `ainative-stats.md`, compute and display deltas:
 - LOC: +X,XXX since last snapshot
 - Tests: +XX since last snapshot
 - Commits: +XX since last snapshot
@@ -242,7 +242,7 @@ Format deltas with arrows: `↑ +1,234 LOC` or `→ no change`. For rate metrics
 
 ### 10. Save Snapshot to `stats/`
 
-After writing the snapshot to `stagent-stats.md`, also save it as an individual timestamped file in the `stats/` directory within this project:
+After writing the snapshot to `ainative-stats.md`, also save it as an individual timestamped file in the `stats/` directory within this project:
 
 ```bash
 mkdir -p stats/
@@ -273,7 +273,7 @@ Use this mapping to translate collected metrics into website values:
 | AI Runtimes | Count from product's runtime config (typically stable at 5) |
 | Agent Profiles | `Infra | Agent profiles` count from step 6 |
 | Workflow Patterns | Workflow patterns count from step 6 |
-| LOC (Stagent) | `LOC | Total` from step 2, formatted as `XXK` |
+| LOC (ainative) | `LOC | Total` from step 2, formatted as `XXK` |
 | Tests | `Tests | Total` from step 3 |
 | API Endpoints | `Infra | API routes` from step 6 |
 | DB Tables | `Infra | DB tables` from step 6 |
@@ -311,9 +311,9 @@ export const metrics = [
 ];
 ```
 
-Note: Portfolio-wide metrics (LOC, AI Agents, Projects, Blog Articles) include ALL projects, not just Stagent. To update these, sum LOC across all project entries and count agents across the portfolio. `Production Systems` and `Projects` count the total number of shipped systems and projects respectively.
+Note: Portfolio-wide metrics (LOC, AI Agents, Projects, Blog Articles) include ALL projects, not just ainative. To update these, sum LOC across all project entries and count agents across the portfolio. `Production Systems` and `Projects` count the total number of shipped systems and projects respectively.
 
-Also update the Stagent project entry's `stats` field (search for the Stagent entry near the bottom of the timeline array):
+Also update the ainative project entry's `stats` field (search for the ainative entry near the bottom of the timeline array):
 ```
 stats: '<LOC>K LOC · <TESTS> tests · <FEATURES_COMPLETED>/<FEATURES_TOTAL> features shipped'
 ```
@@ -382,9 +382,9 @@ This is the 3-layer detailed architecture diagram. Update text elements containi
 Update the stat references in FAQ answers:
 - "supports **<AI_RUNTIMES> AI runtimes**, **<AGENT_PROFILES>+ specialist agent profiles**, **<WORKFLOW_PATTERNS> workflow patterns**"
 
-### Update Target 9: Stagent Timeline Entry
+### Update Target 9: ainative Timeline Entry
 
-**File:** `src/data/timeline.ts` (Stagent entry near bottom of timeline array)
+**File:** `src/data/timeline.ts` (ainative entry near bottom of timeline array)
 
 Update these fields:
 - `stats` — LOC count, test count, features shipped ratio
@@ -393,7 +393,7 @@ Update these fields:
 
 ### Update Target 10: Standalone Architecture SVG (Product README)
 
-**File:** `/Users/manavsehgal/Developer/stagent/public/readme/architecture.svg`
+**File:** `/Users/manavsehgal/Developer/ainative/public/readme/architecture.svg`
 
 This is a self-contained SVG (900x520 viewBox) referenced by the product's README.md on GitHub. It mirrors the 3-layer architecture from Target 7 (Browser → Server → External) but uses hardcoded hex colors instead of CSS custom properties. After updating stats in the website SVGs, update this file with the **same stat values** and ensure it uses the **light theme** color scheme so it renders cleanly on GitHub's white background.
 
@@ -439,7 +439,7 @@ Light hex values are derived from the website's OKLCH light-theme tokens in `src
 
 ### Build Check
 ```bash
-cd /path/to/stagent.github.io && npm run build
+cd /path/to/ainative.business && npm run build
 ```
 
 Verify the build completes without errors.

@@ -162,7 +162,7 @@ Example response:
       { "name": "Style Review", "profileId": "code-reviewer", "promptTemplate": "Check code style and patterns in {{repo_url}}", "requiresApproval": false },
       { "name": "Final Report", "profileId": "technical-writer", "promptTemplate": "Compile findings into a review report focusing on {{focus_areas}}", "requiresApproval": true }
     ],
-    "author": "Stagent Team",
+    "author": "ainative Team",
     "estimatedDuration": "10–15 minutes",
     "difficulty": "beginner"
   }
@@ -271,14 +271,14 @@ print(f"Registered: {blueprint['id']}")`} />
 **Errors:**
 - `400` — URL missing, not a GitHub URL, fetch failed, or YAML validation error
 
-Import a blueprint directly from a GitHub repository — Stagent fetches the YAML, validates it, and registers it:
+Import a blueprint directly from a GitHub repository — ainative fetches the YAML, validates it, and registers it:
 
 <CodeExample ts={`// Import a blueprint from GitHub — validates and registers automatically
 const { id, name }: { id: string; name: string } = await fetch('/api/blueprints/import', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    url: 'https://github.com/acme/stagent-blueprints/blob/main/blueprints/code-review.yaml',
+    url: 'https://github.com/acme/ainative-blueprints/blob/main/blueprints/code-review.yaml',
   }),
 }).then(r => r.json());
 
@@ -287,7 +287,7 @@ console.log(\`Imported "\${name}" as \${id}\`);`} python={`import requests
 # Import a blueprint from GitHub — validates and registers automatically
 response = requests.post(
     "http://localhost:3000/api/blueprints/import",
-    json={"url": "https://github.com/acme/stagent-blueprints/blob/main/blueprints/code-review.yaml"},
+    json={"url": "https://github.com/acme/ainative-blueprints/blob/main/blueprints/code-review.yaml"},
 )
 data: dict = response.json()
 print(f"Imported \\"{data['name']}\\" as {data['id']}")`} />

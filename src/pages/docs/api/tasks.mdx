@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Tasks API
 
-Tasks are the unit of execution inside Stagent. Each task moves through explicit lifecycle states and can be executed by any configured agent runtime. The Tasks API supports CRUD operations, fire-and-forget execution, real-time log streaming, and workflow-aware sibling queries.
+Tasks are the unit of execution inside ainative. Each task moves through explicit lifecycle states and can be executed by any configured agent runtime. The Tasks API supports CRUD operations, fire-and-forget execution, real-time log streaming, and workflow-aware sibling queries.
 
 ## Quick Start
 
@@ -364,7 +364,7 @@ requests.delete("http://localhost:3000/api/tasks/task-9d4e-a1b2")`} />
 
 **Response** `202 Accepted` — `{ "message": "Execution started" }`
 
-The agent runtime is selected from the task's `assignedAgent` field. If no profile is set, Stagent auto-classifies one based on the task description. Budget guardrails are enforced before execution begins.
+The agent runtime is selected from the task's `assignedAgent` field. If no profile is set, ainative auto-classifies one based on the task description. Budget guardrails are enforced before execution begins.
 
 <CodeExample ts={`// Fire-and-forget execution — poll status or stream logs to track progress
 const res: Response = await fetch("http://localhost:3000/api/tasks/task-9d4e-a1b2/execute", {

@@ -1,11 +1,11 @@
 ---
 name: apply-book-update
-description: Sync book content from the Stagent product to the stagent.io website. Compares chapter markdown files and images, copies changed content, updates code files if structure changed, and verifies the build. Use when the user says "update book", "sync book", "refresh book content", "apply book update", "sync book chapters", "update book content", "book content is stale", "new book chapters", "refresh book from product", "copy book chapters", "update book images", or any request to update, sync, or refresh the AI Native Business book content on the website from the source product repository. Also trigger after "apply product release" if the user mentions book content.
+description: Sync book content from the ainative product to the ainative.business website. Compares chapter markdown files and images, copies changed content, updates code files if structure changed, and verifies the build. Use when the user says "update book", "sync book", "refresh book content", "apply book update", "sync book chapters", "update book content", "book content is stale", "new book chapters", "refresh book from product", "copy book chapters", "update book images", or any request to update, sync, or refresh the AI Native Business book content on the website from the source product repository. Also trigger after "apply product release" if the user mentions book content.
 ---
 
 # Apply Book Update Skill
 
-Syncs the "AI Native Business" book content (chapter markdown files + images) from the Stagent product repository to the stagent.io marketing website. The book lives as a React island reader at `/book/[chapter-slug]` and content is parsed at Astro build time. The current chapter count is whatever is in the Chapter Manifest below — most counts elsewhere in the codebase are derived dynamically from `CHAPTERS.length`.
+Syncs the "AI Native Business" book content (chapter markdown files + images) from the ainative product repository to the ainative.business marketing website. The book lives as a React island reader at `/book/[chapter-slug]` and content is parsed at Astro build time. The current chapter count is whatever is in the Chapter Manifest below — most counts elsewhere in the codebase are derived dynamically from `CHAPTERS.length`.
 
 ## Attribution & License Architecture
 
@@ -23,10 +23,10 @@ Syncs the "AI Native Business" book content (chapter markdown files + images) fr
 
 | Content | Source | Target |
 |---------|--------|--------|
-| Chapters | `/Users/manavsehgal/Developer/stagent/book/chapters/*.md` | `src/data/book/chapters/` |
-| Images | `/Users/manavsehgal/Developer/stagent/book/images/*` | `public/book/images/` |
+| Chapters | `/Users/manavsehgal/Developer/ainative/book/chapters/*.md` | `src/data/book/chapters/` |
+| Images | `/Users/manavsehgal/Developer/ainative/book/images/*` | `public/book/images/` |
 
-The website project root is `/Users/manavsehgal/Developer/stagent.github.io/`.
+The website project root is `/Users/manavsehgal/Developer/ainative.business/`.
 
 ## Chapter Manifest
 
@@ -74,7 +74,7 @@ All files that may need updating during a book sync:
 Determine whether this is a **migration** (old chapter filenames still in target) or an **incremental sync** (new filenames already present):
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent.github.io
+cd /Users/manavsehgal/Developer/ainative.business
 if [ -f "src/data/book/chapters/ch-1-project-management.md" ]; then
   echo "MODE: MIGRATION — old chapter files detected, full structural update needed"
 elif [ -f "src/data/book/chapters/ch-1-from-hierarchy-to-intelligence.md" ]; then
@@ -93,9 +93,9 @@ fi
 Check which files have changed between source and target:
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent.github.io
+cd /Users/manavsehgal/Developer/ainative.business
 echo "=== Chapters ==="
-for src in /Users/manavsehgal/Developer/stagent/book/chapters/*.md; do
+for src in /Users/manavsehgal/Developer/ainative/book/chapters/*.md; do
   name=$(basename "$src")
   tgt="src/data/book/chapters/$name"
   if [ ! -f "$tgt" ]; then
@@ -107,13 +107,13 @@ done
 echo "--- Stale target files ---"
 for tgt in src/data/book/chapters/ch-*.md; do
   name=$(basename "$tgt")
-  src="/Users/manavsehgal/Developer/stagent/book/chapters/$name"
+  src="/Users/manavsehgal/Developer/ainative/book/chapters/$name"
   if [ ! -f "$src" ]; then
     echo "STALE (delete): $name"
   fi
 done
 echo "=== Images ==="
-for src in /Users/manavsehgal/Developer/stagent/book/images/*; do
+for src in /Users/manavsehgal/Developer/ainative/book/images/*; do
   name=$(basename "$src")
   tgt="public/book/images/$name"
   if [ ! -f "$tgt" ]; then
@@ -132,7 +132,7 @@ If nothing changed and mode is incremental, report "Book content is up to date" 
 
 ```bash
 rm -f src/data/book/chapters/ch-*.md
-cp /Users/manavsehgal/Developer/stagent/book/chapters/*.md src/data/book/chapters/
+cp /Users/manavsehgal/Developer/ainative/book/chapters/*.md src/data/book/chapters/
 ```
 
 **Incremental mode**: Copy only changed or new files:
@@ -157,7 +157,7 @@ for f in src/data/book/chapters/ch-*.md; do
 done
 ```
 
-If any warnings fire, **stop and flag to the user**. Do NOT silently strip the chrome — this is an upstream generator bug that should be fixed in `/Users/manavsehgal/Developer/stagent/book/chapters/` so it doesn't recur on the next sync. Acceptable action: ask the user whether to (a) fix upstream first and re-sync, or (b) strip locally as a one-time hotfix knowing the next sync will re-introduce it.
+If any warnings fire, **stop and flag to the user**. Do NOT silently strip the chrome — this is an upstream generator bug that should be fixed in `/Users/manavsehgal/Developer/ainative/book/chapters/` so it doesn't recur on the next sync. Acceptable action: ask the user whether to (a) fix upstream first and re-sync, or (b) strip locally as a one-time hotfix knowing the next sync will re-introduce it.
 
 Historical context: ch-14 shipped with a trailing `---` rule, a "Chapter 14 of 14" line, and a static "### Explore Related Features" block that the reader then rendered a second time. This lint exists to catch that class of drift.
 
@@ -318,10 +318,10 @@ Report any unresolved hits in the Step 7 change report under a "⚠️ Drift aud
 
 ### Step 6c: Commercial Framing Drift Audit
 
-Stagent.io is positioned as a personal research project, not a commercial funnel. Any re-introduction of "founding member" language, Maven/LinkedIn links, or Stage 2 "Orionfold LLC" references must fail the sync. Run this audit after every chapter sync — even if the product repo changed only markdown, a copy-paste could leak commercial framing back in.
+ainative.io is positioned as a personal research project, not a commercial funnel. Any re-introduction of "founding member" language, Maven/LinkedIn links, or Stage 2 "Orionfold LLC" references must fail the sync. Run this audit after every chapter sync — even if the product repo changed only markdown, a copy-paste could leak commercial framing back in.
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent.github.io
+cd /Users/manavsehgal/Developer/ainative.business
 FORBIDDEN=(
   'founding member'
   'founding-hero'

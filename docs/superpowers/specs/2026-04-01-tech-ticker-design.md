@@ -2,7 +2,7 @@
 
 ## Context
 
-The Stagent landing page hero section needs a continuous scrolling ticker at its bottom edge to visually communicate the breadth of technologies Stagent integrates with. The ticker groups logos by architecture layer (AI Runtimes, Channels, Browser Use, Platform, Data) using category pill labels that match the existing value proposition pills aesthetic. This reinforces the "operating system for AI-native business" messaging by showing the technology ecosystem at a glance.
+The ainative landing page hero section needs a continuous scrolling ticker at its bottom edge to visually communicate the breadth of technologies ainative integrates with. The ticker groups logos by architecture layer (AI Runtimes, Channels, Browser Use, Platform, Data) using category pill labels that match the existing value proposition pills aesthetic. This reinforces the "operating system for AI-native business" messaging by showing the technology ecosystem at a glance.
 
 ## Component
 

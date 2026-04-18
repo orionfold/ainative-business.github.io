@@ -1,17 +1,17 @@
 export const SITE = {
-  name: 'Stagent',
-  url: 'https://stagent.io',
+  name: 'ainative',
+  url: 'https://ainative.business',
   description:
-    'AI Native for everyone. A personal research by Manav Sehgal into building and working with AI agents — open source, local-first, and free.',
-  logo: 'https://stagent.io/stagent-s-128.png',
-  ogImage: 'https://stagent.io/og-image.png',
+    'AI Native Business — the book and the companion software. A personal research project by Manav Sehgal into building AI-native businesses. Open source, local-first, and free.',
+  logo: 'https://ainative.business/ainative-s-128.png',
+  ogImage: 'https://ainative.business/og-image.png',
   themeColor: '#0f172a',
   license: 'Apache-2.0',
 };
 
 export const ORGANIZATION = {
   '@type': 'Organization',
-  name: 'Stagent',
+  name: 'ainative',
   url: SITE.url,
   logo: SITE.logo,
   description: SITE.description,
@@ -21,8 +21,8 @@ export const ORGANIZATION = {
   },
   foundingDate: '2026',
   sameAs: [
-    'https://github.com/manavsehgal/stagent',
-    'https://x.com/stagent',
+    'https://github.com/manavsehgal/ainative',
+    'https://x.com/manavsehgal',
   ],
 };
 

@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Channels API
 
-Channels connect Stagent to external messaging platforms. Each channel configuration stores credentials and connection details for a Slack workspace, Telegram bot, or generic webhook. Inbound endpoints receive messages from these platforms and route them through the gateway for agent processing.
+Channels connect ainative to external messaging platforms. Each channel configuration stores credentials and connection details for a Slack workspace, Telegram bot, or generic webhook. Inbound endpoints receive messages from these platforms and route them through the gateway for agent processing.
 
 ## Quick Start
 
@@ -379,7 +379,7 @@ Example response (failure):
 
 ### Telegram Poll (Internal)
 
-<EndpointCard method="POST" path="/api/channels/inbound/telegram/poll?configId={id}" description="Poll Telegram getUpdates API for local development when webhooks can't reach localhost. Internal-only — requires x-stagent-internal: poll header.">
+<EndpointCard method="POST" path="/api/channels/inbound/telegram/poll?configId={id}" description="Poll Telegram getUpdates API for local development when webhooks can't reach localhost. Internal-only — requires x-ainative-internal: poll header.">
 
 <ParamTable title="Query Parameters" params={[
   { name: 'configId', type: 'string', required: true, description: 'Channel config ID to poll for' },
@@ -402,7 +402,7 @@ const res: Response = await fetch('http://localhost:3000/api/channels/inbound/te
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'x-stagent-internal': 'poll',
+    'x-ainative-internal': 'poll',
   },
   body: JSON.stringify({ offset: 0 }),
 });
@@ -415,7 +415,7 @@ console.log(\`Next offset: \${poll.nextOffset}\`);`} python={`import requests
 res: requests.Response = requests.post(
     "http://localhost:3000/api/channels/inbound/telegram/poll",
     params={"configId": "ch-3a4b-5c6d"},
-    headers={"x-stagent-internal": "poll"},
+    headers={"x-ainative-internal": "poll"},
     json={"offset": 0},
 )
 poll: dict = res.json()

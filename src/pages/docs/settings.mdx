@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/DocsLayout.astro
 title: "Settings"
-description: "Authentication, permissions, cost guardrails, and workspace data management for Stagent."
+description: "Authentication, permissions, cost guardrails, and workspace data management for ainative."
 ---
 
 import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 # Settings
 
-The settings page is where operators define how Stagent authenticates, which tool requests can be trusted by default, how much provider activity is allowed to cost, and how the local workspace data should be managed.
+The settings page is where operators define how ainative authenticates, which tool requests can be trusted by default, how much provider activity is allowed to cost, and how the local workspace data should be managed.
 
 <BrowserFrame src="/screenshots/settings-list.png" alt="Settings with Providers and Runtimes, task routing options, Anthropic OAuth, OpenAI API, and Ollama local models" />
 
@@ -28,7 +28,7 @@ The settings page is where operators define how Stagent authenticates, which too
 - **Data Management** — Seed sample data for evaluation or clear all data (respects table relationships) when resetting the workspace.
 - **Local-First Configuration** — Settings are managed close to the workspace instead of hidden inside a remote SaaS control plane.
 
-The Providers & Runtimes section manages connections for Anthropic (OAuth or API Key), OpenAI (API Key), and Ollama (local endpoint). A task routing selector lets operators choose between Latency, Cost, Quality, or Manual mode to control how Stagent picks a runtime when creating tasks.
+The Providers & Runtimes section manages connections for Anthropic (OAuth or API Key), OpenAI (API Key), and Ollama (local endpoint). A task routing selector lets operators choose between Latency, Cost, Quality, or Manual mode to control how ainative picks a runtime when creating tasks.
 
 <BrowserFrame src="/screenshots/settings-browser-tools.png" alt="Settings authentication with Claude OAuth and API Key methods, OpenAI Codex Runtime configuration, and connection test buttons" />
 
@@ -68,7 +68,7 @@ The **Instance** section surfaces metadata about this installation: the stable `
 - **Upgrade Detection** — An hourly scheduled poll runs `git fetch` against the upstream remote and compares `HEAD` to `origin/main`. When upstream is ahead, the sidebar shows a small **Upgrade available** badge next to Settings and the Instance card surfaces a "New version available" indicator with the number of commits behind. Detection is `git`-based rather than GitHub REST to avoid rate limits.
 - **Upgrade Session** — Clicking **Start upgrade** opens the upgrade session as a right-side sheet — not a full-page navigation — so you can glance back at your workspace while the upgrade runs. The session is backed by a task row with the `upgrade-assistant` profile, reusing the full execution infrastructure: approval caching, SSE log streaming, and inline conflict resolution via a 3-card cluster (Keep mine / Take theirs / Show diff).
 - **Footer Upgrade Button** — A subtle **Upgrade** button appears in the sidebar footer once an upgrade is available, opening the same upgrade session sheet from any page.
-- **Dev Mode Gate** — When `STAGENT_DEV_MODE=true` is set, the Instance section displays a "Dev mode" banner and the upgrade machinery is intentionally bypassed, protecting contributor repos from having a pre-push hook installed by the bootstrap flow.
+- **Dev Mode Gate** — When `AINATIVE_DEV_MODE=true` is set, the Instance section displays a "Dev mode" banner and the upgrade machinery is intentionally bypassed, protecting contributor repos from having a pre-push hook installed by the bootstrap flow.
 
 ## How It Works
 

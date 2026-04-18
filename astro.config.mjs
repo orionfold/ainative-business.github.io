@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@astrojs/react';
 
 export default defineConfig({
-  site: 'https://stagent.io',
+  site: 'https://ainative.business',
   trailingSlash: 'always',
   markdown: {
     shikiConfig: {

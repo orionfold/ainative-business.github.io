@@ -4,7 +4,7 @@
 
 **Goal:** Replace the hero section's technical architecture diagram with an animated "AI-Native Business" constellation visualization, and update the tagline to outcome-focused messaging.
 
-**Architecture:** New `BusinessConstellation.astro` SVG component with 10 nodes (4 inner Stagent product entities + 6 outer business outcomes), bezier curve connections with flowing particles, orchestrated scroll-reveal entrance, and ambient steady-state animations. Swapped into `Hero.astro` in place of `SystemArchitecture`. The existing `SystemArchitecture.astro` is untouched (still used in `research.mdx`).
+**Architecture:** New `BusinessConstellation.astro` SVG component with 10 nodes (4 inner ainative product entities + 6 outer business outcomes), bezier curve connections with flowing particles, orchestrated scroll-reveal entrance, and ambient steady-state animations. Swapped into `Hero.astro` in place of `SystemArchitecture`. The existing `SystemArchitecture.astro` is untouched (still used in `research.mdx`).
 
 **Tech Stack:** Astro components, inline SVG with SMIL animations, CSS custom properties (OKLCH), existing `svg-reveal` animation system from `global.css`.
 
@@ -27,7 +27,7 @@ Create `src/components/svg/BusinessConstellation.astro` with:
 ---
 /**
  * BusinessConstellation — Hero visualization
- * Network constellation: 4 inner Stagent product nodes → 6 outer business outcome nodes
+ * Network constellation: 4 inner ainative product nodes → 6 outer business outcome nodes
  * Organic glow style with bezier curves, flowing particles, orchestrated reveal
  */
 ---
@@ -195,7 +195,7 @@ git commit -m "feat: add constellation connection paths and flowing particles"
 
 ---
 
-### Task 3: Add Inner Nodes (Stagent Product Entities)
+### Task 3: Add Inner Nodes (ainative Product Entities)
 
 **Files:**
 - Modify: `src/components/svg/BusinessConstellation.astro`
@@ -207,7 +207,7 @@ Add the 4 inner nodes with icons, labels, and breathing halo animations. Insert 
 Insert before the closing `</svg>`:
 
 ```svg
-  <!-- ═══ INNER NODES: Stagent Product Entities ═══ -->
+  <!-- ═══ INNER NODES: ainative Product Entities ═══ -->
 
   <!-- Agents (top center — hero node) -->
   <g class="svg-reveal svg-reveal-d1">
@@ -275,7 +275,7 @@ Insert before the closing `</svg>`:
 
 ```bash
 git add src/components/svg/BusinessConstellation.astro
-git commit -m "feat: add inner Stagent product nodes with icons and breathing halos"
+git commit -m "feat: add inner ainative product nodes with icons and breathing halos"
 ```
 
 ---
@@ -355,7 +355,7 @@ Insert before the closing `</svg>`:
   </g>
 
   <!-- ═══ CENTER WATERMARK ═══ -->
-  <text class="bc-watermark svg-reveal svg-reveal-d4" x="280" y="218" text-anchor="middle" fill="var(--svg-accent-blue)" font-size="5.5" font-family="var(--font-mono)" letter-spacing="3" opacity="0.35">STAGENT</text>
+  <text class="bc-watermark svg-reveal svg-reveal-d4" x="280" y="218" text-anchor="middle" fill="var(--svg-accent-blue)" font-size="5.5" font-family="var(--font-mono)" letter-spacing="3" opacity="0.35">AINATIVE</text>
 ```
 
 - [ ] **Step 2: Commit**
@@ -394,7 +394,7 @@ In `src/components/sections/Hero.astro`, replace the `<p>` tag content (lines 29
 
 Old:
 ```
-        Stop cobbling together 15 disconnected tools. Stagent orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge.
+        Stop cobbling together 15 disconnected tools. ainative orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge.
 ```
 
 New:
@@ -461,7 +461,7 @@ Verify:
 - Bezier connections visible between inner and outer nodes
 - Particles flowing along paths
 - Dashed inner connections animating
-- "STAGENT" watermark visible at center
+- "AINATIVE" watermark visible at center
 - Tagline reads "Every function automated. Every decision informed. Every risk governed."
 - Pill reads "Multi-Model AI" (not "5 Runtimes")
 - Clicking constellation navigates to `/research`

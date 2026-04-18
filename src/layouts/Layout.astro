@@ -16,8 +16,8 @@ interface Props {
 }
 
 const {
-  title = 'Stagent — AI Native for everyone',
-  description = 'AI Native for everyone. A personal research by Manav Sehgal into building and working with AI agents — open source, local-first, and free.',
+  title = 'AI Native Business — ainative',
+  description = 'AI Native Business — the book and the companion software. A personal research project by Manav Sehgal into building AI-native businesses. Open source, local-first, and free.',
   ogImage = '/og-image.png',
   ogType = 'website',
   noindex = false,
@@ -76,7 +76,7 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="author" content="Stagent" />
+    <meta name="author" content="ainative" />
     <link rel="canonical" href={canonicalURL} />
     {noindex && <meta name="robots" content="noindex, nofollow" />}
 
@@ -89,7 +89,7 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:type" content="image/png" />
-    <meta property="og:site_name" content="Stagent" />
+    <meta property="og:site_name" content="ainative" />
     <meta property="og:locale" content="en_US" />
 
     {article && (
@@ -102,15 +102,17 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@stagent" />
-    <meta name="twitter:creator" content="@stagent" />
+    <meta name="twitter:site" content="@manavsehgal" />
+    <meta name="twitter:creator" content="@manavsehgal" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
 
     <!-- App icons -->
-    <link rel="icon" type="image/png" sizes="64x64" href="/stagent-s-64.png" />
-    <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="64x64" href="/ainative-s-64.png" />
+    <link rel="icon" type="image/png" sizes="128x128" href="/ainative-s-128.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Manifest -->
     <link rel="manifest" href="/manifest.json" />

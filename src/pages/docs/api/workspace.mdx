@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Workspace API
 
-The Workspace API provides discovery of project directories on the filesystem, bulk import into Stagent with automatic environment scanning, and runtime context about the current workspace. The import endpoint uses SSE to stream progress as each project is created and scanned.
+The Workspace API provides discovery of project directories on the filesystem, bulk import into ainative with automatic environment scanning, and runtime context about the current workspace. The import endpoint uses SSE to stream progress as each project is created and scanned.
 
 ## Quick Start
 
@@ -166,7 +166,7 @@ Example response:
 
 ### Discover Projects
 
-<EndpointCard method="POST" path="/api/workspace/discover" description="Scan a parent directory for project directories using configurable marker files (package.json, Cargo.toml, etc.). Flags projects that are already imported into Stagent.">
+<EndpointCard method="POST" path="/api/workspace/discover" description="Scan a parent directory for project directories using configurable marker files (package.json, Cargo.toml, etc.). Flags projects that are already imported into ainative.">
 
 <SchemaTable title="Request Body" fields={[
   { name: 'parentDir', type: 'string', required: true, description: 'Parent directory to scan (supports ~ expansion)' },
@@ -179,7 +179,7 @@ Example response:
   { name: 'projects[].path', type: 'string', required: true, description: 'Absolute path to the project' },
   { name: 'projects[].name', type: 'string', required: true, description: 'Directory name' },
   { name: 'projects[].markers', type: 'string[]', required: true, description: 'Which marker files were found' },
-  { name: 'projects[].alreadyImported', type: 'boolean', required: true, description: 'Whether this project already exists in Stagent' },
+  { name: 'projects[].alreadyImported', type: 'boolean', required: true, description: 'Whether this project already exists in ainative' },
 ]} />
 
 **Errors:** `400` — Validation failure or directory not found
@@ -262,19 +262,19 @@ Example response:
 
 ### Fix Data Directory
 
-<EndpointCard method="POST" path="/api/workspace/fix-data-dir" description="Fix a data-directory mismatch for domain-cloned Stagent instances. Derives the correct STAGENT_DATA_DIR from the folder name, writes it to .env.local alongside STAGENT_CLOUD_DISABLED=true, and bootstraps a fresh SQLite database at that path. A server restart is required to take effect.">
+<EndpointCard method="POST" path="/api/workspace/fix-data-dir" description="Fix a data-directory mismatch for domain-cloned ainative instances. Derives the correct AINATIVE_DATA_DIR from the folder name, writes it to .env.local alongside AINATIVE_CLOUD_DISABLED=true, and bootstraps a fresh SQLite database at that path. A server restart is required to take effect.">
 
 <SchemaTable title="Response Body" fields={[
   { name: 'success', type: 'boolean', required: true, description: 'Whether the fix was applied' },
-  { name: 'dataDir', type: 'string', required: true, description: 'The derived data directory path (e.g. ~/.stagent-wealth)' },
+  { name: 'dataDir', type: 'string', required: true, description: 'The derived data directory path (e.g. ~/.ainative-wealth)' },
   { name: 'envLocalPath', type: 'string', required: true, description: 'Absolute path to the .env.local file that was updated' },
   { name: 'needsRestart', type: 'boolean', required: true, description: 'Always true — the server must be restarted to load the new database path' },
 ]} />
 
 **Errors:**
-- `400` — The main dev repo does not need a fix, or `STAGENT_DATA_DIR` is already set to a non-default path
+- `400` — The main dev repo does not need a fix, or `AINATIVE_DATA_DIR` is already set to a non-default path
 
-Use this endpoint once after cloning Stagent to a new folder name (e.g. `stagent-wealth`) to isolate its database from the main instance:
+Use this endpoint once after cloning ainative to a new folder name (e.g. `ainative-wealth`) to isolate its database from the main instance:
 
 <CodeExample ts={`// Apply data-dir isolation for a domain clone — run once after cloning
 const res: Response = await fetch('http://localhost:3000/api/workspace/fix-data-dir', {
@@ -312,8 +312,8 @@ Example response:
 ```json
 {
   "success": true,
-  "dataDir": "~/.stagent-wealth",
-  "envLocalPath": "/Users/team/Developer/stagent-wealth/.env.local",
+  "dataDir": "~/.ainative-wealth",
+  "envLocalPath": "/Users/team/Developer/ainative-wealth/.env.local",
   "needsRestart": true
 }
 ```
@@ -322,7 +322,7 @@ Example response:
 
 ### Import Projects (SSE)
 
-<EndpointCard method="SSE" path="/api/workspace/import" description="Bulk-import discovered projects into Stagent. Each project is created with an automatic environment scan. Progress is streamed via Server-Sent Events so the UI can update in real time.">
+<EndpointCard method="SSE" path="/api/workspace/import" description="Bulk-import discovered projects into ainative. Each project is created with an automatic environment scan. Progress is streamed via Server-Sent Events so the UI can update in real time.">
 
 <SchemaTable title="Request Body (POST)" fields={[
   { name: 'projects', type: 'object[]', required: true, description: 'Array of projects to import' },

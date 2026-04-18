@@ -11,7 +11,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 
 # Documents API
 
-Documents are files ingested into Stagent for use as agent context, task outputs, or project references. Each document tracks its original file, extracted text, processing status, and version history. Documents can be linked to tasks, projects, or both.
+Documents are files ingested into ainative for use as agent context, task outputs, or project references. Each document tracks its original file, extracted text, processing status, and version history. Documents can be linked to tasks, projects, or both.
 
 ## Quick Start
 
@@ -184,7 +184,7 @@ Example response:
 
 ### Create Document (from file path)
 
-<EndpointCard method="POST" path="/api/documents" description="Create a document by copying a file from the local filesystem into Stagent's managed storage. Triggers asynchronous text extraction and preprocessing. Paths are validated against security rules.">
+<EndpointCard method="POST" path="/api/documents" description="Create a document by copying a file from the local filesystem into ainative's managed storage. Triggers asynchronous text extraction and preprocessing. Paths are validated against security rules.">
 
 <SchemaTable title="Request Body" fields={[
   { name: 'file_path', type: 'string', required: true, description: 'Absolute path to a local file' },

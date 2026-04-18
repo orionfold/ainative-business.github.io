@@ -1,20 +1,20 @@
 ---
 name: deck
 description: >-
-  Update the Stagent prospect sales deck with fresh data from the product codebase,
+  Update the ainative prospect sales deck with fresh data from the product codebase,
   website sources, and stats. Use this skill whenever the user mentions "update the deck",
   "refresh the deck", "update prospect deck", "sync deck", "regenerate deck", "update slides",
   "refresh slides", "deck update", "update sales deck", "update pitch deck", "rebuild deck",
   "deck is stale", "update deck stats", "update deck screenshots", "update traction slide",
-  "update portfolio slide", or any request to update, refresh, regenerate, or sync the Stagent
+  "update portfolio slide", or any request to update, refresh, regenerate, or sync the ainative
   PPTX prospect deck with current data. Also trigger when the user says "apply product release"
-  and then mentions the deck, or after running stagent-stats and wanting to push new numbers
+  and then mentions the deck, or after running ainative-stats and wanting to push new numbers
   into the presentation. If the user mentions deck content being outdated or stale, use this skill.
 ---
 
 # Deck Update Skill
 
-This skill automates updating `deck/generate-deck.mjs` with fresh data from the Stagent product and website, then regenerating the 27-slide PPTX prospect deck.
+This skill automates updating `deck/generate-deck.mjs` with fresh data from the ainative product and website, then regenerating the 27-slide PPTX prospect deck.
 
 **What it does:** Updates data values (stats, metrics, project cards, market data, roadmap horizons) inside existing slide code.
 
@@ -24,9 +24,9 @@ This skill automates updating `deck/generate-deck.mjs` with fresh data from the 
 
 ## Phase 1: Collect Fresh Data
 
-### Step 1 — Collect Stagent Stats
+### Step 1 — Collect ainative Stats
 
-Check if `stagent-stats.md` exists and has a recent entry (same day). If stale or missing, invoke the `stagent-stats` skill first.
+Check if `ainative-stats.md` exists and has a recent entry (same day). If stale or missing, invoke the `ainative-stats` skill first.
 
 Extract from the stats report:
 - TypeScript production LOC (for traction slide)
@@ -47,13 +47,13 @@ Read these files from the website repo:
 
 ### Step 3 — Read Product Sources
 
-Read these files from the Stagent product:
+Read these files from the ainative product:
 
 | File | What to extract |
 |------|-----------------|
-| `/Users/manavsehgal/Developer/stagent/features/roadmap.md` | Feature counts, horizon timelines (H1/H2/H3 focus areas) |
-| `/Users/manavsehgal/Developer/stagent/features/changelog.md` | Recent completions for roadmap context |
-| `/Users/manavsehgal/Developer/stagent/README.md` | Framework versions, architecture details, service module list |
+| `/Users/manavsehgal/Developer/ainative/features/roadmap.md` | Feature counts, horizon timelines (H1/H2/H3 focus areas) |
+| `/Users/manavsehgal/Developer/ainative/features/changelog.md` | Recent completions for roadmap context |
+| `/Users/manavsehgal/Developer/ainative/README.md` | Framework versions, architecture details, service module list |
 
 ### Data Collection Checkpoint
 
@@ -92,8 +92,8 @@ Compare fresh data vs. current values. Present a diff table:
 ```
 | Slide | Field | Current | New | Source |
 |-------|-------|---------|-----|--------|
-| 26    | LOC   | 42,673  | 55,210 | stagent-stats |
-| 26    | Tests | 312     | 348    | stagent-stats |
+| 26    | LOC   | 42,673  | 55,210 | ainative-stats |
+| 26    | Tests | 312     | 348    | ainative-stats |
 | ...   | ...   | ...     | ...    | ...    |
 ```
 
@@ -128,7 +128,7 @@ Run `git diff deck/generate-deck.mjs` and present the full diff to the user.
 ### Step 8 — Regenerate the Deck
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent.github.io/deck && node generate-deck.mjs
+cd /Users/manavsehgal/Developer/ainative.business/deck && node generate-deck.mjs
 ```
 
 Verify output says `(27 slides)` — slide count must not change.
@@ -136,9 +136,9 @@ Verify output says `(27 slides)` — slide count must not change.
 ### Step 9 — Convert to Images for QA
 
 ```bash
-cd /Users/manavsehgal/Developer/stagent.github.io/deck
-python ../.claude/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf Stagent-Prospect-Deck.pptx
-pdftoppm -jpeg -r 150 Stagent-Prospect-Deck.pdf slide
+cd /Users/manavsehgal/Developer/ainative.business/deck
+python ../.claude/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf ainative-Prospect-Deck.pptx
+pdftoppm -jpeg -r 150 ainative-Prospect-Deck.pdf slide
 ```
 
 ### Step 10 — Visual QA
@@ -170,7 +170,7 @@ If issues found: fix in `generate-deck.mjs` → re-run `node generate-deck.mjs` 
 - ...
 
 ### Output
-- deck/Stagent-Prospect-Deck.pptx (27 slides, regenerated)
+- deck/ainative-Prospect-Deck.pptx (27 slides, regenerated)
 
 ### QA
 - Visual inspection: N slides verified, N issues fixed

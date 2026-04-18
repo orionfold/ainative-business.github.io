@@ -24,7 +24,7 @@ The current hero title "The Operating System for AI-Native Business" is a catego
 
 - Bridges from bold title to how it works
 - Names specific functions so each persona sees their world
-- Ends with governance differentiator ("under your control") — Stagent's key moat
+- Ends with governance differentiator ("under your control") — ainative's key moat
 - Single sentence vs. the previous 4 fragmented sentences
 
 ### Persona resonance
@@ -39,7 +39,7 @@ The current hero title "The Operating System for AI-Native Business" is a catego
 
 - Value pills: Local-First, Multi-Model AI, Human-in-the-Loop
 - Email CTA: "Get Early Access"
-- Terminal CTA: `npx stagent`
+- Terminal CTA: `npx ainative`
 - Architecture diagram (right column)
 - All styling, layout, and animations
 
@@ -52,7 +52,7 @@ The current hero title "The Operating System for AI-Native Business" is a catego
 
 ### SEO consideration
 
-Update the site's default page title in `Layout.astro` to "Stagent — Your Business, Run by AI" to align with the new hero. The OG image template should also reflect the new title for social sharing.
+Update the site's default page title in `Layout.astro` to "ainative — Your Business, Run by AI" to align with the new hero. The OG image template should also reflect the new title for social sharing.
 
 ## Verification
 

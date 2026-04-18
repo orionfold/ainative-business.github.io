@@ -1,8 +1,8 @@
 /* TEAM */
 
 Founder: Manav Sehgal
-Site: https://stagent.io
-GitHub: https://github.com/manavsehgal/stagent
+Site: https://ainative.business
+GitHub: https://github.com/manavsehgal/ainative
 
 /* TECHNOLOGY */
 
@@ -13,8 +13,8 @@ Hosting: GitHub Pages
 
 /* PRODUCT */
 
-Name: Stagent
-Tagline: Multi-Agent Autonomous Harness
+Name: ainative
+Tagline: Companion software for the AI Native Business book
 License: Apache 2.0
 Stack: Rust + TypeScript (Tauri)
 Protocols: MCP, A2A, CDP, WebMCP

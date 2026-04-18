@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/DocsLayout.astro
 title: "Human-in-the-Loop"
-description: "Permission reviews, agent messages, completions, and failure triage in Stagent’s inbox."
+description: "Permission reviews, agent messages, completions, and failure triage in ainative’s inbox."
 ---
 
 import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 # Human-in-the-Loop
 
-The inbox is the operator-facing governance surface for Stagent. It consolidates permission requests, agent messages, completions, and failures into a single review queue so agents never act outside the trust boundary you set.
+The inbox is the operator-facing governance surface for ainative. It consolidates permission requests, agent messages, completions, and failures into a single review queue so agents never act outside the trust boundary you set.
 
 <BrowserFrame src="/screenshots/inbox-list.png" alt="Governance command center with pending, approved, and denied counts, notification queue with permissions and messages" />
 
@@ -23,7 +23,7 @@ The inbox is the operator-facing governance surface for Stagent. It consolidates
 - **Budget Alerts** — Notifications fire at 80% and 100% of configured spend caps, giving operators time to adjust before work is blocked.
 - **Rich Content Rendering** — Notification bodies render GitHub Flavored Markdown with code blocks, tables, lists, and links for detailed agent output.
 - **Batch Context Proposals** — When workflows generate multiple context suggestions, operators can review and approve them as a batch instead of handling each one individually.
-- **Response History** — Stagent preserves whether a request has been handled already, preventing duplicate decision-making.
+- **Response History** — ainative preserves whether a request has been handled already, preventing duplicate decision-making.
 
 ## Notification Types
 
@@ -36,7 +36,7 @@ The inbox is the operator-facing governance surface for Stagent. It consolidates
 
 ## How It Works
 
-When a running task needs human input, Stagent creates an inbox item and waits for the response. That input might be a permission review, a direct answer to a question, or simply a signal that a run finished or failed.
+When a running task needs human input, ainative creates an inbox item and waits for the response. That input might be a permission review, a direct answer to a question, or simply a signal that a run finished or failed.
 
 The permissions tab is the highest-signal view when you want to supervise active execution. It strips away the general feed and shows only the decisions that currently gate an agent.
 

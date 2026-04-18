@@ -8,9 +8,9 @@
 
 ## Context
 
-Stagent's product has evolved significantly — 74 features across 15 surfaces, including multi-channel chat (Slack/Telegram), heartbeat scheduling, episodic agent memory, 6 business-function profiles, 5 AI runtimes (including Ollama), and smart runtime routing. The vision has been refined through two strategic documents that reposition Stagent from "Governed AI Agent Workspace" to "The Operating System for AI-Native Business."
+ainative's product has evolved significantly — 74 features across 15 surfaces, including multi-channel chat (Slack/Telegram), heartbeat scheduling, episodic agent memory, 6 business-function profiles, 5 AI runtimes (including Ollama), and smart runtime routing. The vision has been refined through two strategic documents that reposition ainative from "Governed AI Agent Workspace" to "The Operating System for AI-Native Business."
 
-The current landing page positions Stagent as a developer governance tool with technical feature-card layout (RuntimeBridge, 15 feature cards, architecture diagrams). This doesn't serve the new target personas (solo founders, agency owners, PE operating partners) or the new monetization strategy (product tiers + consulting advisory).
+The current landing page positions ainative as a developer governance tool with technical feature-card layout (RuntimeBridge, 15 feature cards, architecture diagrams). This doesn't serve the new target personas (solo founders, agency owners, PE operating partners) or the new monetization strategy (product tiers + consulting advisory).
 
 **Goals:**
 1. Reposition the landing page around the bold "AI Business OS" vision with honest current/roadmap framing
@@ -25,14 +25,14 @@ The current landing page positions Stagent as a developer governance tool with t
 ### Section 1: Hero
 
 **Headline:** "The Operating System for AI-Native Business"
-**Subheadline:** "Stop cobbling together 15 disconnected tools. Stagent orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge."
+**Subheadline:** "Stop cobbling together 15 disconnected tools. ainative orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge."
 
 **Layout:**
 - Headline → Subheadline → Email capture (primary CTA) → GitHub link (secondary)
 - Value prop pills: Open Source · Local-First · Multi-Runtime · Human-in-the-Loop
 - Product carousel (keep existing 9-screenshot rotating carousel)
 
-**Primary CTA:** Single email input + "Get Early Access" button (replaces `npx stagent` terminal prompt)
+**Primary CTA:** Single email input + "Get Early Access" button (replaces `npx ainative` terminal prompt)
 **Secondary CTA:** "View on GitHub" link
 
 **Key files to modify:**
@@ -62,7 +62,7 @@ The current landing page positions Stagent as a developer governance tool with t
   - Visibility — see what's running, what it costs, what needs attention
   - Governance — human oversight without slowing agents down
   - Lifecycle — plan → build → operate → grow in one place
-- Transition: "That's what Stagent builds. ↓"
+- Transition: "That's what ainative builds. ↓"
 
 **Key files:**
 - New: `src/components/Problem.astro`
@@ -140,7 +140,7 @@ The current landing page positions Stagent as a developer governance tool with t
 | Badge | — | Coming Soon | Coming Soon |
 | Target | Everyone | Solo founders & agencies | Teams & portfolios |
 | Key features | Full local workspace, 21+ profiles, 6 workflow patterns, HITL, 5 runtimes, community support | Everything in Starter + cloud sync, advanced workflows, multi-channel delivery, priority support, skills marketplace | Everything in Pro + multi-user workspaces, shared governance, portfolio dashboards, RBAC, dedicated support |
-| CTA | `npx stagent` | Join Waitlist | Join Waitlist |
+| CTA | `npx ainative` | Join Waitlist | Join Waitlist |
 
 Pro tier visually highlighted (indigo border, recommended).
 
@@ -204,7 +204,7 @@ Pro tier visually highlighted (indigo border, recommended).
 2. **The Governance Gap** — Why 80-90% of agent projects fail in production, the missing layer between autonomy and control
 3. **The PE Transformation Wave** — Vista's Agentic AI Factory, Hg Catalyst, Apollo's 40% cost reductions, $200B in accounting PE deals
 4. **Building AI-Native Businesses** — The orchestration gap, strategy-to-execution gap, business lifecycle gap, solo founder opportunity
-5. **The Stagent Approach** — Platform architecture, four pillars (orchestrate, automate, govern, converse), what's shipped vs. roadmap
+5. **The ainative Approach** — Platform architecture, four pillars (orchestrate, automate, govern, converse), what's shipped vs. roadmap
 6. **Use Cases by Industry** — Professional services, BPO, insurance, marketing agencies, e-commerce
 7. **The 10x Vision** — Agent marketplace flywheel, business-as-a-service platform, physical AI governance
 8. **Getting Started** — Free tier, advisory services, community
@@ -252,7 +252,7 @@ These components are removed from `index.astro` imports. Component files can rem
 
 ## Screenshot Refresh
 
-Dependent on user completing fresh screengrabs in `/Users/manavsehgal/Developer/stagent/screengrabs/`. The carousel in Section 1 will use updated screenshots once available. Docs and user guide updates are also pending.
+Dependent on user completing fresh screengrabs in `/Users/manavsehgal/Developer/ainative/screengrabs/`. The carousel in Section 1 will use updated screenshots once available. Docs and user guide updates are also pending.
 
 ---
 

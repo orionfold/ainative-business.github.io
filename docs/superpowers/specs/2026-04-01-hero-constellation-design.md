@@ -6,14 +6,14 @@
 
 ## Context
 
-The current hero section displays `SystemArchitecture.astro` — a technical swimlane diagram showing 4 pillars × 3 layers with service names, API counts, and infrastructure details. While accurate, it speaks to developers, not business buyers. The goal is to replace this with a visualization that communicates **business outcomes** powered by Stagent's AI platform — revenue growth, cost efficiency, compliance — while retaining the technical architecture view in the research paper (`research.mdx`).
+The current hero section displays `SystemArchitecture.astro` — a technical swimlane diagram showing 4 pillars × 3 layers with service names, API counts, and infrastructure details. While accurate, it speaks to developers, not business buyers. The goal is to replace this with a visualization that communicates **business outcomes** powered by ainative's AI platform — revenue growth, cost efficiency, compliance — while retaining the technical architecture view in the research paper (`research.mdx`).
 
 ## Design Decisions
 
 | Decision | Choice |
 |----------|--------|
 | Visualization style | Network Constellation |
-| Organizing principle | Hybrid: Stagent product entities (inner) → business outcomes (outer) |
+| Organizing principle | Hybrid: ainative product entities (inner) → business outcomes (outer) |
 | Node density | Lean: 10 nodes (4 inner + 6 outer) |
 | Animation | Orchestrated Reveal → Ambient steady-state |
 | Node rendering | Organic Glow: circular nodes, bezier curves, particle flow |
@@ -29,7 +29,7 @@ Replaces `SystemArchitecture` import in `Hero.astro`. `SystemArchitecture.astro`
 
 ## Node Architecture
 
-### Inner Ring — Stagent Product Entities (4 nodes)
+### Inner Ring — ainative Product Entities (4 nodes)
 
 | Node | Color Variable | SVG Icon | Radius | Position |
 |------|---------------|----------|--------|----------|
@@ -132,7 +132,7 @@ All animations disabled via:
 - Central `<radialGradient>`: primary color at 12% → 4% → 0% over 190px radius
 - `<filter id="softGlow">` with `feGaussianBlur stdDeviation="6"` on Agents hero node
 - Existing `.hero-arch-wrapper::after` radial glow retained as backdrop
-- Subtle `STAGENT` watermark text at center: primary color, 5.5px, letter-spacing 3px, 40% opacity
+- Subtle `AINATIVE` watermark text at center: primary color, 5.5px, letter-spacing 3px, 40% opacity
 
 ## Light/Dark Mode
 
@@ -156,7 +156,7 @@ Implemented via light-mode overrides in `<style>` block within the component, ta
 ### Tagline
 
 **Current:**
-> Stop cobbling together 15 disconnected tools. Stagent orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge.
+> Stop cobbling together 15 disconnected tools. ainative orchestrates AI agents across your entire business — with the governance, visibility, and cost controls that keep you in charge.
 
 **New:**
 > Every function automated. Every decision informed. Every risk governed.
@@ -185,7 +185,7 @@ Current architecture view links to `/research`. The constellation should retain 
 
 ## Tech Ticker Complementarity
 
-The constellation shows **what** Stagent delivers (business outcomes). The ticker shows **how** (technologies: Anthropic, OpenAI, React, SQLite, etc.). No element overlap between them.
+The constellation shows **what** ainative delivers (business outcomes). The ticker shows **how** (technologies: Anthropic, OpenAI, React, SQLite, etc.). No element overlap between them.
 
 ## Verification
 

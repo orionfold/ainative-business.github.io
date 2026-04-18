@@ -15,35 +15,35 @@ const featureRows = [
   {
     claude: 'Tools + permissions',
     openai: 'Approvals + dynamic tools',
-    stagent: 'Unified inbox approvals',
+    ainative: 'Unified inbox approvals',
     description:
       'Tool requests, user questions, and operator decisions land in one governed queue instead of splitting by provider.',
   },
   {
     claude: 'Sessions + project files',
     openai: 'Threads + conversation history',
-    stagent: 'Resume with project context',
+    ainative: 'Resume with project context',
     description:
       'Tasks keep working directories, document context, and resumable runtime state so operators can restart work without losing the trail.',
   },
   {
     claude: 'MCP servers',
     openai: 'Auth + tool routing',
-    stagent: 'Profile-backed runtime policy',
+    ainative: 'Profile-backed runtime policy',
     description:
       'Reusable profiles carry instructions, allowed tools, MCP configuration, and runtime-specific overrides across both stacks.',
   },
   {
     claude: 'Streaming execution events',
     openai: 'Streamed agent events',
-    stagent: 'One monitor surface',
+    ainative: 'One monitor surface',
     description:
       'Provider-labeled logs, task state, and approval history stay visible in a shared operational view.',
   },
   {
     claude: 'Usage snapshots',
     openai: 'Usage + approval events',
-    stagent: 'Cross-runtime cost ledger',
+    ainative: 'Cross-runtime cost ledger',
     description:
       'Spend, token velocity, runtime share, and model concentration are tracked together so teams can compare real operator cost.',
   },
@@ -100,7 +100,7 @@ const roadmapNext = [
         <span class="md:whitespace-nowrap">Keep the runtime. Add the ops layer.</span>
       </h2>
       <p data-animate class="text-text-muted mt-4 max-w-3xl mx-auto" style="transition-delay: 100ms">
-        Claude Agent SDK and Codex App Server already provide state-of-the-art agent primitives. Stagent turns both into one governed execution surface for projects, profiles, workflows, schedules, approvals, monitoring, and cross-runtime spend visibility.
+        Claude Agent SDK and Codex App Server already provide state-of-the-art agent primitives. ainative turns both into one governed execution surface for projects, profiles, workflows, schedules, approvals, monitoring, and cross-runtime spend visibility.
       </p>
       <p
         data-animate
@@ -176,7 +176,7 @@ const roadmapNext = [
         <div class="feature-map__header">
           <p class="feature-map__label">Feature map</p>
           <p class="feature-map__intro">
-            Stagent does not replace either runtime. It standardizes how teams route, supervise, and measure work across both.
+            ainative does not replace either runtime. It standardizes how teams route, supervise, and measure work across both.
           </p>
         </div>
 
@@ -191,7 +191,7 @@ const roadmapNext = [
               <div class="feature-row__center">
                 <div class="feature-row__node" aria-hidden="true"></div>
                 <div>
-                  <h3 class="feature-row__title">{row.stagent}</h3>
+                  <h3 class="feature-row__title">{row.ainative}</h3>
                   <p class="feature-row__description">{row.description}</p>
                 </div>
               </div>
@@ -207,7 +207,7 @@ const roadmapNext = [
 
     <div class="grid gap-4 mt-10">
       <article data-animate class="status-panel" style="transition-delay: 560ms">
-        <p class="status-panel__label">Launched in Stagent</p>
+        <p class="status-panel__label">Launched in ainative</p>
         <ul class="status-panel__list status-panel__list--2col">
           {launchedCapabilities.map(({ icon, text }) => (
             <li class="status-panel__item">

@@ -1,14 +1,14 @@
 ---
 layout: ../../layouts/DocsLayout.astro
 title: "Task Execution"
-description: "Status-driven task flow, task detail, and creation workflows across the Stagent dashboard."
+description: "Status-driven task flow, task detail, and creation workflows across the ainative dashboard."
 ---
 
 import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 # Task Execution
 
-Tasks are the unit of execution inside Stagent. They move through explicit lifecycle states and stay visible from the dashboard, project detail views, workflow steps, and related documents.
+Tasks are the unit of execution inside ainative. They move through explicit lifecycle states and stay visible from the dashboard, project detail views, workflow steps, and related documents.
 
 <BrowserFrame src="/screenshots/dashboard-list.png" alt="Dashboard board showing tasks organized by status across multiple projects" />
 
@@ -42,7 +42,7 @@ Tasks can also be viewed as a sortable table with columns for status, priority, 
 
 ## How It Works
 
-Operators typically create tasks from the dashboard or from within a project. Once a task is queued, Stagent hands it to the execution layer, which applies the configured agent profile, logs runtime events, and surfaces permission requests when the agent needs approval.
+Operators typically create tasks from the dashboard or from within a project. Once a task is queued, ainative hands it to the execution layer, which applies the configured agent profile, logs runtime events, and surfaces permission requests when the agent needs approval.
 
 The task detail view is the control surface for one execution record. It is where you verify the task definition, confirm current state, and intervene when a run should be canceled or retried.
 

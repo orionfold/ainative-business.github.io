@@ -1,25 +1,25 @@
 ---
 name: apply-api-docs
 description: >-
-  Scan the Stagent product API routes, validators, types, and database schema to generate or incrementally update the developer-facing API documentation subsite on the Stagent.io marketing website. Use this skill whenever the user says "update api docs", "sync api docs", "refresh api reference", "generate api docs", "apply api docs", "update api reference", "sync api reference from product", "refresh developer docs", "update REST docs", "apply api changes", or any request to create, update, regenerate, or sync the API documentation pages from the product codebase. Also use when the user mentions "new endpoints", "api changed", or wants to document new product features from an API perspective.
+  Scan the ainative product API routes, validators, types, and database schema to generate or incrementally update the developer-facing API documentation subsite on the ainative.business marketing website. Use this skill whenever the user says "update api docs", "sync api docs", "refresh api reference", "generate api docs", "apply api docs", "update api reference", "sync api reference from product", "refresh developer docs", "update REST docs", "apply api changes", or any request to create, update, regenerate, or sync the API documentation pages from the product codebase. Also use when the user mentions "new endpoints", "api changed", or wants to document new product features from an API perspective.
 ---
 
 # Apply API Docs Skill
 
-Generates and incrementally updates the `/docs/api/` subsite on the Stagent.io marketing website by reading API route handlers, Zod validators, TypeScript types, and database schema from the Stagent product codebase.
+Generates and incrementally updates the `/docs/api/` subsite on the ainative.business marketing website by reading API route handlers, Zod validators, TypeScript types, and database schema from the ainative product codebase.
 
 ## Source and Target
 
-- **Product API Routes**: `/Users/manavsehgal/Developer/stagent/src/app/api/` (26 domain directories, 120+ route files)
-- **Validators**: `/Users/manavsehgal/Developer/stagent/src/lib/validators/` (Zod schemas)
-- **DB Schema**: `/Users/manavsehgal/Developer/stagent/src/lib/db/schema.ts` (table definitions)
-- **Types**: `/Users/manavsehgal/Developer/stagent/src/lib/*/types.ts` (TypeScript interfaces)
-- **Target**: `/Users/manavsehgal/Developer/stagent.github.io/src/pages/docs/api/` (MDX pages)
+- **Product API Routes**: `/Users/manavsehgal/Developer/ainative/src/app/api/` (26 domain directories, 120+ route files)
+- **Validators**: `/Users/manavsehgal/Developer/ainative/src/lib/validators/` (Zod schemas)
+- **DB Schema**: `/Users/manavsehgal/Developer/ainative/src/lib/db/schema.ts` (table definitions)
+- **Types**: `/Users/manavsehgal/Developer/ainative/src/lib/*/types.ts` (TypeScript interfaces)
+- **Target**: `/Users/manavsehgal/Developer/ainative.business/src/pages/docs/api/` (MDX pages)
 - **Reference manifest**: Read `references/api-domain-mapping.md` (co-located with this skill)
 
 ## Design System Requirements
 
-All generated pages must follow the stagent.io design system:
+All generated pages must follow the ainative.business design system:
 - Layout: `ApiDocsLayout.astro` (wider 90ch content area, grouped sidebar)
 - Components: `MethodBadge`, `EndpointCard`, `SchemaTable`, `ParamTable`, `CodeExample`, `StatusBadge` from `src/components/api/`
 - Trailing slashes on all internal links (astro.config.mjs `trailingSlash: 'always'`)
@@ -80,7 +80,7 @@ These set the quality bar. Match their structure, detail level, and developer-fr
 List all route files in the product:
 
 ```bash
-find /Users/manavsehgal/Developer/stagent/src/app/api -name "route.ts" | sort
+find /Users/manavsehgal/Developer/ainative/src/app/api -name "route.ts" | sort
 ```
 
 For each route file, determine:
@@ -103,7 +103,7 @@ Present the inventory table to the user:
 Read all validator files:
 
 ```bash
-ls /Users/manavsehgal/Developer/stagent/src/lib/validators/
+ls /Users/manavsehgal/Developer/ainative/src/lib/validators/
 ```
 
 For each validator file:
@@ -115,7 +115,7 @@ Also read relevant sections of the database schema:
 
 ```bash
 # Read the schema file for table definitions
-cat /Users/manavsehgal/Developer/stagent/src/lib/db/schema.ts
+cat /Users/manavsehgal/Developer/ainative/src/lib/db/schema.ts
 ```
 
 Extract column definitions, types, enums, and foreign key relationships for each domain's tables.
@@ -125,7 +125,7 @@ Extract column definitions, types, enums, and foreign key relationships for each
 Search for types files referenced by route handlers:
 
 ```bash
-find /Users/manavsehgal/Developer/stagent/src/lib -name "types.ts" | sort
+find /Users/manavsehgal/Developer/ainative/src/lib -name "types.ts" | sort
 ```
 
 Read each types file and extract:
