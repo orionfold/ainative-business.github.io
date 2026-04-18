@@ -67,7 +67,11 @@ All files that may need updating during a book sync:
 | 12 | `src/components/sections/RuntimeBridge.astro` | Never — imports `CHAPTERS`/`PARTS`, auto-updates |
 | 13 | `src/pages/research/ai-transformation.mdx` | Flag via drift audit only — historical snapshot, update only with user confirmation |
 
-## 7-Step Workflow
+## Workflow
+
+This skill has two phases. When invoked standalone it runs both sequentially. When invoked by `apply-product-release` the orchestrator runs only Plan Phase, aggregates plans from all sub-skills, fires one unified gate, then invokes each sub-skill's Execute Phase.
+
+## Plan Phase
 
 ### Step 1: Detect Sync Mode
 
@@ -125,6 +129,28 @@ done
 ```
 
 If nothing changed and mode is incremental, report "Book content is up to date" and stop.
+
+## Plan Output Format
+
+When running in Plan Phase only (invoked by `apply-product-release` orchestrator), stop after Step 2 and emit a single plan block in this exact shape:
+
+```markdown
+### apply-book-update
+- **Status**: changed | no-changes | error
+- **Summary**: <e.g., "Incremental sync: 2 chapters changed, 1 image changed">
+- **Mode**: migration | incremental | fresh
+- **Changes**:
+  | Type | Item | Reason |
+  |------|------|--------|
+  | update | ch-5-blueprints.md | diff detected vs source |
+  | create | ch-14-the-meta-program.md | new chapter |
+  | image  | workflow-progress.png | new image in source |
+- **Risks**: (optional — e.g., "reader chrome leaked into ch-14 body; upstream fix recommended")
+```
+
+Do not write any files during Plan Phase. Do not prompt for confirmation. Return control to the caller.
+
+## Execute Phase
 
 ### Step 3: Copy Chapters
 
