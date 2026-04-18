@@ -366,16 +366,18 @@ export function BookReader({
           <a
             href="/"
             className="text-xs text-text-muted hover:text-primary transition-colors no-underline hidden sm:inline-flex items-center gap-1.5"
-            title="Back to ainative"
+            title="Back to ainative.business"
           >
             <img
               src="/ainative-s-64.png"
-              alt="ainative"
+              alt="ainative.business"
               width="20"
               height="20"
               className="h-5 w-5 shrink-0"
             />
-            <span className="hidden md:inline font-semibold tracking-tight">ainative</span>
+            <span className="hidden md:inline font-semibold tracking-tight">
+              <span className="text-primary">ai</span><span className="text-text">native</span><span className="text-text-muted">.business</span>
+            </span>
           </a>
           <span className="text-text-muted/30 hidden sm:inline">/</span>
           <a
