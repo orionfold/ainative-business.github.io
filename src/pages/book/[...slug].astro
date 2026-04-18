@@ -64,8 +64,23 @@ export function getStaticPaths() {
 }
 
 const { currentChapterId, allChapters, chapterTitle } = Astro.props;
+
+const currentChapter = allChapters.find((c) => c.id === currentChapterId);
+const chapterMeta = currentChapter
+  ? {
+      number: currentChapter.number,
+      title: currentChapter.title,
+      subtitle: currentChapter.subtitle,
+      partNumber: currentChapter.part.number,
+      partTitle: currentChapter.part.title,
+      slug: CHAPTER_SLUG_MAP[currentChapter.id] ?? '',
+    }
+  : undefined;
+const chapterDescription = currentChapter?.subtitle
+  ? `${currentChapter.title} — ${currentChapter.subtitle}`
+  : currentChapter?.title ?? '';
 ---
-<BookLayout title={chapterTitle}>
+<BookLayout title={chapterTitle} description={chapterDescription} chapter={chapterMeta}>
   <BookReader
     client:load
     chapters={allChapters}

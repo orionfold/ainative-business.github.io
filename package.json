@@ -13,6 +13,7 @@
   "dependencies": {
     "@astrojs/mdx": "^4",
     "@astrojs/react": "^5.0.1",
+    "@astrojs/rss": "^4.0.18",
     "@astrojs/sitemap": "^3",
     "@fontsource-variable/geist-mono": "^5.2.7",
     "@fontsource/geist-sans": "^5.2.5",

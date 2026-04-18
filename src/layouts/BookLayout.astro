@@ -5,43 +5,95 @@ import '../styles/book.css';
 import { SITE, PUBLISHER } from '../data/seo';
 import { CHAPTERS, PARTS } from '../lib/book/content';
 
+interface ChapterMeta {
+  number: number;
+  title: string;
+  subtitle?: string;
+  partNumber: number;
+  partTitle: string;
+  slug: string;
+}
+
 interface Props {
   title?: string;
   description?: string;
+  chapter?: ChapterMeta;
 }
 
-const { title = 'AI Native Business — The Book', description = '' } = Astro.props;
-const pageTitle = `${title} — ainative`;
+const {
+  title = 'AI Native Business — The Book',
+  description = '',
+  chapter,
+} = Astro.props;
 
-const jsonLd = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'Book',
-    name: 'AI Native Business: Building Autonomous Business Systems with AI Agents',
-    author: {
-      '@type': 'Person',
-      name: 'Manav Sehgal',
-    },
-    description: `A practical guide to building AI-native applications — ${CHAPTERS.length} chapters across ${PARTS.length} parts, from organizational design to autonomous business systems built with AI agents.`,
-    publisher: PUBLISHER,
-    url: new URL(Astro.url.pathname, SITE.url).toString(),
-    inLanguage: 'en',
-    accessMode: 'textual',
-    isAccessibleForFree: true,
-    license: 'https://creativecommons.org/licenses/by-nc/4.0/',
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
-      { '@type': 'ListItem', position: 2, name: 'Book', item: `${SITE.url}/book/` },
-      { '@type': 'ListItem', position: 3, name: title, item: new URL(Astro.url.pathname, SITE.url).toString() },
-    ],
-  },
-];
+const pageTitle = `${title} — ainative`;
+const pageUrl = new URL(Astro.url.pathname, SITE.url).toString();
+
+const BOOK_NAME = 'AI Native Business: Building Autonomous Business Systems with AI Agents';
+const BOOK_URL = `${SITE.url}/book/`;
+
+const jsonLd = chapter
+  ? [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: `Chapter ${chapter.number}: ${chapter.title}`,
+        description: chapter.subtitle ?? description,
+        url: pageUrl,
+        author: { '@type': 'Person', name: 'Manav Sehgal' },
+        publisher: PUBLISHER,
+        inLanguage: 'en',
+        isAccessibleForFree: true,
+        position: chapter.number,
+        isPartOf: {
+          '@type': 'Book',
+          name: BOOK_NAME,
+          url: BOOK_URL,
+          author: { '@type': 'Person', name: 'Manav Sehgal' },
+        },
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+          { '@type': 'ListItem', position: 2, name: 'Book', item: BOOK_URL },
+          { '@type': 'ListItem', position: 3, name: `Part ${chapter.partNumber}: ${chapter.partTitle}`, item: BOOK_URL },
+          { '@type': 'ListItem', position: 4, name: chapter.title, item: pageUrl },
+        ],
+      },
+    ]
+  : [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Book',
+        name: BOOK_NAME,
+        author: { '@type': 'Person', name: 'Manav Sehgal' },
+        description: `A practical guide to building AI-native applications — ${CHAPTERS.length} chapters across ${PARTS.length} parts, from organizational design to autonomous business systems built with AI agents.`,
+        publisher: PUBLISHER,
+        url: pageUrl,
+        inLanguage: 'en',
+        accessMode: 'textual',
+        isAccessibleForFree: true,
+        license: 'https://creativecommons.org/licenses/by-nc/4.0/',
+        hasPart: CHAPTERS.map((ch) => ({
+          '@type': 'Chapter',
+          name: ch.title,
+          position: ch.number,
+        })),
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+          { '@type': 'ListItem', position: 2, name: 'Book', item: BOOK_URL },
+          { '@type': 'ListItem', position: 3, name: title, item: pageUrl },
+        ],
+      },
+    ];
 ---
-<Layout title={pageTitle} description={description} jsonLd={jsonLd}>
+<Layout title={pageTitle} description={description} jsonLd={jsonLd} ogType={chapter ? 'article' : 'website'}>
   <main>
     <slot />
   </main>

@@ -32,6 +32,37 @@ ainative is a builder scaffold for AI-native businesses. It pairs with the AI Na
 - [Homepage](https://ainative.business): Book + companion software overview, architecture, research
 - [The Book](https://ainative.business/book/): AI Native Business — the 14-chapter playbook
 - [Research](https://ainative.business/research/): Solo-builder case study and supporting research papers
+- [Docs](https://ainative.business/docs/): Reference for the companion software — agents, tasks, workflows, memory, governance
+- [API Reference](https://ainative.business/docs/api/): REST and local API surface for ainative-business
+
+## Research Papers
+
+- [AI Transformation Research](https://ainative.business/research/ai-transformation/): Market analysis, governance, and competitive landscape of the $7.63B→$52.62B agent economy. Why 80–90% of agent projects fail and what solo builders, agencies, and PE firms are doing differently.
+- [Solo-Builder Case Study](https://ainative.business/research/solo-builder-case-study/): A single-day, git-verifiable Wealth Manager build on ainative-business — 11 commits, 7,435 domain lines on 31k–57k inherited platform lines. Every metric traceable to a specific commit.
+
+## Book Chapters
+
+### Part 1 — The Blueprint
+- [Ch 1: From Hierarchy to Intelligence](https://ainative.business/book/ch-1-from-hierarchy-to-intelligence/): Two thousand years of organizational design and why it's about to break.
+- [Ch 2: The AI-Native Blueprint](https://ainative.business/book/ch-2-the-ai-native-blueprint/): From factory metaphor to working architecture.
+
+### Part 2 — The Factory
+- [Ch 3: The Refinery](https://ainative.business/book/ch-3-the-refinery/): From intent to structured work.
+- [Ch 4: The Forge](https://ainative.business/book/ch-4-the-forge/): Task execution at scale.
+- [Ch 5: Blueprints](https://ainative.business/book/ch-5-blueprints/): Workflow orchestration.
+- [Ch 6: The Arena](https://ainative.business/book/ch-6-the-arena/): Scheduled intelligence.
+
+### Part 3 — The Network
+- [Ch 7: Institutional Memory](https://ainative.business/book/ch-7-institutional-memory/): The knowledge graph.
+- [Ch 8: The Swarm](https://ainative.business/book/ch-8-the-swarm/): Multi-agent coordination.
+- [Ch 9: The Governance Layer](https://ainative.business/book/ch-9-the-governance-layer/): Trust at scale.
+
+### Part 4 — The Vision
+- [Ch 10: The World Model](https://ainative.business/book/ch-10-the-world-model/): From project state to organizational intelligence.
+- [Ch 11: The Machine That Builds Machines](https://ainative.business/book/ch-11-the-machine-that-builds-machines/): ainative-business building itself using itself.
+- [Ch 12: The Road Ahead](https://ainative.business/book/ch-12-the-road-ahead/): What the case studies tell us about the future.
+- [Ch 13: The Wealth Manager](https://ainative.business/book/ch-13-the-wealth-manager/): When a solo founder builds a domain application in a day.
+- [Ch 14: The Meta-Program](https://ainative.business/book/ch-14-the-meta-program/): When the system you are using is also the system you are building.
 
 ## Source Code
 
@@ -40,3 +71,4 @@ ainative is a builder scaffold for AI-native businesses. It pairs with the AI Na
 ## Optional
 
 - [Sitemap](https://ainative.business/sitemap-index.xml)
+- [RSS feed](https://ainative.business/rss.xml): Book chapters and research papers
