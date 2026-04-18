@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gh run list -L 1 -b main --workflow=\"Deploy to GitHub Pages\" --json conclusion,displayTitle,url 2>/dev/null | jq -c 'if .[0].conclusion == \"failure\" then {systemMessage: (\"Last GitHub Pages deploy FAILED: \\\"\" + .[0].displayTitle + \"\\\" — \" + .[0].url), hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"WARNING: The latest \\\"Deploy to GitHub Pages\\\" workflow run on main FAILED. Commit: \\\"\" + .[0].displayTitle + \"\\\". Run URL: \" + .[0].url + \". The production site is serving stale content from a previous build. Investigate the build failure before pushing more commits.\")}} else empty end' 2>/dev/null || true",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
