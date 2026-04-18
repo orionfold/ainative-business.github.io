@@ -13,7 +13,11 @@ The ainative codebase lives at `/Users/manavsehgal/Developer/ainative/`. All met
 
 ainative is a pure **Next.js 16 + React 19** web application with local SQLite storage via Drizzle ORM. AI integration uses the **Claude Agent SDK** v0.2.71. There is no Rust, Tauri, or native desktop component.
 
-## Collection Steps
+## Workflow
+
+This skill has two phases. When invoked standalone it runs both sequentially (collect metrics, then write report + propagate to website). When invoked by `apply-product-release` the orchestrator runs only Plan Phase, aggregates plans from all sub-skills, fires one unified gate, then invokes each sub-skill's Execute Phase.
+
+## Plan Phase
 
 ### 1. Verify Tools
 
@@ -177,6 +181,28 @@ Record these business functionality counts:
 | Notification types | Distinct alert/event categories |
 | Activity types | Usage metering classifications |
 | Schedule types | Execution timing models (cron, heartbeat) |
+
+## Plan Output Format
+
+When running in Plan Phase only (invoked by `apply-product-release` orchestrator), stop after Step 7b and emit a single plan block in this exact shape. Include computed deltas vs previous snapshot if `ainative-stats.md` exists.
+
+```markdown
+### ainative-stats
+- **Status**: changed | no-changes | error
+- **Summary**: <e.g., "LOC +2,400 · Tests +18 · Features 32/48 → 34/48">
+- **Deltas**:
+  | Metric | Previous | Current | Change |
+  |--------|----------|---------|--------|
+  | TypeScript LOC | 58,200 | 60,600 | +2,400 |
+  | Tests | 812 | 830 | +18 |
+  | Features shipped | 32/48 | 34/48 | +2 |
+- **Website targets affected**: <list of files that will be updated in Execute Phase>
+- **Risks**: (optional — e.g., "research.mdx has hand-edited historical snapshots; stat updates may conflict")
+```
+
+Do not write any files during Plan Phase. Do not prompt for confirmation. Return control to the caller.
+
+## Execute Phase
 
 ### 8. Write Report
 
