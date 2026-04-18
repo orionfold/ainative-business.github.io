@@ -4,7 +4,7 @@ subtitle: "From Factory Metaphor to Working Architecture"
 chapter: 2
 part: 1
 readingTime: 12
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 ---
 
 # The AI-Native Blueprint
@@ -51,11 +51,11 @@ Together, MCP and A2A form the conveyor belt system of the AI-native factory. MC
 
 This is infrastructure that didn't exist two years ago. Its emergence is what makes the organizational transformation described in Chapter 1 practically achievable, not just theoretically appealing.
 
-## `ainative-business`: The Factory Floor
+## ainative: The Factory Floor
 
 Let's make this concrete.
 
-The `ainative-business` platform is a working implementation of the AI-native factory. It's not a toy or a demo — it's an operational system with ten database tables, twenty-seven API domains, and a full execution engine for AI agents. We'll use it throughout this book as a reference implementation: when we describe a pattern, we'll show you the code. When we make a claim about how AI-native organizations work, we'll demonstrate it in a running system.
+`ainative-business` is a working implementation of the AI-native factory. It's not a toy or a demo — it's an operational system with ten database tables, twenty-seven API domains, and a full execution engine for AI agents. We'll use it throughout this book as a reference implementation: when we describe a pattern, we'll show you the code. When we make a claim about how AI-native organizations work, we'll demonstrate it in a running system.
 
 The architecture rests on five pillars:
 
@@ -74,7 +74,7 @@ These five pillars correspond to the five factory stations, though the mapping i
 Here's what it looks like in practice:
 
 ```typescript
-// Building with `ainative-business`: Your first automated project
+// Building with ainative: Your first automated project
 const project = await fetch("/api/projects", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -114,7 +114,7 @@ This is the factory floor in miniature. The project is the work order. The profi
 
 ## The Landscape
 
-The `ainative-business` platform is one implementation of a pattern that's emerging across the industry. Before we dive deeper into its architecture, let's survey the landscape — because the best evidence that a thesis is correct is the number of independent teams arriving at the same conclusion.
+`ainative-business` is one implementation of a pattern that's emerging across the industry. Before we dive deeper into its architecture, let's survey the landscape — because the best evidence that a thesis is correct is the number of independent teams arriving at the same conclusion.
 
 **Stripe** built an internal system called Minions that generates over 1,300 pull requests per week. Not toy PRs — production code that ships to the platform processing billions of dollars in payments. The agents handle migrations, dependency updates, test improvements, and feature implementation. Human engineers review and approve, but the agents do the bulk of the production work.
 
@@ -159,7 +159,7 @@ This book is organized as a journey from thesis to practice.
 
 **Part 1: The Thesis** — the two chapters you're reading now — establishes why AI-native organizations are emerging and what their architecture looks like. We've told the story of organizational design from Roman legions to AI agents. We've mapped the factory metaphor to concrete architecture. We've surveyed the landscape of companies already operating this way. If you're a leader trying to understand why this matters, Part 1 gives you the strategic frame.
 
-**Part 2: The Factory Floor** — Chapters 3 through 5 — takes you inside `ainative-business`. We'll build projects, execute tasks, process documents, and orchestrate workflows. These are hands-on chapters with running code. If you're a builder who wants to understand the implementation, Part 2 is where you'll spend the most time. You'll see how project management becomes programmable, how task execution works with fire-and-forget patterns and real-time log streaming, and how document processing turns unstructured files into agent-readable context.
+**Part 2: The Factory Floor** — Chapters 3 through 5 — takes you inside ainative. We'll build projects, execute tasks, process documents, and orchestrate workflows. These are hands-on chapters with running code. If you're a builder who wants to understand the implementation, Part 2 is where you'll spend the most time. You'll see how project management becomes programmable, how task execution works with fire-and-forget patterns and real-time log streaming, and how document processing turns unstructured files into agent-readable context.
 
 **Part 3: The Intelligence Layer** — Chapters 6 through 8 — goes deeper into what makes agents genuinely intelligent rather than merely automated. Workflow orchestration composes multi-step processes from simple building blocks. Scheduled intelligence makes the factory run without human prompting. Multi-agent coordination lets specialized agents collaborate on complex tasks. This is where automation becomes autonomy — where the factory stops needing a human at the control panel for every production run.
 

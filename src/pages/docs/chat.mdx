@@ -12,93 +12,119 @@ The chat surface is an AI-powered command center for the workspace. Instead of a
 
 <BrowserFrame src="/screenshots/chat-list.png" alt="Chat empty state with hero heading, suggested prompt categories, and conversation history sidebar" />
 
-## Key Concepts
+{/* SYNC:START */}
 
-- **Tool Catalog** — Four category tabs (Explore, Create, Debug, Automate) plus a Smart Picks row organize suggested prompts generated from your actual workspace data, helping you discover what the assistant can do.
-- **@ Mentions and Context** — Type `@` to trigger a fuzzy-search autocomplete popover for projects, tasks, documents, profiles, and schedules. Mentioned entities are injected into the conversation context automatically.
-- **Multi-Provider Model Selection** — Choose between Claude (Haiku 4.5, Sonnet 4.6, Opus 4.6), OpenAI (GPT-4o-mini, GPT-4o via Codex), and Ollama models at $0 — with clear cost tier labels per conversation.
-- **Bidirectional Channel Conversations** — Chat with `ainative-business` agents directly from Slack or Telegram. Channel conversations use the same engine with full tool access and permission handling, and appear in the sidebar alongside in-app chats.
-- **Quick Access Navigation** — When the assistant mentions an entity, navigation pills appear at the bottom of the response for one-click deep linking to that project, task, or workflow.
-- **Entity CRUD via Chat** — Create, update, and delete projects, tasks, and workflows through natural language without navigating to their respective surfaces.
-- **Slash Command Popover** — Type `/` to open a tabbed popover with four views: Actions (session commands like clear, compact, export), Skills (composable behavior stacks), Tools (browser and workspace tools), and Entities (@ reference picker).
-- **Skill Composition** — Stack specialized behaviors onto a conversation from the Skills tab. Add or replace skills with conflict detection, prompt-budget eviction, and capability gating per runtime.
-- **Conversation Templates** — Start conversations from saved blueprints via the empty-state button, `/new-from-template` slash command, or the `⌘K` Templates group.
-- **Saved Searches & Filters** — Pin frequently used filter + query combinations and reuse them from the `⌘K` palette or the `@` popover. Filter by namespace using `#scope:`, `#type:`, and other qualifiers.
-- **@ Mentions with Context Injection** — Type `@` for a fuzzy-search autocomplete showing pinned items, projects, tasks, and documents with live status badges. Selected entities inject their full context into the conversation.
+The Chat page is your AI-powered command center for everything in your workspace. Instead of a blank prompt, you land on a **Tool Catalog** that organizes suggested prompts into four action-oriented categories -- Explore, Create, Debug, and Automate -- plus a Smart Picks row of personalized suggestions drawn from your actual projects, tasks, and documents. Pick a model, choose a prompt (or type your own), and get context-aware answers with direct links to the items the assistant mentions. Conversations can also originate from Slack and Telegram via bidirectional delivery channels.
 
-## How It Works
+## Key Features
 
-Chat uses a progressive 5-tier context injection system that loads workspace awareness from lightweight summaries up to full document content within a ~53K token budget. This means the assistant knows your workspace state without you having to explain your setup.
+### Tool Catalog
 
-<BrowserFrame src="/screenshots/chat-conversation.png" alt="Sales operations conversation with deal analysis, competitive intelligence, and coaching notes" />
+When no conversation is active, the chat page displays a curated grid of suggested prompts organized into tabbed categories:
 
-Responses stream in real time with full markdown support — headings, lists, code blocks with syntax highlighting, and tables render as the text arrives. Quick Access pills appear after streaming completes, linking directly to any entity mentioned in the response.
+- **Explore** -- Questions about your workspace: project statuses, task summaries, schedule overviews.
+- **Create** -- Prompts that help you spin up new tasks, workflows, projects, and schedules.
+- **Debug** -- Investigate failed tasks, review agent logs, and diagnose workflow issues.
+- **Automate** -- Set up scheduled loops, bulk operations, and repeating workflows.
+- **Smart Picks** -- A personalized row of suggestions generated from your actual workspace data.
 
 ### Model Selection
 
-Switch models at any time using the selector in the input area. Each model is labeled with its cost tier so you can balance capability against spend.
+Choose which AI model powers your conversation using the model selector at the bottom-left of the input area. Models are grouped by provider with clear cost and capability labels:
 
-<BrowserFrame src="/screenshots/chat-model-selector.png" alt="Model selector dropdown showing Anthropic and OpenAI models grouped by provider with cost tier labels" />
+- **Haiku 4.5** -- Fast responses at the lowest cost ($).
+- **Sonnet 4.6** -- A balance of speed and depth ($$).
+- **Opus 4.6** -- The most capable model ($$$).
+- **GPT-4o-mini** / **GPT-4o** -- Available when the Codex runtime is connected.
+- **Ollama models** -- Available when a local Ollama instance is connected ($0).
 
-### Suggested Prompts & Create Tab
+### @ Mentions and Context
 
-The empty state displays context-aware prompt suggestions organized into tabbed categories. The Create tab surfaces entity creation options that are pre-filled with workspace context.
+Type **@** in the chat input to reference a specific project, task, workflow, document, profile, or schedule by name. An autocomplete popover appears with fuzzy-searchable results. When you select a mention, the assistant receives the full details of that entity as part of the conversation context.
 
-<BrowserFrame src="/screenshots/chat-create-tab.png" alt="Suggested prompts with Create tab showing workflow design, task creation, and document drafting options" />
+### Conversation Management
 
-### Quick Access Deep Linking
+Every chat starts a new conversation that is saved automatically. Your conversation history appears in the left sidebar, sorted by most recent. Channel conversations from Slack and Telegram also appear here, titled "Channel: [channel name]," so you can continue them from the web UI.
 
-After asking about a workspace entity, Quick Access pills at the bottom of the response let you jump directly to the relevant detail page in one click.
+### Channel Conversations
 
-<BrowserFrame src="/screenshots/chat-quick-access.png" alt="Chat response with Quick Access navigation pill linking to a created task" />
-
-### Slash Commands & Composer
-
-Type `/` in the composer to open a tabbed popover organizing every in-chat action. The Actions tab lists session commands — start a new conversation, compact history, export to a document, or create a task without leaving the chat. A `#key:value` filter tip lets you narrow results across any tab.
-
-<BrowserFrame src="/screenshots/chat-actions-tab.png" alt="Slash command popover with Actions tab showing session commands: clear, compact, export, help, settings, and new-task" />
+When bidirectional chat is enabled on a Slack or Telegram delivery channel, messages sent to `ainative-business` from those platforms create conversations visible in the Chat sidebar. The same chat engine handles both web and channel conversations, including tool access, permission handling, and multi-turn context.
 
 ### Skill Composition
 
-Switch to the Skills tab to layer specialized behaviors onto the current conversation. Each skill card shows its health status, scope tags, and an **+ Add** button. Active skills display a badge with a remove control, and a counter reads "N of M active" so you always know your stack against the runtime's cap.
+On runtimes that support multiple active skills, you can stack specialized behaviors onto a single conversation. Open the slash (`/`) popover and switch to the **Skills** tab — each skill card has an **+ Add** button. Active skills show a badge, and the header reads "N of M active" so you always know where you stand against the runtime's cap (`maxActiveSkills`).
 
-<BrowserFrame src="/screenshots/chat-skills-tab.png" alt="Skills tab in slash popover showing architect skill active, with atlas, book-updater, and brainstorming skills available to add" />
+- **Modes** — add a skill in `replace` mode to swap it in, or `add` mode to layer it on top of the current stack.
+- **Conflict heuristic** — if a new skill clashes with one already active (overlapping tool needs, contradictory instructions), a confirmation dialog surfaces the conflict so you can choose which to keep.
+- **Prompt-budget eviction** — when the active skill set approaches the model's context budget, the oldest or lowest-priority skill is evicted automatically and shown in a lightweight toast.
+- **Capability gating** — runtimes that do not support composition (currently gated by `RuntimeFeatures.supportsSkillComposition`) render the Skills tab read-only with a "composition disabled on this runtime" hint.
 
-### Tool Browser
+The currently active skills are persisted on the conversation itself (`conversations.active_skill_ids`) so re-opening a conversation restores the exact same stack.
 
-The Tools tab exposes every tool available to the agent — browser automation, workspace operations, and MCP server tools. Each entry shows its parameter signature so you know what inputs are accepted before invoking.
+### Conversation Templates
 
-<BrowserFrame src="/screenshots/chat-tools-tab.png" alt="Tools tab in slash popover listing browser tools: take_screenshot, navigate_page, click, get_page_text, fill, and take_snapshot with parameter hints" />
+Rather than starting every conversation from a blank prompt, you can kick one off from a saved blueprint. Three entry points:
 
-### @ Mentions & Entity Picker
+- **Empty-state button** — the chat hero shows a "Start from template" button when no conversation is active.
+- **Slash command** — type `/new-from-template` in the composer to open the picker inline.
+- **Command palette** — press `⌘K` and pick the **Templates** group to browse by name.
 
-Type `@` to trigger a fuzzy-search autocomplete that groups results into Pinned, Projects, Tasks, and Documents. Each result shows a live status badge — completed, active, running — so you can quickly gauge what you're referencing. You can also reach this from the Entities tab in the slash popover.
+Each template resolves its opening prompt from the blueprint's optional `chatPrompt` field (falling back to the first step's prompt template if `chatPrompt` is not set). Variables in the prompt are filled in at launch so the conversation opens already primed with context.
 
-<BrowserFrame src="/screenshots/chat-mentions-popover.png" alt="@ mentions autocomplete showing pinned items, active projects, and running tasks with status badges" />
+### Filter Namespace
 
-<BrowserFrame src="/screenshots/chat-entities-tab.png" alt="Entities tab in slash popover with instructions to type @ to reference projects, tasks, documents, or files" />
+Type `#` in the chat search, the `@` popover, or the Skills popover to filter by namespace. Values can be double-quoted to include spaces — for example, `#scope:"customer support"` matches only entries whose scope equals that phrase. Supported qualifiers include `#scope:`, `#type:`, and surface-specific keys. The same `FilterInput` component powers the `/documents` list page and the `⌘K` palette, so the syntax is identical everywhere.
 
----
+### Saved Searches
 
-## Use Cases
+Frequently used filter + query combinations can be pinned and reused:
 
-### Daily Standup Triage
+- **Save a view** — run any search, then click **Save view** in the footer to name and pin it.
+- **Reuse from the palette** — `⌘K` shows a **Saved** group at the top; pick one to re-apply instantly.
+- **Reuse from mentions** — the `@` popover also surfaces saved searches in a dedicated group for in-composer reuse.
 
-**Product Team** · *Getting a quick status overview before the morning standup*
+Saved searches round-trip via `GET/PUT /api/settings/chat/saved-searches`, and the `cleanFilterInput()` helper strips any mention-trigger residue (`@`, `#`, `/`) so a pinned query stays clean no matter where you saved it from.
 
-Ask "What's the current status of the Q2 launch project?" and get a summary of task distribution, recent completions, and blockers — then click the Quick Access pill to jump straight to the project detail view.
+### Streaming Responses
 
-### Task Creation from Context
+Responses stream in token by token with a blinking cursor. Markdown formatting -- headings, lists, code blocks with syntax highlighting, tables, and links -- renders as the text streams in. Code blocks include a copy button and language label.
 
-**Developer** · *Creating structured work from a natural language description*
+## How To
 
-Describe what needs to happen — "Create a task to analyze the Magnificent 7 tech companies" — and the assistant creates it with proper priority, status, and description, ready for agent execution.
+### Start a New Conversation
 
-### Workspace Discovery
+1. Click **Chat** in the sidebar (under the Work section).
+2. Browse the tool catalog categories or type your question in the input area.
+3. Click a suggested prompt to insert it, or type your own message.
+4. Press **Enter** to send. The response streams in immediately.
 
-**New User** · *Learning what `ainative-business` can do through conversation*
+### Switch AI Models
 
-Browse the suggested prompt categories to discover capabilities you haven't explored yet. The Explore tab surfaces questions about your existing data, while the Create tab helps you build new entities.
+1. Click the model selector to the left of the input area.
+2. Choose a different model from the dropdown. Models are labeled with cost tiers.
+3. Your next message will use the selected model.
+
+### Reference Entities in Chat
+
+1. Type **@** followed by the name of a document, project, task, or other entity.
+2. An autocomplete popover appears -- use arrow keys or click to select.
+3. The assistant receives the full context of the mentioned entity.
+
+### Chat from Slack or Telegram
+
+1. Configure a delivery channel with Chat mode enabled (see [Settings](./settings.md)).
+2. Send a message to `ainative-business` from Slack or Telegram.
+3. The conversation appears in the Chat sidebar and can be continued from either platform.
+
+## Related
+
+- [Settings](./settings.md) -- Configure default chat model, Ollama, and delivery channels
+- [Documents](./documents.md) -- Documents the assistant can reference via @ mentions
+- [Projects](./projects.md) -- Projects that provide context to conversations
+- [Profiles](./profiles.md) -- Agent profiles that shape how the assistant responds
+- [Delivery Channels](./delivery-channels.md) -- Bidirectional Slack and Telegram integration
+
+{/* SYNC:END */}
 
 ---
 

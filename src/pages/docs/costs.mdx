@@ -12,57 +12,54 @@ The cost and usage view gives operators a shared ledger across all five provider
 
 <BrowserFrame src="/screenshots/cost-codex-claude-code.png" alt="Cost and usage dashboard with budget pacing, spend metrics, runtime counts, and Anthropic/OpenAI pricing table" />
 
-<BrowserFrame src="/screenshots/cost-usage-below-fold.png" alt="Cost dashboard below fold showing Anthropic and OpenAI pricing tables, spend velocity trends, activity token charts, and provider breakdown with per-model spend" />
+{/* SYNC:START */}
 
-## Key Concepts
+Track spend across providers and monitor token consumption with the cost and usage dashboard. The usage metering ledger records every token used by task, project, and provider, while budget guardrails enforce configurable spend caps to prevent runaway costs. Visual meters give you an at-a-glance view of current spend versus your configured budget. Tasks executed via Ollama (local models) are tracked at $0.
 
-- **Spend Velocity** — Compare 7-day and 30-day spend trends to see whether usage is accelerating or stabilizing.
-- **Token Velocity** — Track token growth separately from dollars so teams can spot workload changes even when pricing differs by model.
-- **Runtime Breakdown** — See how much filtered spend and token usage came from each of the five provider runtimes, including Ollama local work tracked at $0.
-- **Model Concentration** — Identify which models are responsible for current cost concentration and which runs have unknown pricing states.
-- **Budget State** — Budget health and blocked-state messaging make it explicit when new paid work is approaching or exceeding a configured cap.
+## Key Features
 
-## How It Works
+### Spend Dashboard
+The cost dashboard provides an overview of total spend across all provider runtimes. Key metrics include total spend to date, current period spend, and trend indicators showing whether costs are increasing or decreasing relative to prior periods.
 
-Every provider-calling activity writes to a normalized usage ledger instead of relying on runtime-specific log parsing. Five execution paths are tracked: task runs, workflow child tasks, schedule firings, task assist, and profile behavior tests.
+### Usage Metering Ledger
+Every agent execution records token consumption in the usage ledger. The ledger tracks input tokens, output tokens, and total tokens broken down by individual task, parent project, and provider runtime. This granular data enables precise cost attribution and optimization.
 
-The dashboard queries that shared ledger to build operator-facing views for:
+### Provider Breakdown
+Spend is segmented by provider runtime, showing separate cost totals for Claude (Agent SDK and Direct API), Codex (App Server and Direct API), and Ollama ($0 local). The breakdown helps you understand which provider is driving costs and make informed decisions about runtime selection.
 
-- current-day and current-month spend/tokens
-- 7-day and 30-day spend and token trends
-- runtime and model concentration
-- budget-state warnings and blocked windows
-- audit rows linked back to the task, workflow, or schedule that created the usage
+### Budget Guardrails
+Configure spend caps to prevent unexpected cost overruns. Set an overall budget limit and monthly allocation splits. When spend approaches the cap, alerts notify you before the limit is reached. Once the cap is hit, guardrails pause new executions to prevent further charges.
 
-## Budget Enforcement
+### Visual Budget Meters
+Progress bars and visual meters display current spend relative to your configured budget. Color-coded indicators shift from green to yellow to red as spend approaches the cap, providing immediate visual feedback on budget health.
 
-- **Project Budgets** — Set spending limits per project with warnings when approaching the cap and blocks when exceeded.
-- **Global Budget Alerts** — Organization-wide spending thresholds trigger notifications before costs escalate.
-- **Blocked-State Enforcement** — Tasks are proactively blocked before they can exceed a budget, preventing silent overspend.
+## How To
 
-Because the ledger is shared across providers, teams can compare Claude and Codex usage directly without switching tools or reconciling two different accounting models.
+### Review Current Spend
+1. Navigate to `/costs` from the sidebar under the **Observe** group.
+2. View the total spend summary at the top of the dashboard.
+3. Check the provider breakdown to see spend by runtime.
+4. Review the visual meters for budget pacing.
 
----
+### Set a Budget Cap
+1. Navigate to `/settings` and open the **Budget** section.
+2. Enter an overall spend cap amount.
+3. Configure the monthly split to distribute the budget across the billing period.
+4. Save the settings. The budget meters on the cost dashboard will reflect the new cap.
 
-## Use Cases
+### Investigate High Spend
+1. Open the cost dashboard at `/costs`.
+2. Identify which provider or project is contributing the most spend.
+3. Scroll down to the usage breakdown table for granular task-level data.
+4. Consider switching to Ollama (local models) for tasks that do not require cloud-level capability, or adjust task prompts to reduce token usage.
 
-### Runtime Cost Review
+## Related
+- [Settings](./settings.md)
+- [Monitoring](./monitoring.md)
+- [Schedules](./schedules.md)
+- [Provider Runtimes](./provider-runtimes.md)
 
-**Product Team** · *Comparing Claude and Codex operating cost in one place*
-
-You launch work across both runtimes during the week. The runtime breakdown shows which provider consumed most of the spend, while the model breakdown exposes the specific hotspots driving that split.
-
-### Budget Guardrail Triage
-
-**Operations Lead** · *Preventing silent overspend during scheduled automation*
-
-A provider-specific cap is nearly exhausted. The dashboard and settings surfaces make the warning explicit, so you can pause a schedule, switch runtime, or revise the budget before the next wave of work launches.
-
-### Audit a Spend Spike
-
-**Developer** · *Tracing cost growth back to a concrete execution path*
-
-Spend jumps after a workflow rollout. You use the audit view to confirm whether the increase came from scheduled firings, a task-assist pattern, or one model-heavy workflow branch.
+{/* SYNC:END */}
 
 ---
 

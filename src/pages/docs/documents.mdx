@@ -12,59 +12,68 @@ The document workspace keeps project files, uploaded references, and extracted c
 
 <BrowserFrame src="/screenshots/documents-list.png" alt="Documents list showing uploaded files with task, project, and extraction status" />
 
-<BrowserFrame src="/screenshots/documents-upload-form.png" alt="Upload Documents dialog with drag-and-drop zone and PDF, DOCX, XLSX, TXT, Images format badges" />
+{/* SYNC:START */}
 
-## Key Concepts
+The Document Library is where you upload, manage, and organize files that agents can reference during task execution. `ainative-business` automatically preprocesses uploaded files to extract text, making their content available as context for agents without manual copy-pasting.
 
-- **Drag-and-Drop Upload** — Upload multiple files at once with a progress indicator. Text files, PDFs, spreadsheets, Office documents, and images all enter the same library.
-- **Automatic Text Extraction** — `ainative-business` extracts searchable text from five file types automatically, making document content available to agents without manual preparation.
-- **Status Visibility** — Extraction state is visible directly in the list so operators can spot failures before an agent depends on the file.
-- **List & Grid Views** — Table and card layouts support both metadata-heavy browsing and faster visual scanning. View preference is remembered across sessions.
-- **Agent Context Injection** — Linked documents are auto-injected into agent context at execution time, ensuring agents always have the right reference material.
-- **Output Document Generation** — Agents can generate documents as deliverables. Agent-created files appear with a badge so operators can distinguish uploads from outputs.
-- **Filter Namespace Syntax** — Type `#type:pdf` or `#scope:"customer support"` in the search bar to filter by structured qualifiers. The same `FilterInput` component powers the documents list, the `⌘K` palette, and the chat composer.
-- **Saved Searches** — Pin frequently used filter + query combinations, then reuse them from the `⌘K` palette's Saved group or the `@` popover in chat for instant access.
+## Key Features
 
-<BrowserFrame src="/screenshots/documents-grid.png" alt="Documents grid view showing card-based file browsing" />
+### Table and Grid Views
+Toggle between a table view for dense scanning (file name, type, size, processing status, timestamps) and a grid view with visual cards. Both views support selection for bulk operations.
 
-## Document Pipeline
+### FilterInput and Saved Searches
+The `/documents` list page is the reference consumer for the shared **FilterInput** component. Type `#type:pdf` or `#scope:"legal review"` to filter by namespace — double-quoted values cleanly handle phrases with spaces. Combine filters with a free-text search, then click **Save view** in the footer to pin the combination as a saved search. Saved searches are available across surfaces (Chat, Tables, Documents) via the `⌘K` palette **Saved** group.
 
-1. **Upload** — Add one or more files to the workspace through the upload modal.
-2. **Associate** — Keep the document unassigned or link it to the task and project that need the file.
-3. **Extract** — `ainative-business` prepares machine-readable content for formats that support extraction.
-4. **Review** — Operators inspect the extracted text and metadata before trusting the file in an execution run.
-5. **Reuse** — The same document can continue supporting future tasks, workflows, and project reviews.
+### Upload Dialog with Drag-and-Drop
+The upload dialog accepts files via drag-and-drop or file picker. A visual indicator shows supported file types. Multiple files can be uploaded in a single batch.
 
-<BrowserFrame src="/screenshots/documents-detail.png" alt="portfolio-holdings.xlsx detail with chip bar, extracted spreadsheet content, and linked task/project" />
+### Supported File Types
+`ainative-business` processes a range of document formats:
+- **PDF** -- Text extraction via pdf-parse.
+- **Text** -- Plain text, Markdown, code files.
+- **Images** -- Metadata extraction (dimensions, format).
+- **Office Documents** -- Word documents, presentations, and archives.
+- **Spreadsheets** -- Excel and CSV files.
 
-## What the Detail View Adds
+### Automatic Preprocessing
+After upload, `ainative-business` automatically extracts text content from supported file types. The extracted text is stored alongside the original file, ready to be injected into agent context. Processing status is visible on each document card.
 
-- **Extracted Text Panel** — Review the machine-readable content that downstream agent steps will consume.
-- **Metadata Summary** — File type, size, processing status, and origin stay visible without leaving the record.
-- **Task & Project Links** — Navigate directly from a document to the operational work it supports.
-- **Preview Toggle** — Expand the preview area when you need to inspect more than the extracted text alone.
+### Agent Document Context
+Documents can be attached to tasks. When an agent executes a task with attached documents, the extracted text is included in the agent's context window, giving it direct access to the document content without needing file-system access.
 
----
+### Document Output Generation
+Agents can generate documents as output during task execution. Generated files are added to the document library automatically, linked back to the originating task.
 
-## Use Cases
+## How To
 
-### Onboarding Knowledge Base
+### Upload Documents
+1. Navigate to `/documents` and click "Upload."
+2. Drag and drop files into the upload zone, or click to browse.
+3. Select one or more files -- supported types are shown in the dialog.
+4. Click "Upload" to start the process.
+5. Preprocessing begins automatically -- watch the status indicator on each document.
 
-**Product Team** · *Grounding agents in company-specific knowledge*
+### Attach Documents to a Task
+1. When creating or editing a task, look for the document attachment field.
+2. Select one or more documents from the library.
+3. The agent will receive the extracted text as part of its context when executing the task.
 
-You upload launch briefs, competitor audits, and API notes to one project. When workflows run, the supporting files are already visible, linked, and reviewable inside the same workspace.
+### Switch Between Views
+1. Use the view toggle at the top of the documents page.
+2. Table view is best for scanning many documents by metadata.
+3. Grid view is best for visual browsing when file types include images.
 
-### Contract Analysis
+### Delete Documents
+1. Select one or more documents using the checkboxes.
+2. Click "Delete" to remove them from the library.
+3. Bulk delete is supported for cleaning up multiple files at once.
 
-**Knowledge Worker** · *Comparing terms across multiple vendor agreements*
+## Related
+- [Projects](./projects.md)
+- [Dashboard Kanban](./tasks.md)
+- [Workflows](./workflows.md)
 
-You ingest a mix of PDFs and DOCX files, verify extraction results on each document detail page, and then run a workflow that compares terms without guessing what content was actually available to the agent.
-
-### Personal Document Organization
-
-**Non-Technical User** · *Bringing order to a pile of paperwork*
-
-You upload receipts, statements, and forms into a single library, then keep them linked to the task or project that depends on them. The document view becomes your filing system and verification surface at the same time.
+{/* SYNC:END */}
 
 ---
 

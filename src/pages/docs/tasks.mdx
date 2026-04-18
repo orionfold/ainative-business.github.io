@@ -10,104 +10,78 @@ import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 Tasks are the unit of execution inside `ainative-business`. They move through explicit lifecycle states and stay visible from the dashboard, project detail views, workflow steps, and related documents.
 
-<BrowserFrame src="/screenshots/dashboard-list.png" alt="Dashboard board showing tasks organized by status across multiple projects" />
+<BrowserFrame src="/screenshots/tasks-list.png" alt="Dashboard board showing tasks organized by status across multiple projects" />
 
-Tasks can also be viewed as a sortable table with columns for status, priority, project, profile, and actions — useful when you need to scan or filter a long task list quickly.
+{/* SYNC:START */}
 
-<BrowserFrame src="/screenshots/dashboard-table.png" alt="Tasks table view with sortable columns for status, priority, project, and profile" />
+The Tasks screen is your primary surface for managing agent work. It presents all tasks as a kanban board with drag-and-drop columns, or as a sortable table — whichever fits your workflow. A filter bar, AI-assisted task creation, bulk operations, and inline editing let you manage work without switching context. The default seed data populates the board with business-relevant tasks across three personas — product launch, content engine, and customer success — giving you a realistic starting point to explore the interface.
 
-## Key Concepts
+Tasks lives under the **Home** group in the sidebar. It used to be the page at `/dashboard`; as of the sidebar restructure, `/dashboard` no longer exists and the kanban lives at `/tasks`. The Dashboard screen at `/` is now a standalone overview distinct from the task board.
 
-- **Lifecycle Lanes** — Planned, queued, running, completed, and failed states make task progress obvious at a glance.
-- **Project Context** — Every task remains tied to a project so work can be filtered globally or reviewed in a project-specific queue.
-- **Task Detail** — The detail view keeps priority, status, timestamps, and the task description together for review and intervention.
-- **Task Creation** — New tasks can be created directly from the dashboard with project, priority, and complexity fields filled in up front.
-- **AI Assist** — The creation form generates sub-task suggestions from a brief, letting operators bootstrap detailed task descriptions with AI support. Multi-step recommendations can be promoted to governed workflows in one click.
-- **Bento Grid Detail View** — The task detail uses a bento grid layout with a chip bar and prose reader, keeping priority, status, timestamps, and description together.
-- **Inline Editing** — Tasks can be edited directly from the board without navigating away from the execution view.
-- **Bulk Operations** — Multi-select tasks across columns with a floating action bar for move, delete, or reassign actions.
+## Key Features
 
-<BrowserFrame src="/screenshots/dashboard-detail.png" alt="Task detail showing planned status, P0 Critical priority, and Queue/Edit/Delete actions" />
+### Kanban Board
+Tasks are organized into five columns — Planned, Queued, Running, Completed, and Failed. Each column shows a count of its tasks. Cards display the task title, priority badge, agent profile, and quick-action buttons for editing and deleting. Heartbeat-generated tasks show a heartbeat badge to distinguish them from manually created work.
 
-## Task Lifecycle
+### Drag-and-Drop Reordering
+Drag task cards between columns to change their status, or within a column to reorder priority. The board updates the database in real time as you drop cards.
 
-| Status | Description |
-|--------|-------------|
-| **Planned** | Task defined but not yet queued for execution |
-| **Queued** | Ready for agent pickup |
-| **Running** | Agent actively executing the task |
-| **Completed** | Successfully finished |
-| **Failed** | Agent encountered an error |
-| **Cancelled** | Manually stopped by the user |
+### Board and Table Toggle
+Switch between the visual kanban board and a dense table view using the toggle in the toolbar. The table view provides sortable columns for title, status, priority, project, and timestamps — ideal for bulk review.
 
-## How It Works
+### Filter Bar
+Combobox filters for project, status, and priority let you narrow the board or table to exactly the tasks you care about. Filters persist across view toggles.
 
-Operators typically create tasks from the dashboard or from within a project. Once a task is queued, `ainative-business` hands it to the execution layer, which applies the configured agent profile, logs runtime events, and surfaces permission requests when the agent needs approval.
+### AI-Assisted Task Creation
+The task creation form includes fields for title, description, project, priority, runtime, and agent profile. The AI Assist button analyzes your title and description, then enhances them with structured context, acceptance criteria, and suggested parameters. When the analysis identifies a multi-step task, `ainative-business` offers to convert it into a workflow automatically.
 
-The task detail view is the control surface for one execution record. It is where you verify the task definition, confirm current state, and intervene when a run should be canceled or retried.
+### Task Detail View
+Click any task card to open a detail panel with the full description, execution logs, status history, and action buttons. Edit the task inline or trigger execution directly from the detail view.
 
-<BrowserFrame src="/screenshots/dashboard-create-form-filled.png" alt="Create Task form with title, project, priority, runtime, agent profile, and AI Assist panel" />
+### Bulk Select Mode
+Enter select mode to check multiple task cards across any column. A toolbar appears with bulk actions: queue selected tasks for execution, move them to a different status, or delete tasks that are no longer needed. This is essential when autonomous workflows or heartbeat schedules generate many tasks overnight.
 
-## AI-Assisted Task Creation
+### Heartbeat Badges
+Tasks created by heartbeat schedules display a heartbeat badge on their kanban card. This visual indicator distinguishes proactively generated work from tasks you created manually, making it easy to audit what your scheduled agents produced.
 
-The task creation form includes an AI Assist panel that analyzes the task brief and suggests
-sub-task breakdowns, description refinements, or workflow patterns. Operators review the
-suggestions, accept or dismiss them, and submit the final task. This keeps human judgment
-in the loop while reducing the effort of writing detailed execution briefs from scratch.
+## How To
 
-<BrowserFrame src="/screenshots/dashboard-create-form-empty.png" alt="Empty Create Task form with Auto-detect profile and AI Assist panel ready for input" />
+### Create a New Task
+1. Click the "New Task" button in the Tasks toolbar, or navigate to `/tasks/new`.
+2. Enter a title and description for the task.
+3. Optionally select a project, priority level, runtime, and agent profile.
+4. Click the "AI Assist" button to enhance your description with structured context.
+5. Click "Create Task" to add it to the Planned column.
 
-When AI Assist detects a complex brief, it escalates beyond simple suggestions — analyzing the task structure, recommending execution patterns like Swarm or Checkpoint, and offering to decompose the brief into independent sub-tasks or convert it directly into a multi-step workflow.
+### Move a Task Between Statuses
+1. In the board view, click and hold a task card.
+2. Drag it to the target column (e.g., from Planned to Queued).
+3. Release to drop — the status updates immediately.
 
-<BrowserFrame src="/screenshots/dashboard-create-form-ai-breakdown.png" alt="AI Assist breakdown showing swarm pattern recommendation, improved description, analysis, and 8 independent sub-task decomposition with Create as Workflow option" />
+### Filter Tasks
+1. Use the filter bar at the top of the Tasks page.
+2. Select a project, status, or priority from the combobox dropdowns.
+3. The board or table updates instantly to show matching tasks.
+4. Clear filters by clicking the reset button.
 
-Once a title and description are entered, the AI Assist panel analyzes the brief and generates sub-task suggestions, description refinements, and workflow pattern recommendations in the right panel.
+### Bulk-Manage Tasks
+1. Click the "Select" button in the toolbar to enter bulk select mode.
+2. Check the boxes on multiple task cards.
+3. Use the bulk action toolbar to queue, move, or delete selected tasks.
+4. Confirm the action and exit select mode.
 
-<BrowserFrame src="/screenshots/dashboard-create-form-ai-assist.png" alt="AI Assist panel with improved description, 4 sub-task suggestions, and Create as Workflow option" />
+### Navigate to Tasks Quickly
+Press <kbd>g</kbd> then <kbd>t</kbd> to jump to `/tasks` from anywhere in the app. Press <kbd>g</kbd> then <kbd>h</kbd> to return to the Dashboard at `/`.
 
-Clicking **Apply** writes the AI-generated content back into the form's description field, giving the operator a polished starting point they can refine before submitting.
+## Related
+- [Home Workspace](./home-workspace.md)
+- [Projects](./projects.md)
+- [Workflows](./workflows.md)
+- [Profiles](./profiles.md)
+- [Schedules](./schedules.md)
+- [Keyboard Navigation](./keyboard-navigation.md)
 
-<BrowserFrame src="/screenshots/dashboard-create-form-ai-applied.png" alt="Create Task form after applying AI-improved description with enriched context and sub-task breakdown" />
-
-## Editing & Bulk Operations
-
-Tasks can be edited inline from the dashboard using the card edit modal. The modal exposes
-title, description, priority, runtime, and agent profile fields. Operators can also work
-with multiple tasks across status columns from the board view.
-
-<BrowserFrame src="/screenshots/dashboard-card-edit.png" alt="Edit Task dialog with title, description, priority, runtime, and agent profile fields" />
-
-The board view also supports working with multiple tasks at once. Selecting tasks across columns lets operators apply bulk actions — reassigning priorities, moving work between states, or clearing completed items — without opening each card individually.
-
-<BrowserFrame src="/screenshots/dashboard-bulk-select.png" alt="Kanban board with 3 tasks selected and bulk action toolbar visible" />
-
----
-
-## Use Cases
-
-### Code Review Pipeline
-
-**Product Team** · *Processing a backlog of pull requests*
-
-Twelve PRs landed overnight. You create review tasks, filter the dashboard to the engineering project, and move work from planned to queued as the day opens. The board becomes the operating queue for the entire review pass.
-
-### Research Decomposition
-
-**Knowledge Worker** · *Breaking down a complex analysis*
-
-You create a task for a competitive landscape analysis, set its project and priority, then let the assigned workflow or profile handle execution. The task record keeps the work grounded in one explicit brief rather than an unstructured chat thread.
-
-### Daily Task Automation
-
-**Power User** · *Recurring maintenance tasks every morning*
-
-Recurring schedules generate new tasks for the same set of morning checks. When you open the dashboard, the queued lane already contains the runs you need to review or start for the day.
-
-### Delegating Without Technical Knowledge
-
-**Non-Technical User** · *Turning raw data into insights*
-
-You create a task against the right project, attach source documents, and let a specialized profile execute the work. The task remains a clear operational record that you can inspect later in the dashboard, project detail, or monitor.
+{/* SYNC:END */}
 
 ---
 

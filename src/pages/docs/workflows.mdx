@@ -12,118 +12,85 @@ Workflows are how `ainative-business` turns one-off tasks into repeatable, multi
 
 <BrowserFrame src="/screenshots/workflows-list.png" alt="Workflows library with 5 workflows, pattern labels, and All/Templates/Runs tabs" />
 
-## Workflow Patterns
+{/* SYNC:START */}
 
-### 1. Sequence
+Workflows let you orchestrate multi-step agent operations using six built-in patterns. From simple sequences to parallel research fans and multi-agent swarms, workflows encode repeatable processes that agents execute with human checkpoints where you need them. The blueprint gallery includes both technical and business-function templates.
 
-Tasks execute in strict order. Each step's output feeds the next. Gate checks between steps ensure quality before proceeding.
+## Key Features
 
-**Example**: Research → Draft → Legal Review → Publish
+### Six Pattern Types
+Workflows support six orchestration patterns:
+- **Sequence** -- Steps execute one after another in order.
+- **Planner-Executor** -- A planning step generates a plan, then an executor step carries it out.
+- **Checkpoint** -- Inserts a human-in-the-loop approval gate between steps.
+- **Autonomous Loop** -- Repeats a step until a stop condition is met (max iterations, goal reached, error threshold, or timeout).
+- **Parallel Research** -- Fans out multiple steps to run concurrently, then merges results.
+- **Multi-Agent Swarm** -- Multiple agent profiles collaborate on a shared objective with dynamic handoffs.
 
-### 2. Planner → Executor
+### Step Delays (Drip Sequences & Cooldowns)
+Insert pure time-delay steps between agent steps using the **Add Delay** button in the create form. Delays accept compact durations like `30m`, `2h`, `3d`, or `1w`. Execution model is schedule-based, not sleep-based: the delay is persisted in `workflows.resume_at` and the scheduler resumes the workflow when the time is up. This means delays survive process restarts — a 3-day cooldown will resume correctly even if the dev server is stopped and restarted in between. Resume is atomic and idempotent: the scheduler and a manual "Resume Now" click cannot double-fire the same delay. Delay steps are the primitive behind drip email campaigns, staggered onboarding sequences, and cooldown windows between automated actions.
 
-A planning agent breaks down a goal into steps. Executor agents handle each step independently. Results roll up to the planner for synthesis.
+### Workflow Blueprints
+The blueprint gallery offers pre-built workflow templates for common patterns:
+- **Technical blueprints** -- code review pipelines, deploy-and-verify, research synthesis, documentation generation
+- **Business-function blueprints** -- lead research pipeline, content marketing pipeline, customer support triage, financial reporting, business daily briefing
 
-**Example**: "Analyze Q1 financials" → identify data sources → extract metrics → generate report
+Click any blueprint to preview its steps, then create a workflow pre-populated with the template configuration. Customize steps, profiles, and runtimes to match your specific process.
 
-### 3. Human-in-the-Loop Checkpoint
+### Blueprints as Chat Templates
 
-Agent executes autonomously until it reaches a defined checkpoint, then pauses for human approval before continuing.
+Blueprints also double as **conversation templates** for the Chat surface. A blueprint can declare an optional `chatPrompt` field that provides a purpose-built opening prompt for chat use; if it is not set, the chat launcher falls back to `steps[0].promptTemplate`. This means the same blueprint asset powers three entry points — the Workflows gallery, the Chat empty-state picker, and the `/new-from-template` slash command — without requiring parallel definitions. See the [Chat](./chat.md) feature doc for the conversation-side flow.
 
-**Example**: Draft client email → **human approves** → send email → log to CRM
+### Tabs: All, Templates, Runs
+The workflow page organizes content into three tabs. "All" shows every workflow. "Templates" shows reusable patterns you can instantiate. "Runs" shows active and historical executions with their current status.
 
-### 4. Fork/Join Parallel
+### Workflow Cards
+Each workflow card displays the name, pattern type, step count, and current status. Click a card to open the detail view.
 
-2–5 branches execute concurrently. Each branch runs an independent agent step. Results converge in a synthesis step that receives all branch outputs.
+### Workflow Detail Page
+The detail view shows the full step-by-step breakdown of a workflow, including each step's name, instructions, assigned agent profile, runtime, and execution status. For running workflows, you can see which step is currently active.
 
-**Example**: Analyze 4 competitor products in parallel → synthesize findings into comparison report
+### Step Builder
+The creation form includes a step builder where you define each step with a name and instructions. Each step can be assigned a specific agent profile and runtime, enabling mixed-agent workflows where different profiles handle different steps.
 
-### 5. Autonomous Loop
+### AI-Assisted Workflow Creation
+The AI Assist feature can analyze a task and recommend converting it into a workflow with appropriate steps, patterns, and profile assignments.
 
-Iterative execution patterns where agents repeat until a stop condition is met. Four built-in stop conditions: max iterations, time budget, human cancel, or agent-signaled completion.
+## How To
 
-**Example**: Monitor competitor pricing → check for changes → alert if threshold exceeded → repeat every cycle
+### Create a New Workflow
+1. Navigate to `/workflows` and click "New Workflow."
+2. Enter a name and select a pattern type (e.g., Sequence, Checkpoint).
+3. Optionally link the workflow to a project.
+4. Use the step builder to add steps -- each step needs a name and instructions.
+5. Assign an agent profile and runtime to each step as needed.
+6. Click "Create" to save the workflow.
 
-### 6. Multi-Agent Swarm
+### Use a Blueprint
+1. Go to the "Blueprints" tab on the workflows page.
+2. Click a blueprint card to preview its configuration.
+3. Click "Use Blueprint" to create a new workflow instance from it.
+4. Modify any steps or parameters as needed, then save.
 
-A Mayor agent plans the work. 2–5 Worker agents execute in parallel with independent retries. A Refinery agent consolidates results. Failed branches can retry without re-running successful workers.
+### Run a Workflow
+1. Open the workflow detail page by clicking its card.
+2. Click "Run" to start execution.
+3. For Checkpoint patterns, you will be prompted to approve at each gate.
+4. Monitor progress in real time on the detail page or in the Runs tab.
 
-**Example**: Mayor plans code audit → Workers review auth, API, DB, and tests → Refinery merges findings
+### Monitor Workflow Runs
+1. Navigate to the "Runs" tab to see all active and completed executions.
+2. Click a run to see step-by-step progress and any agent output.
+3. Failed steps display error details to help with debugging.
 
-## Step Delays — Drip Sequences & Cooldowns
+## Related
+- [Dashboard Kanban](./tasks.md)
+- [Projects](./projects.md)
+- [Profiles](./profiles.md)
+- [Schedules](./schedules.md)
+- [Agent Intelligence](./agent-intelligence.md)
 
-Insert pure time-delay steps between agent steps with the **Add Delay** button in the workflow creation form. Delays accept compact durations like `30m`, `2h`, `3d`, or `1w` and pause execution before the next step runs.
-
-The execution model is **schedule-based, not sleep-based**: the delay is persisted in `workflows.resume_at` and the scheduler resumes the workflow when the time is up. This means delays survive process restarts — a 3-day cooldown will resume correctly even if the dev server is stopped and restarted in between. Resume is atomic and idempotent: the scheduler and a manual "Resume Now" click cannot double-fire the same delay.
-
-Step delays are the primitive behind drip email campaigns, staggered onboarding sequences, and cooldown windows between automated actions.
-
-<BrowserFrame src="/screenshots/workflows-create-form-delay.png" alt="Workflow creation form showing a Sequence pattern with a 2-hour delay step between Prepare training data and Run training job" />
-
-<BrowserFrame src="/screenshots/workflows-blueprints.png" alt="Blueprint gallery with 12 template cards, domain tabs, and Create Custom button" />
-
-The Templates tab isolates reusable workflow patterns, while the Runs tab shows active and completed workflow executions with their current status.
-
-<BrowserFrame src="/screenshots/workflows-templates.png" alt="Workflows Templates tab showing reusable template with pattern and step count" />
-
-<BrowserFrame src="/screenshots/workflows-runs.png" alt="Workflows Runs tab showing active and completed workflow executions across projects" />
-
-## Key Concepts
-
-- **Workflow Library** — The main list shows each workflow’s pattern, status, step count, and duplication controls. Six execution patterns are supported.
-- **Blueprint Catalog** — Operators can start from pre-built templates across technical workflows (code review, deploy-and-verify, research synthesis, documentation generation) and business functions (lead research, content marketing, customer support triage, financial reporting, business daily briefing). Blueprint lineage tracks the template origin and any customizations applied.
-- **Profile-Aware Steps** — Each workflow step can reference an agent profile so specialist behavior is reused consistently.
-- **Step-Level Retry** — Retry individual failed steps without re-running the entire workflow, saving time and cost on long-running orchestrations.
-- **Checkpoint & Resume** — Human-in-the-loop workflows pause naturally at approval points and resume when the operator responds.
-- **Parallel & Swarm** — Fork/Join and Swarm patterns run bounded concurrent branches with automatic result consolidation.
-
-## How It Works
-
-Blueprints are the fastest way to launch a new workflow. Operators can choose a template, adapt the prompt or profile bindings, and create a runnable workflow without rebuilding the structure manually.
-
-Once a workflow exists, the detail view exposes its exact step sequence. This is where `ainative-business` makes orchestration legible: you can inspect prompts, identify checkpoints, and understand how work will proceed before any agent runs.
-
-<BrowserFrame src="/screenshots/workflows-detail.png" alt="Content Review Pipeline sequence workflow with single step and Execute button" />
-
-To create a new workflow from scratch, the creation form collects identity details, the orchestration pattern, a target project, and individual step prompts — giving operators full control over how work will be structured before any agent runs.
-
-<BrowserFrame src="/screenshots/workflows-create-form-filled.png" alt="Create Workflow form with Customer Onboarding Pipeline, Checkpoint pattern, and step builder" />
-
-### AI-Generated Workflows
-
-When AI Assist produces a multi-step breakdown during task creation, operators can promote
-those steps into a full workflow. The confirmation page shows each generated step with its
-assigned agent profile, letting the operator review the structure before committing.
-
-<BrowserFrame src="/screenshots/dashboard-workflow-confirm.png" alt="Create Workflow from AI Assist with 6 API Security Audit steps and assigned profiles" />
-
----
-
-## Use Cases
-
-### Code Review Pipeline
-
-**Product Team** · *Automating the full review cycle with safety gates*
-
-You launch a blueprint-backed workflow that audits a PR, drafts findings, pauses for review, and then posts the approved summary. The checkpoint keeps the process fast without dropping human accountability.
-
-### Investment Research Report
-
-**Knowledge Worker** · *Using Planner-Executor for structured analysis*
-
-A planner-executor workflow collects company filings, compares guidance, and drafts a recommendation. The structure makes a complex analysis reproducible instead of depending on a single long prompt.
-
-### Sprint Planning Automation
-
-**Developer** · *Combining sequence steps with human checkpoints*
-
-You start from the sprint-planning blueprint, adjust the prompt for your team’s cadence, and let the workflow draft next sprint work before pausing for PM review. The workflow becomes an operator-facing planning assistant rather than a hidden automation.
-
-### Meal Planning for the Week
-
-**Non-Technical User** · *Personal automation with a review step*
-
-You choose a personal meal-planning blueprint, tweak the prompt for dietary constraints, and keep one checkpoint before shopping. The workflow handles repetition while you retain the final decision.
+{/* SYNC:END */}
 
 ---
 

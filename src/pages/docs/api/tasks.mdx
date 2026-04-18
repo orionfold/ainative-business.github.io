@@ -642,6 +642,92 @@ for s in siblings:
 
 </EndpointCard>
 
+### Task Assist (AI Planning)
+
+<EndpointCard method="POST" path="/api/tasks/assist" description="AI-assisted task planning. Submit a rough title or description and receive an improved description, a step-by-step breakdown, a recommended execution pattern, and a complexity assessment. Useful for turning a one-liner into a structured workflow before creating the task.">
+
+<SchemaTable title="Request Body" fields={[
+  { name: 'title', type: 'string', required: false, description: 'Rough task title (provide title or description, or both)' },
+  { name: 'description', type: 'string', required: false, description: 'Freeform task brief the planner should refine' },
+  { name: 'assignedAgent', type: 'string', required: false, description: 'Agent runtime override — defaults to the routing-layer suggestion' },
+]} />
+
+**Response** `200` — `TaskAssistResponse` object
+
+<SchemaTable title="Response Body" fields={[
+  { name: 'improvedDescription', type: 'string', required: true, description: 'Polished, structured description ready to paste into createTask' },
+  { name: 'breakdown', type: 'BreakdownStep[]', required: true, description: 'Array of { title, description, suggestedProfile?, requiresApproval?, dependsOn? }' },
+  { name: 'recommendedPattern', type: 'enum', required: true, description: 'single, sequence, planner-executor, checkpoint, parallel, loop, or swarm' },
+  { name: 'complexity', type: 'enum', required: true, description: 'simple, moderate, or complex' },
+  { name: 'needsCheckpoint', type: 'boolean', required: true, description: 'Whether the workflow would benefit from approval gates between steps' },
+  { name: 'reasoning', type: 'string', required: true, description: 'Short rationale explaining the pattern and breakdown choices' },
+  { name: 'suggestedLoopConfig', type: 'object', required: false, description: 'For loop pattern: { maxIterations, timeBudgetMs? }' },
+  { name: 'suggestedSwarmConfig', type: 'object', required: false, description: 'For swarm pattern: { workerConcurrencyLimit? }' },
+]} />
+
+Turn a one-liner into a structured multi-step plan before committing to a task or workflow:
+
+<CodeExample ts={`// Ask the planner how to approach a vague task
+interface AssistResult {
+  improvedDescription: string;
+  recommendedPattern: string;
+  complexity: string;
+  breakdown: { title: string; description: string; suggestedProfile?: string }[];
+  reasoning: string;
+}
+
+const plan: AssistResult = await fetch("http://localhost:3000/api/tasks/assist", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    title: "Ship Q2 launch",
+    description: "Coordinate engineering, design, and marketing for the Q2 feature launch",
+  }),
+}).then((r: Response) => r.json());
+
+console.log(\`Pattern: \${plan.recommendedPattern} (\${plan.complexity})\`);
+plan.breakdown.forEach((step, i) => {
+  console.log(\`  \${i + 1}. \${step.title} [\${step.suggestedProfile ?? "auto"}]\`);
+});`} python={`import requests
+
+# Ask the planner how to approach a vague task
+plan: dict = requests.post(
+    "http://localhost:3000/api/tasks/assist",
+    json={
+        "title": "Ship Q2 launch",
+        "description": "Coordinate engineering, design, and marketing for the Q2 feature launch",
+    },
+).json()
+
+print(f"Pattern: {plan['recommendedPattern']} ({plan['complexity']})")
+for i, step in enumerate(plan["breakdown"], 1):
+    profile = step.get("suggestedProfile") or "auto"
+    print(f"  {i}. {step['title']} [{profile}]")`} />
+
+Example response:
+
+```json
+{
+  "improvedDescription": "Coordinate the Q2 launch across engineering, design, and marketing. Define the launch date, align on scope, produce launch artifacts (landing page, release notes, demo video), and run a cross-functional dress rehearsal before go-live.",
+  "breakdown": [
+    { "title": "Lock scope and launch date", "description": "Align eng, design, marketing on final feature set and ship date", "suggestedProfile": "project-manager", "requiresApproval": true },
+    { "title": "Produce launch artifacts", "description": "Landing page copy, release notes, demo video, email", "suggestedProfile": "technical-writer", "dependsOn": [0] },
+    { "title": "Run dress rehearsal", "description": "End-to-end walkthrough with all stakeholders 48h before launch", "suggestedProfile": "operations-coordinator", "dependsOn": [1], "requiresApproval": true }
+  ],
+  "recommendedPattern": "checkpoint",
+  "complexity": "complex",
+  "needsCheckpoint": true,
+  "reasoning": "Cross-functional launches benefit from approval gates between scope lock, artifact production, and rehearsal so misalignment is caught early."
+}
+```
+
+**Errors:**
+- `400` — Neither title nor description provided
+- `429` — Budget limit exceeded
+- `500` — Planner model error
+
+</EndpointCard>
+
 ## Status Transitions
 
 Tasks follow a strict lifecycle. Invalid transitions return `400`.

@@ -4,7 +4,7 @@ subtitle: "When the System You Are Using Is Also the System You Are Building"
 chapter: 14
 part: 4
 readingTime: 16
-lastGeneratedBy: "2026-04-11T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "profiles", "schedules", "blueprints", "instance-bootstrap"]
 ---
 
@@ -12,9 +12,9 @@ relatedDocs: ["workflows", "profiles", "schedules", "blueprints", "instance-boot
 
 Chapter 11 described the machine that builds machines. Chapter 13 showed what happens when that machine builds a wealth management application in a single day. This chapter is about what happens next — the step that transforms `ainative-business` from a product into a platform, and the pattern that makes "build your own domain application" a configuration exercise instead of a software project.
 
-The pattern is deceptively simple. Clone the `ainative-business` repository into a sibling directory. Point a new `AINATIVE_DATA_DIR` at an isolated SQLite instance so the clone cannot collide with your main workspace. Create a long-lived branch — `wealth-mgr`, `growth-mgr`, whatever domain you are shaping. Then prompt `ainative-business` — or use its UI — to program a domain-specific application using `ainative-business`'s own primitives: tables, profiles, workflow blueprints, schedules, pages, triggers. The resulting application is not a fork in the software-engineering sense. It is a configuration layer that happens to live in the same repository shape as the substrate it depends on. New tables, new profiles, new routes, new triggers — all composed from the same engine.
+The pattern is deceptively simple. Clone the `ainative-business` repository into a sibling directory. Point a new `STAGENT_DATA_DIR` at an isolated SQLite instance so the clone cannot collide with your main workspace. Create a long-lived branch — `wealth-mgr`, `growth-mgr`, whatever domain you are shaping. Then prompt `ainative-business` — or use its UI — to program a domain-specific application using `ainative-business`'s own primitives: tables, profiles, workflow blueprints, schedules, pages, triggers. The resulting application is not a fork in the software-engineering sense. It is a configuration layer that happens to live in the same repository shape as the substrate it depends on. New tables, new profiles, new routes, new triggers — all composed from the same engine.
 
-This has already happened twice. The Wealth Manager described in Chapter 13 is one instance. A B2B growth and account-intelligence module — `ainative-growth` — is the second. Both are `ainative-business`. Both are not `ainative-business`. They are domain interpretations of a general-purpose substrate, and the substrate did not change to accommodate them.
+This has already happened twice. The Wealth Manager described in Chapter 13 is one instance. A B2B growth and account-intelligence module — `ainative-growth` — is the second. Both are ainative. Both are not ainative. They are domain interpretations of a general-purpose substrate, and the substrate did not change to accommodate them.
 
 This chapter is about the meta-programming pattern that makes this possible, why it matters, and what it means for the economics of software.
 
@@ -32,7 +32,7 @@ The specification IS the application.
 
 ## The Anatomy of a Domain Clone
 
-When you clone `ainative-business` into a sibling directory — say `ainative-growth/` next to ``ainative-business`/` — you start with the full platform. Every feature described in the previous thirteen chapters is present: the task board, the workflow engine, the profile registry, the scheduler, the inbox, the chat surface, the cost dashboard, the governance layer. All of it.
+When you clone `ainative-business` into a sibling directory — say `ainative-growth/` next to `ainative/` — you start with the full platform. Every feature described in the previous thirteen chapters is present: the task board, the workflow engine, the profile registry, the scheduler, the inbox, the chat surface, the cost dashboard, the governance layer. All of it.
 
 What you do next is shape it. The shaping happens across five layers, and every layer is real code you can read right now.
 
@@ -40,11 +40,11 @@ What you do next is shape it. The shaping happens across five layers, and every 
 
 ```bash
 # ainative-growth/.env.local
-AINATIVE_CLOUD_DISABLED=true
-AINATIVE_DATA_DIR=/Users/manav/.ainative-growth
+STAGENT_CLOUD_DISABLED=true
+STAGENT_DATA_DIR=/Users/manavsehgal/.ainative-growth
 ```
 
-The upstream repository ships with `AINATIVE_DEV_MODE=true` and a `.git/ainative-dev-mode` sentinel file so the planned `instance-bootstrap` feature stays a no-op in contributor checkouts. When that feature ships, every private clone will automatically get a local branch, a pre-push hook that blocks accidental pushes to the upstream origin, and a stable `instanceId` recorded in its settings table. Today that automation is specified but not yet wired (`features/instance-bootstrap.md`); the convention — a `<domain>-mgr` branch plus a custom `AINATIVE_DATA_DIR` — is already how every live clone operates. The Wealth Manager's `.env.local` points at `~/.ainative-wealth`. The Growth module's points at `~/.ainative-growth`. They run on the same laptop without collision.
+The upstream repository ships with `STAGENT_DEV_MODE=true` and a `.git/ainative-dev-mode` sentinel file so the planned `instance-bootstrap` feature stays a no-op in contributor checkouts. When that feature ships, every private clone will automatically get a local branch, a pre-push hook that blocks accidental pushes to the upstream origin, and a stable `instanceId` recorded in its settings table. Today that automation is specified but not yet wired (`features/instance-bootstrap.md`); the convention — a `<domain>-mgr` branch plus a custom `STAGENT_DATA_DIR` — is already how every live clone operates. The Wealth Manager's `.env.local` points at `~/.ainative-wealth`. The Growth module's points at `~/.ainative-growth`. They run on the same laptop without collision.
 
 **Layer 2: Project-scoped tables via idempotent bootstrap.** The Wealth Manager and the Growth module took different routes to creating their domain tables, and the contrast is instructive. The Wealth Manager reads from tables that are pre-seeded as `ainative-business` templates — positions, transactions, watchlist, alerts — and then adds its own TypeScript interfaces over the shared `userTableRows` storage. The Growth module bootstraps its tables on demand, the first time a project opens the `/growth` surface:
 
@@ -193,12 +193,12 @@ The `ai-assist-workflow-creation` feature already converts natural-language desc
 
 ## The Self-Programming Loop
 
-The most interesting property of this pattern is that the tool used to build domain applications IS a domain application. The `ainative-business` platform is itself a configuration of its own primitives, pointed at the domain of "agent workspace management."
+The most interesting property of this pattern is that the tool used to build domain applications IS a domain application. `ainative-business` is itself a configuration of its own primitives, pointed at the domain of "agent workspace management."
 
 When you clone `ainative-business` and prompt it to build a Growth module, you are using a domain application (agent workspace) to build a domain application (Growth). The profiles that assist in the build — general, code-reviewer, document-writer — are the same kind of artifact as the profiles being created. The workflow blueprints that orchestrate the build process are the same kind of artifact as the blueprints being produced.
 
 ```
-`ainative-business`/ (the substrate)
+ainative/ (the substrate)
   └── prompt or UI interaction
        └── ainative-wealth/ (domain app #1, branch wealth-mgr)
        └── ainative-growth/ (domain app #2, branch growth-mgr)
@@ -215,9 +215,9 @@ This is what "the machine that builds machines" looks like in practice. It is no
 
 Low-code platforms promise a similar outcome — domain applications built by non-engineers — but they achieve it through a fundamentally different mechanism. Low-code platforms provide a visual abstraction layer over code. Drag a component, configure a property, wire an event. The abstraction hides the implementation. When the abstraction leaks — and it always leaks — the user hits a wall they cannot climb without becoming a developer.
 
-The `ainative-business` meta-programming model is not abstraction. It is composition. The primitives — tables, profiles, blueprints, triggers — are not visual widgets that hide code. They are the same artifacts the platform itself runs on. When you create a table, you are creating a real table in SQLite. When you write a profile, you are writing a real system prompt. When you define a trigger, you are inserting a real row in `userTableTriggers` that the existing trigger engine already reads. There is no layer of indirection between what you configure and what executes.
+`ainative-business`'s meta-programming is not abstraction. It is composition. The primitives — tables, profiles, blueprints, triggers — are not visual widgets that hide code. They are the same artifacts the platform itself runs on. When you create a table, you are creating a real table in SQLite. When you write a profile, you are writing a real system prompt. When you define a trigger, you are inserting a real row in `userTableTriggers` that the existing trigger engine already reads. There is no layer of indirection between what you configure and what executes.
 
-The consequence is that the ceiling is higher. A low-code product hits its limit when the user needs custom scoring logic, a non-standard state transition, or an integration the platform does not pre-build. An `ainative-business` domain application never hits that limit because the escape hatch is the same TypeScript codebase that the platform runs on. You can add a `computeLeadScore()` function in the Growth data layer. You can add an API route that calls an external service. The configuration layer is not a cage. It is a starting point.
+The consequence is that the ceiling is higher. A low-code product hits its limit when the user needs custom scoring logic, a non-standard state transition, or an integration the platform does not pre-build. A `ainative-business` domain application never hits that limit because the escape hatch is the same TypeScript codebase that the platform runs on. You can add a `computeLeadScore()` function in the Growth data layer. You can add an API route that calls an external service. The configuration layer is not a cage. It is a starting point.
 
 The floor is also lower — in the right direction. The person building the domain application does not drag widgets. They prompt an AI agent that understands the platform's primitives. "Create a Contacts table with name, email, company reference, stage, last contacted, and score." The agent creates it. "Write a profile for a sales researcher that can search the web and read documents but cannot execute code." The agent writes it. The interaction model is natural language, not visual programming. The builder does not need to learn a visual grammar. They need to describe their domain.
 
@@ -233,13 +233,13 @@ Compare this to installing a traditional third-party application. Does the appli
 
 In the `ainative-business` model, governance is not a feature of the domain application. It is a property of the substrate. The domain application cannot bypass it because the domain application does not control the execution layer. It configures agents. The governance layer governs agents. The two are structurally decoupled. This is what makes "build this and trust it to run safely" a structural guarantee rather than a hope. The safety is not in the configuration. It is in the engine that executes the configuration. And the engine is the same engine that the user already trusts with their own workspace.
 
-## `ainative-business` Today
+## ainative Today
 
 The meta-programming thesis is not aspirational. Most of its primitives are already live.
 
 Shipped: twenty-one built-in agent profiles plus custom profile creation; thirteen workflow blueprints; the workflow engine with sequence, planner-executor, checkpoint, loop, parallel, and swarm patterns; the scheduler with natural-language interval parsing; autonomous loop execution with four stop conditions; row triggers that spawn tasks from table events; `ainative-business` MCP injection into the task runtime so agents can introspect the very system they run on; agent self-improvement with versioned learned context; episodic memory with confidence scoring; a skill portfolio with GitHub repo import; AI Assist that converts natural-language intent into workflow blueprints. And two live domain clones — `ainative-wealth` on branch `wealth-mgr`, `ainative-growth` on branch `growth-mgr` — proving the pattern in production code you can `cat` yourself.
 
-In flight: `instance-bootstrap` (`features/instance-bootstrap.md`). The specification is complete, the implementation plan is written, and the upstream repository already ships with `AINATIVE_DEV_MODE=true` and a `.git/ainative-dev-mode` sentinel to keep contributors safe from premature bootstrap. What remains is the idempotent first-boot logic that will automate branch creation and pre-push hook installation for every private clone.
+In flight: `instance-bootstrap` (`features/instance-bootstrap.md`). The specification is complete, the implementation plan is written, and the upstream repository already ships with `STAGENT_DEV_MODE=true` and a `.git/ainative-dev-mode` sentinel to keep contributors safe from premature bootstrap. What remains is the idempotent first-boot logic that will automate branch creation and pre-push hook installation for every private clone.
 
 Not yet: an upgrade assistant that guides upstream merges into a long-lived domain branch, a formal `.ainative-app.yaml` manifest for portable domain-application definitions, and community template sharing so builders can learn from each other's configurations. The primitives exist. The composition workflow is proven. The tooling around it is next.
 

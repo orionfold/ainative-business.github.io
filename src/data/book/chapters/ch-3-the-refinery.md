@@ -4,7 +4,7 @@ subtitle: "From Intent to Structured Work"
 chapter: 3
 part: 2
 readingTime: 15
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["projects", "documents", "home-workspace"]
 relatedJourney: "personal-use"
 ---
@@ -27,10 +27,10 @@ This is where the machine that builds machines begins its work — not with code
 
 The first challenge is format diversity. Work does not arrive in a uniform format. In a single day, a `ainative-business` user might upload a PDF requirements document, paste a screenshot of a UI mockup, attach a Word document from legal review, drag in a spreadsheet of test cases, or simply type a paragraph of plain text. Each format encodes information differently, and an AI agent that cannot consume all of them is an AI agent that forces humans to do manual translation work — exactly the bottleneck we are trying to eliminate.
 
-The `ainative-business` document processing pipeline handles this through a processor registry pattern. Each file format gets a dedicated processor that knows how to extract meaningful text content. The registry dispatches automatically based on MIME type and file extension, so the upload path is identical regardless of what the user sends.
+`ainative-business`'s document processing pipeline handles this through a processor registry pattern. Each file format gets a dedicated processor that knows how to extract meaningful text content. The registry dispatches automatically based on MIME type and file extension, so the upload path is identical regardless of what the user sends.
 
 ```typescript
-// Building with `ainative-business`: Document intake pipeline
+// Building with ainative: Document intake pipeline
 const formData = new FormData();
 formData.append("file", pdfFile);
 formData.append("projectId", "proj-8f3a-4b2c");
@@ -82,7 +82,7 @@ In `ainative-business`, a project is a container. It has a name, a description, 
 This decomposition can happen manually — the user creates tasks one by one through the UI. But the AI-native path is more interesting. The user describes what they want in natural language, and an agent with the project's full context proposes a task breakdown. The agent considers the project description, all uploaded documents, the codebase structure (via the working directory), and any existing tasks. It proposes new tasks with titles, descriptions, priorities, and dependency relationships.
 
 ```typescript
-// Building with `ainative-business`: Project creation with document context
+// Building with ainative: Project creation with document context
 const project = await fetch("/api/projects", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -120,7 +120,7 @@ This is the refinery's complete cycle: raw intent enters as a project descriptio
 
 The machine that builds machines starts here — not with spectacular feats of code generation, but with the patient, reliable work of turning human intent into structured work.
 
-## `ainative-business` Today
+## ainative Today
 
 The refinery pipeline is fully operational in `ainative-business`'s current release. Here is what works today:
 

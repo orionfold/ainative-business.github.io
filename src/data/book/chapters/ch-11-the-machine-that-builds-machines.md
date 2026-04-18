@@ -1,10 +1,10 @@
 ---
 title: "The Machine That Builds Machines"
-subtitle: "The Platform Building Itself Using Itself"
+subtitle: "ainative-business Building Itself Using Itself"
 chapter: 11
 part: 4
 readingTime: 14
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "profiles", "schedules"]
 ---
 
@@ -16,7 +16,7 @@ When your own team cannot function without the system they built, the incentives
 
 StrongDM took this further in their engineering organization. Their stated principle: "Code must not be written by humans. Code must not be reviewed by humans." They built what they call "Digital Twin Universes" -- complete simulated environments where AI agents test changes against realistic scenarios before any human sees the code. The agents write it. The agents test it. The agents verify it. Humans design the system and evaluate the outcomes.
 
-This is not a thought experiment for `ainative-business`. The book you are reading right now is the proof.
+This is not a thought experiment for ainative. The book you are reading right now is the proof.
 
 > [!case-study]
 > **Cobus Greyling, "Eat Your Own AI"** -- "The strongest signal an AI product works is internal dependency. You are no longer looking at a product demo. You are looking at a dependency." When the team building the AI system depends on it for their own work, the quality feedback loop tightens to zero latency.
@@ -66,7 +66,7 @@ Today, `ainative-business` ships with four agent profiles: general, code-reviewe
 
 The next step is for the system to generate its own profiles. The pattern works like this:
 
-1. The `ainative-business` platform discovers the available tools and MCP servers in its environment.
+1. `ainative-business` discovers the available tools and MCP servers in its environment.
 2. It examines the task history in `agent_logs` to identify clusters of similar work.
 3. It analyzes which tool combinations and prompt patterns produced the best results for each cluster.
 4. It generates a new agent profile optimized for that task cluster: a system prompt derived from successful executions, tool permissions scoped to what was actually needed, behavioral constraints learned from failures.
@@ -74,7 +74,7 @@ The next step is for the system to generate its own profiles. The pattern works 
 The system creates its own workforce. Not by hallucinating what an agent should be, but by observing what agents actually did and codifying the patterns that worked. This is the learned_context table graduating from passive storage to active generation.
 
 ```typescript
-// Building with `ainative-business`: The self-building book pipeline
+// Building with ainative: The self-building book pipeline
 // This is how THIS chapter was generated
 
 // 1. Detect stale chapters
@@ -104,7 +104,7 @@ Chamath Palihapitiya's 8090 articulates the pattern with industrial precision. T
 
 This is the critical distinction between a tool and a factory. A tool does what you ask, every time, from scratch. A factory captures the process and repeats it with increasing accuracy. When Henry Ford introduced the moving assembly line in 1913, what took twelve hours dropped to ninety-three minutes. Not because the workers got faster, but because the process was encoded in the system.
 
-The `ainative-business` workflow blueprints are its assembly lines. A workflow definition captures a multi-step process: which agents execute which steps, in what order, with what inputs and approval gates. Once a workflow is defined, it can be instantiated repeatedly. The agent does not need to figure out the process each time. The process is the workflow. The agent brings intelligence to each step, but the structure is remembered.
+`ainative-business`'s workflow blueprints are its assembly lines. A workflow definition captures a multi-step process: which agents execute which steps, in what order, with what inputs and approval gates. Once a workflow is defined, it can be instantiated repeatedly. The agent does not need to figure out the process each time. The process is the workflow. The agent brings intelligence to each step, but the structure is remembered.
 
 The evolution is from "solve it once, repeat manually" to "solve it once, the system repeats it" to "solve it once, the system improves it." That third stage -- where the assembly line learns from each execution and refines itself -- is where workflow blueprints meet the learned_context table. Each execution generates data about what worked, what failed, how long each step took, and what the agent discovered along the way. Feed that data back into the workflow definition, and the assembly line gets better without human intervention.
 
@@ -136,7 +136,7 @@ Recursive self-improvement sounds like a perpetual motion machine — agents imp
 
 The fourth bottleneck Aschenbrenner identifies — inherent limits to what algorithmic improvement can achieve — has not yet been relevant at `ainative-business`'s scale. Current architectures have enormous headroom. The practical constraint is not that improvement has reached a ceiling, but that each incremental improvement requires more effort to discover and validate than the last. This is an engineering challenge with known mitigations: better arenas, better evaluation metrics, and recursive loops that allocate more reasoning time to harder problems.
 
-## `ainative-business` Today
+## ainative Today
 
 Let us inventory the concrete pieces of the self-building system as they exist today.
 
@@ -170,6 +170,6 @@ The self-building property deepens as the system matures.
 
 This is not science fiction. Geoffrey Huntley's Ralph Wiggum technique -- a bash loop that runs Claude Code until a specification is met -- has already been used to complete a $50,000 contract for $297 in API costs. Steve Yegge's Gas Town orchestrates 20-30 agents working in parallel across 75,000 lines of Go code that Yegge has never personally read. Stripe's Minions produce over a thousand merged pull requests per week with no human-written code.
 
-The machine that builds machines is not a metaphor. It is the trajectory. The `ainative-business` platform is one instance on that trajectory -- a system that uses its own capabilities to produce its own documentation, generate its own book, and will increasingly modify its own code. The proof is in what you just read. The pipeline is real. The chapters are real. The recursion is real.
+The machine that builds machines is not a metaphor. It is the trajectory. `ainative-business` is one instance on that trajectory -- a system that uses its own capabilities to produce its own documentation, generate its own book, and will increasingly modify its own code. The proof is in what you just read. The pipeline is real. The chapters are real. The recursion is real.
 
 And if this chapter is ever regenerated because the codebase changed beneath it, the new version will describe the new codebase with the same fidelity. Because the machine reads the machine. That is what self-building means.

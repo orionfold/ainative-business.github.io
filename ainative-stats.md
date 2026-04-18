@@ -459,3 +459,69 @@
 - LOC decreased because code was deliberately removed, not because work was lost
 - All features now free and unlimited — no feature gating, no cloud dependency, zero telemetry
 - Product is 100% local-first with Apache 2.0 open source license
+
+## [2026-04-18 12:06] Metrics Snapshot — Release 0.12.1
+
+| Category | Metric | Value |
+|----------|--------|-------|
+| LOC | TypeScript (production) | 104,262 |
+| LOC | TypeScript (tests) | 20,529 |
+| LOC | **Total** | **142,163** |
+| Tests | Vitest | 1,143 |
+| Tests | **Total** | **1,143** |
+| Git | Commits | 635 |
+| Git | Hours elapsed | 1,025.0 |
+| Git | Commits/hour | 0.62 |
+| Git | LOC/hour | 139 |
+| Velocity | Calendar days | 43 |
+| Velocity | Active dev days | 40 |
+| Velocity | Commits/day (calendar) | 14.8 |
+| Velocity | Commits/day (active) | 15.9 |
+| Velocity | LOC/day (calendar) | 3,306 |
+| Velocity | LOC/day (active) | 3,554 |
+| Velocity | Features/day (calendar) | 4.2 |
+| Velocity | Features/day (active) | 4.5 |
+| Velocity | LOC/commit | 224 |
+| Velocity | LOC/feature | 790 |
+| Velocity | Tests/feature | 6.4 |
+| Velocity | Hours/feature | 5.7 |
+| Features | Completed | 180/225 |
+| Infra | API routes | 160 |
+| Infra | DB tables | 45 |
+| Infra | UI components | 307 |
+| Infra | Pages | 37 |
+| Infra | Agent profiles | 65 |
+| Business | Workflow blueprints | 13 |
+| Business | Built-in agent profiles | 21 |
+| Business | Runtime providers | 5 |
+| Business | Workflow patterns | 6 |
+| Business | Channel integrations | 3 |
+| Business | Permission presets | 3 |
+| Business | Table templates | 12 |
+| Business | Column data types | 9 |
+| Business | Notification types | 8 |
+| Business | Activity types | 11 |
+| Business | Schedule types | 2 (scheduled, heartbeat) |
+
+### Trend (vs 2026-04-13 snapshot — Release 0.12.1 sync)
+- ↑ +15,060 LOC (127,103 → 142,163)
+- ↑ +333 tests (810 → 1,143)
+- ↑ +203 commits (432 → 635)
+- ↑ +32 features completed (148 → 180)
+- ↑ +9 API routes (151 → 160)
+- ↑ +15 UI components (292 → 307)
+- ↓ -1 page (38 → 37)
+- ↑ +9 agent profile files (56 → 65)
+- ↓ -1 runtime provider (6 → 5) — re-verified against catalog.ts (5 supported runtimes)
+- ↓ -1 permission preset (4 → 3) — re-verified (read-only, git-safe, full-auto)
+- ↓ -64 table templates (76 → 12) — re-verified; seed-data slimmed to 12 curated templates
+- LOC/commit: 294 → 224 (smaller commits — more frequent shipping)
+- Hours/feature: 6.1 → 5.7 (slightly faster)
+- Features/day (active): 4.2 → 4.5
+
+### Notes
+- Release 0.12.1: npm package renamed from `ainative` to `ainative-business`; `AinativeWordmark` component added; icon set refreshed.
+- Pages count went from 38 → 37 — one route consolidation, not a regression.
+- Big LOC + commits + features delta reflects 6 days of active development across v0.11/v0.12 cycle post-community-edition pivot.
+- Velocity density is up: commits/day (active) 12.3 → 15.9, LOC/commit dropping reflects more granular commits.
+- Business primitive corrections from prior snapshot: runtime providers and presets were off by one; table templates reduced from marketplace-era 76 to 12 curated seeds during community pivot.

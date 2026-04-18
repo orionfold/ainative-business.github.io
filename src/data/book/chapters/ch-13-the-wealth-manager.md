@@ -4,7 +4,7 @@ subtitle: "When a Solo Founder Builds a Domain Application in a Day Using the Ma
 chapter: 13
 part: 4
 readingTime: 16
-lastGeneratedBy: "2026-04-07T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "profiles", "schedules", "prediction-markets"]
 ---
 
@@ -14,7 +14,7 @@ On April 6, 2026, a single developer sat down with `ainative-business` and built
 
 Then, without pausing, the same developer and the same system added prediction market integration — connecting Polymarket's real-money-backed probability data to portfolio decisions. Six features shipped in rapid sequence: a prediction markets data layer, a price monitor extension, a macro signals dashboard, a prediction-enhanced rebalance analyzer, a news/prediction divergence detector, and a scenario modeler with market-priced probabilities. By the end of the day: 7,435 lines of new code across 44 files. A domain application that a fintech startup might spend months building.
 
-The developer was the founder of `ainative-business`. The system used to build it was `ainative-business` itself. And the application was not a demo — it was a working extension of the platform, reading from the same database, using the same workflow engine, governed by the same approval gates. The machine that builds machines had built something new, and the something new was a proof of concept for what any solo founder could build by shaping `ainative-business` around their own domain.
+The developer was the founder of ainative. The system used to build it was `ainative-business` itself. And the application was not a demo — it was a working extension of the platform, reading from the same database, using the same workflow engine, governed by the same approval gates. The machine that builds machines had built something new, and the something new was a proof of concept for what any solo founder could build by shaping `ainative-business` around their own domain.
 
 This is the chapter about what happens when the self-building property described in Chapter 11 meets a concrete domain. Not in theory. In git history.
 
@@ -39,13 +39,13 @@ The commit history tells a story that no product roadmap could have predicted. I
 ```
 feat: add Wealth Manager app (Phase 1-4)
 Data layer, 7 pages, 7 components, sidebar integration.
-Reads from `ainative-business` tables (positions, transactions, watchlist,
+Reads from ainative tables (positions, transactions, watchlist,
 alerts, wash_sales, portfolio_snapshots, alert_history).
 
 17 files changed, 2,181 insertions(+)
 ```
 
-Notice what this commit does not do. It does not create a new database. It does not build a separate backend. It reads from `ainative-business`'s existing tables. The positions, transactions, watchlist items, and alerts are all stored in `userTables` — the same structured data tables that any `ainative-business` project uses. The wealth manager is not a separate application bolted onto `ainative-business`. It is a view layer over `ainative-business`'s own data model.
+Notice what this commit does not do. It does not create a new database. It does not build a separate backend. It reads from `ainative-business`'s existing tables. The positions, transactions, watchlist items, and alerts are all stored in `userTables` — the same structured data tables that any `ainative-business` project uses. The wealth manager is not a separate application bolted onto ainative. It is a view layer over `ainative-business`'s own data model.
 
 This is the critical insight. The wealth manager did not require new infrastructure. It required a new interpretation of existing infrastructure. The `userTables` and `userTableRows` tables that Chapter 10 describes as the world model's structured data layer are the same tables that hold the portfolio. The `documents` table that stores workflow outputs stores the rebalance reports. The `alert_history` table that tracks any `ainative-business` alert tracks prediction market shifts.
 
@@ -95,11 +95,11 @@ What makes this build remarkable is not the speed. It is the architecture. Every
 **Data Layer → `ainative-business` Tables.** The portfolio data lives in `userTables` and `userTableRows`. The wealth manager's `data.ts` — 1,755 lines by the final commit — is a query layer that reads from and writes to the same tables that any `ainative-business` project uses. Positions, transactions, watchlist items, alerts, wash sales, portfolio snapshots, prediction markets — all are rows in user-created tables. The functions — `getPositions()`, `getAlerts()`, `getPredictionMarkets()`, `computePortfolioSummary()`, `computeDailyConviction()` — are typed accessors over this shared data model.
 
 ```typescript
-// The wealth manager reads from the same tables as any `ainative-business` project
+// The wealth manager reads from the same tables as any ainative project
 import { db } from "@/lib/db";
 import { userTables, userTableRows, documents } from "@/lib/db/schema";
 
-// Positions, predictions, alerts — all live in `ainative-business`'s structured data tables
+// Positions, predictions, alerts — all live in ainative's structured data tables
 export async function getPositions(): Promise<Position[]> { ... }
 export async function getPredictionMarkets(): Promise<PredictionMarket[]> { ... }
 export async function computeDailyConviction(): Promise<DailyConviction> { ... }
@@ -146,7 +146,7 @@ This is the world model doing what world models do: connecting information from 
 
 ## The Conviction Brief: Synthesis as a Feature
 
-The Daily Conviction Brief deserves its own section because it represents a pattern that will recur in every domain application built on `ainative-business`.
+The Daily Conviction Brief deserves its own section because it represents a pattern that will recur in every domain application built on ainative.
 
 The brief is a synthesis layer. It does not produce new data. It reads data from five other features — portfolio drift, prediction market signals, scenario analysis, divergence detection, and rebalance recommendations — and synthesizes them into a single narrative. The output is a morning note that a hedge fund CIO might write: market regime classification, capital flow summary, per-position BUY/SELL/HOLD recommendations with confidence scores and dollar-amount trade sizing.
 
@@ -231,7 +231,7 @@ The thesis rests on three pillars:
 
 **Pillar 3: The governance is already there.** Every wealth manager action runs through `ainative-business`'s approval gates. The rebalance workflow pauses at checkpoints for human review. The agent profile auto-denies dangerous tools. The cost metering tracks spend per workflow. The solo founder does not need to build a governance layer. They inherit one.
 
-What the solo founder does need to build is the domain logic — the TypeScript functions that compute drift, score divergences, classify market regimes, and size trades. That is the irreducible core of domain expertise. It cannot be abstracted away because it IS the value. But it is a small surface area compared to the full stack: data persistence, scheduling, workflow orchestration, agent management, governance, UI infrastructure, deployment. The `ainative-business` platform handles the stack. The founder handles the domain.
+What the solo founder does need to build is the domain logic — the TypeScript functions that compute drift, score divergences, classify market regimes, and size trades. That is the irreducible core of domain expertise. It cannot be abstracted away because it IS the value. But it is a small surface area compared to the full stack: data persistence, scheduling, workflow orchestration, agent management, governance, UI infrastructure, deployment. `ainative-business` handles the stack. The founder handles the domain.
 
 The math works out. The wealth manager's 7,435 lines of new code produced a 10-page application with prediction market integration, divergence detection, scenario modeling, and conviction synthesis. Without `ainative-business`'s infrastructure, that same application would require: a database (Postgres or SQLite setup, schema migrations, query layer), a scheduler (cron infrastructure, queue management, failure handling), a workflow engine (step execution, state management, checkpoint logic), an agent runtime (LLM integration, tool calling, context management), a governance layer (approval flows, permission scoping, budget tracking), and a deployment target (server, hosting, build pipeline). Conservatively, that is 30,000-50,000 lines of infrastructure code before a single line of wealth management logic is written.
 
@@ -239,7 +239,7 @@ The ratio — 7,435 lines of domain code versus 30,000-50,000 lines of infrastru
 
 ## The Recursive Proof
 
-Chapter 11 argued that `ainative-business` builds itself using itself. The wealth manager is the next step in that argument: `ainative-business` enables others to build on `ainative-business` using `ainative-business`.
+Chapter 11 argued that `ainative-business` builds itself using itself. The wealth manager is the next step in that argument: `ainative-business` enables others to build on `ainative-business` using ainative.
 
 The recursion has three levels:
 

@@ -4,7 +4,7 @@ subtitle: "What the Case Studies Tell Us About the Future"
 chapter: 12
 part: 4
 readingTime: 10
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "profiles", "schedules"]
 ---
 
@@ -53,7 +53,7 @@ The most provocative idea in the case studies is not any specific pattern. It is
 
 Dorsey put it directly: "When the intelligence layer tries to compose a solution and can't because the capability doesn't exist, that failure signal is the future roadmap. The traditional roadmap, where product managers hypothesize about what to build next, is any company's ultimate limiting factor."
 
-We have experienced this firsthand with `ainative-business`. The book pipeline described in Chapter 11 was not on a roadmap. It emerged because we needed to generate documentation and realized the existing skills -- capture, screengrab, doc-generator -- could compose into a pipeline that produced chapters. The workflow engine was not built for book generation. It was built for task orchestration. But when we pointed it at a different problem, it worked because the capabilities were composable.
+We have experienced this firsthand with ainative. The book pipeline described in Chapter 11 was not on a roadmap. It emerged because we needed to generate documentation and realized the existing skills -- capture, screengrab, doc-generator -- could compose into a pipeline that produced chapters. The workflow engine was not built for book generation. It was built for task orchestration. But when we pointed it at a different problem, it worked because the capabilities were composable.
 
 The features we did not plan but discovered we needed:
 
@@ -100,14 +100,14 @@ But the factory is not ainative-specific. The stations we have described -- the 
 
 Stripe built their factory with Minions and Devbox. Ramp built theirs with Inspect and Modal sandboxes. Karpathy built his with autoresearch and a single GPU. Gas Town is an entire factory metaphor made literal, with a Mayor, Polecats, a Refinery, and Convoys. Block is building theirs with a company world model and an intelligence layer that composes atomic capabilities.
 
-The `ainative-business` platform is one implementation. The reader's is next.
+`ainative-business` is one implementation. The reader's is next.
 
 The raw materials are available to everyone. Foundation models are accessible through APIs. Agent frameworks are open source. MCP provides a standard protocol for tool integration. A2A is emerging for cross-system orchestration. The database patterns, workflow engines, and scheduling infrastructure we described in Chapters 4-5 are engineering, not research.
 
 What differs between implementations is the world model. Block's world model is the economic graph: millions of merchants and consumers, both sides of every transaction. Harvey's world model is legal practice: matters, documents, research, regulatory constraints. Your world model is whatever your organization uniquely understands -- the domain knowledge, customer patterns, operational insights, and institutional memory that make your business yours.
 
 ```typescript
-// Building with `ainative-business`: The starting point for any factory
+// Building with ainative: The starting point for any factory
 // Three things you need: capabilities, a world model, and an intelligence layer
 
 // 1. Define your capabilities (agent profiles)

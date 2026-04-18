@@ -1,34 +1,34 @@
 # API Domain Mapping
 
-Last updated: 2026-04-16
+Last updated: 2026-04-18
 
 ## Domain Inventory
 
 | Domain | Route Files | Endpoints | Validator | Types | Page | Group |
 |--------|-------------|-----------|-----------|-------|------|-------|
-| tasks | 11 | 13 | task.ts | task-status.ts | tasks.mdx | Core |
+| tasks | 11 | 14 | task.ts | task-status.ts, task-assist-types.ts | tasks.mdx | Core |
 | projects | 3 | 7 | project.ts | — | projects.mdx | Core |
 | workflows | 10 | 14 | blueprint.ts | workflows/types.ts | workflows.mdx | Core |
-| blueprints | 4 | 5 | blueprint.ts | — | blueprints.mdx | Core |
-| schedules | 5 | 6 | — | — | schedules.mdx | Core |
-| chat | 11 | 13 | — | chat/types.ts | chat.mdx | Intelligence |
-| profiles | 14 | 15 | profile.ts | agents/profiles/types.ts | profiles.mdx | Intelligence |
-| runtimes | 2 | 2 | — | agents/runtime/catalog.ts | runtimes.mdx | Intelligence |
-| memory | 1 | 2 | — | — | memory.mdx | Intelligence |
+| blueprints | 4 | 6 | blueprint.ts | — | blueprints.mdx | Core |
+| schedules | 5 | 8 | — | — | schedules.mdx | Core |
+| chat | 11 | 15 | — | chat/types.ts | chat.mdx | Intelligence |
+| profiles | 14 | 19 | profile.ts | agents/profiles/types.ts | profiles.mdx | Intelligence |
+| runtimes | 2 | 3 | — | agents/runtime/catalog.ts | runtimes.mdx | Intelligence |
+| memory | 1 | 4 | — | — | memory.mdx | Intelligence |
 | documents | 4 | 7 | — | — | documents.mdx | Content |
-| tables | 17 | 29 | — | tables/types.ts | tables.mdx | Content |
+| tables | 17 | 30 | — | tables/types.ts | tables.mdx | Content |
 | uploads | 3 | 4 | — | — | uploads.mdx | Content |
 | views | 2 | 4 | — | — | views.mdx | Content |
-| settings | 19 | 24 | settings.ts | — | settings.mdx | Platform |
-| permissions | 2 | 5 | — | — | permissions.mdx | Platform |
+| settings | 19 | 35 | settings.ts | — | settings.mdx | Platform |
+| permissions | 2 | 6 | — | — | permissions.mdx | Platform |
 | notifications | 5 | 6 | — | — | notifications.mdx | Platform |
-| channels | 6 | 6 | — | — | channels.mdx | Platform |
-| environment | 14 | 10 | — | — | environment.mdx | Platform |
-| snapshots | 4 | 4 | — | — | snapshots.mdx | Platform |
+| channels | 6 | 9 | — | — | channels.mdx | Platform |
+| environment | 14 | 19 | — | — | environment.mdx | Platform |
+| snapshots | 4 | 7 | — | — | snapshots.mdx | Platform |
 | workspace | 4 | 4 | workspace.ts | — | workspace.mdx | Platform |
 | instance | 5 | 5 | — | — | instance.mdx | Platform |
 | logs | 1 | 1 | — | — | logs.mdx | Operations |
-| handoffs | 2 | 2 | — | — | handoffs.mdx | Operations |
+| handoffs | 2 | 4 | — | — | handoffs.mdx | Operations |
 | data | 2 | 2 | — | — | data.mdx | Operations |
 | context | 1 | 1 | — | — | context.mdx | Operations |
 | command-palette | 1 | 1 | — | — | — | Operations |
@@ -36,6 +36,7 @@ Last updated: 2026-04-16
 | book | 4 | 4 | — | — | — | Operations |
 | diagnostics | 1 | 1 | — | — | — | Operations |
 | onboarding | 1 | 1 | — | — | — | Operations |
+| telemetry | 1 | 1 | — | — | — | Operations |
 
 ## Route File Locations
 
@@ -78,6 +79,7 @@ Last updated: 2026-04-16
 - `src/app/api/book/` — bookmarks/route.ts, progress/route.ts, regenerate/route.ts, stage/route.ts
 - `src/app/api/diagnostics/` — chat-streams/route.ts
 - `src/app/api/onboarding/` — progress/route.ts
+- `src/app/api/telemetry/` — route.ts (internal telemetry ingest)
 
 ## Validator Files
 
@@ -92,8 +94,9 @@ Last updated: 2026-04-16
 
 ## Notes
 
-- `command-palette`, `user-guide`, `book`, `diagnostics`, and `onboarding` are internal-facing APIs with limited external utility. Not documented in public API docs.
+- `command-palette`, `user-guide`, `book`, `diagnostics`, `onboarding`, and `telemetry` are internal-facing APIs with limited external utility. Not documented in public API docs.
 - Settings has 19 sub-routes for different configuration domains. Documented as one page with grouped sections.
 - The `chat/conversations/[id]/messages` endpoint uses SSE streaming for real-time responses.
 - The `notifications/pending-approvals/stream` endpoint uses SSE for real-time approval notifications.
 - The `logs/stream` endpoint uses SSE for real-time agent log streaming.
+- Release 0.12.1 additions vs prior mapping: +1 `/api/tasks/assist`, +1 `/api/blueprints/import`, +2 schedules (execute, heartbeat-history), +2 chat endpoints (skills/activate, skills/deactivate), +4 profiles (import-repo/check-updates, import-repo/apply-updates, [id]/test-single, [id]/context methods), +1 runtimes/suggest, +2 memory PATCH/DELETE, +1 `/api/tables/[id]/enrich/runs`, +11 settings (chat/pins, chat/saved-searches, openai/login×3, openai/logout, web-search×2, environment×2, runtime×2), +1 permissions/presets DELETE, +3 channels (inbound slack, inbound telegram, telegram poll), +9 environment (artifacts×2, checkpoints×4, templates, sync, profiles/create, profiles/suggest, rescan-if-stale), +3 snapshots (settings GET/PUT, [id]/restore), +2 handoffs ([id]/route GET, PATCH).

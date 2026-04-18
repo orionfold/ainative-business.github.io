@@ -12,63 +12,89 @@ import BrowserFrame from '../../components/ui/BrowserFrame.astro'
 
 <BrowserFrame src="/screenshots/profiles-detail.png" alt="Code Reviewer profile detail with identity, configuration, runtime coverage, tools and policy" />
 
-## Key Concepts
+{/* SYNC:START */}
 
-- **Claude Agent SDK** — Embedded Claude runtime with streaming, tool use, and governance callbacks via a polling-based approval pattern.
-- **Codex App Server** — OpenAI runtime with persistent channels, working directory preservation, resumable threads, and provider-aware event streaming. Threads survive disconnection so long-running tasks can resume without losing context.
-- **Profile-Backed Execution** — The selected profile defines instructions, tool availability, temperature, max turns, and output format before the run starts.
-- **Shared Runtime Governance** — Tool requests and user questions cross a trust boundary and surface in the inbox for explicit allow or deny decisions.
-- **Asynchronous Runs** — Tasks execute independently of the UI so operators can keep working while agents continue in the background.
-- **Agent Logs** — Provider-labeled runtime events stream into the monitor for auditability and debugging.
-- **Episodic Memory** — Agents extract behavioral insights from completed runs, scored by confidence and subject to time-decay. Relevance-filtered memories are injected into future conversations so agents learn from experience without manual prompt tuning.
-- **Async Handoffs** — Agents can delegate sub-tasks to other agents using the `send_handoff` tool. Handoff chains respect governance gates and depth limits, with each link requiring inbox approval before the receiving agent begins.
-- **Skill Composition** — On supported runtimes, agents can stack multiple skills per conversation. Capability gating, conflict heuristics, and prompt-budget eviction prevent overloaded contexts.
-- **Smart Runtime Router** — Automatic runtime selection based on content keywords, profile affinity, and cost/latency/quality optimization modes. Eliminates manual runtime picking for most tasks.
+`ainative-business` layers several AI-powered capabilities on top of basic task execution. From one-click description improvement to multi-agent coordination, episodic memory, and async handoffs, these features reduce manual effort and improve output quality across the workspace.
 
-## Execution Flow
+## Key Features
 
-1. An operator creates or queues a task from the dashboard, a project, a workflow, or a schedule.
-2. `ainative-business` resolves which profile and project context should be applied to the run.
-3. The execution layer resolves the selected runtime and starts the provider session or thread.
-4. Tool requests and runtime questions create inbox items when human approval or clarification is required.
-5. Monitor logs continue updating while the agent waits, resumes, completes, or fails.
-6. The resulting state remains visible across task detail, project views, inbox history, monitoring, and cost records.
+### Task Definition AI Assist
 
-## How It Works
+A single-click "AI Assist" button on the task creation form takes the current title and generates a richer, more actionable description. The improved text is previewed before applying, so you retain full control.
 
-`ainative-business` wraps the underlying runtimes with operational primitives that humans can supervise. That wrapper is what turns a raw model session into a governed system: profiles make behavior repeatable, the inbox makes decisions explicit, the monitor keeps execution observable, and the shared usage ledger keeps cost legible.
+### Multi-Agent Routing
 
-The integration surface is therefore broader than a single callback. It spans the settings page, profiles catalog, execution dashboard, inbox, monitoring view, and cost dashboard as one coordinated control plane.
+When a task is created, the task classifier analyzes its content and automatically selects the best-fit agent profile from the registry. The selected profile can be overridden manually via the profile dropdown. The router considers task content, project context, profile capabilities, and runtime availability.
 
-<BrowserFrame src="/screenshots/monitor-list.png" alt="Monitor with 8 active agents, 92% success rate, tasks today count, and streaming log panel" />
+### Autonomous Loop Execution
 
----
+Tasks can run in autonomous loops with configurable stop conditions:
 
-## Use Cases
+- **Iteration limit** -- stop after N iterations.
+- **Time limit** -- stop after a duration elapses.
+- **Success criteria** -- stop when the agent reports completion.
+- **Error threshold** -- stop after repeated failures.
 
-### Governed Code Deployment
+Loops support pause and resume. The loop status view provides real-time progress and control.
 
-**Product Team** · *Maintaining deployment safety with human oversight*
+### Multi-Agent Swarm
 
-Your code-review profile can read files and run static checks, but a publish step still requires approval. The runtime pauses at the exact trust boundary, and the inbox records the decision before the agent proceeds.
+For complex tasks that benefit from multiple perspectives, the swarm feature coordinates several agents working concurrently. Each agent operates within its assigned profile, and results are aggregated upon completion.
 
-### Research with Source Verification
+### Agent Self-Improvement
 
-**Knowledge Worker** · *Ensuring agents use credible sources*
+Agents accumulate learned context across iterations, stored in the database. This behavioral context feeds back into subsequent runs, allowing agents to refine their approach over time without manual prompt tuning. Context proposals require human approval before being applied.
 
-The agent reaches for a source you do not trust. You deny the tool request, provide a safer alternative, and keep the run grounded in operator-reviewed choices instead of silent retries.
+### Agent Episodic Memory
 
-### Batch Processing with Session Resume
+Distinct from behavioral learned context, episodic memory captures factual knowledge the agent discovers during task execution. Key characteristics:
 
-**Developer** · *Refactoring 50 files without starting over*
+- **Memory extraction** -- agents identify and store important facts, decisions, and discoveries as discrete memory entries
+- **Confidence scoring** -- each memory has a confidence level based on source reliability
+- **Time-based decay** -- older memories gradually lose relevance weight, keeping the context window focused on current knowledge
+- **Relevance-filtered retrieval** -- when executing a new task, the agent retrieves only memories relevant to the current context
+- **Operator review** -- a memory browser UI lets you inspect, edit, and delete stored memories
 
-Your agent fails halfway through a large run. Because the execution record lives inside `ainative-business`’s operational surfaces, you can review the monitor output, inspect the task, fix the issue, and resume from a known state instead of starting blind.
+Episodic memory means agents build institutional knowledge over time. A financial analyst profile that researches a company once can recall that research in future tasks without re-doing the work.
 
-### First-Time Agent Delegation
+### Agent Async Handoffs
 
-**Non-Technical User** · *Building trust through full transparency*
+Agents can hand off work to other agents asynchronously through a message bus:
 
-You never have to wonder what the agent can do or what rules it is following. The profile view, inbox, and monitor make the runtime legible enough for a non-developer to supervise confidently.
+- **send_handoff tool** -- agents use this tool to delegate work to another profile
+- **Governance gates** -- chain depth limits prevent infinite handoff loops, and self-handoff is blocked
+- **Inbox approvals** -- handoff requests surface in the inbox for human approval before the receiving agent begins work
+- **Handoff policies** -- configure which profiles can hand off to which, and under what conditions
+
+This enables multi-agent workflows where a researcher discovers a code issue and hands it off to the code reviewer without requiring a pre-built workflow definition.
+
+### Skill Composition
+
+Chat conversations on capable runtimes can run multiple skills simultaneously, layering specialized behaviors (research, code review, document drafting) onto a single session. The composition engine enforces three guardrails:
+
+- **Capability gating** — only runtimes that advertise `supportsSkillComposition` accept more than one active skill; others fall back to single-skill mode with a visible hint.
+- **Conflict heuristic** — new skills whose tools or instructions overlap with an active one trigger a confirmation dialog before the swap is applied.
+- **Prompt-budget eviction** — when the combined skill prompts approach the model's context budget, the oldest low-priority skill is evicted automatically so the conversation stays responsive.
+
+The active stack persists on the conversation row (`conversations.active_skill_ids`), and the `mergeActiveSkillIds` helper keeps updates atomic across concurrent activations. See the [Chat](./chat.md) feature doc for the user-facing flow.
+
+### Workflow Context Batching
+
+In multi-step workflows, context from earlier steps is batched and forwarded to downstream steps. This prevents information loss across the workflow and ensures each step has the full picture of prior results.
+
+### Parallel Research Fork-Join
+
+Research tasks can be forked into concurrent sub-tasks that investigate different angles simultaneously. Results are joined when all branches complete, producing a consolidated output that covers more ground than sequential execution.
+
+## Related
+
+- [Provider Runtimes](./provider-runtimes.md)
+- [Profiles](./profiles.md)
+- [Workflows](./workflows.md)
+- [Schedules](./schedules.md)
+- [Inbox & Notifications](./inbox-notifications.md)
+
+{/* SYNC:END */}
 
 ---
 

@@ -4,7 +4,7 @@ subtitle: "Two Thousand Years of Organizational Design — and Why It's About to
 chapter: 1
 part: 1
 readingTime: 15
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 ---
 
 # From Hierarchy to Intelligence

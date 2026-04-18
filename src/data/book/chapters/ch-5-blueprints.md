@@ -4,7 +4,7 @@ subtitle: "Workflow Orchestration"
 chapter: 5
 part: 2
 readingTime: 14
-lastGeneratedBy: "2026-04-16T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "agent-intelligence"]
 relatedJourney: "power-user"
 ---
@@ -50,7 +50,7 @@ One of the most important insights from production workflow systems is that not 
 This hybrid approach is critical for reliability. Agentic steps are powerful but probabilistic — they might produce slightly different results on each run. Deterministic steps are limited but exact — they produce the same result every time. A well-designed workflow alternates between them: the agent reasons and creates, the deterministic step validates and verifies. This creates a ratchet effect: the workflow can only move forward through validated checkpoints.
 
 ```typescript
-// Building with `ainative-business`: Planner-executor workflow
+// Building with ainative: Planner-executor workflow
 const workflow = await fetch("/api/workflows", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -98,15 +98,15 @@ The pipeline pattern — sequential stages with specialized roles — is the mos
 
 ## The Orchestration Ecosystem
 
-The `ainative-business` workflow engine does not exist in isolation. The broader ecosystem of workflow orchestration is maturing rapidly, and the patterns converging across the industry validate the approach.
+`ainative-business`'s workflow engine does not exist in isolation. The broader ecosystem of workflow orchestration is maturing rapidly, and the patterns converging across the industry validate the approach.
 
 Temporal.io, the durable execution platform, reached a $5 billion valuation — proving enterprise demand for reliable workflow orchestration. LangGraph, the agent orchestration framework, accumulated over 126,000 GitHub stars, demonstrating developer appetite for multi-step agent pipelines. Google's Agent-to-Agent (A2A) protocol attracted over 150 organizations, establishing that agent workflows need standardized communication interfaces.
 
-These are not competing approaches. They are layers of a stack that is still assembling itself. Temporal provides durable execution guarantees (workflows survive crashes and restarts). LangGraph provides agent-specific orchestration primitives (memory, branching, human-in-the-loop). A2A provides cross-agent communication standards (agents from different vendors in the same workflow). The `ainative-business` platform sits at the application layer, providing the user interface and project context that makes these capabilities accessible to teams that are not distributed systems engineers.
+These are not competing approaches. They are layers of a stack that is still assembling itself. Temporal provides durable execution guarantees (workflows survive crashes and restarts). LangGraph provides agent-specific orchestration primitives (memory, branching, human-in-the-loop). A2A provides cross-agent communication standards (agents from different vendors in the same workflow). `ainative-business` sits at the application layer, providing the user interface and project context that makes these capabilities accessible to teams that are not distributed systems engineers.
 
 The convergence is real: every serious agent deployment eventually needs multi-step orchestration, role-based routing, and human approval gates. The question is not whether you need blueprints, but when.
 
-## `ainative-business` Today
+## ainative Today
 
 The workflow engine is live and handling real workloads. Here is the current state:
 

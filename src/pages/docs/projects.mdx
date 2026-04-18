@@ -12,45 +12,56 @@ Projects are the top-level containers for work in `ainative-business`. They grou
 
 <BrowserFrame src="/screenshots/projects-list.png" alt="Projects portfolio with 5 total projects, 4 active, 25 linked tasks, and project cards" />
 
-## Key Concepts
+{/* SYNC:START */}
 
-- **Server-Rendered Project Cards** — Cards load instantly with pre-rendered task counts and status badges — no client-side fetching delay.
-- **Scoped Execution** — Opening a project narrows the operational view to the work, metrics, and status breakdown for that initiative.
-- **Working Directory** — Set a file-system path per project; agents automatically operate within that directory, keeping execution context aligned with the codebase or file structure.
-- **Completion Donuts & Sparklines** — Each card shows a visual completion donut and 7-day activity sparkline so you can spot stalled initiatives at a glance.
-- **Cross-Surface Context** — Documents, tasks, workflows, and schedules can all reference the same project record.
+Projects are workspaces that group related tasks, workflows, and documents under a shared context. Each project can specify a working directory, enabling agents to execute file-system-aware tasks within the correct folder on your machine.
 
-<BrowserFrame src="/screenshots/projects-detail.png" alt="Investment Portfolio Analysis detail with status breakdown, progress strip, and 7 tasks" />
+## Key Features
 
-## How It Works
+### Project Workspaces
+Each project acts as a container for related work. Tasks, workflows, and documents associated with a project share context, making it easy to organize complex initiatives with multiple agent activities.
 
-The projects list is the portfolio view. It helps operators decide where attention should go next by showing which initiatives are active, which are complete, and how much work sits under each one.
+### Project Cards
+The project list displays cards with the project name, current status, and a brief description. Cards are interactive -- click to navigate to the project detail page.
 
-The detail view then becomes the operational summary for one project. Status cards expose task distribution, the progress strip shows recent completions, and the task list keeps the underlying execution queue accessible.
+### Project Detail Page
+The detail page shows everything associated with a project: its tasks (with status), linked workflows, and attached documents. This is your single-pane view of all activity within a project.
 
-<BrowserFrame src="/screenshots/projects-create-form-filled.png" alt="Create Project dialog with Q4 Product Launch Campaign name and working directory path" />
+### Working Directory
+Each project can specify a local file-system path as its working directory. When agents execute tasks for this project, they resolve file operations relative to this directory. This enables safe, scoped file access without giving agents free rein over your machine.
 
----
+### Create Project Dialog
+The creation dialog collects a project name, description, and optional working directory. Projects can be created empty and populated with tasks and documents later.
 
-## Use Cases
+## How To
 
-### Multi-Sprint Product Launch
+### Create a New Project
+1. Navigate to `/projects` and click "New Project."
+2. Enter a name and description for the project.
+3. Optionally set a working directory (e.g., `/Users/you/code/my-repo`).
+4. Click "Create" to add the project.
 
-**Product Team** · *Coordinating a cross-functional release*
+### View Project Details
+1. Click any project card on the projects list page.
+2. The detail page shows all associated tasks, workflows, and documents.
+3. Click any linked item to navigate directly to its detail view.
 
-Your product launch spans content, documentation, QA, and launch analytics. One project holds the shared context while tasks, workflows, and documents all link back to the same operational record.
+### Associate Tasks with a Project
+1. When creating or editing a task, select a project from the project dropdown.
+2. The task will appear in the project's detail page under associated tasks.
+3. The agent executing the task will use the project's working directory as its base path.
 
-### Personal Finance Organization
+### Manage Project Status
+1. Open the project detail page.
+2. Update the project status as work progresses (e.g., Active, Completed, Archived).
+3. Status changes are reflected on the project card in the list view.
 
-**Non-Technical User** · *Preparing for tax season*
+## Related
+- [Dashboard Kanban](./tasks.md)
+- [Workflows](./workflows.md)
+- [Documents](./documents.md)
 
-You create a tax prep project, attach documents, and spin up schedules that remind you to chase missing forms. Instead of spreading the work across spreadsheets, email drafts, and notes, the entire job stays anchored to one project.
-
-### Client Engagement Tracking
-
-**Knowledge Worker** · *Managing deliverables across multiple clients*
-
-Each client gets a dedicated project with its own queue, documents, and workflows. The project detail page gives you a clean operational snapshot before a client call without requiring you to scan the entire workspace.
+{/* SYNC:END */}
 
 ---
 

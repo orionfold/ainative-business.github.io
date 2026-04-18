@@ -4,7 +4,7 @@ subtitle: "From Project State to Organizational Intelligence"
 chapter: 10
 part: 4
 readingTime: 15
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 relatedDocs: ["workflows", "profiles", "schedules"]
 ---
 
@@ -54,11 +54,11 @@ Harvey's CEO, Gabe Pereyra, frames the broader implication clearly: "Leverage is
 > [!case-study]
 > **Harvey Spectre** -- "In practice, Spectre is the beginning of a company world model: a live picture of what is happening inside Harvey and what needs to happen next." Spectre is monitoring-triggered, not prompt-triggered. It watches organizational state and acts when patterns emerge, shifting the bottleneck from implementation to coordination and judgment.
 
-## `ainative-business`'s Embryonic World Model
+## ainative's Embryonic World Model
 
 We are not Block or Harvey. We do not have millions of transactions or hundreds of engineers. But we have the same architectural foundation, and it is worth examining what we already have.
 
-The `ainative-business` world model lives in ten database tables:
+`ainative-business`'s world model lives in ten database tables:
 
 | Table | What It Captures |
 |---|---|
@@ -78,8 +78,8 @@ Every action in the system creates a queryable artifact. When an agent executes 
 This is not yet a world model in Block's sense. It is a database. But it is a database designed from the start to be queryable by agents, not just by humans. And that design choice -- making organizational state machine-readable -- is the prerequisite for everything that follows.
 
 ```typescript
-// Building with `ainative-business`: Querying the organizational world model
-// Every action in `ainative-business` creates queryable state
+// Building with ainative: Querying the organizational world model
+// Every action in ainative creates queryable state
 
 // What's the health of Project X?
 const project = await fetch("/api/projects/proj-8f3a-4b2c").then(r => r.json());
@@ -115,7 +115,7 @@ The evolution from database to world model to organizational intelligence follow
 > [!case-study]
 > **8090 Knowledge Graph** -- "A living map that propagates changes forward and backward automatically across every artifact." 8090's Software Factory binds its five stations (Refinery, Foundry, Planner, Validator, Knowledge Graph) with a graph that captures not just what decisions were made but why. When requirements shift, changes propagate automatically. This is institutional memory that compounds with every project -- the organizational equivalent of compound interest.
 
-## `ainative-business` Today
+## ainative Today
 
 Today's `ainative-business` world model is Stage 1 trending toward Stage 2. The ten tables capture organizational state. The APIs expose it. Agents can query it during task execution. The dashboard renders it for humans.
 
@@ -126,7 +126,7 @@ This is the "remote-first" advantage that Dorsey describes at Block. "Everything
 The learned_context table deserves special attention. When agents discover patterns during execution -- a particular approach that works well for a type of task, a common failure mode, a useful piece of organizational knowledge -- they can propose learned context entries. These accumulate over time, forming the rudimentary causal layer. Today they are text entries that agents can query. Tomorrow they become nodes in a knowledge graph.
 
 ```typescript
-// Building with `ainative-business`: Learned context as embryonic intelligence
+// Building with ainative: Learned context as embryonic intelligence
 // Agents propose context during execution; the system accumulates it
 
 // After a task completes, the agent proposes what it learned

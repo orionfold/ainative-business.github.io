@@ -5,27 +5,27 @@ const domains = [
   {
     group: 'Core',
     items: [
-      { href: '/docs/api/tasks/', title: 'Tasks', endpoints: 13, description: 'Create, execute, cancel, and monitor task lifecycle with fire-and-forget execution and SSE log streaming.' },
+      { href: '/docs/api/tasks/', title: 'Tasks', endpoints: 14, description: 'Create, execute, cancel, and monitor task lifecycle with fire-and-forget execution, SSE log streaming, and AI-assisted planning.' },
       { href: '/docs/api/projects/', title: 'Projects', endpoints: 7, description: 'Manage project workspaces with working directories, document bindings, and cascading resource cleanup.' },
       { href: '/docs/api/workflows/', title: 'Workflows', endpoints: 14, description: 'Orchestrate multi-step execution patterns with debug analysis, resume, and optimization suggestions.' },
-      { href: '/docs/api/blueprints/', title: 'Blueprints', endpoints: 5, description: 'Store and instantiate reusable workflow templates with import and lineage tracking.' },
-      { href: '/docs/api/schedules/', title: 'Schedules', endpoints: 6, description: 'Clock-driven cron and heartbeat schedules with natural language parsing, manual execution, and delivery channels.' },
+      { href: '/docs/api/blueprints/', title: 'Blueprints', endpoints: 6, description: 'Store, import, and instantiate reusable workflow templates with GitHub-sourced definitions and lineage tracking.' },
+      { href: '/docs/api/schedules/', title: 'Schedules', endpoints: 8, description: 'Clock-driven cron and heartbeat schedules with natural language parsing, manual execution, heartbeat history, and delivery channels.' },
     ],
   },
   {
     group: 'Intelligence',
     items: [
-      { href: '/docs/api/chat/', title: 'Chat', endpoints: 13, description: 'Multi-provider conversations with SSE streaming, skill composition, export, model selection, and entity search.' },
-      { href: '/docs/api/profiles/', title: 'Profiles', endpoints: 15, description: 'Agent profiles with multi-runtime support, testing, learned context, repository import, and AI-assisted creation.' },
-      { href: '/docs/api/runtimes/', title: 'Runtimes', endpoints: 2, description: 'Query available agent runtimes and their capabilities across five providers.' },
-      { href: '/docs/api/memory/', title: 'Memory', endpoints: 2, description: 'Episodic agent memory with decay scoring and confidence tracking.' },
+      { href: '/docs/api/chat/', title: 'Chat', endpoints: 15, description: 'Multi-provider conversations with SSE streaming, skill activation, export, model selection, suggested prompts, and entity/file search.' },
+      { href: '/docs/api/profiles/', title: 'Profiles', endpoints: 19, description: 'Agent profiles with multi-runtime support, per-profile testing, learned context, repository import with diff updates, and AI-assisted creation.' },
+      { href: '/docs/api/runtimes/', title: 'Runtimes', endpoints: 3, description: 'Query available agent runtimes, suggest the best runtime for a task, and manage local Ollama model configuration.' },
+      { href: '/docs/api/memory/', title: 'Memory', endpoints: 4, description: 'Episodic agent memory with list, create, update, and delete operations — decay scoring and confidence tracking included.' },
     ],
   },
   {
     group: 'Content',
     items: [
       { href: '/docs/api/documents/', title: 'Documents', endpoints: 7, description: 'Upload, preprocess, version, and download files with automatic text extraction.' },
-      { href: '/docs/api/tables/', title: 'Tables', endpoints: 29, description: 'Structured data grids with columns, rows, charts, triggers, enrichment, import/export, and templates.' },
+      { href: '/docs/api/tables/', title: 'Tables', endpoints: 30, description: 'Structured data grids with columns, rows, charts, triggers, enrichment, import/export, history, and templates.' },
       { href: '/docs/api/uploads/', title: 'Uploads', endpoints: 4, description: 'File upload management with storage cleanup and metadata retrieval.' },
       { href: '/docs/api/views/', title: 'Views', endpoints: 4, description: 'Saved view configurations with filters, sorting, and column visibility.' },
     ],
@@ -33,12 +33,12 @@ const domains = [
   {
     group: 'Platform',
     items: [
-      { href: '/docs/api/settings/', title: 'Settings', endpoints: 24, description: 'Provider configuration, runtime routing, budgets, permissions, browser tools, chat pins, saved searches, and pricing.' },
-      { href: '/docs/api/permissions/', title: 'Permissions', endpoints: 5, description: 'Permission patterns and presets for tool access control and agent governance.' },
+      { href: '/docs/api/settings/', title: 'Settings', endpoints: 35, description: 'Provider configuration, runtime routing, budgets, permissions, browser tools, web search, chat pins, saved searches, pricing, OpenAI login, and environment settings.' },
+      { href: '/docs/api/permissions/', title: 'Permissions', endpoints: 6, description: 'Permission patterns and presets for tool access control, with list, create, and delete operations for both custom rules and built-in presets.' },
       { href: '/docs/api/notifications/', title: 'Notifications', endpoints: 6, description: 'Approval requests, alerts, and SSE streaming for pending permission decisions.' },
-      { href: '/docs/api/channels/', title: 'Channels', endpoints: 6, description: 'Multi-channel delivery via Slack, Telegram, and webhooks with bidirectional messaging.' },
-      { href: '/docs/api/environment/', title: 'Environment', endpoints: 10, description: 'Scan, audit, and manage CLI environments with health scoring, artifact discovery, and skill listing.' },
-      { href: '/docs/api/snapshots/', title: 'Snapshots', endpoints: 4, description: 'Database backup and restore with point-in-time snapshot management.' },
+      { href: '/docs/api/channels/', title: 'Channels', endpoints: 9, description: 'Multi-channel delivery via Slack, Telegram, and webhooks with bidirectional messaging, inbound polling, and per-channel test harnesses.' },
+      { href: '/docs/api/environment/', title: 'Environment', endpoints: 19, description: 'Scan, audit, sync, and manage CLI environments with artifacts, checkpoints, templates, profile suggestions, and skill listing.' },
+      { href: '/docs/api/snapshots/', title: 'Snapshots', endpoints: 7, description: 'Database backup, restore, and settings management with point-in-time snapshot controls.' },
       { href: '/docs/api/workspace/', title: 'Workspace', endpoints: 4, description: 'Discover, import, fix data directories, and analyze project workspace context for agent onboarding.' },
       { href: '/docs/api/instance/', title: 'Instance', endpoints: 5, description: 'Instance configuration, initialization, and guided upgrade detection with version polling.' },
     ],
@@ -47,7 +47,7 @@ const domains = [
     group: 'Operations',
     items: [
       { href: '/docs/api/logs/', title: 'Logs', endpoints: 1, description: 'Real-time agent log streaming via Server-Sent Events with keepalive and backoff.' },
-      { href: '/docs/api/handoffs/', title: 'Handoffs', endpoints: 2, description: 'Agent handoff records for transferring execution context between runtimes.' },
+      { href: '/docs/api/handoffs/', title: 'Handoffs', endpoints: 4, description: 'Agent-to-agent handoff records with list, create, retrieve, and approve/reject operations for delegation and review workflows.' },
       { href: '/docs/api/data/', title: 'Data', endpoints: 2, description: 'Database maintenance — clear all data or seed with sample records.' },
       { href: '/docs/api/context/', title: 'Context', endpoints: 1, description: 'Batch approve or reject learned context proposals from agent interactions.' },
     ],

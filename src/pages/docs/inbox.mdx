@@ -12,57 +12,76 @@ The inbox is the operator-facing governance surface for `ainative-business`. It 
 
 <BrowserFrame src="/screenshots/inbox-list.png" alt="Governance command center with pending, approved, and denied counts, notification queue with permissions and messages" />
 
-## Key Concepts
+{/* SYNC:START */}
 
-- **Mixed Feed** — The default inbox view blends permissions, messages, completions, and failures into one triage surface with progressive disclosure.
-- **Focused Tabs** — Operators can narrow to unread items, permission requests, or conversational messages when they need a tighter queue.
-- **Approval Controls** — Permission cards expose `Allow Once`, `Always Allow`, and `Deny` actions directly on the notification. `Always Allow` patterns persist for future auto-approval.
-- **Ambient Approval Toasts** — Permission requests surface as edge-of-screen toasts on any page so you can approve or deny without navigating to the inbox.
-- **Agent Handoff Approvals** — Governance gates for async agent-to-agent handoffs ensure operators approve delegation chains before work transfers between agents.
-- **Agent Questions** — Agents can pause execution and ask for clarification. Your typed response is injected directly into the agent's context so execution resumes with a clear human decision.
-- **Budget Alerts** — Notifications fire at 80% and 100% of configured spend caps, giving operators time to adjust before work is blocked.
-- **Rich Content Rendering** — Notification bodies render GitHub Flavored Markdown with code blocks, tables, lists, and links for detailed agent output.
-- **Batch Context Proposals** — When workflows generate multiple context suggestions, operators can review and approve them as a batch instead of handling each one individually.
-- **Response History** — `ainative-business` preserves whether a request has been handled already, preventing duplicate decision-making.
+The Inbox is your notification center for all agent activity that needs awareness or action. Notifications range from informational (task completed, agent message) to actionable (permission required, handoff approval). Rich content rendering and progressive disclosure keep the inbox scannable without hiding important details.
 
-## Notification Types
+## Key Features
 
-| Type | Action Required | Description |
-|------|:---:|-------------|
-| `permission_required` | Yes | Review a tool request and decide whether the agent can continue |
-| `agent_message` | Yes | Respond to a clarification or provide missing direction |
-| `task_completed` | No | Track successful completion and inspect the outcome |
-| `task_failed` | No | Triage failures and decide whether to retry or intervene |
+### Notification Categories
+Notifications are categorized by type: task completed, agent message, permission required, budget alert, handoff request, and context proposal. Each category has a distinct visual indicator so you can scan the inbox quickly and focus on what matters.
 
-## How It Works
+### Unread Badges
+Unread notifications display a badge count in both the inbox and the sidebar navigation item. Notifications are marked as read when you expand them or take action.
 
-When a running task needs human input, `ainative-business` creates an inbox item and waits for the response. That input might be a permission review, a direct answer to a question, or simply a signal that a run finished or failed.
+### Progressive Disclosure
+Long notifications start collapsed with a summary. Click "Show More" to expand the full content. This keeps the inbox compact while ensuring no detail is lost.
 
-The permissions tab is the highest-signal view when you want to supervise active execution. It strips away the general feed and shows only the decisions that currently gate an agent.
+### Rich Content Rendering
+Notification bodies render Markdown content with GitHub Flavored Markdown support. Agent messages can include code blocks, tables, lists, and links -- all rendered inline.
 
-<BrowserFrame src="/screenshots/inbox-permissions.png" alt="Governance command center Permissions tab with responded Write and SendEmail tool requests" />
+### Human-in-the-Loop Approvals
+When an agent requests permission to use a tool, a "Permission Required" notification appears with Approve and Deny buttons. This is the core human-in-the-loop mechanism -- you stay in control of what agents can do.
 
----
+### Agent Handoff Approvals
+When one agent hands off work to another via the async message bus, a handoff notification appears in the inbox. You can approve the handoff to let the receiving agent proceed, or deny it to stop the chain. Governance gates enforce chain depth limits and prevent self-handoffs.
 
-## Use Cases
+### Agent Questions (AskUserQuestion)
 
-### Compliance-First Oversight
+When an agent needs a direct answer from you — for example, to disambiguate between two valid paths during an upgrade merge — it uses the **AskUserQuestion** tool. These surface in the inbox as question notifications with a typed reply box (rendered by the `QuestionReplyActions` branch of the permission-response view). Submit a short answer inline and the agent resumes from where it paused. Questions are distinct from permission requests: there is no "Approve / Deny," only the reply field.
 
-**Product Team** · *Enforcing access policies across agent operations*
+### Upgrade Failure Notifications
 
-Your compliance lead lives in the permissions tab. Read requests on safe paths get approved quickly, while outbound email or write operations require a closer review before the workflow can continue.
+If the hourly upgrade-detection poller fails three consecutive times (network error, unreachable remote, etc.), a persistent notification is posted to the inbox so the issue does not go silent. The three-strike dedup prevents a flood — only the first sustained failure raises a notification, and it clears automatically once the poller succeeds again.
 
-### Interactive Research Session
+### Ambient Approval Toasts
+For quick permission grants, ambient toasts appear at the edge of the screen. You can approve or deny without navigating to the inbox, keeping your workflow uninterrupted.
 
-**Knowledge Worker** · *Collaborating with an agent on a financial analysis*
+### Budget Alerts
+When spending approaches a configured budget cap (at 80% and 100%), the inbox surfaces budget alert notifications so you can take action before agents are blocked.
 
-The agent finds conflicting figures across two files and asks for clarification instead of guessing. You respond from the inbox, and the task resumes with a clear human decision attached to the record.
+## How To
 
-### Learning to Trust AI
+### Review Notifications
+1. Navigate to `/inbox` or click the Inbox item in the sidebar.
+2. Scan the notification list -- unread items are visually distinct.
+3. Click a notification to expand its details.
+4. Click "Show More" for long notifications to see the full content.
 
-**Non-Technical User** · *Gradually reducing oversight as confidence grows*
+### Approve or Deny a Permission Request
+1. Look for notifications with the "Permission Required" category.
+2. Expand the notification to see what tool the agent wants to use and why.
+3. Click "Approve" to grant the permission, or "Deny" to reject it.
+4. The agent resumes or halts based on your decision.
 
-You begin by reviewing every request manually. Over time, you promote safe actions to `Always Allow`, reducing noise without removing the audit trail or hiding what the system is doing.
+### Handle Agent Handoffs
+1. Look for notifications with the "Handoff Request" category.
+2. Review which agent is handing off to which, and the context being passed.
+3. Approve to let the receiving agent begin work, or deny to stop the chain.
+
+### Handle Ambient Toasts
+1. When a toast appears at the screen edge, review the permission request summary.
+2. Click "Approve" or "Deny" directly on the toast.
+3. The toast dismisses automatically after action or timeout.
+
+## Related
+- [Home Workspace](./home-workspace.md)
+- [Dashboard Kanban](./tasks.md)
+- [Tool Permissions](./tool-permissions.md)
+- [Settings](./settings.md)
+- [Agent Intelligence](./agent-intelligence.md)
+
+{/* SYNC:END */}
 
 ---
 

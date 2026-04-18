@@ -5,7 +5,7 @@ chapter: 9
 part: 3
 readingTime: 14
 relatedDocs: [inbox-notifications, tool-permissions, settings]
-lastGeneratedBy: "2026-04-16T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 ---
 
 # The Governance Layer — Trust at Scale
@@ -24,7 +24,7 @@ The instinct is to treat governance as a brake -- something that slows down the 
 
 ## The Permission Cascade
 
-The `ainative-business` governance model is built on a three-tier permission cascade that maps to how humans naturally think about trust: **auto-approve**, **ask**, and **auto-deny**. Every tool an agent might use falls into exactly one of these tiers, and the tier determines what happens when the agent requests to use it.
+`ainative-business`'s governance model is built on a three-tier permission cascade that maps to how humans naturally think about trust: **auto-approve**, **ask**, and **auto-deny**. Every tool an agent might use falls into exactly one of these tiers, and the tier determines what happens when the agent requests to use it.
 
 **Auto-approve** tools are the read-only operations -- actions that observe the world without changing it. Reading files, searching code, listing directory contents, performing web searches. These are low-risk, high-frequency operations. Requiring human approval for every `Grep` call would make agents unusably slow. The trust assumption is clear: looking at things is safe.
 
@@ -49,7 +49,7 @@ The cascade is configurable per project and per agent profile. A code-reviewer p
 
 The permission cascade describes the policy. The `canUseTool` pattern is the mechanism that enforces it. When an agent wants to use a tool, it does not call the tool directly. It calls `canUseTool` -- an asynchronous callback that checks the permission tier, and for "ask" tools, blocks until a human responds.
 
-This is architecturally distinctive. Most AI frameworks treat tool calls as synchronous operations -- the agent calls a tool, the tool executes, the result comes back. The `ainative-business` runtime inserts an asynchronous governance checkpoint between the agent's intention and the tool's execution. The agent says "I want to write to file X." The system checks: is `Write` in the auto-approve tier? If yes, proceed. Is it in the ask tier? If yes, create a notification, pause the agent, and wait for human approval. Is it in the deny tier? If yes, reject immediately and tell the agent why.
+This is architecturally distinctive. Most AI frameworks treat tool calls as synchronous operations -- the agent calls a tool, the tool executes, the result comes back. `ainative-business` inserts an asynchronous governance checkpoint between the agent's intention and the tool's execution. The agent says "I want to write to file X." The system checks: is `Write` in the auto-approve tier? If yes, proceed. Is it in the ask tier? If yes, create a notification, pause the agent, and wait for human approval. Is it in the deny tier? If yes, reject immediately and tell the agent why.
 
 The implementation uses a database polling pattern rather than WebSockets. When an agent requests approval, a notification is created in the `notifications` table. The agent's execution loop polls this table at short intervals. When the human approves or rejects the request (through the web UI, or potentially through Slack or other channels), the notification is updated, the agent's next poll picks up the response, and execution continues or halts.
 
@@ -83,7 +83,7 @@ Not every task requires the same level of governance. Asking an agent to format 
 
 Anthropic's autonomy research (a 20-author paper published in February 2026) provides the theoretical foundation. Their key insight is that autonomy is not a property of the agent alone -- it is "co-constructed by model, user, and product." The same model can be highly autonomous in one context (formatting files in a personal project) and highly constrained in another (modifying financial calculations in a regulated environment). The governance layer's job is to encode this contextual autonomy.
 
-The `ainative-business` platform implements this through the interaction of three systems: **permission policies** (what the agent can do), **agent profiles** (how the agent approaches work), and **project settings** (what level of autonomy the project owner has configured). A task on a personal hobby project with the general profile might auto-approve most tools. The same task on a production financial system with the code-reviewer profile might require approval for everything including file reads.
+`ainative-business` implements this through the interaction of three systems: **permission policies** (what the agent can do), **agent profiles** (how the agent approaches work), and **project settings** (what level of autonomy the project owner has configured). A task on a personal hobby project with the general profile might auto-approve most tools. The same task on a production financial system with the code-reviewer profile might require approval for everything including file reads.
 
 This three-dimensional governance model (policy x profile x project) creates a rich space of possible configurations without requiring the user to specify every combination explicitly. Sensible defaults handle 90% of cases. The remaining 10% -- the edge cases where default governance is too loose or too tight -- can be tuned incrementally through the Always Allow escalation pattern and explicit policy overrides.
 
@@ -107,12 +107,12 @@ These alignment-informed governance principles do not replace the permission cas
 > **Stripe's CI Gates as Governance**
 > Stripe's approach to agent governance is elegant in its simplicity: agents go through exactly the same process as human engineers. All 1,300+ agent-generated PRs are human-reviewed. CI pipelines run the same checks on agent code as on human code. Code review standards apply identically. "Human-reviewed, zero human-written code" is their tagline for the most automated workflows. The insight is that you do not need a separate governance system for agents if your engineering governance is already strong. CI gates, code review, staging environments, canary deploys -- these are all governance mechanisms that work for agents just as well as they work for humans. The key constraint: maximum 2 CI retry cycles before escalating to a human. An agent that cannot get CI green in two attempts probably does not understand the problem well enough to fix it.
 
-## `ainative-business` Today
+## ainative Today
 
-The `ainative-business` governance implementation today centers on three systems working in concert: the permission cascade, the Always Allow persistence, and the notification inbox.
+`ainative-business`'s current governance implementation centers on three systems working in concert: the permission cascade, the Always Allow persistence, and the notification inbox.
 
 ```typescript
-// Building with `ainative-business`: Permission policy configuration
+// Building with ainative: Permission policy configuration
 const settings = await fetch("/api/settings", {
   method: "PATCH",
   headers: { "Content-Type": "application/json" },
@@ -133,7 +133,7 @@ const settings = await fetch("/api/settings", {
 }).then((r) => r.json());
 
 // When an agent requests a tool in the "requireApproval" tier:
-// 1. A notification appears in the `ainative-business` inbox
+// 1. A notification appears in the ainative inbox
 // 2. The agent pauses execution and polls for a response
 // 3. The human approves, rejects, or "always allows"
 // 4. Execution resumes or halts based on the decision

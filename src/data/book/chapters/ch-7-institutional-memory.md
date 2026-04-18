@@ -6,7 +6,7 @@ part: 3
 readingTime: 14
 relatedDocs: [agent-intelligence, profiles]
 relatedJourney: developer
-lastGeneratedBy: "2026-04-05T00:00:00.000Z"
+lastGeneratedBy: "2026-04-18T17:10:00.000Z"
 ---
 
 # Institutional Memory — The Knowledge Graph
@@ -94,12 +94,12 @@ Our approach uses a tiered retrieval strategy. The first tier is **profile-scope
 
 The confidence score and relevance decay mechanisms serve as natural filters. Low-confidence patterns and old episodic facts are automatically deprioritized, keeping the context window focused on high-value knowledge. Over time, the system learns not just about projects but about its own retrieval accuracy -- if cross-project knowledge is rarely useful for a particular type of task, the system learns to skip that tier.
 
-## `ainative-business` Today
+## ainative Today
 
-The `ainative-business` implementation today focuses on the learned context system with the foundation for episodic memory in place. The `learned_context` table stores behavioral patterns with full versioning, confidence tracking, and human approval workflows.
+`ainative-business`'s current implementation focuses on the learned context system with the foundation for episodic memory in place. The `learned_context` table stores behavioral patterns with full versioning, confidence tracking, and human approval workflows.
 
 ```typescript
-// Building with `ainative-business`: Querying institutional memory
+// Building with ainative: Querying institutional memory
 const context = await fetch(
   `/api/context?projectId=proj-8f3a-4b2c&minConfidence=0.7`
 ).then(r => r.json());

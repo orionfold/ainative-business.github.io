@@ -1,7 +1,7 @@
 ---
 layout: ../../../layouts/ApiDocsLayout.astro
 title: "Handoffs API"
-description: "List and create agent-to-agent handoff messages for inter-agent collaboration, task delegation, and approval workflows."
+description: "List, create, retrieve, and approve agent-to-agent handoff messages for inter-agent collaboration, task delegation, and approval workflows."
 ---
 
 import EndpointCard from '../../../components/api/EndpointCard.astro'
@@ -251,6 +251,146 @@ Example response:
 ```
 
 **Errors:** `400` — Missing required fields or handoff bus error
+
+</EndpointCard>
+
+### Get Handoff
+
+<EndpointCard method="GET" path="/api/handoffs/{id}" description="Retrieve a single handoff message by ID. Returns the full message object including approval metadata and response timestamp.">
+
+**Response** `200` — Handoff message object (same shape as the list endpoint)
+
+**Errors:** `404` — Handoff not found
+
+Fetch a single handoff to check whether a recipient has accepted or rejected it:
+
+<CodeExample ts={`// Fetch a handoff by ID to check current status
+interface Handoff {
+  id: string;
+  status: string;
+  approvedBy?: string;
+  respondedAt?: string;
+}
+
+const handoff: Handoff = await fetch("http://localhost:3000/api/handoffs/hoff-c7a1-b3d4")
+  .then((r: Response) => r.json());
+
+console.log(\`Status: \${handoff.status}\`);
+if (handoff.respondedAt) {
+  console.log(\`Approved by \${handoff.approvedBy} at \${handoff.respondedAt}\`);
+}`} python={`import requests
+
+# Fetch a handoff by ID to check current status
+handoff: dict = requests.get("http://localhost:3000/api/handoffs/hoff-c7a1-b3d4").json()
+
+print(f"Status: {handoff['status']}")
+if handoff.get("respondedAt"):
+    approver = handoff.get("approvedBy", "unknown")
+    print(f"Approved by {approver} at {handoff['respondedAt']}")`} />
+
+Example response:
+
+```json
+{
+  "id": "hoff-c7a1-b3d4",
+  "fromProfileId": "analyst-agent",
+  "toProfileId": "reviewer-agent",
+  "taskId": "task-9d4e-a1b2",
+  "subject": "Analysis complete — ready for review",
+  "body": "Q4 revenue analysis is done. 3 charts generated, executive summary attached. Please review methodology before sign-off.",
+  "priority": 1,
+  "status": "accepted",
+  "requiresApproval": true,
+  "approvedBy": "reviewer-agent",
+  "chainDepth": 0,
+  "createdAt": "2026-04-03T10:45:00.000Z",
+  "respondedAt": "2026-04-03T11:02:00.000Z"
+}
+```
+
+</EndpointCard>
+
+### Approve or Reject Handoff
+
+<EndpointCard method="PATCH" path="/api/handoffs/{id}" description="Approve or reject a pending handoff. The status transitions from pending to accepted (approve) or rejected. Records the approver identity and response timestamp.">
+
+<SchemaTable title="Request Body" fields={[
+  { name: 'action', type: 'enum', required: true, description: 'approve or reject' },
+  { name: 'approvedBy', type: 'string', required: false, description: 'Identifier of the approver (defaults to "user")' },
+]} />
+
+**Response** `200` — The updated handoff message object
+
+**Errors:**
+- `400` — Missing or invalid action
+- `404` — Handoff not found
+- `409` — Handoff is not in the `pending` state (already accepted, rejected, completed, or expired)
+
+Approve a pending handoff on behalf of a supervising agent or human reviewer:
+
+<CodeExample ts={`// Approve a pending handoff
+interface Handoff {
+  id: string;
+  status: string;
+  approvedBy?: string;
+}
+
+const updated: Handoff = await fetch("http://localhost:3000/api/handoffs/hoff-c7a1-b3d4", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    action: "approve",
+    approvedBy: "sehgal.manav@gmail.com",
+  }),
+}).then((r: Response) => r.json());
+
+console.log(\`Status: \${updated.status}\`);  // "accepted"
+console.log(\`Approved by: \${updated.approvedBy}\`);`} python={`import requests
+
+# Approve a pending handoff
+response = requests.patch(
+    "http://localhost:3000/api/handoffs/hoff-c7a1-b3d4",
+    json={
+        "action": "approve",
+        "approvedBy": "sehgal.manav@gmail.com",
+    },
+)
+updated: dict = response.json()
+
+print(f"Status: {updated['status']}")  # "accepted"
+print(f"Approved by: {updated['approvedBy']}")`} />
+
+Reject a handoff when the recipient cannot or should not take on the work:
+
+<CodeExample ts={`// Reject a handoff — status transitions to "rejected"
+await fetch("http://localhost:3000/api/handoffs/hoff-c7a1-b3d4", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ action: "reject", approvedBy: "reviewer-agent" }),
+});`} python={`import requests
+
+# Reject a handoff — status transitions to "rejected"
+requests.patch(
+    "http://localhost:3000/api/handoffs/hoff-c7a1-b3d4",
+    json={"action": "reject", "approvedBy": "reviewer-agent"},
+)`} />
+
+Example response after approval:
+
+```json
+{
+  "id": "hoff-c7a1-b3d4",
+  "fromProfileId": "analyst-agent",
+  "toProfileId": "reviewer-agent",
+  "subject": "Analysis complete — ready for review",
+  "status": "accepted",
+  "requiresApproval": true,
+  "approvedBy": "sehgal.manav@gmail.com",
+  "chainDepth": 0,
+  "createdAt": "2026-04-03T10:45:00.000Z",
+  "respondedAt": "2026-04-03T11:02:00.000Z"
+}
+```
 
 </EndpointCard>
 
