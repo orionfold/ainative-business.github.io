@@ -9,8 +9,8 @@ supabase/.temp/
 output/
 /deck/
 .claude/settings.local.json
-.claude/skills/apply-product-release/
 .claude/skills/skill-creator/
+.claude/skills/*/references/manifest-cache.md
 .claude/worktrees/
 .superpowers/
 architecture-*.png
