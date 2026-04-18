@@ -73,7 +73,11 @@ Before generating new pages, read these 3 exemplar pages to understand the exact
 
 These set the quality bar. Match their structure, detail level, and developer-friendly tone.
 
-## 10-Step Workflow
+## Workflow
+
+This skill has two phases. When invoked standalone it runs both sequentially with one user gate between them. When invoked by `apply-product-release` the orchestrator runs only Plan Phase, aggregates plans from all sub-skills, fires one unified gate, then invokes each sub-skill's Execute Phase.
+
+## Plan Phase
 
 ### Step 1: Inventory API Routes
 
@@ -148,28 +152,28 @@ For each domain, compare:
 - Validator schemas (from Step 2) vs. manifest
 - Identify: **new domains** (no existing page), **changed domains** (different route/endpoint count), **unchanged** (skip)
 
-### Step 5: User Confirmation Gate
+## Plan Output Format
 
-Present a change summary and **wait for user approval**:
+When running in Plan Phase only (invoked by `apply-product-release` orchestrator), stop after Step 4 and emit a single plan block in this exact shape:
 
-```
-## API Docs Update Plan
-
-| Domain | Action | Endpoints | Reason |
-|--------|--------|-----------|--------|
-| chat   | Create | 9         | New domain, no existing page |
-| tables | Create | 12        | New domain, no existing page |
-| tasks  | Skip   | 13        | Unchanged since last run |
-| ...    | ...    | ...       | ... |
-
-Domains to create: X
-Domains to update: Y
-Domains unchanged: Z
-
-Proceed? [Wait for user confirmation]
+```markdown
+### apply-api-docs
+- **Status**: changed | no-changes | error
+- **Summary**: <one-line: e.g., "3 new domains, 2 updated, 21 unchanged">
+- **Changes**:
+  | Type | Item | Reason |
+  |------|------|--------|
+  | create | chat.mdx | new domain, 9 endpoints |
+  | update | tasks.mdx | endpoint count changed 10 → 13 |
+  | skip   | projects.mdx | unchanged since last run |
+- **Risks**: (optional — e.g., "2 domains with no Zod validator — request shapes inferred from handler code")
 ```
 
-### Step 6: Generate/Update Domain Pages
+Do not write any files during Plan Phase. Do not prompt for confirmation. Return control to the caller.
+
+## Execute Phase
+
+### Step 5: Generate/Update Domain Pages
 
 For each confirmed domain, generate an MDX file following this template structure:
 
@@ -239,7 +243,7 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 6. Action endpoints (execute, cancel, resume, etc.)
 7. Sub-resource endpoints (documents, steps, etc.)
 
-### Step 7: Generate/Update Index Page
+### Step 6: Generate/Update Index Page
 
 Update `src/pages/docs/api/index.astro`:
 - Add new domains to the appropriate group (Core, Intelligence, Content, Platform, Operations)
@@ -253,7 +257,7 @@ Group assignments:
 - **Platform**: settings, permissions, notifications, channels, environment, snapshots, workspace
 - **Operations**: logs, handoffs, data, context
 
-### Step 8: Update Navigation
+### Step 7: Update Navigation
 
 Check that `src/components/ApiDocsSidebar.astro` nav groups include all generated pages:
 - If a new domain was added, add it to the correct group
@@ -263,7 +267,7 @@ Check that `src/components/ApiDocsSidebar.astro` nav groups include all generate
 Check `src/components/Nav.astro` has the top-level "API" link (between Docs and GitHub, not inside the dropdown).
 Check `src/components/DocsSidebar.astro` has the "API Reference" bridge link at the bottom of `navItems`.
 
-### Step 9: Update Reference Manifest
+### Step 8: Update Reference Manifest
 
 Write the updated state to `references/api-domain-mapping.md`:
 
@@ -287,7 +291,7 @@ Last updated: {YYYY-MM-DD}
 
 This manifest enables the next run to quickly identify which domains changed.
 
-### Step 10: Verify and Summarize
+### Step 9: Verify and Summarize
 
 Run build verification:
 
