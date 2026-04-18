@@ -10,14 +10,14 @@ interface Props {
   description?: string;
 }
 
-const { title = 'AI Native — The Book', description = '' } = Astro.props;
+const { title = 'AI Native Business — The Book', description = '' } = Astro.props;
 const pageTitle = `${title} — Stagent`;
 
 const jsonLd = [
   {
     '@context': 'https://schema.org',
     '@type': 'Book',
-    name: 'AI Native: Building Autonomous Business Systems with AI Agents',
+    name: 'AI Native Business: Building Autonomous Business Systems with AI Agents',
     author: {
       '@type': 'Person',
       name: 'Manav Sehgal',

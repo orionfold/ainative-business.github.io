@@ -383,7 +383,7 @@ export function BookReader({
             className="text-xs text-text-muted hover:text-primary transition-colors font-mono tracking-wide no-underline hidden sm:inline-flex items-center gap-1"
           >
             <BookOpen className="h-3.5 w-3.5" />
-            <span className="hidden md:inline">AI Native</span>
+            <span className="hidden md:inline">AI Native Business</span>
           </a>
           <span className="text-border hidden sm:inline">|</span>
           <div className="hidden sm:block">

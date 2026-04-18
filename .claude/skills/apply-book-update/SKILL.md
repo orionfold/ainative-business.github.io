@@ -1,11 +1,11 @@
 ---
 name: apply-book-update
-description: Sync book content from the Stagent product to the stagent.io website. Compares chapter markdown files and images, copies changed content, updates code files if structure changed, and verifies the build. Use when the user says "update book", "sync book", "refresh book content", "apply book update", "sync book chapters", "update book content", "book content is stale", "new book chapters", "refresh book from product", "copy book chapters", "update book images", or any request to update, sync, or refresh the AI Native book content on the website from the source product repository. Also trigger after "apply product release" if the user mentions book content.
+description: Sync book content from the Stagent product to the stagent.io website. Compares chapter markdown files and images, copies changed content, updates code files if structure changed, and verifies the build. Use when the user says "update book", "sync book", "refresh book content", "apply book update", "sync book chapters", "update book content", "book content is stale", "new book chapters", "refresh book from product", "copy book chapters", "update book images", or any request to update, sync, or refresh the AI Native Business book content on the website from the source product repository. Also trigger after "apply product release" if the user mentions book content.
 ---
 
 # Apply Book Update Skill
 
-Syncs the "AI Native" book content (chapter markdown files + images) from the Stagent product repository to the stagent.io marketing website. The book lives as a React island reader at `/book/[chapter-slug]` and content is parsed at Astro build time. The current chapter count is whatever is in the Chapter Manifest below — most counts elsewhere in the codebase are derived dynamically from `CHAPTERS.length`.
+Syncs the "AI Native Business" book content (chapter markdown files + images) from the Stagent product repository to the stagent.io marketing website. The book lives as a React island reader at `/book/[chapter-slug]` and content is parsed at Astro build time. The current chapter count is whatever is in the Chapter Manifest below — most counts elsewhere in the codebase are derived dynamically from `CHAPTERS.length`.
 
 ## Attribution & License Architecture
 
