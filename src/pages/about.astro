@@ -5,6 +5,10 @@ import Footer from '../components/Footer.astro';
 import SectionLabel from '../components/ui/SectionLabel.astro';
 import WaitlistForm from '../components/ui/WaitlistForm.astro';
 
+// Email CTA is hidden until ainative.business is verified in Resend.
+// Flip to true to re-enable the subscribe block in the Links section.
+const showEmailCTA = false;
+
 const credentials = [
   { title: 'Harvard', body: 'Disruptive Strategy' },
   { title: 'MIT Sloan', body: 'Design Thinking' },
@@ -138,17 +142,19 @@ const previouslyPublished = [
               </a>
             </div>
 
-            <div class="mt-8">
-              <p class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mb-3">
-                Subscribe to AI Native research
-              </p>
-              <WaitlistForm
-                variant="footer"
-                id="about-waitlist"
-                source="research-newsletter"
-                buttonText="Subscribe"
-              />
-            </div>
+            {showEmailCTA && (
+              <div class="mt-8">
+                <p class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mb-3">
+                  Subscribe to AI Native research
+                </p>
+                <WaitlistForm
+                  variant="footer"
+                  id="about-waitlist"
+                  source="research-newsletter"
+                  buttonText="Subscribe"
+                />
+              </div>
+            )}
           </section>
         </div>
       </div>
