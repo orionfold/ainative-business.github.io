@@ -50,14 +50,14 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
           if (loaded) return;
           loaded = true;
           var s = document.createElement('script');
-          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-7PLZC5EJF7';
+          s.src = 'https://www.googletagmanager.com/gtag/js?id=G-59FCBN11J6';
           s.async = true;
           document.head.appendChild(s);
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
-          gtag('config', 'G-7PLZC5EJF7');
+          gtag('config', 'G-59FCBN11J6');
         }
         if ('requestIdleCallback' in window) {
           requestIdleCallback(loadGA, { timeout: 3000 });
