@@ -1,0 +1,184 @@
+---
+// Signature figure for "lora-on-your-own-qa-pairs".
+// Held-out judge-score distribution on 44 questions, base vs base+LoRA.
+// Stacked bar per side, segmented by score 0-5 (0 = refusal, 5 = perfect).
+// BASE is dominated by 0 and 1 (refusals + confident wrong). ADAPTER
+// shifts the mass up: score-5s appear from zero, and score-0 refusals
+// drop from 27% to 7%. The win is voice transfer, not fact transfer —
+// the LoRA makes the model *willing* to answer in the project's own
+// terse style. Green accent on the ADAPTER column because that's the
+// finding; BASE is muted indigo.
+
+// Score distributions (counts out of 44)
+const base = [12, 20, 6, 2, 4, 0]; // [s=0, s=1, s=2, s=3, s=4, s=5]
+const adap = [3, 22, 3, 8, 4, 4];
+
+const total = 44;
+const barW = 58;
+const plotTop = 32;
+const plotBottom = 165;
+const plotH = plotBottom - plotTop;
+
+const xBase = 80;
+const xAdap = 196;
+
+// Palette per score: 0 = darkest muted, 5 = brightest accent band
+const scoreFill = (score: number, side: 'base' | 'adap') => {
+  if (side === 'base') {
+    // cool muted ramp
+    const base_fills = [
+      'var(--svg-bg-inner-fill)',    // 0
+      'var(--svg-stroke)',           // 1
+      'var(--svg-text-faint)',       // 2
+      'var(--svg-text-muted)',       // 3
+      'var(--svg-accent-indigo)',    // 4
+      'var(--svg-accent-blue)',      // 5
+    ];
+    return base_fills[score];
+  }
+  const adap_fills = [
+    'var(--svg-bg-inner-fill)',     // 0
+    'var(--svg-stroke)',            // 1
+    'var(--svg-text-faint)',        // 2
+    'var(--svg-accent-teal)',       // 3
+    'var(--svg-accent-green)',      // 4 — brightening
+    'var(--svg-accent-green)',      // 5 — peak
+  ];
+  return adap_fills[score];
+};
+
+// Build cumulative Y positions for each stack.
+// Start from top (lowest scores at top? no — standard: score 0 at bottom).
+const stacks = (counts: number[], xLeft: number, side: 'base' | 'adap') => {
+  let acc = 0;
+  const out = [];
+  for (let s = 0; s < 6; s++) {
+    const n = counts[s];
+    if (n === 0) continue;
+    const yBot = plotBottom - (acc / total) * plotH;
+    const yTop = plotBottom - ((acc + n) / total) * plotH;
+    out.push({ s, n, x: xLeft, y: yTop, w: barW, h: yBot - yTop, fill: scoreFill(s, side) });
+    acc += n;
+  }
+  return out;
+};
+
+const baseSeg = stacks(base, xBase, 'base');
+const adapSeg = stacks(adap, xAdap, 'adap');
+
+const baseRefusal = Math.round((base[0] / total) * 100);
+const adapRefusal = Math.round((adap[0] / total) * 100);
+const baseTop = base[4] + base[5];
+const adapTop = adap[4] + adap[5];
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Judge-score distribution on 44 held-out questions. BASE (Qwen2.5-3B): 27% refuse, 9% score ≥4, zero perfect. BASE + LoRA on own Q&A: 7% refuse, 18% score ≥4, four perfect. The adapter shifts mass upward — voice transfer, not fact transfer."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lvt-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-green)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="lvt-halo" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- atmosphere behind ADAPTER column -->
+  <rect x={xAdap - 10} y={plotTop - 6} width={barW + 20} height={plotH + 12}
+        fill="url(#lvt-band)" stroke="none"/>
+  <rect x={xAdap - 10} y={plotTop - 6} width={barW + 20} height={plotH + 12}
+        fill="url(#lvt-halo)" stroke="none"/>
+
+  <!-- title / caption -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="16" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" letter-spacing="0.18em">JUDGE SCORE · 44 HELD-OUT Q&amp;A</text>
+    <text x="150" y="26" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.14em">0 = REFUSAL    5 = PERFECT</text>
+  </g>
+
+  <!-- baseline -->
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1="30" y1={plotBottom} x2="270" y2={plotBottom}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+  </g>
+
+  <!-- score-axis tick marks (0% / 50% / 100% of 44 total) -->
+  <g class="svg-reveal svg-reveal-d2">
+    {[0, 22, 44].map((v) => {
+      const y = plotBottom - (v / total) * plotH;
+      return (
+        <>
+          <line x1="30" y1={y} x2="270" y2={y}
+                stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+                stroke-dasharray="1 3" opacity="0.6"/>
+          <text x="26" y={y + 2.5} text-anchor="end"
+                fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+                font-size="7">{v}</text>
+        </>
+      );
+    })}
+  </g>
+
+  <!-- BASE stack -->
+  <g class="svg-reveal svg-reveal-d3">
+    {baseSeg.map((seg) => (
+      <rect x={seg.x} y={seg.y} width={seg.w} height={seg.h}
+            fill={seg.fill} stroke="var(--svg-bg-outer-fill)" stroke-width="0.5"/>
+    ))}
+    <text x={xBase + barW / 2} y={plotBottom + 12} text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="600">BASE</text>
+    <text x={xBase + barW / 2} y={plotBottom + 21} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">qwen2.5-3b-instruct</text>
+  </g>
+
+  <!-- ADAPTER stack -->
+  <g class="svg-reveal svg-reveal-d4">
+    {adapSeg.map((seg) => (
+      <rect x={seg.x} y={seg.y} width={seg.w} height={seg.h}
+            fill={seg.fill} stroke="var(--svg-bg-outer-fill)" stroke-width="0.5"/>
+    ))}
+    <text x={xAdap + barW / 2} y={plotBottom + 12} text-anchor="middle"
+          fill="var(--svg-accent-green)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="700">+ LoRA</text>
+    <text x={xAdap + barW / 2} y={plotBottom + 21} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">r=16, 231 own-voice pairs</text>
+  </g>
+
+  <!-- small score-label ramp, right side -->
+  <g class="svg-reveal svg-reveal-d5">
+    {[0, 1, 2, 3, 4, 5].map((s, i) => {
+      const y = plotTop + 6 + i * 8;
+      const fill = scoreFill(s, s >= 3 ? 'adap' : 'base');
+      return (
+        <>
+          <rect x="258" y={y - 4} width="5" height="5" fill={fill}
+                stroke="var(--svg-bg-outer-fill)" stroke-width="0.5"/>
+          <text x="266" y={y} fill="var(--svg-text-faint)"
+                font-family="var(--font-mono)" font-size="7">{s}</text>
+        </>
+      );
+    })}
+  </g>
+
+  <!-- headline annotation: refusal drop -->
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="30" y={plotBottom - 2} fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="6.5" letter-spacing="0.1em">
+      REFUSE: {baseRefusal}% → {adapRefusal}%
+    </text>
+    <text x="30" y={plotTop + 6} fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="6.5" letter-spacing="0.1em">
+      ≥4: {baseTop} → {adapTop}
+    </text>
+  </g>
+</svg>

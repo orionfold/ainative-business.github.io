@@ -1,0 +1,116 @@
+---
+import { getCollection, render } from 'astro:content';
+import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+import { SERIES_SLUGS } from '../../../content.config.ts';
+import { SITE } from '../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('field-notes');
+  const ordinalById = publishOrdinals(all, process.cwd());
+  return all.map((article) => ({
+    params: { slug: article.id },
+    props: { article, ordinal: ordinalById.get(article.id)! },
+  }));
+}
+
+const { article, ordinal } = Astro.props;
+const { Content } = await render(article);
+const { title, date, author, product, stage, difficulty, time_required, hardware, summary, status, series, tags } = article.data;
+
+const isUpcoming = status === 'upcoming';
+const ordinalLabel = isUpcoming ? 'Upcoming' : `№${String(ordinal).padStart(2, '0')}`;
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+const seriesHref = series ? `/field-notes/series/${SERIES_SLUGS[series]}/` : null;
+
+const dateIso = date.toISOString().slice(0, 10);
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'TechArticle',
+  headline: title,
+  description: summary,
+  datePublished: dateIso,
+  dateModified: dateIso,
+  author: { '@type': 'Person', name: author },
+  url: `${SITE.url}/field-notes/${article.id}/`,
+  publisher: {
+    '@type': 'Organization',
+    name: 'ainative',
+    url: SITE.url,
+    logo: { '@type': 'ImageObject', url: SITE.logo },
+  },
+  keywords: (tags ?? []).join(', '),
+};
+---
+<FieldNotesLayout
+  title={`${title} — AI Native Field Notes`}
+  description={summary}
+  ogType="article"
+  article={{ datePublished: dateIso, dateModified: dateIso, author }}
+  jsonLd={jsonLd}
+>
+  <Nav />
+  <main>
+    <div class="fn-progress-bar" id="progress-bar"></div>
+
+    <article class="article">
+      <header class="article__header">
+        <a class="article__breadcrumb" href="/field-notes/">← AI Native Field Notes</a>
+        {isUpcoming && (
+          <p class="article__upcoming-banner">Upcoming — proposed abstract, not a published piece.</p>
+        )}
+        <h1 class="article__title">{title}</h1>
+        <p class="article__summary">{summary}</p>
+        {series && (
+          <a class="article__series-badge" href={seriesHref!} data-series={SERIES_SLUGS[series]}>
+            <span class="article__series-badge-label">Series</span>
+            <span class="article__series-badge-name">{series}</span>
+          </a>
+        )}
+        <div class="article__meta">
+          <span>{ordinalLabel}</span>
+          <a class="article__meta-link" href={`/field-notes/stages/${stage}/`}>{stage}</a>
+          {product && <span>{product}</span>}
+          <time datetime={dateIso}>{isUpcoming ? `planned · ${dateFmt}` : dateFmt}</time>
+          {time_required && <span>{time_required}</span>}
+          {difficulty && <span>{difficulty}</span>}
+          {hardware && <span>{hardware}</span>}
+          <span>{author}</span>
+        </div>
+
+        {(tags ?? []).length > 0 && (
+          <ul class="article__tags" aria-label="Tags">
+            {tags.map((tag) => (
+              <li>
+                <a class="article__tag" href={`/field-notes/tags/${tag}/`}>#{tag}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </header>
+
+      <div class="fn-prose">
+        <Content />
+      </div>
+    </article>
+
+    <script>
+      const bar = document.getElementById('progress-bar');
+      if (bar) {
+        const update = () => {
+          const doc = document.documentElement;
+          const scrolled = window.scrollY;
+          const total = doc.scrollHeight - window.innerHeight;
+          const pct = total > 0 ? Math.min(1, scrolled / total) : 0;
+          bar.style.transform = `scaleX(${pct})`;
+        };
+        update();
+        window.addEventListener('scroll', update, { passive: true });
+        window.addEventListener('resize', update);
+      }
+    </script>
+  </main>
+  <Footer />
+</FieldNotesLayout>

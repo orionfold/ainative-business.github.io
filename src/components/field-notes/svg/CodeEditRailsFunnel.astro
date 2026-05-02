@@ -1,0 +1,132 @@
+---
+// Signature figure for "guardrails-for-code-generation".
+// 5-rail funnel showing where each unsafe proposal in the 27-case
+// adversarial bench gets caught: R1 schema (6), R2 menu (3), R3 range
+// (6), R4 cross (2), R5 diff_lint (0 — never reached because earlier
+// rails are tight). Safe-pass column at the right (10/10).
+//
+// Block recall = 1.0 (17/17). Clean pass = 1.0 (10/10).
+
+const rails = [
+  { id: 'R1', name: 'schema',      blocked: 6, doc: 'JSON shape · keys · types' },
+  { id: 'R2', name: 'menu',        blocked: 3, doc: 'knob in allowlist' },
+  { id: 'R3', name: 'range',       blocked: 6, doc: 'value in range / choices' },
+  { id: 'R4', name: 'cross',       blocked: 2, doc: 'cfg constraints' },
+  { id: 'R5', name: 'diff_lint',   blocked: 0, doc: 'final diff is one knob' },
+];
+
+const SAFE_PASS = 10;
+const TOTAL_UNSAFE = rails.reduce((s, r) => s + r.blocked, 0);
+const TOTAL = SAFE_PASS + TOTAL_UNSAFE;
+
+// Geometry: stacked horizontal bands, each with the rail name + a
+// proportional "blocked" sub-bar to its right, ending in the right-
+// hand "passes through" lane.
+const TOP0 = 36;
+const ROW_H = 22;
+const ROW_GAP = 2;
+const LABEL_X0 = 30;
+const PLOT_X0 = 100;
+const PLOT_W = 130;       // funnel width
+const PASS_X0 = 240;      // pass column starts here
+const PASS_W = 50;
+const MAX_BLOCK = Math.max(...rails.map(r => r.blocked), 1);
+const sx = (n: number) => (n / MAX_BLOCK) * PLOT_W;
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Five-rail funnel for the code-edit policy. R1 schema blocks 6 unsafe proposals; R2 menu blocks 3; R3 range blocks 6; R4 cross-constraint blocks 2; R5 diff-lint blocks 0 (never reached — earlier rails are tight). All 10 safe proposals pass through to the diff stage. Block recall 1.0, clean pass 1.0 across 27 adversarial test cases."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cef-block-grad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="cef-pass-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="cef-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.04"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">CODE-EDIT POLICY · 5-RAIL FUNNEL</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">27 cases · block recall 1.00 · clean pass 1.00</text>
+  </g>
+
+  {/* atmospheric band behind funnel */}
+  <rect x={LABEL_X0 - 4} y={TOP0 - 4}
+        width={PASS_X0 + PASS_W - LABEL_X0 + 8}
+        height={rails.length * (ROW_H + ROW_GAP) + 6}
+        fill="url(#cef-band)" stroke="none"/>
+
+  {rails.map((r, i) => {
+    const y = TOP0 + i * (ROW_H + ROW_GAP);
+    const yBar = y + 5;
+    const w = sx(r.blocked);
+    const blockedHere = r.blocked;
+    return (
+      <g class={`svg-reveal svg-reveal-d${2 + Math.min(i, 4)}`}>
+        {/* rail label */}
+        <text x={LABEL_X0} y={y + 11}
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="7" font-weight={600}>{r.id} {r.name}</text>
+        <text x={LABEL_X0} y={y + 19}
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5">{r.doc}</text>
+
+        {/* track */}
+        <rect x={PLOT_X0} y={yBar} width={PLOT_W} height={ROW_H - 10}
+              fill="var(--svg-bg-inner-fill)"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+
+        {/* blocked-here bar */}
+        {blockedHere > 0 && (
+          <rect x={PLOT_X0} y={yBar} width={Math.max(2, w)} height={ROW_H - 10}
+                fill="url(#cef-block-grad)"
+                stroke="var(--svg-accent-red)" stroke-width="0.5"/>
+        )}
+
+        {/* numeric callout */}
+        <text x={PLOT_X0 + Math.max(w, 4) + 3} y={yBar + 9}
+              fill={blockedHere > 0 ? 'var(--svg-accent-red)' : 'var(--svg-text-faint)'}
+              font-family="var(--font-mono)"
+              font-size="6.5" font-weight={blockedHere > 0 ? 700 : 500}>
+          {blockedHere > 0 ? `${blockedHere} blocked` : '—'}
+        </text>
+      </g>
+    );
+  })}
+
+  {/* pass column on the right (single tall bar showing 10 safe passes) */}
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x={PASS_X0} y={TOP0 + 5} width={PASS_W}
+          height={rails.length * (ROW_H + ROW_GAP) - 10}
+          fill="url(#cef-pass-grad)"
+          stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x={PASS_X0 + PASS_W / 2} y={TOP0 + 28} text-anchor="middle"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="9" font-weight={700}>{SAFE_PASS}</text>
+    <text x={PASS_X0 + PASS_W / 2} y={TOP0 + 42} text-anchor="middle"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.08em">SAFE PASS</text>
+    <text x={PASS_X0 + PASS_W / 2} y={TOP0 + 56} text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="5.5">→ apply diff</text>
+  </g>
+
+  {/* footnote */}
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="194" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5" letter-spacing="0.04em">programmatic rails · zero LLM-as-judge calls · cannot be prompt-injected</text>
+  </g>
+</svg>

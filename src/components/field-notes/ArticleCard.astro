@@ -1,0 +1,69 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { SERIES_SLUGS } from '../../content.config.ts';
+
+// Signature-figure components are bundled in via glob so the name can be
+// looked up dynamically from frontmatter. Articles missing a registered
+// signature simply omit the aside thumbnail.
+const signatureModules = import.meta.glob('./svg/*.astro', { eager: true });
+const signatureRegistry: Record<string, any> = {};
+for (const [path, mod] of Object.entries(signatureModules)) {
+  const name = path.split('/').pop()!.replace('.astro', '');
+  signatureRegistry[name] = (mod as any).default;
+}
+
+interface Props {
+  article: CollectionEntry<'field-notes'>;
+  ordinal: number;
+}
+
+const { article, ordinal } = Astro.props;
+const { title, date, stage, product, time_required, summary, signature, status, series, fieldkit_modules } = article.data;
+
+const ordinalDigits = String(ordinal).padStart(2, '0');
+const ordinalLabel = `№${ordinalDigits}`;
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+
+const href = `/field-notes/${article.id}/`;
+const seriesHref = series ? `/field-notes/series/${SERIES_SLUGS[series]}/` : null;
+
+const Signature = signature ? signatureRegistry[signature] : null;
+const isUpcoming = status === 'upcoming';
+const cardClass = isUpcoming ? 'card card--upcoming' : 'card';
+const metaSlot = isUpcoming ? 'Upcoming' : `Article №${ordinalDigits}`;
+---
+<a class={cardClass} href={href} aria-label={`${isUpcoming ? 'Upcoming: ' : ordinalLabel + ': '}${title}`}>
+  <span class="card__watermark" aria-hidden="true">{isUpcoming ? '#' : ordinalDigits}</span>
+  <div class="card__body">
+    <div class="card__meta">
+      <span class="card__article">{metaSlot}</span>
+      <span>{stage}</span>
+      {product && <span>{product}</span>}
+      {!isUpcoming && (
+        <time datetime={date.toISOString().slice(0, 10)}>{dateFmt}</time>
+      )}
+      {time_required && <span>{time_required}</span>}
+    </div>
+    {series && (
+      <span class="card__series-badge" data-series={SERIES_SLUGS[series]}>{series}</span>
+    )}
+    <h2 class="card__title">{title}</h2>
+    <p class="card__summary">{summary}</p>
+    {(fieldkit_modules ?? []).length > 0 && (
+      <p class="card__fk" aria-label="fieldkit modules used">
+        <span class="card__fk-label">uses</span>
+        {(fieldkit_modules ?? []).map((m) => (
+          <span class="card__fk-chip">fieldkit.{m}</span>
+        ))}
+      </p>
+    )}
+  </div>
+  {Signature && (
+    <aside class="card__signature" aria-hidden="true">
+      <div class="card__signature-frame">
+        <Signature />
+        <p class="card__signature-label">Signature figure</p>
+      </div>
+    </aside>
+  )}
+</a>

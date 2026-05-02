@@ -1,0 +1,93 @@
+---
+// Signature figure for "Your First NIM on a DGX Spark".
+// Five-stage install pipeline: NGC registry → docker pull → container →
+// vLLM FP8 engine → local :8000 endpoint. Endpoint pulses.
+const stages = [
+  { label: 'NGC',       sub: 'registry' },
+  { label: 'pull',      sub: '9.4 GB' },
+  { label: 'container', sub: 'cache' },
+  { label: 'vLLM',      sub: 'FP8' },
+  { label: ':8000',     sub: 'OpenAI API' },
+];
+const n = stages.length;
+const plotLeft = 22;
+const plotRight = 278;
+const step = (plotRight - plotLeft) / (n - 1);
+const nodeW = 42;
+const cy = 100;
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="NIM install pipeline — five stages from registry to local endpoint" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nim-end-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="nim-band-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="nim-end-halo-grad" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- atmospheric band under the pipeline + halo around the endpoint -->
+  <rect x="10" y={cy - 18} width="280" height="36" rx="3"
+        fill="url(#nim-band-grad)" stroke="none"/>
+  <rect x={plotRight - 50} y={cy - 50} width="80" height="100"
+        fill="url(#nim-end-halo-grad)" stroke="none"/>
+
+  <!-- flow line -->
+  <g class="svg-reveal svg-reveal-d1">
+    <line x1={plotLeft + nodeW / 2} y1={cy} x2={plotRight - nodeW / 2} y2={cy}
+          stroke="var(--svg-connector)" stroke-width="1" stroke-linecap="round"/>
+    <path class="line-draw svg-reveal-d2"
+          d={`M ${plotLeft + nodeW / 2} ${cy} L ${plotRight - nodeW / 2} ${cy}`}
+          fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+  </g>
+
+  <!-- stage nodes -->
+  {stages.map((s, i) => {
+    const x = plotLeft + i * step;
+    const isEnd = i === n - 1;
+    const fill = isEnd ? 'url(#nim-end-grad)' : 'var(--svg-bg-inner)';
+    const stroke = isEnd ? 'var(--svg-accent-blue)' : 'var(--svg-bg-inner-stroke)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${Math.min(8, i + 2)}`}>
+        <rect
+          x={x - nodeW / 2} y={cy - 22} width={nodeW} height="44" rx="6"
+          fill={fill} stroke={stroke} stroke-width={isEnd ? 1.5 : 1}
+        />
+        <text x={x} y={cy - 3} text-anchor="middle"
+              fill={isEnd ? 'var(--svg-text-bright)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)" font-size="10"
+              font-weight={isEnd ? 600 : 500}>{s.label}</text>
+        <text x={x} y={cy + 13} text-anchor="middle"
+              fill="var(--svg-text-faint)"
+              font-family="var(--font-mono)" font-size="8">{s.sub}</text>
+      </g>
+    );
+  })}
+
+  <!-- "LOCAL ENDPOINT" callout -->
+  <g class="svg-reveal svg-reveal-d8">
+    <text x={plotRight} y={cy - 35} text-anchor="middle"
+          fill="var(--svg-accent-blue)"
+          font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.2em" font-weight="600">LOCAL ENDPOINT</text>
+  </g>
+
+  <!-- leading remote / local divider -->
+  <g class="svg-reveal svg-reveal-d7">
+    <line x1={plotLeft + step / 2} y1={cy - 45} x2={plotLeft + step / 2} y2={cy + 45}
+          stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3"/>
+    <text x={plotLeft + step / 2 - 6} y={cy + 58} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.15em">REMOTE</text>
+    <text x={plotLeft + step / 2 + 6} y={cy + 58} text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.15em">LOCAL</text>
+  </g>
+</svg>

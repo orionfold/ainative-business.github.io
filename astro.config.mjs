@@ -8,6 +8,15 @@ import react from '@astrojs/react';
 export default defineConfig({
   site: 'https://ainative.business',
   trailingSlash: 'always',
+  // /research/* now lives inside /field-notes/ as the AI Native Platform
+  // series. Redirects preserve any existing inbound links since the old
+  // research index was the only deep-linked surface the consolidation moved.
+  redirects: {
+    '/research/': '/field-notes/series/ai-native-platform/',
+    '/research/ai-transformation/': '/field-notes/ai-transformation/',
+    '/research/solo-builder-case-study/': '/field-notes/solo-builder-case-study/',
+    '/rss.xml/': '/feed.xml/',
+  },
   markdown: {
     shikiConfig: {
       themes: {

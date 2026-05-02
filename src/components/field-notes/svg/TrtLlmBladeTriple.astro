@@ -1,0 +1,97 @@
+---
+// Signature figure for "trtllm-and-triton-on-spark".
+// Three serving stacks on the same 8B base checkpoint, same greedy
+// prompt, measured p50 decode rate in tokens/second. NIM (vLLM FP8) is
+// the convenience baseline. TRT-LLM FP8 is the same precision dropped
+// one layer of abstraction. TRT-LLM NVFP4 is the Blackwell-native 4-bit
+// kernel that only exists when you drop below NIM. NVFP4 is the accent
+// because it is the finding — the reason to rebuild is not FP8 at all.
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Decode tok/s on the same 8B base, same prompt: NIM vLLM FP8 at 22, TRT-LLM FP8 at 25, TRT-LLM NVFP4 at 39. NVFP4 is 76 percent faster than the NIM baseline." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="tlb-bar-nim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-text-muted)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-text-muted)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="tlb-bar-fp8" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="tlb-bar-nvfp4" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="tlb-nvfp4-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="tlb-band-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-green)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <!-- Accent lane atmosphere behind the NVFP4 row -->
+  <rect x="8" y="128" width="284" height="46" rx="6" fill="url(#tlb-band-accent)" stroke="none"/>
+  <!-- NVFP4 bar halo: bounded by the bar geometry (30,140,236,22) -->
+  <rect x="30" y="140" width="236" height="22" rx="3" fill="url(#tlb-nvfp4-halo)" stroke="none"/>
+  <!-- Axis baseline + scale hint -->
+  <g class="svg-reveal svg-reveal-d1">
+    <line x1="30" y1="180" x2="290" y2="180"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="30" y="192" text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em">DECODE TOK/S · P50</text>
+  </g>
+  <!-- NIM vLLM FP8 — baseline, muted -->
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="26" y="60" text-anchor="end"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">nim vllm fp8</text>
+    <rect x="30" y="52" width="132" height="22" rx="3"
+          class="bar-grow-x"
+          fill="url(#tlb-bar-nim)" stroke="var(--svg-text-muted)" stroke-width="1"/>
+    <text x="170" y="67" text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="11" font-weight="600">22.1</text>
+  </g>
+  <!-- TRT-LLM FP8 — a step, but not the finding -->
+  <g class="svg-reveal svg-reveal-d3">
+    <text x="26" y="108" text-anchor="end"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">trt-llm fp8</text>
+    <rect x="30" y="100" width="148" height="22" rx="3"
+          class="bar-grow-x"
+          fill="url(#tlb-bar-fp8)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x="186" y="115" text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="11" font-weight="600">24.6</text>
+  </g>
+  <!-- TRT-LLM NVFP4 — the accent, the thesis -->
+  <g class="svg-reveal svg-reveal-d4">
+    <text x="26" y="156" text-anchor="end"
+          fill="var(--svg-accent-green)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">trt-llm nvfp4</text>
+    <rect x="30" y="140" width="236" height="22" rx="3"
+          class="bar-grow-x"
+          fill="url(#tlb-bar-nvfp4)" stroke="var(--svg-accent-green)" stroke-width="1.5"/>
+    <text x="272" y="155" text-anchor="end"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="11" font-weight="600">38.8</text>
+  </g>
+  <!-- Callout: +76% vs NIM -->
+  <g class="svg-reveal svg-reveal-d5">
+    <text x="148" y="134" text-anchor="middle"
+          fill="var(--svg-accent-green)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">+76% VS NIM · BLACKWELL FP4</text>
+  </g>
+  <!-- Header label -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.24em" font-weight="600">LLAMA 3.1 8B · DGX SPARK GB10</text>
+    <text x="150" y="36" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8">same base · same prompt · three stacks</text>
+  </g>
+</svg>

@@ -1,0 +1,129 @@
+---
+// Signature figure for "gpu-sizing-math-for-fine-tuning".
+// Three methods, three GPU asks for a hypothetical 100B Nemotron fine-tune.
+// Bars are drawn to scale by peak GPU memory (1,600 GB / 250 GB / 65 GB),
+// so the reader can see at thumbnail size why optimizer-state collapse is
+// the lever that matters. QLoRA carries the indigo-primary accent — the
+// surprise is that one H200 fits the budget when you opt out of the Adam
+// optimizer state and quantize the frozen base.
+//
+// The Spark anchor line at the bottom reminds the reader why this article
+// exists in this blog: the 3B LoRA peaked at ~20 GB on one Spark, and the
+// arithmetic that produces that number is the same arithmetic that lands
+// the 100B run on a one-GPU-in-the-closet conversation.
+
+// Bar widths — 160 px plot area, scaled against 1,800 GB max.
+const plotX0 = 64;
+const plotW = 180;
+const scale = (gb: number) => (gb / 1800) * plotW;
+
+const wFull = scale(1600);
+const wLora = scale(250);
+const wQlora = Math.max(scale(65), 6); // floor so it renders visibly
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Three methods for fine-tuning a 100B Nemotron, compared by peak GPU memory. Full fine-tune: 1,600 GB, needs 24 H100 GPUs. LoRA: 250 GB, needs 8 H100 GPUs. QLoRA: 65 GB, fits a single H200 141GB GPU. Spark anchor: 3B LoRA peaked at about 20 GB on 128 GB unified memory — same four memory bills at 1 over 250 times the scale."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ftm-full-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.14"/>
+    </linearGradient>
+    <linearGradient id="ftm-lora-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.14"/>
+    </linearGradient>
+    <linearGradient id="ftm-qlora-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="ftm-qlora-lane" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--color-primary)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Atmospheric lane wash behind the QLoRA row — the one the article
+       argues is the answer. Linear gradient = semantic backdrop, exempt
+       from the bounded-halo rule. -->
+  <rect x="4" y="108" width="292" height="34" fill="url(#ftm-qlora-lane)" stroke="none"/>
+
+  <!-- Title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="18" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" letter-spacing="0.18em">100B FINE-TUNE · GPU BUDGET</text>
+  </g>
+
+  <!-- Full FT row — bar 180 px (1,600 GB at 1:9 scale) -->
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="58" y="52" text-anchor="end"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">full FT</text>
+    <text x="58" y="62" text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5">1,600 GB</text>
+    <rect class="bar-grow-x" x={plotX0} y="40" width={wFull} height="22" rx="3"
+          fill="url(#ftm-full-grad)"
+          stroke="var(--svg-accent-red)" stroke-width="0.5"/>
+    <rect x="248" y="40" width="48" height="22" rx="3"
+          fill="var(--svg-bg-inner)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="272" y="55" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">24× H100</text>
+  </g>
+
+  <!-- LoRA row — bar 25 px (250 GB) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <text x="58" y="88" text-anchor="end"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">LoRA</text>
+    <text x="58" y="98" text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5">250 GB</text>
+    <rect class="bar-grow-x" x={plotX0} y="76" width={wLora} height="22" rx="3"
+          fill="url(#ftm-lora-grad)"
+          stroke="var(--svg-accent-orange)" stroke-width="0.5"/>
+    <rect x="248" y="76" width="48" height="22" rx="3"
+          fill="var(--svg-bg-inner)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="272" y="91" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">8× H100</text>
+  </g>
+
+  <!-- QLoRA row — bar 6 px min (65 GB, the thesis) -->
+  <g class="svg-reveal svg-reveal-d4">
+    <text x="58" y="124" text-anchor="end"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="9" font-weight="700">QLoRA</text>
+    <text x="58" y="134" text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5">65 GB</text>
+    <rect class="bar-grow-x" x={plotX0} y="112" width={wQlora} height="22" rx="3"
+          fill="url(#ftm-qlora-grad)"
+          stroke="var(--color-primary)" stroke-width="1"/>
+    <rect x="248" y="112" width="48" height="22" rx="3"
+          fill="var(--svg-bg-inner)"
+          stroke="var(--color-primary)" stroke-width="1"/>
+    <text x="272" y="127" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="8" font-weight="700">1× H200</text>
+  </g>
+
+  <!-- Divider + Spark anchor line -->
+  <g class="svg-reveal svg-reveal-d5">
+    <line x1="10" y1="158" x2="290" y2="158"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+          stroke-dasharray="2 3"/>
+    <text x="150" y="172" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.14em">SPARK ANCHOR</text>
+    <text x="150" y="186" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">3B rank-16 LoRA · peak ≈ 20 GB</text>
+  </g>
+</svg>

@@ -1,0 +1,217 @@
+---
+import stats from '../../data/field-notes/project-stats.json';
+
+// All eight stages, same order as the StageFilter chips. Empty stages stay
+// dim and non-clickable; populated ones link to their stage index page.
+const STAGE_ORDER = [
+  'foundations', 'training', 'fine-tuning', 'inference',
+  'deployment', 'agentic', 'observability', 'dev-tools',
+] as const;
+const STAGE_LABELS: Record<string, string> = {
+  foundations:    'Foundations',
+  training:       'Training',
+  'fine-tuning':  'Fine-tuning',
+  inference:      'Inference',
+  deployment:     'Deployment',
+  agentic:        'Agentic',
+  observability:  'Observability',
+  'dev-tools':    'Dev-tools',
+};
+
+const s: any = stats;
+const ARTICLES = s.articles?.total ?? 0;
+const UPCOMING = s.articles?.upcoming ?? 0;
+const WORDS = s.words?.total ?? 0;
+const LOC = s.code?.total_loc ?? 0;
+const MODEL_COUNT = s.models?.length ?? 0;
+const PRODUCT_COUNT = s.products?.length ?? 0;
+const stageCounts: Record<string, number> = s.stages ?? {};
+const stageUpcoming: Record<string, number> = s.stages_upcoming ?? {};
+const products: { id: string; label: string; articles: number }[] = s.products ?? [];
+const models: { id: string; label: string; articles: number }[] = s.models ?? [];
+
+const headlineLatency    = s.metrics?.latency?.[0];
+const headlineThroughput = s.metrics?.throughput?.[0];
+const headlineAccuracy   = s.metrics?.accuracy?.[0];
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const articleHref = (slug: string) => `/field-notes/${slug}/`;
+---
+<section class="project-stats" aria-labelledby="project-stats-heading">
+  <div class="project-stats__row project-stats__row--kpis">
+    <h2 id="project-stats-heading" class="project-stats__title">At a glance</h2>
+    <div class="project-stats__kpis" role="list">
+      <article class="kpi" role="listitem">
+        <svg class="kpi__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M15 3v4h4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M9 12h7M9 16h7M9 8h3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="kpi__text">
+          <div class="kpi__value">
+            {ARTICLES}
+            {UPCOMING > 0 && <sup class="kpi__super">+{UPCOMING}</sup>}
+          </div>
+          <div class="kpi__label">Articles</div>
+        </div>
+      </article>
+      <article class="kpi" role="listitem">
+        <svg class="kpi__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 6h16M4 10h16M4 14h10M4 18h14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <div class="kpi__text">
+          <div class="kpi__value">{fmt(WORDS)}</div>
+          <div class="kpi__label">Words</div>
+        </div>
+      </article>
+      <article class="kpi" role="listitem">
+        <svg class="kpi__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M9 7l-5 5 5 5M15 7l5 5-5 5M13 4l-2 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="kpi__text">
+          <div class="kpi__value">{fmt(LOC)}</div>
+          <div class="kpi__label">Lines of code</div>
+        </div>
+      </article>
+      <article class="kpi" role="listitem">
+        <svg class="kpi__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="4" y="4" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="13" y="4" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="4" y="13" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <rect x="13" y="13" width="7" height="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <div class="kpi__text">
+          <div class="kpi__value">{MODEL_COUNT}</div>
+          <div class="kpi__label">Models</div>
+        </div>
+      </article>
+      <article class="kpi" role="listitem">
+        <svg class="kpi__icon" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M4 12h16M12 4a12 12 0 010 16M12 4a12 12 0 000 16" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        <div class="kpi__text">
+          <div class="kpi__value">{PRODUCT_COUNT}</div>
+          <div class="kpi__label">NVIDIA Products</div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <div class="project-stats__row">
+    <div class="project-stats__row-label">
+      <svg class="project-stats__row-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 20h16M6 20V10M10 20V4M14 20V13M18 20V7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>Stages</span>
+    </div>
+    <div class="stage-badges">
+      {STAGE_ORDER.map((key) => {
+        const count = stageCounts[key] ?? 0;
+        const upc = stageUpcoming[key] ?? 0;
+        const empty = count === 0;
+        const cls = `stage-badge stage-badge--${key}${empty ? ' stage-badge--empty' : ''}`;
+        const inner = (
+          <>
+            <span class="stage-badge__dot" aria-hidden="true"></span>
+            <span class="stage-badge__label">{STAGE_LABELS[key]}</span>
+            <span class="stage-badge__count">{count}</span>
+            {upc > 0 && <span class="stage-badge__upcoming">+{upc}</span>}
+          </>
+        );
+        return empty
+          ? <span class={cls}>{inner}</span>
+          : <a class={cls} href={`/field-notes/stages/${key}/`}>{inner}</a>;
+      })}
+    </div>
+  </div>
+
+  <div class="project-stats__row">
+    <div class="project-stats__row-label">
+      <svg class="project-stats__row-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3l9 5-9 5-9-5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M3 13l9 5 9-5M3 18l9 5 9-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+      <span>Products &amp; frameworks</span>
+    </div>
+    <div class="chip-grid">
+      {products.map((p) => (
+        <span class="chip chip--product">
+          <span class="chip__label">{p.label}</span>
+          <span class="chip__count">{p.articles}</span>
+        </span>
+      ))}
+    </div>
+  </div>
+
+  <div class="project-stats__row">
+    <div class="project-stats__row-label">
+      <svg class="project-stats__row-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <span>Models deployed</span>
+    </div>
+    <div class="chip-grid">
+      {models.map((m) => (
+        <span class="chip chip--model">
+          <span class="chip__label">{m.label}</span>
+          <span class="chip__count">{m.articles}</span>
+        </span>
+      ))}
+    </div>
+  </div>
+
+  {(headlineLatency || headlineThroughput || headlineAccuracy) && (
+    <div class="project-stats__row">
+      <div class="project-stats__row-label">
+        <svg class="project-stats__row-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 20V4M3 20h18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M7 16l4-6 4 3 4-8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+        <span>Measured on this box</span>
+      </div>
+      <div class="metric-grid">
+        {headlineLatency && (
+          headlineLatency.article_slug
+            ? <a class="metric" href={articleHref(headlineLatency.article_slug)}>
+                <div class="metric__cat">Latency</div>
+                <div class="metric__value">{headlineLatency.value}</div>
+                <div class="metric__context">{headlineLatency.label}</div>
+              </a>
+            : <div class="metric">
+                <div class="metric__cat">Latency</div>
+                <div class="metric__value">{headlineLatency.value}</div>
+                <div class="metric__context">{headlineLatency.label}</div>
+              </div>
+        )}
+        {headlineThroughput && (
+          headlineThroughput.article_slug
+            ? <a class="metric" href={articleHref(headlineThroughput.article_slug)}>
+                <div class="metric__cat">Throughput</div>
+                <div class="metric__value">{headlineThroughput.value}</div>
+                <div class="metric__context">{headlineThroughput.label}</div>
+              </a>
+            : <div class="metric">
+                <div class="metric__cat">Throughput</div>
+                <div class="metric__value">{headlineThroughput.value}</div>
+                <div class="metric__context">{headlineThroughput.label}</div>
+              </div>
+        )}
+        {headlineAccuracy && (
+          headlineAccuracy.article_slug
+            ? <a class="metric" href={articleHref(headlineAccuracy.article_slug)}>
+                <div class="metric__cat">Accuracy</div>
+                <div class="metric__value">{headlineAccuracy.value}</div>
+                <div class="metric__context">{headlineAccuracy.label}</div>
+              </a>
+            : <div class="metric">
+                <div class="metric__cat">Accuracy</div>
+                <div class="metric__value">{headlineAccuracy.value}</div>
+                <div class="metric__context">{headlineAccuracy.label}</div>
+              </div>
+        )}
+      </div>
+    </div>
+  )}
+</section>

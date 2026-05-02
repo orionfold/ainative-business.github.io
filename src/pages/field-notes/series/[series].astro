@@ -1,0 +1,86 @@
+---
+import { getCollection } from 'astro:content';
+import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import SeriesFilter from '../../../components/field-notes/SeriesFilter.astro';
+import StageFilter from '../../../components/field-notes/StageFilter.astro';
+import ArticleCard from '../../../components/field-notes/ArticleCard.astro';
+import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+import { SERIES, SERIES_SLUGS } from '../../../content.config.ts';
+
+const SERIES_COPY: Record<string, { blurb: string }> = {
+  'AI Native Platform': {
+    blurb: 'Deep-dive papers anchoring the platform — market analysis, applied case studies, governance frameworks. The credibility-anchor series for leaders thinking about AI-native businesses at the org level.',
+  },
+  'Foundations': {
+    blurb: 'The shared install path that sets up the substrate the application arcs build on. Plus the bridge piece that names the fork.',
+  },
+  'Second Brain': {
+    blurb: 'Query-time RAG over your own corpus. Cheap to ingest, paid per query — the standard answer to "what do I do with my files and a 128 GB GPU?"',
+  },
+  'LLM Wiki': {
+    blurb: 'Compile-time synthesis. The LLM maintains a linted markdown knowledge base at ingest — paid per source, ~free per query. Inverted RAG, after Karpathy.',
+  },
+  'Autoresearch': {
+    blurb: 'An autonomous experimentation agent running overnight training loops. The agent edits, runs, measures, decides — and the trajectory is the artifact.',
+  },
+  'Looking Beyond Spark': {
+    blurb: "Arithmetic that the Spark teaches and frontier hardware finishes. H100, H200, B200, SuperPODs, DGX Cloud — what the math on your desk extrapolates to when the rig you need is in someone else's rack.",
+  },
+  'Frontier Scout': {
+    blurb: 'The upstream of the publication pipeline. An agent reads the global stream of new AI papers, scores each by popularity and code, and verdicts whether the core hypothesis is reproducible on the Spark.',
+  },
+};
+
+export async function getStaticPaths() {
+  const all = await getCollection('field-notes');
+  const ordinalById = publishOrdinals(all, process.cwd());
+
+  return SERIES.map((name) => {
+    const slug = SERIES_SLUGS[name];
+    const entries = all
+      .filter((a) => a.data.series === name)
+      .sort((a, b) => {
+        const aUp = a.data.status === 'upcoming' ? 1 : 0;
+        const bUp = b.data.status === 'upcoming' ? 1 : 0;
+        if (aUp !== bUp) return aUp - bUp;
+        // Within published: ascending ordinal so №01 leads (matches platform-series intent).
+        if (aUp === 0) return ordinalById.get(a.id)! - ordinalById.get(b.id)!;
+        return a.data.date.getTime() - b.data.date.getTime();
+      })
+      .map((article) => ({ article, ordinal: ordinalById.get(article.id)! }));
+    return {
+      params: { series: slug },
+      props: { name, entries },
+    };
+  });
+}
+
+const { name, entries } = Astro.props;
+const copy = SERIES_COPY[name];
+---
+<FieldNotesLayout title={`${name} — AI Native Field Notes`} description={copy.blurb}>
+  <Nav />
+  <main>
+    <header class="stage-header">
+      <p class="stage-header__label">Series</p>
+      <h1 class="stage-header__title">{name}</h1>
+      <p class="stage-header__blurb">{copy.blurb}</p>
+    </header>
+
+    <SeriesFilter current={name} />
+    <StageFilter current={null} />
+
+    <section class="research-list">
+      {entries.length === 0 ? (
+        <p class="research-list__empty">No entries yet — planned.</p>
+      ) : (
+        entries.map(({ article, ordinal }) => (
+          <ArticleCard article={article} ordinal={ordinal} />
+        ))
+      )}
+    </section>
+  </main>
+  <Footer />
+</FieldNotesLayout>

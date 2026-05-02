@@ -1,0 +1,114 @@
+---
+// Signature figure for "one-substrate-three-apps".
+// Three app chips on top — Second Brain (per-query), LLM Wiki (per-source),
+// Autoresearch (per-loop) — converge via three spokes onto a single shared
+// foundation band at the bottom: seven products installed across articles 1-7
+// that serve all three arcs. The accent is the foundation band — the
+// thesis node is "one substrate."
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Three apps — Second Brain, LLM Wiki, Autoresearch — sharing a seven-product foundation installed across articles 1-7. Different cost profiles, one substrate." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="osta-foundation-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="osta-foundation-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="osta-band-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)"   stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)"   stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)"   stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="osta-band-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)"   stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-teal)"   stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)"   stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="osta-band-orange" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-orange)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- atmospheric washes behind each app chip -->
+  <rect x="14"  y="24" width="84" height="52" rx="4" fill="url(#osta-band-blue)"   stroke="none"/>
+  <rect x="108" y="24" width="84" height="52" rx="4" fill="url(#osta-band-teal)"   stroke="none"/>
+  <rect x="202" y="24" width="84" height="52" rx="4" fill="url(#osta-band-orange)" stroke="none"/>
+  <!-- foundation halo (bounded by the accent rect at identical coords) -->
+  <rect x="14" y="128" width="272" height="50" rx="6" fill="url(#osta-foundation-halo)" stroke="none"/>
+
+  <!-- three spokes converging to the foundation band center -->
+  <g class="svg-reveal svg-reveal-d4">
+    <path class="line-draw svg-reveal-d5"
+          d="M 56 76 L 150 128"
+          fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d5"
+          d="M 150 76 L 150 128"
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d5"
+          d="M 244 76 L 150 128"
+          fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+  </g>
+
+  <!-- three app chips -->
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="18" y="30" width="76" height="42" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x="56" y="46" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">Second Brain</text>
+    <text x="56" y="60" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">per query</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="112" y="30" width="76" height="42" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="150" y="46" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">LLM Wiki</text>
+    <text x="150" y="60" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">per source</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="206" y="30" width="76" height="42" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-orange)" stroke-width="1"/>
+    <text x="244" y="46" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">Autoresearch</text>
+    <text x="244" y="60" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">per loop</text>
+  </g>
+
+  <!-- foundation band — the accent (halo + inline gradient fill + hard stroke) -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="14" y="128" width="272" height="50" rx="6"
+          fill="url(#osta-foundation-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="150" y="150" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">FOUNDATION · 7 products</text>
+    <text x="150" y="165" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7">NIM · Embed · pgvector · Naive RAG · Rerank · Bigger Gen · Guardrails</text>
+  </g>
+
+  <!-- "three apps" kicker -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="18" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">THREE APPS</text>
+  </g>
+
+  <!-- "one substrate" kicker -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="192" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">ONE SUBSTRATE</text>
+  </g>
+</svg>

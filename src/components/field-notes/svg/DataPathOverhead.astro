@@ -1,0 +1,129 @@
+---
+// Signature figure for "nemo-curator-training-data-prep".
+// Stacked-bar comparison across 8 configurations: each row shows the
+// step-time bar (the GPU work) plus a tiny data-time sliver. The
+// sliver should be visually invisible at most configs — that IS the
+// thesis: on the GB10, the data path is microsecond-level next to a
+// hundreds-of-milliseconds training step. The peak callout names the
+// new real-data throughput floor (14,980 tok/s, fp8 b=16 s=1024).
+
+const rows = [
+  { label: 'b=16 s=1024 fp8',  step: 1093.7, data: 0.15, tps: 14980, peak: true },
+  { label: 'b=16 s=1024 bf16', step: 1136.0, data: 0.14, tps: 14422 },
+  { label: 'b=8  s=1024 fp8',  step:  569.1, data: 0.12, tps: 14394 },
+  { label: 'b=4  s=1024 fp8',  step:  294.2, data: 0.10, tps: 13921 },
+  { label: 'b=8  s=1024 bf16', step:  607.6, data: 0.14, tps: 13482 },
+  { label: 'b=4  s=2048 fp8',  step:  596.2, data: 0.12, tps: 13740 },
+  { label: 'b=4  s=2048 bf16', step:  630.1, data: 0.14, tps: 13001 },
+  { label: 'b=4  s=1024 bf16', step:  311.3, data: 0.12, tps: 13158 },
+];
+
+const PLOT_X0 = 86;
+const PLOT_W = 174;        // bar plot area
+const ROW_H = 14;
+const ROW_GAP = 2;
+const TOP0 = 36;
+const BAR_H = 9;
+
+// Scale all bars against the longest step+data total, so geometric
+// proportions are honest. Data sliver gets a 0.7 px floor so it stays
+// visible — it really is sub-millisecond on a >1000 ms bar.
+const maxTotal = Math.max(...rows.map(r => r.step + r.data));
+const sx = (ms: number) => (ms / maxTotal) * PLOT_W;
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Stacked-bar comparison of step time (GPU) vs data time (mmap to GPU) across 8 training configurations on a GB10 with a 109M-token wikitext corpus. The data-time slivers are sub-millisecond at every config — invisible against step times of 294 to 1136 milliseconds. The peak real-data throughput is 14,980 tokens per second at batch 16, sequence 1024, fp8."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="dpo-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.05"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.04"/>
+    </linearGradient>
+    <radialGradient id="dpo-peak-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title block -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">REAL-DATA STEP · GB10 · 354M GPT</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">step (ms) ▌·▏ data sliver · peak 14,980 tok/s</text>
+  </g>
+
+  <!-- background band behind all bars -->
+  <rect x={PLOT_X0 - 4} y={TOP0 - 4}
+        width={PLOT_W + 8}
+        height={rows.length * (ROW_H + ROW_GAP) + 4}
+        fill="url(#dpo-band)" stroke="none"/>
+
+  {rows.map((r, i) => {
+    const y = TOP0 + i * (ROW_H + ROW_GAP);
+    const yBar = y + 2;
+    const wStep = sx(r.step);
+    const wData = Math.max(0.7, sx(r.data));
+    const isPeak = !!r.peak;
+    return (
+      <g class={`svg-reveal svg-reveal-d${2 + Math.min(i, 5)}`}>
+        {/* row label */}
+        <text x={PLOT_X0 - 6} y={y + 9} text-anchor="end"
+              fill={isPeak ? 'var(--svg-accent-blue)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)"
+              font-size="5.6" letter-spacing="0.04em"
+              font-weight={isPeak ? 700 : 500}>{r.label}</text>
+
+        {/* peak halo behind the bar */}
+        {isPeak && (
+          <rect x={PLOT_X0 - 6} y={yBar - 4} width={PLOT_W + 12} height={BAR_H + 6}
+                fill="url(#dpo-peak-halo)" stroke="none"/>
+        )}
+
+        {/* track */}
+        <rect x={PLOT_X0} y={yBar} width={PLOT_W} height={BAR_H}
+              fill="var(--svg-bg-inner-fill)"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+
+        {/* step bar */}
+        <rect x={PLOT_X0} y={yBar} width={wStep} height={BAR_H}
+              fill={isPeak ? 'var(--svg-accent-blue)' : 'var(--svg-accent-indigo)'}
+              opacity={isPeak ? 0.95 : 0.75}
+              stroke={isPeak ? 'var(--svg-accent-blue)' : 'var(--svg-stroke)'}
+              stroke-width="0.5"/>
+
+        {/* data sliver (always at the right edge of the step bar) */}
+        <rect x={PLOT_X0 + wStep} y={yBar} width={wData} height={BAR_H}
+              fill="var(--svg-text-bright)" opacity="0.85"
+              stroke="var(--svg-text-bright)" stroke-width="0.5"/>
+
+        {/* tok/s callout to the right */}
+        <text x={PLOT_X0 + wStep + wData + 4} y={yBar + 7}
+              fill={isPeak ? 'var(--svg-accent-blue)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)"
+              font-size="6" font-weight={isPeak ? 700 : 600}>{(r.tps / 1000).toFixed(1)}K</text>
+      </g>
+    );
+  })}
+
+  <!-- legend / footnote -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="80" y="178" width="9" height="6" fill="var(--svg-accent-indigo)" opacity="0.85" stroke="var(--svg-stroke)" stroke-width="0.5"/>
+    <text x="92" y="184"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6">step (kernel)</text>
+
+    <rect x="146" y="178" width="3" height="6" fill="var(--svg-text-bright)" opacity="0.95"/>
+    <text x="151" y="184"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6">data (mmap→GPU)</text>
+
+    <text x="290" y="184" text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5" letter-spacing="0.05em">data overhead 0.01–0.04 %</text>
+  </g>
+</svg>

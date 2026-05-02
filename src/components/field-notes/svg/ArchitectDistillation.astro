@@ -1,0 +1,157 @@
+---
+// Signature for "distill-architect-lora-from-trajectories".
+// Two parallel proposer pipes feeding the same trajectory cylinder on the
+// right. Top pipe = 8B NIM (wide pipe, ~1.2s/proposal). Bottom pipe = 3B
+// LoRA (narrower pipe, ~0.25s/proposal). The 1B-class lane carries the
+// indigo accent because the distillation is the article's claim.
+//
+// Numbers below come from race_results.json — values are filled in once
+// the race completes; until then, defaults reflect the spec budget.
+
+interface Props {
+  bigLatencyMs?: number;
+  smallLatencyMs?: number;
+  smallParamsB?: number;
+  bigParamsB?: number;
+  trajectoryRows?: number;
+}
+const {
+  bigLatencyMs = 1302,
+  smallLatencyMs = 1687,
+  smallParamsB = 3.0,
+  bigParamsB = 8.0,
+  trajectoryRows = 50,
+} = Astro.props as Props;
+
+const speedup = bigLatencyMs / smallLatencyMs;            // >1 = distilled faster
+const speedupLabel = speedup >= 1
+  ? `${speedup.toFixed(1)}× faster`
+  : `${(1 / speedup).toFixed(2)}× slower`;
+const paramRatio = (bigParamsB / smallParamsB).toFixed(1);
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Two proposer pipes feeding a shared trajectory cylinder. The top pipe is the 8B NIM proposer. The bottom pipe is the 3B LoRA distilled from the trajectory — fewer parameters, comparable per-proposal latency, same trajectory-driven menu of architectural choices."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ad-big" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-text-muted)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-text-muted)" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="ad-small" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-accent-indigo)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-indigo)" stop-opacity="1"/>
+    </linearGradient>
+    <radialGradient id="ad-cylinder-top" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+    </radialGradient>
+  </defs>
+
+  {/* heading */}
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">DISTILL THE ARCHITECT</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">{`${speedupLabel} · ${paramRatio}× fewer params · same trajectory`}</text>
+  </g>
+
+  {/* big-pipe lane (8B NIM) */}
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="22" y="48" width="58" height="20" rx="3"
+          fill="var(--svg-bg-elevated)" stroke="var(--svg-border)" stroke-width="1"/>
+    <text x="51" y="60" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="6.5"
+          letter-spacing="0.12em">8B NIM</text>
+    <text x="51" y="76" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      {`Llama 3.1 · ${bigParamsB.toFixed(0)}B`}
+    </text>
+
+    {/* pipe — wide */}
+    <rect x="80" y="55" width="118" height="6" fill="url(#ad-big)" rx="3"/>
+    <text x="139" y="51" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      {`${bigLatencyMs} ms / proposal`}
+    </text>
+  </g>
+
+  {/* small-pipe lane (LoRA distilled) */}
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="22" y="118" width="58" height="20" rx="3"
+          fill="var(--svg-bg-elevated)" stroke="var(--svg-accent-indigo)" stroke-width="1"/>
+    <text x="51" y="130" text-anchor="middle"
+          fill="var(--svg-accent-indigo)" font-family="var(--font-mono)" font-size="6.5"
+          letter-spacing="0.12em" font-weight={600}>{`${smallParamsB.toFixed(1)}B + LoRA`}</text>
+    <text x="51" y="146" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      Qwen2.5 · r=16
+    </text>
+
+    {/* pipe — narrower (3px) and brighter */}
+    <rect x="80" y="126.5" width="118" height="3" fill="url(#ad-small)" rx="1.5"/>
+    <text x="139" y="142" text-anchor="middle"
+          fill="var(--svg-accent-indigo)" font-family="var(--font-mono)" font-size="5.5" font-weight={600}>
+      {`${smallLatencyMs} ms / proposal`}
+    </text>
+  </g>
+
+  {/* shared trajectory cylinder on the right */}
+  <g class="svg-reveal svg-reveal-d4">
+    {/* top ellipse */}
+    <ellipse cx="232" cy="60" rx="22" ry="6" fill="url(#ad-cylinder-top)"
+             stroke="var(--svg-accent-blue)" stroke-width="0.5"/>
+    {/* body */}
+    <path d="M 210 60 L 210 130 A 22 6 0 0 0 254 130 L 254 60"
+          fill="var(--svg-bg-elevated)" stroke="var(--svg-accent-blue)" stroke-width="0.5"/>
+    <ellipse cx="232" cy="60" rx="22" ry="6" fill="none"
+             stroke="var(--svg-accent-blue)" stroke-width="0.5"/>
+    {/* label */}
+    <text x="232" y="100" text-anchor="middle"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)" font-size="6.5"
+          letter-spacing="0.10em" font-weight={600}>trajectory.jsonl</text>
+    <text x="232" y="111" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      {`${trajectoryRows} (cfg, val_bpb) rows`}
+    </text>
+    <text x="232" y="121" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5">
+      written by 8B
+    </text>
+  </g>
+
+  {/* connectors from pipes into cylinder */}
+  <g class="svg-reveal svg-reveal-d4">
+    <path d="M 198 58 L 210 60" stroke="var(--svg-text-muted)" stroke-width="1" fill="none"/>
+    <path d="M 198 128 L 210 124" stroke="var(--svg-accent-indigo)" stroke-width="1" fill="none"/>
+  </g>
+
+  {/* curved feedback arrow: cylinder → small lane (the distillation step) */}
+  <g class="svg-reveal svg-reveal-d5">
+    <path d="M 232 138 Q 232 165, 51 165 Q 51 155, 51 142"
+          fill="none" stroke="var(--svg-accent-indigo)" stroke-width="1"
+          stroke-dasharray="2 2"
+          marker-end="url(#ad-arrow)"/>
+    <text x="142" y="174" text-anchor="middle"
+          fill="var(--svg-accent-indigo)" font-family="var(--font-mono)" font-size="5.5"
+          letter-spacing="0.10em" font-weight={600}>
+      LoRA fine-tune → next-gen proposer
+    </text>
+  </g>
+
+  <defs>
+    <marker id="ad-arrow" viewBox="0 0 8 8" refX="6" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 8 4 L 0 8 Z" fill="var(--svg-accent-indigo)"/>
+    </marker>
+  </defs>
+
+  {/* footnote */}
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="192" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      same prompt · same menu · 42 train rows · 8 held-out
+    </text>
+  </g>
+</svg>

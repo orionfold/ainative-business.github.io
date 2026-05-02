@@ -1,0 +1,206 @@
+---
+// Signature for "trajectory-eval-is-the-agent-flailing".
+// Two stacked panels:
+//   1. Top — 13 knob cells laid out in a row. The 6 the agent ever proposed
+//      are filled with the indigo accent and stamped with their proposal
+//      count. The 7 it never touched are outlined-only in faint stroke.
+//      The width of each filled cell scales with proposal count, so
+//      d_model (24/50) visibly dominates.
+//   2. Bottom — five bars showing repeat-proposal rate per 10-iter window.
+//      Climbs from 50% → 50% → 80% → 90% → 90% as the proposer's k=5
+//      history window slides past prior decisions.
+//
+// At thumbnail size, the eye reads "search space mostly empty + repeat
+// rate climbing" — which is the article's whole thesis.
+
+const knobs: Array<{ name: string; n: number }> = [
+  { name: "n_layer",      n:  0 },
+  { name: "n_head",       n: 15 },
+  { name: "d_model",      n: 24 },
+  { name: "d_ff",         n:  5 },
+  { name: "lr",           n:  3 },
+  { name: "lr_warmup",    n:  0 },
+  { name: "grad_clip",    n:  0 },
+  { name: "weight_decay", n:  0 },
+  { name: "beta1",        n:  1 },
+  { name: "beta2",        n:  2 },
+  { name: "batch_size",   n:  0 },
+  { name: "seq_len",      n:  0 },
+  { name: "precision",    n:  0 },
+];
+
+const windows: Array<{ label: string; pct: number }> = [
+  { label: "1-10",  pct: 50 },
+  { label: "11-20", pct: 50 },
+  { label: "21-30", pct: 80 },
+  { label: "31-40", pct: 90 },
+  { label: "41-50", pct: 90 },
+];
+
+const touched = knobs.filter(k => k.n > 0).length;
+const total = knobs.length;
+const repeatPct = 72;
+
+const VIEW_W = 300;
+const VIEW_H = 200;
+
+// --- top panel: knob coverage strip ---
+const STRIP_X0 = 16;
+const STRIP_Y = 36;
+const STRIP_W = VIEW_W - 32;
+const STRIP_H = 36;
+const CELL_GAP = 2;
+const N_KNOBS = knobs.length;
+const CELL_W = (STRIP_W - CELL_GAP * (N_KNOBS - 1)) / N_KNOBS;
+
+// --- bottom panel: repeat-rate bars ---
+const BARS_X0 = 16;
+const BARS_Y0 = 110;
+const BARS_W = VIEW_W - 32;
+const BARS_H = 60;
+const BAR_GAP = 8;
+const N_BARS = windows.length;
+const BAR_W = (BARS_W - BAR_GAP * (N_BARS - 1)) / N_BARS;
+---
+
+<svg
+  viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+  role="img"
+  aria-label="Two-panel observability strip. Top: 13 knob cells with the 6 the agent proposed shown filled (d_model dominates with 24 of 50 proposals); 7 cells unfilled (never proposed). Bottom: five bars showing the repeat-proposal rate climbing from 50% in iterations 1-10 to 90% in iterations 41-50 as the proposer's 5-iteration history window forgets prior choices."
+  data-svg-animate
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id="tf-fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-indigo)" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="var(--svg-accent-indigo)" stop-opacity="0.55"/>
+    </linearGradient>
+    <linearGradient id="tf-bar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+    </linearGradient>
+  </defs>
+
+  <text x={STRIP_X0} y="20"
+        fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+        font-size="8" letter-spacing="0.06em">
+    KNOB COVERAGE
+  </text>
+  <text x={VIEW_W - STRIP_X0} y="20" text-anchor="end"
+        fill="var(--svg-accent-indigo)" font-family="var(--font-mono)"
+        font-size="8" font-weight={700}>
+    {touched} / {total} touched
+  </text>
+
+  <g class="svg-reveal svg-reveal-d2">
+    {knobs.map((k, i) => {
+      const x = STRIP_X0 + i * (CELL_W + CELL_GAP);
+      const filled = k.n > 0;
+      return (
+        <g>
+          <rect
+            x={x} y={STRIP_Y}
+            width={CELL_W} height={STRIP_H}
+            rx="2"
+            fill={filled ? "url(#tf-fill)" : "transparent"}
+            stroke="var(--svg-text-faint)"
+            stroke-width={filled ? 0 : 0.5}
+            opacity={filled ? 1 : 0.5}
+          />
+          {filled && (
+            <text
+              x={x + CELL_W / 2}
+              y={STRIP_Y + STRIP_H / 2 + 3}
+              text-anchor="middle"
+              fill="var(--svg-bg, #0f1115)"
+              font-family="var(--font-mono)"
+              font-size="9"
+              font-weight={700}
+            >
+              {k.n}
+            </text>
+          )}
+          {!filled && (
+            <text
+              x={x + CELL_W / 2}
+              y={STRIP_Y + STRIP_H / 2 + 3}
+              text-anchor="middle"
+              fill="var(--svg-text-faint)"
+              font-family="var(--font-mono)"
+              font-size="8"
+              opacity="0.7"
+            >
+              0
+            </text>
+          )}
+        </g>
+      );
+    })}
+  </g>
+
+  <text x={STRIP_X0} y={STRIP_Y + STRIP_H + 12}
+        fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">
+    n_layer · n_head · d_model · d_ff · lr · lr_warmup · grad_clip · weight_decay · β₁ · β₂ · batch_size · seq_len · precision
+  </text>
+
+  <text x={BARS_X0} y={BARS_Y0 - 8}
+        fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+        font-size="8" letter-spacing="0.06em">
+    REPEAT RATE BY 10-ITER WINDOW
+  </text>
+  <text x={VIEW_W - STRIP_X0} y={BARS_Y0 - 8} text-anchor="end"
+        fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+        font-size="8" font-weight={700}>
+    {repeatPct}% overall
+  </text>
+
+  <g class="svg-reveal svg-reveal-d4">
+    {windows.map((w, i) => {
+      const x = BARS_X0 + i * (BAR_W + BAR_GAP);
+      const h = (w.pct / 100) * BARS_H;
+      const y = BARS_Y0 + (BARS_H - h);
+      return (
+        <g>
+          <rect
+            x={x} y={y}
+            width={BAR_W} height={h}
+            rx="1"
+            fill="url(#tf-bar)"
+          />
+          <text
+            x={x + BAR_W / 2}
+            y={y - 3}
+            text-anchor="middle"
+            fill="var(--svg-accent-blue)"
+            font-family="var(--font-mono)"
+            font-size="7"
+            font-weight={700}
+          >
+            {w.pct}%
+          </text>
+          <text
+            x={x + BAR_W / 2}
+            y={BARS_Y0 + BARS_H + 9}
+            text-anchor="middle"
+            fill="var(--svg-text-faint)"
+            font-family="var(--font-mono)"
+            font-size="6"
+          >
+            {w.label}
+          </text>
+        </g>
+      );
+    })}
+  </g>
+
+  <text x={STRIP_X0} y={VIEW_H - 6}
+        fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+        font-size="6.5" letter-spacing="0.04em">
+    proposer.py · k=5 history window
+  </text>
+  <text x={VIEW_W - STRIP_X0} y={VIEW_H - 6} text-anchor="end"
+        fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+        font-size="6.5" letter-spacing="0.04em">
+    50 iters · 14 unique pairs
+  </text>
+</svg>

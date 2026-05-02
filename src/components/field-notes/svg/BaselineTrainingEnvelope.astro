@@ -1,0 +1,174 @@
+---
+// Signature figure for "baseline-training-loop-on-spark".
+// Two-panel envelope: throughput (tokens/sec) versus micro-batch on the
+// GB10 for the same 354M GPT, sweep across precision (bf16 vs fp8) and
+// sequence length (1024 left, 2048 right). The envelope's shape — bf16
+// plateauing past batch=8 at seq=2048, fp8 winning every shape, the peak
+// hovering near 14.3K tok/s — is the article's headline argument.
+
+const xs = [2, 4, 8, 16];
+
+const series = {
+  bf16_1024: [11044, 12641, 12819, 13626],
+  fp8_1024:  [11944, 13462, 13777, 14266],
+  bf16_2048: [12422, 12729, 13036, 13036],
+  fp8_2048:  [12873, 13202, 13641, 13370],
+};
+
+const Y_MIN = 10500;
+const Y_MAX = 14600;
+const yToPlot = (v: number, top: number, h: number) =>
+  top + h - ((v - Y_MIN) / (Y_MAX - Y_MIN)) * h;
+
+// log2 mapping for batch (2,4,8,16 → 0,1,2,3 → fraction)
+const xToPlot = (i: number, left: number, w: number) =>
+  left + (i / (xs.length - 1)) * w;
+
+const buildPath = (vals: number[], left: number, w: number, top: number, h: number) =>
+  vals.map((v, i) =>
+    `${i === 0 ? 'M' : 'L'} ${xToPlot(i, left, w).toFixed(2)} ${yToPlot(v, top, h).toFixed(2)}`
+  ).join(' ');
+
+// Two panels.
+const panelW = 122;
+const panelH = 96;
+const panelTop = 40;
+const leftX = 22;
+const rightX = 156;
+
+// Reference: vanilla PyTorch baseline from A1 = 12,119 tok/s.
+const VANILLA_REF = 12119;
+
+const peakValue = Math.max(
+  ...Object.values(series).flat()
+);
+const peakLabel = `${peakValue.toLocaleString()} tok/s`;
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Baseline pretrain throughput envelope on a GB10. Two panels: sequence length 1024 left, 2048 right. Each panel plots tokens per second versus micro-batch (2,4,8,16) for bf16 and fp8 precision. FP8 wins every shape; the absolute peak is 14,266 tokens per second at batch=16, sequence=1024, fp8 — about 18% above the vanilla PyTorch baseline of 12,119 tok/s. At sequence=2048, throughput plateaus past batch=8."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bte-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.04"/>
+      <stop offset="60%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="bte-peakhalo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">354M GPT · GB10 · TOKENS/SEC ENVELOPE</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">peak {peakLabel} · vanilla baseline 12,119 tok/s</text>
+  </g>
+
+  {/* two panels */}
+  {[
+    { x: leftX,  label: 'seq=1024', bf: series.bf16_1024, fp: series.fp8_1024, peakIdx: 3 },
+    { x: rightX, label: 'seq=2048', bf: series.bf16_2048, fp: series.fp8_2048, peakIdx: 2 },
+  ].map((p, pi) => (
+    <g class={`svg-reveal svg-reveal-d${2 + pi}`}>
+      {/* panel label */}
+      <text x={p.x} y={panelTop - 6}
+            fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+            font-size="6.5" letter-spacing="0.12em" font-weight={600}>{p.label}</text>
+
+      {/* atmospheric band */}
+      <rect x={p.x} y={panelTop} width={panelW} height={panelH}
+            fill="url(#bte-band)" stroke="none"/>
+
+      {/* axis frame (faint) */}
+      <rect x={p.x} y={panelTop} width={panelW} height={panelH}
+            fill="none" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+
+      {/* vanilla baseline line */}
+      <line x1={p.x} x2={p.x + panelW}
+            y1={yToPlot(VANILLA_REF, panelTop, panelH)}
+            y2={yToPlot(VANILLA_REF, panelTop, panelH)}
+            stroke="var(--svg-text-faint)" stroke-width="0.5"
+            stroke-dasharray="2 2"/>
+      {pi === 0 && (
+        <text x={p.x + 2} y={yToPlot(VANILLA_REF, panelTop, panelH) - 2}
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="4.5" letter-spacing="0.04em">vanilla</text>
+      )}
+
+      {/* peak halo behind the fp8 peak point of THIS panel */}
+      <circle cx={xToPlot(p.peakIdx, p.x, panelW)}
+              cy={yToPlot(p.fp[p.peakIdx], panelTop, panelH)}
+              r="9" fill="url(#bte-peakhalo)"/>
+
+      {/* bf16 line (muted indigo, dashed) */}
+      <path d={buildPath(p.bf, p.x, panelW, panelTop, panelH)}
+            fill="none" stroke="var(--svg-accent-indigo)" stroke-width="1"
+            stroke-dasharray="3 2" opacity="0.75"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      {p.bf.map((v, i) => (
+        <circle cx={xToPlot(i, p.x, panelW)} cy={yToPlot(v, panelTop, panelH)}
+                r="1.4" fill="var(--svg-accent-indigo)" opacity="0.85"/>
+      ))}
+
+      {/* fp8 line (accent blue, solid) */}
+      <path d={buildPath(p.fp, p.x, panelW, panelTop, panelH)}
+            fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      {p.fp.map((v, i) => (
+        <circle cx={xToPlot(i, p.x, panelW)} cy={yToPlot(v, panelTop, panelH)}
+                r={i === p.peakIdx ? 2.4 : 1.6}
+                fill="var(--svg-accent-blue)"
+                stroke={i === p.peakIdx ? 'var(--svg-accent-blue)' : 'none'}
+                stroke-width={i === p.peakIdx ? 0.6 : 0}/>
+      ))}
+
+      {/* peak number callout for this panel's fp8 peak */}
+      <text x={xToPlot(p.peakIdx, p.x, panelW)}
+            y={yToPlot(p.fp[p.peakIdx], panelTop, panelH) - 5}
+            text-anchor="middle"
+            fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+            font-size="6" font-weight={700}>{(p.fp[p.peakIdx]/1000).toFixed(1)}K</text>
+
+      {/* x-axis labels (batch sizes) */}
+      {xs.map((b, i) => (
+        <text x={xToPlot(i, p.x, panelW)} y={panelTop + panelH + 8}
+              text-anchor="middle"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5">{b}</text>
+      ))}
+      <text x={p.x + panelW / 2} y={panelTop + panelH + 16}
+            text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="4.8" letter-spacing="0.10em">micro-batch</text>
+    </g>
+  ))}
+
+  {/* shared legend */}
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="56" x2="74" y1="190" y2="190"
+          stroke="var(--svg-accent-indigo)" stroke-width="1"
+          stroke-dasharray="3 2" opacity="0.85"/>
+    <text x="78" y="192"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6">bf16</text>
+
+    <line x1="116" x2="134" y1="190" y2="190"
+          stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+    <text x="138" y="192"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6" font-weight={600}>fp8</text>
+
+    <line x1="178" x2="196" y1="190" y2="190"
+          stroke="var(--svg-text-faint)" stroke-width="0.5"
+          stroke-dasharray="2 2"/>
+    <text x="200" y="192"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">vanilla baseline</text>
+  </g>
+</svg>

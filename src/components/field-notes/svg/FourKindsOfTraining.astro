@@ -1,0 +1,103 @@
+---
+// Signature figure for "what-the-agent-actually-built".
+// Four-row ladder showing the cost spread between what people say "train
+// a model" but actually mean different things. Bars use a log scale so
+// LoRA at minutes is visible alongside from-scratch at weeks. Each row
+// shows: what the user usually says, the canonical name, the cost on a
+// Spark, and a one-word result.
+//
+// The headline message of the article is in this signature: most people
+// who say "train a model" want one of the cheaper rows; from-scratch is
+// the most expensive AND usually the worst result for a small personal
+// corpus. The Spark earns its place at every row.
+
+// Ordered from cheapest (top) to most expensive (bottom).
+const rows = [
+  { name: "LoRA",              say: "train a model",         time: "minutes",  cost: "~$0.01",  bar: 0.04 },
+  { name: "fine-tune",         say: "train on my data",      time: "hours",    cost: "~$0.30",  bar: 0.18 },
+  { name: "continued pretrain",say: "train my own model",    time: "days",     cost: "~$5",     bar: 0.55 },
+  { name: "from scratch",      say: "train from scratch",    time: "weeks",    cost: "~$50",    bar: 1.00 },
+];
+
+const PLOT_X0 = 96;
+const PLOT_W = 145;       // bar plot area width
+const ROW_H = 30;
+const ROW_GAP = 5;
+const TOP0 = 36;
+const BAR_H = 14;
+
+// All bars share scale; longest = 1.00 fills PLOT_W.
+const bx = (b: number) => Math.max(2, b * PLOT_W);
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Four kinds of training people conflate when they say 'I want to train a model.' From cheapest to most expensive: LoRA (minutes, about a cent), fine-tune (hours, about 30 cents), continued pre-training (days, about 5 dollars), train from scratch (weeks, about 50 dollars). All four costs are for a single Spark drawing 56 watts. From-scratch on a small personal corpus is the most expensive option AND usually the worst result — fine-tuning typically wins."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="fkt-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.04"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="fkt-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.20"/>
+    </linearGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">FOUR KINDS OF "TRAINING"</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">DGX Spark · 56 W · cost = electricity only</text>
+  </g>
+
+  {/* atmospheric band */}
+  <rect x={PLOT_X0 - 6} y={TOP0 - 4}
+        width={PLOT_W + 60} height={rows.length * (ROW_H + ROW_GAP) + 4}
+        fill="url(#fkt-band)" stroke="none"/>
+
+  {rows.map((r, i) => {
+    const y = TOP0 + i * (ROW_H + ROW_GAP);
+    const barY = y + 6;
+    const w = bx(r.bar);
+    return (
+      <g class={`svg-reveal svg-reveal-d${2 + i}`}>
+        {/* what people SAY (left, faint, italic-feeling via lighter color) */}
+        <text x={PLOT_X0 - 6} y={y + 11} text-anchor="end"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5" letter-spacing="0.04em">"{r.say}"</text>
+        {/* canonical name (left, bold) */}
+        <text x={PLOT_X0 - 6} y={y + 22} text-anchor="end"
+              fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+              font-size="7.5" font-weight={600}>{r.name}</text>
+
+        {/* track */}
+        <rect x={PLOT_X0} y={barY} width={PLOT_W} height={BAR_H}
+              fill="var(--svg-bg-inner-fill)"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+        {/* bar */}
+        <rect x={PLOT_X0} y={barY} width={w} height={BAR_H}
+              fill="url(#fkt-bar)"
+              stroke="var(--svg-accent-blue)" stroke-width="0.5"/>
+
+        {/* time + cost callout (right of bar) */}
+        <text x={PLOT_X0 + PLOT_W + 4} y={barY + 6}
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="6">{r.time}</text>
+        <text x={PLOT_X0 + PLOT_W + 4} y={barY + 14}
+              fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+              font-size="6.5" font-weight={700}>{r.cost}</text>
+      </g>
+    );
+  })}
+
+  {/* footnote */}
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="194" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5" letter-spacing="0.04em">most "I want to train a model" requests want a row near the top</text>
+  </g>
+</svg>

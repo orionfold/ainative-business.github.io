@@ -1,0 +1,208 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import stats from '../../data/field-notes/project-stats.json';
+import SectionLabel from '../ui/SectionLabel.astro';
+
+// Pulls live counts (where possible) from the field-notes collection so the
+// homepage summary stays in step with what /field-notes/ actually serves.
+// The ProjectStats JSON file is the source of truth for words / LOC / model
+// and product counts since those derive from authoring-time analysis the
+// website doesn't otherwise have.
+type FieldNote = CollectionEntry<'field-notes'>;
+const all: FieldNote[] = await getCollection('field-notes');
+const published = all.filter((a: FieldNote) => a.data.status !== 'upcoming').length;
+const upcoming = all.filter((a: FieldNote) => a.data.status === 'upcoming').length;
+
+const s: any = stats;
+const WORDS = s.words?.total ?? 0;
+const LOC = s.code?.total_loc ?? 0;
+const MODEL_COUNT = s.models?.length ?? 0;
+const PRODUCT_COUNT = s.products?.length ?? 0;
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+
+// One headline metric per category, linked to the article that generated it.
+const headlineLatency    = s.metrics?.latency?.[0];
+const headlineThroughput = s.metrics?.throughput?.[0];
+const headlineAccuracy   = s.metrics?.accuracy?.[0];
+
+const articleHref = (slug: string) => `/field-notes/${slug}/`;
+---
+<section class="py-24 px-6 relative overflow-hidden">
+  <!-- Ambient glow, pulled to the right side this time so the page reads
+       Book (left glow) → Field Notes (right glow) → next sections. -->
+  <div class="absolute inset-0 -z-10 pointer-events-none">
+    <div class="absolute top-1/2 right-[15%] translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-primary/[0.07] blur-[140px]"></div>
+  </div>
+
+  <div class="max-w-6xl mx-auto">
+    <div class="grid lg:grid-cols-[1.1fr_1fr] gap-10 lg:gap-16 items-start mb-12">
+      <!-- LEFT: editorial intro mirroring /field-notes/ masthead -->
+      <div>
+        <SectionLabel text="AI Native Field Notes" />
+        <h2 data-animate class="mt-4 mb-5 font-display font-bold tracking-tight"
+            style="font-size: clamp(2rem, 4.6vw, 3.4rem); line-height: 1.05;">
+          Field notes on building<br/>
+          <span class="text-primary italic">AI-native</span> businesses.
+        </h2>
+        <p data-animate class="text-text-muted leading-relaxed max-w-[58ch]"
+           style="transition-delay: 80ms; font-size: clamp(1rem, 1.4vw, 1.15rem);">
+          One builder's running log — articles on agent orchestration, governed
+          inference, RAG patterns, training economics, and the deep-dive papers
+          that anchor the AI Native Platform series. Every post is a session
+          transcript turned into an essay.
+        </p>
+        <div data-animate class="mt-8 flex flex-wrap items-center gap-4" style="transition-delay: 160ms">
+          <a
+            href="/field-notes/"
+            class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.15em] uppercase text-primary border border-primary/40 px-5 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+          >
+            Browse field notes
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a
+            href="/field-notes/series/ai-native-platform/"
+            class="font-mono text-xs tracking-[0.15em] uppercase text-text-muted hover:text-primary transition-colors"
+          >
+            AI Native Platform series →
+          </a>
+        </div>
+      </div>
+
+      <!-- RIGHT: At-a-glance KPI grid (compact, 2x2 for breathing room) -->
+      <div data-animate class="grid grid-cols-2 gap-3" style="transition-delay: 80ms">
+        <a href="/field-notes/" class="fns-kpi group" aria-label={`${published} articles published`}>
+          <div class="fns-kpi__value">
+            {published}
+            {upcoming > 0 && <sup class="fns-kpi__super">+{upcoming}</sup>}
+          </div>
+          <div class="fns-kpi__label">Articles</div>
+        </a>
+        <div class="fns-kpi">
+          <div class="fns-kpi__value">{fmt(WORDS)}</div>
+          <div class="fns-kpi__label">Words</div>
+        </div>
+        <div class="fns-kpi">
+          <div class="fns-kpi__value">{fmt(LOC)}</div>
+          <div class="fns-kpi__label">Lines of code</div>
+        </div>
+        <div class="fns-kpi">
+          <div class="fns-kpi__value">{MODEL_COUNT}</div>
+          <div class="fns-kpi__label">Models</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM: linked headline metrics — each tile jumps to the article
+         that generated the number. -->
+    {(headlineLatency || headlineThroughput || headlineAccuracy) && (
+      <div data-animate class="grid sm:grid-cols-3 gap-px bg-border rounded-md overflow-hidden border border-border" style="transition-delay: 160ms">
+        {headlineLatency && (
+          <a href={articleHref(headlineLatency.article_slug)} class="fns-metric group">
+            <span class="fns-metric__cat">Latency</span>
+            <span class="fns-metric__value">{headlineLatency.value}</span>
+            <span class="fns-metric__context">{headlineLatency.label}</span>
+          </a>
+        )}
+        {headlineThroughput && (
+          <a href={articleHref(headlineThroughput.article_slug)} class="fns-metric group">
+            <span class="fns-metric__cat">Throughput</span>
+            <span class="fns-metric__value">{headlineThroughput.value}</span>
+            <span class="fns-metric__context">{headlineThroughput.label}</span>
+          </a>
+        )}
+        {headlineAccuracy && (
+          <a href={articleHref(headlineAccuracy.article_slug)} class="fns-metric group">
+            <span class="fns-metric__cat">Accuracy</span>
+            <span class="fns-metric__value">{headlineAccuracy.value}</span>
+            <span class="fns-metric__context">{headlineAccuracy.label}</span>
+          </a>
+        )}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  /* fns-* prefix scopes these to FieldNotesSummary so they don't collide
+     with the project-stats classes that live inside /field-notes/ pages. */
+  .fns-kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1.25rem 1.4rem;
+    background: var(--color-surface-overlay);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+  }
+  a.fns-kpi:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+    background: color-mix(in oklch, var(--color-primary) 4%, var(--color-surface-overlay));
+    transform: translateY(-1px);
+  }
+  .fns-kpi__value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .fns-kpi__super {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 0.5em;
+    color: var(--color-text-muted);
+    margin-left: 0.25em;
+    vertical-align: super;
+    letter-spacing: 0.02em;
+  }
+  .fns-kpi__label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .fns-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.1rem 1.25rem;
+    background: var(--color-surface-overlay);
+    text-decoration: none;
+    color: inherit;
+    transition: background 120ms ease;
+  }
+  .fns-metric:hover {
+    background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-overlay));
+  }
+  .fns-metric__cat {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--color-primary);
+  }
+  .fns-metric__value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-text);
+    letter-spacing: -0.01em;
+  }
+  .fns-metric__context {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-dim);
+    line-height: 1.45;
+  }
+</style>

@@ -1,0 +1,174 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+
+type FieldkitDoc = CollectionEntry<'fieldkit_docs'>;
+type FieldNote = CollectionEntry<'field-notes'>;
+
+export async function getStaticPaths() {
+  const docs: FieldkitDoc[] = await getCollection('fieldkit_docs');
+  const articles: FieldNote[] = await getCollection('field-notes');
+  const ordinalById = publishOrdinals(articles, process.cwd());
+
+  return docs.map((doc) => {
+    const m = doc.data.module;
+    const using = articles
+      .filter((a) => (a.data.fieldkit_modules ?? []).includes(m))
+      .sort((a, b) => ordinalById.get(b.id)! - ordinalById.get(a.id)!);
+    // Map ordinals down to a serializable plain object — Astro props can't carry a Map.
+    const ordinalLookup: Record<string, number> = {};
+    for (const a of using) ordinalLookup[a.id] = ordinalById.get(a.id)!;
+    return {
+      params: { module: m },
+      props: { doc, using, ordinalLookup },
+    };
+  });
+}
+
+const { doc, using, ordinalLookup } = Astro.props;
+const { Content } = await render(doc);
+const { title, summary, module } = doc.data;
+
+const siblings = (await getCollection('fieldkit_docs')).sort(
+  (a: FieldkitDoc, b: FieldkitDoc) => a.data.order - b.data.order,
+);
+
+const moduleHref = (m: string) => `/fieldkit/api/${m}/`;
+const articleHref = (slug: string) => `/field-notes/${slug}/`;
+---
+<FieldNotesLayout
+  title={`${title} — Fieldkit — ainative`}
+  description={summary}
+>
+  <Nav />
+  <main>
+    <header class="stage-header">
+      <p class="stage-header__label">
+        <a href="/fieldkit/" class="fk-crumb">fieldkit</a> · module
+      </p>
+      <h1 class="stage-header__title">{title}</h1>
+      <p class="stage-header__blurb">{summary}</p>
+    </header>
+
+    <nav class="fk-modnav" aria-label="Other fieldkit modules">
+      {siblings.map((s: FieldkitDoc) => (
+        <a
+          class={`fk-modnav__chip${s.data.module === module ? ' fk-modnav__chip--current' : ''}`}
+          href={moduleHref(s.data.module)}
+        >
+          fieldkit.{s.data.module}
+        </a>
+      ))}
+    </nav>
+
+    <article class="article">
+      <div class="fn-prose">
+        <Content />
+      </div>
+    </article>
+
+    {using.length > 0 && (
+      <section class="fk-using">
+        <h2 class="fk-using__title">Articles that use fieldkit.{module}</h2>
+        <ul class="fk-using__list">
+          {using.map((article: FieldNote) => {
+            const ord = ordinalLookup[article.id] ?? 0;
+            const ordPad = String(ord).padStart(2, '0');
+            return (
+              <li class="fk-using__row">
+                <span class="fk-using__ordinal">№{ordPad}</span>
+                <a class="fk-using__link" href={articleHref(article.id)}>{article.data.title}</a>
+                <span class="fk-using__stage">{article.data.stage}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    )}
+  </main>
+  <Footer />
+</FieldNotesLayout>
+
+<style>
+  .fk-crumb {
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .fk-crumb:hover { text-decoration: underline; }
+
+  .fk-modnav {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .fk-modnav__chip {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    background: var(--color-surface-overlay);
+    border: 1px solid var(--color-border);
+    padding: 0.3em 0.7em;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: border-color 120ms ease, color 120ms ease;
+  }
+  .fk-modnav__chip:hover {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  .fk-modnav__chip--current {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 50%, transparent);
+    background: color-mix(in oklch, var(--color-primary) 14%, transparent);
+  }
+
+  .fk-using {
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 1rem 1.5rem 4rem;
+  }
+  .fk-using__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--fn-size-4);
+    margin: 0 0 1rem;
+    letter-spacing: -0.02em;
+  }
+  .fk-using__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .fk-using__row {
+    display: grid;
+    grid-template-columns: 3rem 1fr auto;
+    align-items: baseline;
+    gap: 0.75rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .fk-using__ordinal {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-dim);
+  }
+  .fk-using__link {
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 1.02rem;
+  }
+  .fk-using__link:hover { color: var(--color-primary); }
+  .fk-using__stage {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: lowercase;
+  }
+</style>

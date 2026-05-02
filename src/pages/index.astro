@@ -7,6 +7,8 @@ import Problem from '../components/sections/Problem.astro';
 import PersonaLanes from '../components/sections/PersonaLanes.astro';
 import Proof from '../components/sections/Proof.astro';
 import ResearchTeaser from '../components/sections/ResearchTeaser.astro';
+import FieldNotesRail from '../components/sections/FieldNotesRail.astro';
+import FieldNotesSummary from '../components/sections/FieldNotesSummary.astro';
 import CTAFooter from '../components/sections/CTAFooter.astro';
 import Footer from '../components/Footer.astro';
 import { SITE, ORGANIZATION, PUBLISHER } from '../data/seo';
@@ -96,9 +98,11 @@ const jsonLd = [
   <main>
     <Hero />
     <Book />
+    <FieldNotesSummary />
     <Problem />
     <PersonaLanes />
     <Proof />
+    <FieldNotesRail />
     <ResearchTeaser />
     <CTAFooter />
   </main>

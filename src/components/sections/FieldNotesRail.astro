@@ -1,0 +1,73 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
+import { SERIES_SLUGS } from '../../content.config.ts';
+import SectionLabel from '../ui/SectionLabel.astro';
+
+// "From the Field — latest" rail for the homepage. Surfaces the three most
+// recently published Field Notes articles. Below-the-fold, so data-animate
+// is fine here per the pagespeed rules.
+type FieldNoteEntry = CollectionEntry<'field-notes'>;
+const all: FieldNoteEntry[] = await getCollection('field-notes');
+const ordinalById = publishOrdinals(all, process.cwd());
+const latest = all
+  .filter((a: FieldNoteEntry) => a.data.status !== 'upcoming')
+  .sort((a: FieldNoteEntry, b: FieldNoteEntry) => ordinalById.get(b.id)! - ordinalById.get(a.id)!)
+  .slice(0, 3);
+
+const dateFmt = (d: Date) =>
+  new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(d);
+---
+{latest.length > 0 && (
+  <section class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="flex items-end justify-between gap-6 mb-10 flex-wrap">
+        <div>
+          <SectionLabel text="From the Field" />
+          <h2 data-animate class="mt-4">Latest field notes.</h2>
+        </div>
+        <a
+          data-animate
+          href="/field-notes/"
+          class="font-mono text-xs tracking-[0.15em] uppercase text-primary border border-primary/30 px-5 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+        >
+          All articles →
+        </a>
+      </div>
+
+      <div data-animate-stagger class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {latest.map((article) => {
+          const ordinal = ordinalById.get(article.id)!;
+          const ordinalDigits = String(ordinal).padStart(2, '0');
+          const seriesSlug = article.data.series ? SERIES_SLUGS[article.data.series] : null;
+          return (
+            <a
+              data-animate
+              href={`/field-notes/${article.id}/`}
+              class="group rounded-xl border border-border bg-surface-raised/50 p-6 hover:border-primary/40 hover:bg-primary/[0.03] transition-colors flex flex-col"
+            >
+              <div class="flex items-center gap-3 font-mono text-[10px] tracking-[0.18em] uppercase text-text-muted mb-3">
+                <span class="text-primary">№{ordinalDigits}</span>
+                <span class="h-px flex-1 bg-border"></span>
+                <time datetime={article.data.date.toISOString().slice(0, 10)}>
+                  {dateFmt(article.data.date)}
+                </time>
+              </div>
+              {article.data.series && seriesSlug && (
+                <span class="inline-block self-start font-mono text-[10px] tracking-[0.16em] uppercase text-primary border border-primary/30 bg-primary/[0.06] rounded-full px-2.5 py-1 mb-3">
+                  {article.data.series}
+                </span>
+              )}
+              <h3 class="font-semibold leading-snug mb-2 group-hover:text-primary transition-colors" style="font-size: 1.1rem;">
+                {article.data.title}
+              </h3>
+              <p class="text-sm text-text-muted line-clamp-3 leading-relaxed mt-auto">
+                {article.data.summary}
+              </p>
+            </a>
+          );
+        })}
+      </div>
+    </div>
+  </section>
+)}

@@ -1,0 +1,61 @@
+---
+import { getCollection } from 'astro:content';
+import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import StageFilter from '../../../components/field-notes/StageFilter.astro';
+import SeriesFilter from '../../../components/field-notes/SeriesFilter.astro';
+import ArticleCard from '../../../components/field-notes/ArticleCard.astro';
+import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+
+export async function getStaticPaths() {
+  const all = await getCollection('field-notes');
+  const ordinalById = publishOrdinals(all, process.cwd());
+
+  // Bucket articles by tag. A tag's slug is the tag string itself (already
+  // kebab-case in frontmatter), so no extra slugification is needed.
+  const byTag = new Map<string, typeof all>();
+  for (const article of all) {
+    for (const tag of article.data.tags ?? []) {
+      const bucket = byTag.get(tag) ?? [];
+      bucket.push(article);
+      byTag.set(tag, bucket);
+    }
+  }
+
+  return Array.from(byTag.entries()).map(([tag, articles]) => {
+    const entries = articles
+      .sort((a, b) => {
+        const aUp = a.data.status === 'upcoming' ? 1 : 0;
+        const bUp = b.data.status === 'upcoming' ? 1 : 0;
+        if (aUp !== bUp) return aUp - bUp;
+        return ordinalById.get(b.id)! - ordinalById.get(a.id)!;
+      })
+      .map((article) => ({ article, ordinal: ordinalById.get(article.id)! }));
+    return { params: { tag }, props: { tag, entries } };
+  });
+}
+
+const { tag, entries } = Astro.props;
+const blurb = `Articles tagged "${tag}" — ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}.`;
+---
+<FieldNotesLayout title={`#${tag} — AI Native Field Notes`} description={blurb}>
+  <Nav />
+  <main>
+    <header class="stage-header">
+      <p class="stage-header__label">Tag</p>
+      <h1 class="stage-header__title">#{tag}</h1>
+      <p class="stage-header__blurb">{blurb}</p>
+    </header>
+
+    <SeriesFilter current={null} />
+    <StageFilter current={null} />
+
+    <section class="research-list">
+      {entries.map(({ article, ordinal }) => (
+        <ArticleCard article={article} ordinal={ordinal} />
+      ))}
+    </section>
+  </main>
+  <Footer />
+</FieldNotesLayout>

@@ -1,0 +1,200 @@
+---
+// Signature figure for "guardrails-on-the-retrieval-path".
+// Three horizontal lanes — one per arc — share the same product (NeMo
+// Guardrails) but carry different policy configs. Each lane shows a query
+// entering the rail, being blocked, and emitting a verdict chip. The
+// accent is the central rail column: one product, three configs, block
+// recall 1.0 across 15 synthetic queries.
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="NeMo Guardrails wraps the same retrieval+generator chain with three per-arc policy configs — Second Brain PII at 100% block recall, LLM Wiki style at 100%, Autoresearch code-safety at 100%. One product, three specializations." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rg-band-blue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)"   stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)"   stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)"   stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="rg-band-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)"   stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-teal)"   stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)"   stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="rg-band-orange" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-orange)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="rg-rail-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="rg-rail-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Atmospheric lane washes: one per arc -->
+  <rect x="10" y="40"  width="280" height="30" rx="3" fill="url(#rg-band-blue)"   stroke="none"/>
+  <rect x="10" y="85"  width="280" height="30" rx="3" fill="url(#rg-band-teal)"   stroke="none"/>
+  <rect x="10" y="130" width="280" height="30" rx="3" fill="url(#rg-band-orange)" stroke="none"/>
+
+  <!-- Central rail halo + bounded dashed outline (same coords) — the accent -->
+  <rect x="110" y="36" width="60" height="128" rx="6" fill="url(#rg-rail-halo)" stroke="none"/>
+  <rect x="110" y="36" width="60" height="128" rx="6"
+        fill="none" stroke="var(--svg-bg-inner-stroke)"
+        stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- Lane 1 (SB / PII, blue) -->
+  <g class="svg-reveal svg-reveal-d1">
+    <path class="line-draw svg-reveal-d2"
+          d="M 44 55 L 110 55" fill="none"
+          stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d3"
+          d="M 170 55 L 196 55" fill="none"
+          stroke="var(--svg-accent-blue)" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 228 55 L 250 55" fill="none"
+          stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+  </g>
+
+  <!-- Lane 2 (Wiki / Style, teal) -->
+  <g class="svg-reveal svg-reveal-d1">
+    <path class="line-draw svg-reveal-d2"
+          d="M 44 100 L 110 100" fill="none"
+          stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d3"
+          d="M 170 100 L 196 100" fill="none"
+          stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 228 100 L 250 100" fill="none"
+          stroke="var(--svg-accent-teal)" stroke-width="1.5" stroke-dasharray="3 2"/>
+  </g>
+
+  <!-- Lane 3 (Auto / Code, orange) -->
+  <g class="svg-reveal svg-reveal-d1">
+    <path class="line-draw svg-reveal-d2"
+          d="M 44 145 L 110 145" fill="none"
+          stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d3"
+          d="M 170 145 L 196 145" fill="none"
+          stroke="var(--svg-accent-orange)" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 228 145 L 250 145" fill="none"
+          stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+  </g>
+
+  <!-- Query chips (left) -->
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="44" width="30" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x="29" y="58" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">q_sb</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="89" width="30" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="29" y="103" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">q_wiki</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="134" width="30" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-orange)" stroke-width="1"/>
+    <text x="29" y="148" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">q_auto</text>
+  </g>
+
+  <!-- Three rail chips inside the central rail column (accent) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="116" y="44" width="48" height="22" rx="4"
+          fill="url(#rg-rail-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="140" y="58" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">PII</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="116" y="89" width="48" height="22" rx="4"
+          fill="url(#rg-rail-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="140" y="103" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">STYLE</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="116" y="134" width="48" height="22" rx="4"
+          fill="url(#rg-rail-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="140" y="148" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">CODE</text>
+  </g>
+
+  <!-- Generator chips (llama 8b) in the middle -->
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="196" y="44" width="32" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="212" y="58" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8">llama</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="196" y="89" width="32" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="212" y="103" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8">llama</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="196" y="134" width="32" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="212" y="148" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8">llama</text>
+  </g>
+
+  <!-- Verdict chips (right) — BLOCK 100% -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="250" y="44" width="40" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x="270" y="58" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">100%</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="250" y="89" width="40" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="270" y="103" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">100%</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="250" y="134" width="40" height="22" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-orange)" stroke-width="1"/>
+    <text x="270" y="148" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">100%</text>
+  </g>
+
+  <!-- Lane kickers on the left margin -->
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="14" y="36" text-anchor="start"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">SECOND BRAIN</text>
+    <text x="14" y="81" text-anchor="start"
+          fill="var(--svg-accent-teal)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">LLM WIKI</text>
+    <text x="14" y="126" text-anchor="start"
+          fill="var(--svg-accent-orange)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">AUTORESEARCH</text>
+  </g>
+
+  <!-- Column label -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="140" y="178" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">NEMO GUARDRAILS</text>
+  </g>
+</svg>

@@ -1,0 +1,52 @@
+---
+import Layout from './Layout.astro';
+import '../styles/field-notes.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  ogType?: 'website' | 'article';
+  article?: {
+    datePublished: string;
+    dateModified: string;
+    author: string;
+  };
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const { title, description, ogType = 'website', article, jsonLd } = Astro.props;
+---
+<Layout
+  title={title}
+  description={description}
+  ogType={ogType}
+  article={article}
+  jsonLd={jsonLd}
+>
+  <slot />
+
+  <script>
+    // fn-diagram intersection observer — flips .fn-diagram--visible on
+    // each <figure class="fn-diagram"> so its inline CSS animations play
+    // when scrolled into view. Articles render unchanged from ai-field-notes.
+    function initFnDiagrams() {
+      if (typeof window === 'undefined') return;
+      const figures = document.querySelectorAll('.fn-diagram');
+      if (figures.length === 0) return;
+      if (!('IntersectionObserver' in window)) {
+        figures.forEach((el) => el.classList.add('fn-diagram--visible'));
+        return;
+      }
+      const obs = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          entry.target.classList.add('fn-diagram--visible');
+          obs.unobserve(entry.target);
+        }
+      }, { rootMargin: '0px 0px -8% 0px', threshold: 0.15 });
+      figures.forEach((el) => obs.observe(el));
+    }
+    initFnDiagrams();
+    document.addEventListener('astro:after-swap', initFnDiagrams);
+  </script>
+</Layout>

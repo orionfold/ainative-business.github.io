@@ -1,0 +1,135 @@
+---
+import { getCollection } from 'astro:content';
+import FieldNotesLayout from '../../layouts/FieldNotesLayout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import StageFilter from '../../components/field-notes/StageFilter.astro';
+import SeriesFilter from '../../components/field-notes/SeriesFilter.astro';
+import ArticleCard from '../../components/field-notes/ArticleCard.astro';
+import ProjectStats from '../../components/field-notes/ProjectStats.astro';
+import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
+import { SITE, PUBLISHER } from '../../data/seo';
+
+const all = await getCollection('field-notes');
+const ordinalById = publishOrdinals(all, process.cwd());
+const published = all.filter((a) => a.data.status !== 'upcoming');
+const upcoming = all.filter((a) => a.data.status === 'upcoming');
+const publishedDesc = [...published].sort((a, b) => ordinalById.get(b.id)! - ordinalById.get(a.id)!);
+const upcomingAsc = [...upcoming].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+
+const countPadded = String(published.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Field Notes — ainative';
+const pageDescription = `Field notes on building AI-native businesses — ${published.length} published articles spanning agent orchestration, inference, training, RAG, and the AI Native Platform series of research papers. By Manav Sehgal.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'AI Native Field Notes',
+    description: pageDescription,
+    url: `${SITE.url}/field-notes/`,
+    publisher: PUBLISHER,
+    hasPart: publishedDesc.map((a) => ({
+      '@type': 'TechArticle',
+      headline: a.data.title,
+      datePublished: a.data.date.toISOString().slice(0, 10),
+      author: { '@type': 'Person', name: a.data.author },
+      url: `${SITE.url}/field-notes/${a.id}/`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home',        item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Field Notes', item: `${SITE.url}/field-notes/` },
+    ],
+  },
+];
+---
+<FieldNotesLayout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main>
+    <header class="fn-masthead">
+      <div class="fn-masthead__strip" aria-hidden="true">
+        <span>Vol. 01</span>
+        <span class="fn-masthead__rule"></span>
+        <span>AI Native Field Notes</span>
+        <span class="fn-masthead__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="fn-masthead__title">Field notes on building <em>AI-native</em> businesses.</h1>
+      <p class="fn-masthead__tagline">
+        One builder's running log — articles on agent orchestration, governed
+        inference, RAG patterns, training economics, and the deep-dive papers
+        that anchor the AI Native Platform series. Every post is a session
+        transcript turned into an essay.
+      </p>
+      <div class="fn-masthead__byline" aria-hidden="true">
+        <span><span class="fn-masthead__strip-count">{countPadded}</span> articles published</span>
+        <span class="fn-masthead__rule"></span>
+        <span>Apache 2.0 · by Manav Sehgal</span>
+      </div>
+    </header>
+
+    <ProjectStats />
+
+    <nav class="filter-row" aria-label="Filter articles">
+      <SeriesFilter current={null} />
+      <div class="filter-row__topics">
+        <StageFilter current={null} />
+        {upcomingAsc.length > 0 && (
+          <button
+            type="button"
+            class="stage-filter__chip stage-filter__chip--toggle"
+            id="upcoming-toggle"
+            role="switch"
+            aria-pressed="false"
+            aria-controls="home-research-list"
+          >
+            <span class="stage-filter__chip-dot" aria-hidden="true"></span>
+            <span>+{upcomingAsc.length} Upcoming</span>
+          </button>
+        )}
+      </div>
+    </nav>
+
+    <section class="research-list" id="home-research-list" data-show-upcoming="false">
+      {publishedDesc.length === 0 && upcomingAsc.length === 0 ? (
+        <p class="research-list__empty">No entries yet.</p>
+      ) : (
+        <>
+          {upcomingAsc.map((article) => (
+            <ArticleCard article={article} ordinal={ordinalById.get(article.id)!} />
+          ))}
+          {publishedDesc.map((article) => (
+            <ArticleCard article={article} ordinal={ordinalById.get(article.id)!} />
+          ))}
+          <div class="research-list__closer">
+            <span class="research-list__closer-glyph">※</span>
+            <span>More articles in preparation</span>
+            <span class="research-list__closer-rule"></span>
+            <span>End of Vol. 01</span>
+          </div>
+        </>
+      )}
+    </section>
+
+    <script is:inline>
+      (() => {
+        const btn = document.getElementById('upcoming-toggle');
+        const list = document.getElementById('home-research-list');
+        if (!btn || !list) return;
+        btn.addEventListener('click', () => {
+          const on = btn.getAttribute('aria-pressed') === 'true';
+          const next = !on;
+          btn.setAttribute('aria-pressed', String(next));
+          list.setAttribute('data-show-upcoming', String(next));
+        });
+      })();
+    </script>
+  </main>
+  <Footer />
+</FieldNotesLayout>
