@@ -1,0 +1,51 @@
+---
+import SectionLabel from '../../ui/SectionLabel.astro';
+
+const cli = `$ fieldkit version
+0.1.0.dev0
+
+$ fieldkit envelope "70B params fp8"
+~70 GB weights; leaves ~50 GB for KV + activations + system; tight but possible
+
+$ fieldkit feasibility llama-3.1-70b --ctx 4096 --batch 32 --dtype fp8
+weights (fp8):       70.0 GB
+KV cache (fp8):      21.5 GB  (ctx=4096, batch=32)
+weights + KV:        91.5 GB
+
+$ fieldkit bench rag --table fieldkit_cli_bench_rag --out /tmp/bench.json`;
+---
+<section class="py-24 px-6">
+  <div class="max-w-4xl mx-auto text-center">
+    <SectionLabel text="Without Python" />
+    <h2 data-animate class="mt-4 mb-4">Quick wins from the shell.</h2>
+    <p data-animate class="text-text-muted max-w-2xl mx-auto leading-relaxed mb-10" style="transition-delay: 80ms">
+      Sanity-check inference math, smoke-test a pipeline, or run a benchmark
+      without writing a line of Python. <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">fieldkit</code> is on <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">$PATH</code> after install.
+    </p>
+
+    <!-- Centered terminal block -->
+    <div data-animate class="text-left max-w-3xl mx-auto" style="transition-delay: 120ms">
+      <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
+          <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Terminal</span>
+          <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted/70">zsh</span>
+        </div>
+        <div class="bg-surface-raised px-5 py-4 overflow-x-auto">
+          <pre class="font-mono text-[13px] leading-[1.65] text-text-muted">{cli}</pre>
+        </div>
+      </div>
+    </div>
+
+    <a
+      data-animate
+      href="/fieldkit/api/cli/"
+      class="inline-flex items-center gap-1.5 mt-8 text-primary font-mono text-sm tracking-wider hover:underline"
+      style="transition-delay: 200ms"
+    >
+      Full CLI reference
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</section>

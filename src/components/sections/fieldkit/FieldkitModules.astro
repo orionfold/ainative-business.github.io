@@ -1,0 +1,89 @@
+---
+import SectionLabel from '../../ui/SectionLabel.astro';
+import type { CollectionEntry } from 'astro:content';
+
+type FieldkitDoc = CollectionEntry<'fieldkit_docs'>;
+
+interface Props {
+  docs: FieldkitDoc[];
+}
+
+const { docs } = Astro.props;
+
+const moduleHref = (m: string) => `/fieldkit/api/${m}/`;
+
+// Per-module display copy. The doc summary stays as-is; this is just the
+// short tagline that anchors each card visually (mirrors the homepage's
+// persona taglines).
+const taglines: Record<string, string> = {
+  capabilities: 'Memory and feasibility math',
+  nim: 'OpenAI-compatible inference client',
+  rag: 'Ingest → retrieve → rerank → fuse',
+  eval: 'Bench, judge, refusal, trajectory',
+  cli: 'Smoke checks without writing Python',
+};
+---
+<section id="modules" class="py-24 px-6">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-14">
+      <SectionLabel text="The Solution" />
+      <h2 data-animate class="mt-4 mb-4">
+        <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">fieldkit</code> in five imports.
+      </h2>
+      <p data-animate class="text-text-muted max-w-2xl mx-auto" style="transition-delay: 80ms">
+        Each module is the public surface of a working article. Read the API reference, drop the import in, ship.
+      </p>
+    </div>
+
+    <!-- Module cards (rag highlighted) -->
+    <div data-animate-stagger class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+      {docs.map((doc) => {
+        const highlight = doc.data.module === 'rag';
+        return (
+          <a
+            data-animate
+            href={moduleHref(doc.data.module)}
+            class:list={[
+              'group rounded-xl border p-6 flex flex-col transition-all',
+              highlight
+                ? 'border-primary/40 bg-primary/[0.04] hover:border-primary/70'
+                : 'border-border bg-surface-raised hover:border-primary/40',
+            ]}
+          >
+            <div class="mb-4">
+              <div class="flex items-baseline justify-between gap-2 mb-1">
+                <span class="font-mono text-[0.95rem] text-primary">fieldkit.{doc.data.module}</span>
+                {highlight && (
+                  <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/30 bg-primary/10 rounded-full px-2 py-0.5">most-used</span>
+                )}
+              </div>
+              <p class="text-sm text-text font-mono">{taglines[doc.data.module] ?? doc.data.title}</p>
+            </div>
+
+            <p class="text-sm text-text-muted leading-relaxed mb-5 flex-1">
+              {doc.data.summary}
+            </p>
+
+            <div class:list={['mt-auto pt-4 border-t', highlight ? 'border-primary/15' : 'border-border/60']}>
+              <span class="inline-flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.15em] text-primary group-hover:gap-2.5 transition-all">
+                Read the API
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+              </span>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+
+    <!-- Shared platform pills -->
+    <div data-animate class="flex items-center justify-center gap-3 flex-wrap">
+      <span class="font-mono text-[11px] tracking-wider text-text-muted border border-border rounded-full px-3 py-1">verified-on-Spark</span>
+      <span class="font-mono text-[11px] tracking-wider text-text-muted border border-border rounded-full px-3 py-1">tested distillate</span>
+      <span class="font-mono text-[11px] tracking-wider text-text-muted border border-border rounded-full px-3 py-1">Apache-2.0</span>
+      <span class="font-mono text-[11px] tracking-wider text-text-muted border border-border rounded-full px-3 py-1">Python 3.11+</span>
+      <span class="font-mono text-[11px] tracking-wider text-text-muted border border-border rounded-full px-3 py-1">pgvector + NIM</span>
+    </div>
+  </div>
+</section>
