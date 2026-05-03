@@ -20,6 +20,7 @@ The drafting environment lives on the user's NVIDIA DGX Spark; the user pulls ch
 | Evidence images | `/Users/manavsehgal/Developer/ai-field-notes/articles/<slug>/evidence/*.{png,jpg,jpeg,svg,gif,webp}` | `articles/<slug>/evidence/` |
 | Fieldkit module reference | `/Users/manavsehgal/Developer/ai-field-notes/fieldkit/docs/api/*.md` | `fieldkit/docs/api/*.md` |
 | Fieldkit version pin | `/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
+| Fieldkit landing page sections (Install / Quickstart / CLI) | `/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
 
 Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/`.
 
@@ -36,6 +37,7 @@ Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/
 - `seed.md` IF a real `article.md` already exists alongside it (seed becomes obsolete once article ships)
 - All non-image files inside `evidence/` directories — the bulk is Python source code (~30k lines) that should not ship with the website. Link out to GitHub if articles need to reference raw evidence.
 - The `_drafts/` folder at the root of the source `articles/` directory (in-progress work)
+- Landing page sections **other than** Install / Quickstart / CLI. The header/blurb has site-specific brand framing, the Modules section reads from a content collection, and the "Verified in" section uses `articleHref()` which differs by site. Auto-replacing those would break the build or the page's tone.
 
 The reason for the evidence filter is simple: the plan deliberately defers raw-evidence migration to per-article calls. Bringing the Python in by default would inflate the repo by ~30 MB without giving the reader anything they can run. Linking out preserves provenance without the bulk.
 
@@ -74,6 +76,8 @@ python3 .claude/skills/sync-field-notes/scripts/sync_articles.py
 The script applies the same rules as Step 2 in copy mode — it copies article markdown, screenshot folders, and evidence images, and skips transcript files, Python evidence, and the `_drafts/` folder. It also handles the seed-only edge case: when a folder has only `seed.md` (an upcoming placeholder with `status: upcoming` frontmatter), the seed is copied as `article.md` so the content collection picks it up as an upcoming entry.
 
 The script is idempotent — running it twice is the same as running it once. Files are overwritten only when their content has actually changed.
+
+**Landing-page section sync.** The script also keeps the `/fieldkit/` landing page in step with the source by replacing only the inner bodies of three named `<section class="fk-section">` blocks — those whose `<h2>` text is **Install**, **Quickstart**, or **CLI**. These three are pure copy/code; they don't reference site-local URL helpers, so they transplant cleanly. The script detects target's section indentation, dedents source's body to col 0, and re-indents at target's level + 2 spaces, so the wrapping layout (`FieldNotesLayout`, `Nav`, `Footer`, `<main>`) and the Modules / Verified-in / header sections stay untouched. This is what lets a copy change like `pip install fieldkit` propagate to the site without breaking the build.
 
 ### Step 4: Preserve the reframed research papers
 

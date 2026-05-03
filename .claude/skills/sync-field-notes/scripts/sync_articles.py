@@ -14,8 +14,10 @@ Run from the website project root:
 """
 
 import hashlib
+import re
 import shutil
 import sys
+import textwrap
 from pathlib import Path
 
 SOURCE_ROOT = Path("/Users/manavsehgal/Developer/ai-field-notes/articles")
@@ -25,6 +27,14 @@ FIELDKIT_DOCS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldki
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
 FIELDKIT_VERSION_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py")
 FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/_version.py")
+
+# Fieldkit landing page — see diff_articles.py for the full rationale. Both
+# repos render /fieldkit/ from a Nav-wrapped Astro page with the same
+# section-block structure but different layout wrappers, so we sync only the
+# inner bodies of <section class="fk-section"> blocks keyed by <h2> title.
+LANDING_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro")
+LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
+LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}
 SOURCE_IGNORED_TOPLEVEL = {"_drafts"}
@@ -107,6 +117,111 @@ def list_source_slugs() -> list[str]:
     )
 
 
+# Landing-page section sync. Match a top-level <section class="fk-section">
+# (no extra classes) and capture indent + body. Sections are never nested in
+# this file, so a lazy match is safe.
+_LANDING_SECTION_RE = re.compile(
+    r'(?P<indent>[ \t]*)<section\s+class="fk-section">(?P<body>.*?)</section>',
+    re.DOTALL,
+)
+_LANDING_H2_RE = re.compile(r'<h2[^>]*>(?P<title>.*?)</h2>', re.DOTALL)
+
+
+def _extract_landing_sections(text: str) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    for m in _LANDING_SECTION_RE.finditer(text):
+        body = m.group("body")
+        h2 = _LANDING_H2_RE.search(body)
+        if not h2:
+            continue
+        title = re.sub(r"<[^>]+>", "", h2.group("title")).strip()
+        out[title] = {
+            "indent": m.group("indent"),
+            "body": body,
+            "span": m.span(),
+            "match": m,
+        }
+    return out
+
+
+def _normalize_section_body(body: str) -> str:
+    return textwrap.dedent(body).strip()
+
+
+def _transplant_section_body(source_body: str, target_indent: str) -> str:
+    """
+    Take source section body (between <section ...> and </section>) and produce
+    a body suitable for splicing into target's <section> at target_indent.
+    Dedents source content to col 0, then re-indents at target_indent + 2 spaces.
+    """
+    inner = source_body.lstrip("\n")
+    lines = inner.split("\n")
+    non_blank = [ln for ln in lines if ln.strip()]
+    if not non_blank:
+        return source_body
+    min_indent = min(len(ln) - len(ln.lstrip(" ")) for ln in non_blank)
+    dedented = [(ln[min_indent:] if ln.strip() else "") for ln in lines]
+    while dedented and not dedented[-1].strip():
+        dedented.pop()
+    content_indent = target_indent + "  "
+    reindented = [(content_indent + ln if ln.strip() else "") for ln in dedented]
+    return "\n" + "\n".join(reindented) + "\n" + target_indent
+
+
+def sync_landing_page() -> dict:
+    """
+    Replace target's section bodies (matched by <h2>) with source's, for the
+    sections in LANDING_SECTIONS_TO_SYNC. Idempotent: writes only if the file
+    actually changes after reindentation. Returns counts.
+    """
+    counts = {"landing_section": 0}
+    if not LANDING_SOURCE.exists() or not LANDING_TARGET.exists():
+        return counts
+
+    src_text = LANDING_SOURCE.read_text(encoding="utf8")
+    tgt_text = LANDING_TARGET.read_text(encoding="utf8")
+    src_sections = _extract_landing_sections(src_text)
+    tgt_sections = _extract_landing_sections(tgt_text)
+
+    # Replace from the bottom up so earlier section spans stay valid.
+    targets_to_replace: list[tuple[str, dict, str]] = []
+    for title in LANDING_SECTIONS_TO_SYNC:
+        if title not in src_sections or title not in tgt_sections:
+            continue
+        if _normalize_section_body(src_sections[title]["body"]) == _normalize_section_body(
+            tgt_sections[title]["body"]
+        ):
+            continue
+        new_body = _transplant_section_body(
+            src_sections[title]["body"], tgt_sections[title]["indent"]
+        )
+        targets_to_replace.append((title, tgt_sections[title], new_body))
+
+    if not targets_to_replace:
+        return counts
+
+    targets_to_replace.sort(key=lambda x: x[1]["span"][0], reverse=True)
+
+    new_text = tgt_text
+    for title, sec, new_body in targets_to_replace:
+        full_match = sec["match"]
+        # Reconstruct: same indent + section open tag + new_body + close tag
+        replacement = (
+            sec["indent"]
+            + '<section class="fk-section">'
+            + new_body
+            + "</section>"
+        )
+        start, end = full_match.span()
+        new_text = new_text[:start] + replacement + new_text[end:]
+        counts["landing_section"] += 1
+
+    if new_text != tgt_text:
+        LANDING_TARGET.write_text(new_text, encoding="utf8")
+
+    return counts
+
+
 def sync_fieldkit() -> dict:
     """Sync the 5 module reference markdown files + the version file."""
     counts = {"fieldkit_doc": 0, "fieldkit_version": 0}
@@ -138,6 +253,7 @@ def main() -> int:
                 totals[k] += v
 
     fk_counts = sync_fieldkit()
+    landing_counts = sync_landing_page()
 
     print(f"# Field Notes sync — applied")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -145,7 +261,8 @@ def main() -> int:
     print()
     nothing_articles = not touched_slugs
     nothing_fieldkit = not any(fk_counts.values())
-    if nothing_articles and nothing_fieldkit:
+    nothing_landing = not any(landing_counts.values())
+    if nothing_articles and nothing_fieldkit and nothing_landing:
         print("No changes copied. Source and target were already in step.")
         return 0
 
@@ -165,6 +282,11 @@ def main() -> int:
         print(f"  • fieldkit/docs/api/: {fk_counts['fieldkit_doc']} module reference doc(s)")
     if fk_counts["fieldkit_version"]:
         print(f"  • fieldkit/_version.py: bumped")
+    if landing_counts["landing_section"]:
+        print(
+            f"  • src/pages/fieldkit/index.astro: "
+            f"{landing_counts['landing_section']} section(s) updated"
+        )
 
     print()
     print("Totals:")
@@ -172,6 +294,9 @@ def main() -> int:
         if v:
             print(f"  {k}: {v}")
     for k, v in fk_counts.items():
+        if v:
+            print(f"  {k}: {v}")
+    for k, v in landing_counts.items():
         if v:
             print(f"  {k}: {v}")
 

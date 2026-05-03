@@ -12,7 +12,9 @@ or directly:
 """
 
 import hashlib
+import re
 import sys
+import textwrap
 from pathlib import Path
 
 SOURCE_ROOT = Path("/Users/manavsehgal/Developer/ai-field-notes/articles")
@@ -25,6 +27,17 @@ FIELDKIT_DOCS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldki
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
 FIELDKIT_VERSION_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py")
 FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/_version.py")
+
+# Fieldkit landing page — both repos render /fieldkit/ from a Nav-wrapped Astro
+# page with an identical section-block structure. The wrappers differ (source
+# uses BaseLayout; this site uses FieldNotesLayout + Nav + Footer), so a 1:1
+# file copy would break the build. Instead, we sync only the inner bodies of
+# specific <section class="fk-section"> blocks keyed by their <h2> title.
+# Section list is intentionally narrow: these are pure copy/code blocks that
+# don't reference site-local URL helpers (articleHref) or content collections.
+LANDING_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro")
+LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
+LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
 # Articles authored only on the website (the two reframed research papers).
 # Never report or sync these — they have no source counterpart.
@@ -104,6 +117,64 @@ def fieldkit_doc_changes() -> list[tuple[str, str]]:
     return changes
 
 
+# Match a top-level <section class="fk-section"> ... </section> with no extra
+# classes (avoids matching <section class="fk-section fk-glance"> etc.) and
+# capture both its leading indent and inner body. Sections in these files are
+# never nested, so the lazy match is safe.
+_LANDING_SECTION_RE = re.compile(
+    r'(?P<indent>[ \t]*)<section\s+class="fk-section">(?P<body>.*?)</section>',
+    re.DOTALL,
+)
+_LANDING_H2_RE = re.compile(r'<h2[^>]*>(?P<title>.*?)</h2>', re.DOTALL)
+
+
+def _extract_landing_sections(text: str) -> dict[str, dict]:
+    """Return {h2_title: {indent, body, span}} for every plain fk-section in text."""
+    out: dict[str, dict] = {}
+    for m in _LANDING_SECTION_RE.finditer(text):
+        body = m.group("body")
+        h2 = _LANDING_H2_RE.search(body)
+        if not h2:
+            continue
+        title = re.sub(r"<[^>]+>", "", h2.group("title")).strip()
+        out[title] = {
+            "indent": m.group("indent"),
+            "body": body,
+            "span": m.span(),
+        }
+    return out
+
+
+def _normalize_section_body(body: str) -> str:
+    """Dedent and trim so two equivalent bodies at different indents compare equal."""
+    return textwrap.dedent(body).strip()
+
+
+def landing_section_changes() -> list[tuple[str, str]]:
+    """Return [(title, reason), ...] for each LANDING_SECTIONS_TO_SYNC that drifted."""
+    changes: list[tuple[str, str]] = []
+    if not LANDING_SOURCE.exists() or not LANDING_TARGET.exists():
+        return changes
+    src = LANDING_SOURCE.read_text(encoding="utf8")
+    tgt = LANDING_TARGET.read_text(encoding="utf8")
+    src_sections = _extract_landing_sections(src)
+    tgt_sections = _extract_landing_sections(tgt)
+    for title in LANDING_SECTIONS_TO_SYNC:
+        if title not in src_sections:
+            # Source dropped a section we sync — flag for the user, don't auto-remove.
+            if title in tgt_sections:
+                changes.append((title, "missing in source (target retains)"))
+            continue
+        if title not in tgt_sections:
+            changes.append((title, "missing in target — needs hand-add of <section>"))
+            continue
+        if _normalize_section_body(src_sections[title]["body"]) != _normalize_section_body(
+            tgt_sections[title]["body"]
+        ):
+            changes.append((title, "content differs"))
+    return changes
+
+
 def fieldkit_version_change() -> tuple[bool, str | None, str | None]:
     """(changed, source_version_str, target_version_str) — version drift check."""
     if not FIELDKIT_VERSION_SOURCE.exists():
@@ -155,6 +226,7 @@ def compute_diff() -> dict:
 
     fk_doc_changes = fieldkit_doc_changes()
     fk_version_changed, fk_src_ver, fk_tgt_ver = fieldkit_version_change()
+    landing_changes = landing_section_changes()
 
     return {
         "new_articles": new_articles,
@@ -165,6 +237,7 @@ def compute_diff() -> dict:
         "fieldkit_version_changed": fk_version_changed,
         "fieldkit_source_version": fk_src_ver,
         "fieldkit_target_version": fk_tgt_ver,
+        "landing_changes": landing_changes,
     }
 
 
@@ -177,8 +250,12 @@ def print_diff(diff: dict) -> int:
     fk_ver_changed = diff["fieldkit_version_changed"]
     fk_src_ver = diff["fieldkit_source_version"]
     fk_tgt_ver = diff["fieldkit_target_version"]
+    landing = diff["landing_changes"]
 
-    total = len(new) + len(upd) + len(imgs) + len(fk_doc) + (1 if fk_ver_changed else 0)
+    total = (
+        len(new) + len(upd) + len(imgs) + len(fk_doc) + len(landing)
+        + (1 if fk_ver_changed else 0)
+    )
 
     print(f"# Field Notes sync diff")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -239,6 +316,13 @@ def print_diff(diff: dict) -> int:
             print(f"  source v{fk_src_ver}  →  target (missing)")
         else:
             print("  drift in fieldkit/_version.py — inspect by hand")
+        print()
+
+    if landing:
+        print(f"## Fieldkit landing page sections ({len(landing)})")
+        print(f"  src/pages/fieldkit/index.astro — replacing target's <section> body by <h2> title")
+        for title, reason in landing:
+            print(f"  ~ {title}  [{reason}]")
         print()
 
     return 0
