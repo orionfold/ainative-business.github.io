@@ -36,6 +36,15 @@ LANDING_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/pages/fie
 LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
 LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
+# Signature SVG components — referenced by `signature: <Name>` in article
+# frontmatter. ArticleCard.astro auto-discovers them via import.meta.glob, so
+# dropping a new file in the target dir is enough to wire it up. Source and
+# target paths differ (the website nests under field-notes/) but basenames
+# match. One-way flow: source→target. Never delete target-only signatures —
+# the website may have signatures the source doesn't (reframed papers).
+SIGNATURE_SVG_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/components/svg")
+SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
+
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}
 SOURCE_IGNORED_TOPLEVEL = {"_drafts"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp"}
@@ -236,6 +245,22 @@ def sync_fieldkit() -> dict:
     return counts
 
 
+def sync_signature_svgs() -> dict:
+    """Copy new and changed signature SVG components source→target.
+
+    One-way flow only: never deletes target-only signatures (the website may
+    have signatures the source doesn't, e.g., for reframed research papers).
+    """
+    counts = {"signature_svg": 0}
+    if not SIGNATURE_SVG_SOURCE.is_dir():
+        return counts
+    SIGNATURE_SVG_TARGET.mkdir(parents=True, exist_ok=True)
+    for src in SIGNATURE_SVG_SOURCE.glob("*.astro"):
+        if copy_if_different(src, SIGNATURE_SVG_TARGET / src.name):
+            counts["signature_svg"] += 1
+    return counts
+
+
 def main() -> int:
     if not SOURCE_ROOT.is_dir():
         print(f"ERROR: source path not found: {SOURCE_ROOT}", file=sys.stderr)
@@ -254,6 +279,7 @@ def main() -> int:
 
     fk_counts = sync_fieldkit()
     landing_counts = sync_landing_page()
+    sig_counts = sync_signature_svgs()
 
     print(f"# Field Notes sync — applied")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -262,7 +288,8 @@ def main() -> int:
     nothing_articles = not touched_slugs
     nothing_fieldkit = not any(fk_counts.values())
     nothing_landing = not any(landing_counts.values())
-    if nothing_articles and nothing_fieldkit and nothing_landing:
+    nothing_sig = not any(sig_counts.values())
+    if nothing_articles and nothing_fieldkit and nothing_landing and nothing_sig:
         print("No changes copied. Source and target were already in step.")
         return 0
 
@@ -287,6 +314,11 @@ def main() -> int:
             f"  • src/pages/fieldkit/index.astro: "
             f"{landing_counts['landing_section']} section(s) updated"
         )
+    if sig_counts["signature_svg"]:
+        print(
+            f"  • src/components/field-notes/svg/: "
+            f"{sig_counts['signature_svg']} signature component(s) updated"
+        )
 
     print()
     print("Totals:")
@@ -297,6 +329,9 @@ def main() -> int:
         if v:
             print(f"  {k}: {v}")
     for k, v in landing_counts.items():
+        if v:
+            print(f"  {k}: {v}")
+    for k, v in sig_counts.items():
         if v:
             print(f"  {k}: {v}")
 

@@ -21,6 +21,7 @@ The drafting environment lives on the user's NVIDIA DGX Spark; the user pulls ch
 | Fieldkit module reference | `/Users/manavsehgal/Developer/ai-field-notes/fieldkit/docs/api/*.md` | `fieldkit/docs/api/*.md` |
 | Fieldkit version pin | `/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
 | Fieldkit landing page sections (Install / Quickstart / CLI) | `/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
+| Signature SVG components | `/Users/manavsehgal/Developer/ai-field-notes/src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
 
 Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/`.
 
@@ -31,6 +32,7 @@ Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/
 - `screenshots/` directories (entire folder, all files)
 - Image files inside `evidence/` directories (`*.png`, `*.jpg`, `*.jpeg`, `*.svg`, `*.gif`, `*.webp`)
 - New article folders that don't yet exist in the target
+- Signature SVG components (`*.astro` from source's `src/components/svg/` → target's `src/components/field-notes/svg/`). One-way flow only — the website may have signatures the source doesn't (e.g., for the two reframed papers), and those are never deleted.
 
 **Skip:**
 - `transcript.md` (authoring-time artifact, never published)
@@ -137,7 +139,7 @@ top of the JSON that the components prefer over the auto-generated arrays.
 
 **A new stage value or tag.** The schema in `src/content.config.ts` enumerates stages and series. New tags are free-form (the schema is `z.array(z.string())`). New stages are not — adding one requires adding the enum value, copy in `src/pages/field-notes/stages/[stage].astro` `STAGE_COPY` map, and (optionally) the order in `STAGE_LABELS` inside `src/components/field-notes/StageFilter.astro`. Series are similarly closed; same three-file update pattern.
 
-**A new signature SVG component referenced by `signature: <Name>` in frontmatter.** The signature components live at `src/components/field-notes/svg/`. If the source repo added a new signature SVG, copy that single file from `/Users/manavsehgal/Developer/ai-field-notes/src/components/svg/<Name>.astro` to the matching path here. The ArticleCard's signature lookup is via `import.meta.glob` so the new file is picked up automatically — no registration needed.
+**A new signature SVG component referenced by `signature: <Name>` in frontmatter.** Handled automatically by the sync script — when the source repo adds a new `*.astro` file under `src/components/svg/`, it gets copied to `src/components/field-notes/svg/` on the next sync. The ArticleCard's signature lookup is via `import.meta.glob`, so the new file is picked up by the next build with no registration. If the article ships before the signature SVG exists in source, the article still renders (the schema makes `signature` optional) — just without the signature graphic, until the next sync that includes the SVG. **One-way flow only:** the website may have signatures the source doesn't (e.g., for the two reframed papers), so target-only signatures are never deleted or reported as orphans.
 
 **An article moves between series in the source repo.** Just copy the new `article.md`. The change in `series:` frontmatter is enough — the article will start showing up in the new series page automatically.
 

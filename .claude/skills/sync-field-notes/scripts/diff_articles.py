@@ -39,6 +39,16 @@ LANDING_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/pages/fie
 LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
 LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
+# Signature SVG components — referenced by `signature: <Name>` in article
+# frontmatter. Source and target paths differ (the website nests them under
+# field-notes/), but the file basenames match. ArticleCard.astro auto-discovers
+# new files via import.meta.glob, so no registration is needed when adding one.
+# The website may legitimately have signatures the source doesn't (e.g., for
+# the two reframed research papers), so we only flow source→target — never
+# report orphans, never delete.
+SIGNATURE_SVG_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/components/svg")
+SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
+
 # Articles authored only on the website (the two reframed research papers).
 # Never report or sync these — they have no source counterpart.
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}
@@ -112,6 +122,25 @@ def fieldkit_doc_changes() -> list[tuple[str, str]]:
         tgt = FIELDKIT_DOCS_TARGET / src.name
         if not tgt.exists():
             changes.append((src.name, "new module reference doc"))
+        elif file_hash(src) != file_hash(tgt):
+            changes.append((src.name, "content differs"))
+    return changes
+
+
+def signature_svg_changes() -> list[tuple[str, str]]:
+    """Return list of (filename, reason) for signature SVG component changes.
+
+    Only flows source→target. Target-only signatures are not reported as
+    orphans because the website may legitimately have signatures the source
+    doesn't (e.g., for reframed research papers).
+    """
+    changes: list[tuple[str, str]] = []
+    if not SIGNATURE_SVG_SOURCE.is_dir():
+        return changes
+    for src in sorted(SIGNATURE_SVG_SOURCE.glob("*.astro")):
+        tgt = SIGNATURE_SVG_TARGET / src.name
+        if not tgt.exists():
+            changes.append((src.name, "new signature component"))
         elif file_hash(src) != file_hash(tgt):
             changes.append((src.name, "content differs"))
     return changes
@@ -227,6 +256,7 @@ def compute_diff() -> dict:
     fk_doc_changes = fieldkit_doc_changes()
     fk_version_changed, fk_src_ver, fk_tgt_ver = fieldkit_version_change()
     landing_changes = landing_section_changes()
+    sig_changes = signature_svg_changes()
 
     return {
         "new_articles": new_articles,
@@ -238,6 +268,7 @@ def compute_diff() -> dict:
         "fieldkit_source_version": fk_src_ver,
         "fieldkit_target_version": fk_tgt_ver,
         "landing_changes": landing_changes,
+        "signature_svg_changes": sig_changes,
     }
 
 
@@ -251,9 +282,10 @@ def print_diff(diff: dict) -> int:
     fk_src_ver = diff["fieldkit_source_version"]
     fk_tgt_ver = diff["fieldkit_target_version"]
     landing = diff["landing_changes"]
+    sig = diff["signature_svg_changes"]
 
     total = (
-        len(new) + len(upd) + len(imgs) + len(fk_doc) + len(landing)
+        len(new) + len(upd) + len(imgs) + len(fk_doc) + len(landing) + len(sig)
         + (1 if fk_ver_changed else 0)
     )
 
@@ -323,6 +355,13 @@ def print_diff(diff: dict) -> int:
         print(f"  src/pages/fieldkit/index.astro — replacing target's <section> body by <h2> title")
         for title, reason in landing:
             print(f"  ~ {title}  [{reason}]")
+        print()
+
+    if sig:
+        print(f"## Signature SVG components ({len(sig)})")
+        print(f"  src/components/field-notes/svg/ — referenced by `signature:` frontmatter")
+        for name, reason in sig:
+            print(f"  ~ {name}  [{reason}]")
         print()
 
     return 0
