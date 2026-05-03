@@ -22,6 +22,7 @@ The drafting environment lives on the user's NVIDIA DGX Spark; the user pulls ch
 | Fieldkit version pin | `/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
 | Fieldkit landing page sections (Install / Quickstart / CLI) | `/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
 | Signature SVG components | `/Users/manavsehgal/Developer/ai-field-notes/src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
+| Article-sequence manifest | (derived from source's `git log`, no on-disk source) | `src/data/field-notes/sequence.json` |
 
 Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/`.
 
@@ -33,6 +34,9 @@ Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/
 - Image files inside `evidence/` directories (`*.png`, `*.jpg`, `*.jpeg`, `*.svg`, `*.gif`, `*.webp`)
 - New article folders that don't yet exist in the target
 - Signature SVG components (`*.astro` from source's `src/components/svg/` → target's `src/components/field-notes/svg/`). One-way flow only — the website may have signatures the source doesn't (e.g., for the two reframed papers), and those are never deleted.
+
+**Generate (not a file copy):**
+- `src/data/field-notes/sequence.json` — derived from the source repo's `git log` output for `articles/*/article.md`, captures the canonical authoring order so the website's №01..№N ordinals track source order across syncs. See "Article-sequence manifest" in Step 3 for the full rationale.
 
 **Skip:**
 - `transcript.md` (authoring-time artifact, never published)
@@ -78,6 +82,8 @@ python3 .claude/skills/sync-field-notes/scripts/sync_articles.py
 The script applies the same rules as Step 2 in copy mode — it copies article markdown, screenshot folders, and evidence images, and skips transcript files, Python evidence, and the `_drafts/` folder. It also handles the seed-only edge case: when a folder has only `seed.md` (an upcoming placeholder with `status: upcoming` frontmatter), the seed is copied as `article.md` so the content collection picks it up as an upcoming entry.
 
 The script is idempotent — running it twice is the same as running it once. Files are overwritten only when their content has actually changed.
+
+**Article-sequence manifest.** The script writes `src/data/field-notes/sequence.json` from the source repo's `git log --diff-filter=A` output for `articles/*/article.md`. This captures the canonical authoring order — oldest first — and is read at build time by `src/lib/field-notes/article-order.mjs` to assign the №01..№N ordinals on article cards. Without it, the website would derive ordinals from its own git history, which collapses bulk syncs into a single commit window and reorders by alphabetical tiebreak. The manifest is rewritten only when the slug ordering actually changes, so a no-op sync produces no diff on this file. Articles whose frontmatter carries `status: upcoming` are still listed in the manifest (source committed an `article.md` for them as a placeholder) but the website's ordinal walk skips them so the published sequence has no gaps.
 
 **Landing-page section sync.** The script also keeps the `/fieldkit/` landing page in step with the source by replacing only the inner bodies of three named `<section class="fk-section">` blocks — those whose `<h2>` text is **Install**, **Quickstart**, or **CLI**. These three are pure copy/code; they don't reference site-local URL helpers, so they transplant cleanly. The script detects target's section indentation, dedents source's body to col 0, and re-indents at target's level + 2 spaces, so the wrapping layout (`FieldNotesLayout`, `Nav`, `Footer`, `<main>`) and the Modules / Verified-in / header sections stay untouched. This is what lets a copy change like `pip install fieldkit` propagate to the site without breaking the build.
 
@@ -147,9 +153,16 @@ top of the JSON that the components prefer over the auto-generated arrays.
 
 **The user has uncommitted local changes in the website's `articles/` directory.** Ask before overwriting. Show them which files are dirty. The sync script does not stash or back up — that's git's job.
 
+**Build warns "X published article(s) not in sequence manifest — appended alphabetically."** A new article exists in the website's `articles/` tree but isn't in `src/data/field-notes/sequence.json`. Most common cause: the user added an article folder by hand, or pulled the source repo but ran `npm run build` without first running `sync_articles.py`. Re-run the sync script to regenerate the manifest. The warning is non-fatal — the website appends orphan articles alphabetically at the end of the published sequence, so the build still succeeds.
+
+**Source repo's `git log` is unavailable (e.g., a tarball, a shallow clone with truncated history).** `_compute_source_sequence()` returns `None` and the sync script silently skips the manifest write. The website's `publishOrdinals()` then falls back to deriving order from this repo's own `git log`, the same behavior it had before the manifest existed. Order won't perfectly mirror source in this state, but the build still succeeds.
+
+**An article moves from `status: upcoming` to published in source.** The manifest already lists the slug (it has had an `article.md` from the moment source committed the upcoming placeholder), so no manifest rewrite is needed. The website's ordinal walk previously skipped it; now it slots into its reserved position in the sequence on the next build.
+
 ## Why this design
 
 - **Same `articles/<slug>/article.md` layout in both repos.** The only reason this skill exists at all is to keep that mirror in sync. If the layouts diverged, the integration would need a transform step. They don't, so the integration is `cp`.
 - **Diff before copy, not blind copy.** A blind copy works but doesn't tell the user what changed, which makes it easy to miss when something is moving that shouldn't be (a renamed slug, an accidentally-published seed). The diff is the receipt.
 - **Evidence-folder filter at the boundary.** The plan defers per-article evidence migration; the default is "images yes, source code no." The user can hand-port a Python file or a .ipynb if they want to publish it for a specific article — but the default sync never carries source code along.
 - **No git operations.** The drafting repo is the user's authoring environment; this skill stays a one-way mirror. The user pulls when they want to pull, commits when they want to commit, and runs this skill when they want to surface changes on the public site.
+- **Sequence manifest, not per-article frontmatter.** The website needs to know source's authoring order to render matching №01..№N labels, but encoding that into each article's frontmatter would smear ordering metadata across 30+ files and require re-stamping every article on every sync. A single manifest file is the cheaper representation: one diff, one place to look, and the file's own `git log` becomes the audit trail for "when did the sequence last change?". The manifest also keeps the build hermetic — `publishOrdinals()` reads a checked-in JSON, not a sibling repo at build time, so CI on GitHub Pages still works.

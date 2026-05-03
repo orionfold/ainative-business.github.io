@@ -14,14 +14,26 @@ Run from the website project root:
 """
 
 import hashlib
+import json
 import re
 import shutil
+import subprocess
 import sys
 import textwrap
 from pathlib import Path
 
-SOURCE_ROOT = Path("/Users/manavsehgal/Developer/ai-field-notes/articles")
+SOURCE_REPO = Path("/Users/manavsehgal/Developer/ai-field-notes")
+SOURCE_ROOT = SOURCE_REPO / "articles"
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
+
+# Sequence manifest — captures the source repo's authoritative article order
+# (git first-add time of each articles/*/article.md). Read by the website's
+# publishOrdinals() so the №01..№N labels match source order regardless of
+# when articles got committed on this side. Idempotent: only rewritten when
+# the slug ordering actually changes.
+SEQUENCE_MANIFEST = Path(
+    "/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/sequence.json"
+)
 
 FIELDKIT_DOCS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldkit/docs/api")
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
@@ -261,6 +273,90 @@ def sync_signature_svgs() -> dict:
     return counts
 
 
+def _compute_source_sequence() -> list[str] | None:
+    """Read the source repo's git history and return article slugs in
+    first-add order. Slugs whose article.md no longer exists in source
+    (renamed or deleted) are dropped. Returns None if source isn't a git
+    checkout or git is unavailable — caller treats this as "skip the
+    manifest write" and the website falls back to local-git derivation.
+    """
+    try:
+        proc = subprocess.run(
+            [
+                "git",
+                "log",
+                "--diff-filter=A",
+                "--name-only",
+                "--pretty=format:%at",
+                "--reverse",
+                "--",
+                "articles/*/article.md",
+            ],
+            cwd=SOURCE_REPO,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
+    sequence: list[str] = []
+    seen: set[str] = set()
+    for line in proc.stdout.split("\n"):
+        trimmed = line.strip()
+        if not trimmed or trimmed.isdigit():
+            continue
+        if not (trimmed.startswith("articles/") and trimmed.endswith("/article.md")):
+            continue
+        slug = trimmed[len("articles/") : -len("/article.md")]
+        if slug in seen or slug in SOURCE_IGNORED_TOPLEVEL:
+            continue
+        if not (SOURCE_ROOT / slug / "article.md").exists():
+            continue
+        seen.add(slug)
+        sequence.append(slug)
+    return sequence
+
+
+def write_sequence_manifest() -> dict:
+    """Write src/data/field-notes/sequence.json from source git order.
+
+    Idempotent: rewrites the file only when the ordered slug list changes,
+    so a no-op sync produces no diff on this file. Provenance (when did the
+    sequence last change?) is recoverable from `git log` on the manifest
+    itself — no synced_at field is stored, since that would make every
+    sync produce a noisy timestamp-only diff.
+    """
+    counts = {"sequence_manifest": 0}
+    sequence = _compute_source_sequence()
+    if sequence is None:
+        return counts
+
+    manifest = {
+        "version": 1,
+        "source": "ai-field-notes",
+        "sequence": sequence,
+    }
+    new_text = json.dumps(manifest, indent=2) + "\n"
+
+    if SEQUENCE_MANIFEST.exists():
+        try:
+            existing = json.loads(SEQUENCE_MANIFEST.read_text(encoding="utf8"))
+        except json.JSONDecodeError:
+            existing = None
+        if (
+            isinstance(existing, dict)
+            and existing.get("version") == manifest["version"]
+            and existing.get("sequence") == manifest["sequence"]
+        ):
+            return counts
+
+    SEQUENCE_MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+    SEQUENCE_MANIFEST.write_text(new_text, encoding="utf8")
+    counts["sequence_manifest"] = 1
+    return counts
+
+
 def main() -> int:
     if not SOURCE_ROOT.is_dir():
         print(f"ERROR: source path not found: {SOURCE_ROOT}", file=sys.stderr)
@@ -280,6 +376,7 @@ def main() -> int:
     fk_counts = sync_fieldkit()
     landing_counts = sync_landing_page()
     sig_counts = sync_signature_svgs()
+    seq_counts = write_sequence_manifest()
 
     print(f"# Field Notes sync — applied")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -289,7 +386,14 @@ def main() -> int:
     nothing_fieldkit = not any(fk_counts.values())
     nothing_landing = not any(landing_counts.values())
     nothing_sig = not any(sig_counts.values())
-    if nothing_articles and nothing_fieldkit and nothing_landing and nothing_sig:
+    nothing_seq = not any(seq_counts.values())
+    if (
+        nothing_articles
+        and nothing_fieldkit
+        and nothing_landing
+        and nothing_sig
+        and nothing_seq
+    ):
         print("No changes copied. Source and target were already in step.")
         return 0
 
@@ -319,6 +423,8 @@ def main() -> int:
             f"  • src/components/field-notes/svg/: "
             f"{sig_counts['signature_svg']} signature component(s) updated"
         )
+    if seq_counts["sequence_manifest"]:
+        print("  • src/data/field-notes/sequence.json: source order changed")
 
     print()
     print("Totals:")
@@ -332,6 +438,9 @@ def main() -> int:
         if v:
             print(f"  {k}: {v}")
     for k, v in sig_counts.items():
+        if v:
+            print(f"  {k}: {v}")
+    for k, v in seq_counts.items():
         if v:
             print(f"  {k}: {v}")
 
