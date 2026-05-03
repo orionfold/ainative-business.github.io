@@ -16,7 +16,7 @@ fieldkit_modules: [rag]
 
 One inference endpoint became a NIM. One embedding endpoint became the Nemotron Retriever. This time the substrate becomes `pgvector` — the column where the vectors *live* between the embed call and the retrieve call. Three arcs share this table; only the query predicates differ. A Second Brain asks "which notes look like what I just wrote?", a personal wiki asks "which pages duplicate this passage?", and an autoresearch agent asks "which prior trajectories resembled this plan?". All three push the same row shape through the same operator, `<=>`, against the same index.
 
-The short version: pgvector 0.8.2 pulls cleanly onto a Spark as the official `pgvector/pgvector:pg16` container, mounts a persistent volume, and exposes Postgres on `:5432` with the vector type already compiled. A thousand AG-News chunks embedded through the article-#4 Nemotron NIM and streamed into a `vector(1024)` column land at 99 documents per second end-to-end. Both HNSW and IVFFlat indexes build in under a second. Neither wins by default — the planner prefers a sequential scan at this corpus size, and forcing an approximate index costs you between 3 and 37 points of recall depending on the knob you turn. The longer version is more interesting because the planner's reluctance is itself the lesson: at a thousand rows, on an aarch64 Grace CPU, pgvector's `ORDER BY <=>` runs in two milliseconds without an index at all.
+The short version: pgvector 0.8.2 pulls cleanly onto a Spark as the official `pgvector/pgvector:pg16` container, mounts a persistent volume, and exposes Postgres on `:5432` with the vector type already compiled. A thousand AG-News chunks embedded through the [embedding NIM article's](/articles/nemo-retriever-embeddings-local/) Nemotron NIM and streamed into a `vector(1024)` column land at 99 documents per second end-to-end. Both HNSW and IVFFlat indexes build in under a second. Neither wins by default — the planner prefers a sequential scan at this corpus size, and forcing an approximate index costs you between 3 and 37 points of recall depending on the knob you turn. The longer version is more interesting because the planner's reluctance is itself the lesson: at a thousand rows, on an aarch64 Grace CPU, pgvector's `ORDER BY <=>` runs in two milliseconds without an index at all.
 
 ## Why pgvector instead of a purpose-built store
 
@@ -122,7 +122,7 @@ PostgreSQL 16.13 (Debian 16.13-1.pgdg12+1) on aarch64-unknown-linux-gnu,
 
 ### Commit to a dimension
 
-Article #4 kept the Nemotron embedding NIM deliberately agnostic on output size. pgvector can't. `vector(N)` is a typed column; `N` is fixed at `CREATE TABLE` time, and every row the column ever holds must have exactly `N` components. So article #5 has to pick one.
+The [embedding NIM article](/articles/nemo-retriever-embeddings-local/) kept the Nemotron embedding NIM deliberately agnostic on output size. pgvector can't. `vector(N)` is a typed column; `N` is fixed at `CREATE TABLE` time, and every row the column ever holds must have exactly `N` components. So this article has to pick one.
 
 The Nemotron Retriever model card lists Matryoshka cut points at 384, 512, 768, 1024, and 2048 dimensions. The quality curve from the card puts 2048 at the top, 1024 about four points below it on NDCG@10, and the shorter truncations roughly another point apart. The storage curve is the inverse — 2048-d at 4 bytes per component is 8 KB per vector, 1024-d is 4 KB, 384-d is 1.5 KB. A hundred thousand chunks at 2048-d is 800 MB of vector data alone, plus whatever the HNSW graph adds on top. Same corpus at 1024-d is 400 MB. *1024-d is the quality/storage sweet spot for a personal-scale corpus* — you pay four NDCG points and halve the footprint. Everything in this article uses 1024-d.
 
@@ -183,7 +183,7 @@ proc.wait()
 
 The pgvector text format inside a COPY stream is the same bracketed comma-separated list the SQL type accepts directly — `[0.123,0.456,...]`. No special escaping beyond the standard TSV rules for the other columns.
 
-End-to-end throughput comes in at **99.5 documents per second** — 1000 rows embedded and persisted in 10.1 seconds. That's a 3.5× improvement over the article-#4 benchmark's 28.7 docs/s at 2048-d because the output payload halves (the HTTP body is 1024 floats instead of 2048) and the chunks themselves are short AG-News leads instead of 540-token passages. Batch size sits at the sweet spot article #4 found; larger batches don't help because the bottleneck is token-rate on the embedding side, not round-trip count.
+End-to-end throughput comes in at **99.5 documents per second** — 1000 rows embedded and persisted in 10.1 seconds. That's a 3.5× improvement over the [embedding NIM article's](/articles/nemo-retriever-embeddings-local/) 28.7 docs/s at 2048-d because the output payload halves (the HTTP body is 1024 floats instead of 2048) and the chunks themselves are short AG-News leads instead of 540-token passages. Batch size sits at the sweet spot that article found; larger batches don't help because the bottleneck is token-rate on the embedding side, not round-trip count.
 
 The resulting relation is six megabytes for 1000 rows:
 
@@ -270,4 +270,4 @@ One inference endpoint became NIM. One memory layer became Nemotron Retriever. T
 - **LLM Wiki now has an index.** Pages become rows with full text alongside the vector; duplicate detection is `WHERE embedding <=> $candidate < 0.2` and one more join for link management.
 - **Autoresearch now has a trajectory store.** Agent runs are rows keyed by a trajectory ID, with vector columns for plan, observation, and outcome. "Have I done something like this before" becomes a three-column cosine query.
 
-Article #6 wires naive RAG on top of this — take a question, embed it, retrieve the top-K chunks, stuff them into a Llama 3.1 8B NIM prompt, return the answer. Three article-stack pieces now: the LLM, the embedder, the store. One more — the generator wiring — and the three arcs share an end-to-end retrieval loop.
+The [naive RAG article](/articles/naive-rag-on-spark/) wires naive RAG on top of this — take a question, embed it, retrieve the top-K chunks, stuff them into a Llama 3.1 8B NIM prompt, return the answer. Three article-stack pieces now: the LLM, the embedder, the store. One more — the generator wiring — and the three arcs share an end-to-end retrieval loop.

@@ -116,36 +116,39 @@ const jsonLd = {
     <section class="fk-section">
       <h2 class="fk-section__title">Install</h2>
       <div class="fk-code">
-        <pre><code>{`pip install "git+https://github.com/manavsehgal/ai-field-notes.git@fieldkit/v${fieldkitVersion}#subdirectory=fieldkit"`}</code></pre>
+        <pre><code>pip install fieldkit</code></pre>
       </div>
       <p class="fk-section__note">
-        Pin to a tagged release as above, or use <code>main</code> for the latest unreleased work. Apache-2.0; Python 3.11+.
-        The <code>fieldkit</code> CLI is on <code>$PATH</code> after install.
+        Apache-2.0; Python 3.11+. The <code>fieldkit</code> CLI is on <code>$PATH</code> after install.
+        For unreleased commits between tags, install from the git tag instead:
       </p>
+      <div class="fk-code">
+        <pre><code>{`pip install "git+https://github.com/manavsehgal/ai-field-notes.git@fieldkit/v${fieldkitVersion}#subdirectory=fieldkit"`}</code></pre>
+      </div>
     </section>
 
     <section class="fk-section">
-      <h2 class="fk-section__title">Quickstart</h2>
-      <div class="fk-code">
-        <pre><code>{`from fieldkit.capabilities import kv_cache_bytes, weight_bytes
-from fieldkit.nim import NIMClient
-from fieldkit.rag import Document, Pipeline
-from fieldkit.eval import Bench, Judge, is_refusal
+          <h2 class="fk-section__title">Quickstart</h2>
+          <div class="fk-code">
+            <pre><code>{`from fieldkit.capabilities import kv_cache_bytes, weight_bytes
+      from fieldkit.nim import NIMClient
+      from fieldkit.rag import Document, Pipeline
+      from fieldkit.eval import Bench, Judge, is_refusal
 
-# 70B Llama 3.1 KV cache at 32-user × 16K ctx, FP16:
-kv_cache_bytes(hidden=8 * 128, n_layers=80, ctx=16384, batch=32, dtype="fp16")
-# → 171_798_691_840  (≈ 171.8 GB)
+      # 70B Llama 3.1 KV cache at 32-user × 16K ctx, FP16:
+      kv_cache_bytes(hidden=8 * 128, n_layers=80, ctx=16384, batch=32, dtype="fp16")
+      # → 171_798_691_840  (≈ 171.8 GB)
 
-# Naive RAG end-to-end:
-with NIMClient(base_url="http://localhost:8000/v1",
-               model="meta/llama-3.1-8b-instruct") as gen, \\
-     Pipeline(embed_url="http://localhost:8001/v1",
-              pgvector_dsn="postgresql://spark:spark@localhost:5432/vectors",
-              generator=gen) as pipe:
-    pipe.ensure_schema()
-    pipe.ingest([Document(id=1, text="...", label="spark")])
-    print(pipe.ask("How much memory does the Spark have?")["answer"])`}</code></pre>
-      </div>
+      # Naive RAG end-to-end:
+      with NIMClient(base_url="http://localhost:8000/v1",
+                     model="meta/llama-3.1-8b-instruct") as gen, \\
+           Pipeline(embed_url="http://localhost:8001/v1",
+                    pgvector_dsn="postgresql://spark:spark@localhost:5432/vectors",
+                    generator=gen) as pipe:
+          pipe.ensure_schema()
+          pipe.ingest([Document(id=1, text="...", label="spark")])
+          print(pipe.ask("How much memory does the Spark have?")["answer"])`}</code></pre>
+          </div>
     </section>
 
     <section class="fk-section">
@@ -185,24 +188,24 @@ with NIMClient(base_url="http://localhost:8000/v1",
     )}
 
     <section class="fk-section">
-      <h2 class="fk-section__title">CLI</h2>
-      <div class="fk-code">
-        <pre><code>{`$ fieldkit version
-${fieldkitVersion}
+          <h2 class="fk-section__title">CLI</h2>
+          <div class="fk-code">
+            <pre><code>{`$ fieldkit version
+      0.1.0.dev0
 
-$ fieldkit envelope "70B params fp8"
-~70 GB weights; leaves ~50 GB for KV + activations + system; tight but possible
+      $ fieldkit envelope "70B params fp8"
+      ~70 GB weights; leaves ~50 GB for KV + activations + system; tight but possible
 
-$ fieldkit feasibility llama-3.1-70b --ctx 4096 --batch 32 --dtype fp8
-weights (fp8):       70.0 GB
-KV cache (fp8):      21.5 GB  (ctx=4096, batch=32)
-weights + KV:       91.5 GB
+      $ fieldkit feasibility llama-3.1-70b --ctx 4096 --batch 32 --dtype fp8
+      weights (fp8):       70.0 GB
+      KV cache (fp8):      21.5 GB  (ctx=4096, batch=32)
+      weights + KV:       91.5 GB
 
-$ fieldkit bench rag --table fieldkit_cli_bench_rag --out /tmp/bench.json`}</code></pre>
-      </div>
-      <p class="fk-section__note">
-        See the <a href={moduleHref('cli')}>CLI reference</a> for all commands.
-      </p>
+      $ fieldkit bench rag --table fieldkit_cli_bench_rag --out /tmp/bench.json`}</code></pre>
+          </div>
+          <p class="fk-section__note">
+            See the <a href={moduleHref('cli')}>CLI reference</a> for all commands.
+          </p>
     </section>
   </main>
   <Footer />

@@ -130,7 +130,7 @@ Yield: **275 Q&A pairs** from 11 articles, ~25 pairs per article on average, all
  "answer": "~26 seconds",
  "source": "nemoclaw-vs-openclaw-dgx-spark"}
 
-{"question": "How many documents per second are embedded through the article-#4 Nemotron NIM?",
+{"question": "How many documents per second are embedded through the Nemotron Retriever embedding NIM?",
  "answer": "99",
  "source": "pgvector-on-spark"}
 ```
@@ -222,7 +222,7 @@ REF:     0.5
 ADAPTER: 0.8
 
 Q: What is the median wall time including retrieval for the 8B local NIM
-   on article #7's rerank mode?
+   on the rerank-and-fusion chain?
 REF:     2.0 seconds
 ADAPTER: 120 ms
 ```

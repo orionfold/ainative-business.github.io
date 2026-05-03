@@ -5,18 +5,18 @@ author: Manav Sehgal
 product: Llama 3.3 70B + Nemotron-Super-49B + Llama 3.1 8B NIM
 stage: inference
 difficulty: intermediate
-time_required: "~30 minutes on top of the article #7 chain"
+time_required: "~30 minutes on top of the rerank-and-fusion chain"
 hardware: "NVIDIA DGX Spark"
 tags: [rag, grounding, refusal, nemotron, llama, generator, scale, dgx-spark]
-summary: "Article #7 bet that a bigger generator would heal the 8B Google-IPO refusal. Ran the A/B across three sizes on one retrieval chain. Bet lost: Nemotron-Super-49B over-refuses the 8B baseline; Llama 3.3 70B narrows the gap, not closes it. The refusal was the scaffold working."
+summary: "The rerank-and-fusion article bet that a bigger generator would heal the 8B Google-IPO refusal. Ran the A/B across three sizes on one retrieval chain. Bet lost: Nemotron-Super-49B over-refuses the 8B baseline; Llama 3.3 70B narrows the gap, not closes it. The refusal was the scaffold working."
 signature: GeneratorUpgrade
 series: Foundations
 fieldkit_modules: [rag]
 ---
 
-Article #7 ended with a bet. Four retrieval configurations had fed perfect chunks to the 8B generator on *"Did Google have an IPO in 2004?"* All four got back *"The provided context does not contain the answer."* The retrieval had the right facts at rank 1. The grounding didn't commit. The closing line queued the obvious fix: swap the 8B for Llama 3.3 70B or Nemotron-Super-49B and measure whether the bigger model's grounding circuit answers where the smaller one refused.
+The [rerank-and-fusion article](/articles/rerank-fusion-retrieval-on-spark/) ended with a bet. Four retrieval configurations had fed perfect chunks to the 8B generator on *"Did Google have an IPO in 2004?"* All four got back *"The provided context does not contain the answer."* The retrieval had the right facts at rank 1. The grounding didn't commit. The closing line queued the obvious fix: swap the 8B for Llama 3.3 70B or Nemotron-Super-49B and measure whether the bigger model's grounding circuit answers where the smaller one refused.
 
-This article ran that experiment across three generator sizes — the existing 8B-local NIM from article #3, Nemotron-Super-49B served from `integrate.api.nvidia.com`, and Llama 3.3 70B from the same hosted endpoint — on the same thirty-query qrels set, the same rerank retrieval chain, the same strict-context scaffold. Ninety LLM calls. One retrieval pipeline held constant. The bet lost. The 49B refuses *more* than the 8B on perfect-retrieval queries (18.2% vs. 9.1%). The 70B narrows the refusal gap a little, not a lot, and pays 2× to 12× latency for the privilege. And re-inspecting the IPO chunks shows why — the passages discuss the IPO but don't state the year 2004 anywhere. The 8B refusal article #6 framed as a bruise was the scaffold doing its job, and three generators across a ten-times parameter range agree.
+This article ran that experiment across three generator sizes — the existing 8B-local NIM from the [first NIM article](/articles/nim-first-inference-dgx-spark/), Nemotron-Super-49B served from `integrate.api.nvidia.com`, and Llama 3.3 70B from the same hosted endpoint — on the same thirty-query qrels set, the same rerank retrieval chain, the same strict-context scaffold. Ninety LLM calls. One retrieval pipeline held constant. The bet lost. The 49B refuses *more* than the 8B on perfect-retrieval queries (18.2% vs. 9.1%). The 70B narrows the refusal gap a little, not a lot, and pays 2× to 12× latency for the privilege. And re-inspecting the IPO chunks shows why — the passages discuss the IPO but don't state the year 2004 anywhere. The 8B refusal the [naive RAG article](/articles/naive-rag-on-spark/) framed as a bruise was the scaffold doing its job, and three generators across a ten-times parameter range agree.
 
 ## The thesis in one glance
 
@@ -62,7 +62,7 @@ This article ran that experiment across three generator sizes — the existing 8
       <text class="fn-diagram__label fn-diagram__label--display" x="720" y="168" text-anchor="middle">13.6%</text>
     </g>
     <g class="fn-diagram__annotations">
-      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="60"  y="90" text-anchor="start">baseline — same as article #6 / #7</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="60"  y="90" text-anchor="start">baseline — same as naive-rag / rerank-fusion</text>
       <text class="fn-diagram__label fn-diagram__label--accent fn-diagram__label--mono" x="360" y="60" text-anchor="start">THE SURPRISE</text>
       <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="360" y="80" text-anchor="start">tuned for careful answering; refuses more</text>
       <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="620" y="102" text-anchor="start">generic 70B — narrows gap, not closes it</text>
@@ -75,21 +75,21 @@ This article ran that experiment across three generator sizes — the existing 8
   </svg>
 </figure>
 
-The headline finding is the amber node in the middle. Nemotron-Super-49B is the NVIDIA-native, post-trained-for-instruction-following, designed-to-be-careful flagship. It refused on eighteen out of every hundred perfect-retrieval queries — twice the 8B baseline, and more than the larger 70B. The 70B improves slightly on the 49B but not on the 8B. The size dial doesn't have the knob article #7 assumed it had.
+The headline finding is the amber node in the middle. Nemotron-Super-49B is the NVIDIA-native, post-trained-for-instruction-following, designed-to-be-careful flagship. It refused on eighteen out of every hundred perfect-retrieval queries — twice the 8B baseline, and more than the larger 70B. The 70B improves slightly on the 49B but not on the 8B. The size dial doesn't have the knob the rerank-and-fusion article assumed it had.
 
 ## The setup — only the generator changed
 
-Article #7's retrieval chain is held constant: the query is embedded with Nemotron Retriever, the dense and BM25 top-20s are fused via RRF, and the hosted Nemotron Reranker returns the top-5 logit-ranked chunks. That top-5 is the input to all three generators, unchanged. The same strict-context scaffold from article #6 is the system message: *answer only from the passages, cite row ids, and if the answer isn't there, reply with one exact sentence*.
+The [rerank-and-fusion article's](/articles/rerank-fusion-retrieval-on-spark/) retrieval chain is held constant: the query is embedded with Nemotron Retriever, the dense and BM25 top-20s are fused via RRF, and the hosted Nemotron Reranker returns the top-5 logit-ranked chunks. That top-5 is the input to all three generators, unchanged. The same strict-context scaffold from the [naive RAG article](/articles/naive-rag-on-spark/) is the system message: *answer only from the passages, cite row ids, and if the answer isn't there, reply with one exact sentence*.
 
 The three generators are:
 
-- **Llama 3.1 8B Instruct**, served locally on the Spark via NIM on port 8000. The article-#3 through #7 baseline.
-- **Nemotron-Super-49B v1 Instruct**, served from `integrate.api.nvidia.com` with the same NGC API key used by the hosted reranker. The NIM image exists on NGC (`nvcr.io/nim/nvidia/llama-3.3-nemotron-super-49b-v1:latest`) but has no `-dgx-spark` tag; the reranker compat gap from article #7 set the precedent, so hosted is the first-line path.
+- **Llama 3.1 8B Instruct**, served locally on the Spark via NIM on port 8000. The baseline carried from the [first NIM](/articles/nim-first-inference-dgx-spark/) through the [rerank-and-fusion](/articles/rerank-fusion-retrieval-on-spark/) articles.
+- **Nemotron-Super-49B v1 Instruct**, served from `integrate.api.nvidia.com` with the same NGC API key used by the hosted reranker. The NIM image exists on NGC (`nvcr.io/nim/nvidia/llama-3.3-nemotron-super-49b-v1:latest`) but has no `-dgx-spark` tag; the reranker compat gap from the [rerank-and-fusion article](/articles/rerank-fusion-retrieval-on-spark/) set the precedent, so hosted is the first-line path.
 - **Llama 3.3 70B Instruct**, also from `integrate.api.nvidia.com`. No `-dgx-spark` variant exists on NGC as of this session; the local pull is ~40 GB and sits right on the line of GB10's unified-memory budget. A failed local experiment earlier in the day hard-hung the box, so the hosted endpoint was the disciplined choice.
 
 The local 49B NIM was *pulled* to disk — the 23 GB image now lives at `nvcr.io/nim/nvidia/llama-3.3-nemotron-super-49b-v1:latest` — but deliberately not *started*. The hosted A/B answered the article's question before the local start-up mattered, and starting a 49B on a box that had OOM'd two hours earlier had no editorial upside for a finding that was already clear.
 
-The harness is a single flag on the article-#7 script. `hybrid_ask.py --generator {llama31-8b, nemotron-super-49b-hosted, llama33-70b-hosted}` dispatches to the correct URL; the scaffold, prompt, and retrieval code are untouched. The benchmark loops over the qrels × three generators and writes `benchmark.json` with per-query answers, refusal booleans, and latencies.
+The harness is a single flag on the [rerank-and-fusion article's](/articles/rerank-fusion-retrieval-on-spark/) script. `hybrid_ask.py --generator {llama31-8b, nemotron-super-49b-hosted, llama33-70b-hosted}` dispatches to the correct URL; the scaffold, prompt, and retrieval code are untouched. The benchmark loops over the qrels × three generators and writes `benchmark.json` with per-query answers, refusal booleans, and latencies.
 
 ## The numbers, across all thirty queries
 
@@ -107,7 +107,7 @@ The refusal columns carry the article. The overall refusal rate across all thirt
 
 Twenty-four of the thirty queries produced the same verdict from all three generators — answer, cited, move on. The other six are the article.
 
-**q01 — *"Did Google have an IPO in 2004?"*** — all three refused. The rerank returned the same five top chunks each time, including `[1151] "Google Could Make Market Debut Wednesday"`, which opens *"NEW YORK/SAN FRANCISCO (Reuters) - Google Inc. appeared set to start trading on Nasdaq on Wednesday."* The other four chunks all contain the phrase "Google IPO" in the first line. None of them contains the string "2004". Three generators across a ten-times parameter range agreed: under strict context, they cannot assert the year. Article #6 framed this as a *grounding bruise*. Looking at the chunks now, that frame was wrong. The refusal is the scaffold doing its job — the model can confirm that Google had an IPO and that it was happening during the trading week of those articles, but cannot assert the calendar year without seeing it. A model that invents the year from world knowledge would be hallucinating by the strict-context rules we set.
+**q01 — *"Did Google have an IPO in 2004?"*** — all three refused. The rerank returned the same five top chunks each time, including `[1151] "Google Could Make Market Debut Wednesday"`, which opens *"NEW YORK/SAN FRANCISCO (Reuters) - Google Inc. appeared set to start trading on Nasdaq on Wednesday."* The other four chunks all contain the phrase "Google IPO" in the first line. None of them contains the string "2004". Three generators across a ten-times parameter range agreed: under strict context, they cannot assert the year. The [naive RAG article](/articles/naive-rag-on-spark/) framed this as a *grounding bruise*. Looking at the chunks now, that frame was wrong. The refusal is the scaffold doing its job — the model can confirm that Google had an IPO and that it was happening during the trading week of those articles, but cannot assert the calendar year without seeing it. A model that invents the year from world knowledge would be hallucinating by the strict-context rules we set.
 
 **q06 — *"What was Nortel's Canadian accounting probe about?"*** — 8B answered crisply: *"The Royal Canadian Mounted Police told Nortel that it will begin a criminal investigation into Nortel's financial accounting. Sources: [1179]."* The 49B and 70B both refused. The retrieval was identical — all three saw the same top-5. The 8B picked up the one sentence in chunk [1179] that named the agency and the act and committed to that answer. The larger generators saw the same sentence and declined to commit. This is the first place the editorial frame shifts: the smaller model was more useful, on this query, on this corpus, under this scaffold.
 
@@ -125,13 +125,13 @@ Nemotron-Super is NVIDIA's instruction-tuned flagship in the mid-size tier. Its 
 
 The q06 and q10 answers suggest the mechanism. The 8B, on a top-5 that contains a headline-level sentence stating the fact, stops reasoning and emits the fact with a citation. The 49B appears to reason longer, note that the chunk doesn't contain an *explicit statement of the exact claim* the user is asking for (a tournament total vs. a round score; a one-sentence agency summary vs. a full description of what the investigation covered), and refuse. The instruction-following layer is doing what RLHF asked it to do — err on the side of caution — and the strict-context scaffold amplifies that caution into a false-refusal circuit that the smaller, cruder 8B doesn't have.
 
-This is not a bug in Nemotron-Super. It is the model working exactly as trained. The training objective — precision over recall on grounded assertions — produces exactly this behaviour on queries where the top chunk is *adjacent* to the question but not a verbatim restatement of it. The scaffold in articles #6 and #7 was calibrated for the 8B's looser grounding circuit. The 49B deserves its own scaffold — one that explicitly tells it *"quotable partial answers count; refuse only on absence"* — before a fair size comparison is possible.
+This is not a bug in Nemotron-Super. It is the model working exactly as trained. The training objective — precision over recall on grounded assertions — produces exactly this behaviour on queries where the top chunk is *adjacent* to the question but not a verbatim restatement of it. The scaffold in the [naive RAG](/articles/naive-rag-on-spark/) and [rerank-and-fusion](/articles/rerank-fusion-retrieval-on-spark/) articles was calibrated for the 8B's looser grounding circuit. The 49B deserves its own scaffold — one that explicitly tells it *"quotable partial answers count; refuse only on absence"* — before a fair size comparison is possible.
 
 And that is the article's real finding. The generator-size dial is not a grounding dial. It is a precision-vs-recall dial on the refusal circuit, and the direction is tunable by post-training, not by parameter count.
 
 ## The Google IPO chunks, finally read in full
 
-The article-#6 hero moment deserves its own re-read, because the framing changes. Here is the opening line of each of the five top-ranked chunks the reranker fed for q01:
+The [naive RAG article's](/articles/naive-rag-on-spark/) hero moment deserves its own re-read, because the framing changes. Here is the opening line of each of the five top-ranked chunks the reranker fed for q01:
 
 - `[13]  "Google IPO Auction Off to Rocky Start  WASHINGTON/NEW YORK (Reuters)..."`
 - `[36]  "Google IPO: Type in 'confusing,' 'secrecy' I've submitted my bid..."`
@@ -141,11 +141,11 @@ The article-#6 hero moment deserves its own re-read, because the framing changes
 
 None of them contains the digit string *2004*. The AG News dataset was published without year metadata in the body text — the articles are dated contemporaneously, but the passages themselves discuss a Wednesday IPO without naming the calendar year. A generator that answers *"Yes, in 2004"* from these passages is importing world knowledge. A generator that refuses is following the strict-context scaffold.
 
-The article-#6 narrative framed the 8B refusal as a failure. From this angle it reads the other way — the 8B, 49B and 70B all did the right thing. The fix is not a bigger generator; it is either richer chunks (AG News with a year-tagged front matter, say) or a weaker scaffold (permission to cite world knowledge when the context is compatible). A separate article will pick one of those levers; the finding here is that *scaling the generator* is not a lever.
+The [naive RAG article's](/articles/naive-rag-on-spark/) narrative framed the 8B refusal as a failure. From this angle it reads the other way — the 8B, 49B and 70B all did the right thing. The fix is not a bigger generator; it is either richer chunks (AG News with a year-tagged front matter, say) or a weaker scaffold (permission to cite world knowledge when the context is compatible). A separate article will pick one of those levers; the finding here is that *scaling the generator* is not a lever.
 
 ## Latency and cost economics
 
-The 8B local NIM runs on the GB10 on port 8000 with 120-second timeouts that the benchmark rarely touches. Median wall time including retrieval was 2.0 seconds on article #7's rerank mode, and the distribution is tight — the p95 is 2.8 seconds. The hosted 49B is within 500 ms of the local 8B on the median but has a much heavier tail, p95 of 7.7 seconds. The hosted 70B paid a 4.1-second median and a 24-second p95, and hit one 429 rate-limit error in the thirty-query run. At Second-Brain-chat cadence (a query every few seconds during active thinking) the 70B's p95 and rate limits are disqualifying; the 49B is marginal; the 8B is the only one that comfortably fits.
+The 8B local NIM runs on the GB10 on port 8000 with 120-second timeouts that the benchmark rarely touches. Median wall time including retrieval was 2.0 seconds on the [rerank-and-fusion article's](/articles/rerank-fusion-retrieval-on-spark/) rerank mode, and the distribution is tight — the p95 is 2.8 seconds. The hosted 49B is within 500 ms of the local 8B on the median but has a much heavier tail, p95 of 7.7 seconds. The hosted 70B paid a 4.1-second median and a 24-second p95, and hit one 429 rate-limit error in the thirty-query run. At Second-Brain-chat cadence (a query every few seconds during active thinking) the 70B's p95 and rate limits are disqualifying; the 49B is marginal; the 8B is the only one that comfortably fits.
 
 Token counts matter too. The 8B local NIM bills zero; the hosted endpoints are metered. For 30 rerank queries with ~1000-token top-5 contexts and 20-token answers, the hosted calls consume a few hundred thousand prompt tokens and a few thousand completion tokens — small enough to ignore for one experiment, meaningful at production cadence.
 

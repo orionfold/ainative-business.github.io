@@ -5,7 +5,7 @@ author: Manav Sehgal
 product: Nemotron Reranker + pgvector full-text + Llama 3.1 8B NIM
 stage: inference
 difficulty: intermediate
-time_required: "~45 minutes on top of the article #6 chain"
+time_required: "~45 minutes on top of the naive-RAG chain"
 hardware: "NVIDIA DGX Spark"
 tags: [rag, retrieval, rerank, bm25, rrf, hybrid, nemotron, pgvector, fusion, dgx-spark]
 summary: "Four retrieval modes on one corpus — naive dense, BM25, Reciprocal Rank Fusion, Nemotron rerank. Dense is already 92% recall@5; rerank adds a point at K=10 and reorders the top. The 8B generator still refuses where retrieval is perfect — grounding, not retrieval, is the new bottleneck."
@@ -14,7 +14,7 @@ series: Foundations
 fieldkit_modules: [rag]
 ---
 
-Article #6 left a bruise. The Llama 3.1 8B NIM, handed five perfectly-retrieved chunks about the 2004 Google IPO, replied *"The provided context does not contain the answer."* The retrieval was right. The grounding was wrong. The closing paragraph queued two upgrades to the chain — a reranker to sharpen the top-K, and a BM25 lexical path to rescue exact-term queries — and asked whether either would close the gap.
+The [naive RAG article](/articles/naive-rag-on-spark/) left a bruise. The Llama 3.1 8B NIM, handed five perfectly-retrieved chunks about the 2004 Google IPO, replied *"The provided context does not contain the answer."* The retrieval was right. The grounding was wrong. The closing paragraph queued two upgrades to the chain — a reranker to sharpen the top-K, and a BM25 lexical path to rescue exact-term queries — and asked whether either would close the gap.
 
 This article answers that with a 30-query benchmark across four modes and an honest finding: the gap is real, but it isn't where I thought. Dense retrieval on AG News with the Nemotron Retriever embedder is already at 92% recall@5 — near the ceiling. Adding BM25 *lowers* fused recall slightly because the lexical side's noise dilutes a signal that was already near-perfect. The reranker rescues those losses and lifts recall@10 to 96.8% — the best number in the table. And even then, the 8B generator still refuses on the Google-IPO question. Retrieval is past the bottleneck. Grounding on an 8B strict-context model isn't.
 
@@ -84,7 +84,7 @@ The upgrades work. The direction of the win is not the one the literature would 
 
 ## The four modes in one script
 
-Every mode shares the same generator, the same strict-context prompt, the same streaming loop. The only thing that changes is how the top-K gets chosen. That discipline matters — it means any difference in the answer traces *only* to retrieval. The full script is at `articles/rerank-fusion-retrieval-on-spark/evidence/hybrid_ask.py`, stdlib-only, ninety new lines on top of article #6's `ask.py`.
+Every mode shares the same generator, the same strict-context prompt, the same streaming loop. The only thing that changes is how the top-K gets chosen. That discipline matters — it means any difference in the answer traces *only* to retrieval. The full script is at `articles/rerank-fusion-retrieval-on-spark/evidence/hybrid_ask.py`, stdlib-only, ninety new lines on top of the [naive RAG article's](/articles/naive-rag-on-spark/) `ask.py`.
 
 ```python
 def retrieve(question, mode, k):
@@ -105,11 +105,11 @@ def retrieve(question, mode, k):
         return rerank_hits(question, fused, top_k=k), timings
 ```
 
-Four branches, one dispatcher. The naive branch is what article #6 shipped. The BM25 branch swaps the embedder and the ANN index for Postgres full-text. The RRF branch runs both in parallel and fuses. The rerank branch adds a cross-encoder pass over the fused candidates and re-sorts.
+Four branches, one dispatcher. The naive branch is what the [naive RAG article](/articles/naive-rag-on-spark/) shipped. The BM25 branch swaps the embedder and the ANN index for Postgres full-text. The RRF branch runs both in parallel and fuses. The rerank branch adds a cross-encoder pass over the fused candidates and re-sorts.
 
 ### BM25 with Postgres — six lines of SQL
 
-Postgres ships full-text search in the core. No extension, no external ingest, no parallel index service. Article #5's `chunks` table already has a `text` column; one `CREATE INDEX` turns it into a lexical index:
+Postgres ships full-text search in the core. No extension, no external ingest, no parallel index service. The [pgvector article's](/articles/pgvector-on-spark/) `chunks` table already has a `text` column; one `CREATE INDEX` turns it into a lexical index:
 
 ```sql
 CREATE INDEX chunks_fts ON chunks
@@ -247,7 +247,7 @@ The rerank is not always a win. Three queries in the 30 go the other way — the
 
 ## The Google IPO question, re-probed — retrieval is solved, grounding isn't
 
-Article #6's hero moment was the 8B model refusing on "Did Google have an IPO in 2004?" despite pgvector returning five Google-IPO chunks. This article ran the same question through all four modes. Every single mode retrieved the correct chunks. The reranker put *different* correct chunks at the top — including `[1151] "Google Could Make Market Debut Wednesday"`, which states the IPO event in the headline and opens with "Google Inc. appeared set to start trading Wednesday." Surely *that* chunk is explicit enough.
+The [naive RAG article's](/articles/naive-rag-on-spark/) hero moment was the 8B model refusing on "Did Google have an IPO in 2004?" despite pgvector returning five Google-IPO chunks. This article ran the same question through all four modes. Every single mode retrieved the correct chunks. The reranker put *different* correct chunks at the top — including `[1151] "Google Could Make Market Debut Wednesday"`, which states the IPO event in the headline and opens with "Google Inc. appeared set to start trading Wednesday." Surely *that* chunk is explicit enough.
 
 Every single mode refused. Naive, BM25, RRF, rerank — all four handed a top-5 to the 8B generator that included the answer in the first hundred words of the top chunk, and all four got back *"The provided context does not contain the answer."*
 
@@ -256,13 +256,13 @@ That is the cleanest separation of the two failure modes that the naive baseline
 - **Retrieval is not the bottleneck.** The reranker had the right chunks at the top. The naive scan had the right chunks at the top. The BM25 scan had the right chunks at the top. Four different rankings, same outcome from the generator.
 - **The 8B model's strict-context grounding circuit is the bottleneck.** At `temperature=0` with the strict-refuse scaffold, the 8B model doesn't commit to a yes/no on a yes/no question even when five on-topic chunks are in the prompt. This is a model-size problem, not a retrieval problem.
 
-The narrower rephrase still works under rerank — "What was the Playboy controversy around the Google IPO?" produces a cited answer with the reranker pushing the actual Playboy-IPO chunks to ranks 1–4. The *broader* question is where the 8B's confidence collapses. Article #8 will bring a bigger generator to this same corpus, and the measurement will be whether a 70B (or Nemotron Super) closes that specific refusal.
+The narrower rephrase still works under rerank — "What was the Playboy controversy around the Google IPO?" produces a cited answer with the reranker pushing the actual Playboy-IPO chunks to ranks 1–4. The *broader* question is where the 8B's confidence collapses. The [bigger-generator article](/articles/bigger-generator-grounding-on-spark/) brings a bigger generator to this same corpus, and the measurement is whether a 70B (or Nemotron Super) closes that specific refusal.
 
 ## Latency budget — where the 500 ms goes
 
 The rerank chain takes ~520 ms median end-to-end for retrieval alone. Broken down:
 
-- **35 ms** — query embedding, Nemotron :8001 (carries forward from article #4)
+- **35 ms** — query embedding, Nemotron :8001 (carries forward from the [embedding NIM article](/articles/nemo-retriever-embeddings-local/))
 - **65 ms** — pgvector dense top-20, `docker exec` startup + cosine scan
 - **75 ms** — BM25 top-20, ts_rank_cd via GIN index
 - **< 1 ms** — RRF merge (20 + 20 items sorted in-memory)
@@ -282,6 +282,6 @@ Four retrieval modes, three running threads.
 
 Four articles ago I expected hybrid retrieval to dominate naive by several recall points on every query. The measurement says the opposite story — with a strong embedder on a clean corpus, naive is already 92% recall@5 and BM25 + RRF only help on the queries where dense was weak, which is a minority. The reranker is what actually moves the needle at recall@10, and its biggest contribution is reordering — *which* correct chunks land at the top, not whether they're found at all.
 
-The grounding gap from article #6 is sharper now, not narrower. Four different retrieval configurations fed five correct chunks to the 8B generator on the Google-IPO question. All four got back a refusal. Retrieval is past the bottleneck at AG News scale with this embedder. Article #8 will swap the 8B for a bigger generator — Nemotron-Super-49B through the hosted endpoint, or the next local NIM that fits GB10 memory — and measure whether a stronger grounding circuit closes the refusal.
+The grounding gap from the [naive RAG article](/articles/naive-rag-on-spark/) is sharper now, not narrower. Four different retrieval configurations fed five correct chunks to the 8B generator on the Google-IPO question. All four got back a refusal. Retrieval is past the bottleneck at AG News scale with this embedder. The [bigger-generator article](/articles/bigger-generator-grounding-on-spark/) swaps the 8B for a bigger generator — Nemotron-Super-49B through the hosted endpoint, or the next local NIM that fits GB10 memory — and measure whether a stronger grounding circuit closes the refusal.
 
 **Second Brain now:** has BM25 recall for exact-term queries. **LLM Wiki now:** ranks library-name hits correctly. **Autoresearch now:** has a calibrated tie-breaker. Next up: **a bigger generator on the same retrieval chain** — measure whether 49B / 70B-class grounding turns the four-mode refusal on "Did Google have an IPO in 2004?" into the obvious yes.

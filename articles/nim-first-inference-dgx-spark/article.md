@@ -118,7 +118,7 @@ One Spark-specific surprise showed up on the `nvidia-smi` line and foreshadows a
 
 ### Finding the right image
 
-This is article #3, so the right question is: *which* image? Several Llama 3.1 8B NIM variants live in the NGC catalog, and on an aarch64 machine the wrong one either fails to pull (no arm64 manifest) or pulls something that runs but wasn't tuned for Spark's FP8 path. The right answer is the one NVIDIA publishes at a dedicated namespace:
+This is the foundations arc's first-NIM piece, so the right question is: *which* image? Several Llama 3.1 8B NIM variants live in the NGC catalog, and on an aarch64 machine the wrong one either fails to pull (no arm64 manifest) or pulls something that runs but wasn't tuned for Spark's FP8 path. The right answer is the one NVIDIA publishes at a dedicated namespace:
 
 ```
 nvcr.io/nim/meta/llama-3.1-8b-instruct-dgx-spark:latest

@@ -20,7 +20,7 @@ Two factual sentences first, in plain English: **For 73 minutes this afternoon, 
 
 ## What we actually did vs. what "training a model" usually means
 
-The phrase **"I want to train a language model"** is one of the most-overloaded sentences in the AI vocabulary. Four very different things hide behind it, with costs that span four orders of magnitude. Most people who say "train" mean one of the cheaper rows in the table below. The agent loop in article #20 is infrastructure for the *most* expensive row — but most readers' actual goal is served by a cheaper one.
+The phrase **"I want to train a language model"** is one of the most-overloaded sentences in the AI vocabulary. Four very different things hide behind it, with costs that span four orders of magnitude. Most people who say "train" mean one of the cheaper rows in the table below. The agent loop in the [autoresearch-loop article](/articles/autoresearch-agent-loop/) is infrastructure for the *most* expensive row — but most readers' actual goal is served by a cheaper one.
 
 | what people usually say | the canonical name | what it actually does | cost on a Spark | typical result |
 |---|---|---|---:|---|
@@ -31,7 +31,7 @@ The phrase **"I want to train a language model"** is one of the most-overloaded 
 
 (The cost column is electricity only, on a Spark drawing 56 W. The hardware itself is a one-time purchase. Cloud equivalents are 50–500× higher.)
 
-The five technical articles I published today were almost entirely about **the bottom row** — pre-training from scratch. The agent loop in article #20 ran 50 experiments where the model started from random weights every iteration and trained for one minute. That isn't a *training* run; it's a *recipe-tasting* run. A bread baker who's testing 50 different flour mixtures doesn't bake 50 loaves — they mix the dough for a minute and feel its texture, and they decide which mixtures are worth committing the oven time to. The agent did the equivalent. We never baked a loaf.
+The five technical articles I published today were almost entirely about **the bottom row** — pre-training from scratch. The same agent loop ran 50 experiments where the model started from random weights every iteration and trained for one minute. That isn't a *training* run; it's a *recipe-tasting* run. A bread baker who's testing 50 different flour mixtures doesn't bake 50 loaves — they mix the dough for a minute and feel its texture, and they decide which mixtures are worth committing the oven time to. The agent did the equivalent. We never baked a loaf.
 
 So no, **we don't have a custom-trained language model that you can ask questions to.** What we have is the *experimental kitchen*: an LLM driver that proposes recipes, safety rails that block bad recipes from touching the oven, an evaluator that measures how a recipe behaves in 60 seconds, and a logbook of what the agent tried. That kitchen is a useful artifact. It's not the same artifact as a finished model.
 
@@ -51,14 +51,14 @@ The "personal AI power user" framing this blog has been pushing isn't hype. It's
 
 ## What we didn't do — the gap between this experiment and a real trained model
 
-To get from what we built today to a model you could actually use, you have to commit a lot more compute. The agent loop in article #20 trained each candidate model for 60 steps. A model worth using needs roughly **6,000 to 60,000 times more training**. Concretely:
+To get from what we built today to a model you could actually use, you have to commit a lot more compute. The agent loop trained each candidate model for 60 steps. A model worth using needs roughly **6,000 to 60,000 times more training**. Concretely:
 
 - **Each agent iteration trained on ~1 million tokens of text.** A real Chinchilla-optimal pretrain of a 354M-parameter model needs **~7 billion tokens** — about 7,000× more.
 - **Each iteration's final loss number (val_bpb 10.85) is essentially noise.** A properly trained GPT-2-small on Wikipedia data sits at val_bpb ≈ 4 (a perplexity of about 16). Ours at 10.85 means perplexity ~1,850 — the model is barely above random for natural English.
 - **We never saved any model's weights.** Each iteration's model was discarded after the val_bpb measurement. The agent's *decisions* are the artifact, not the models.
 - **The agent worked with a tiny menu.** It could twist 13 specific knobs (model size, learning rate, etc.). It can't add a new layer type, change the optimizer, or alter the data pipeline. Those are the kinds of changes a human researcher makes; the agent operates inside the boundaries we drew.
 
-Whether this matters depends on what you wanted out of the experiment. If you wanted a *trained model* — no, we don't have one. If you wanted a *measured methodology for finding good training recipes cheaply* — yes, we have that, and the trajectory log from article #20 is the data you'd use to bootstrap a serious training run.
+Whether this matters depends on what you wanted out of the experiment. If you wanted a *trained model* — no, we don't have one. If you wanted a *measured methodology for finding good training recipes cheaply* — yes, we have that, and the trajectory log from that loop is the data you'd use to bootstrap a serious training run.
 
 ## Three roadmaps at architecture-glance
 

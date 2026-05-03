@@ -110,7 +110,7 @@ The full script lives at `articles/naive-rag-on-spark/evidence/ask.py`. It does 
 
 ### 1. Embed the query — differently from how you embedded the corpus
 
-The Nemotron Retriever NIM takes an `input_type` parameter that matters at inference time. Passages went in as `"passage"` during the article-#5 ingest. Queries go in as `"query"`. The model was trained with contrastive pairs where the query branch and the passage branch are *different heads* of the same encoder — there's a task-conditional signal baked into the embedding, and using the passage head for queries will drop your recall by several points. On the Nemotron Retriever model card the exact delta isn't quoted, but the BEIR numbers from the paper show query/passage role mismatch costs 2–5 NDCG points depending on the task:
+The Nemotron Retriever NIM takes an `input_type` parameter that matters at inference time. Passages went in as `"passage"` during the [pgvector article's](/articles/pgvector-on-spark/) ingest. Queries go in as `"query"`. The model was trained with contrastive pairs where the query branch and the passage branch are *different heads* of the same encoder — there's a task-conditional signal baked into the embedding, and using the passage head for queries will drop your recall by several points. On the Nemotron Retriever model card the exact delta isn't quoted, but the BEIR numbers from the paper show query/passage role mismatch costs 2–5 NDCG points depending on the task:
 
 ```python
 def embed_query(text):
@@ -144,7 +144,7 @@ def pgvector_search(qvec, k):
     ...
 ```
 
-SQL on stdin instead of on the command line — a 1024-float query vector survives stdin cleanly, and would explode every shell quoting rule on the command line. No `enable_seqscan = off` override; article #5 showed the planner picks sequential scan at a thousand rows and that's fine, because the sequential scan is already sub-millisecond. The 70-millisecond wall-clock number is dominated by `docker exec` startup cost — the actual index/scan time inside Postgres is around 3 milliseconds.
+SQL on stdin instead of on the command line — a 1024-float query vector survives stdin cleanly, and would explode every shell quoting rule on the command line. No `enable_seqscan = off` override; the [pgvector article](/articles/pgvector-on-spark/) showed the planner picks sequential scan at a thousand rows and that's fine, because the sequential scan is already sub-millisecond. The 70-millisecond wall-clock number is dominated by `docker exec` startup cost — the actual index/scan time inside Postgres is around 3 milliseconds.
 
 ### 3. Format the strict-context prompt
 
@@ -205,7 +205,7 @@ Temperature zero because we want a deterministic baseline. The 8B model at `temp
 
 ## The numbers
 
-Six queries through the chain — three answerable from the 2004 AG-News corpus ingested in article #5, three deliberately outside it. The strict scaffold should ground the first group and refuse the second:
+Six queries through the chain — three answerable from the 2004 AG-News corpus ingested in the [pgvector article](/articles/pgvector-on-spark/), three deliberately outside it. The strict scaffold should ground the first group and refuse the second:
 
 | query                                                  | kind          | embed | retrieve | ttft  | generate | end-to-end |
 |--------------------------------------------------------|---------------|------:|---------:|------:|---------:|-----------:|
@@ -220,9 +220,9 @@ Four observations.
 
 **Embed and retrieve are steady.** 40 and 70 milliseconds respectively, independent of query length or topic. The embed side is dominated by a 1-token-to-1024-float forward pass on a warm GPU; the retrieve side is `docker exec` startup (roughly 60 ms) plus a sub-millisecond cosine scan. If this stack needed lower retrieval latency, the fix is to keep a long-lived Postgres connection open from the Python process rather than shelling out per query — that collapses the 70 ms to around 5 ms. Naive RAG doesn't need it.
 
-**Time-to-first-token is 80 milliseconds on a cold-prompt.** Article #3 measured 52 ms TTFT on a short prompt. The RAG prompt here is roughly 800 tokens (five chunks averaging 140 tokens each, plus the system message and scaffolding); the extra 30 ms is the prefill phase on the longer context. Generation is where the wall-clock lives — half a second for a refusal, a second and a half for a cited answer.
+**Time-to-first-token is 80 milliseconds on a cold-prompt.** The [first NIM article](/articles/nim-first-inference-dgx-spark/) measured 52 ms TTFT on a short prompt. The RAG prompt here is roughly 800 tokens (five chunks averaging 140 tokens each, plus the system message and scaffolding); the extra 30 ms is the prefill phase on the longer context. Generation is where the wall-clock lives — half a second for a refusal, a second and a half for a cited answer.
 
-**Total generation variance is 4× across queries.** The shortest generation is 425 ms (a 13-token refusal); the longest is 1701 ms (a 40-token cited answer, double-sentenced). The Spark's 8B FP8 engine runs at roughly 25 tokens per second under load (article #3's headline number), and every query here lands within a few tokens per second of that. The variance is output-length variance, exactly as it was in article #3 — the chain didn't regress the generator's throughput.
+**Total generation variance is 4× across queries.** The shortest generation is 425 ms (a 13-token refusal); the longest is 1701 ms (a 40-token cited answer, double-sentenced). The Spark's 8B FP8 engine runs at roughly 25 tokens per second under load (the [first NIM article's](/articles/nim-first-inference-dgx-spark/) headline number), and every query here lands within a few tokens per second of that. The variance is output-length variance, exactly as it was in that article — the chain didn't regress the generator's throughput.
 
 **End-to-end is 525 ms to 1815 ms.** A naive-RAG chain on a Spark answers a question in between half a second and two seconds. That's within interactive-UI budget for a chat-style interface. It's not fast enough for a typeahead autocomplete, but it doesn't need to be — the Second Brain, the wiki, and the autoresearch agent all have budgets of several seconds per turn.
 
@@ -266,7 +266,7 @@ Same corpus, same retrieval pipeline (chunks [72] and [71] were among the top-5 
 
 This is the honest lesson of naive RAG, and it's the first lesson that motivates the articles to come:
 
-- **Retrieval is not the bottleneck at this scale.** Nemotron + pgvector delivers the right chunks for well-specified questions within 100 milliseconds, and the recall numbers from article #5 hold.
+- **Retrieval is not the bottleneck at this scale.** Nemotron + pgvector delivers the right chunks for well-specified questions within 100 milliseconds, and the recall numbers from the [pgvector article](/articles/pgvector-on-spark/) hold.
 - **The 8B model's grounding circuit is the bottleneck.** The strict scaffold is precision-first by design, and on a model this size the precision bias costs you recall on yes/no questions and compound questions.
 - **The obvious fixes all have names.** A larger generator (Llama 70B, Qwen 32B, Nemotron-Super) has a stronger grounding circuit. A better prompt (few-shot examples of answer extraction) raises the same-size model's precision floor. A reranker (Nemotron Reranker as a second-stage filter) strengthens the retrieval signal before the model sees it. Each of those is a future article; none of them matters until you've measured the naive baseline.
 

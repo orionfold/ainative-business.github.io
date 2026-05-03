@@ -16,7 +16,7 @@ series: Autoresearch
 
 The previous article (`nemo-framework-on-spark`) measured *one* operating point: 354M GPT, batch=4, seq=1024, bf16, 100 steps. The framework earned +5.8% throughput and 30% less memory over a hand-rolled `train.py` at that point — a clean floor measurement, but a measurement of one point on a curve. The honest next question is: *what does the curve actually look like?* On the GB10, when you push the micro-batch up, when you double the sequence, when you flip from bf16 to fp8 — where does throughput peak, where does it plateau, and how much GPU memory does each step buy you? That's the envelope this article maps.
 
-The sweep is small enough to be honest and large enough to be useful: **16 configurations** (batch ∈ {2,4,8,16} × seq ∈ {1024,2048} × precision ∈ {bf16,fp8}), 30 steps each, 5 warmup steps excluded from the mean. Total wall time **7.4 minutes** on one GB10. The same `nemo_train.py` from article №16 is the kernel of the harness — only the per-run config varies. Headline result up front:
+The sweep is small enough to be honest and large enough to be useful: **16 configurations** (batch ∈ {2,4,8,16} × seq ∈ {1024,2048} × precision ∈ {bf16,fp8}), 30 steps each, 5 warmup steps excluded from the mean. Total wall time **7.4 minutes** on one GB10. The same `nemo_train.py` from the [NeMo Framework article](/articles/nemo-framework-on-spark/) is the kernel of the harness — only the per-run config varies. Headline result up front:
 
 | operating point (354M GPT, GB10, 30 steps) | tokens/sec | step ms | peak GPU GiB | vs. vanilla A1 (12,119 tok/s) |
 |---|---:|---:|---:|---:|
@@ -162,7 +162,7 @@ Three things worth noting. **First**, the GB10 sustained 86.8% mean utilization 
 
 The full nvidia-smi stream is preserved at [`evidence/nvidia_smi_during_sweep.csv`](./evidence/nvidia_smi_during_sweep.csv) — one row every 2 seconds.
 
-## Cross-checks against article №16
+## Cross-checks against the NeMo Framework article
 
 Before trusting the numbers, two cross-checks against the A1 measurement at the matched setpoint (batch=4, seq=1024, bf16):
 
@@ -198,6 +198,6 @@ Within 1.4% on throughput, identical on peak memory. The 30-step / 5-warmup meas
 
 ## State of the apps — as of A2
 
-**Autoresearch now:** has a driver (NIM 8B, from F1), an experiment substrate (NeMo Framework, from A1), and a measured throughput envelope (this article — 14.3K tok/s peak on 354M, ~50 GiB peak memory at the largest stable config). The agent loop itself (A4) is still upcoming. **Second Brain now:** unchanged since S4 (`mcp-second-brain-in-claude-code`, №15) — RAG-over-MCP shipped. **LLM Wiki now:** un-opened — W1 (`wiki-schema-and-llm-bookkeeper`) is the next decision point. Next up in Autoresearch: **A3 — `nemo-curator-training-data-prep`** (the data-path envelope to complement this kernel envelope), or jump to **A4 — `autoresearch-agent-loop`** if the user wants to skip data prep and synthesize an agent on top of the random-token harness.
+**Autoresearch now:** has a driver (NIM 8B, from F1), an experiment substrate (NeMo Framework, from A1), and a measured throughput envelope (this article — 14.3K tok/s peak on 354M, ~50 GiB peak memory at the largest stable config). The agent loop itself (A4) is still upcoming. **Second Brain now:** unchanged since S4 ([`mcp-second-brain-in-claude-code`](/articles/mcp-second-brain-in-claude-code/)) — RAG-over-MCP shipped. **LLM Wiki now:** un-opened — W1 (`wiki-schema-and-llm-bookkeeper`) is the next decision point. Next up in Autoresearch: **A3 — `nemo-curator-training-data-prep`** (the data-path envelope to complement this kernel envelope), or jump to **A4 — `autoresearch-agent-loop`** if the user wants to skip data prep and synthesize an agent on top of the random-token harness.
 
 The full sweep is preserved at [`evidence/sweep_results.json`](./evidence/sweep_results.json). The harness is at [`evidence/sweep.py`](./evidence/sweep.py) — copy it, change the axes, sweep your own model. The interesting sweep on a 354M model is the one above; the interesting sweep on *your* model is the one you haven't run yet.

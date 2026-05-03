@@ -90,19 +90,19 @@ These are not sub-cases of the same thing. They are three genuinely different de
 
 The seven foundation articles each installed one piece that all three arcs use. Reading them in order shows how the stack was built; reading them against the arc map shows what each piece costs *in* each arc. Here is the compressed version.
 
-**Article #3 — [NIM first inference on DGX Spark](/articles/nim-first-inference-dgx-spark/).** Llama 3.1 8B running at `:8000` as an OpenAI-compatible endpoint, local-first. Second Brain's answerer, the Wiki's ingest writer, Autoresearch's driver — all the same binary, loaded once.
+**[NIM first inference on DGX Spark](/articles/nim-first-inference-dgx-spark/).** Llama 3.1 8B running at `:8000` as an OpenAI-compatible endpoint, local-first. Second Brain's answerer, the Wiki's ingest writer, Autoresearch's driver — all the same binary, loaded once.
 
-**Article #4 — [Nemotron Retriever embeddings, local](/articles/nemo-retriever-embeddings-local/).** 1 B embedding NIM at `:8001`. Produces 2048-D vectors for Second Brain's corpus, for the Wiki's page-similarity checks, for Autoresearch's trajectory log. One model, three semantic spaces.
+**[Nemotron Retriever embeddings, local](/articles/nemo-retriever-embeddings-local/).** 1 B embedding NIM at `:8001`. Produces 2048-D vectors for Second Brain's corpus, for the Wiki's page-similarity checks, for Autoresearch's trajectory log. One model, three semantic spaces.
 
-**Article #5 — [pgvector on Spark](/articles/pgvector-on-spark/).** Postgres + HNSW + BM25 in one container. The shared vector store; the Wiki uses it most lightly because the wiki itself is the artifact.
+**[pgvector on Spark](/articles/pgvector-on-spark/).** Postgres + HNSW + BM25 in one container. The shared vector store; the Wiki uses it most lightly because the wiki itself is the artifact.
 
-**Article #6 — [Naive RAG on Spark](/articles/naive-rag-on-spark/).** Embed + top-K + strict-context prompt. The Second Brain MVP. The baseline the Wiki arc will explicitly argue against (*compile-time > query-time*). Autoresearch's first-pass trajectory retrieval.
+**[Naive RAG on Spark](/articles/naive-rag-on-spark/).** Embed + top-K + strict-context prompt. The Second Brain MVP. The baseline the Wiki arc will explicitly argue against (*compile-time > query-time*). Autoresearch's first-pass trajectory retrieval.
 
-**Article #7 — [Hybrid retrieval: BM25, dense, fusion, rerank](/articles/rerank-fusion-retrieval-on-spark/).** The retrieval-quality climb — 79% BM25 recall@5, 92% naive dense, 97% with the Nemotron reranker at K=10. Finding: retrieval isn't the bottleneck on AG News, an 8B strict-context generator is.
+**[Hybrid retrieval: BM25, dense, fusion, rerank](/articles/rerank-fusion-retrieval-on-spark/).** The retrieval-quality climb — 79% BM25 recall@5, 92% naive dense, 97% with the Nemotron reranker at K=10. Finding: retrieval isn't the bottleneck on AG News, an 8B strict-context generator is.
 
-**Article #8 — [Bigger generator grounding](/articles/bigger-generator-grounding-on-spark/).** 8B local vs. 49B hosted vs. 70B hosted, same retrieval, 30-query qrels. Finding: bigger models over-refuse. The NVIDIA-native Nemotron-Super-49B refused *twice* as often as the 8B on perfect retrieval. The takeaway: generator size isn't the right lever for grounding — fine-tuning is.
+**[Bigger generator grounding](/articles/bigger-generator-grounding-on-spark/).** 8B local vs. 49B hosted vs. 70B hosted, same retrieval, 30-query qrels. Finding: bigger models over-refuse. The NVIDIA-native Nemotron-Super-49B refused *twice* as often as the 8B on perfect retrieval. The takeaway: generator size isn't the right lever for grounding — fine-tuning is.
 
-**Article #9 — [Guardrails on the retrieval path](/articles/guardrails-on-the-retrieval-path/).** NeMo Guardrails installed once with three arc-specialized configs: PII scrub for Second Brain, write-policy for the Wiki, code-safety for Autoresearch. Fifteen synthetic queries, 100% block recall, 100% clean pass. One product, three policies.
+**[Guardrails on the retrieval path](/articles/guardrails-on-the-retrieval-path/).** NeMo Guardrails installed once with three arc-specialized configs: PII scrub for Second Brain, write-policy for the Wiki, code-safety for Autoresearch. Fifteen synthetic queries, 100% block recall, 100% clean pass. One product, three policies.
 
 Seven articles, one stack. Each one added a capability all three apps use. The pieces didn't fork; the *applications* do.
 
