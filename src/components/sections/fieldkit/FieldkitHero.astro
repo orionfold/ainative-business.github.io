@@ -1,13 +1,11 @@
 ---
-import FieldkitConstellation from '../../svg/FieldkitConstellation.astro';
-
 interface Props {
   version: string;
 }
 
 const { version } = Astro.props;
 ---
-<section class="relative min-h-[calc(100dvh-80px)] flex items-center px-6 overflow-x-clip pt-16 pb-24">
+<section class="relative flex items-center px-6 overflow-x-clip pt-32 pb-12">
   <!-- Dual atmospheric glow -->
   <div class="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
     <div class="absolute w-[800px] h-[800px] rounded-full bg-primary/[0.10] blur-[180px]"></div>
@@ -17,8 +15,8 @@ const { version } = Astro.props;
   <!-- Bottom gradient fade into next section -->
   <div class="absolute bottom-0 left-0 right-0 h-40 pointer-events-none" style="background: linear-gradient(to bottom, transparent, var(--color-surface-raised));"></div>
 
-  <!-- Two-column grid — diagram-dominant -->
-  <div class="relative z-10 w-full max-w-7xl mx-auto grid lg:grid-cols-[1fr_1.75fr] gap-8 lg:gap-10 items-center py-16 lg:py-4">
+  <!-- Two-column grid — content left, install CTA right -->
+  <div class="relative z-10 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center py-6 lg:py-4">
 
     <!-- Left column: Content -->
     <div class="text-center lg:text-left" data-animate-stagger>
@@ -38,27 +36,22 @@ const { version } = Astro.props;
       </p>
 
       <!-- Version + license pills -->
-      <div class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap mb-8 max-w-sm mx-auto lg:mx-0">
+      <div class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap max-w-sm mx-auto lg:mx-0">
         <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">v{version}</span>
         <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">Apache-2.0</span>
         <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">Python 3.11+</span>
       </div>
 
-      <!-- Value proposition pills -->
-      <div
-        class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap mb-10 max-w-md mx-auto lg:mx-0"
-      >
-        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">KV-cache math</span>
-        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">NIM client</span>
-        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Naive-RAG</span>
-        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Eval harness</span>
-      </div>
+    </div>
+
+    <!-- Right column: Install CTA + benefit pills -->
+    <div data-animate-stagger class="w-full max-w-md mx-auto lg:mx-0">
 
       <!-- Terminal CTA — pip install fieldkit -->
-      <p data-animate class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mt-2 mb-2 max-w-sm mx-auto lg:mx-0">
+      <p data-animate class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mb-2 text-center lg:text-left">
         Install the package
       </p>
-      <div data-animate class="max-w-sm mx-auto lg:mx-0">
+      <div data-animate>
         <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
           <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
             <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Terminal</span>
@@ -82,12 +75,18 @@ const { version } = Astro.props;
         </div>
       </div>
 
-    </div>
+      <!-- Benefit pills — below the CTA -->
+      <div
+        data-animate
+        class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap mt-5"
+      >
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">KV-cache math</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">NIM client</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Naive-RAG</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Eval harness</span>
+      </div>
 
-    <!-- Right column: Module constellation -->
-    <a href="#modules" data-animate class="fkh-arch-wrapper block hover:opacity-90 transition-opacity cursor-pointer" style="transition-delay: 200ms" aria-label="Browse the modules">
-      <FieldkitConstellation />
-    </a>
+    </div>
 
   </div>
 </section>
@@ -113,24 +112,6 @@ const { version } = Astro.props;
   }
   @media (prefers-reduced-motion: reduce) {
     .fkh-cursor { animation: none; }
-  }
-
-  /* ── Constellation wrapper — ambient glow only ── */
-  .fkh-arch-wrapper {
-    position: relative;
-  }
-  .fkh-arch-wrapper::after {
-    content: '';
-    position: absolute;
-    inset: -60px;
-    border-radius: 50%;
-    background: radial-gradient(
-      ellipse at center,
-      oklch(0.55 0.15 260 / 0.10) 0%,
-      transparent 70%
-    );
-    z-index: -1;
-    pointer-events: none;
   }
 </style>
 
