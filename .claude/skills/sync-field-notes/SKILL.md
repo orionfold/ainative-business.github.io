@@ -23,6 +23,7 @@ The drafting environment lives on the user's NVIDIA DGX Spark; the user pulls ch
 | Fieldkit landing page sections (Install / Quickstart / CLI) | `/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
 | Signature SVG components | `/Users/manavsehgal/Developer/ai-field-notes/src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
 | Article-sequence manifest | (derived from source's `git log`, no on-disk source) | `src/data/field-notes/sequence.json` |
+| Project-stats JSON ("At a glance" KPIs) | `/Users/manavsehgal/Developer/ai-field-notes/src/data/project-stats.json` | `src/data/field-notes/project-stats.json` (with one hand-curated override re-applied) |
 
 Website project root: `/Users/manavsehgal/Developer/ainative-business.github.io/`.
 
@@ -122,24 +123,27 @@ Do not commit automatically. Show the user a `git status` summary and ask whethe
 - Updated article: `chore(field-notes): refresh <slug>`
 - Mixed: `chore(field-notes): sync <N> articles from ai-field-notes`
 
-## Hand-curated files — do not blindly overwrite
+## Hand-curated overrides re-applied during sync
 
-A small number of files in the website's tree are derived from sources in the
-ai-field-notes repo but have **deliberate hand edits** that the website needs
-to keep. The current sync scripts do **not** sync any of these — but if a
-future change to `sync_articles.py` or `diff_articles.py` extends the source
-list to cover them, preserve these edits or stop and ask the user.
+`src/data/field-notes/project-stats.json` is sourced from
+`ai-field-notes/src/data/project-stats.json` (auto-regenerated on every
+release of the source repo by text-mining the article corpus), but the
+website needs one deterministic override to read well on the homepage and
+the `/field-notes/` index. The sync script re-applies the override on every
+run, so the override survives source regenerations.
 
-| File | Hand edit | Why |
+| File | Override re-applied by `sync_articles.py` | Why |
 |---|---|---|
-| `src/data/field-notes/project-stats.json` | The first entry in `metrics.accuracy[]` is reordered to put **`recall@5 = 1.0`** ahead of `9% accuracy`. Label hand-cleaned to `"perfect retrieval on the eval set"`. | The headline metric tile on the homepage and field-notes index reads the first item; `9% accuracy` was unflattering and out of context for a marketing surface. The recall metric is a real, equally-citable result from `bigger-generator-grounding-on-spark`. |
+| `src/data/field-notes/project-stats.json` | The entry in `metrics.accuracy[]` matched by `(article_slug == "bigger-generator-grounding-on-spark", value == "recall@5 = 1.0")` is moved to index 0, with its `label` rewritten to `"perfect retrieval on the eval set"`. | Both the homepage `FieldNotesSummary` KPI and the `/field-notes/` "At a glance" tile read `metrics.accuracy[0]`. The auto-generator orders by article-recency, which once put `9% accuracy` (out of context, unflattering) ahead of a real, equally-citable recall@5 result. The override pins the citable headline. |
 
-If you sync this JSON in the future, the safe move is **don't** — the source
-file regenerates from text-mining the article corpus and orderings change
-every release. If you do extend the sync, re-apply the override after copy:
-move the `recall@5 = 1.0` entry to position 0 of `metrics.accuracy[]` and
-restore the cleaned label. Better still: add a `homepage_picks` block at the
-top of the JSON that the components prefer over the auto-generated arrays.
+The override is matched by `(article_slug, value)` rather than by index so it
+survives source-side reordering. If the recall@5 entry ever stops being
+auto-generated (e.g., the source pipeline changes), the override silently
+no-ops — no error, no clobber of the source's first entry. To extend the
+override approach to additional metrics, edit `_apply_recall_at_5_override`
+in both `scripts/sync_articles.py` and `scripts/diff_articles.py`. The
+diff script must mirror the override so it compares apples to apples; if
+they drift, the diff reports phantom changes on every sync.
 
 ## Edge cases
 

@@ -1,27 +1,27 @@
 {
-  "generated_at": "2026-05-02T17:48:34Z",
+  "generated_at": "2026-05-05T06:21:32Z",
   "articles": {
-    "total": 26,
-    "published": 26,
+    "total": 30,
+    "published": 30,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 65913,
-    "mean_per_article": 2535,
+    "total": 78696,
+    "mean_per_article": 2623,
     "longest": {
       "slug": "nim-first-inference-dgx-spark",
       "title": "Your First NIM on a DGX Spark \u2014 What 24.8 Tokens Per Second Doesn't Tell You",
-      "words": 3476
+      "words": 3479
     }
   },
   "code": {
-    "evidence_loc": 30658,
-    "src_loc": 7638,
-    "total_loc": 38296,
+    "evidence_loc": 33856,
+    "src_loc": 8100,
+    "total_loc": 41956,
     "by_language": {
-      "python": 30528,
-      "astro": 5054,
+      "python": 33726,
+      "astro": 5516,
       "css": 1937,
       "typescript": 535,
       "shell": 115,
@@ -29,18 +29,18 @@
       "sql": 15
     },
     "data_lines": {
-      "json": 11074,
-      "yaml": 165
+      "json": 772314,
+      "yaml": 743
     }
   },
   "stages": {
     "foundations": 11,
-    "training": 7,
-    "fine-tuning": 4,
-    "inference": 11,
+    "training": 8,
+    "fine-tuning": 5,
+    "inference": 14,
     "deployment": 2,
-    "agentic": 9,
-    "observability": 3,
+    "agentic": 10,
+    "observability": 6,
     "dev-tools": 2
   },
   "stages_upcoming": {
@@ -57,7 +57,7 @@
     {
       "id": "llama-3.1-8b-instruct",
       "label": "Llama 3.1 8B Instruct",
-      "articles": 17
+      "articles": 18
     },
     {
       "id": "nemotron-reranker-1b",
@@ -67,6 +67,11 @@
     {
       "id": "nemotron-super-49b",
       "label": "Nemotron Super 49B",
+      "articles": 5
+    },
+    {
+      "id": "qwen-2.5-7b-instruct",
+      "label": "Qwen2.5 7B Instruct",
       "articles": 5
     },
     {
@@ -87,34 +92,29 @@
     {
       "id": "nemotron-nano-9b",
       "label": "Nemotron Nano 9B v2",
-      "articles": 1
-    },
-    {
-      "id": "qwen-2.5-7b-instruct",
-      "label": "Qwen2.5 7B Instruct",
-      "articles": 1
+      "articles": 2
     }
   ],
   "products": [
     {
-      "id": "dgx-spark",
-      "label": "DGX Spark",
-      "articles": 25
-    },
-    {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 25
+      "articles": 28
+    },
+    {
+      "id": "dgx-spark",
+      "label": "DGX Spark",
+      "articles": 27
     },
     {
       "id": "nemo",
       "label": "NeMo Framework",
-      "articles": 18
+      "articles": 22
     },
     {
       "id": "tensorrt-llm",
       "label": "TensorRT-LLM",
-      "articles": 13
+      "articles": 15
     },
     {
       "id": "pgvector",
@@ -122,14 +122,14 @@
       "articles": 12
     },
     {
-      "id": "nemo-retriever",
-      "label": "NeMo Retriever",
+      "id": "triton",
+      "label": "Triton Inference Server",
       "articles": 10
     },
     {
-      "id": "triton",
-      "label": "Triton Inference Server",
-      "articles": 9
+      "id": "nemo-retriever",
+      "label": "NeMo Retriever",
+      "articles": 10
     },
     {
       "id": "nemoclaw",
@@ -204,6 +204,11 @@
         "article_slug": "naive-rag-on-spark"
       },
       {
+        "label": "the flashinfer autotuner runs in",
+        "value": "60 ms",
+        "article_slug": "test-time-distilling-for-exploration"
+      },
+      {
         "label": "pgvector returns the top-5 in",
         "value": "70 ms",
         "article_slug": "naive-rag-on-spark"
@@ -212,11 +217,6 @@
         "label": "on the task one call",
         "value": "40 ms",
         "article_slug": "naive-rag-on-spark"
-      },
-      {
-        "label": "and step time jumps from",
-        "value": "300 ms",
-        "article_slug": "gpu-sizing-math-for-fine-tuning"
       }
     ]
   }

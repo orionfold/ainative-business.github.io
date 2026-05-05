@@ -12,6 +12,7 @@ or directly:
 """
 
 import hashlib
+import json
 import re
 import sys
 import textwrap
@@ -48,6 +49,14 @@ LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 # report orphans, never delete.
 SIGNATURE_SVG_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/components/svg")
 SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
+
+# Project-stats JSON — drives the "At a glance" KPI block on /field-notes/ and
+# the homepage FieldNotesSummary KPIs. Source path is shallower than target.
+# The website applies one hand-curated override (recall@5 = 1.0 pinned to
+# index 0 of metrics.accuracy[] with a cleaned label); we re-apply that
+# override before comparing so a no-op sync reports no drift.
+PROJECT_STATS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/data/project-stats.json")
+PROJECT_STATS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/project-stats.json")
 
 # Articles authored only on the website (the two reframed research papers).
 # Never report or sync these — they have no source counterpart.
@@ -124,6 +133,73 @@ def fieldkit_doc_changes() -> list[tuple[str, str]]:
             changes.append((src.name, "new module reference doc"))
         elif file_hash(src) != file_hash(tgt):
             changes.append((src.name, "content differs"))
+    return changes
+
+
+def _apply_recall_at_5_override(stats: dict) -> dict:
+    """Mirror sync_articles.py's override so the diff compares apples to apples.
+
+    Match by (article_slug, value) so the rule survives source re-orderings.
+    """
+    metrics = stats.get("metrics")
+    if not isinstance(metrics, dict):
+        return stats
+    accuracy = metrics.get("accuracy")
+    if not isinstance(accuracy, list):
+        return stats
+    target_idx: int | None = None
+    for i, entry in enumerate(accuracy):
+        if (
+            isinstance(entry, dict)
+            and entry.get("article_slug") == "bigger-generator-grounding-on-spark"
+            and entry.get("value") == "recall@5 = 1.0"
+        ):
+            target_idx = i
+            break
+    if target_idx is None:
+        return stats
+    entry = accuracy.pop(target_idx)
+    entry["label"] = "perfect retrieval on the eval set"
+    accuracy.insert(0, entry)
+    return stats
+
+
+def project_stats_changes() -> list[tuple[str, str, str]]:
+    """Return [(label, target_value, source_value), ...] for headline drift.
+
+    Compares source-after-override to current target. Empty list = no drift.
+    Surfaces the three numbers a human would actually want to see (article
+    count, words, generated_at) plus a generic catch-all if other fields drift.
+    """
+    if not PROJECT_STATS_SOURCE.exists() or not PROJECT_STATS_TARGET.exists():
+        return []
+    try:
+        src = json.loads(PROJECT_STATS_SOURCE.read_text(encoding="utf8"))
+        tgt = json.loads(PROJECT_STATS_TARGET.read_text(encoding="utf8"))
+    except json.JSONDecodeError:
+        return []
+    src = _apply_recall_at_5_override(src)
+    if json.dumps(src, sort_keys=True) == json.dumps(tgt, sort_keys=True):
+        return []
+    changes: list[tuple[str, str, str]] = []
+    src_articles = src.get("articles", {}).get("total", 0)
+    tgt_articles = tgt.get("articles", {}).get("total", 0)
+    if src_articles != tgt_articles:
+        changes.append(("articles.total", str(tgt_articles), str(src_articles)))
+    src_words = src.get("words", {}).get("total", 0)
+    tgt_words = tgt.get("words", {}).get("total", 0)
+    if src_words != tgt_words:
+        changes.append(("words.total", f"{tgt_words:,}", f"{src_words:,}"))
+    src_loc = src.get("code", {}).get("total_loc", 0)
+    tgt_loc = tgt.get("code", {}).get("total_loc", 0)
+    if src_loc != tgt_loc:
+        changes.append(("code.total_loc", f"{tgt_loc:,}", f"{src_loc:,}"))
+    src_when = src.get("generated_at", "")[:10]
+    tgt_when = tgt.get("generated_at", "")[:10]
+    if src_when != tgt_when:
+        changes.append(("generated_at", tgt_when, src_when))
+    if not changes:
+        changes.append(("project-stats.json", "stale", "in step with source"))
     return changes
 
 
@@ -257,6 +333,7 @@ def compute_diff() -> dict:
     fk_version_changed, fk_src_ver, fk_tgt_ver = fieldkit_version_change()
     landing_changes = landing_section_changes()
     sig_changes = signature_svg_changes()
+    stats_changes = project_stats_changes()
 
     return {
         "new_articles": new_articles,
@@ -269,6 +346,7 @@ def compute_diff() -> dict:
         "fieldkit_target_version": fk_tgt_ver,
         "landing_changes": landing_changes,
         "signature_svg_changes": sig_changes,
+        "project_stats_changes": stats_changes,
     }
 
 
@@ -283,10 +361,12 @@ def print_diff(diff: dict) -> int:
     fk_tgt_ver = diff["fieldkit_target_version"]
     landing = diff["landing_changes"]
     sig = diff["signature_svg_changes"]
+    stats = diff["project_stats_changes"]
 
     total = (
         len(new) + len(upd) + len(imgs) + len(fk_doc) + len(landing) + len(sig)
         + (1 if fk_ver_changed else 0)
+        + (1 if stats else 0)
     )
 
     print(f"# Field Notes sync diff")
@@ -362,6 +442,13 @@ def print_diff(diff: dict) -> int:
         print(f"  src/components/field-notes/svg/ — referenced by `signature:` frontmatter")
         for name, reason in sig:
             print(f"  ~ {name}  [{reason}]")
+        print()
+
+    if stats:
+        print(f"## Project stats — At a glance KPIs ({len(stats)} field(s) drifted)")
+        print(f"  src/data/field-notes/project-stats.json — auto-regenerated in source")
+        for label, tgt_val, src_val in stats:
+            print(f"  ~ {label}: {tgt_val} → {src_val}")
         print()
 
     return 0
