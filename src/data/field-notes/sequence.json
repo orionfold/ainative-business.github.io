@@ -32,6 +32,9 @@
     "trajectory-eval-is-the-agent-flailing",
     "kv-cache-arithmetic-at-inference",
     "autoresearchbench-on-spark",
-    "test-time-distilling-for-exploration"
+    "test-time-distilling-for-exploration",
+    "runtime-frontier-six-patches-on-spark",
+    "pass-at-k-after-the-seventh-patch",
+    "clawgym-on-spark"
   ]
 }

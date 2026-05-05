@@ -1,0 +1,137 @@
+---
+// Signature figure for "pass-at-k-after-the-seventh-patch".
+// Three small horizontal bars stacked top-to-bottom, one per matrix cell:
+// Qwen × HumanEval (saturated, baseline ≈ esamp), Qwen × AIME (unsaturated
+// instruct, both rates rise), DS × AIME (unsaturated reasoning, pass@8 rises
+// alone). For each row, two dots (baseline and esamp pass@8) connected by a
+// short arrow that points right by the delta. Accent on the bottom row —
+// the cell where the ESamp paper's thesis lands intact. Right side carries
+// the headline number: +6.67 pp on pass@8 for DS × AIME.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Where ESamp bites. Three rows show pass@8 baseline-to-esamp deltas for Qwen 7B on HumanEval (84.76 to 84.15, flat), Qwen 7B on AIME (20.00 to 23.33, plus 3.33 percentage points), and DeepSeek R1-Distill-Qwen-7B on AIME (60.00 to 66.67, plus 6.67 percentage points, accented). On the right, the headline number is plus 6.67 pp on the unsaturated reasoning cell — the configuration where test-time-distilling's semantic exploration lifts pass at k without sharpening any single attempt."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="web-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="web-accent-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="web-trail-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.03"/>
+    </linearGradient>
+    <marker id="web-arrow" markerWidth="6" markerHeight="6" refX="3" refY="3"
+            orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L6,3 z" fill="var(--svg-accent-blue)" opacity="0.7"/>
+    </marker>
+    <marker id="web-arrow-accent" markerWidth="6" markerHeight="6" refX="3" refY="3"
+            orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L6,3 z" fill="var(--color-primary)"/>
+    </marker>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">WHERE ESAMP BITES</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">pass@8 baseline → ESamp · three model-task cells</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="40" width="156" height="130" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <rect x="14" y="40" width="156" height="130" rx="6"
+          fill="url(#web-trail-grad)" stroke="none"/>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d3">
+    <text x="22" y="56" text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.04em">Qwen 7B · HumanEval</text>
+    <text x="22" y="65" text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5" letter-spacing="0.04em">saturated · 84.76% → 84.15%</text>
+    <line x1="80" y1="68" x2="80" y2="68"
+          stroke="var(--svg-accent-blue)" stroke-width="1" opacity="0.5"
+          marker-end="url(#web-arrow)"/>
+    <circle cx="80" cy="68" r="2.6" fill="var(--svg-accent-blue)" opacity="0.6"/>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d4">
+    <text x="22" y="86" text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.04em">Qwen 7B · AIME</text>
+    <text x="22" y="95" text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5" letter-spacing="0.04em">instruct · 20.00% → 23.33% · +3.33 pp</text>
+    <line x1="40" y1="98" x2="62" y2="98"
+          stroke="var(--svg-accent-blue)" stroke-width="1.5"
+          marker-end="url(#web-arrow)"/>
+    <circle cx="40" cy="98" r="2.6" fill="var(--svg-accent-blue)" opacity="0.55"/>
+    <circle cx="62" cy="98" r="2.6" fill="var(--svg-accent-blue)"/>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="20" y="116" width="148" height="38" rx="5"
+          fill="url(#web-accent-halo)" stroke="none"/>
+    <text x="22" y="126" text-anchor="start"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6" font-weight="700" letter-spacing="0.04em">DS-R1-Distill 7B · AIME</text>
+    <text x="22" y="135" text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5" letter-spacing="0.04em">reasoning · 60.00% → 66.67% · +6.67 pp</text>
+    <line x1="60" y1="146" x2="104" y2="146"
+          stroke="var(--color-primary)" stroke-width="2"
+          marker-end="url(#web-arrow-accent)"/>
+    <circle cx="60" cy="146" r="2.8" fill="var(--svg-accent-blue)" opacity="0.55"/>
+    <circle cx="104" cy="146" r="3.2" fill="var(--color-primary)"/>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="92" y="166" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5" letter-spacing="0.06em">30 problems · n=8 · β=0.8 · post-filter exact</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d7">
+    <rect x="180" y="40" width="106" height="130" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--color-text-muted)" stroke-width="1"/>
+    <rect x="180" y="40" width="106" height="130" rx="6"
+          fill="url(#web-accent-halo)" stroke="none"/>
+    <rect x="180" y="40" width="106" height="130" rx="6"
+          fill="url(#web-accent-grad)" stroke="none"/>
+    <text x="233" y="34" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" font-weight="700" letter-spacing="0.10em">PASS@8 LIFT</text>
+    <text x="233" y="92" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-display)"
+          font-size="28" font-weight="700">+6.67</text>
+    <text x="233" y="106" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.08em">percentage points</text>
+    <text x="233" y="128" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.06em">unsaturated reasoning cell</text>
+    <text x="233" y="142" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.06em">2 problems flipped from 0 to ≥1</text>
+    <text x="233" y="158" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.06em">tok/s 0.971× · single-batch generate</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d8">
+    <text x="150" y="190" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">test-time distilling needs headroom · ESamp finds it</text>
+  </g>
+</svg>
