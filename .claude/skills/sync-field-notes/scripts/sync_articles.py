@@ -57,6 +57,14 @@ LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 SIGNATURE_SVG_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/components/svg")
 SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
 
+# Project-stats JSON. Drives the "At a glance" KPI block on /field-notes/ and
+# the homepage FieldNotesSummary KPIs. Source path is shallower (no nested
+# field-notes/ dir) than target. The website applies one hand-curated override
+# (see _apply_recall_at_5_override below); we re-apply it on every sync so it
+# survives source regenerations.
+PROJECT_STATS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/data/project-stats.json")
+PROJECT_STATS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/project-stats.json")
+
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}
 SOURCE_IGNORED_TOPLEVEL = {"_drafts"}
 IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".svg", ".gif", ".webp"}
@@ -273,6 +281,65 @@ def sync_signature_svgs() -> dict:
     return counts
 
 
+def _apply_recall_at_5_override(stats: dict) -> dict:
+    """Re-apply the website's override on metrics.accuracy[].
+
+    The auto-generator orders accuracy metrics by article-recency, but the
+    homepage KPI tile and the /field-notes/ "At a glance" block both read
+    index 0. The recall@5 = 1.0 result from bigger-generator-grounding-on-spark
+    is a more flattering, equally-citable headline than raw accuracy
+    percentages out of context, so the website pins it to position 0 with a
+    cleaned label. Match by (article_slug, value) so re-ordering in source
+    doesn't silently break the override.
+    """
+    metrics = stats.get("metrics")
+    if not isinstance(metrics, dict):
+        return stats
+    accuracy = metrics.get("accuracy")
+    if not isinstance(accuracy, list):
+        return stats
+    target_idx: int | None = None
+    for i, entry in enumerate(accuracy):
+        if (
+            isinstance(entry, dict)
+            and entry.get("article_slug") == "bigger-generator-grounding-on-spark"
+            and entry.get("value") == "recall@5 = 1.0"
+        ):
+            target_idx = i
+            break
+    if target_idx is None:
+        return stats
+    entry = accuracy.pop(target_idx)
+    entry["label"] = "perfect retrieval on the eval set"
+    accuracy.insert(0, entry)
+    return stats
+
+
+def sync_project_stats() -> dict:
+    """Copy source project-stats.json → target with the override re-applied.
+
+    Idempotent: writes only when the post-override JSON differs from target.
+    The source is auto-regenerated on every release of ai-field-notes, so this
+    is the bridge that keeps the website's "At a glance" KPIs current.
+    """
+    counts = {"project_stats": 0}
+    if not PROJECT_STATS_SOURCE.exists():
+        return counts
+    try:
+        src = json.loads(PROJECT_STATS_SOURCE.read_text(encoding="utf8"))
+    except json.JSONDecodeError:
+        return counts
+    src = _apply_recall_at_5_override(src)
+    new_text = json.dumps(src, indent=2) + "\n"
+    if PROJECT_STATS_TARGET.exists():
+        if PROJECT_STATS_TARGET.read_text(encoding="utf8") == new_text:
+            return counts
+    PROJECT_STATS_TARGET.parent.mkdir(parents=True, exist_ok=True)
+    PROJECT_STATS_TARGET.write_text(new_text, encoding="utf8")
+    counts["project_stats"] = 1
+    return counts
+
+
 def _compute_source_sequence() -> list[str] | None:
     """Read the source repo's git history and return article slugs in
     first-add order. Slugs whose article.md no longer exists in source
@@ -377,6 +444,7 @@ def main() -> int:
     landing_counts = sync_landing_page()
     sig_counts = sync_signature_svgs()
     seq_counts = write_sequence_manifest()
+    stats_counts = sync_project_stats()
 
     print(f"# Field Notes sync — applied")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -387,12 +455,14 @@ def main() -> int:
     nothing_landing = not any(landing_counts.values())
     nothing_sig = not any(sig_counts.values())
     nothing_seq = not any(seq_counts.values())
+    nothing_stats = not any(stats_counts.values())
     if (
         nothing_articles
         and nothing_fieldkit
         and nothing_landing
         and nothing_sig
         and nothing_seq
+        and nothing_stats
     ):
         print("No changes copied. Source and target were already in step.")
         return 0
@@ -425,6 +495,8 @@ def main() -> int:
         )
     if seq_counts["sequence_manifest"]:
         print("  • src/data/field-notes/sequence.json: source order changed")
+    if stats_counts["project_stats"]:
+        print("  • src/data/field-notes/project-stats.json: refreshed (override re-applied)")
 
     print()
     print("Totals:")
@@ -441,6 +513,9 @@ def main() -> int:
         if v:
             print(f"  {k}: {v}")
     for k, v in seq_counts.items():
+        if v:
+            print(f"  {k}: {v}")
+    for k, v in stats_counts.items():
         if v:
             print(f"  {k}: {v}")
 
