@@ -78,12 +78,55 @@ def file_hash(path: Path) -> str:
     return h.hexdigest()
 
 
+# Source articles cross-link via `/articles/<slug>/` and the bare index
+# `/articles/` (the source repo's URL convention). On this site, articles
+# live at `/field-notes/<slug>/` and the index is `/field-notes/`.
+# `astro.config.mjs` registers per-slug redirects, but on GitHub Pages those
+# resolve to a meta-refresh HTML shim — Search Console reports each one as
+# "Page with redirect." Rewriting at sync time keeps the shims off the crawl
+# path so internal links surface only canonical URLs.
+_ARTICLE_LINK_RE = re.compile(r'\]\(/articles/(?:([a-z0-9-]+)/?)?(#[^)]*|\?[^)]*)?\)')
+
+
+def rewrite_article_links(text: str) -> str:
+    """Rewrite `](/articles/...)` → `](/field-notes/...)` in markdown link hrefs.
+
+    Handles both the bare index `](/articles/)` → `](/field-notes/)` and the
+    per-article form `](/articles/<slug>...)` → `](/field-notes/<slug>/...)`.
+    Only matches markdown-link form so it can't rewrite the same path embedded
+    in an external URL like `github.com/.../articles/<slug>/evidence/file.py`.
+    Preserves anchors (`#fragment`) and query strings (`?key=value`).
+    """
+    def _sub(m: re.Match) -> str:
+        slug = m.group(1)
+        suffix = m.group(2) or ""
+        if slug is None:
+            return f"](/field-notes/{suffix})"
+        return f"](/field-notes/{slug}/{suffix})"
+    return _ARTICLE_LINK_RE.sub(_sub, text)
+
+
 def copy_if_different(src: Path, dst: Path) -> bool:
     """Copy src→dst if dst is missing or content differs. Return True if copied."""
     if dst.exists() and file_hash(src) == file_hash(dst):
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(src, dst)
+    return True
+
+
+def copy_article_if_different(src: Path, dst: Path) -> bool:
+    """Copy article markdown with `/articles/<slug>/` → `/field-notes/<slug>/`
+    rewrite applied. The mirror transform lives in `diff_articles.py` so the
+    diff compares apples to apples."""
+    new_text = rewrite_article_links(src.read_text(encoding="utf8"))
+    if dst.exists() and dst.read_text(encoding="utf8") == new_text:
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(new_text, encoding="utf8")
+    s = src.stat()
+    import os as _os
+    _os.utime(dst, (s.st_atime, s.st_mtime))
     return True
 
 
@@ -100,15 +143,15 @@ def sync_slug(slug: str) -> dict:
     seed_md = src_dir / "seed.md"
 
     if src_md.exists():
-        if copy_if_different(src_md, tgt_dir / "article.md"):
+        if copy_article_if_different(src_md, tgt_dir / "article.md"):
             counts["article"] += 1
     elif src_mdx.exists():
-        if copy_if_different(src_mdx, tgt_dir / "article.mdx"):
+        if copy_article_if_different(src_mdx, tgt_dir / "article.mdx"):
             counts["article"] += 1
     elif seed_md.exists():
         # No real article yet; promote seed.md → article.md so the upcoming
         # placeholder shows up in the collection.
-        if copy_if_different(seed_md, tgt_dir / "article.md"):
+        if copy_article_if_different(seed_md, tgt_dir / "article.md"):
             counts["seed_promoted"] += 1
 
     # Screenshots — copy every file (not just images) since they're authored

@@ -16,7 +16,7 @@ fieldkit_modules: [eval]
 
 Everyone's first question about fine-tuning is the same: *"can I teach the model my stuff?"* The honest answer is that it depends entirely on what you mean by "teach". A rank-16 LoRA on 231 Q&A pairs of your own writing, trained for 69 seconds of GB10 wall clock, will change the model's behaviour measurably. It will not change the model's knowledge. The distinction matters — and it is also exactly the distinction the Second Brain arc has been circling since the very first RAG article.
 
-This piece ran the experiment honestly. A Qwen2.5-3B-Instruct base. Two hundred and thirty-one Q&A pairs generated from the eleven published [nvidia-learn](/articles/) articles by NIM Llama 3.1 8B. Fourty-four held-out pairs, stratified across articles, for the eval. Forty-four tiny low-rank matrices added to the attention and MLP layers of a 3 billion parameter language model, trained for three epochs against the user's own voice. An LLM-as-judge grader on the held-out set. The numbers that came out told a story sharper than I expected.
+This piece ran the experiment honestly. A Qwen2.5-3B-Instruct base. Two hundred and thirty-one Q&A pairs generated from the eleven published [nvidia-learn](/field-notes/) articles by NIM Llama 3.1 8B. Fourty-four held-out pairs, stratified across articles, for the eval. Forty-four tiny low-rank matrices added to the attention and MLP layers of a 3 billion parameter language model, trained for three epochs against the user's own voice. An LLM-as-judge grader on the held-out set. The numbers that came out told a story sharper than I expected.
 
 | metric (n=44 held-out) | Qwen2.5-3B base | + own-voice LoRA | delta |
 |---|---:|---:|---:|
@@ -93,7 +93,7 @@ That is the finding. The rest of this article is what it means, how the experime
 
 ## Why Qwen2.5-3B and not the 8B base NIM is serving
 
-The natural impulse is to fine-tune *the* model the rest of your stack uses. On this box, that means the Spark-specific FP8 quantization of `meta-llama/Llama-3.1-8B-Instruct` that [NIM serves on port 8000](/articles/nim-first-inference-dgx-spark/). That impulse runs into two problems and one small insight.
+The natural impulse is to fine-tune *the* model the rest of your stack uses. On this box, that means the Spark-specific FP8 quantization of `meta-llama/Llama-3.1-8B-Instruct` that [NIM serves on port 8000](/field-notes/nim-first-inference-dgx-spark/). That impulse runs into two problems and one small insight.
 
 The first problem is that the FP8 base is not a training target. LoRA training wants bf16 or fp16 weights so the adapter matmuls land in a sane gradient regime. The on-disk safetensors for the NIM model are `F8_E4M3` with F32 scales — perfectly fine for inference, but you would need to dequantize to bf16 before you could attach a LoRA, and at that point you are training against a bf16 approximation that the serving stack will never actually see.
 
@@ -260,7 +260,7 @@ Concepts that did not transfer:
 
 ## Why this matters for the Second Brain
 
-The Second Brain arc was built on RAG first. [`pgvector-on-spark`](/articles/pgvector-on-spark/) was the vector store; [`nemo-retriever-embeddings-local`](/articles/nemo-retriever-embeddings-local/) was the embedding surface; [`naive-rag-on-spark`](/articles/naive-rag-on-spark/) was the first end-to-end answer pipeline; [`rerank-fusion-retrieval-on-spark`](/articles/rerank-fusion-retrieval-on-spark/), [`bigger-generator-grounding-on-spark`](/articles/bigger-generator-grounding-on-spark/), and [`guardrails-on-the-retrieval-path`](/articles/guardrails-on-the-retrieval-path/) hardened it. That entire stack exists because *the facts live in the corpus*, and the job of retrieval is to put the right facts in front of the model at query time.
+The Second Brain arc was built on RAG first. [`pgvector-on-spark`](/field-notes/pgvector-on-spark/) was the vector store; [`nemo-retriever-embeddings-local`](/field-notes/nemo-retriever-embeddings-local/) was the embedding surface; [`naive-rag-on-spark`](/field-notes/naive-rag-on-spark/) was the first end-to-end answer pipeline; [`rerank-fusion-retrieval-on-spark`](/field-notes/rerank-fusion-retrieval-on-spark/), [`bigger-generator-grounding-on-spark`](/field-notes/bigger-generator-grounding-on-spark/), and [`guardrails-on-the-retrieval-path`](/field-notes/guardrails-on-the-retrieval-path/) hardened it. That entire stack exists because *the facts live in the corpus*, and the job of retrieval is to put the right facts in front of the model at query time.
 
 The LoRA experiment here confirms the design. A model trained on your Q&A pairs, without retrieval, will answer every question — and will be wrong about specifics roughly half the time. A model with the same weights but given the relevant article passage at retrieval time will not need to have memorized anything; the facts come in through the context window, and the model's job is to render them in voice. The adapter and RAG are not alternatives. They are complements.
 
@@ -269,7 +269,7 @@ Specifically:
 - **Use RAG** to put the right facts in the prompt. This is where numeric accuracy lives.
 - **Use LoRA** to teach the model to answer in your voice, commit to answers on your terrain, and use your project's vocabulary — so that even when RAG brings in a long passage, the generation that comes out reads like part of the project instead of like a StackOverflow answer someone pasted in.
 
-In the earlier [bigger-generator-grounding-on-spark](/articles/bigger-generator-grounding-on-spark/) experiment, the surprise finding was that a 49B Nemotron fine-tuned for grounded QA *refused more* than the 8B baseline on perfect retrieval — 18.2% vs 9.1%. That refusal rate is the same behavioural signal measured here. Bigger-and-better-aligned models still hedge when asked about unfamiliar proper nouns. A LoRA on a *tiny* model, on your own prose, can collapse that behaviour far more dramatically than scaling up ever does — not because the small model suddenly knows more, but because it has been *invited into your domain*.
+In the earlier [bigger-generator-grounding-on-spark](/field-notes/bigger-generator-grounding-on-spark/) experiment, the surprise finding was that a 49B Nemotron fine-tuned for grounded QA *refused more* than the 8B baseline on perfect retrieval — 18.2% vs 9.1%. That refusal rate is the same behavioural signal measured here. Bigger-and-better-aligned models still hedge when asked about unfamiliar proper nouns. A LoRA on a *tiny* model, on your own prose, can collapse that behaviour far more dramatically than scaling up ever does — not because the small model suddenly knows more, but because it has been *invited into your domain*.
 
 ## Serving the adapter, briefly
 

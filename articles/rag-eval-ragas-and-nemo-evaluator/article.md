@@ -26,7 +26,7 @@ On correctness scored 0–5 by a Llama 3.1 8B judge against the reference answer
 | LoRA + RAG (top-3 → LoRA 3B) | 3.39 | 28 | 21 | 0% | 57% | 75% | 2.07 s |
 | **Rerank RAG (RRF + rerank → NIM 8B)** | **4.27** | **39** | **25** | **0%** | **96%** | **98%** | 2.96 s |
 
-The [previous article](/articles/lora-on-your-own-qa-pairs/) earned a 1.70 floor. Adding [naive RAG](/articles/naive-rag-on-spark/) lifted that to 3.30. Swapping naive for [RRF + NeMo Reranker](/articles/rerank-fusion-retrieval-on-spark/) — the same chain that was built but never yet *scored* — took it to 4.27 and eliminated refusals entirely. Combining LoRA with RAG was supposed to be the headline win. It was not. The LoRA's terse voice (mean 7 output tokens) clips answers before they can cite properly, and the 3B base under-reasons over context the 8B handles fluently. Voice and facts, it turns out, do not compose transparently just because you stack them.
+The [previous article](/field-notes/lora-on-your-own-qa-pairs/) earned a 1.70 floor. Adding [naive RAG](/field-notes/naive-rag-on-spark/) lifted that to 3.30. Swapping naive for [RRF + NeMo Reranker](/field-notes/rerank-fusion-retrieval-on-spark/) — the same chain that was built but never yet *scored* — took it to 4.27 and eliminated refusals entirely. Combining LoRA with RAG was supposed to be the headline win. It was not. The LoRA's terse voice (mean 7 output tokens) clips answers before they can cite properly, and the 3B base under-reasons over context the 8B handles fluently. Voice and facts, it turns out, do not compose transparently just because you stack them.
 
 The other finding, less loud but more load-bearing: retrieval quality predicts correctness almost perfectly. Naive precision@3 is 66%; rerank precision@3 is 96%. The judge-score gap of 3.30 → 4.27 is where that 30-point retrieval swing cashes out. Faithfulness and answer-relevance — the generation-side Ragas metrics — moved by less than 5 points between these two variants. If you are going to tune one knob on the Second Brain stack, it is not the generator. It is not the adapter. It is the ranker.
 
@@ -81,11 +81,11 @@ The library-versus-spec distinction matters here. The Ragas *library* imports La
 
 ## The experiment — one table, four variants, shared test set
 
-The [LoRA article](/articles/lora-on-your-own-qa-pairs/) shipped a 275-pair Q&A corpus with a 44-pair held-out eval split. Every pair carries `{question, answer, source (slug), chunk (index)}` — the source slug is an article folder under `articles/`, and `chunk` is the 0-indexed 900-word window inside that article's markdown body. That's exactly the ground-truth retrieval target for this experiment: a question is "retrieved correctly" if the top-K results include the `(slug, chunk)` tuple the question was generated from.
+The [LoRA article](/field-notes/lora-on-your-own-qa-pairs/) shipped a 275-pair Q&A corpus with a 44-pair held-out eval split. Every pair carries `{question, answer, source (slug), chunk (index)}` — the source slug is an article folder under `articles/`, and `chunk` is the 0-indexed 900-word window inside that article's markdown body. That's exactly the ground-truth retrieval target for this experiment: a question is "retrieved correctly" if the top-K results include the `(slug, chunk)` tuple the question was generated from.
 
 ### Ingest — 12 articles → 61 blog_chunks
 
-[`evidence/ingest_blog.py`](./evidence/ingest_blog.py) reproduces the S2 chunker (900 words, 150-word overlap) and writes everything into a new `blog_chunks` table in pgvector, sibling to the AG-News `chunks` table the earlier [naive RAG](/articles/naive-rag-on-spark/) and [rerank-fusion](/articles/rerank-fusion-retrieval-on-spark/) articles built against. Embedding happens in batches of 16 through the local Nemotron-Embed-1B NIM:
+[`evidence/ingest_blog.py`](./evidence/ingest_blog.py) reproduces the S2 chunker (900 words, 150-word overlap) and writes everything into a new `blog_chunks` table in pgvector, sibling to the AG-News `chunks` table the earlier [naive RAG](/field-notes/naive-rag-on-spark/) and [rerank-fusion](/field-notes/rerank-fusion-retrieval-on-spark/) articles built against. Embedding happens in batches of 16 through the local Nemotron-Embed-1B NIM:
 
 ```
 creating table…
@@ -103,7 +103,7 @@ Thirty-seven seconds to stand up a query-ready, HNSW-indexed, FTS-indexed vector
 
 ### Retrieval — naive top-5 and RRF + rerank top-5
 
-[`evidence/retrieve.py`](./evidence/retrieve.py) walks the 44 held-out questions and runs two retrieval modes per question: a plain cosine top-20 that feeds both the naive top-5 (the first five rows) and the rerank top-5 (the hosted [Nemotron-reranker](/articles/rerank-fusion-retrieval-on-spark/) reordering the twenty and keeping the top five). The reranker is the only hosted dependency in the chain — at the time of writing it does not yet ship as a Spark-runnable NIM. Everything else is on the box.
+[`evidence/retrieve.py`](./evidence/retrieve.py) walks the 44 held-out questions and runs two retrieval modes per question: a plain cosine top-20 that feeds both the naive top-5 (the first five rows) and the rerank top-5 (the hosted [Nemotron-reranker](/field-notes/rerank-fusion-retrieval-on-spark/) reordering the twenty and keeping the top five). The reranker is the only hosted dependency in the chain — at the time of writing it does not yet ship as a Spark-runnable NIM. Everything else is on the box.
 
 Retrieval precision at K, measured as "did the top-K passages include the question's ground-truth `(slug, chunk)`", is the first number the scoreboard reports. On the 44-pair set:
 
@@ -118,7 +118,7 @@ Rerank doesn't just find the gold chunk more often — it puts it in slot zero a
 
 Four variants, all generating against the same retrieved context (top-3 passages, capped to leave headroom in the 8192-token context window):
 
-1. **`lora_only`** — Qwen-2.5-3B-Instruct + the 120 MB rank-16 LoRA from S2, no retrieval. Replayed from the [S2 eval run](/articles/lora-on-your-own-qa-pairs/), not re-generated.
+1. **`lora_only`** — Qwen-2.5-3B-Instruct + the 120 MB rank-16 LoRA from S2, no retrieval. Replayed from the [S2 eval run](/field-notes/lora-on-your-own-qa-pairs/), not re-generated.
 2. **`naive_8b`** — [`evidence/generate_nim.py`](./evidence/generate_nim.py) — NIM Llama 3.1 8B, strict-context system prompt, naive top-3.
 3. **`rerank_8b`** — same generator as `naive_8b`, rerank top-3.
 4. **`rag_lora`** — [`evidence/lora_rag_bench.py`](./evidence/lora_rag_bench.py), run inside the Triton 25.12 container — Qwen-2.5-3B + LoRA adapter, naive top-3 context glued into the prompt.
@@ -129,7 +129,7 @@ The 8B variants together run in about four minutes. The LoRA variant is faster (
 
 [`evidence/grade.py`](./evidence/grade.py) runs three NIM-as-judge calls per prediction:
 
-- **Correctness (0–5)**, scored against the reference answer using the same rubric as [the S2 judge](/articles/lora-on-your-own-qa-pairs/).
+- **Correctness (0–5)**, scored against the reference answer using the same rubric as [the S2 judge](/field-notes/lora-on-your-own-qa-pairs/).
 - **Faithfulness (0–1)**, scored against the retrieved context: is every factual claim in the answer supported?
 - **Answer relevance (0–1)**, scored against the question only: does the answer address the question?
 
@@ -171,11 +171,11 @@ Across all four variants, six of the 44 questions scored ≥4 in every variant �
 
 ## Gotchas and honest caveats
 
-**The judge and the generator are the same model.** Every Ragas-style number in this article was produced by NIM Llama 3.1 8B grading its own outputs (for the two 8B variants) alongside the LoRA-3B's outputs. That is a known weak point of local-judge setups: the judge inherits the generator's biases. In production you use a larger, differently-trained judge (NeMo Evaluator's default reference is Llama 3.3 70B; Ragas defaults to GPT-4). On the Spark, a 49B Nemotron-Super NIM — the [same one](/articles/bigger-generator-grounding-on-spark/) we A/B'd as a generator — is the right judge for nightly runs. This article used the 8B for speed and honesty; the correlations would shift a little under a 49B judge, not the top-line ranking.
+**The judge and the generator are the same model.** Every Ragas-style number in this article was produced by NIM Llama 3.1 8B grading its own outputs (for the two 8B variants) alongside the LoRA-3B's outputs. That is a known weak point of local-judge setups: the judge inherits the generator's biases. In production you use a larger, differently-trained judge (NeMo Evaluator's default reference is Llama 3.3 70B; Ragas defaults to GPT-4). On the Spark, a 49B Nemotron-Super NIM — the [same one](/field-notes/bigger-generator-grounding-on-spark/) we A/B'd as a generator — is the right judge for nightly runs. This article used the 8B for speed and honesty; the correlations would shift a little under a 49B judge, not the top-line ranking.
 
 **Ragas-the-library imports LangChain.** Do not install it. The Ragas *spec* — context precision, context recall, faithfulness, answer relevance, the prompts and rubrics — is what you want. Two hundred lines of stdlib plus one POST-per-metric is enough for every experiment this article runs, and it keeps the Spark's dependency surface clean. The moment you want durable storage, drift detection, and a cron, graduate to NeMo Evaluator directly — don't pass through the Python library as a stepping stone.
 
-**The rerank tax is almost zero.** Naive 8B was 2.75 s end-to-end per question; rerank 8B was 2.96 s. That 210 ms is one POST to the hosted reranker with 20 passages. When the reranker ships as a Spark-runnable NIM — the [F5 article](/articles/rerank-fusion-retrieval-on-spark/) flagged the compat gap — that 210 ms will drop to sub-50 ms and rerank will be strictly dominant. There is no RAG configuration where you would keep naive cosine after rerank lands locally.
+**The rerank tax is almost zero.** Naive 8B was 2.75 s end-to-end per question; rerank 8B was 2.96 s. That 210 ms is one POST to the hosted reranker with 20 passages. When the reranker ships as a Spark-runnable NIM — the [F5 article](/field-notes/rerank-fusion-retrieval-on-spark/) flagged the compat gap — that 210 ms will drop to sub-50 ms and rerank will be strictly dominant. There is no RAG configuration where you would keep naive cosine after rerank lands locally.
 
 **LoRA + RAG needs a second LoRA.** The biggest surprise is that rag_lora essentially tied naive_8b on correctness (3.39 vs 3.30) — adding the 120 MB adapter bought almost nothing. The adapter was trained on context-free Q&A pairs, so it learned to commit to terse atomic answers without grounding in retrieved passages. Making LoRA+RAG work well would mean training a *second* LoRA on (question, context, answer) triples — teaching the adapter how to *use* retrieved evidence, not just how to sound right. That's a natural next experiment for the fine-tuning arc.
 

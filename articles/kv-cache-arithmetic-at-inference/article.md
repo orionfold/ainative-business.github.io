@@ -15,11 +15,11 @@ series: Looking Beyond Spark
 fieldkit_modules: [capabilities]
 ---
 
-You cannot serve a 100B-class model to real traffic on a DGX Spark. Even FP8-quantized, the weights alone consume 100 GB of the Spark's 128 GB unified envelope, and that's before a single user has sent a single token through it. *That* part of the arithmetic is identical to the [fine-tuning sizing piece](/articles/gpu-sizing-math-for-fine-tuning/) — and just as much beside the point.
+You cannot serve a 100B-class model to real traffic on a DGX Spark. Even FP8-quantized, the weights alone consume 100 GB of the Spark's 128 GB unified envelope, and that's before a single user has sent a single token through it. *That* part of the arithmetic is identical to the [fine-tuning sizing piece](/field-notes/gpu-sizing-math-for-fine-tuning/) — and just as much beside the point.
 
 The harder, more useful question is *how the memory bill rearranges itself the moment you stop training and start serving*. Three of the four memory bills you paid during fine-tuning vanish — gradients, optimizer state, half the activation bill all go to zero the second the backward pass goes away. In their place, one new bill grows from negligible to dominant: the **KV cache**, the per-token attention state every concurrent user accumulates as their conversation lengthens. And unlike training memory, which scales with parameter count, the KV bill scales with **concurrent users × context length**. A model that fit comfortably for one user at 4k context can OOM the same hardware four hours later when it has 128 sessions open at 32k context each — without one parameter changing.
 
-This article walks the KV-cache arithmetic end-to-end and pins it to concrete hardware asks for serving 70B and 100B-class models. The Spark appears in this story not as the rig that serves a frontier model — it obviously won't — but as the rig that lets you *measure* per-token KV cost on an 8B serve, then multiply. A TRT-LLM NVFP4 run on this machine pulled [38.8 tokens/second of decode at 2.5 GiB resident](/articles/trtllm-and-triton-on-spark/) — and inside that 2.5 GB lives a paged KV cache whose size is the same equation that decides whether your 70B serves 32 or 256 concurrent users on a rented H200. Same math. Different coefficients.
+This article walks the KV-cache arithmetic end-to-end and pins it to concrete hardware asks for serving 70B and 100B-class models. The Spark appears in this story not as the rig that serves a frontier model — it obviously won't — but as the rig that lets you *measure* per-token KV cost on an 8B serve, then multiply. A TRT-LLM NVFP4 run on this machine pulled [38.8 tokens/second of decode at 2.5 GiB resident](/field-notes/trtllm-and-triton-on-spark/) — and inside that 2.5 GB lives a paged KV cache whose size is the same equation that decides whether your 70B serves 32 or 256 concurrent users on a rented H200. Same math. Different coefficients.
 
 ## Why this matters for a personal AI builder
 
@@ -140,7 +140,7 @@ The 8B at the top of the same family — 32 layers, 8 KV heads, head_dim 128 —
 
 ## Verification — reading the Spark back into the formula
 
-The Spark's TRT-LLM 8B serve in [`trtllm-and-triton-on-spark`](/articles/trtllm-and-triton-on-spark/) was built with the exact knobs the math above predicts you'd reach for:
+The Spark's TRT-LLM 8B serve in [`trtllm-and-triton-on-spark`](/field-notes/trtllm-and-triton-on-spark/) was built with the exact knobs the math above predicts you'd reach for:
 
 ```
 trtllm-build \
@@ -151,7 +151,7 @@ trtllm-build \
 
 Read those flags as the KV-cache budget in disguise. `--max_batch_size 8` × `--max_seq_len 4096` × 64 KB/token (FP8 KV) × `2` (K and V already implicit in the per-token figure) is the engine declaring an 8 × 4096 × 64 KB = **2 GB** ceiling on KV, give or take rounding. That number is small enough that it almost vanishes inside the 2.5 GiB resident measurement — which is why the article didn't break it out, and why a single-user benchmark on the Spark looks deceptively comfortable. Crank `--max_batch_size` to 128 and `--max_seq_len` to 32768 and the engine will refuse the build, because 128 × 32768 × 64 KB = **256 GB** of KV — twice the Spark's entire memory.
 
-The NIM container's behavior in [`nim-first-inference-dgx-spark`](/articles/nim-first-inference-dgx-spark/) tells the same story from a different angle. The `NIM_GPU_MEM_FRACTION=0.5` default felt conservative for a single user, and on single-stream the experiment confirmed it — bumping to 0.8 changed throughput by less than the noise floor. *"Don't tune what isn't the bottleneck"* was the right read for one caller. But that 50% headroom isn't conservative; it's the **KV reservation pool** for the concurrent requests that single-stream benchmarks don't generate. NIM's vLLM uses PagedAttention to allocate KV blocks on demand from that pool — fine when one user is talking, the difference between 4 concurrent users and 40 when many are.
+The NIM container's behavior in [`nim-first-inference-dgx-spark`](/field-notes/nim-first-inference-dgx-spark/) tells the same story from a different angle. The `NIM_GPU_MEM_FRACTION=0.5` default felt conservative for a single user, and on single-stream the experiment confirmed it — bumping to 0.8 changed throughput by less than the noise floor. *"Don't tune what isn't the bottleneck"* was the right read for one caller. But that 50% headroom isn't conservative; it's the **KV reservation pool** for the concurrent requests that single-stream benchmarks don't generate. NIM's vLLM uses PagedAttention to allocate KV blocks on demand from that pool — fine when one user is talking, the difference between 4 concurrent users and 40 when many are.
 
 The two articles together gave the Spark its inference voice: **8B at FP8, single-user, ~52 ms TTFT, ~25 tok/s decode, KV is a rounding error.** That whole picture is one corner of the table above. Walk to a different corner and the dominant term changes; the equation stays.
 
@@ -173,7 +173,7 @@ The two articles together gave the Spark its inference voice: **8B at FP8, singl
 
 Three things you can do this week with this math in your head.
 
-**A serving sizing sheet.** Rows = model (8B, 49B, 70B, 100B, 405B); columns = concurrency tier (1, 32, 128, 1024); cells = KV bytes at the tier's typical context (4k for chat, 16k for RAG, 128k for long-doc). Each cell is the equation above. Add the weights row underneath at FP8 and BF16. You now have a one-page artifact that converts a product manager's *"can we host this for 200 users?"* into a specific GPU and instance type, in seconds. The same way [LBS #1's training sizing sheet](/articles/gpu-sizing-math-for-fine-tuning/) did for fine-tuning, but for the *operating* cost rather than the *training* cost.
+**A serving sizing sheet.** Rows = model (8B, 49B, 70B, 100B, 405B); columns = concurrency tier (1, 32, 128, 1024); cells = KV bytes at the tier's typical context (4k for chat, 16k for RAG, 128k for long-doc). Each cell is the equation above. Add the weights row underneath at FP8 and BF16. You now have a one-page artifact that converts a product manager's *"can we host this for 200 users?"* into a specific GPU and instance type, in seconds. The same way [LBS #1's training sizing sheet](/field-notes/gpu-sizing-math-for-fine-tuning/) did for fine-tuning, but for the *operating* cost rather than the *training* cost.
 
 **An informed serving-stack choice.** vLLM, TRT-LLM, NIM, SGLang, and LMDeploy all serve transformers; the differences live in their KV-cache management. vLLM has the best baseline PagedAttention implementation and the widest model support. TRT-LLM wins on Blackwell (NVFP4 path) and on aggressive prefix sharing for repeated-prompt workloads. NIM is whichever of the two NVIDIA bundled for your model. SGLang's `RadixAttention` shares KV across requests with overlapping prefixes — a 30–40% cache hit rate is typical on RAG workloads, and that drops your effective KV bill by the same factor. *"Which serving stack should I use?"* has no general answer; *"which serving stack matches the KV pattern of my workload?"* has a specific one.
 

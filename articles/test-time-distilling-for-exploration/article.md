@@ -15,7 +15,7 @@ series: Frontier Scout
 fieldkit_modules: [eval, capabilities]
 ---
 
-[KV-cache arithmetic at inference](/articles/kv-cache-arithmetic-at-inference/) asked one question of a fixed compute budget: *how much fits?* Weights × dtype, KV cache × context × batch, all the way down to the last GiB. The answer determined what could run on the Spark at all.
+[KV-cache arithmetic at inference](/field-notes/kv-cache-arithmetic-at-inference/) asked one question of a fixed compute budget: *how much fits?* Weights × dtype, KV cache × context × batch, all the way down to the last GiB. The answer determined what could run on the Spark at all.
 
 [ESamp](https://arxiv.org/abs/2604.24927) — *Large Language Models Explore by Latent Distilling* — asks a different question of the same envelope: *how widely can the model search inside it?* When you sample n=8 candidates from the same prompt, do you get eight lexically different rephrasings of one bad attempt, or eight semantically distinct paths through the answer space? At fixed compute, the second is worth more. Pass@k benchmarks on AIME, MATH, and HumanEval reward whichever dimension the samples actually spread along; the paper reports that a ~1 GB online-trained probe pushes that spread without measurably moving the wall clock — the optimized 7B `min_p` path lands at **0.9878×** the baseline tokens-per-second on a reference RTX 4090 run, with a Pass@k lift on the reasoning benchmarks the paper highlights.
 
@@ -27,7 +27,7 @@ The plot twist for a Spark power-user is upstream of the numbers. ESamp ships as
 
 **Why this technique matters for a personal AI builder.** Reasoning workloads spend their compute budget on `n` parallel samples; if all `n` collapse onto rephrasings of one bad attempt, the budget is wasted. ESamp converts the same `n` into `n` *semantically distinct* paths through the answer space — which is the dimension Pass@k on AIME, MATH, and HumanEval actually rewards. At a fixed compute envelope, that is the difference between a brittle reasoner and one that explores.
 
-**Promise vs achieved.** Paper claims **0.9878×** baseline tokens-per-second on a reference RTX 4090 with CUDA graphs (vLLM 0.10.x), with a Pass@k lift on the reasoning benchmarks above. *This* article does not measure the ratio — it lands the runtime substrate and surfaces the first two upstream API drifts that block tLLM's hooks on vLLM 0.20.0. The ratio measurement on Spark lands in the [follow-up](/articles/runtime-frontier-six-patches-on-spark/), which closes at **0.974×** on patched Qwen 2.5 7B — within **1.4 percentage points** of the paper, with CUDA graphs deliberately disabled and six (not two) patches in place.
+**Promise vs achieved.** Paper claims **0.9878×** baseline tokens-per-second on a reference RTX 4090 with CUDA graphs (vLLM 0.10.x), with a Pass@k lift on the reasoning benchmarks above. *This* article does not measure the ratio — it lands the runtime substrate and surfaces the first two upstream API drifts that block tLLM's hooks on vLLM 0.20.0. The ratio measurement on Spark lands in the [follow-up](/field-notes/runtime-frontier-six-patches-on-spark/), which closes at **0.974×** on patched Qwen 2.5 7B — within **1.4 percentage points** of the paper, with CUDA graphs deliberately disabled and six (not two) patches in place.
 
 ## Why this matters for a personal AI builder
 
@@ -143,7 +143,7 @@ While that runs, the rest of the experimental shape is fixed enough to write the
 ratio = model_bank_on / single_off   # baseline=1.0; paper's optimized 7B = 0.9878
 ```
 
-The `Bench` shape that absorbed [AutoResearchBench's per-question schema in article #1](/articles/autoresearchbench-on-spark/) generalizes to ESamp's per-prompt-batch schema cleanly:
+The `Bench` shape that absorbed [AutoResearchBench's per-question schema in article #1](/field-notes/autoresearchbench-on-spark/) generalizes to ESamp's per-prompt-batch schema cleanly:
 
 ```python
 # scripts/run_esamp_bench.py — registers fieldkit.eval.Bench around the
@@ -209,7 +209,7 @@ The "did the integration work" question splits cleanly into three layers, and we
 
 The interesting line is the Engine row. vLLM 0.20.0 — torch-2.11.0+cu130, no Spark-specific tuning, default `--gpu-memory-utilization=0.4` — initialized cleanly on GB10 (SM 12.1) inside an `nvcr.io/nvidia/pytorch:25.11-py3` container with nothing more exotic than `pip install vllm`. CUDA-graph capture, FlashInfer autotuning, and KV-cache profiling all worked. That is the *positive* result of the session and it is worth naming: vLLM-on-Blackwell is no longer the multi-day port it was at the start of the GB10 cycle. The fact that it "just works" with one pip install is the substrate the next experiment lives on top of.
 
-The unified-memory check the Spark uniquely cares about is the easy one to read off this run. KV cache reserved 3.89 M token slots inside the 0.4 × 121 GiB envelope — meaning a 0.5B model's KV is a rounding error against the unified pool. Scaling to Qwen-7B at bf16 (~14 GB weights), n=16 decode at `max_tokens=512` (a few GB of KV in the same arithmetic), plus the ESamp Distiller (~1 GB) lands the whole loadout under 25 GB on a 121 GiB envelope. That is the inversion of the [KV-cache arithmetic](/articles/kv-cache-arithmetic-at-inference/) story: where the foundation article asked *what fits*, the test-time-distilling article asks *what does fitting waste*. The Spark is comfortable; the bottleneck — once the runtime patches land — will be throughput overhead and consumer-side GPU contention, not capacity.
+The unified-memory check the Spark uniquely cares about is the easy one to read off this run. KV cache reserved 3.89 M token slots inside the 0.4 × 121 GiB envelope — meaning a 0.5B model's KV is a rounding error against the unified pool. Scaling to Qwen-7B at bf16 (~14 GB weights), n=16 decode at `max_tokens=512` (a few GB of KV in the same arithmetic), plus the ESamp Distiller (~1 GB) lands the whole loadout under 25 GB on a 121 GiB envelope. That is the inversion of the [KV-cache arithmetic](/field-notes/kv-cache-arithmetic-at-inference/) story: where the foundation article asked *what fits*, the test-time-distilling article asks *what does fitting waste*. The Spark is comfortable; the bottleneck — once the runtime patches land — will be throughput overhead and consumer-side GPU contention, not capacity.
 
 ## Tradeoffs and surprises
 
@@ -227,7 +227,7 @@ The unified-memory check the Spark uniquely cares about is the easy one to read 
 
 **A test-time-scaling experimental substrate on the desk.** vLLM-on-Blackwell now installs in one pip line and 14 minutes inside the standard NGC PyTorch container. That is the substrate every test-time-scaling technique lives on — speculative decoding, classifier-free guidance, contrastive decoding, beam-search ablations, the rest of the literature. All of them are sampler interventions; all of them are tunable on a workload the user owns; all of them benefit from the Spark's ability to run n=16 (or n=64) parallel completions of a 7B reasoning model without rate limits or per-token billing. ESamp is the first-class citizen; the runtime install path is what makes the rest reachable.
 
-**A clean motivating case for `fieldkit.inference`.** The same week's [AutoResearchBench article](/articles/autoresearchbench-on-spark/) closed by surfacing a candidate `fieldkit.eval.AgentRun` for the per-question, per-turn agent schema. This week's article surfaces two new candidates — `fieldkit.inference.VLLMClient` and `fieldkit.eval.PassAtK` — that the package's v0.2 release will likely absorb. The pattern is healthy: each Frontier Scout article validates one or two existing modules and proposes one or two new ones, with the package's CHANGELOG growing from real authoring rather than speculative scope.
+**A clean motivating case for `fieldkit.inference`.** The same week's [AutoResearchBench article](/field-notes/autoresearchbench-on-spark/) closed by surfacing a candidate `fieldkit.eval.AgentRun` for the per-question, per-turn agent schema. This week's article surfaces two new candidates — `fieldkit.inference.VLLMClient` and `fieldkit.eval.PassAtK` — that the package's v0.2 release will likely absorb. The pattern is healthy: each Frontier Scout article validates one or two existing modules and proposes one or two new ones, with the package's CHANGELOG growing from real authoring rather than speculative scope.
 
 ## Closing — exploration as the dual of capacity
 
