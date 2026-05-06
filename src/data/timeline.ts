@@ -214,13 +214,13 @@ export const timeline: TimelineItem[] = [
     project: 'ainative-business',
     role: 'The book and the companion software',
     description:
-      'Shipped a local-first AI business operating system that orchestrates agents across your entire company — with 5-runtime execution, smart routing, governance, cost controls, chat UI, multi-channel delivery (Slack/Telegram), 6 workflow patterns, 45+ database tables, and a living book documenting the journey. 100% free community edition — no tiers, no telemetry.',
+      'Shipped a local-first AI business operating system that orchestrates agents across your entire company — with 6-runtime execution, smart routing, governance, cost controls, chat UI with branching/rewind, multi-channel delivery (Slack/Telegram), composed apps with kit-typed views, 6 workflow patterns, 45+ database tables, and a living book documenting the journey. 100% free community edition — no tiers, no telemetry.',
     achievements: [
-      'Shipped 180 features across 37 operator surfaces in 43 days — open source, local-first, 100% free',
-      '5-runtime architecture with smart router, 21+ agent profiles, and 6 workflow patterns',
-      'Full chat system, heartbeat scheduling, multi-channel delivery, and human-in-the-loop governance',
+      'Shipped 202 features across 39 operator surfaces in 60 days — open source, local-first, 100% free',
+      '6-runtime architecture with smart router, 21+ agent profiles, and 6 workflow patterns',
+      'Full chat system with conversation branching, heartbeat scheduling, multi-channel delivery, and human-in-the-loop governance',
     ],
-    stats: '142K LOC · 1,143 tests · 180/225 features shipped',
+    stats: '170K LOC · 2,258 tests · 202/206 features shipped',
     techWave: 'The Harness Layer',
     techCategories: [
       { label: 'Frontend', items: ['Next.js 16', 'React 19', 'Tailwind v4', 'shadcn/ui'] },

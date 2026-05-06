@@ -946,6 +946,216 @@ for cat in categories:
 
 </EndpointCard>
 
+## Conversation Branching
+
+Branching lets users fork a conversation from any prior assistant turn and rewind to edit earlier turns without losing the original thread. The whole branching subsystem is gated behind the `AINATIVE_CHAT_BRANCHING` server-side flag — when the flag is off, every branching endpoint returns `404` so clients can probe for the feature without leaking it.
+
+### Get Branching Flag
+
+<EndpointCard method="GET" path="/api/chat/branching/flag" description="Returns whether the branching feature is enabled on this server. Lets the client conditionally render branching UI without leaking the env var via NEXT_PUBLIC_*.">
+
+**Response** `200` — `{ "enabled": boolean }`
+
+The endpoint is always reachable (it's how the client probes for the feature). When `enabled` is `false`, every other branching endpoint on this section returns `404`.
+
+Probe the flag at app boot, then conditionally show branching affordances in the UI:
+
+<CodeExample ts={`// Check whether branching is enabled before showing rewind/branch buttons
+const { enabled }: { enabled: boolean } = await fetch(
+  'http://localhost:3000/api/chat/branching/flag'
+).then((r) => r.json());
+
+if (enabled) {
+  // Render the Branch action on assistant turns and the rewind shortcut (⌘Z)
+  document.body.classList.add('branching-enabled');
+}`} python={`import requests
+
+# Check whether branching is enabled before showing rewind/branch buttons
+response = requests.get("http://localhost:3000/api/chat/branching/flag")
+flag: dict = response.json()
+
+if flag["enabled"]:
+    # Render the Branch action on assistant turns
+    print("Branching enabled — render rewind and fork affordances")`} />
+
+Example response:
+
+```json
+{ "enabled": true }
+```
+
+</EndpointCard>
+
+### List Conversation Branches
+
+<EndpointCard method="GET" path="/api/chat/conversations/{id}/branches" description="Returns the entire branching family for a conversation — every parent, sibling, and descendant, rooted at the topmost ancestor. Used by the tree dialog to render the conversation graph.">
+
+**Response** `200` — `{ "family": ConversationRow[] }`
+
+<SchemaTable title="ConversationRow" fields={[
+  { name: 'id', type: 'string', required: true, description: 'Conversation identifier' },
+  { name: 'title', type: 'string', required: true, description: 'Conversation title' },
+  { name: 'parentConversationId', type: 'string | null', required: false, description: 'Parent in the branching tree (null at the root)' },
+  { name: 'parentMessageId', type: 'string | null', required: false, description: 'Assistant message this branch forked from' },
+  { name: 'createdAt', type: 'ISO 8601', required: true, description: 'Creation timestamp' },
+]} />
+
+**Errors:** `404` — Branching disabled, or conversation not found
+
+Render the conversation tree dialog from any node — the response includes ancestors and all descendants:
+
+<CodeExample ts={`// Fetch the full branching family for a conversation
+interface ConversationRow {
+  id: string;
+  title: string;
+  parentConversationId: string | null;
+  parentMessageId: string | null;
+  createdAt: string;
+}
+
+const { family }: { family: ConversationRow[] } = await fetch(
+  'http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/branches'
+).then((r) => r.json());
+
+// Build a parent → children index for tree rendering
+const childrenOf: Record<string, ConversationRow[]> = {};
+for (const c of family) {
+  const key: string = c.parentConversationId ?? 'root';
+  (childrenOf[key] ||= []).push(c);
+}`} python={`import requests
+
+# Fetch the full branching family for a conversation
+response = requests.get(
+    "http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/branches"
+)
+data: dict = response.json()
+family: list[dict] = data["family"]
+
+# Build a parent → children index for tree rendering
+children_of: dict[str, list[dict]] = {}
+for c in family:
+    key = c.get("parentConversationId") or "root"
+    children_of.setdefault(key, []).append(c)`} />
+
+Example response:
+
+```json
+{
+  "family": [
+    {
+      "id": "conv-d4e2-7b1a",
+      "title": "Auth debug",
+      "parentConversationId": null,
+      "parentMessageId": null,
+      "createdAt": "2026-04-22T09:14:00.000Z"
+    },
+    {
+      "id": "conv-91ab-2cde",
+      "title": "Auth debug — branch",
+      "parentConversationId": "conv-d4e2-7b1a",
+      "parentMessageId": "msg-7f3e-8a91",
+      "createdAt": "2026-04-22T09:48:00.000Z"
+    }
+  ]
+}
+```
+
+</EndpointCard>
+
+### Rewind Conversation
+
+<EndpointCard method="POST" path="/api/chat/conversations/{id}/rewind" description="Mark a (user, assistant) message pair as rewound. The DB rows stay in place — only their rendering and agent visibility change — so ⌘⇧Z can restore them via the redo endpoint.">
+
+<SchemaTable title="Request Body" fields={[
+  { name: 'assistantMessageId', type: 'string', required: true, description: 'Identifier of the assistant message whose pair to rewind' },
+]} />
+
+**Response** `200` — `{ "rewoundUserContent": string }`
+
+The returned `rewoundUserContent` is the original user prompt from the rewound pair, ready to pre-fill the composer for editing.
+
+**Errors:** `400` — `assistantMessageId` missing or empty · `404` — Branching disabled or conversation not found
+
+Implement ⌘Z editing — rewind to the last assistant turn, then pre-fill the composer with the original user prompt:
+
+<CodeExample ts={`// Rewind a turn and pre-fill the composer for editing
+const result: { rewoundUserContent: string } = await fetch(
+  'http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/rewind',
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assistantMessageId: 'msg-7f3e-8a91' }),
+  }
+).then((r) => r.json());
+
+// Pre-fill the input with the original user prompt for editing
+const composer = document.querySelector<HTMLTextAreaElement>('#chat-composer');
+if (composer) composer.value = result.rewoundUserContent;`} python={`import requests
+
+# Rewind a turn and capture the original user prompt for editing
+response = requests.post(
+    "http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/rewind",
+    json={"assistantMessageId": "msg-7f3e-8a91"},
+)
+result: dict = response.json()
+
+print(f"Original prompt to edit: {result['rewoundUserContent']}")`} />
+
+Example response:
+
+```json
+{
+  "rewoundUserContent": "Why is the /login route returning 403 for valid sessions?"
+}
+```
+
+</EndpointCard>
+
+### Redo Conversation
+
+<EndpointCard method="POST" path="/api/chat/conversations/{id}/redo" description="Restore the most recently rewound (user, assistant) pair in this conversation. Idempotent — when nothing is rewound, returns 200 with an empty restoredMessageIds array.">
+
+**Response** `200` — `{ "restoredMessageIds": string[] }`
+
+When the redo finds a rewound pair to restore, both message IDs come back in the response. When nothing was rewound, `restoredMessageIds` is empty.
+
+**Errors:** `404` — Branching disabled or conversation not found
+
+Implement the ⌘⇧Z undo-rewind keyboard shortcut by calling redo:
+
+<CodeExample ts={`// Restore the last rewound turn (⌘⇧Z)
+const { restoredMessageIds }: { restoredMessageIds: string[] } = await fetch(
+  'http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/redo',
+  { method: 'POST' }
+).then((r) => r.json());
+
+if (restoredMessageIds.length === 0) {
+  console.log('Nothing to redo');
+} else {
+  console.log(\`Restored \${restoredMessageIds.length} messages\`);
+}`} python={`import requests
+
+# Restore the last rewound turn (idempotent — empty array if nothing was rewound)
+response = requests.post(
+    "http://localhost:3000/api/chat/conversations/conv-d4e2-7b1a/redo"
+)
+result: dict = response.json()
+
+if not result["restoredMessageIds"]:
+    print("Nothing to redo")
+else:
+    print(f"Restored {len(result['restoredMessageIds'])} messages")`} />
+
+Example response:
+
+```json
+{
+  "restoredMessageIds": ["msg-6a2b-1cf0", "msg-7f3e-8a91"]
+}
+```
+
+</EndpointCard>
+
 ## Stream Event Reference
 
 The Send Message endpoint emits these SSE event types:

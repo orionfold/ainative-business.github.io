@@ -1,6 +1,6 @@
 # API Domain Mapping
 
-Last updated: 2026-04-18
+Last updated: 2026-05-05
 
 ## Domain Inventory
 
@@ -11,7 +11,8 @@ Last updated: 2026-04-18
 | workflows | 10 | 14 | blueprint.ts | workflows/types.ts | workflows.mdx | Core |
 | blueprints | 4 | 6 | blueprint.ts | — | blueprints.mdx | Core |
 | schedules | 5 | 8 | — | — | schedules.mdx | Core |
-| chat | 11 | 15 | — | chat/types.ts | chat.mdx | Intelligence |
+| apps | 2 | 3 | apps/registry.ts (Zod) | apps/registry.ts | apps.mdx | Core |
+| chat | 15 | 19 | — | chat/types.ts | chat.mdx | Intelligence |
 | profiles | 14 | 19 | profile.ts | agents/profiles/types.ts | profiles.mdx | Intelligence |
 | runtimes | 2 | 3 | — | agents/runtime/catalog.ts | runtimes.mdx | Intelligence |
 | memory | 1 | 4 | — | — | memory.mdx | Intelligence |
@@ -36,7 +37,7 @@ Last updated: 2026-04-18
 | book | 4 | 4 | — | — | — | Operations |
 | diagnostics | 1 | 1 | — | — | — | Operations |
 | onboarding | 1 | 1 | — | — | — | Operations |
-| telemetry | 1 | 1 | — | — | — | Operations |
+| plugins | 3 | 3 | — | — | — (internal — not documented) | Operations |
 
 ## Route File Locations
 

@@ -16,6 +16,20 @@ Schedules turn repeatable prompts into recurring or one-shot automations with tw
 
 Automate recurring AI prompts on configurable intervals with two distinct scheduling modes. **Clock-driven schedules** fire on a fixed cadence (every hour, daily at 9 AM). **Heartbeat schedules** go further -- they evaluate a checklist of conditions before deciding whether to act, suppressing no-op runs and only creating tasks when meaningful work is needed. Both modes support natural language intervals, delivery channel notifications, and full execution history.
 
+## Screenshots
+
+![Schedules list showing active, paused, and heartbeat schedules](/screenshots/schedules-list.png)
+*The schedules list displays all configured schedules with status, type (clock or heartbeat), interval, next run time, and associated project.*
+
+![Schedule detail sheet showing configuration and firing history](/screenshots/schedules-detail.png)
+*The schedule detail sheet shows full configuration, checklist items (for heartbeats), execution statistics, and chronological firing history.*
+
+![Schedule creation form with max agent steps and budget controls](/screenshots/schedules-create-form-empty.png)
+*The Create Schedule sheet exposes the new per-schedule turn-budget field. Max agent steps per run caps how many actions the agent takes in a single firing before the runtime aborts.*
+
+![Schedule creation form filled with realistic data](/screenshots/schedules-create-form-filled.png)
+*Filled schedule form showing a weekday 9am security audit with a 250-step budget. Writing "MAX N turns" in your prompt is a hint to the model — the Max agent steps field is the enforced runtime limit.*
+
 ## Key Features
 
 ### Two Schedule Types

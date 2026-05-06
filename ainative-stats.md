@@ -525,3 +525,70 @@
 - Big LOC + commits + features delta reflects 6 days of active development across v0.11/v0.12 cycle post-community-edition pivot.
 - Velocity density is up: commits/day (active) 12.3 → 15.9, LOC/commit dropping reflects more granular commits.
 - Business primitive corrections from prior snapshot: runtime providers and presets were off by one; table templates reduced from marketplace-era 76 to 12 curated seeds during community pivot.
+
+## [2026-05-05 18:05] Metrics Snapshot — Release 0.13.3 sync
+
+| Category | Metric | Value |
+|----------|--------|-------|
+| LOC | TypeScript (production) | 153,134 |
+| LOC | TypeScript (tests, in tokei TS+TSX) | included above |
+| LOC | **Total** (TS+TSX+JSON+CSS) | **170,573** |
+| Tests | Vitest (`it(`/`test(` anywhere on line) | 2,258 |
+| Tests | **Total** | **2,258** |
+| Git | Commits | 886 |
+| Git | Hours elapsed | 1,437.2 |
+| Git | Commits/hour | 0.62 |
+| Git | LOC/hour | 119 |
+| Velocity | Calendar days | 59 |
+| Velocity | Active dev days | 47 |
+| Velocity | Commits/day (calendar) | 15.0 |
+| Velocity | Commits/day (active) | 18.9 |
+| Velocity | LOC/day (calendar) | 2,891 |
+| Velocity | LOC/day (active) | 3,629 |
+| Velocity | Features/day (calendar) | 3.4 |
+| Velocity | Features/day (active) | 4.3 |
+| Velocity | LOC/commit | 193 |
+| Velocity | LOC/feature | 844 |
+| Velocity | Tests/feature | 11.2 |
+| Velocity | Hours/feature | 7.1 |
+| Features | Completed | 202/206 |
+| Infra | API routes | 169 |
+| Infra | DB tables | 45 |
+| Infra | UI components | 378 |
+| Infra | Pages | 39 |
+| Infra | Agent profiles | 70 |
+| Business | Workflow blueprints | 13 |
+| Business | Built-in agent profiles | 21 |
+| Business | Runtime providers | 6 |
+| Business | Workflow patterns | 6 |
+| Business | Channel integrations | 3 |
+| Business | Permission presets | 4 |
+| Business | Table templates | 17 |
+| Business | Column data types | 9 |
+| Business | Notification types | 8 |
+| Business | Activity types | 11 |
+| Business | Schedule types | 2 (scheduled, heartbeat) |
+
+### Trend (vs 2026-04-18 snapshot — Release 0.12.1)
+- ↑ +28,410 LOC (142,163 → 170,573) — apps domain, journey/use-case docs, branching/rewind/redo, tables enrich, environment surfaces
+- ↑ +1,115 tests (1,143 → 2,258) — see Notes; pattern in spec is broader than the prior snapshot's anchored regex
+- ↑ +251 commits (635 → 886)
+- ↑ +22 features completed (180 → 202); scope tightened from 225 → 206 (19 features consolidated/removed upstream)
+- ↑ +9 API routes (160 → 169) — +4 chat (branching), +2 apps (route, [id]), +3 plugins
+- ↑ +71 UI components (307 → 378) — apps kits, branching dialogs, profile create-form, journey illustrations
+- ↑ +2 pages (37 → 39) — /apps, +1 settings sub-route
+- ↑ +5 agent profile files (65 → 70)
+- ↑ +1 runtime provider (5 → 6) — re-verified from catalog.ts (the prior "5 (re-verified)" override no longer holds; trust grep)
+- ↑ +1 permission preset (3 → 4) — likely a new tier in permission-presets.ts
+- ↑ +5 table templates (12 → 17) — seed-data expanded with additional curated templates
+- LOC/commit: 224 → 193 (smaller, more frequent commits)
+- Hours/feature: 5.7 → 7.1 (slowed slightly — larger feature scopes per the apps + branching cycle)
+- Features/day (active): 4.5 → 4.3
+- Commits/day (active): 15.9 → 18.9 (commit frequency up)
+
+### Notes
+- Release 0.13.3 cumulative span: covers 0.12.2 → 0.13.3 (npx isolated-data-dir fix, Settings → Instance polish, branching/rewind feature flag, apps/composed-views, multiple chat additions).
+- Test count delta ((+1,115) appears large because the spec's grep pattern (`"it(\|test("`) matches `it(`/`test(` ANYWHERE on a line, while the prior snapshot's count of 1,143 was apparently produced from a stricter anchored regex that returns 2,130 today. Both numbers represent real growth — the apparent jump is partially a methodology shift. The spec pattern is canonical going forward.
+- Roadmap scope shrunk 225 → 206. 19 features were consolidated or removed upstream during the apps refactor — not a feature-completion regression.
+- All "re-verified" overrides from the 2026-04-18 snapshot (runtime providers 5, permission presets 3, table templates 12) were overridden manually because the grep counted higher. Current grep matches the actual catalog state — the overrides are stale and not re-applied.
+- Significant new domains since last sync: `/apps` (composed views, kit-typed manifests), `chat-conversation-branches` (branching/rewind/redo with feature flag), expanded environment artifact/checkpoint surfaces.

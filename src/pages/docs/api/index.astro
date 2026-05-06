@@ -10,12 +10,13 @@ const domains = [
       { href: '/docs/api/workflows/', title: 'Workflows', endpoints: 14, description: 'Orchestrate multi-step execution patterns with debug analysis, resume, and optimization suggestions.' },
       { href: '/docs/api/blueprints/', title: 'Blueprints', endpoints: 6, description: 'Store, import, and instantiate reusable workflow templates with GitHub-sourced definitions and lineage tracking.' },
       { href: '/docs/api/schedules/', title: 'Schedules', endpoints: 8, description: 'Clock-driven cron and heartbeat schedules with natural language parsing, manual execution, heartbeat history, and delivery channels.' },
+      { href: '/docs/api/apps/', title: 'Apps', endpoints: 3, description: 'Composed apps that bundle profiles, blueprints, tables, and schedules into kit-typed views (tracker, coach, inbox, research, ledger, workflow-hub) with cascading delete.' },
     ],
   },
   {
     group: 'Intelligence',
     items: [
-      { href: '/docs/api/chat/', title: 'Chat', endpoints: 15, description: 'Multi-provider conversations with SSE streaming, skill activation, export, model selection, suggested prompts, and entity/file search.' },
+      { href: '/docs/api/chat/', title: 'Chat', endpoints: 19, description: 'Multi-provider conversations with SSE streaming, skill activation, export, model selection, suggested prompts, entity/file search, and conversation branching with rewind/redo.' },
       { href: '/docs/api/profiles/', title: 'Profiles', endpoints: 19, description: 'Agent profiles with multi-runtime support, per-profile testing, learned context, repository import with diff updates, and AI-assisted creation.' },
       { href: '/docs/api/runtimes/', title: 'Runtimes', endpoints: 3, description: 'Query available agent runtimes, suggest the best runtime for a task, and manage local Ollama model configuration.' },
       { href: '/docs/api/memory/', title: 'Memory', endpoints: 4, description: 'Episodic agent memory with list, create, update, and delete operations — decay scoring and confidence tracking included.' },

@@ -1,0 +1,335 @@
+---
+layout: ../../../layouts/ApiDocsLayout.astro
+title: "Apps API"
+description: "List and inspect composed apps — manifest-driven views that bundle profiles, blueprints, tables, schedules, and a kit-typed view spec into one shipped surface."
+---
+
+import EndpointCard from '../../../components/api/EndpointCard.astro'
+import SchemaTable from '../../../components/api/SchemaTable.astro'
+import ParamTable from '../../../components/api/ParamTable.astro'
+import CodeExample from '../../../components/api/CodeExample.astro'
+
+# Apps API
+
+Apps are composed views — each one is a YAML manifest under `~/.ainative/apps/` that bundles agent profiles, workflow blueprints, tables, and schedules into a kit-typed surface (`tracker`, `coach`, `inbox`, `research`, `ledger`, or `workflow-hub`). The Apps API exposes the registry that other surfaces (the `/apps` page, the chat App Builder, the workflow runner) read from. Apps are built from the chat composer; the API today is read-only with one cascading delete.
+
+## Quick Start
+
+Discover the available apps, look up a specific one's full manifest, and remove an app along with every primitive it uniquely owns — the typical shell of an app-management surface:
+
+<CodeExample ts={`// 1. List every app in the registry (lightweight summary)
+interface AppSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  primitivesSummary: string;
+  profileCount: number;
+  blueprintCount: number;
+  tableCount: number;
+  scheduleCount: number;
+  scheduleHuman: string | null;
+  rootDir: string;
+  createdAt: number;
+  files: string[];
+}
+
+const apps: AppSummary[] = await fetch("http://localhost:3000/api/apps").then((r) => r.json());
+// → [{ id: "tracker-revenue", name: "Revenue Tracker", primitivesSummary: "1 profile · 2 blueprints · 1 table · daily 9am", ... }, ...]
+
+// 2. Pick one and load the full manifest detail
+const targetId: string = apps[0].id;
+interface AppDetail extends AppSummary {
+  manifest: {
+    id: string;
+    name: string;
+    description?: string;
+    persona?: string;
+    profiles: Array<{ id: string; source?: string }>;
+    blueprints: Array<{ id: string; source?: string; trigger?: { kind: "row-insert"; table: string } }>;
+    tables: Array<{ id: string; source?: string }>;
+    schedules: Array<{ id: string; source?: string }>;
+    view?: { kit: "auto" | "tracker" | "coach" | "inbox" | "research" | "ledger" | "workflow-hub" };
+  };
+}
+
+const detail: AppDetail = await fetch(\`http://localhost:3000/api/apps/\${targetId}\`).then((r) => r.json());
+console.log(\`\${detail.manifest.name} → kit: \${detail.manifest.view?.kit ?? "auto"}\`);
+
+// 3. Remove the app and every uniquely-owned primitive (cascade)
+const cascade: { success: true; filesRemoved: number; projectRemoved: boolean; profilesRemoved: number; blueprintsRemoved: number } =
+  await fetch(\`http://localhost:3000/api/apps/\${targetId}\`, { method: "DELETE" }).then((r) => r.json());
+
+console.log(\`Removed \${cascade.filesRemoved} files, \${cascade.profilesRemoved} profiles, \${cascade.blueprintsRemoved} blueprints\`);`} python={`import requests
+
+# 1. List every app in the registry (lightweight summary)
+apps: list[dict] = requests.get("http://localhost:3000/api/apps").json()
+# → [{ "id": "tracker-revenue", "name": "Revenue Tracker", "primitivesSummary": "1 profile · 2 blueprints · 1 table · daily 9am", ... }, ...]
+
+# 2. Pick one and load the full manifest detail
+target_id: str = apps[0]["id"]
+detail: dict = requests.get(f"http://localhost:3000/api/apps/{target_id}").json()
+print(f"{detail['manifest']['name']} → kit: {detail['manifest'].get('view', {}).get('kit', 'auto')}")
+
+# 3. Remove the app and every uniquely-owned primitive (cascade)
+cascade: dict = requests.delete(f"http://localhost:3000/api/apps/{target_id}").json()
+print(f"Removed {cascade['filesRemoved']} files, {cascade['profilesRemoved']} profiles, {cascade['blueprintsRemoved']} blueprints")`} />
+
+## Base URL
+
+```
+/api/apps
+```
+
+## Endpoints
+
+### List Apps
+
+<EndpointCard method="GET" path="/api/apps" description="List every app installed in the local registry (~/.ainative/apps/). Returns a lightweight AppSummary for each — full manifest detail comes from the per-id endpoint.">
+
+<SchemaTable title="Response Body (Array of AppSummary)" fields={[
+  { name: 'id', type: 'string', required: true, description: 'App identifier (manifest `id` field — slug-style, e.g., "tracker-revenue")' },
+  { name: 'name', type: 'string', required: true, description: 'Human-readable app name' },
+  { name: 'description', type: 'string | null', required: false, description: 'Optional manifest description' },
+  { name: 'rootDir', type: 'string', required: true, description: 'Absolute filesystem path to the app directory' },
+  { name: 'primitivesSummary', type: 'string', required: true, description: 'Compact human summary, e.g., "1 profile · 2 blueprints · 1 table · daily 9am"' },
+  { name: 'profileCount', type: 'number', required: true, description: 'Number of profiles bound by this app' },
+  { name: 'blueprintCount', type: 'number', required: true, description: 'Number of blueprints bound by this app' },
+  { name: 'tableCount', type: 'number', required: true, description: 'Number of tables bound by this app' },
+  { name: 'scheduleCount', type: 'number', required: true, description: 'Number of schedules bound by this app' },
+  { name: 'scheduleHuman', type: 'string | null', required: false, description: 'Humanized cron string from the first schedule, if any (e.g., "daily 9am", "Monday 7:30am")' },
+  { name: 'createdAt', type: 'number (epoch ms)', required: true, description: 'Manifest creation timestamp' },
+  { name: 'files', type: 'string[]', required: true, description: 'Filenames inside the app directory (manifest.yaml plus any sidecar artifacts)' },
+]} />
+
+**Errors:** `500` — Registry read failure (corrupt manifest, missing apps directory)
+
+Build the App Library page or a kit picker — sort by recency and group by kit:
+
+<CodeExample ts={`// List apps and surface the most recent ones first
+const apps: AppSummary[] = await fetch("http://localhost:3000/api/apps").then((r) => r.json());
+
+const recent = [...apps].sort((a, b) => b.createdAt - a.createdAt).slice(0, 5);
+recent.forEach((a) => {
+  console.log(\`\${a.name} — \${a.primitivesSummary}\`);
+});`} python={`import requests
+
+# List apps and surface the most recent ones first
+apps: list[dict] = requests.get("http://localhost:3000/api/apps").json()
+
+recent = sorted(apps, key=lambda a: a["createdAt"], reverse=True)[:5]
+for a in recent:
+    print(f"{a['name']} — {a['primitivesSummary']}")`} />
+
+Example response:
+
+```json
+[
+  {
+    "id": "tracker-revenue",
+    "name": "Revenue Tracker",
+    "description": "Daily revenue rollup with month-over-month comparison.",
+    "rootDir": "/Users/team/.ainative/apps/tracker-revenue",
+    "primitivesSummary": "1 profile · 2 blueprints · 1 table · daily 9am",
+    "profileCount": 1,
+    "blueprintCount": 2,
+    "tableCount": 1,
+    "scheduleCount": 1,
+    "scheduleHuman": "daily 9am",
+    "createdAt": 1746028800000,
+    "files": ["manifest.yaml", "profiles/analyst.md", "blueprints/daily-rollup.yaml"]
+  },
+  {
+    "id": "coach-onboarding",
+    "name": "New-Hire Coach",
+    "description": "Two-week onboarding workflow with weekly check-ins.",
+    "rootDir": "/Users/team/.ainative/apps/coach-onboarding",
+    "primitivesSummary": "1 profile · 1 blueprint · Monday 9am",
+    "profileCount": 1,
+    "blueprintCount": 1,
+    "tableCount": 0,
+    "scheduleCount": 1,
+    "scheduleHuman": "Monday 9am",
+    "createdAt": 1745510400000,
+    "files": ["manifest.yaml", "profiles/coach.md", "blueprints/weekly-checkin.yaml"]
+  }
+]
+```
+
+</EndpointCard>
+
+### Get App
+
+<EndpointCard method="GET" path="/api/apps/{id}" description="Return the full AppDetail for a single app — same fields as the list endpoint, plus the parsed `manifest` object with profile/blueprint/table/schedule references and the kit-typed view spec.">
+
+<ParamTable params={[
+  { name: 'id', type: 'string (path)', required: true, description: 'App identifier from the list endpoint' },
+]} />
+
+**Response** `200` — `AppDetail` (extends `AppSummary` with a `manifest` object)
+
+<SchemaTable title="manifest (subset of fields most clients use)" fields={[
+  { name: 'id', type: 'string', required: true, description: 'Manifest id (matches path id)' },
+  { name: 'name', type: 'string', required: true, description: 'Display name' },
+  { name: 'description', type: 'string', required: false, description: 'Manifest description' },
+  { name: 'persona', type: 'string', required: false, description: 'Optional persona description for the kit-rendered view' },
+  { name: 'profiles', type: 'AppArtifactRef[]', required: true, description: 'Bound agent profiles — each ref carries an id and an optional `source` filename' },
+  { name: 'blueprints', type: 'AppBlueprintRef[]', required: true, description: 'Bound workflow blueprints — refs may carry a `trigger: { kind: "row-insert", table: string }`' },
+  { name: 'tables', type: 'AppArtifactRef[]', required: true, description: 'Bound tables' },
+  { name: 'schedules', type: 'AppArtifactRef[]', required: true, description: 'Bound schedules' },
+  { name: 'permissions', type: 'object', required: false, description: 'Optional `{ preset: string }` referencing a permission preset' },
+  { name: 'view', type: 'ViewSpec', required: false, description: 'Kit-typed view spec — discriminated by `kit: "auto" | "tracker" | "coach" | "inbox" | "research" | "ledger" | "workflow-hub"`' },
+]} />
+
+**Errors:** `404` — App not found
+
+Render the app detail surface — pick a kit-specific component based on the manifest's `view.kit`:
+
+<CodeExample ts={`// Render the right kit component for the app
+type Kit = "auto" | "tracker" | "coach" | "inbox" | "research" | "ledger" | "workflow-hub";
+
+const detail = await fetch("http://localhost:3000/api/apps/tracker-revenue").then((r) => r.json());
+const kit: Kit = detail.manifest.view?.kit ?? "auto";
+
+// Discriminate on kit to pick the renderer (kit-specific binding shapes live in each resolver)
+switch (kit) {
+  case "tracker":
+    console.log(\`Render TrackerKit for \${detail.manifest.name}\`);
+    break;
+  case "coach":
+    console.log(\`Render CoachKit for \${detail.manifest.name}\`);
+    break;
+  default:
+    console.log(\`Render generic AppView for \${detail.manifest.name}\`);
+}`} python={`import requests
+
+# Render the right kit component for the app
+detail: dict = requests.get("http://localhost:3000/api/apps/tracker-revenue").json()
+kit: str = detail["manifest"].get("view", {}).get("kit", "auto")
+
+# Discriminate on kit to pick the renderer
+renderers = {
+    "tracker": "TrackerKit",
+    "coach": "CoachKit",
+    "inbox": "InboxKit",
+    "research": "ResearchKit",
+    "ledger": "LedgerKit",
+    "workflow-hub": "WorkflowHubKit",
+}
+print(f"Render {renderers.get(kit, 'generic AppView')} for {detail['manifest']['name']}")`} />
+
+Example response:
+
+```json
+{
+  "id": "tracker-revenue",
+  "name": "Revenue Tracker",
+  "description": "Daily revenue rollup with month-over-month comparison.",
+  "rootDir": "/Users/team/.ainative/apps/tracker-revenue",
+  "primitivesSummary": "1 profile · 2 blueprints · 1 table · daily 9am",
+  "profileCount": 1,
+  "blueprintCount": 2,
+  "tableCount": 1,
+  "scheduleCount": 1,
+  "scheduleHuman": "daily 9am",
+  "createdAt": 1746028800000,
+  "files": ["manifest.yaml", "profiles/analyst.md", "blueprints/daily-rollup.yaml"],
+  "manifest": {
+    "id": "tracker-revenue",
+    "name": "Revenue Tracker",
+    "description": "Daily revenue rollup with month-over-month comparison.",
+    "profiles": [{ "id": "analyst", "source": "profiles/analyst.md" }],
+    "blueprints": [
+      { "id": "daily-rollup", "source": "blueprints/daily-rollup.yaml", "trigger": { "kind": "row-insert", "table": "revenue-events" } },
+      { "id": "month-compare", "source": "blueprints/month-compare.yaml" }
+    ],
+    "tables": [{ "id": "revenue-events" }],
+    "schedules": [{ "id": "daily-9am" }],
+    "permissions": { "preset": "git-safe" },
+    "view": { "kit": "tracker" }
+  }
+}
+```
+
+</EndpointCard>
+
+### Delete App (Cascade)
+
+<EndpointCard method="DELETE" path="/api/apps/{id}" description="Remove an app and every primitive it uniquely owns. The cascade deletes the app's files, the matching project (if any), and any profiles or blueprints that aren't shared with another app. Returns counts so the UI can confirm what was actually removed.">
+
+<ParamTable params={[
+  { name: 'id', type: 'string (path)', required: true, description: 'App identifier to remove' },
+]} />
+
+**Response** `200` — Cascade summary
+
+<SchemaTable title="Cascade summary" fields={[
+  { name: 'success', type: 'true', required: true, description: 'Always `true` when at least one artifact was removed' },
+  { name: 'filesRemoved', type: 'number', required: true, description: 'Files deleted from the app root directory' },
+  { name: 'projectRemoved', type: 'boolean', required: true, description: 'Whether the matching project (id === app id) was deleted' },
+  { name: 'profilesRemoved', type: 'number', required: true, description: 'Profiles deleted because no other app referenced them' },
+  { name: 'blueprintsRemoved', type: 'number', required: true, description: 'Blueprints deleted because no other app referenced them' },
+]} />
+
+**Errors:** `400` — App id missing · `404` — Nothing to remove (app does not exist or already cleaned up) · `500` — Cascade failure (one or more removals threw)
+
+Confirm the cascade in the UI before calling — once removed, an app's manifest and uniquely-owned profiles cannot be restored without re-installing:
+
+<CodeExample ts={`// Cascading delete — confirm what got removed for the toast
+const result: { success: true; filesRemoved: number; projectRemoved: boolean; profilesRemoved: number; blueprintsRemoved: number } =
+  await fetch("http://localhost:3000/api/apps/tracker-revenue", { method: "DELETE" }).then((r) => r.json());
+
+const parts: string[] = [];
+if (result.filesRemoved) parts.push(\`\${result.filesRemoved} files\`);
+if (result.projectRemoved) parts.push("project");
+if (result.profilesRemoved) parts.push(\`\${result.profilesRemoved} profiles\`);
+if (result.blueprintsRemoved) parts.push(\`\${result.blueprintsRemoved} blueprints\`);
+
+console.log(\`Removed: \${parts.join(", ")}\`);`} python={`import requests
+
+# Cascading delete — confirm what got removed for the toast
+response = requests.delete("http://localhost:3000/api/apps/tracker-revenue")
+result: dict = response.json()
+
+parts: list[str] = []
+if result["filesRemoved"]:
+    parts.append(f"{result['filesRemoved']} files")
+if result["projectRemoved"]:
+    parts.append("project")
+if result["profilesRemoved"]:
+    parts.append(f"{result['profilesRemoved']} profiles")
+if result["blueprintsRemoved"]:
+    parts.append(f"{result['blueprintsRemoved']} blueprints")
+
+print(f"Removed: {', '.join(parts)}")`} />
+
+Example response:
+
+```json
+{
+  "success": true,
+  "filesRemoved": 3,
+  "projectRemoved": true,
+  "profilesRemoved": 1,
+  "blueprintsRemoved": 2
+}
+```
+
+</EndpointCard>
+
+## Kit Reference
+
+The `view.kit` field on the manifest determines which renderer the app surface uses. Kit selection drives layout, not data — bindings (tables, blueprints, schedules) live alongside `view`, not inside it.
+
+| Kit | Use case | Typical bindings |
+|---|---|---|
+| `tracker` | KPI dashboard with rolling rollups | 1 table (events) + 1-2 blueprints + 1 schedule |
+| `coach` | Multi-step coaching workflow | 1 profile + 1 blueprint + 1 schedule (weekly cadence) |
+| `inbox` | Triage queue with HIL approvals | 1 table (queue) + 1 blueprint (intake) + permissions preset |
+| `research` | Long-running investigation with documents | 1 profile + 1 blueprint + tables for hypotheses/findings |
+| `ledger` | Append-only entries with totals | 1 table (entries) + computed columns |
+| `workflow-hub` | Multi-blueprint launcher | 0 tables, 3+ blueprints |
+| `auto` | Default — generic AppView with no kit-specific layout | any |
+
+## Manifest Authoring
+
+Manifests are authored from the chat App Builder, not via API — there is no `POST /api/apps` endpoint. The builder writes a YAML file under `~/.ainative/apps/{id}/manifest.yaml` and refreshes the registry cache. The Apps API endpoints listed above only read and delete; for creation flows, use the chat conversation builder documented in the [Chat API](/docs/api/chat/).

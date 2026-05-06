@@ -16,6 +16,14 @@ Profiles are `ainative-business`’s reusable agent definitions. They turn agent
 
 Browse and manage specialized agent profiles that define how agents behave when executing tasks. Each profile encapsulates a distinct persona with tailored capabilities, system prompts, and behavioral constraints. The catalog includes both technical profiles (Code Reviewer, Researcher, DevOps Engineer) and business-function profiles (Marketing Strategist, Sales Researcher, Financial Analyst). Profiles work across providers (Claude, Codex, Anthropic Direct, OpenAI Direct, and Ollama), and the auto-detect router can automatically select the best-fit profile for any given task.
 
+## Screenshots
+
+![Agent profiles catalog showing profile cards](/screenshots/profiles-list.png)
+*The profiles catalog displays agent profiles as cards with name, description, runtime badges, and capability indicators.*
+
+![Profile detail page](/screenshots/profiles-detail.png)
+*Profile detail page showing capabilities, tools, and configuration for a selected profile.*
+
 ## Key Features
 
 ### Agent Profile Catalog
@@ -40,6 +48,13 @@ Profiles are provider-agnostic and work with all five runtime adapters: Claude C
 Each profile card displays runtime compatibility badges showing which providers it supports. Profiles that work across all runtimes show all provider icons, while some may be optimized for specific providers.
 
 ### Custom Profiles
+
+![Empty new-profile form](/screenshots/profiles-create-form-empty.png)
+*New Profile dialog with empty fields — name, description, system prompt, allowed tools, and runtime preferences.*
+
+![Filled new-profile form](/screenshots/profiles-create-form-filled.png)
+*Form populated with a custom profile definition ready to save — including a tailored system prompt and tool allowlist.*
+
 Beyond the built-in catalog, you can create custom profiles tailored to your specific business processes. Custom profiles appear alongside built-in ones and support the same routing, tools, and provider compatibility features. Imported profiles from GitHub repositories show provenance badges (Built-in, Custom, or Imported).
 
 ## How To
