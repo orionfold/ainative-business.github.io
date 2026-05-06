@@ -35,6 +35,7 @@
     "test-time-distilling-for-exploration",
     "runtime-frontier-six-patches-on-spark",
     "pass-at-k-after-the-seventh-patch",
-    "clawgym-on-spark"
+    "clawgym-on-spark",
+    "clawgym-on-spark-grpo"
   ]
 }

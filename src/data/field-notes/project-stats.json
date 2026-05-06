@@ -1,45 +1,45 @@
 {
-  "generated_at": "2026-05-05T06:21:32Z",
+  "generated_at": "2026-05-06T06:36:55Z",
   "articles": {
-    "total": 30,
-    "published": 30,
+    "total": 31,
+    "published": 31,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 78696,
-    "mean_per_article": 2623,
+    "total": 82591,
+    "mean_per_article": 2664,
     "longest": {
-      "slug": "nim-first-inference-dgx-spark",
-      "title": "Your First NIM on a DGX Spark \u2014 What 24.8 Tokens Per Second Doesn't Tell You",
-      "words": 3479
+      "slug": "clawgym-on-spark-grpo",
+      "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
+      "words": 3895
     }
   },
   "code": {
-    "evidence_loc": 33856,
-    "src_loc": 8100,
-    "total_loc": 41956,
+    "evidence_loc": 35341,
+    "src_loc": 8742,
+    "total_loc": 44083,
     "by_language": {
-      "python": 33726,
-      "astro": 5516,
-      "css": 1937,
-      "typescript": 535,
+      "python": 35211,
+      "astro": 6011,
+      "css": 2046,
+      "typescript": 573,
       "shell": 115,
       "javascript": 112,
       "sql": 15
     },
     "data_lines": {
-      "json": 772314,
-      "yaml": 743
+      "json": 26533233,
+      "yaml": 1717
     }
   },
   "stages": {
     "foundations": 11,
-    "training": 8,
-    "fine-tuning": 5,
+    "training": 9,
+    "fine-tuning": 6,
     "inference": 14,
     "deployment": 2,
-    "agentic": 10,
+    "agentic": 11,
     "observability": 6,
     "dev-tools": 2
   },
@@ -65,13 +65,13 @@
       "articles": 6
     },
     {
-      "id": "nemotron-super-49b",
-      "label": "Nemotron Super 49B",
-      "articles": 5
-    },
-    {
       "id": "qwen-2.5-7b-instruct",
       "label": "Qwen2.5 7B Instruct",
+      "articles": 6
+    },
+    {
+      "id": "nemotron-super-49b",
+      "label": "Nemotron Super 49B",
       "articles": 5
     },
     {
@@ -99,7 +99,7 @@
     {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 28
+      "articles": 29
     },
     {
       "id": "dgx-spark",
@@ -109,7 +109,7 @@
     {
       "id": "nemo",
       "label": "NeMo Framework",
-      "articles": 22
+      "articles": 23
     },
     {
       "id": "tensorrt-llm",

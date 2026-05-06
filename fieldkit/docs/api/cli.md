@@ -1,13 +1,13 @@
 ---
 module: cli
 title: fieldkit (CLI)
-summary: A thin Typer wrapper over the four modules. Quick checks and smoke benchmarks without writing Python.
-order: 5
+summary: A thin Typer wrapper over the modules. Quick checks and smoke benchmarks without writing Python.
+order: 6
 ---
 
 ## What it is
 
-A thin command-line entry point exposed at `fieldkit` after `pip install`. Every subcommand is a ~20-line wrapper over the existing module APIs — for real workloads, import `fieldkit.{capabilities,nim,rag,eval}` directly instead.
+A thin command-line entry point exposed at `fieldkit` after `pip install`. Every subcommand is a ~20-line wrapper over the existing module APIs — for real workloads, import `fieldkit.{capabilities,nim,rag,eval,training}` directly instead.
 
 ## Commands
 
@@ -17,7 +17,7 @@ Print the installed package version.
 
 ```bash
 $ fieldkit version
-0.1.0.dev0
+0.2.0
 ```
 
 ### `fieldkit envelope <size>`

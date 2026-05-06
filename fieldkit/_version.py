@@ -6,4 +6,4 @@
 build time, so bumping it here is enough to bump the wheel version too.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
