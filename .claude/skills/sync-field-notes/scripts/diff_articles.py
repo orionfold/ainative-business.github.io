@@ -76,6 +76,28 @@ def file_hash(path: Path) -> str:
     return h.hexdigest()
 
 
+# Mirror of sync_articles.py's link rewrite. Required so the diff doesn't
+# report phantom "content differs" on every sync — the script must compare
+# source-after-transform vs target.
+_ARTICLE_LINK_RE = re.compile(r'\]\(/articles/(?:([a-z0-9-]+)/?)?(#[^)]*|\?[^)]*)?\)')
+
+
+def rewrite_article_links(text: str) -> str:
+    def _sub(m: re.Match) -> str:
+        slug = m.group(1)
+        suffix = m.group(2) or ""
+        if slug is None:
+            return f"](/field-notes/{suffix})"
+        return f"](/field-notes/{slug}/{suffix})"
+    return _ARTICLE_LINK_RE.sub(_sub, text)
+
+
+def article_content_differs(src: Path, tgt: Path) -> bool:
+    """Compare source vs target after applying the link rewrite to source.
+    Used in place of `file_hash(src) != file_hash(tgt)` for article files."""
+    return rewrite_article_links(src.read_text(encoding="utf8")) != tgt.read_text(encoding="utf8")
+
+
 def article_payload(slug_dir: Path) -> Path | None:
     """Return the article.md or article.mdx path if present, else None."""
     for name in ("article.md", "article.mdx"):
@@ -320,7 +342,7 @@ def compute_diff() -> dict:
             new_articles.append(slug)
         elif tgt_md is None:
             updated_articles.append((slug, "target has no article.md/mdx — promote seed"))
-        elif file_hash(src_md) != file_hash(tgt_md):
+        elif article_content_differs(src_md, tgt_md):
             updated_articles.append((slug, f"{src_md.name} content differs"))
 
         for img in syncable_image_files(src_dir):

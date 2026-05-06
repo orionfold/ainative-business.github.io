@@ -14,7 +14,7 @@ signature: ArchitectDistillation
 series: Autoresearch
 ---
 
-The trajectory file `articles/autoresearch-agent-loop/evidence/trajectory.jsonl` has 50 lines. Each line is one iteration of the [autoresearch agent loop](/articles/autoresearch-agent-loop): the 8B NIM proposed a single-knob perturbation, the rails checked it, the trainer ran 60 steps, the validator measured `val_bpb`, the loop kept or reverted, and the trajectory got one more record. Eight of fifty proposals improved val_bpb by more than 0.5%. Forty-two regressed and were reverted. The whole thing ran for 73 minutes overnight.
+The trajectory file `articles/autoresearch-agent-loop/evidence/trajectory.jsonl` has 50 lines. Each line is one iteration of the [autoresearch agent loop](/field-notes/autoresearch-agent-loop/): the 8B NIM proposed a single-knob perturbation, the rails checked it, the trainer ran 60 steps, the validator measured `val_bpb`, the loop kept or reverted, and the trajectory got one more record. Eight of fifty proposals improved val_bpb by more than 0.5%. Forty-two regressed and were reverted. The whole thing ran for 73 minutes overnight.
 
 That trajectory file is *training data*. Each row encodes "given the recent history of attempts, this is what the 8B proposer chose to try next, and this is what happened." Fifty examples of an LLM-driven architectural search policy — generated, by an LLM, on this Spark, for free.
 
@@ -53,7 +53,7 @@ The article reuses three artifacts from earlier pieces:
 - `articles/autoresearch-agent-loop/evidence/proposer.py` — the prompt builder the 8B saw at training time. We import it directly so the prompts in our fine-tuning corpus are byte-identical to what the 8B saw, history window and all.
 - `articles/guardrails-for-code-generation/evidence/perturbation_menu.json` — the allowlist of knobs the proposer is allowed to twist. The race-evaluation script uses this to validate every proposal.
 
-The base model — Qwen2.5-3B-Instruct, [the same one used for the QA-pair LoRA in the Second Brain arc](/articles/lora-on-your-own-qa-pairs) — was already on disk from that earlier piece, at `/home/nvidia/lora-work/base`. No new download. The article's full wall budget (~10 min of GPU work plus writing time) is bounded by what's already cached.
+The base model — Qwen2.5-3B-Instruct, [the same one used for the QA-pair LoRA in the Second Brain arc](/field-notes/lora-on-your-own-qa-pairs/) — was already on disk from that earlier piece, at `/home/nvidia/lora-work/base`. No new download. The article's full wall budget (~10 min of GPU work plus writing time) is bounded by what's already cached.
 
 ## The journey — three phases
 
@@ -86,7 +86,7 @@ Hold-out balance: of 8 keep decisions in the 50-iter trajectory, 5 land in train
 
 ### Phase 2 — LoRA-fine-tune Qwen2.5-3B-Instruct on 42 examples
 
-`train_lora.py` mirrors the recipe from the [QA-pair LoRA article](/articles/lora-on-your-own-qa-pairs): rank-16 adapter on every attention + FFN projection, bf16 base, gradient checkpointing, cosine schedule. The differences are small but matter:
+`train_lora.py` mirrors the recipe from the [QA-pair LoRA article](/field-notes/lora-on-your-own-qa-pairs/): rank-16 adapter on every attention + FFN projection, bf16 base, gradient checkpointing, cosine schedule. The differences are small but matter:
 
 - **5 epochs**, not 3 — 42 examples is small, more passes help convergence
 - **`max_length=2048`**, not 1024 — the agent's user prompt is ~1700 tokens before the chat template adds boilerplate, and we need the assistant target to survive truncation

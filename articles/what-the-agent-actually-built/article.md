@@ -20,7 +20,7 @@ Two factual sentences first, in plain English: **For 73 minutes this afternoon, 
 
 ## What we actually did vs. what "training a model" usually means
 
-The phrase **"I want to train a language model"** is one of the most-overloaded sentences in the AI vocabulary. Four very different things hide behind it, with costs that span four orders of magnitude. Most people who say "train" mean one of the cheaper rows in the table below. The agent loop in the [autoresearch-loop article](/articles/autoresearch-agent-loop/) is infrastructure for the *most* expensive row — but most readers' actual goal is served by a cheaper one.
+The phrase **"I want to train a language model"** is one of the most-overloaded sentences in the AI vocabulary. Four very different things hide behind it, with costs that span four orders of magnitude. Most people who say "train" mean one of the cheaper rows in the table below. The agent loop in the [autoresearch-loop article](/field-notes/autoresearch-agent-loop/) is infrastructure for the *most* expensive row — but most readers' actual goal is served by a cheaper one.
 
 | what people usually say | the canonical name | what it actually does | cost on a Spark | typical result |
 |---|---|---|---:|---|

@@ -19,7 +19,7 @@ You cannot fine-tune a 100B-parameter Nemotron on a DGX Spark. The Spark's 128 G
 
 The harder question — the one you should actually care about — is *how many GPUs, of what type, would you actually need?* That one has a specific, boring, defensible answer, and it is the difference between a $500 weekend on a rented H100 node and a $20,000 monthly bill you spend the rest of the quarter defending. Owning the math is cheaper than owning the hardware.
 
-This article works the arithmetic end-to-end for a hypothetical 100B Nemotron fine-tune across three methods — full BF16 fine-tune, LoRA, and QLoRA — and pins each to a concrete GPU count. The Spark appears in this story not as the rig that runs the training, but as the rig that lets you *see* the memory equation at a scale your desk can actually afford. A 3B LoRA peaked at ~20 GB of GPU memory on the Spark, measured in [`lora-on-your-own-qa-pairs`](/articles/lora-on-your-own-qa-pairs/). A 100B full fine-tune peaks at ~1.6 TB, arithmetically inevitable. Those are the same equation. You cannot learn the shape of the cost space by reading model cards on HuggingFace. You learn it by running a small fine-tune on your desk and asking where the extra zeros come from.
+This article works the arithmetic end-to-end for a hypothetical 100B Nemotron fine-tune across three methods — full BF16 fine-tune, LoRA, and QLoRA — and pins each to a concrete GPU count. The Spark appears in this story not as the rig that runs the training, but as the rig that lets you *see* the memory equation at a scale your desk can actually afford. A 3B LoRA peaked at ~20 GB of GPU memory on the Spark, measured in [`lora-on-your-own-qa-pairs`](/field-notes/lora-on-your-own-qa-pairs/). A 100B full fine-tune peaks at ~1.6 TB, arithmetically inevitable. Those are the same equation. You cannot learn the shape of the cost space by reading model cards on HuggingFace. You learn it by running a small fine-tune on your desk and asking where the extra zeros come from.
 
 ## Why this matters for a personal AI builder
 
@@ -160,13 +160,13 @@ The punchline: the ratio between 24 GPUs, 8 GPUs, and 1 GPU is almost entirely d
 
 ## Verification — reading the Spark back into the formula
 
-On the Spark, a rank-16 LoRA on a 3B Qwen2.5 base — 30M trainable parameters, ~1% of the model — hit **~20 GB peak GPU memory** on batch 4, sequence 2048, bf16 with gradient checkpointing, 8B NIM stopped to free ~10 GB of co-resident headroom (see [`lora-on-your-own-qa-pairs`](/articles/lora-on-your-own-qa-pairs/)). That 20 GB number is the sanity check for the math.
+On the Spark, a rank-16 LoRA on a 3B Qwen2.5 base — 30M trainable parameters, ~1% of the model — hit **~20 GB peak GPU memory** on batch 4, sequence 2048, bf16 with gradient checkpointing, 8B NIM stopped to free ~10 GB of co-resident headroom (see [`lora-on-your-own-qa-pairs`](/field-notes/lora-on-your-own-qa-pairs/)). That 20 GB number is the sanity check for the math.
 
 3B × 2 bytes (frozen base bf16) = 6 GB. Adapter + gradients + Adam at 1% ≈ <1 GB. Activations at batch 4, seq 2048, 32 layers, 2560 hidden, 2 bytes ≈ 8–10 GB with checkpointing. Total: ~15 GB, peak ~20 GB once you account for transient bf16/fp32 casts during the optimizer step. The Spark run lives inside the arithmetic.
 
 Now scale the formula. 100B / 3B = ~33× — but you don't just multiply the 20 GB by 33, because activations don't scale linearly with total parameter count. They scale with hidden dimension and layer count, both sub-linear in params once you're past the 10B regime. Use the term-by-term math from the previous section and you land at 250 GB for LoRA at 100B. The Spark teaches you *which terms to extrapolate differently* — and that lesson is what transfers.
 
-The related landmark from [`nemo-framework-continued-pretraining-on-spark`](/articles/nemo-framework-continued-pretraining-on-spark/): *"8B at BF16 with activations checkpointed should fit. 49B won't."* That is the full-fine-tune ceiling on 128 GB. 8B × 16 bytes/param = 128 GB — exactly the Spark's budget. 49B × 16 = 784 GB — won't fit and can't be made to fit without dropping to LoRA or QLoRA. That sentence is the Spark's tells-you-what-fits oracle, and it is dimensionally identical to the 100B reasoning above.
+The related landmark from [`nemo-framework-continued-pretraining-on-spark`](/field-notes/nemo-framework-continued-pretraining-on-spark/): *"8B at BF16 with activations checkpointed should fit. 49B won't."* That is the full-fine-tune ceiling on 128 GB. 8B × 16 bytes/param = 128 GB — exactly the Spark's budget. 49B × 16 = 784 GB — won't fit and can't be made to fit without dropping to LoRA or QLoRA. That sentence is the Spark's tells-you-what-fits oracle, and it is dimensionally identical to the 100B reasoning above.
 
 ## Tradeoffs and surprises
 

@@ -14,7 +14,7 @@ signature: TrajectoryFlailing
 series: Autoresearch
 ---
 
-[A8 shipped an honest negative result](/articles/distill-architect-lora-from-trajectories): a Qwen2.5-3B LoRA trained on the [A4 trajectory](/articles/autoresearch-agent-loop) mode-collapsed onto the trajectory's most-frequent winning move — `d_model=768`, suggested verbatim five out of five training-set keeps — and matched 0 of 8 held-out picks. The article's own diagnosis was: *the corpus was thin*. This is the follow-up that puts numbers on what "thin" means and points at the line of code that caused it.
+[A8 shipped an honest negative result](/field-notes/distill-architect-lora-from-trajectories/): a Qwen2.5-3B LoRA trained on the [A4 trajectory](/field-notes/autoresearch-agent-loop/) mode-collapsed onto the trajectory's most-frequent winning move — `d_model=768`, suggested verbatim five out of five training-set keeps — and matched 0 of 8 held-out picks. The article's own diagnosis was: *the corpus was thin*. This is the follow-up that puts numbers on what "thin" means and points at the line of code that caused it.
 
 The A4 loop ran for 73 minutes overnight, evaluated 50 perturbations, accepted 8 of them, and lowered val_bpb from 10.9554 to 10.8534 — a real 0.93% improvement that would have made the article shippable on its own. So at the surface, the trajectory looked like a researcher: it explored, it accepted, it improved. The trouble is that a corpus designed for distillation has to be *informative*, not just successful. And by every observability metric, this trajectory was the opposite.
 
@@ -40,7 +40,7 @@ The honest one-line summary: *the trajectory wasn't a corpus — it was the same
 
 ## What flailing looks like in numbers
 
-The 13-knob perturbation menu (defined in [A5's guardrails](/articles/guardrails-for-code-generation)) gave the agent a wide search space: `n_layer`, `n_head`, `d_model`, `d_ff`, `lr`, `lr_warmup`, `grad_clip`, `weight_decay`, `beta1`, `beta2`, `batch_size`, `seq_len`, `precision`. Some are categorical (`precision: bf16/fp8`), some range-bounded (`lr: 1e-5..1e-2`). All thirteen are first-class citizens of the menu — the rails treat them identically.
+The 13-knob perturbation menu (defined in [A5's guardrails](/field-notes/guardrails-for-code-generation/)) gave the agent a wide search space: `n_layer`, `n_head`, `d_model`, `d_ff`, `lr`, `lr_warmup`, `grad_clip`, `weight_decay`, `beta1`, `beta2`, `batch_size`, `seq_len`, `precision`. Some are categorical (`precision: bf16/fp8`), some range-bounded (`lr: 1e-5..1e-2`). All thirteen are first-class citizens of the menu — the rails treat them identically.
 
 Across 50 proposals, the agent touched six.
 
@@ -105,7 +105,7 @@ The 8B teacher fared better on the same 8 prompts (4 of 8 exact, 0.5 mean recipr
 
 The 200-iter overnight rerun queued in the next session has to land *one* of these to be worth the wall time.
 
-**1. Rail-side anti-repeat (cleanest).** [A5's guardrails](/articles/guardrails-for-code-generation) already maintain `seen_pairs` semantics conceptually. Adding a `block_repeat` rail that rejects any (knob, value) seen in the last 50 iterations forces the agent to propose elsewhere on retry. The proposer doesn't change — the rails just refuse to evaluate ground already covered. Cost: a one-line check in `gate()`.
+**1. Rail-side anti-repeat (cleanest).** [A5's guardrails](/field-notes/guardrails-for-code-generation/) already maintain `seen_pairs` semantics conceptually. Adding a `block_repeat` rail that rejects any (knob, value) seen in the last 50 iterations forces the agent to propose elsewhere on retry. The proposer doesn't change — the rails just refuse to evaluate ground already covered. Cost: a one-line check in `gate()`.
 
 **2. Prompt-side widening (most informative for distillation).** Bump `k` from 5 to 30 (or all-history). The proposer's prompt grows from ~6 lines of recent history to ~30+. The 8B sees what it tried, what worked, what failed; it can reason "I already tried `d_model=1536` six times and reverted every time, let me try `lr_warmup` for a change." Cost: longer prompt (~10× tokens for the history block), proportionally slower per-iter NIM call (was 1.23 s mean — would become maybe 2-3 s), but the corpus quality goes up dramatically.
 
