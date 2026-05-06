@@ -202,3 +202,11 @@
   font-size: 0.7em;
   color: var(--color-primary);
 }
+
+/* Contain hover-zoom on raw markdown images so the 1.5× scale clips inside
+   the prose column instead of bleeding onto the sidebar. Mirrors the
+   overflow-hidden + rounded-xl wrapping that <BrowserFrame /> already has. */
+.prose p:has(> img) {
+  overflow: hidden;
+  border-radius: 0.75rem;
+}
