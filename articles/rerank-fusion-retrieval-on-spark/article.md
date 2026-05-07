@@ -107,6 +107,14 @@ def retrieve(question, mode, k):
 
 Four branches, one dispatcher. The naive branch is what the [naive RAG article](/field-notes/naive-rag-on-spark/) shipped. The BM25 branch swaps the embedder and the ANN index for Postgres full-text. The RRF branch runs both in parallel and fuses. The rerank branch adds a cross-encoder pass over the fused candidates and re-sorts.
 
+:::define[Dense vs sparse retrieval]
+Two complementary models of *"how documents look like queries."* **Sparse** (BM25, TF-IDF) treats each document as a high-dimensional vector with one component per vocabulary term — most components are zero. Matches surface form. **Dense** (Nemotron Retriever, all bi-encoders) treats each document as a low-dimensional vector with all components active. Matches meaning, not surface form. Hybrid search runs both and fuses; each catches what the other misses (exact rare terms vs paraphrased questions).
+:::
+
+:::define[BM25]
+"Best Match 25" — the classic sparse retrieval scorer (Robertson & Walker, 1994). Ranks documents by term-frequency × inverse-document-frequency (TF-IDF), with length normalisation that prevents long documents from dominating. It only matches *surface forms* — it doesn't know "puppy" and "dog" are related — but for queries containing rare strings (proper names, error codes, exact phrases), it's still hard to beat. Postgres exposes a BM25-family ranker as `ts_rank_cd` over `tsvector`/`tsquery` types.
+:::
+
 ### BM25 with Postgres — six lines of SQL
 
 Postgres ships full-text search in the core. No extension, no external ingest, no parallel index service. The [pgvector article's](/field-notes/pgvector-on-spark/) `chunks` table already has a `text` column; one `CREATE INDEX` turns it into a lexical index:
@@ -137,6 +145,10 @@ LIMIT 20;
 
 The middle trick is turning `plainto_tsquery`'s `AND`-of-stems into an `OR`-of-stems. Out-of-the-box, `plainto_tsquery('english', 'Did Google have an IPO in 2004?')` returns `'googl' & 'ipo' & '2004'` — every stem must appear. On AG News, zero chunks contain all three stems together; BM25 returns an empty result. Hybrid retrieval needs the lexical side to cast a wider net than that, so the CTE splits on `&` and rejoins on `|`, turning the query into `'googl' | 'ipo' | '2004'` — any one stem counts. The ranker's `ts_rank_cd` then puts chunks with *more* hits (and denser proximity) at the top.
 
+:::pitfall[`plainto_tsquery` returns AND-of-stems, not OR]
+Postgres's `plainto_tsquery('english', 'Did Google have an IPO in 2004?')` parses to `'googl' & 'ipo' & '2004'` — every stem must appear in a candidate document. On most natural-language questions this returns an empty result set because no chunk contains every term verbatim. For hybrid retrieval, transform to OR-of-stems (`'googl' | 'ipo' | '2004'`) so any single stem qualifies; `ts_rank_cd` then ranks by hit-count and proximity. The split-on-`&`-rejoin-on-`|` CTE here is one way; `websearch_to_tsquery` handles some cases natively but not all.
+:::
+
 ### Reciprocal Rank Fusion — eight lines of Python
 
 RRF does not look at scores. It only looks at ranks. For each document, it sums `1 / (60 + rank)` across the two retrieval lists, where 60 is the Carbonell-Cormack-Clarke default from the 2009 paper that introduced the formula. Documents appearing in both lists get additive credit; a document in only one list gets a smaller but non-zero fused score.
@@ -153,9 +165,17 @@ def rrf_merge(dense_hits, lex_hits, top_k, k_rrf=60):
 
 Eight lines. No hyperparameters to tune beyond `k_rrf=60` — which the literature says is robust across corpora and which I did not re-search on AG News because the gains from tuning RRF's k are a second-order story compared to whether hybrid retrieval beats naive at all.
 
+:::define[RRF — Reciprocal Rank Fusion]
+Score-free fusion of multiple ranked lists (Cormack, Clarke & Büttcher, 2009). For each document, sum `1 / (k + rank)` across every list it appears in (default `k=60`). Documents in *both* lists get additive credit; documents in only one still get a score, but smaller. The k constant softens rank-1 dominance and makes the fusion robust across very different scoring scales — RRF works whether you fuse cosine similarity (0–1), BM25 scores (unbounded), and ColBERT logits (signed) without any normalisation pass.
+:::
+
 ### Rerank — and the reason it runs off-box
 
 The Nemotron Reranker NIM (`nvidia/llama-3.2-nv-rerankqa-1b-v2`) is a cross-encoder that takes a query and a list of passages, scores each `(query, passage)` pair jointly under a transformer, and returns logit scores sorted high-to-low. Cross-encoders are *per-pair expensive* — they run the transformer once per candidate — which is why rerank runs over a top-20 list, not over the whole corpus.
+
+:::define[Cross-encoder reranker]
+A retrieval scorer that takes a query and one candidate passage *together* as input and runs the transformer once per pair to produce a relevance score. Contrast with the bi-encoder embedder upstream, which encodes query and passage independently. Cross-encoders are accurate but expensive — running them over the whole corpus is intractable, so they're applied as a *second stage* on a shortlist (typically 20–100 candidates from the cheap first stage). The Nemotron Reranker 1B-v2 is a cross-encoder.
+:::
 
 The intention was to deploy the NIM locally on `:8002`, matching the embed and LLM NIMs. The reality is that neither of its inference backends works on GB10 today. The default ONNX profile hits a missing CUDA symbol inside the runtime's `ReduceSum` kernel; the TensorRT profile targeted at "compute capability 12.0" ships a pre-built plan compiled for RTX 6000 Blackwell (device id `2321:10de`, datacentre-class Blackwell), not the integrated Blackwell on GB10 (`0x12.1`, `RTX 6000 Blackwell svx1` in the NIM manifest). TensorRT refuses to deserialize engines across platform tags even when compute capabilities match. The NIM cycles through a retry loop and never reaches ready.
 
@@ -213,6 +233,10 @@ Five observations.
 
 **RRF is slightly *worse* than naive at recall@5.** This is the result that would embarrass a hybrid-retrieval pitch deck, and it's worth reading carefully. Dense produced 92.1%. RRF of dense + BM25 produced 88.4%. The loss is not random — it happens on queries where dense had all the right chunks in its top-5 already, and fusing in BM25's top-5 pulls in lexically-adjacent-but-topically-wrong chunks that push a dense-found relevant chunk out of the top-5. **Hybrid retrieval only adds value when dense is weak**, and on AG News with Nemotron, dense is not weak.
 
+:::pitfall[Hybrid retrieval can hurt when dense is already strong]
+Fusing BM25 into a near-ceiling dense pipeline can *lower* recall, not raise it. BM25's noisy lexical hits push semantically-correct chunks out of the top-5; the additive credit RRF gives to dual-list documents isn't enough to overcome it. The literature usually benchmarks against pipelines where the dense embedder is *weak* — Pyserini against a small bi-encoder, or out-of-the-box `bge-small`. With a strong embedder (Nemotron Retriever 1B, GTE-large, e5-mistral), measure naive first; only add hybrid when your queries actually contain rare-term retrieval cases.
+:::
+
 **The reranker reclaims the loss.** Rerank@5 is 91.8% — essentially tied with naive — and rerank@10 is 96.8%, the best number in the table. Six queries show rerank lift recall@10 by 5–25 points over RRF, including the Phelps 200m question, the Sudan-Darfur question, the Venezuela referendum question, and the Kenteris doping question. In every one of those, RRF's top-10 had the right chunks somewhere in it, and the reranker hoisted them to the top-5 where they actually matter.
 
 **Latency scales with the chain.** BM25 is fastest at 75 ms because it has no embed call, just a CTE. Naive is 98 ms — embed plus a cosine scan. RRF is 169 ms because it runs dense and BM25 in sequence (they could run in parallel; we don't because the complexity cost isn't worth the 60 ms for a benchmarking script). Rerank is 523 ms because the hosted-endpoint roundtrip is unavoidable. For a UI-facing chat the first three modes are all well under budget; the reranker adds half a second that is real. Parallelising the two retrievals would put RRF at ~110 ms, closer to naive.
@@ -245,6 +269,10 @@ Both lists contain the right chunks. The reranker reordered — `[1014] "Thorped
 
 The rerank is not always a win. Three queries in the 30 go the other way — the US Dream Team loss, the Najaf Sadr militia fighting, the Hurricane Charley insurers — where naive's top-5 was cleaner than the reranker's top-5. On the Dream Team loss, naive kept all five slots on the loss itself; the reranker substituted in one chunk about Iverson's broken thumb (topically adjacent but not the event). The reranker is a scorer, not an oracle; its logit decisions can over-weight specificity at the cost of topical breadth. *Rerank helps on the average, not on every query,* is a sharper claim than the hybrid-retrieval marketing would suggest.
 
+:::why[A reranker is a re-scorer, not an oracle]
+A reranker improves the *expected* ranking of relevant documents in your top-K — but it can also be wrong on individual queries, especially when its training distribution doesn't match yours. In this benchmark, three of thirty queries got *worse* under rerank because the cross-encoder over-weighted topical specificity at the cost of breadth. Treat reranker scores like model predictions, not ground truth: useful as an aggregated signal, fallible per item. Keep the pre-rerank list available for diagnostics — when rerank goes wrong, you'll want to see what the cheap first stage found.
+:::
+
 ## The Google IPO question, re-probed — retrieval is solved, grounding isn't
 
 The [naive RAG article's](/field-notes/naive-rag-on-spark/) hero moment was the 8B model refusing on "Did Google have an IPO in 2004?" despite pgvector returning five Google-IPO chunks. This article ran the same question through all four modes. Every single mode retrieved the correct chunks. The reranker put *different* correct chunks at the top — including `[1151] "Google Could Make Market Debut Wednesday"`, which states the IPO event in the headline and opens with "Google Inc. appeared set to start trading Wednesday." Surely *that* chunk is explicit enough.
@@ -270,6 +298,10 @@ The rerank chain takes ~520 ms median end-to-end for retrieval alone. Broken dow
 
 The rerank step is 65% of the retrieval wall-clock. When the local NIM arrives, 340 ms becomes ~150 ms — 20 passage × ~8 ms per pair on-GPU, minus network. That single change moves the rerank mode from "noticeable pause" to "imperceptible." Until then, the hosted endpoint is fast enough that retrieval + generation still fits inside the 2-second chat budget the second-brain / wiki / autoresearch arcs share.
 
+:::math[Why rerank latency ≈ network + N × 8 ms]
+A 1B cross-encoder at FP16 runs one forward per (query, passage) pair. On an H100, each pair takes ~2–5 ms; on Spark's GB10, ~6–10 ms. Twenty candidates × 8 ms per pair = 160 ms of compute. The hosted-endpoint version above measured 340 ms — about 180 ms of which is HTTPS round-trip + JSON encode/decode + TLS. When the local NIM lands on Spark, the same rerank drops to ~150 ms — pure compute, no network. The latency budget for hybrid retrieval becomes "embed + scan + rerank ≈ 200 ms" instead of ~520 ms.
+:::
+
 ## What the three arcs got
 
 Four retrieval modes, three running threads.
@@ -285,3 +317,15 @@ Four articles ago I expected hybrid retrieval to dominate naive by several recal
 The grounding gap from the [naive RAG article](/field-notes/naive-rag-on-spark/) is sharper now, not narrower. Four different retrieval configurations fed five correct chunks to the 8B generator on the Google-IPO question. All four got back a refusal. Retrieval is past the bottleneck at AG News scale with this embedder. The [bigger-generator article](/field-notes/bigger-generator-grounding-on-spark/) swaps the 8B for a bigger generator — Nemotron-Super-49B through the hosted endpoint, or the next local NIM that fits GB10 memory — and measure whether a stronger grounding circuit closes the refusal.
 
 **Second Brain now:** has BM25 recall for exact-term queries. **LLM Wiki now:** ranks library-name hits correctly. **Autoresearch now:** has a calibrated tie-breaker. Next up: **a bigger generator on the same retrieval chain** — measure whether 49B / 70B-class grounding turns the four-mode refusal on "Did Google have an IPO in 2004?" into the obvious yes.
+
+:::deeper
+- [BM25 / Okapi (Robertson, 1994)](https://dl.acm.org/doi/10.1109/TKDE.1986.4317995) — the original Okapi BM25 derivation; TF-IDF with length normalisation.
+- [Reciprocal Rank Fusion (Cormack et al., 2009)](https://dl.acm.org/doi/10.1145/1571941.1572114) — score-free fusion that's robust across vastly different scoring scales.
+- [ColBERT paper (Khattab & Zaharia, 2020)](https://arxiv.org/abs/2004.12832) — late-interaction retrieval; cross-encoder accuracy at near-bi-encoder cost.
+- [SPLADE paper (Formal et al., 2021)](https://arxiv.org/abs/2107.05720) — learned sparse retrieval that combines BM25's exact-match property with neural training.
+- [BEIR benchmark](https://github.com/beir-cellar/beir) — community evaluation harness where most rerank/hybrid claims get tested.
+:::
+
+:::hardware[Cross-encoder rerank at frontier scale]
+A 1B cross-encoder at H100 scale reranks 100 passages in ~250 ms; at H200 scale, ~180 ms. Spark's local rerank (when the NIM lands) will hit 20 passages in ~150 ms — within budget for chat. At 1000 passages (the upper end of personal-corpus rerank), Spark hits 6+ seconds where H100 is ~2.5 s — the bandwidth gap shows up. For RAG over a personal-scale corpus (≤ 1M chunks), Spark + local rerank-NIM is enough; for enterprise-scale rerank over much wider candidate pools, the cloud envelope is where the math wants to live.
+:::

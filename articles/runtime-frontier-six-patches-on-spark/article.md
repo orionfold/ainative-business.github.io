@@ -19,6 +19,10 @@ fieldkit_modules: [eval, capabilities]
 
 *For a reader landing cold: [ESamp](https://arxiv.org/abs/2604.24927) is the test-time-distilling paper — a tiny online-trained probe that converts sampler interventions from lexical resampling into semantic exploration. The patches are about getting its runtime hooks to bind on a vLLM that drifted under the reference implementation.*
 
+:::define[Upstream API drift]
+When a downstream library is pinned to an older version of an upstream dependency and the upstream changes a function signature, return shape, or contract between releases. The downstream's hooks may compile and import cleanly under the new version while *silently* doing the wrong thing — the trickiest drifts return a different *shape* of the same type rather than raising `TypeError`. tLLM was built against vLLM 0.10.x; six surfaces moved by 0.20.0, four loud and two silent.
+:::
+
 The two patches were six. Three of them were signature drifts in vLLM 0.20.0's V1 engine API — including the one the original article called out and two more it didn't see. One was a return-shape change that left the consumer's port silently dead even when every type-checked surface looked happy. One was an `add_request` id-reassignment inside the engine that broke a wrapper written when the input id was the engine id. And the sixth was a *pre-existing* latent bug in tLLM's tap that single-`generate()` smoke tests never expose. None of the six was hard once located; locating them took a printf walk through the engine.
 
 Once cleared, the empirical claim survives intact. On Qwen 2.5 7B Instruct, three trials, the ESamp consumer with the post-filter intervention enabled (β=0.8) lands at **97.4% of baseline tokens-per-second** — three trials, tight variance, all six patches in place. The original tLLM paper quoted 98.78% on a reference RTX 4090 with CUDA graphs. The patched Spark sits **1.4 percentage points** off that on the model the paper highlights, with CUDA graphs deliberately disabled (the python-side hooks the runtime needs don't survive a compiled forward graph). On Qwen 2.5 0.5B Instruct the ratio drops to 82.5%, which is its own data point: ESamp's per-step constant cost is most visible against a small model's tiny forward.
@@ -27,13 +31,29 @@ Once cleared, the empirical claim survives intact. On Qwen 2.5 7B Instruct, thre
 
 **Thesis.** ESamp trains a tiny **Distiller** online during inference to predict the LLM's *deep*-layer hidden state from its *shallow*-layer hidden state. When the Distiller's prediction error spikes on a candidate continuation, that's a novelty signal — the prefix is moving into territory the LLM hasn't been recently calibrated on — and ESamp reweights token candidates toward that novelty. Standard temperature and top-p produce *lexical* variation; the Distiller-driven novelty signal produces *semantic* variation, which is the dimension Pass@k on AIME, MATH, and HumanEval actually rewards.
 
+:::define[Pass@k]
+Standard reasoning-benchmark metric: of `n` independently sampled solutions to a problem, what fraction of problems have at least one correct solution among any `k`-sized subset? Unbiased estimator from Codex (Chen et al., 2021) corrects for variance when `n > k`. The metric rewards *semantic spread* across the `n` samples — if all `n` rephrase one wrong attempt, Pass@k is no better than Pass@1.
+:::
+
+:::define[Residual capture / port hits]
+A tLLM "port" is an instrumentation tap that reads the residual-stream tensor at a specific layer during the forward pass and publishes the row slice for the active decode batch to a consumer. Each successful publish is one *port hit*. When the runtime says `port_hits=0` while generation succeeds, the tap fired but the published rows had no batch alignment — the silent-drift signature in this article.
+:::
+
 **Why this technique matters for a personal AI builder.** A Spark builder running `n=16` parallel completions of a 7B reasoner cares whether the `n` samples spread or just rephrase one bad attempt. ESamp is the first published technique that lands a measurable Pass@k lift with a *single-digit-percent* throughput cost — the kind of trade-off worth taking when iterating on a sampler. The patch arc below is what stands between that technique and a runtime that fires on this box; without it the reweight intervention is silent and the consumer is dead in the water.
+
+:::define[vLLM V1 engine]
+The rewrite of vLLM's serving stack landed in 0.6+ and stabilized through 0.10–0.20. *V1* refactored the request lifecycle into a `LLMEngine.add_request → GPUModelRunner._prepare_inputs → execute_model → Sampler.sample` pipeline with explicit, typed metadata objects. The refactor moves fast — between 0.10 and 0.20, four surfaces in this pipeline changed signature or return shape. Any third-party hook that touches the V1 hot path pays the version-drift tax that this article catalogs.
+:::
 
 **Promise vs achieved.** Paper: **0.9878×** baseline tok/s on a reference RTX 4090 with CUDA graphs (vLLM 0.10.x). Spark: **0.974×** on patched Qwen 2.5 7B Instruct (vLLM 0.20.0, eager mode, β=0.8, six upstream patches across eight files) — three trials, sd 1.66, within **1.4 percentage points** of the paper across two hardware classes and two engine-mode combinations. The achievement is not the number alone; it is that the number reproduces the paper's claim through six patches in code we didn't write — and the consistency itself is evidence that ESamp's overhead claim holds up across configurations a personal builder is likely to try.
 
 ## Why this matters for a personal AI builder
 
 The previous article framed the Spark's value as iterability — fast, free, private test-time-scaling experiments at home. The patch arc here is the second-order benefit of that framing. The paper's reference number is empirically grounded on a runtime that was already two minor versions obsolete by the time the install line ran. A cloud-GPU renter who pays by the hour can't afford the hours it took to find the silent fourth drift. A frontier-API user can't even reach the runtime to patch it. The Spark + a willingness to read source code is what makes the verification pass actually run.
+
+:::why[The Spark earns its keep on debug iteration, not throughput]
+On a metered cloud GPU, three rounds of `print()` through someone else's source tree is hundreds of dollars of wall clock. On a Spark — bought once, sitting on a desk, drawing 60 W — the same diagnostic is free. That changes what *kind* of work feels worth doing. Patches you would never accept to pay for at $4/hr become trivial to file at $0/hr. The compute economics flip; the work that gets done flips with them.
+:::
 
 This is also where the *catalogue* of running arcs in this blog earns the "personal AI power user" line over the more honest "person who really likes patching." The patches stay in the runtime, but the mental model — *the runtime is the frontier; signatures drift; assume your reference implementation is six versions behind reality* — generalizes to every paper in the queue.
 
@@ -177,6 +197,10 @@ After all six clear, the original tLLM throughput-comparison shape — `single_o
 
 The 7B number lands at **0.974× of baseline tokens-per-second**, three trials, sd 1.66 — a 1.4-point gap below the paper's reference 0.9878× on a 4090 with CUDA graphs. The gap is plausibly the eager-mode tax: tLLM's residual tap replaces `layer.forward` with a Python wrapper at install time, and `torch.compile`'d forward graphs swallow that replacement. CUDA graph capture is the production path on the Spark for almost every other workload — the trade-off here is that the test-time-distilling experiment costs a few percent in steady-state throughput in exchange for a python-side hook that actually fires.
 
+:::math[1.4 percentage points across two hardware rigs]
+Paper: 0.9878× baseline tok/s on 4090 + CUDA graphs (vLLM 0.10.x). Spark: 0.974× on GB10 + eager mode (vLLM 0.20.0). Gap = 0.9878 − 0.974 = 0.0138 ≈ **1.4 pp**. That's the eager-mode tax — well inside the variance budget of any sampler-overhead claim and small enough that the consistency itself is the finding.
+:::
+
 The 0.5B number is the reverse curve. ESamp's per-step constant cost — the source/target hidden capture, the asynchronous distiller training step, the post-filter sampler intervention — does not scale with model size. The model forward does. At 7B the model dominates and the ESamp overhead amortizes to noise; at 0.5B the model is so small that the per-step constant cost is visible, and the ratio drops to 0.825×. Any test-time-scaling overhead claim that quotes one model size without disclosing the curve is doing the reader a disservice; the right reading is *"overhead is bounded above by X at the smallest plausible model and rapidly amortizes."* This article's contribution to the literature is two points on that curve, on a Spark.
 
 The distiller side is also worth checking against the runtime's own stats. Across the three 7B ESamp trials, `loss_count` was a stable 64 per run (one training step per decode step, four decode chunks × 16 candidates), `port_publish_hit_count` was 63 (one less than `loss_count` because the final step is post-logits, not post-sample), and `candidate_token_count` was 1593. The intervention isn't a no-op; the consumer is firing on every step, training online, and reweighting the sampler exactly as the paper describes.
@@ -186,6 +210,10 @@ The distiller side is also worth checking against the runtime's own stats. Acros
 **The "two became six" framing is a sharpening, not a complaint.** The original article's *"the runtime is the frontier"* thesis predicted that a one-line drift would hide deeper drifts behind it. It did. The right way to read this follow-up is: the prediction was correct, and the prediction was *under-counted by 3×*. The mental model the reader leaves with is more useful for the next paper than a clean "two patches and we were done" would have been. Empirically: the ESamp paper's reference run was on `vllm==0.10.x`; in the 90 days between that run and this Spark integration, vLLM 0.20.0 changed at least four API surfaces tLLM was compiled against. That is the velocity of the runtime, and any test-time-scaling literature that targets vLLM v1 will be paying this tax, often silently.
 
 **The fourth drift is what justifies the printf walk.** The first three drifts surface as Python `TypeError`s with file paths and line numbers. The fourth surfaces as a successful `generate()` call whose runtime instrumentation reports `port_hits=0`. There is no Python-level signal that something is wrong. The diagnostic that finds it is shaped like the [KV-cache arithmetic](/field-notes/kv-cache-arithmetic-at-inference/) shape — *if your numbers don't match the paper's, instrument the layer between you and the paper, top-down, until the dropped value reveals itself*. In this case the dropped value was a tensor that became `None` because a tuple was indexed with the wrong offset. In other articles the dropped value will be different. The shape — `print()` your way through the call stack until the runtime tells on itself — is reusable.
+
+:::pitfall[A tuple of the same length is not the same contract]
+Type checkers and linters happily accept `out[1]` whether `out[1]` is a tensor or a `SpecDecodeMetadata`. vLLM 0.20.0's `_prepare_inputs` returns the *same arity* tuple as 0.10.x (length-2) but reorders the slots and changes the type of one of them. Engine init succeeds, generation produces text, and the consumer's port reports zero hits. Defensive shape adapters need an `isinstance(out[0], Tensor)` branch, not just an arity check — arity-only matching is the most common silent-drift trap in v1-engine integrations.
+:::
 
 **The Pass@k matrix is partial, on purpose.** The harness exists at `evidence/runs/2026-05-03-A2-patches/patched-source/passatk_a2.py`. The baseline pilot ran on Qwen 2.5 0.5B against ten HumanEval problems at n=8: pass@1 of 6.25% (single-batched) or 10% (per-problem-looped), pass@8 of 40% — small-model HumanEval is a coarse signal and these match expectations. The ESamp variant of the same harness fails on the second problem with a `device-side assert` that is *not* in the six-drift count above: it's a state-isolation issue inside the existing ESamp consumer when the model bank carries slot state across diverse-prompt batches. That bug is in the consumer, not in vLLM 0.20.0, and it's a separate engineering project — likely a `fieldkit.eval.PassAtK` candidate that batches all problem-sample combinations into one `generate()` rather than looping. Fixing it would unblock the full Pass@k matrix at n=16 on Qwen 2.5 7B and DeepSeek-R1-Distill-Qwen-7B; not fixing it leaves the 7B tok/s number standing as the primary empirical claim of this piece. I'd rather ship one number well-grounded than two numbers stitched together over a known consumer bug.
 
@@ -201,8 +229,20 @@ The distiller side is also worth checking against the runtime's own stats. Acros
 
 **A piece of evidence in the test-time-scaling overhead literature.** The 7B 0.974× number on patched Spark + eager mode goes alongside the paper's 0.9878× on a 4090 + CUDA graphs as a second data point. The ratio is *consistent* — within 1.4 percentage points — across two different hardware classes and two different engine-mode combinations. That consistency is itself a finding: ESamp's overhead claim is robust across the configurations a personal builder is likely to try.
 
+:::deeper
+- [ESamp paper (Lines & Hogan, 2026)](https://arxiv.org/abs/2604.24927) — the test-time-distilling thesis and the original 0.9878× tok/s benchmark this article reproduces.
+- [tLLM repository](https://github.com/LinesHogan/tLLM) — the Producer/Consumer hook layer over vLLM v1 these patches target.
+- [vLLM v1 engine docs](https://docs.vllm.ai/en/latest/design/v1_design.html) — the call-lifecycle the six drifts trace through.
+- [Test-time distilling on Spark](/field-notes/test-time-distilling-for-exploration/) — the previous article in this thread, where the runtime substrate was first installed.
+- [Codex Pass@k paper (Chen et al., 2021)](https://arxiv.org/abs/2107.03374) — the unbiased estimator the queued Pass@k harness uses.
+:::
+
 ## Closing — patches are how the frontier moves
 
 The Spark's distinguishing feature is not that it runs models you couldn't run elsewhere; it is that it lets one person own the entire test-time-scaling loop end-to-end — *including the part where the loop is six upstream patches away from completing, and the diagnosis takes three rounds of `print()` through someone else's source tree*. The previous article framed the runtime as the frontier. This one is what crossing the frontier actually looks like in code: eight files, fewer than 100 lines of patch, and three diagnostic walks past the place a TypeError would have stopped you. The number that comes out the other side is intact. The paper's claim survives. The next test-time-scaling paper that lands on vLLM v1 will hit similar weather; the harness now exists to absorb it.
 
 Next in the Frontier Scout series: `clawgym-on-spark` introduces `fieldkit.ft` (LoRA on the agent's own trajectories) and `fieldkit.agents` (sandbox-rollout primitives) — a different runtime, a different paper, the same shape. The Pass@k matrix on Qwen 2.5 7B + DeepSeek-R1-Distill-Qwen-7B is queued behind the consumer-side state-isolation fix and will ship as a follow-up to this piece, not the next link in the arc.
+
+:::hardware[Same six patches, frontier bandwidth coefficients]
+The 0.974× ratio measures *constant per-step overhead amortized against the model forward*. On Spark + GB10 (~273 GB/s LPDDR5X), Qwen 2.5 7B baseline is 209.95 tok/s; ESamp lands 204.54. An H100 80GB (3.35 TB/s HBM3) runs the same 7B at ~600 tok/s baseline — the per-step Distiller cost is unchanged in absolute terms, so the ratio rises toward 0.99×. H200 (4.8 TB/s HBM3e) and B200 (8 TB/s) push it closer to 1.000× — at SuperPOD bandwidth, ESamp is effectively free. Spark's 0.974× is the *worst-case-personal-rig* corner of the curve; the ratio gets better the bigger the model and the faster the bandwidth.
+:::

@@ -18,6 +18,14 @@ The [rerank-and-fusion article](/field-notes/rerank-fusion-retrieval-on-spark/) 
 
 This article ran that experiment across three generator sizes — the existing 8B-local NIM from the [first NIM article](/field-notes/nim-first-inference-dgx-spark/), Nemotron-Super-49B served from `integrate.api.nvidia.com`, and Llama 3.3 70B from the same hosted endpoint — on the same thirty-query qrels set, the same rerank retrieval chain, the same strict-context scaffold. Ninety LLM calls. One retrieval pipeline held constant. The bet lost. The 49B refuses *more* than the 8B on perfect-retrieval queries (18.2% vs. 9.1%). The 70B narrows the refusal gap a little, not a lot, and pays 2× to 12× latency for the privilege. And re-inspecting the IPO chunks shows why — the passages discuss the IPO but don't state the year 2004 anywhere. The 8B refusal the [naive RAG article](/field-notes/naive-rag-on-spark/) framed as a bruise was the scaffold doing its job, and three generators across a ten-times parameter range agree.
 
+:::define[Refusal rate]
+The fraction of queries where the LLM declines to answer rather than committing to a response. In a strict-context RAG scaffold, the model is instructed to emit an exact refusal sentence when it judges the context insufficient. Refusal rate is a precision-first metric: higher means more cautious, but excessive refusal on queries the context *does* answer is a *false-refusal* — the model treats answerable questions as unanswerable, costing recall in the user's eye even when retrieval was perfect.
+:::
+
+:::define[Strict-context scaffold]
+A system-prompt pattern that instructs the LLM to answer *only* from the provided context passages, refuse with an exact parseable sentence when the answer isn't there, and never fall back to general knowledge. Calibrates the model toward precision over recall; trades some answers (false refusals) for the guarantee that what *is* answered traces to the corpus. Distinct from "soft" RAG prompts that let the model mix retrieved facts with prior knowledge.
+:::
+
 ## The thesis in one glance
 
 <figure class="fn-diagram" aria-label="Refusal rates across three generators on the thirty-query rerank benchmark. Llama 3.1 8B local refuses on 9.1% of perfect-retrieval queries. Nemotron-Super-49B hosted refuses on 18.2% — twice the 8B baseline, despite being the NVIDIA-native model tuned for grounded QA. Llama 3.3 70B hosted refuses on 13.6% — between 8B and 49B, not better than the smallest model. Bigger does not heal refusal on this scaffold.">
@@ -103,6 +111,10 @@ The recall numbers are identical between the 8B and 49B rows because the *retrie
 
 The refusal columns carry the article. The overall refusal rate across all thirty queries is 10.0%, 20.0%, 13.8% — the 49B outputs *"The provided context does not contain the answer"* (or close variants) on six queries out of thirty, the 8B on three. Filtering to the queries where retrieval was perfect (recall@5 = 1.0, which is twenty-two of the thirty) the 8B refuses twice, the 49B four times, the 70B three times. In both cuts, the NVIDIA-native flagship over-refuses the baseline.
 
+:::why[Bigger isn't better when the scaffold is precision-first]
+A larger model with a more careful RLHF objective will refuse *more*, not less, under a strict-context scaffold — because its grounding circuit is more cautious about asserting facts the context implies but doesn't state verbatim. The naive intuition (*"bigger model = stronger grounding circuit = fewer false refusals"*) only holds if the post-training distribution rewarded asserting partial-evidence answers. Most modern instruction-tuned models do not. Choose generator size for *latency and cost*; choose generator behaviour by tuning the scaffold or by domain post-training, not by parameter count.
+:::
+
 ## Four queries where the generators disagreed
 
 Twenty-four of the thirty queries produced the same verdict from all three generators — answer, cited, move on. The other six are the article.
@@ -127,6 +139,14 @@ The q06 and q10 answers suggest the mechanism. The 8B, on a top-5 that contains 
 
 This is not a bug in Nemotron-Super. It is the model working exactly as trained. The training objective — precision over recall on grounded assertions — produces exactly this behaviour on queries where the top chunk is *adjacent* to the question but not a verbatim restatement of it. The scaffold in the [naive RAG](/field-notes/naive-rag-on-spark/) and [rerank-and-fusion](/field-notes/rerank-fusion-retrieval-on-spark/) articles was calibrated for the 8B's looser grounding circuit. The 49B deserves its own scaffold — one that explicitly tells it *"quotable partial answers count; refuse only on absence"* — before a fair size comparison is possible.
 
+:::define[RLHF — Reinforcement Learning from Human Feedback]
+A post-training technique where a model's behaviour is shaped by human preference judgements rather than by maximum-likelihood loss alone. Humans rank pairs of model outputs; a reward model learns those rankings; the LLM is then fine-tuned (typically PPO or DPO) to maximise the reward. RLHF is the reason instruction-tuned models *follow instructions* and *refuse harmful requests* — and also why they sometimes over-refuse safe-but-unusual prompts. The 49B's careful refusal behaviour traces directly to its RLHF objective.
+:::
+
+:::pitfall[Don't scale generator size to fix refusal]
+The reflex *"8B refused, let's try 49B"* looks reasonable until you measure. Nemotron-Super-49B refused at 18.2% on the same perfect-retrieval queries where the 8B refused at 9.1% — *twice* the baseline. The refusal circuit is shaped by post-training, not by parameter count. Bigger model = more careful instruction-following = more refusal under strict context. The right next move when the 8B refuses on answerable queries: weaken the scaffold, enrich the chunks, or distil grounded behaviour into a small model. *Not* scale up.
+:::
+
 And that is the article's real finding. The generator-size dial is not a grounding dial. It is a precision-vs-recall dial on the refusal circuit, and the direction is tunable by post-training, not by parameter count.
 
 ## The Google IPO chunks, finally read in full
@@ -149,6 +169,14 @@ The 8B local NIM runs on the GB10 on port 8000 with 120-second timeouts that the
 
 Token counts matter too. The 8B local NIM bills zero; the hosted endpoints are metered. For 30 rerank queries with ~1000-token top-5 contexts and 20-token answers, the hosted calls consume a few hundred thousand prompt tokens and a few thousand completion tokens — small enough to ignore for one experiment, meaningful at production cadence.
 
+:::math[Why 70B p95 disqualifies it for chat]
+A chat-class UX targets ≤2 s end-to-end. Hosted 70B median was 4.1 s; p95 was 24 s. p95 is the right number for *"what does my user actually feel?"* — one in twenty queries lands at 24 s, several lifetimes of UI patience. Local 8B median 2.0 s, p95 2.8 s — well inside budget. Latency under load is dominated by tail, not median; targeting a median below your SLO is necessary but not sufficient. Either keep the budget headroom (8B local, 5× under SLO) or surface async UX (queue + notification) to absorb 70B's tail.
+:::
+
+:::pitfall[Hosted endpoints inherit cloud failure modes]
+The 70B hosted endpoint produced one HTTP 429 (rate limit) in a 30-query run, and a 24-second p95 — both typical cloud-API behaviours (rate limits, occasional slow responses, regional outages). Local NIMs have none of these failure modes; their tail is bounded by the model's own decode rate. When you write a benchmark that compares local and hosted on equal terms, expect the hosted path to need retries, error filtering, and rate-budget bookkeeping that the local path never sees. Plan for the cost early; you'll otherwise debug it in production.
+:::
+
 ## What the three arcs got
 
 **Second Brain.** Stay on the 8B. It's local, cheap, fast, and it answers queries that the 49B refuses. The grounding gap isn't a model-size problem on a personal corpus; it's a retrieval-quality and chunk-construction problem. If the 8B refuses on a question where the chunk is clearly relevant, the right lever is *better chunking* (include more of the source article, or add explicit metadata like dates and author) or *a scaffold change* (soften the strict-context rule to allow "partial evidence" answers). The signature is that the 8B is the Pareto-optimal generator for a second brain on the Spark today.
@@ -164,3 +192,18 @@ Three generators across a ten-times parameter range agree on the hard queries. T
 The next move is **fine-tuning, not scaling**. A Nemotron-Super-49B-class grounding behaviour, distilled into an 8B-parameter student via NeMo Customizer on a corpus-matched training set (questions, contexts, expected answer-or-refusal decisions), would be a sharper lever than any off-the-shelf model of any size. That is a dedicated future article — a homegrown grounded-QA policy, served locally on the Spark, measured against this same qrels set. The goal is an 8B that commits where today's 8B refuses, and refuses only when the context is genuinely missing the fact — which is 9.1% of the time, not 18%. The title for that piece is already written in the ideas folder.
 
 **Second Brain now:** keep the 8B, fix the corpus. **LLM Wiki now:** 8B for reads, 70B hosted for author-time drafting. **Autoresearch now:** the critic isn't a bigger model; it's a retrieval-retry primitive. Next up: **a distilled grounded-QA policy on top of the 8B NIM** — the homegrown move the first six articles' foundation was building toward.
+
+:::define[Distillation]
+Training a smaller "student" model to imitate a larger "teacher" model's outputs — typically by matching either logits (soft labels) or completions (hard labels) on a curated dataset. The student inherits much of the teacher's behaviour at a fraction of the inference cost. For a grounded-QA policy: the teacher labels (question, context, answer-or-refusal) decisions on a domain corpus; the student learns to reproduce those decisions. The economics flip — pay teacher cost once at training, student cost forever at inference.
+:::
+
+:::deeper
+- [InstructGPT paper (Ouyang et al., 2022)](https://arxiv.org/abs/2203.02155) — the foundational RLHF paper that established instruction-tuning + human-preference alignment.
+- [DPO paper (Rafailov et al., 2023)](https://arxiv.org/abs/2305.18290) — Direct Preference Optimization; lighter alternative to RLHF that produces similar refusal behaviour.
+- [Distilling step-by-step (Hsieh et al., 2023)](https://arxiv.org/abs/2305.02301) — distilling reasoning patterns from a teacher into a much smaller student; the recipe for the article queued by this one.
+- [Sycophancy in LMs (Sharma et al., 2023)](https://arxiv.org/abs/2310.13548) — counter-perspective on RLHF artefacts; complementary to the false-refusal pattern this article observed.
+:::
+
+:::hardware[Generator size at frontier scale]
+Spark serves Llama 3.1 8B FP8 at 25 tok/s; an H100 80 GB hits ~120 tok/s; an H200 ~170 tok/s. For 70B, Spark is out of envelope at FP8 (70 GB weights eats most of unified memory before KV); H100 80 GB at FP8 hits ~40 tok/s; H200 (4.8 TB/s) at FP8 ~60 tok/s; B200 (8 TB/s) at FP8 ~110 tok/s. Even on frontier hardware, the 70B's per-query wall is 3–5× the 8B's at chat-class context. The argument for the 70B has to come from *quality*, not from "if I had better hardware" — and this article's measurement says quality alone doesn't justify it on this corpus + scaffold.
+:::

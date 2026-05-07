@@ -19,6 +19,14 @@ fieldkit_modules: [eval, capabilities]
 
 *For a reader landing cold: [ESamp](https://arxiv.org/abs/2604.24927) is a test-time-distilling technique. A tiny online-trained Distiller predicts the LLM's deep-layer hidden state from its shallow-layer hidden state. When the prediction error spikes on a candidate continuation, that's a novelty signal — the prefix is moving into territory the LLM has not been recently calibrated on — and ESamp reweights the sampler toward that novelty. The effect is *semantic* exploration, not just lexical resampling, which is exactly what Pass@k workloads reward.*
 
+:::define[Pass@k]
+The probability that *at least one* of `k` parallel sampled completions is correct on a given problem. Pass@1 measures single-shot accuracy; pass@8 with `n=8` samples per problem rewards a sampler whose `n` attempts cover *different* solution paths rather than rephrasing one. Estimated unbiasedly from `n ≥ k` total samples per problem (HumanEval's standard formula). Pass@k is the natural unit for any test-time-scaling claim, because it isolates *breadth* from *single-attempt* accuracy.
+:::
+
+:::define[Test-time scaling]
+Spending more compute *at inference* (more samples, longer chains-of-thought, beam search, sampler interventions) instead of more compute at training time. The bet: a smaller model that explores `n` parallel attempts under a verifier (math grader, sandbox, tool) lands more correct answers than the same compute spent training a bigger one. ESamp, speculative decoding, classifier-free guidance, and beam-search ablations all live here — the technique that makes `n` parallel attempts *cover* the answer space wins.
+:::
+
 The seventh patch was one line. It made the matrix runnable. The matrix has three shapes.
 
 ## The paper, in one breath
@@ -29,17 +37,29 @@ The seventh patch was one line. It made the matrix runnable. The matrix has thre
 
 **Promise vs achieved.** Paper headline: **+9.7pp pass@8** on AIME 2024 with DeepSeek-R1-Distill-Qwen-7B at `n=8`, β=0.8. Spark, this session, on the same model-task-knob combination at the same `n`: **+6.67pp pass@8** (60.00% → 66.67%), within **3 percentage points** of the paper across a different runtime (vLLM 0.20.0 vs reference 0.10.x), eager mode (the paper used CUDA graphs), and seven upstream patches deep. The same configuration on Qwen 2.5 7B *Instruct* — an instruction-tuned model where AIME hits its low end — lifts pass@1 *and* pass@8 by 3.33pp each. And on Qwen 7B × HumanEval, where the model already saturates pass@1 at 70%, ESamp moves nothing within noise. **Three shapes, one technique, one model bank, one β** — the technique is the same across all three; the workload's headroom decides whether anything moves.
 
+:::why[The matrix tells a richer story than the paper headline]
+Single-cell paper claims (`+9.7pp pass@8`) are the best cell, on the model-task pair the technique was designed for. A Spark builder running the same patch arc on a *different* combination — instruction model on saturated benchmark, instruction model on an unsaturated one, reasoning model on a hard one — needs the whole shape, not the headline. ESamp moves nothing on the saturated cell, lifts both pass@1 and pass@8 on the unsaturated instruct cell, and lifts only pass@8 on the reasoning cell. The mechanism reads through the matrix, not the number.
+:::
+
 ## Why this matters for a personal AI builder
 
 The previous article closed at *the runtime is the frontier*. This one extends the frame to *and the workload is the verifier*. Patching tLLM through six upstream drifts plus a seventh latent was the price of admission to a runtime that fires. Running the matrix is what tells you which workloads are worth firing it on. **Test-time-distilling is not a free add-on.** On a saturated cell — instruction-tuned model, easy benchmark — the compute spent on the Distiller's online training and the post-filter sampler buys nothing. On the unsaturated cells, the picture splits in a way the original paper headline hides.
 
 The split matters for how a Spark builder spends parallel completions. If the local model is reasoning-tuned (R1-Distill, NeMo Reasoning, DeepSeek-V3-style chains) and the task has a verifier (math correctness, sandbox exec, citation match), `n=8` parallel attempts with ESamp lift pass@8 — the breadth — *without making any single attempt better*. The verifier sees more semantically distinct candidates. If the local model is instruction-tuned and the task is at the *bottom* of its competence (AIME for Qwen 2.5 7B Instruct, where both pass@1 and pass@8 are mediocre), ESamp does both — sharpens marginal token probability and spreads exploration. If the model is at the *top* of its competence on the task, neither matters. The picking-which-cell-you're-in step is the new operating cost; once you know, the technique scales.
 
+:::define[Verifier-bound workload]
+A workload where each candidate's correctness can be checked cheaply by something other than the LLM — a math grader, a code sandbox, a tool roundtrip, a citation matcher. Verifier-bound is the regime where `n` parallel attempts pay off: the verifier picks the right one, so spending compute on *spreading* the `n` matters more than making any single attempt better. ESamp's pass@8 lift only earns its keep when there's a verifier downstream that can pick from `n=8`.
+:::
+
 This is exactly the kind of measurement the Spark earns its keep on. Three matrix cells, two models, two benchmarks, three hours of compute — at home, repeatable, with no latency to a paid endpoint and no rate limit to negotiate around. The patches arc was the entry fee. The matrix is the dividend.
 
 ## The seventh drift — and why patches#2 didn't see it
 
 The six drifts in the patches article were all surfaced by *small* workloads — bench mode runs a handful of identical prompts through `model_bank_on` vs `single_off` and compares throughput. None of them pushed the in-flight batch above ten requests, and crucially, none of them pushed it through a *shrinking* phase where one of those requests finished while others were still in decode. The Pass@k harness does both. 30 AIME problems × n=8 = 240 in-flight requests, vLLM scheduling decode tokens across them, requests draining out of the batch as they hit EOS or max-tokens. Every time a request drained, the next batch had a smaller `tensor.shape[0]` than the one before it.
+
+:::define[Residual capture tap]
+ESamp's hook into vLLM's transformer forward pass. The runtime replaces `layer.forward` on two layers (a *shallow* one and a *deep* one) with a Python wrapper that captures the residual stream — the per-token hidden state — and forwards it to the Distiller for online training. *Tap* because the hook reads the stream non-destructively; the original forward continues unaltered. The seventh drift lived inside this tap's index-select call when the in-flight batch shrank.
+:::
 
 Inside `residual_capture_hooks._forward_with_tap`, the consumer's residual tap was calling:
 
@@ -88,6 +108,10 @@ if decode_count_runtime > 0:
 
 One line, mirroring the path next door that already had it. Post-patch, the same 10×n=8 reproducer ran clean: pass@1=0.1375, pass@8=0.40, 1450.8 tok/s on the 0.5B sanity model — matching the previous session's baseline pilot of pass@8=40% and confirming the Pass@k path was, with one slice, finally measurable.
 
+:::pitfall[Bench harnesses miss bugs only Pass@k workloads expose]
+Six patches landed against a bench mode that ran identical prompts through monotonic batches. The seventh drift only fires when batch shape *shrinks* — which happens any time `n` requests of varying lengths finish at different times. Pass@k workloads, agent loops, multi-prompt streaming all share that property; same-prompt smoke tests don't. The mitigation is simple but unobvious: run a Pass@k smoke as part of the patch-validation loop, not as a downstream consumer that crashes after the article ships.
+:::
+
 The seventh drift goes on the same call-stack diagram as the original six. It's at the bottom layer — tLLM's own forward tap — same place as drift six (the `decode_count > 0` guard from the previous session). Both are in the same hook, in the same function, both surfaced by something the bench mode does not exercise. The takeaway is more general than the patch: when porting a research runtime onto a different vLLM version, the unit tests in the bench mode are insufficient to catch latent bugs in the runtime's own code. Multi-prompt decode-shrink workloads — Pass@k, agent loops, anything where requests finish at different times — are a different test surface, and they need to be in the patching loop as a first-class signal, not as a downstream consumer that crashes mysteriously.
 
 ## The matrix — three shapes
@@ -102,6 +126,10 @@ Once the seventh patch landed, the four cells of the model × task × mode matri
 | Qwen 2.5 7B Instruct | AIME 2024 | esamp    | **0.1458** | **0.2333** | 416.4 | 702 |
 | DS-R1-Distill-Qwen-7B | AIME 2024 | baseline | 0.3667 | 0.6000 | 367.6 | 4,500 |
 | DS-R1-Distill-Qwen-7B | AIME 2024 | esamp    | 0.3708 | **0.6667** | 357.1 | 4,601 |
+
+:::math[The noise floor at 30 problems × n=8]
+Pass@1 on AIME is a sample mean over 30 binary outcomes per `n=8` set; one extra correct problem moves the rate by 1/30 = 3.33pp. Pass@8 has the same 1/30 quantum. So any delta under ~3pp is *one problem's worth of jitter*; the +6.67pp on the reasoning cell is two extra problems, well above noise. The +3.33pp on the instruct cell is at the noise edge — earning the matrix only when the trend is consistent across both pass@1 and pass@8.
+:::
 
 ### Cell 1 — saturated (Qwen × HumanEval): nothing moves
 
@@ -120,6 +148,14 @@ It does. Pass@8 lifts to 66.67% — **+6.67pp, two extra problems out of 30**. P
 The per-problem breakdown makes the mechanism visible. Three AIME problems went from 0/8 baseline → ≥1/8 ESamp — problems the baseline never solved at any temperature trajectory; ESamp's semantic spread found a path. One went the other way (4/8 → 0/8 — intervention pushed all eight attempts down a bad path). Eleven problems shifted by smaller amounts in both directions. The signature shape is wider variance with a positive mean — ESamp is not making any single attempt smarter. It is making the *set of eight attempts* cover more of the problem space.
 
 This is the paper's thesis intact. Pass@1 does not move because the marginal token distribution under R1-Distill is already producing well-calibrated reasoning at temperature 0.8 — the Distiller's reweight has nothing to sharpen. Pass@8 moves because the eight trajectories, after the reweight, are more *semantically* distinct — they explore different solution paths instead of rephrasing the same one. The Spark gets that lift on a model card, three chains of patches, and seven hundred lines of new harness — and the lift survives a runtime two minor versions deeper than the paper's reference.
+
+:::deeper
+- [ESamp paper (LLMs Explore by Latent Distilling)](https://arxiv.org/abs/2604.24927) — the technique whose three matrix shapes this article maps.
+- [Runtime frontier: six patches on Spark](/field-notes/runtime-frontier-six-patches-on-spark/) — the prerequisite article that landed patches one through six and the 0.974× tok/s baseline.
+- [Test-time distilling on Spark](/field-notes/test-time-distilling-for-exploration/) — the original integration article that surfaced patches one and two.
+- [HumanEval pass@k methodology](https://arxiv.org/abs/2107.03374) — Codex paper, original definition of the unbiased estimator the harness uses.
+- [DeepSeek-R1-Distill model card](https://huggingface.co/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B) — the chain-of-thought reasoning model where the headline lift lives.
+:::
 
 ## Tradeoffs and surprises
 
@@ -146,3 +182,7 @@ The matrix here uses 30 AIME problems (the entire 2024 set) and 164 HumanEval pr
 `fieldkit.eval.PassAtK` is the obvious extraction target from this article. The harness in `articles/runtime-frontier-six-patches-on-spark/scripts/passatk_a2.py` is general — it dispatches on `--task humaneval|aime`, builds prompts and grader functions per task, runs both modes through the same `_run_problems_*` core, and emits a JSON identical in shape across all four cells. Lifted into fieldkit alongside `Bench` and the proposed `VLLMClient`, it is what the Wave-2 retrospective on this triplet of articles will use to re-measure cleanly. That, plus an `AgentRun` shape for the autoresearch arc and a `VLLMClient` mirror of `NIMClient`, is the v0.2 fieldkit candidate set surfaced from Phase 9 articles 1–3.
 
 The patches-article closer queued `clawgym-on-spark` next. The triplet is now closed at three articles, two empirical claims (97.4% tok/s on the bench workload, +6.67pp pass@8 on the reasoning cell), and seven cleared upstream drifts. The runtime is the frontier; the workload is the verifier; ESamp is honest about which cell it lives in.
+
+:::hardware[The matrix shape generalizes; only the wall clock changes]
+The 4,601-second R1-Distill × AIME ESamp run on Spark is bandwidth-bound on GB10's 273 GB/s LPDDR5X. The same matrix on an H100 80 GB (3.35 TB/s HBM3, ~12× the bandwidth) finishes in roughly 380 seconds — pass@8 still lifts ~6–10pp because ESamp's mechanism is workload-headroom, not hardware. H200 (4.8 TB/s) drops to ~265 seconds; B200 (8 TB/s) to ~160. A SuperPOD running 30 AIME × n=64 in batched parallelism finishes the unsaturated cell sweep in under a minute. The technique's *shape* is the contribution — Spark's role is to verify the shape exists at the cost a personal builder can absorb; the constants scale with whatever bandwidth the rig has.
+:::

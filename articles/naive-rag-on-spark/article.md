@@ -18,6 +18,10 @@ Four articles in. The Llama 3.1 8B NIM has been serving `:8000` for two weeks. T
 
 This one does. A question gets embedded. The top-five nearest chunks come back from pgvector. The question and the chunks get stuffed into a strict-context prompt. The answer streams token-by-token from the 8B generator. One script, no dependencies, three localhost ports in the same `curl` chain — end-to-end naive RAG on the box that sits on the desk.
 
+:::define[RAG — Retrieval-Augmented Generation]
+Two-stage pipeline that grounds an LLM's answer in your own corpus rather than its training prior. Stage 1: embed the query and retrieve the top-K most similar chunks from a vector store. Stage 2: stuff those chunks into the prompt and ask the LLM to answer *only from the provided context*. The model still does the language work; retrieval supplies the facts. Introduced by Lewis et al. (2020); now the default architecture for any LLM-over-private-data application.
+:::
+
 The short version: the chain works. Embedding a query costs 40 milliseconds. pgvector returns the top-5 in 70 milliseconds (half of that is `docker exec` startup, half is the actual cosine scan). The 8B generator streams the first token in 80 milliseconds and finishes a grounded answer in half a second. *Sometimes.* The longer, more honest version is that the 8B model under a strict "answer only from the context" scaffold will refuse a third of the time on questions the context clearly answers — the retrieval was perfect, the prompt was well-formed, and the generator still said "I don't know." That refusal is the article's hero moment, because it's the clean separation between what naive RAG gets right and what reranking + better prompts + a bigger generator will need to fix.
 
 ## The thesis in one glance
@@ -98,9 +102,21 @@ The short version: the chain works. Embedding a query costs 40 milliseconds. pgv
 
 The 8B model is not dumb. It has trained on a huge chunk of the open internet through 2023. What it lacks, on anything that matters, is *your data* — the notes, the wiki pages, the ticket threads, the headlines from 2004, the code in the private repo. Retrieval is the mechanism that moves that data into the prompt. The generator is the mechanism that turns the prompt into prose. Naive RAG is the one-shot version of the two-step chain: no rerank, no filter, no second pass, nothing clever. It is the baseline you measure everything else against.
 
+:::define[Grounding]
+The property of an LLM's answer being traceable to *provided context* rather than the model's training prior. A grounded answer cites the retrieved chunks; an ungrounded one improvises from whatever the model remembers. Strict-context prompts (*"answer only from the provided context"*) are precision-first scaffolds — they trade some recall (the model refuses on borderline cases) for the guarantee that what *is* answered is anchored to your corpus.
+:::
+
+:::define[Hallucination]
+An LLM generating a confident-sounding answer whose facts are wrong, fabricated, or unverifiable. Different from a refusal (where the model declines) and different from a wrong inference (where the reasoning was bad). The defining feature is *plausible-looking falsity*: the prose reads correctly but the claim isn't anchored to anything. RAG reduces hallucination by giving the model retrieved evidence to ground in; it doesn't eliminate it because the model can still invent details that aren't in the retrieved context.
+:::
+
 ## Why "naive" is the right first version
 
 A production RAG stack wraps a reranker around the retriever, adds a query-rewriter in front, caches hot chunks, fans out across multiple indices, and validates the generator's output against a schema. Each of those is a half-article of its own. *Starting with those is a mistake* — you skip the baseline measurement, and you can't attribute a latency tax or a recall win to any single component. Naive RAG is the measurement: `embed(query) → ORDER BY <=> LIMIT K → stuff into prompt → generate`. Every later addition needs to justify its cost against this number.
+
+:::why[Naive RAG is the right first baseline]
+A production RAG stack adds reranking, query rewriting, hybrid search, schema validation, caching — each a half-article on its own. Starting with all of them is a measurement mistake: you can't attribute a latency tax or a recall win to any one component without a baseline. Naive RAG (`embed → top-K → strict prompt → generate`) is that baseline. Every later addition has to justify its complexity against this number — and most of them justify themselves clearly, but only when measured this way.
+:::
 
 The practical consequence is that naive RAG is also the cheapest thing to stand up. The script below is ninety lines, stdlib-only, and it calls three already-running services. Ninety lines is a meaningful bar because it means the full chain fits on a single screen and every step is auditable — which component produced this token? The strict-context prompt, the top-five chunks, or the model's training prior? When the chain breaks (and it will), the fewer layers between you and the break, the faster the diagnosis.
 
@@ -111,6 +127,10 @@ The full script lives at `articles/naive-rag-on-spark/evidence/ask.py`. It does 
 ### 1. Embed the query — differently from how you embedded the corpus
 
 The Nemotron Retriever NIM takes an `input_type` parameter that matters at inference time. Passages went in as `"passage"` during the [pgvector article's](/field-notes/pgvector-on-spark/) ingest. Queries go in as `"query"`. The model was trained with contrastive pairs where the query branch and the passage branch are *different heads* of the same encoder — there's a task-conditional signal baked into the embedding, and using the passage head for queries will drop your recall by several points. On the Nemotron Retriever model card the exact delta isn't quoted, but the BEIR numbers from the paper show query/passage role mismatch costs 2–5 NDCG points depending on the task:
+
+:::pitfall[Query embeddings are not passage embeddings]
+Bi-encoder retrieval models like Nemotron Retriever are trained with two heads — one for queries, one for passages — that share weights but condition on `input_type`. Embedding a query as `"passage"` (or vice versa) costs 2–5 NDCG points on standard benchmarks because the embeddings end up on slightly different manifolds. Pass `input_type="query"` at retrieval time and `"passage"` at ingest time. This is the kind of bug a vendor smoke-test never catches because it returns valid-looking bytes — just slightly worse ones.
+:::
 
 ```python
 def embed_query(text):
@@ -145,6 +165,10 @@ def pgvector_search(qvec, k):
 ```
 
 SQL on stdin instead of on the command line — a 1024-float query vector survives stdin cleanly, and would explode every shell quoting rule on the command line. No `enable_seqscan = off` override; the [pgvector article](/field-notes/pgvector-on-spark/) showed the planner picks sequential scan at a thousand rows and that's fine, because the sequential scan is already sub-millisecond. The 70-millisecond wall-clock number is dominated by `docker exec` startup cost — the actual index/scan time inside Postgres is around 3 milliseconds.
+
+:::define[Top-K retrieval]
+The vector-store query that returns the K nearest neighbours of a query embedding by some distance metric (cosine, L2, dot-product). K is a tuning parameter: too small and the answer-bearing chunk gets dropped before the LLM sees it; too large and irrelevant chunks dilute the prompt and hurt grounding. Personal-scale RAG typically picks K=3 to K=10. The chunk-size × K product is the effective context budget; balance against the LLM's window.
+:::
 
 ### 3. Format the strict-context prompt
 
@@ -222,6 +246,10 @@ Four observations.
 
 **Time-to-first-token is 80 milliseconds on a cold-prompt.** The [first NIM article](/field-notes/nim-first-inference-dgx-spark/) measured 52 ms TTFT on a short prompt. The RAG prompt here is roughly 800 tokens (five chunks averaging 140 tokens each, plus the system message and scaffolding); the extra 30 ms is the prefill phase on the longer context. Generation is where the wall-clock lives — half a second for a refusal, a second and a half for a cited answer.
 
+:::math[Why TTFT grew from 52 ms to 80 ms]
+A bare prompt (the [first NIM article's](/field-notes/nim-first-inference-dgx-spark/) test) is ~10 tokens; this RAG prompt is ~800 tokens (5 chunks × ~140 tokens + system + scaffolding). Prefill processes every prompt token through the model once before the first output token comes out. At 8B FP8 on Spark, prefill runs at ~30k tokens/sec, so 800 tokens ≈ 27 ms of extra prefill on top of the 52-ms baseline TTFT. Observed +30 ms (52 → 82) lines up. TTFT scales linearly with prompt length until prefill saturates compute; for chat-class lengths on the Spark, you're still well inside the linear regime.
+:::
+
 **Total generation variance is 4× across queries.** The shortest generation is 425 ms (a 13-token refusal); the longest is 1701 ms (a 40-token cited answer, double-sentenced). The Spark's 8B FP8 engine runs at roughly 25 tokens per second under load (the [first NIM article's](/field-notes/nim-first-inference-dgx-spark/) headline number), and every query here lands within a few tokens per second of that. The variance is output-length variance, exactly as it was in that article — the chain didn't regress the generator's throughput.
 
 **End-to-end is 525 ms to 1815 ms.** A naive-RAG chain on a Spark answers a question in between half a second and two seconds. That's within interactive-UI budget for a chat-style interface. It's not fast enough for a typeahead autocomplete, but it doesn't need to be — the Second Brain, the wiki, and the autoresearch agent all have budgets of several seconds per turn.
@@ -264,6 +292,10 @@ A: The Google co-founders gave an interview to Playboy magazine in the
 
 Same corpus, same retrieval pipeline (chunks [72] and [71] were among the top-5 in both runs), narrower question, and the generator extracted and cited the answer. The broader yes/no question landed in a gap where the 8B model's context-reading circuit is less confident than its refusal circuit.
 
+:::pitfall[A refusal isn't always a retrieval failure]
+When a strict-context RAG chain refuses to answer, the obvious first hypothesis is *"retrieval missed."* It often hasn't. The Google-IPO query above retrieved five on-topic chunks; the 8B generator still emitted the refusal sentence. That's a *grounding* failure, not a retrieval failure — the model's confidence on yes/no questions in strict context is lower than its precision-first scaffold rewards. Diagnose by inspecting the retrieved chunks before debugging the embedder. If the chunks contain the answer and the model still refuses, the fix is upstream of retrieval: rephrase the question, use a bigger generator, or relax the strictness of the scaffold.
+:::
+
 This is the honest lesson of naive RAG, and it's the first lesson that motivates the articles to come:
 
 - **Retrieval is not the bottleneck at this scale.** Nemotron + pgvector delivers the right chunks for well-specified questions within 100 milliseconds, and the recall numbers from the [pgvector article](/field-notes/pgvector-on-spark/) hold.
@@ -287,3 +319,14 @@ Naive RAG is a measurement harness, not an application. The numbers in this arti
 The genuinely ironic thing about naive RAG on a DGX Spark is that the pieces that *should* be the hard part — pulling a question through an embedding model, doing an approximate-nearest-neighbour search, stuffing the results into a chat prompt, streaming the answer — are sub-second and boring. The hard part is the prompt scaffold and the generator's grounding circuit, which is a research problem the community has been chewing on for four years and will keep chewing on for four more. The Spark makes the substrate trivial. The substrate was never the interesting part.
 
 **Second Brain now:** has a lookup. **LLM Wiki now:** has a Q&A surface. **Autoresearch now:** has a first retrieval loop. Next up: **rerank + fusion retrieval on the Spark** — adding a Nemotron Reranker second stage, merging a BM25 path for exact-match queries, and measuring the recall lift on the same six questions this article refused or half-answered.
+
+:::deeper
+- [RAG paper (Lewis et al., 2020)](https://arxiv.org/abs/2005.11401) — the original retrieval-augmented generation paper that named the architecture.
+- [REALM paper (Guu et al., 2020)](https://arxiv.org/abs/2002.08909) — concurrent work that established retrieval as a learnable component during pre-training.
+- [Self-RAG (Asai et al., 2023)](https://arxiv.org/abs/2310.11511) — adds self-reflection tokens to gate retrieval and validate generation; the natural next step past "naive."
+- [Atlas (Izacard et al., 2022)](https://arxiv.org/abs/2208.03299) — joint retriever-generator training; the maturity arc this article is at the start of.
+:::
+
+:::hardware[Naive RAG end-to-end at frontier scale]
+Spark's 525–1815 ms end-to-end becomes ~80–250 ms on a single H100 80 GB — the embed call drops to ~10 ms (3.35 TB/s HBM3 vs Spark's ~270 GB/s LPDDR5X), generation runs at ~120 tok/s instead of 25, and the cosine scan stays tiny on either rig. An H200 (4.8 TB/s) lands tail end-to-end below 150 ms — fast enough for typeahead-style integration. The retrieval *quality* doesn't change with hardware; only the wall-clock does. The tradeoffs that motivate the next four articles (rerank, fusion, bigger generator, guardrails) all transfer unchanged.
+:::

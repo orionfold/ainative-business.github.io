@@ -21,7 +21,19 @@ The headline number on this bench is harsh by design. [AutoResearchBench's paper
 
 **Thesis.** AutoResearchBench's bet is that *literature retrieval is not general browsing*. Web-browsing benchmarks like BrowseComp test whether an agent can navigate the open web; AutoResearchBench tests whether an agent can find a specific scientific paper through multi-step probing (Deep Research) or comprehensively collect all papers matching a condition (Wide Research). That asks for a different bundle of skills — fine-grained scientific concept comprehension, cross-paper reasoning over citations, and open-ended judgment about when "enough" papers have been collected. The brutal headline (9.39% Acc@1, 9.31% IoU even for frontier LLMs that ace BrowseComp) is the paper's evidence that the bundle is genuinely missing today.
 
+:::define[AutoResearchBench]
+A benchmark for autonomous research agents (Wang et al., 2026). Two task families: **Deep Research** asks the agent to find one specific arxiv paper given a probing question that obfuscates its title and authors; **Wide Research** asks the agent to comprehensively collect all papers matching a condition. Ground-truth answers are arxiv IDs; agents score Accuracy@1 (Deep) or IoU against the ground-truth set (Wide). The dataset is paired with a paper-specialized retrieval API called DeepXiv that frontier LLMs use to land the headline ~9% accuracy.
+:::
+
+:::define[Accuracy@1]
+For each question, the agent emits one final candidate (an arxiv ID or paper title); Accuracy@1 = fraction of questions whose final candidate matches the ground-truth paper exactly. A judge LLM grades each match 0/1. The metric is intentionally harsh — partial credit, near-misses, and "the right area" don't count. The 9.39% frontier ceiling is what the metric earns when retrieval is paper-specialized; with generic web search, it collapses toward zero across model classes.
+:::
+
 **Why this benchmark matters for a personal AI builder.** AutoResearchBench *is* the eval harness for any local autonomous-research loop a Spark builder is building — second-brain Q&A, daily literature digests, citation walks. The bench's design pattern — obfuscated probes whose ground truth is a specific paper — is itself transferable to any retrieval-bound agent, not just a number to chase. A loop that scores 0% here is a loop that will not reliably find the paper you actually want.
+
+:::why[Retrieval is the ceiling, not the model]
+Every model in the loop — frontier or local, 8B or 49B — is bounded above by what the retriever returns. If the truth paper is not among the top-10 web results, no amount of reasoning recovers it. AutoResearchBench's 9.39% frontier ceiling uses paper-specialized retrieval for that reason; the same agents on generic Serper + Jina collapse toward zero. *Upgrade retrieval, not the model* is the single most important diagnostic this benchmark teaches.
+:::
 
 **Promise vs achieved.** Paper: **9.39% Acc@1** on Deep Research, **9.31% IoU** on Wide Research — both with the DeepXiv academic retriever, with most baselines under 5%. Spark, this article: **0/3** on the Deep-Research example set across two Spark-tuned NIMs (Llama-3.1-8B and Nemotron-Nano-9B-v2), using generic Serper + Jina web search instead of DeepXiv. The two zeros are not the same zero — one is a model–bench fit bug (8K context wall, crashed mid-loop), the other is the *correct* read of a thin retrieval signal at 128K context. The model upgrade removes the model-side bottleneck cleanly; retrieval is the next bottleneck, exactly where the paper's DeepXiv design predicts it would be.
 
@@ -53,6 +65,10 @@ Three reasons this run, on this box, on these two NIMs, beats the abstract versi
 ## Where this sits in the stack
 
 AutoResearchBench is an *agent* benchmark — the model under test isn't asked a question and graded on its answer. It's asked to *plan, call tools, read results, judge candidates, and decide*. That makes the inference loop look very different from a single-shot Q&A: each turn appends a few thousand tokens of search results to the conversation, and the agent's reasoning chain grows with each pass.
+
+:::define[Agent loop / accumulating context]
+A multi-turn inference shape where each turn the model emits a tool call, the tool returns a result, and both the call and the result are appended to the conversation for the next turn's prompt. Context grows monotonically — by turn 5 of an AutoResearchBench Deep-Research question, the prompt holds the system message, the user query, and four tool calls × ~2K tokens of results each. A `max_model_len` cap that's fine for single-shot Q&A becomes a hard wall for an agent loop.
+:::
 
 <figure class="fn-diagram" aria-label="The AutoResearchBench loop has three components and one ceiling. The agent planner (a NIM Llama-3.1-8B or Nemotron-Nano-9B-v2 endpoint at localhost:8000/v1) emits a search query, the tool layer (Qwen-Agent's WebSearchTool wrapping Serper plus Jina) returns the top-10 web results plus a per-result summary, and the candidate evaluator picks at most one final candidate per pass. The retrieval ceiling is the structural limit: if the truth paper is not among the top-10 web results, no model — frontier or local — can name it. The two failure modes overlay this same pipeline. The 8K-context Llama-8B path crashes inside the agent planner box once accumulated tool responses pass 8K tokens, typically by turn 5 to 6. The 128K-context Nemotron-Nano-9B-v2 path completes the loop, reaches the candidate evaluator with the full top-10 in scope, and correctly judges no candidate matches — the failure has moved one box to the left.">
   <svg viewBox="0 0 900 440" role="img" aria-label="AutoResearchBench loop diagram. Three boxes left-to-right: agent planner, tool layer (Serper + Jina + summarizer), candidate evaluator. The retrieval ceiling box brackets the tool layer as the structural bound. The 8B path crashes inside the agent planner; the 9B-v2 path completes through to the evaluator and judges no match." preserveAspectRatio="xMidYMid meet">
@@ -139,6 +155,14 @@ The same `-v` mount that the existing Llama-3.1-8B Spark NIM uses (only the dire
 
 That `max_model_len: 131072` is the line that changes the article. The Llama-8B Spark NIM caps `max_model_len` at 8192 — even though Llama-3.1 natively supports 128K context, NVIDIA's Spark build of the 8B image is a smaller-context profile to keep the working set lean. AutoResearchBench's agent loop accumulates context turn-by-turn — the planner sees the system prompt, the original question, every prior turn's tool call, and every prior turn's tool response. At turn 5 with top-10 web results and per-result summaries, the input is comfortably past 11–12K tokens. NIM 8B returns an HTTP 400 with `This model's maximum context length is 8192 tokens. However, your request has 12,925 input tokens.` and the bench logs `status: context_length_exceeded`.
 
+:::pitfall[`max_model_len` from the NIM build is not the model's native limit]
+Llama-3.1-8B supports 128K context natively; the Spark NIM ships at 8192 to keep the working set lean. The cap is a build choice, not a model limitation, and it's invisible until an accumulating-context agent loop hits it. Always check `/v1/models` first — the `max_model_len` field is in the response. If your bench grows context turn-by-turn, the smallest-context Spark NIM is a hard wall by turn 5, not a soft slowdown.
+:::
+
+:::define[OpenAI-compat tool calling]
+The OpenAI Chat Completions API extension where the assistant message can include a `tool_calls` array (function name + JSON arguments) instead of plain content; the next turn's input includes a matching `tool` role message with the result. Most modern serving stacks — vLLM, NIM, llama.cpp, SGLang — implement this shape, but they each format the *model-side* tool call differently (Llama uses `<|python_tag|>` markup; Nemotron-Hybrid uses `<tool_call>...</tool_call>`; Qwen has its own). The serving layer normalizes those into the OpenAI JSON shape — usually.
+:::
+
 ```
 $ AUTORESEARCHBENCH_ENV_FILE=~/.config/autoresearchbench/.env \
     bash run_inference.sh
@@ -190,6 +214,10 @@ Three concrete things to look at, on this hardware, that you couldn't see withou
 
 **Memory under load.** With the 9B-v2 NIM warm and the bench's three concurrent agent worker processes running their tool calls and reasoning chains, peak resident memory measured at about 22 GiB (NIM's vLLM workspace plus the model's NVFP4 weights), with another ~3 GiB for the Python agent processes and their summarizer-call buffers. The Spark's 121 GiB unified pool sat at 60 GiB free for the duration. Quantization at NVFP4 puts the 9B's weights at ~5 GB on disk plus the KV cache for whatever effective context the agent uses (the bench held average ~10K input tokens in flight, so KV stayed small). 128K-context inference at 9B on Spark is comfortable, not tight.
 
+:::math[9B-NVFP4 + 128K context fits in a 22 GiB corner]
+Weights (NVFP4, 4-bit per param): 9B × 0.5 B = ~4.5 GB on disk. Inference workspace and activations: ~12 GiB. KV cache for ~10K live tokens at hybrid Mamba-Transformer (smaller-than-pure-transformer per token): ~3 GiB. Sum ≈ **22 GiB** out of Spark's 121 GiB unified pool — 60 GiB free with three agent workers and a summarizer running.
+:::
+
 **Per-turn latency.** The 9B-v2 took an average of 110-180 seconds per turn — substantially longer than the 8B's 25-40 seconds — but that's the cost of the reasoning-tuned model emitting several hundred to a thousand tokens of explicit deliberation before each action. For an agent bench whose outputs you're going to read and grade, that's a feature, not a defect: the trace is auditable, the per-candidate reasoning is explicit, and the wall-time is still well under what cloud-API rate limits would impose if you were running this against a frontier API.
 
 **The upstream evaluator runs in milliseconds.** The bench ships an `evaluate_deep_search.py` that's an LLM-as-judge — it sends each predicted candidate plus the truth title to a judge model, asks for a 0/1 match, and computes Accuracy@1. With 0 candidates produced across all 3 questions for both models, the judge had nothing to grade — the script returns `Accuracy@1: 0.00%, pass@1: 0.00%, mean@1: 0.0000` in 0.05 seconds without making a single judge call. That's the *correct* zero, formally, but it gives back almost no information about whether the model-side or retrieval-side is the bound.
@@ -214,8 +242,20 @@ Three concrete things to look at, on this hardware, that you couldn't see withou
 
 **A repeatable read of "is the bottleneck the model or the retrieval?"** The two-zero result here makes the diagnostic pattern obvious. When two models with very different capabilities both score zero on the same agent bench, the bottleneck is upstream of the model — almost always retrieval, sometimes the tool-call format, sometimes the truncation policy. Future agent-bench articles can lift the same diagnostic: vary the model first, vary the retrieval second, and the location of the change in the score is the location of the bottleneck.
 
+:::deeper
+- [AutoResearchBench paper (Wang et al., 2026)](https://arxiv.org/abs/2604.25256) — the Deep / Wide research task design and the 9.39% / 9.31% frontier headline.
+- [Qwen-Agent](https://github.com/QwenLM/Qwen-Agent) — the agent harness AutoResearchBench is built on, including the tool-call parser that the Nemotron-Hybrid format trips on turn 1.
+- [Nemotron-Nano-9B-v2 model card](https://huggingface.co/nvidia/Nemotron-Nano-9B-v2) — the hybrid Mamba/Transformer architecture and NVFP4 quantization profile.
+- [NIM first inference on Spark](/field-notes/nim-first-inference-dgx-spark/) — sibling foundation article explaining the NIM container shape both endpoints in this bench reuse.
+- [BrowseComp (Anthropic, 2025)](https://anthropic.com/research/browsecomp) — the open-web-browsing benchmark AutoResearchBench distinguishes itself against.
+:::
+
 ## Closing — same destination, two journeys
 
 Two Spark-tuned NIMs, the same three Deep-Research questions, the same 0% Accuracy@1, two completely different reasons. The 8B's zero is a model–bench mismatch — its 8K context wall is a build choice that's invisible until an accumulating-context agent loop hits it, and at that point the `context_length_exceeded` is a hard signal to either swap models or reshape the bench. The 9B-v2's zero is the *correct* read of a thin retrieval signal — the model completes the loop, evaluates ten web results per question, and concludes that none match the ground truth. To move that needle you don't reach for a bigger model; you reach for a better retriever.
 
 Next in the Frontier Scout series: take this same bench substrate and aim it at the four other in-flight evaluations the scout has scaffolded — `clawgym`, `claw-eval-live`, `test-time-distilling`, `scientific-foundation-models-as-tools` — each of which exercises a different combination of `fieldkit` modules. The 9B-v2 NIM that this article warmed up is the agent driver for the next three articles in the series. The Spark stays at 60 GiB free; the loop stays on the desk.
+
+:::hardware[Same bench, frontier model classes raise the model floor — not the retrieval ceiling]
+Frontier-API runs of AutoResearchBench (GPT-class, Claude-class) score 9.39% Acc@1 *with* DeepXiv retrieval. Spark's 9B-v2 NIM scores 0% with Serper+Jina because retrieval — not the model — sets the ceiling. An H100 (3.35 TB/s HBM3) running a 70B reasoning NIM at the same context budget would lower per-turn latency 3–5×, not raise the score. H200 (4.8 TB/s) and B200 (8 TB/s) compress the wall-clock further but leave the headline metric flat unless retrieval upgrades alongside. The frontier-hardware lesson here is the inverse of the usual one: *bigger GPUs run the same bench faster, not better.*
+:::

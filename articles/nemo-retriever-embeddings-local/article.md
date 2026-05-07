@@ -16,6 +16,10 @@ fieldkit_modules: [rag]
 
 An embedding model doesn't answer questions. It turns text into geometry. Every sentence you hand it becomes a point in a fixed-dimensional space, and every downstream retrieval decision — is this passage relevant, are these two pages duplicates, does this agent trajectory resemble a prior one — collapses into a distance calculation between points. The [first NIM article](/field-notes/nim-first-inference-dgx-spark/) put an inference endpoint on the Spark. This article puts the *semantic space* on it. From here on, everything the three arcs need — corpus vectors, wiki dedup, trajectory recall — is a `curl` to `localhost`.
 
+:::define[Embedding (semantic vector)]
+A fixed-length list of floats (here, 2048 of them) representing the *meaning* of a piece of text as a point in geometric space. Texts with similar meaning land near each other; unrelated texts land far apart. Once your text is a vector, every retrieval question — *"which passage matches this query?"*, *"are these two notes duplicates?"*, *"which past trajectory is this one most like?"* — collapses to a distance calculation between points.
+:::
+
 The short version: NVIDIA's Nemotron Retriever 1B embedding NIM pulls cleanly onto the Spark from a multi-arch manifest, loads in 52 seconds cold, emits 2048-dimensional vectors with Matryoshka truncation down to 384, and plateaus at about 28 documents per second under batched load. The longer version is more interesting, because the first candidate I checked is deprecated in 27 days, and picking the right NIM the first time is most of the article. That naming recon, the arm64 manifest check that unblocked the install, and the throughput shape under batching are the things a reader would miss if they only skimmed the Deploy tab.
 
 ## Why embeddings matter more than the endpoint
@@ -24,9 +28,17 @@ Embeddings are the place where the Spark's economics flip hardest. A cloud embed
 
 Put the same endpoint on your desk and both costs go to zero. *The embed call never leaves the box, never costs a dollar, never hits a rate limit.* The corpus stays where it was. The box where the bytes already live is the box where the vectors get computed, and the Spark's 128 GB of unified memory swallows an 8B-parameter LLM *and* a 1B-parameter embedder simultaneously with headroom for the reranker that the [rerank-and-fusion article](/field-notes/rerank-fusion-retrieval-on-spark/) will add. Small-model-cheap and big-model-cheap are both rentable; *both-at-once-locally* is what turns a RAG idea into something an individual actually finishes.
 
+:::why[Embeddings are the chattiest endpoint in RAG]
+A RAG system embeds every document at ingest *and* every query at retrieval. A 10,000-note corpus is 10,000 outbound API calls before the first question gets answered, plus one more per query forever. The unit cost of an embedding call is small; the rate-limit cost on a personal-scale ingest run is not, and the privacy cost of mailing every note to a third-party API is the reason most individuals never finish a RAG project. Local embeddings make all three problems vanish at once.
+:::
+
 ## Where this sits in the stack
 
 NIM is still the packaging layer, but the engine inside the embed container is different from the LLM NIM's vLLM. Nemotron Retriever embeds ship on Triton 2.61 — the metrics, the HTTP server, the GRPC fan-out all come from Triton rather than a chat-oriented engine. The model itself is a transformer encoder fine-tuned bi-encoder-style for retrieval: query and passage go through the same weights independently, contrastive training pulls relevant query-passage pairs close in the output space and pushes irrelevant ones apart. Matryoshka training makes the output dimension adjustable at read time — the first 384 components of the full 2048-d vector are themselves a valid, shorter embedding. That's the knob you tune for pgvector index size later.
+
+:::define[Bi-encoder]
+A retrieval architecture where the query and each candidate passage pass *independently* through the same encoder to produce two vectors, then a cheap distance (cosine, dot-product) scores their similarity. Contrast with a *cross-encoder* (rerank-style), where query and passage are concatenated into one input and scored jointly — slower but more accurate. Bi-encoders win at corpus scale because passage vectors are pre-computed once at ingest; cross-encoders only score at query time and only on shortlists.
+:::
 
 <figure class="fn-diagram" aria-label="Embedding pipeline on DGX Spark — query and passages flow independently through the same Nemotron NIM into a 2048-dimensional space, where cosine similarity selects the matches.">
   <svg viewBox="0 0 900 360" role="img" aria-label="Embedding pipeline on DGX Spark — query and passages flow independently through the same Nemotron NIM into a 2048-dimensional space, where cosine similarity selects the matches." preserveAspectRatio="xMidYMid meet">
@@ -103,6 +115,10 @@ This is the kind of gotcha that survives on a community forum but rarely makes i
 
 *The interesting claim isn't "multilingual." It's **Matryoshka** — the 2048-dim output works truncated to 384, 512, 768, or 1024 without retraining. That's a storage-cost slider you don't usually get for free.*
 
+:::define[Matryoshka embeddings]
+A training trick (Kusupati et al., 2022) that aligns the *prefix* of an embedding to be itself a valid lower-dimensional embedding. Train a 2048-dim model with a loss that requires the first 384, 512, 768, and 1024 components to also separate semantically — and at read time you can keep only the first N coordinates and use them as a shorter vector. Storage cost slider with no retraining. The Nemotron Retriever 1B-v2 ships this property; pgvector index size scales linearly with dim, so the choice has downstream cost.
+:::
+
 ### The arm64 manifest check
 
 Before pulling seven gigabytes, the question worth answering in thirty seconds is whether the image even has an arm64 layer. NVIDIA's catalog pages don't advertise architectures in the container manifest; you have to ask the registry directly. The Docker Hub-style command works because `nvcr.io` returns a standard OCI image index:
@@ -138,6 +154,10 @@ docker run -d --restart unless-stopped \
 ```
 
 The first run of *this* command gave me back a container and a container log that said, plainly, `The requested operation requires an API key, but none was found`, followed by a 500 on the readiness probe. The secret was present in `~/.nim/secrets.env`; it just wasn't exported. `source ~/.nim/secrets.env` sets the shell variable but not the environment variable, so `docker run -e NGC_API_KEY` inherited an empty string and the container's internal call to `api.ngc.nvidia.com` failed before weight download could start. Two fixes work: the `export $(grep -v '^# ' ~/.nim/secrets.env | xargs)` line above, or `-e NGC_API_KEY="$(grep NGC_API_KEY ~/.nim/secrets.env | cut -d= -f2)"`. *Neither is documented on the Deploy tab.*
+
+:::pitfall[`NGC_API_KEY` must be exported, not just sourced]
+`docker login nvcr.io` lets the Docker daemon pull the image, but the running container still calls `api.ngc.nvidia.com` with its *own* credentials, passed via `-e NGC_API_KEY="$NGC_API_KEY"`. If you `source ~/.nim/secrets.env` instead of exporting, the shell sees the variable but `docker run` doesn't — it inherits an empty string and the container fails the readiness probe with `requires an API key, but none was found`. Use `export $(grep -v '^#' ~/.nim/secrets.env | xargs)`, or the explicit `-e KEY="$(grep ... | cut)"` form.
+:::
 
 After the re-run, the shape of the startup is cleanly visible in the log:
 
@@ -176,6 +196,10 @@ far   = "Espresso is brewed by forcing pressurized hot water through finely-grou
 
 The gap is what matters, not the absolute values. A positive cosine around 0.35 for a semantically related passage and a near-zero (slightly negative) cosine for an unrelated one means the model is separating meaning the way retrieval assumes. A vendor's smoke test proves the endpoint returns bytes. This test proves the endpoint returns *useful* bytes.
 
+:::define[Cosine similarity]
+Distance metric for embedding vectors: `cos(θ) = (A · B) / (‖A‖ · ‖B‖)`. Range −1 to 1, where 1 means *identical direction* (high semantic similarity), 0 means *orthogonal* (unrelated), and −1 means *opposite direction*. Most retrieval systems use cosine because it ignores vector magnitude — only the angle between meanings matters. pgvector exposes it as `<=>` (cosine *distance*, 1 − cos θ) for use in `ORDER BY`.
+:::
+
 ### Benchmark — 40 ms single, 28 docs/s plateau
 
 For load shape I sent a representative ~500-token English prose chunk through the endpoint three ways: single-doc sequentially, batch=8 per request, batch=32 per request. Every measurement is the median of 5 to 20 samples after three warmup calls. The Python is boring — `urllib.request` plus `time.perf_counter` — so I'll show the numbers:
@@ -187,6 +211,10 @@ For load shape I sent a representative ~500-token English prose chunk through th
 | batch=32 | 1118 ms / req   | **28.6 docs/s** | 15,427 tok/s |
 
 Two observations from that table. First, the batch=1 number is bizarrely familiar — **24.8 docs per second** is the same number the [first NIM article](/field-notes/nim-first-inference-dgx-spark/) measured for Llama 3.1 8B generation throughput in tokens per second, on the same machine. A coincidence, not a relationship: they're independent subsystems that happen to land on the same digit. Second, *the throughput plateau at batch=8 is the interesting curve*. Going from batch=8 to batch=32 doesn't buy you anything — 28.7 docs/s → 28.6 docs/s is inside noise, while the per-request latency quadruples from 279 ms to 1118 ms. The GPU is saturated at batch=8; bigger requests just queue tokens without improving throughput, and they hurt your p99 because the slowest request in a batch sets the wall-clock for all thirty-two.
+
+:::math[Why batch=8 plateaus on a 1B encoder]
+A GPU saturates when its compute units have enough parallel work to cover memory-fetch latency. For a 1B-parameter encoder at FP16 (~2 GB weights), one 500-token forward is ~1 GFLOP — a sliver of the GB10's compute headroom. Batches of 8 fill the kernel tile and keep the SMs busy; bigger batches just queue more work behind the same saturated kernel. Peak throughput (28 docs/s) sets the ceiling; raising batch size only raises per-request latency because the slowest doc in the batch sets the wall-clock for the whole batch (`p99 ≈ batch × p50_per_doc`). Pace clients at ~28 req/s spread across many concurrent connections — never one client hammering batch=32.
+:::
 
 ## Verification — what a healthy embed NIM looks like on Spark
 
@@ -208,6 +236,10 @@ Host-side, `docker stats` reports the embed container holding 3.6 GiB resident, 
 
 **Matryoshka is a storage-cost slider, not a quality free lunch.** The 2048-d output is the reference; the truncated dims are useful when the index grows large and you're willing to pay a few points of retrieval accuracy for a smaller pgvector column. The Model Card's benchmark tables show the rough shape — at 384 dims the NDCG@10 on the cross-lingual QA benchmark sits around 64%, at 2048 dims it's 68.6%. About four points of quality for ~5× less storage. That's a real tradeoff, and it's the kind of knob you commit to early in a project and regret turning later because it changes the vector-store schema. Decide up front; the [pgvector article](/field-notes/pgvector-on-spark/) will have to live with whichever dim you picked here.
 
+:::pitfall[Pick a Matryoshka dim before the index, not after]
+The 2048 / 1024 / 768 / 512 / 384 dim choice locks into the pgvector column type — `vector(N)` with a fixed N. Migrating from `vector(2048)` to `vector(768)` later means re-embedding the *entire* corpus and rebuilding every IVFFlat or HNSW index. Decide once: 384 if the corpus is over a million chunks, 1024 as a sane default, 2048 only if you've measured and you need the last few NDCG@10 points. Walking it back later is a multi-hour ingest, not a 5-minute migration.
+:::
+
 **The API-key-not-exported trap is unforced and worth a line in NVIDIA's docs.** Every NIM I've run so far — the LLM NIM in the [first NIM article](/field-notes/nim-first-inference-dgx-spark/), this one, presumably the reranker in the [rerank-and-fusion article](/field-notes/rerank-fusion-retrieval-on-spark/) — needs `NGC_API_KEY` in the container environment at launch, not merely `docker login`. The Deploy tab walks you through `docker login` and *then* switches to `docker run` with an `-e NGC_API_KEY` flag without flagging that your shell variable has to be *exported* for that flag to do anything. The first time I hit it I lost a minute; the second time (this article) I saw a familiar error and fixed it in seconds. Both times the fix was out-of-band of the documented flow.
 
 **Triton's power/memory metrics are still N/A on GB10.** Same symptom as the [first NIM article](/field-notes/nim-first-inference-dgx-spark/): `nvidia-smi --query-gpu=memory.total,memory.used,power.limit` returns `[N/A]` inside the container, and Triton logs a `W … metrics.cc:643] Unable to get power limit for GPU 0.` warning on every metrics tick. Unified memory is OS-managed on Grace-Blackwell; NVML's driver-side query doesn't have a number to report. It's cosmetic for now — `nvidia-smi --query-gpu=utilization.gpu,power.draw,temperature.gpu` all return real values — but any dashboard you wire up to the default NVML attributes will show empty cells on this machine.
@@ -223,6 +255,17 @@ Three concrete things you can build this week with just this endpoint and the [f
 **A sanity dashboard for retrieval pairs.** Cache the embeddings you generate in step one, and build a five-line terminal tool that takes a free-text query and a candidate passage, embeds both, prints the cosine similarity, and colors the output green if > 0.3 and red if < 0.1. Useful before you invest in reranking — it catches *systemic* retrieval problems (wrong chunk size, wrong input_type flag) that a sophisticated pipeline would hide.
 
 **A dedup pass over drafts and notes.** For anyone with a messy notes folder: embed every note, find pairs with cosine > 0.85, and review them as dedup candidates. This is the LLM Wiki arc's second task after "write pages" — dedup is an ingest-time quality check, and on cloud embeddings the per-pair cost punishes you for running it often. Local embeddings don't punish you at all.
+
+:::deeper
+- [Matryoshka Representation Learning paper (Kusupati et al., 2022)](https://arxiv.org/abs/2205.13147) — the training trick that lets one model emit 384 / 512 / 768 / 1024 / 2048-dim embeddings.
+- [Sentence-BERT paper (Reimers & Gurevych, 2019)](https://arxiv.org/abs/1908.10084) — foundational paper on bi-encoder retrieval; everything modern descends from this design.
+- [BEIR benchmark](https://github.com/beir-cellar/beir) — community-standard evaluation for retrieval models; the leaderboard you'll find Nemotron Retriever's NDCG@10 on.
+- [pgvector on Spark](/field-notes/pgvector-on-spark/) — sibling article that takes these vectors and gives them an indexed home.
+:::
+
+:::hardware[Embedding throughput at frontier scale]
+A 1B-parameter encoder at FP16 is bandwidth-bound, not compute-bound. The Spark hits 28 docs/s; an H100 (3.35 TB/s HBM3) lifts that to ~120–150 docs/s; an H200 (4.8 TB/s HBM3e), ~180–220 docs/s. At cluster scale, batch-parallel ingest scales linearly until the network or the chunker becomes the bottleneck. The reason the math matters: at 28 docs/s, a million-chunk corpus is a 10-hour overnight run on the Spark — versus 90 minutes on a rented H200. Both are "free" if you own the box; only the wall-clock differs.
+:::
 
 ## State of the apps
 

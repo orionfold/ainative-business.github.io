@@ -3,6 +3,11 @@ import { getCollection, render } from 'astro:content';
 import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
 import Nav from '../../../components/Nav.astro';
 import Footer from '../../../components/Footer.astro';
+import BookmarkStar from '../../../components/field-notes/BookmarkStar.astro';
+import TocDrawer from '../../../components/field-notes/TocDrawer.astro';
+import ReaderSettings from '../../../components/field-notes/ReaderSettings.astro';
+import TermsInThisPiece from '../../../components/field-notes/TermsInThisPiece.astro';
+import ArticleArcNav from '../../../components/field-notes/ArticleArcNav.astro';
 import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
 import { SERIES_SLUGS } from '../../../content.config.ts';
 import { SITE } from '../../../data/seo';
@@ -81,7 +86,14 @@ const jsonLd = [
 
     <article class="article">
       <header class="article__header">
-        <a class="article__breadcrumb" href="/field-notes/">← AI Native Field Notes</a>
+        <div class="article__header-row">
+          <a class="article__breadcrumb" href="/field-notes/">← AI Native Field Notes</a>
+          <div class="article__reader-controls">
+            <BookmarkStar slug={article.id} />
+            <TocDrawer />
+            <ReaderSettings />
+          </div>
+        </div>
         {isUpcoming && (
           <p class="article__upcoming-banner">Upcoming — proposed abstract, not a published piece.</p>
         )}
@@ -115,9 +127,21 @@ const jsonLd = [
         )}
       </header>
 
+      <div class="article__resume-banner" data-resume-slug={article.id} hidden>
+        <span>Pick up where you left off?</span>
+        <span class="article__resume-actions">
+          <button type="button" class="js-resume" data-action="resume">Resume</button>
+          <button type="button" class="js-dismiss is-dismiss" data-action="dismiss">Dismiss</button>
+        </span>
+      </div>
+
+      <TermsInThisPiece body={article.body ?? ''} />
+
       <div class="fn-prose">
         <Content />
       </div>
+
+      <ArticleArcNav slug={article.id} />
     </article>
 
     <script>

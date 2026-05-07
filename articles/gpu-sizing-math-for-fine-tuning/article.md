@@ -38,6 +38,18 @@ Every LLM fine-tune, whatever the method, pays four memory bills simultaneously.
 
 The canonical figure for a full BF16 fine-tune with Adam and mixed precision is **~16 bytes per parameter for state** (2 weights + 2 gradients + 12 optimizer) plus a variable activation budget on top. At 100B that is 1.6 TB before a single token of activation lands.
 
+:::define[BF16 — Brain Float 16]
+A 16-bit floating-point format with 8 exponent bits and 7 mantissa bits. Same dynamic range as fp32, lower precision. Trains stably at billions of parameters where IEEE fp16 hits gradient-underflow walls. The default training precision on Hopper and Blackwell.
+:::
+
+:::define[AdamW optimizer state]
+For each *trainable* parameter Adam/AdamW keeps two fp32 moments — momentum (m) and variance (v) — plus a fp32 master copy of the weight when training in mixed precision. That's 4 + 4 + 4 = 12 bytes per trainable parameter, and it is *independent* of the weight precision you train in. This is the single largest line in a full fine-tune.
+:::
+
+:::math[Where the 16 comes from]
+Bf16 weights = 2. Bf16 gradients = 2. AdamW state = 12. Sum = 16 bytes per parameter, before activations. At 100B that's 1.6 TB; at 7B it's 112 GB. Cut the optimizer line (LoRA freezes the base) and 16 → 4. Cut the weights line further (QLoRA quantizes to NF4) and 4 → ~2.5. The 25× gap between full-FT and QLoRA is almost entirely those two cuts.
+:::
+
 <figure class="fn-diagram" aria-label="Three methods for fine-tuning a 100B Nemotron model, drawn to scale by peak GPU memory. Full BF16 fine-tune with Adam: approximately 1,600 gigabytes, needs 24 H100 80GB GPUs with FSDP sharding. LoRA rank 16 across all linear layers: approximately 250 gigabytes, fits on 8 H100 80GB GPUs with ZeRO-3. QLoRA with NF4 4-bit quantized base: approximately 65 gigabytes, fits on a single H200 141GB GPU. A Spark anchor line at the bottom records the 3 billion parameter LoRA on 128GB unified memory peaking at about 20GB — same four memory bills, 1 over 250 times the scale.">
   <svg viewBox="0 0 900 460" role="img" aria-label="Three fine-tuning methods for a 100B Nemotron compared by peak GPU memory: Full FT 1,600GB on 24×H100, LoRA 250GB on 8×H100, QLoRA 65GB on one H200. Spark 3B LoRA anchor at 20GB." preserveAspectRatio="xMidYMid meet">
     <defs>
@@ -103,7 +115,15 @@ The canonical figure for a full BF16 fine-tune with Adam and mixed precision is 
 
 LoRA changes the arithmetic at lines 2 and 3. You freeze the base weights, so the gradient bill and optimizer bill apply only to the LoRA adapter — which on a rank-16 all-linears target is ~1% of the model. You still pay the full weights bill (the base has to be in memory to forward and backward through) and the full activation bill (you still backprop through every layer). Adapter-state collapse is what makes the method work: at 100B, the optimizer's 12 bytes/param × 1% trainable = 12 GB instead of 1.2 TB.
 
+:::define[LoRA — Low-Rank Adaptation]
+Inject a small trainable adapter (two low-rank matrices A and B with `B·A ≈ ΔW`) into each linear projection of a frozen base model. Train only the adapter. At rank 16, the adapter is ~1% of the parameter count — so gradients and optimizer state apply to ~1% of the model, not the whole thing. The base stays frozen in memory but pays no gradient or optimizer bill.
+:::
+
 QLoRA goes further. Quantize the frozen base to 4-bit NF4, dequantizing blockwise on the fly during the forward pass. Weights drop from 2 bytes/param to ~0.5. The adapter arithmetic is unchanged. Activations are unchanged. The weights bill at 100B drops from 200 GB to ~50 GB, and suddenly the whole run fits on a single 141 GB H200.
+
+:::define[QLoRA + NF4]
+QLoRA = LoRA + 4-bit base. The frozen base weights are stored in 4-bit NormalFloat (NF4), a non-uniform 4-bit format calibrated for normally-distributed weights. Dequantization happens *blockwise on the fly* during forward pass, so the bf16 forward path is unchanged but only ~0.5 bytes/param of base lives in HBM. Combined with paged 8-bit optimizers (`bitsandbytes`), QLoRA shrinks a 100B fine-tune from a 24-GPU SuperPOD job to a single H200 run.
+:::
 
 ## Working 100B three ways
 
@@ -121,6 +141,10 @@ The activation term is the squishy one. It's a function of micro-batch × sequen
 
 On an H100 80 GB fleet with FSDP full shard (ZeRO-3 semantics — weights, gradients, and optimizer state all sharded across ranks), you need **1,800 GB / 80 GB per GPU ≈ 23 GPUs minimum**, and you want ~30% headroom for transient allocations during the backward pass. The practical number is **24–32× H100 80 GB** — one or two DGX H100 nodes. On H200 141 GB the same run fits in **14–16×**. On B200 192 GB, **10–12×**. The total-memory budget dominates; which frontier accelerator you pick matters less than you'd think.
 
+:::define[FSDP / ZeRO-3]
+Fully Sharded Data Parallel (PyTorch) and ZeRO-3 (DeepSpeed) implement the same idea: shard *weights*, *gradients*, AND *optimizer state* across data-parallel ranks. Each GPU stores 1/N of every parameter, all-gathers what it needs for a layer's forward pass, drops it after, repeats for backward. ZeRO-1 only shards optimizer state; ZeRO-2 also shards gradients; ZeRO-3 = FSDP full-shard. The right default for full fine-tunes that don't fit on one GPU.
+:::
+
 A production 100B full-FT is not sitting on one node. You are picking InfiniBand-connected multi-node topology because the weights alone cross the NVLink bandwidth threshold of a single DGX. That opens a second line item — interconnect — which this article's math doesn't price but your procurement conversation will.
 
 ### LoRA on a 100B base
@@ -137,6 +161,10 @@ Rank-16 LoRA across every linear projection in attention and MLP blocks touches 
 | **Subtotal** | **~250 GB** |
 
 The optimizer line is the one that collapses — 1.2 TB → 12 GB. That is what LoRA is *for*, and at 100B it is the difference between "unthinkable" and "a long weekend on someone else's rig."
+
+:::why[Why the optimizer line is the line that moves]
+The four bills aren't equal. Optimizer state is 12 bytes per *trainable* parameter, six times the weight bill. Freezing the base means "trainable" goes from 100B to 1B — 100× drop on the line that already dominated. Weights and activations don't change, but the dominant term shrinks 100× and the total drops from 1,800 GB to 250 GB. This is the leverage in LoRA, and the reason a Spark with 128 GB unified memory can train a 3B LoRA without the math feeling far from the H100 reality.
+:::
 
 On 80 GB H100 with FSDP sharding the frozen base across ranks, **4–8× H100 80 GB** is the target — the frozen 200 GB splits into 25–50 GB slices, activations fit in the per-GPU budget with checkpointing, the tiny optimizer state lives wherever. A single **8× H100 80 GB node** (one DGX H100) is the natural unit, with room for sequence 4k–8k and a reasonable micro-batch.
 
@@ -185,6 +213,10 @@ A 100B full-FT on 24× H100 80 GB almost certainly wants FSDP across all 24 (sim
 
 **Silent failure modes.** Two that don't look like OOMs — (a) the optimizer state silently offloads to CPU and step time jumps from 300 ms to 3 s; (b) activation checkpointing is configured but never reruns because something in the model graph breaks the recompute boundary. Both show up as "training is suspiciously slow" rather than "training crashed." Watch for them in `nvidia-smi dmon -s u` and profiler traces.
 
+:::pitfall[LoRA target modules wider than you thought]
+"Rank-16 LoRA = 1% trainable" assumes you target every linear projection in attention and MLP blocks. Many tutorials target only `q_proj` and `v_proj` for fast experiments — that's closer to 0.2%. If you copy that config to a longer run and *also* widen the target list to `["q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj"]` without updating your sizing math, the optimizer-state bill quintuples without warning. Always grep your config for the actual target list before pricing the GPU ask.
+:::
+
 ## What this unlocks
 
 Three things you can do this week with this math in your head.
@@ -198,5 +230,16 @@ Three things you can do this week with this math in your head.
 ## Closing
 
 The DGX Spark is a 128 GB memory budget. Every article in this series eventually walks back to that number, because it's the envelope within which a personal AI power user makes decisions. The Spark will not fine-tune a 100B Nemotron — but it teaches you the arithmetic in a form small enough to run on your desk, measure in `nvidia-smi`, and extrapolate to any scale you will ever need to rent. The 20 GB from the 3B LoRA and the 1.6 TB from the 100B full-FT are the same four terms with different coefficients. One fits in a personal machine and one fits in a DGX H100 SuperPOD. The math is fixed; the hardware is negotiable.
+
+:::hardware[Same equation, frontier coefficients]
+At 100B the three methods land on three rented racks. Full-FT at 1.6 TB peak wants a DGX H100 SuperPOD slice (24–32× H100 80 GB) or a single 8× B200 192 GB box. LoRA at 250 GB wants one DGX H100 (8× H100 80 GB) or a 4× H200 box. QLoRA at 65 GB wants one H200 — frequently the *same* H200 your inference team is using off-shift. The Spark's 3B LoRA at 20 GB peak is the bottom rung of the same ladder; the constants you measure on your desk are the same ones the procurement spreadsheet asks you to defend.
+:::
+
+:::deeper
+- [QLoRA paper (Dettmers et al., 2023)](https://arxiv.org/abs/2305.14314) — NF4, double-quantization, paged 8-bit optimizers, all in one place.
+- [`bitsandbytes`](https://github.com/TimDettmers/bitsandbytes) — the library that makes QLoRA's 4-bit storage and 8-bit optimizer practical.
+- [PEFT](https://github.com/huggingface/peft) — HuggingFace's adapter library; the canonical place to look up `LoraConfig`'s `target_modules`.
+- [`lora-on-your-own-qa-pairs`](/field-notes/lora-on-your-own-qa-pairs/) and [`lora-fine-tune-nemotron-on-spark`](/field-notes/lora-fine-tune-nemotron-on-spark/) — sibling articles that exercise this math at the Spark scale.
+:::
 
 Next in this *Looking Beyond Spark* series: **KV-cache arithmetic at inference time** — the memory story flips again when you leave the training loop and start serving a 100B model to real traffic. Same four bills; different weights. Different hardware ask. Same Spark, teaching a different lesson on a different day.

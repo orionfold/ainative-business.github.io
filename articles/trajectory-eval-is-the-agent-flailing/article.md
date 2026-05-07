@@ -16,6 +16,14 @@ series: Autoresearch
 
 [A8 shipped an honest negative result](/field-notes/distill-architect-lora-from-trajectories/): a Qwen2.5-3B LoRA trained on the [A4 trajectory](/field-notes/autoresearch-agent-loop/) mode-collapsed onto the trajectory's most-frequent winning move — `d_model=768`, suggested verbatim five out of five training-set keeps — and matched 0 of 8 held-out picks. The article's own diagnosis was: *the corpus was thin*. This is the follow-up that puts numbers on what "thin" means and points at the line of code that caused it.
 
+:::define[Trajectory]
+The full sequence of an agent's actions and observations across one task — every prompt the LLM saw, every command it proposed, every keep/revert decision the loop made, in order. In autoresearch, one trajectory = 50 iterations × (proposal, evaluation, decision) tuples. The trajectory is what you train *from* (a corpus for distillation) and what you measure *on* (an observability target). This article is about that second use.
+:::
+
+:::define[Mode collapse]
+A fine-tuned model's tendency to over-concentrate probability mass on the most-frequent label in the training set, ignoring the diversity that was actually present. With LoRA on a five-of-five-identical training split, the student's softmax peaks so sharply on the one label that even mildly out-of-distribution prompts cannot pull it elsewhere. The 0-of-8 held-out match here is mode collapse in its purest form: not "the model is bad", but "the model is too good at the one wrong thing".
+:::
+
 The A4 loop ran for 73 minutes overnight, evaluated 50 perturbations, accepted 8 of them, and lowered val_bpb from 10.9554 to 10.8534 — a real 0.93% improvement that would have made the article shippable on its own. So at the surface, the trajectory looked like a researcher: it explored, it accepted, it improved. The trouble is that a corpus designed for distillation has to be *informative*, not just successful. And by every observability metric, this trajectory was the opposite.
 
 The numbers below come from one Python script — `analyze_trajectory.py` reads the 50-row JSONL and the 13-knob perturbation menu — and produce three figures plus an `analysis.json`. Total wall: ~2 seconds.
@@ -48,6 +56,14 @@ Across 50 proposals, the agent touched six.
 
 `d_model` alone took 24 of the 50 proposals — nearly half. Combined with `n_head` it took 39 of 50 = 78%. Seven knobs never appeared: not even once across 50 chances. That's not a sampling fluke; even uniform random over 13 knobs would have hit every knob by iter 50 with overwhelming probability. The proposer is biased toward *capacity-dimension* knobs (`d_model`, `n_head`, `d_ff`) and ignores *optimization-dimension* knobs (`lr_warmup`, `grad_clip`, `weight_decay`, `batch_size`, `seq_len`, `precision`).
 
+:::math[Why "uniform random over 13 knobs" should hit all 13]
+Probability that a specific knob is *never* picked across 50 uniform draws from 13: `(12/13)^50 ≈ 0.019`. Probability that *any* of the 13 is missed (union bound): `13 × 0.019 ≈ 0.25`. So even uniform random would skip ~3 knobs on average across many runs of 50. That the agent skipped *7* knobs — and specifically the optimization-dim ones — is a 4× excess over null and a clear directional bias, not noise.
+:::
+
+:::define[Knob coverage]
+The number of distinct knobs (or `(knob, value)` pairs) the agent has *ever* proposed across the trajectory, divided by the menu size. A 50-iteration trajectory covering 6 of 13 knobs has 46.2 % knob coverage and 14 unique pairs. Coverage is the cheap, observability-first proxy for "how much of the search space did this loop actually explore?" — a number the loop counter alone cannot tell you.
+:::
+
 Why does this matter for distillation? The corpus the LoRA learned from has zero examples of "what to do when the optimizer is too aggressive" or "what to do when sequence length is wrong." Whatever the agent learned about the optimization-dim subspace is unrepresented. The student couldn't have learned it even if the teacher had been consistent.
 
 ## The repeat rate climbs because the proposer forgets
@@ -73,6 +89,14 @@ The repeat rate makes the cost of this design choice visible:
 In the first 10 iterations, half of the proposals were already-seen pairs — already a sign the proposer was leaning on a few favorites. By iter 21-30, that's 80%. By iter 31-50, it's 90%. *Nine out of ten proposals in the second half of the run were ground the agent had already covered.* The 73-minute wall did not get the loop nine-tenths of a richer corpus; it got it the same ~14 ideas re-litigated with diminishing utility.
 
 This is a **prompt design bug, not a model bug**. The 8B is a competent proposer when it can see what it has tried — the first 10 iterations are evidence of that. After the rolling window slides past iter 5, it's proposing into an amnesiac context.
+
+:::pitfall[`k=5` history window silently caps exploration]
+The k=5 default looks innocuous — five recent iterations is "what changed lately," which is what most agent loops want for *response* generation. But for *exploration* generation, k=5 means iter 30 cannot see iters 1–25. The agent obediently re-proposes ground it had already evaluated, the loop counter increments, and the dashboard reads "the agent is exploring." It isn't. The `k` constant is one of those numbers that costs nothing to set, and silently bounds what the loop can ever discover.
+:::
+
+:::why[Loop counter ≠ search-space coverage]
+A status-line "iteration 47/50" is a measure of *how long the loop has been running*, not *how much of the search space it has explored*. A loop that runs 50 iterations covering 6 of 13 knobs and producing 14 unique (knob, value) pairs is 47 % through its budget but ~10–15 % through its search space. Treating the iteration count as a progress bar is what made the original A4 article describe a healthy run; it took an analysis pass on the trajectory to surface the gap. Always log coverage, always log repeat-rate, never trust the counter alone.
+:::
 
 ## The plateau — first keep and best keep are the same idea
 
@@ -113,6 +137,13 @@ The 200-iter overnight rerun queued in the next session has to land *one* of the
 
 The honest recommendation is **(1) plus (2)**: rails reject duplicates, prompt shows the full history. Then 200 iters produces 200 unique evaluated configs, and the corpus distillation can learn from is roughly 14× richer than what A4 produced. With 200 train rows of diverse keeps and reverts, A8's rematch becomes a real test of whether a 3B can imitate an 8B at this task — instead of a test of whether 3B can mode-collapse onto a single training example, which we already know it can.
 
+:::deeper
+- [A4 — autoresearch-agent-loop](/field-notes/autoresearch-agent-loop/) — the trajectory this analysis pass dissects.
+- [A5 — guardrails-for-code-generation](/field-notes/guardrails-for-code-generation/) — the rails layer where `block_repeat` belongs.
+- [A8 — distill-architect-lora-from-trajectories](/field-notes/distill-architect-lora-from-trajectories/) — the LoRA distillation that mode-collapsed; this article diagnoses *why*.
+- [Chinchilla scaling (Hoffmann et al., 2022)](https://arxiv.org/abs/2203.15556) — the compute-optimal recipe the agent's `d_model=768` keeps were drifting toward.
+:::
+
 ## What this means for the agent loop
 
 The A4 article's headline was *"the agent ran 50 experiments overnight on a Spark and the box stayed up."* Both are still true. What this observability pass adds is the qualifier: the agent ran 50 experiments, but only ~14 of them were genuinely new experiments — the rest were the agent's k=5 rolling window failing to teach it that it had already covered the same ground.
@@ -126,3 +157,7 @@ The fix is observability that runs continuously, not retrospectively. A4.2 shoul
 The Autoresearch arc now has nine pieces: A4 (the loop), A5 (the rails), A6 (the rerank we never finished), A7 (the curator pre-prep), A8 (the LoRA distillation), A8.2 implied (the rematch, blocked on more corpus), and now A9 (this observability pass). The remaining open work is A4.2 — the 200-iter rerun with anti-repeat and (ideally) widened prompt history. After that runs, the A8 rematch becomes the next natural article: same recipe, the corpus distillation actually had a chance to learn from.
 
 Other arcs unchanged. Second Brain is at four articles, LLM Wiki opener still queued, Looking Beyond Spark at three.
+
+:::hardware[Same trajectory shape, frontier iteration rate]
+The 73-minute Spark wall produced 50 iterations × ~88 s/iter (1.23 s NIM proposer + ~85 s for the 60-step taste-test training). Move proposer + trainer to an H100 80 GB and the per-iter wall drops toward ~25 s (proposer ~0.3 s, trainer ~25 s, bandwidth-bound) — a 50-iter run becomes 21 minutes. An H200's HBM3e or a B200's 8 TB/s collapses it further toward 10 min for 50 iters, or 200 iters in the same overnight wall. The interesting coefficient *isn't* iter rate, though; it's that **wider search-space coverage** is what the corpus distillation actually needs. Faster hardware buys more iterations; a `block_repeat` rail and a longer history window buy more *unique* iterations. The corpus quality is the lever, not the wall.
+:::

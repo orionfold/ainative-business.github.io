@@ -21,6 +21,14 @@ This article is a bridge. It installs nothing. It runs no benchmark. It exists t
 
 An individual building on one Spark is not an enterprise, and enterprise RAG tutorials translate badly. The cost shape of a thing you own outright is different from the cost shape of something you rent per call — not just cheaper, but *structurally* different. Privacy flips (your archive never leaves the box), data gravity flips (the compute comes to where the data already is), and the arithmetic of ambitious designs flips with it. Designs that would be laughed out of a cost review at 3¢ per thousand tokens become trivially affordable when the tokens are yours.
 
+:::define[Data gravity]
+The principle that compute moves to wherever the data already lives, because data is heavier and harder to relocate than compute. Cloud RAG inverts this — your corpus has to be uploaded, embedded, indexed, and answered remotely, paying network cost on every step. A local DGX Spark restores the natural direction: corpus already on disk, GPU already in the box, model already in unified memory. The model comes to your data, not the other way around.
+:::
+
+:::why[Owning the GPU flips the cost shape, not just the cost]
+Cloud LLM pricing is uniform per-token. That makes some shapes affordable (chat) and others laughably expensive (inverting your entire corpus into a maintained wiki at ingest, where the LLM does 15 page-updates per source). Owning a 128 GB GPU re-prices both: chat is unchanged, but ingest-side LLM work goes from "budget conversation" to "overnight run." The arithmetic of *what's worth building* changes — designs the cloud rules out become Spark's natural shapes.
+:::
+
 But "cheap" is not a design. Every piece of software eventually answers a specific question; three specific questions are worth answering on one Spark, and they fight for the same memory, the same retrieval chain, and the same 8B NIM. Declaring the fork lets each answer find its own shape without negotiating with the other two.
 
 ## The three apps, the three costs
@@ -84,6 +92,14 @@ But "cheap" is not a design. Every piece of software eventually answers a specif
 
 Read the diagram row-by-row. The first row is the RAG pattern everyone knows — retrieve, rerank, generate, on every question. If you use it rarely, it is free in practice; if you use it constantly, the per-query cost adds up. The second row inverts: read each source once, do a bunch of work to update a pile of markdown pages, then answer queries almost for free against the compiled wiki. The third row has no user at all — just a loop that edits code, runs a five-minute training, decides whether to keep the change, and repeats a hundred times overnight.
 
+:::define[Compile-time vs query-time synthesis]
+*Query-time* (Second Brain): the LLM does its work at the user's question — retrieve, rerank, generate, every time. Cost is per-query; freshness is automatic. *Compile-time* (LLM Wiki): the LLM does its work once, at ingest — read each source, update 10–15 pages of a maintained markdown knowledge base, link cross-references. Cost is per-source; queries are near-free against the pre-compiled artifact. The two answer the same kind of question with inverted cost shapes; pick the one that matches your access pattern.
+:::
+
+:::math[Per-query vs per-source vs per-loop economics]
+Take a 100k-source corpus. **Second Brain:** 1 user query/day × 365 days = 365 RAG passes/year. **LLM Wiki:** 100k sources × 15 page-updates/source = 1.5M LLM calls at ingest, then ~365 wiki-lookups/year (near-free). **Autoresearch:** 0 ingest, 0 query, but ~500 hours/year of overnight loop = millions of edit-run-evaluate cycles. Cloud price-per-call makes Wiki at this scale infeasible (≈$30K) and Autoresearch infeasible (≈$50K). On Spark, all three are dollar-for-dollar identical: zero marginal token cost, only wall-clock.
+:::
+
 These are not sub-cases of the same thing. They are three genuinely different deals you can make with a 128 GB GPU and your own corpus.
 
 ## Fast-forwarding through the foundation
@@ -112,6 +128,10 @@ After this bridge the three tracks diverge. Each one names its own first article
 
 **Second Brain, next article: S1 — Triton + TensorRT-LLM, query-latency profile.** The 8B NIM's latency is already good. Triton's TRT-LLM engine on a Spark will push token throughput and first-token latency hard enough that a Claude-Code-hosted Second Brain MCP tool answers faster than any hosted RAG — *because the retrieval is local too*. This is the Spark's unified-memory tell: the model and the vector store are in the same 128 GB pool, so the fetch doesn't cross PCI-e twice per query.
 
+:::define[MCP — Model Context Protocol]
+An open protocol (Anthropic, 2024) that lets an LLM client like Claude Code call external tools and data sources through a standard interface. Servers declare tools; clients invoke them with structured arguments. Each of the three arcs ends with an MCP server that exposes its app's primitive: SB MCP exposes *"ask the corpus"*, Wiki MCP exposes *"lookup wiki page"*, Autoresearch MCP exposes *"run experiment loop."* The MCP boundary is what lets your local Spark surface naturally inside any MCP-aware AI client.
+:::
+
 **LLM Wiki, next article: W1 — the wiki schema and the LLM bookkeeper.** No NVIDIA product earned here; the architecture piece. Defines the `index.md`, `log.md`, per-entity page structure from Karpathy's gist, and sketches the bookkeeper agent that updates 10–15 pages per incoming source. The product installs start in W2 (Curator for source sanitization).
 
 **Autoresearch, next article: A1 — NeMo Framework on Spark.** The first training-side article. Validates that a full training-loop runtime fits on one Spark, that the 8B base model can be resumed from checkpoint, and that a five-minute evaluation (`val_bpb`) is a tight enough feedback signal for an agent to iterate on. The agent itself lands in A4.
@@ -138,8 +158,23 @@ The arc detector in the `tech-writer` skill will prefer the foundation articles 
 
 Reading in parallel is fine. Articles within a track build on each other; articles across tracks are independent after this point. The three Triton articles (S1, W4, A7) will cross-link — same product, three optimization profiles — as will the three Customizer articles (S2, W5, A8) and the three Evaluator articles (S3, W6, A9). Cross-track readers get the full topology; single-track readers get a clean spine.
 
+:::pitfall[Don't try to build all three at once]
+The foundation is shared but the apps are *not* — they have different cost profiles, different evaluation harnesses, different MCP surfaces, and different definitions of "done." Building all three in parallel splits attention three ways and finishes nothing. Pick one based on your access pattern (chatty queries → SB, growing corpus → Wiki, training loop → Autoresearch) and finish it before opening the next track. The shared foundation makes track-switching cheap *later*; building all three at once makes finishing any of them hard *now*.
+:::
+
 ## Closing — three tracks, measured in articles
 
 Second Brain is four articles from here to an MCP-mounted private RAG tool in Claude Code. LLM Wiki is seven articles from here to an Obsidian-mounted knowledge base the 8B maintains at ingest. Autoresearch is nine articles from here to an agent that runs overnight against a training loop you don't have to supervise.
 
 Same Spark. Same 128 GB. Same seven-product foundation. Three different answers to the same question about what one person should do with their own corpus and the first consumer machine on which all of this is *locally affordable*. Pick your arc — the detail starts in the next article of whichever track you chose.
+
+:::deeper
+- [Karpathy's LLM Wiki gist](https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f) — the inspiration for the LLM Wiki arc; the compile-time-synthesis case in one essay.
+- [karpathy/autoresearch](https://github.com/karpathy/autoresearch) — the inspiration for the Autoresearch arc; the original edit-run-measure-decide loop in <500 lines.
+- [Model Context Protocol spec](https://modelcontextprotocol.io/) — the protocol all three arcs end on; how Claude Code talks to your Spark.
+- [BEIR benchmark](https://github.com/beir-cellar/beir) — the retrieval-evaluation harness that grounds claims in F4 / F5; BEIR-style numbers underlie the rerank article's qrels methodology.
+:::
+
+:::hardware[At cluster scale, the three arcs become three teams]
+On the Spark, all three apps share one 128 GB GPU and one developer's attention — the *unified-memory advantage* lets a single person finish what would normally need three. Scaled to enterprise: Second Brain becomes a low-latency serving cluster (H100 fleet behind a query API), Wiki becomes an ingest cluster (H200 / B200 batch jobs running compile passes overnight), Autoresearch becomes a training rig (multi-node DGX SuperPOD running thousand-experiment campaigns). The architecture stays the same; the org chart sprouts three teams. The Spark is the version where one person owns all three.
+:::

@@ -18,6 +18,14 @@ The Autoresearch arc has been building toward this article for five installments
 
 The result is a sparkline. Each dot is one iteration: the LLM proposes a single-knob perturbation, the rails check it, the trainer runs 60 steps with the modified config, the validator measures cross-entropy on a held-out wikitext slice, the loop keeps or reverts, and the trajectory gets one more line. Eight of fifty proposals improved val_bpb by more than 0.5%; the best landed at val_bpb=10.8534 — a 0.93% improvement over the 10.9554 baseline. Five of those eight wins came from the *same* perturbation: `d_model = 768`. The agent found one knob that worked and exploited it five different times in slightly different ways.
 
+:::define[val_bpb (validation bits-per-byte)]
+Cross-entropy loss in `log2` units, normalized by bytes rather than tokens — the standard report unit for character-level and BPE-tokenized language modeling. Lower is better; a baseline of 10.9554 means the model's predicted distribution costs ~10.96 bits per byte to encode the held-out wikitext slice. A 0.93% improvement to 10.8534 is small in absolute terms but meaningful as a *relative* signal that the perturbation actually helped within the 60-step budget.
+:::
+
+:::define[Structured-perturbation menu]
+A finite, allowlisted vocabulary of knob mutations the agent can propose — typically one knob name + one new value per iteration, drawn from a JSON schema. The host validates against the menu before applying. The pattern *bounds the agent's failure modes by construction*: every proposal is either inside the menu (the trainer handles it) or outside (the rails reject it). No code-edit channel, no free-form parameters, no out-of-distribution surprises.
+:::
+
 | measurement | value |
 |---|---:|
 | iterations | **50** |
@@ -36,6 +44,10 @@ The result is a sparkline. Each dot is one iteration: the LLM proposes a single-
 ## Why this matters for the personal AI power user
 
 This article exists because the *electricity number* is real. A 73-minute unattended training-research session on a 354M-class model that draws 0.07 kWh — about as much as running a desk lamp for the same period — was, two years ago, a cloud-only conversation. You'd be paying per token for the LLM driver, per GPU-second for the experiment substrate, and per egress GB for every artifact you wanted to take home. The Spark moves it onto your desk. The same overnight runs at the same wall-clock cadence with the same trajectory artifacts, except nothing about the loop touches a network beyond your LAN.
+
+:::why[An agent loop's price isn't tokens, it's electricity]
+Cloud-API agent loops bill the proposer per token and the trainer per GPU-second — at $4/hr GPU, 50 iters × 88s/iter is ~$5 of substrate plus the per-token LLM driver charge. On a Spark, the same loop is **$0.02 of electricity**, full stop. The cost shape flips from *iterations are expensive, plan carefully* to *iterations are free, instrument heavily*. That changes what kind of agent loops a builder is willing to run — including ones that fail 84% of the time, like this one.
+:::
 
 The other thing that matters: this article *demonstrates* the unattended-overnight thesis the whole arc has been pointing at. A1-A3-A5 measured the floor; A4 walks across it. The `electricity` and `wall time` rows above are not projections — they are the actual cost of running this article's agent on a Spark this Saturday afternoon.
 
@@ -102,6 +114,14 @@ The other thing that matters: this article *demonstrates* the unattended-overnig
 
 The full agent loop fits in [`evidence/agent_loop.py`](./evidence/agent_loop.py) (about 250 lines). The proposer at [`evidence/proposer.py`](./evidence/proposer.py) (about 130 lines) builds the prompt and calls NIM's OpenAI-compatible endpoint at `localhost:8000`. The evaluator at [`evidence/evaluator.py`](./evidence/evaluator.py) (about 220 lines) is A2's training harness wrapped in a function that returns a `val_bpb` measurement. The configuration knobs are in [`evidence/cfg.py`](./evidence/cfg.py) — every field maps to one entry in A5's `perturbation_menu.json`. The rails come straight from A5: `from rails import gate`, no specialization needed.
 
+:::define[ReAct agent]
+A multi-turn agent pattern (Yao et al., 2022) where each iteration interleaves *Reasoning* (chain-of-thought about what to try next) with *Acting* (a structured action the host can execute). This loop is a specialized ReAct: the action vocabulary is constrained to single-knob perturbations from a fixed menu, and the "observation" the agent sees next is the val_bpb the trainer measured. Recent-history feedback (last 5 iterations in the prompt) is what lets the agent *react* rather than re-propose.
+:::
+
+:::define[Fixed baseline (vs Markov drift)]
+Two evaluation shapes for an agent loop. *Fixed baseline* compares every iteration against the same original config — every decision is an A/B test against an unmoving reference. *Markov drift* (an evolutionary loop) compares against the last accepted state, so improvements compose but the trajectory drifts. Fixed baseline is what this loop uses; it sacrifices composability for clean independent measurements. The choice matters because it bounds what the trajectory can teach the next iteration.
+:::
+
 ## What success looks like on DGX Spark
 
 ![NVIDIA DGX Dashboard during the agent run, showing 114.36 GB of 128 GB system memory used and 96% GPU utilization, with stable sparklines confirming sustained load.](screenshots/01-dgx-dashboard-during-agent-run.png)
@@ -120,6 +140,10 @@ The headline-level system numbers across the whole 73.4-minute run:
 | Disk delta (trajectory + logs) | ~25 KB total over 50 iters | — |
 
 No throttling (78 °C peak vs ~90 °C throttle threshold), no OOMs, no swap thrashing. The 0.07 kWh figure quoted in the headline comes from `73.4 min × 56.3 W mean = 68.9 Wh ≈ 0.07 kWh`, which at the US residential rate of ~$0.30/kWh is about $0.02 of electricity for the full run.
+
+:::math[$0.02 of electricity, 50 iterations]
+73.4 min × (1 hr / 60 min) × 56.3 W = 68.9 Wh = **0.069 kWh**. At US residential ~$0.30/kWh: 0.069 × $0.30 ≈ **$0.021**. Or: 50 iters × ~88s/iter / 3600 × 56.3 W ≈ same answer. A 100W desk lamp run for the same 73.4 min would use **0.122 kWh** — almost twice as much as this overnight agent run.
+:::
 
 ## The trajectory shape — what the agent did
 
@@ -156,6 +180,10 @@ The agent's effective vocabulary turned out to be small: of the **13 allowlisted
 
 **4. The agent re-tried known failures.** The agent proposed `d_model=1536` four times (all reverted), `n_head=8` three times (all reverted), and `lr=0.0002` three times (all catastrophically worse). The recent-history window in the prompt was 5 iterations; once a failed proposal scrolled out of the window, the agent forgot it had tried that. Either widen the history (slows the prompt over time, costs more LLM tokens), or add a "do-not-repeat" rail that rejects any proposal already seen in the trajectory. Neither change was made for this article — the agent's amnesia is a real behavior to document, not gloss over.
 
+:::pitfall[A 5-iter history window forgets failed proposals 5 iterations later]
+The agent's recent-history feedback is bounded by the prompt budget: too short and it re-tries known failures (this run); too long and the prompt grows linearly with iteration count, eventually overflowing the proposer's context. The right answer for long runs is *not* a bigger window — it's a separate trajectory-aware rail that rejects exact-duplicate proposals, or a vector-store recall over past (cfg, val_bpb) records. The 5-iter default is a good ceiling for *iteration cadence*; it's a bad ceiling for *trajectory memory*.
+:::
+
 **5. The eval crash protection is the loop's job, not the rails'.** Iter 38 (d_model=256) didn't *fail* — it ran cleanly and reported a 25% regression. If a proposal had OOM'd on the GB10 (it didn't, but it could have on a different baseline), the evaluator would have caught the `torch.cuda.OutOfMemoryError`, marked the iter as `eval_failed`, logged the reason, and moved on to the next iter. The trajectory protects against agent badness in two distinct layers: the rails reject malformed proposals before they touch anything, and the evaluator's try/except catches runtime crashes after the proposal has been accepted. Both fired zero times in this run; both stayed in the path.
 
 **6. NIM 8B is the easy proposer; harder agents would stress more rails.** Llama 3.1 8B Instruct is well-tuned for "produce JSON given examples." A weaker proposer — Qwen 2.5 3B, Llama 3.2 1B — would produce malformed JSON occasionally and exercise R1. A jailbroken prompt would test R1's prompt-injection collapse. A bad-faith agent (one that the user themselves had reason to distrust) would fail the rails repeatedly. This run measures the *cooperative* path; the article that measures the *adversarial* path is a separate piece of work.
@@ -170,8 +198,20 @@ The agent's effective vocabulary turned out to be small: of the **13 allowlisted
 
 **3. The structured-perturbation pattern is the actual product.** The deepest insight from this run isn't the +0.93% improvement; it's that the *interface* between the LLM and `train.py` was a 13-knob menu, not a code-edit channel. Every iteration's "decision" was within a vocabulary the host could reason about. Every failure mode the LLM could create was either inside the menu (in which case the trainer handled it) or outside it (in which case the rails caught it). For any future agent loop you build on a Spark — code-edit, data-mix, prompt-tuning, optimizer-search — the same pattern applies: pick a menu, instrument the rails, write the loop, run the trajectory, write the article.
 
+:::deeper
+- [ReAct paper (Yao et al., 2022)](https://arxiv.org/abs/2210.03629) — the reason-and-act agent pattern this loop specializes for structured-perturbation training research.
+- [NIM first inference on Spark](/field-notes/nim-first-inference-dgx-spark/) — the foundation article that warmed the proposer endpoint this loop calls 50 times.
+- [Karpathy on minGPT and overnight runs](https://karpathy.github.io/) — the design lineage for fixed-baseline A/B evaluation and small-model rapid iteration.
+- [NeMo Megatron-Core](https://github.com/NVIDIA/Megatron-LM) — the trainer the evaluator wraps for the 60-step kernel-timing runs.
+- [A5 rails article](/field-notes/) — the 5 programmatic rails this loop reuses with zero specialization (R1 schema · R2 menu · R3 range · R4 cross-constraint · R5 diff lint).
+:::
+
 ## State of the apps — as of A4
 
 **Autoresearch now:** has all five pieces walking together. NIM 8B drives the loop (from F1). NeMo Framework runs the model (from A1). The kernel envelope is 14.3K tok/s on random tokens (A2); the data envelope is 14.98K tok/s on real wikitext with 0.04% overhead (A3); the rails block the unsafe with 1.0 recall (A5); the agent loop ran 50 iters in 73 min and improved val_bpb by 0.93% (this article). Next on the arc: **A6 — `critic-nim-70b-on-spark`** (a second LLM that critiques the agent's proposals before they go through), or **A8 — `distill-architect-lora-from-trajectories`** (LoRA-tune a smaller proposer on the trajectory this run produced). **Second Brain now:** unchanged. **LLM Wiki now:** un-opened — W1 still the only un-walked arc opener.
 
 The full trajectory (50 iterations, every proposal, every rail verdict, every val_bpb) is at [`evidence/trajectory.jsonl`](./evidence/trajectory.jsonl); the per-stage analysis is at [`evidence/trajectory_summary.json`](./evidence/trajectory_summary.json); the harness is at [`evidence/agent_loop.py`](./evidence/agent_loop.py). Run it yourself: same NIM 8B, same evidence directories from A3 + A5, one `docker run`, ~73 minutes, $0.02 of electricity. The agent will propose `d_model = 768` within the first ten iterations.
+
+:::hardware[Same loop, frontier-class proposer drivers]
+On Spark + GB10, the proposer call (NIM Llama 8B FP8) runs at ~25 tok/s and 1.2s per iteration. An H100 (3.35 TB/s HBM3) running the same 8B at FP8 hits ~120-150 tok/s — about a 5-6× shorter proposer call, which barely moves the loop's wall clock since the trainer's 85.8s/iter dominates. Where frontier hardware *does* matter is when the proposer scales up: a 70B critic alongside the 8B (the queued A6 article) fits Spark's 121 GB pool comfortably; on H200 (4.8 TB/s) and B200 (8 TB/s), the same critic drops below 1s per call, which lets the loop add a *third* model (e.g., a verifier) without breaking the 88s/iter cadence. The pattern scales with bandwidth, not capacity.
+:::

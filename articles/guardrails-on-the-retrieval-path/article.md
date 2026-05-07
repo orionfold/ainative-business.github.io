@@ -18,6 +18,14 @@ The [bigger-generator article](/field-notes/bigger-generator-grounding-on-spark/
 
 One product covers all three on the NVIDIA stack: **NeMo Guardrails**. It is deliberately positioned as scaffolding — an input-rail, retrieval-rail, output-rail framework — not a detector. You bring the detectors; the rail runs them. That shape is exactly what the shared-substrate arc has been asking for: **one rail, three policies, same retrieval chain from the [rerank-and-fusion article](/field-notes/rerank-fusion-retrieval-on-spark/)**.
 
+:::define[NeMo Guardrails]
+NVIDIA's open-source policy framework for LLM applications. Wraps any OpenAI-compatible chat endpoint with three rail surfaces and dispatches to Python *actions* defined per arc. Rails are configured in YAML + Colang. Deliberately positioned as scaffolding, not detectors — you supply the detection logic, the framework supplies the *where* and *when*. Sits on the host (Python pip package), not inside a NIM; one install can be compiled three ways with three configs in three sibling directories.
+:::
+
+:::define[Input / retrieval / output rails]
+The three points where Guardrails can intercept an LLM call. **Input rails** fire on the raw user message before retrieval and generation — the cheapest gate, and the right place to block PII or known-malicious prompts before any compute runs. **Retrieval rails** fire on the chunks pulled from the vector store before they enter the prompt — the right place to scrub corpus-side PII or filter sensitive documents. **Output rails** fire on the model's answer before it leaves the gate — the right place to enforce style, citations, or hallucination checks. All three can run in the same pipeline.
+:::
+
 This article installs Guardrails once, writes three minimal configs (`config-sb`, `config-wiki`, `config-auto`), wraps the [bigger-generator article's](/field-notes/bigger-generator-grounding-on-spark/) hybrid-ask pipeline, and benchmarks fifteen synthetic queries (five per arc, three violating, two clean). Every query lands the expected verdict: block recall 1.0, clean pass rate 1.0, zero crossed wires between arcs. That number is a demo, not a proof — but the *architecture* the number demonstrates is what unlocks the three arcs forking apart in the [bridge article](/field-notes/one-substrate-three-apps/).
 
 ## Why the rail is a personal-AI concern
@@ -25,6 +33,10 @@ This article installs Guardrails once, writes three minimal configs (`config-sb`
 On a cloud deployment, the rail is infrastructure someone else runs and charges for, and its configuration is a shared artifact — nobody in the org owns its edit history. On the DGX Spark, the rail is a Python package you `pip install` into a venv, and its policy is three `.co` files you read over morning coffee. The arbiter of what data leaves the box, what voice the wiki writes in, and what shell commands the agent can run is **your config**. That's a different relationship to a safety surface than any cloud product can offer.
 
 It also changes the *economics* of the rail. Cloud guardrail services meter by request. On the Spark, a rail pass that fires ten detectors before each generator call is free — the only cost is latency you spend yourself. That opens designs (layered rails, redundant detectors, custom Presidio pipelines) that wouldn't make it through a cost-review anywhere else.
+
+:::define[PII — Personally Identifiable Information]
+Any data that can identify a specific person — directly (name + address, SSN, email, phone, credit card) or in combination (DOB + ZIP + gender deanonymises ~87% of US adults). RAG systems leak PII in two directions: into the prompt (when a user types their email into a query) and out of it (when retrieved chunks contain identifiers from the corpus). PII rails scrub both sides. Production-grade detection uses Microsoft Presidio, AWS Comprehend, or domain-tuned classifiers; the regex-only detector here is for transparency, not deployment.
+:::
 
 ## Where the rail sits in the chain
 
@@ -184,6 +196,10 @@ define flow check pii output
 
 Colang is a tiny grammar: `define flow` is a rule, `execute` calls a registered Python action, `$user_message` and `$bot_message` are built-in context variables Guardrails populates. The flow either falls through (the generator runs) or hits `stop` (Guardrails returns the `refuse pii` string as if the LLM had said it). That "as if the LLM had said it" is the design choice that lets the rail be content-identical to a refusal — downstream code doesn't need special cases.
 
+:::define[Colang]
+Domain-specific language for defining rail flows in NeMo Guardrails. Tiny grammar: `define flow` declares a rule, `execute <action>(...)` invokes a registered Python action, `$user_message` / `$bot_message` are framework-populated context variables, `bot refuse <named_utterance>` short-circuits the LLM and returns a canned response. Two versions exist (1.0 and 2.0); production code today targets 1.0 for documentation density. The sample rail is 8 lines because Colang isn't where the logic lives — the Python action is.
+:::
+
 ### The actions are the content
 
 The actions are regular async Python functions decorated with `@action`. For the PII pair:
@@ -272,15 +288,31 @@ violating sb  "Summarize the email alice@example.com sent about the Q3 leak."
 
 The blocked case is genuinely free — the input rail short-circuits before embed, before retrieval, before generation. In the clean case, the rails cost is invisible inside the retrieval and generation noise. This is what a rail *should* feel like on local hardware: the detector cost is bounded, the skipped-call savings dwarf the guard cost, and you can afford to run more detectors without a metering conversation.
 
+:::math[Why blocked queries are effectively free]
+Input rails run *before* retrieval and generation. A PII-blocked query in the SB benchmark returned in 0.3 ms — the regex match plus the canned refusal text — versus 1.8 s end-to-end for a clean query (553 ms retrieval + 1.2 s generation). That's a ~6000× wall-clock saving when the rail fires. At one fired rail per ten queries, total compute cost drops ~10% under the same wall-clock budget. The rail's *worst* case (clean query, full pipeline) is bounded by the rail's own micro-cost; the *best* case (blocked) skips both the embedder *and* the generator. Cheap to add, cheap to run, free when it fires.
+:::
+
 ## Tradeoffs, gotchas, surprises
 
 **Regex detectors are the weakest link, and that is the design.** The article deliberately uses regex because it's transparent, inspectable, and zero-cost. In production, each arc's detector would be swapped for something meaningfully stronger: Microsoft Presidio (with an `sdd` extra Guardrails already supports), an NVIDIA Nemotron-Aegis classifier for PII and jailbreaks, a real AST-level parser for the Autoresearch code rail. The 100% block rate reported above is on hand-crafted synthetic queries designed to hit the detectors; the confidence interval on any *real* PII corpus would be wider and the false-positive profile different. The claim is not that regex is enough. The claim is that **rails are the scaffolding and detectors are the content**, and the scaffolding is what the article is about.
+
+:::why[Rails are scaffolding; detectors are the content]
+The 100% block rate is on synthetic queries that hit four regexes by design. Real PII corpora have wider confidence intervals and different false-positive profiles. The claim isn't that regex is enough — it's that the *architecture* is right. Rails give you a scaffolded place to put any detector you want: Presidio (recognisers + denylists + ML extractors), Nemotron-Aegis (LLM classifier), a fine-tuned BERT, a custom AST parser. The detector you swap in determines coverage; the rail determines *where* and *when*. Get the scaffolding right first; the content is plug-and-play.
+:::
+
+:::pitfall[Regex PII detection misses what isn't formatted prototypically]
+Four regexes catch SSN/card/email/phone formatted prototypically — they won't catch `four nine three dash...`, an obfuscated card number with extra spaces, or names + addresses that a human would obviously identify. They also false-positive on structurally-similar non-PII (lottery numbers, version strings, ISBNs). Production deployments swap regex for Microsoft Presidio, NVIDIA Nemotron-Aegis, or a fine-tuned BERT. The right reading of this article's 100% block rate is *"the rail is in the right place and easy to populate,"* not *"regex is enough."*
+:::
 
 **Colang is small but opinionated.** Guardrails 0.21 supports Colang 1.0 and 2.0; 1.0 is what this article uses because the documentation is denser and 2.0 is still catching up. The verbs (`define flow`, `execute`, `bot refuse <...>`) are conventions the framework parses — `bot refuse pii` isn't a magic phrase, it's just a named utterance Guardrails attaches the following quoted string to. If you rename it, make sure `classify_block` still matches.
 
 **The `openai` engine needs `langchain-openai`.** The error message is good (`Initializing ChatOpenAI requires the langchain-openai package`), so the fix takes fifteen seconds, but it's not installed by the default `pip install nemoguardrails`. Expect the same shape for other engine types — `nvidia_ai_endpoints` for hosted NeMo, `anthropic` for Claude, `vertexai` for Google — each is its own optional extra.
 
 **Input rails run before retrieval.** This sounds obvious and it's the efficient choice for SB PII (why embed a query that won't be generated?), but it means the Autoresearch exfil patterns *never* reach the retrieval chain, and therefore never reach the agent's code-analysis layer. If you want a rail that inspects retrieved *code* — for example, because the agent is reading `train.py` from disk as part of its context — that has to be a *retrieval* rail, which Guardrails supports via the `rails.retrieval` section but which this article skips to keep the surface area small. Article #A5 (Autoresearch code generation) will return to that gap.
+
+:::pitfall[Input rails run before retrieval, not after]
+The Autoresearch input rail blocks `cat ~/.ssh/id_rsa` *before* retrieval runs — efficient for blocking exfil prompts, but it means the rail never inspects retrieved code. If your agent is reading `train.py` from disk as part of its context, an exfil pattern *inside that file* will pass the input rail untouched. To block patterns in retrieved content, use a `rails.retrieval` flow instead — Guardrails supports it and it's the right surface for code-on-disk scanning. Pick the rail surface to match where the risky bytes actually originate.
+:::
 
 **`config.yml` needs a valid `prompts:` key, even when empty.** Leaving it off produced a schema-validation error on the first draft of the three configs. An empty list (`prompts: []`) satisfies the parser. The documentation mentions it but doesn't emphasize that it's not optional for YAML-only configs.
 
@@ -303,3 +335,14 @@ The shared foundation is complete. Seven articles, one machine, one retrieval ch
 > **Autoresearch now:** has a driver, a retrieval chain, a code-safety rail, and no loop yet.
 
 Next up: **`one-substrate-three-apps`** — the bridge article. Hub-and-spoke diagram, three colored forks, a short essay on the cost space the three arcs cover. After that, the tracks fork and readers pick.
+
+:::deeper
+- [NeMo Guardrails repo + docs](https://github.com/NVIDIA/NeMo-Guardrails) — full Colang reference, action API, available rail types, and the integration matrix.
+- [Microsoft Presidio](https://github.com/microsoft/presidio) — production-grade PII detection + anonymisation; Guardrails ships an `sdd` extra that wraps it.
+- [Survey on jailbreak attacks (Liu et al., 2023)](https://arxiv.org/abs/2305.13860) — the threat model the input rail is designed against.
+- [Colang 1.0 vs 2.0 docs](https://docs.nvidia.com/nemo/guardrails/) — comparison of the two grammar versions; 1.0 has more docs, 2.0 is the future.
+:::
+
+:::hardware[Local rails vs cloud-metered rails]
+Cloud guardrail services (Azure AI Content Safety, AWS Comprehend, OpenAI moderation) meter per request — typically $0.50–$2 per 1000 calls. At one rail per LLM call, with 10 detectors per rail, a million-call month costs $5,000–$20,000 in rail fees alone. On the Spark, the same 10 detectors are free — they run on the host CPU, microsecond-class. That changes the design space: stack five PII detectors with different recall profiles, run an LLM-classifier rail and a regex rail in parallel, audit-log every rail decision — none of those need a budget conversation. Cloud encourages thin rails; local hardware encourages thick ones.
+:::

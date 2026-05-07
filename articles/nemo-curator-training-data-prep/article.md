@@ -16,7 +16,15 @@ series: Autoresearch
 
 The previous article (`baseline-training-loop-on-spark`) measured the GB10's pretrain throughput with `torch.randint`-generated tokens — a kernel-only measurement that assumed the data path was free. That assumption is the kind of thing you have to *measure* before you trust it. So this article does the obvious follow-up: take a real corpus, run it through NeMo Curator's filter stages, tokenize with the same GPT-2 BPE the model expects, pack the result into a memory-mappable file, and feed that to the same training loop A2 used. If the data path costs anything material, throughput should drop. If it doesn't, the kernel envelope and the data envelope are the same envelope.
 
+:::define[NeMo Curator]
+NVIDIA's open-source data-curation pipeline for LLM pretrain corpora — Ray-orchestrated stages for unicode normalization, length filtering, n-gram repetition filtering, language ID, quality classification, and exact/fuzzy deduplication. Bundles CPU and GPU (cuDF / RAPIDS) execution paths so the same pipeline scales from a 0.5 GB wikitext to a 50 TB CommonCrawl shard. Lives in the `nemo-curator` PyPI package; not preinstalled in the NeMo container.
+:::
+
 The result is short to state: **the data path costs 0.01–0.04% of step time across every config we tried**, and the peak real-data throughput is **14,980 tok/s** — slightly *above* A2's random-token peak of 14,266. The data path is not the bottleneck on the GB10; it is, in practice, invisible. The harder question turns out to be *getting* the corpus into the form a training loop wants — and even there, the entire wikitext-103 corpus tokenizes in 40 seconds at ~2.7M tok/s on the Spark's CPU, finishing well before the GPU has eaten the first 50 K tokens of training data.
+
+:::math[Why the data path disappears into the noise]
+A 16 × 1024 batch is 16,384 int64 tokens = 128 KB per step. The unified-memory copy at ~5 GB/s clears that in ~25 µs; with `non_blocking=True` it overlaps with the prior step's optimizer update entirely. Step time is 1,094 ms; data time is 0.15 ms; ratio is 0.000137 — four zeros below the noise floor of step-to-step variance. There is no realistic single-GPU pretrain workload where this matters.
+:::
 
 Headline numbers up front, then the details:
 
@@ -38,6 +46,10 @@ Headline numbers up front, then the details:
 The Autoresearch agent (still upcoming, A4) is going to be making decisions like *"this perturbation lowered val_bpb — keep it"*. Those decisions only mean something if the validation loss curve is honest, which means it has to come from real text. The agent can't be making decisions on synthetic-data loss curves and then expect them to generalize. So the question this article answers is upstream of A4's correctness: *can the Spark sustain its measured kernel throughput when the data is real?* If the answer were "no, real data drops you to 50% of the random-token rate," the agent would have to spend half its overnight budget on data plumbing instead of experiments. The answer is **yes** — and that result lets the agent loop be designed without a data-prep escape hatch.
 
 There's also a simpler edge-AI story here. The Curator pipeline + tokenization + memmap packing for a 0.5 GB corpus runs end-to-end in **under three minutes** on the GB10 — including the 40-second BPE tokenization which sits at 2.7 M tok/s on a single CPU process. Cloud data-prep services charge by the row; on the Spark, this is essentially free wall time. For someone building a domain-specific corpus from their own writing, their company's docs, or a niche subset of the open web, the prep cost is dominated by *finding* the data, not by *processing* it.
+
+:::why[Real-token loss is the only loss the agent can trust]
+Random-token throughput sets a kernel ceiling, but it can't ground a learning-rate sweep — there's no signal in random data. Once the agent starts evaluating "did this perturbation lower val_bpb?", that loss has to come from a real corpus or its decisions are nonsense. If real data dropped throughput by 50%, the agent's overnight budget would be cut in half. Measuring 0.04% overhead is what lets the agent loop be designed without a data-prep escape hatch.
+:::
 
 ## The sweep at architecture-glance
 
@@ -126,9 +138,17 @@ A few things this pipeline intentionally does not do:
 
 - **No language ID.** Wikitext-103 is overwhelmingly English; running fasttext langid on it is honest but adds a model-load step and a per-doc forward pass that doesn't change the output meaningfully here. On a multilingual corpus (CommonCrawl WET, web scrape) `FastTextLangId` belongs in the chain — Curator ships it, and the lid.176.bin model is in the derived container at `/opt/curator-models/`.
 - **No GPU dedup.** Curator's `ExactDuplicateIdentification` path uses cuDF + RAPIDS; it's the right tool when the corpus is hundreds of GB. At 0.5 GB, a single-process pandas hash + drop_duplicates finishes in 5 seconds and avoids the cuDF ↔ Curator orchestration mode-switch. The dedup happens in [`tokenize_and_shard.py`](./evidence/tokenize_and_shard.py), not Curator.
+
+:::define[Exact dedup vs fuzzy dedup]
+Exact dedup hashes each document (SHA256 / MinHash signature with no shingles) and drops byte-identical duplicates. Fuzzy dedup uses MinHash + LSH to find documents that overlap by some threshold (e.g. 80% of 5-shingles match) — catches near-duplicates from different scrapes. Pretrain corpora dedup *fuzzy* because the same news story appears verbatim across sites; small curated corpora often dedup exact because byte-identity is enough.
+:::
 - **No quality classifier.** `FastTextQualityFilter` would discriminate "Wikipedia-like" text from "random noise" — but on actual Wikipedia text that's a tautology. On a CommonCrawl corpus you'd want it.
 
 The sweep harness in [`evidence/data_sweep.py`](./evidence/data_sweep.py) is A2's `sweep.py` with one delta: instead of `x = torch.randint(0, vocab, (batch, seq))`, batches come from a `CorpusBatcher` that walks a `numpy.memmap` of the packed tokens sequentially and copies to GPU with `non_blocking=True`. Step time and data time are measured separately so the article can report both.
+
+:::define[`numpy.memmap` packed corpus]
+A flat binary file containing tokenized IDs as a contiguous int32 array, exposed to Python via `numpy.memmap` so the OS pages it in on demand instead of loading it into RAM. Lookup is `arr[start:start+seq_len]` — no parsing, no record boundaries, no JSON. The training loop slides a window across this array; the page cache makes repeated reads essentially free after the first epoch.
+:::
 
 ## The shape of the envelope
 
@@ -144,6 +164,10 @@ The sweep harness in [`evidence/data_sweep.py`](./evidence/data_sweep.py) is A2'
 | b=8 / s=1024 / fp8 | 13,777 | 14,394 | +4.5 % |
 | **b=16 / s=1024 / fp8** | **14,266** | **14,980** | **+5.0 %** |
 | b=4 / s=2048 / fp8 | 13,202 | 13,740 | +4.1 % |
+
+:::define[BPE tokenization]
+Byte-pair encoding splits text into subword units learned from a corpus by iteratively merging the most frequent adjacent byte pairs. GPT-2's tokenizer ships ~50K merges; the result is a vocabulary that handles common English in 1 token per 0.75 words and falls back gracefully to bytes for OOV strings (emoji, code, foreign text). The pretrain loop sees integer IDs into this vocabulary, not raw text — tokenization is the bridge.
+:::
 
 A3 is consistently **2–6% faster than A2** at every matched config. That's surprising at first read — A3 has *more* work to do per step (the data path) — but the cause is sensible. A2's `torch.randint` runs on the GPU each step, contending with the model's own forward pass for SM cycles; A3's data path is a host-side mmap read and an `cudaMemcpyAsync` that overlaps with the previous step's optimizer update. On a single-GPU workload with no contention from sibling processes, the prefetch-and-overlap pattern wins back the random-gen overhead and then some.
 
@@ -166,6 +190,10 @@ The biggest data-time number we measured was 0.15 ms (batch=16 × seq=1024 × fp
 
 **The data path is invisible *only because* the corpus fits in memory.** The 109 M-token packed file is 417 MiB — Linux page cache will hold it after the first read. If the corpus were 100 GB instead of 0.4 GB, the per-step `mmap[]` access would hit a page fault some fraction of the time, and that fraction is what determines whether the data path stays invisible. The article measures the small case honestly; the large-corpus case is a different envelope and would need its own measurement (probably with `madvise(MADV_SEQUENTIAL)` and an explicit prefetch thread).
 
+:::pitfall[Plain `pip install` lands outside the NeMo container's venv]
+The `nvcr.io/nvidia/nemo:26.04.00` container ships a `uv`-managed venv at `/opt/venv/`. The default `pip install …` writes to `/usr/local/lib/python3.12/dist-packages/`, which the venv's `python3` searches *after* its own site-packages. Installs appear to succeed, imports keep finding the older bundled copy, and you debug for an hour. Always invoke `/opt/venv/bin/python3 -m pip install …` explicitly. Same trap bites NeMo, PyTorch, and Triton containers.
+:::
+
 **Two of Curator's deps fight on aarch64 + the bundled NeMo container.** The honest install path:
 
 1. The default `nvcr.io/nvidia/nemo:26.04.00` container does not ship `nemo-curator` — `pip install nemo-curator` works but you have to install into the right Python environment.
@@ -181,6 +209,13 @@ The full install lives in the article's [`evidence/Dockerfile`](./evidence/Docke
 
 **The data sweep skipped seq=2048 × batch=16.** That config in A2 took 79 s wall time (the longest single config) and contributed nothing to the throughput story — bf16 plateaued past batch=8 at seq=2048. Cutting it from the A3 sweep saves 80 s and gives the same picture.
 
+:::deeper
+- [NeMo Curator on GitHub](https://github.com/NVIDIA/NeMo-Curator) — source for the Pipeline / Stage / Filter abstractions used in `prep_corpus.py`.
+- [The Pile (Gao et al., 2020)](https://arxiv.org/abs/2101.00027) — the canonical "what does a serious pretrain corpus look like" reference, including dedup methodology.
+- [`baseline-training-loop-on-spark`](/field-notes/baseline-training-loop-on-spark/) — A2's kernel envelope that this article reuses; the random-token peak this real-data run beat.
+- [HuggingFace `datasets`](https://huggingface.co/docs/datasets) — alternative streaming loader for cases where the corpus is too big to memmap.
+:::
+
 ## What this unlocks
 
 **1. The Autoresearch agent can be designed without a data-prep escape hatch.** A4's overnight loop will be running 30–500 step training experiments at A2/A3's measured throughput. The data path doesn't need to be in the agent's "things to optimize" list — it's already at 0.04% overhead. The agent can spend its budget on architecture, optimizer, and data-mix experiments, not data plumbing.
@@ -194,3 +229,7 @@ The full install lives in the article's [`evidence/Dockerfile`](./evidence/Docke
 **Autoresearch now:** has a driver (NIM 8B from F1), an experiment substrate (NeMo Framework from A1), a measured kernel envelope (A2: 14.3 K tok/s peak on random tokens), and now a measured data envelope (A3: 14.98 K tok/s peak on real text, data overhead ≤ 0.04 %). The agent loop itself (A4) is still upcoming, and now has both numbers it needs to size its overnight budget. **Second Brain now:** unchanged since S4 (RAG-over-MCP shipped). **LLM Wiki now:** un-opened — W1 is the next decision point if the user wants to walk that arc instead. Next up in Autoresearch: **A4 — `autoresearch-agent-loop`** (the agent that finally runs unsupervised) or **A5 — `guardrails-for-code-generation`** if we want to land the safety rails before letting the agent edit `train.py`.
 
 The full corpus, packed memmap, sweep harness, and per-stage stats are all preserved at `articles/nemo-curator-training-data-prep/evidence/`. The derived container (`nemo-curator-spark:1.1`, ~73 GB on disk) is built from a 4-line Dockerfile in the same directory — keep it, or rebuild from source in three minutes.
+
+:::hardware[Same data path, frontier coefficients on bigger corpora]
+At 0.5 GB the corpus fits in page cache and the data path is invisible. Scale to a CommonCrawl-class 50 TB shard and the math changes — not the per-batch transfer cost (still microseconds), but the *first-touch* page-fault rate. On Spark with 128 GB unified memory, you'd have to stream from NVMe; on an H100 80 GB node with 1.5 TB of host RAM, more of the corpus stays resident; on a DGX H200 with 2 TB host RAM and 8× 141 GB GPUs, single-shard prefetch + RDMA-style overlap puts you back in the "invisible" regime even at 50 TB. The 0.04% number Spark measured at 0.5 GB is the lower bound; the upper bound at frontier scale is bounded by host RAM, not by GPU bandwidth.
+:::

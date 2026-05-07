@@ -30,11 +30,23 @@ The [previous article](/field-notes/lora-on-your-own-qa-pairs/) earned a 1.70 fl
 
 The other finding, less loud but more load-bearing: retrieval quality predicts correctness almost perfectly. Naive precision@3 is 66%; rerank precision@3 is 96%. The judge-score gap of 3.30 → 4.27 is where that 30-point retrieval swing cashes out. Faithfulness and answer-relevance — the generation-side Ragas metrics — moved by less than 5 points between these two variants. If you are going to tune one knob on the Second Brain stack, it is not the generator. It is not the adapter. It is the ranker.
 
+:::define[Ragas]
+Open-source RAG evaluation framework introduced by Es et al. (2023). Defines four metric families — context precision, context recall, faithfulness, answer relevance — that score a (question, retrieved_contexts, generated_answer, reference_answer) tuple using LLM-as-judge prompts. The *spec* (the metric definitions and the rubric prompts) is what the field adopted; the *library* shipped on top of it imports LangChain and OpenAI by default, which is why this article re-implements the spec in 200 lines of stdlib Python and runs it against a local NIM judge.
+:::
+
+:::define[NeMo Evaluator]
+NVIDIA's enterprise harness for the same evaluation shape Ragas defines — but wrapped as a workflow service with durable Postgres storage, scheduled runs, and multi-tenant isolation. Where Ragas is "metrics + library", NeMo Evaluator is "metrics + service-with-cron." Ships as containers; consumes the same (question, contexts, answer, reference) records. The graduation path is one-way: prototype with the 200-line stdlib harness, promote to NeMo Evaluator when the eval needs to live in production with drift detection.
+:::
+
 ## Why this matters for the personal AI power user
 
 The specific thing the DGX Spark makes possible here is not that you can run a RAG eval — that's table stakes now — but that you can run it **against a local judge for free, on a cron, forever**. The same NIM that answers is the same NIM that grades. Both sit on the same 128 GB of unified memory. The 44-question suite runs in about nine minutes end-to-end, across 176 judge calls (four variants × 44 × three metrics). On a cloud judge, that would be a small line item; stretched across a nightly schedule, across six months of experiments, the cost compounds and suddenly the budget is the bottleneck on iteration, not the code.
 
 The second compounding effect is privacy. Our reference answers embed project-internal numbers — cold-start latencies, port configurations, names of tools in progress. Shipping the test set and generated answers to a third-party eval platform would be a slow accidental leak of the whole corpus. Keeping everything local means the scoreboard is a file on disk, not a row in someone else's database.
+
+:::why[A free local judge changes what experiments you can afford]
+On a cloud judge at $0.20/run, a 9-minute eval looks cheap until you stretch it across a nightly cron for six months — that's $36, not the cost driver. The real budget shock is the *parameter sweep*: 96 retrieval-knob variants × $0.20 = $20/sweep, and you'll want to run it weekly. On the Spark the same sweep is a shell loop overnight. The free local judge is what makes "eval-driven RAG development" the default cadence, not a quarterly project.
+:::
 
 ## Where Ragas and NeMo Evaluator sit in the stack
 
@@ -114,6 +126,10 @@ Retrieval precision at K, measured as "did the top-K passages include the questi
 
 Rerank doesn't just find the gold chunk more often — it puts it in slot zero almost every time. Mean gold rank (0-indexed) drops from 1.1 under naive to 0.24 under rerank. The reranker is doing the work a larger generator can't do alone: separating *relevant* from *adjacent* among passages that all share vocabulary.
 
+:::define[Precision@K]
+Retrieval metric: of the top-K passages returned for a query, what fraction are relevant. Here, "relevant" is defined operationally — the question's known ground-truth `(slug, chunk)` tuple appears in the top-K. P@3 at 96% means 42 of the 44 questions had their gold chunk in the first three results. The metric is binary per query (hit or miss), then averaged. It is the cheapest retrieval metric to compute and the strongest predictor of downstream answer correctness in this experiment.
+:::
+
 ### Generation — three 8B variants + one LoRA variant
 
 Four variants, all generating against the same retrieved context (top-3 passages, capped to leave headroom in the 8192-token context window):
@@ -133,7 +149,19 @@ The 8B variants together run in about four minutes. The LoRA variant is faster (
 - **Faithfulness (0–1)**, scored against the retrieved context: is every factual claim in the answer supported?
 - **Answer relevance (0–1)**, scored against the question only: does the answer address the question?
 
+:::define[Faithfulness]
+Ragas generation-side metric: of the factual claims in the answer, what fraction are supported by the retrieved context. The judge prompt decomposes the answer into atomic claims, then checks each claim against the chunks the retriever returned — *not* against the reference answer. The point is to detect groundedness drift without needing gold labels, so the metric can run in production. On near-perfect retrieval the metric correlates poorly with correctness because the judge starts splitting hairs on citation style; treat it as a floor, not a ceiling.
+:::
+
+:::define[Answer relevance]
+Ragas generation-side metric: does the answer address the question that was asked. The judge prompt scores the answer against the question alone — no context, no reference. Catches the failure mode where retrieval returned the wrong passages and the generator confidently answered an *adjacent* question instead. Like faithfulness, it does not require gold labels and is suited to production drift detection. Unlike correctness, it does not measure factual rightness — only topical fit.
+:::
+
 That's 132 context-aware judge calls and 176 reference-based ones, plus 88 relevance calls — 396 NIM-8B completions. The whole grader finished in about nine minutes of wall clock, no batching, no concurrency. On a cloud judge, the same workload would be maybe $0.20 per run, which is fine for one shot and painful in a nightly schedule.
+
+:::math[Why a 9-minute grader unlocks the nightly ratchet]
+176 graded predictions × 3 judge calls each ≈ 528 NIM-8B completions in ~9 minutes wall-clock — about 1 completion per second on the local stack, no batching. A nightly cron at 9 minutes per run is invisible in a 24-hour budget. Stretch to a weekly 96-variant sweep: 96 × 9 min ≈ 14.4 hours, still fits in one overnight slot. On a cloud judge at $0.20/run, the same weekly sweep is $19.20 — a budget conversation every week. Local: a shell loop and a coffee.
+:::
 
 ## What the scoreboard says
 
@@ -173,6 +201,10 @@ Across all four variants, six of the 44 questions scored ≥4 in every variant �
 
 **The judge and the generator are the same model.** Every Ragas-style number in this article was produced by NIM Llama 3.1 8B grading its own outputs (for the two 8B variants) alongside the LoRA-3B's outputs. That is a known weak point of local-judge setups: the judge inherits the generator's biases. In production you use a larger, differently-trained judge (NeMo Evaluator's default reference is Llama 3.3 70B; Ragas defaults to GPT-4). On the Spark, a 49B Nemotron-Super NIM — the [same one](/field-notes/bigger-generator-grounding-on-spark/) we A/B'd as a generator — is the right judge for nightly runs. This article used the 8B for speed and honesty; the correlations would shift a little under a 49B judge, not the top-line ranking.
 
+:::pitfall[Same model judging itself inflates the scoreboard]
+LLM-as-judge with the *same* model as generator is the cheapest setup and the most-biased one. The judge tends to forgive its own generator's failure modes — verbosity drift, citation style, hedging phrases — because they look "normal" inside its own probability distribution. Cross-judge agreement falls when you swap to a differently-trained model: a 49B Nemotron judge typically scores 0.3–0.5 lower than a same-model 8B judge on the same predictions. The fix is to keep two judges resident (Spark's 128 GB makes this trivial) and report inter-judge correlation alongside any score.
+:::
+
 **Ragas-the-library imports LangChain.** Do not install it. The Ragas *spec* — context precision, context recall, faithfulness, answer relevance, the prompts and rubrics — is what you want. Two hundred lines of stdlib plus one POST-per-metric is enough for every experiment this article runs, and it keeps the Spark's dependency surface clean. The moment you want durable storage, drift detection, and a cron, graduate to NeMo Evaluator directly — don't pass through the Python library as a stepping stone.
 
 **The rerank tax is almost zero.** Naive 8B was 2.75 s end-to-end per question; rerank 8B was 2.96 s. That 210 ms is one POST to the hosted reranker with 20 passages. When the reranker ships as a Spark-runnable NIM — the [F5 article](/field-notes/rerank-fusion-retrieval-on-spark/) flagged the compat gap — that 210 ms will drop to sub-50 ms and rerank will be strictly dominant. There is no RAG configuration where you would keep naive cosine after rerank lands locally.
@@ -196,5 +228,16 @@ Three concrete things the reader can build this week with what they just learned
 The Second Brain stack now has a brain (the NIM), memory (pgvector), sharper memory (the reranker), a voice (the LoRA), and — as of this article — a scoreboard. The one remaining piece is a surface: something that lets a user or a downstream agent ask the Second Brain a question without knowing which of these variants to call. That's the MCP article — `mcp-second-brain-in-claude-code` — where the whole stack gets wrapped as a [Model Context Protocol](https://modelcontextprotocol.io/) tool and plugged into Claude Code itself.
 
 The finding that actually ships out of this article, though, is the one that should govern every subsequent tuning decision: **on a 44-question, 12-article corpus, retrieval quality alone explains more of the judge-score variance than every other knob in the pipeline combined**. If you have one day of wall-clock to spend improving a RAG stack on a DGX Spark, spend it on the ranker. Everything else is a rounding error until the ranker is near-perfect, at which point the gains move to context size, then generator size, then fine-tuning. The ordering matters. It is not the order the NVIDIA stack's marketing emphasizes. It is the order 176 local NIM judgments agree on.
+
+:::deeper
+- [Ragas paper (Es et al., 2023)](https://arxiv.org/abs/2309.15217) — the original definition of context precision/recall, faithfulness, and answer relevance, plus the claim-decomposition method behind faithfulness.
+- [NeMo Evaluator docs](https://docs.nvidia.com/nemo/microservices/latest/evaluator/) — the production-grade harness this article's stdlib script grows into when the eval needs durable storage and a cron.
+- [LLM-as-judge survey (Zheng et al., 2023)](https://arxiv.org/abs/2306.05685) — the foundational paper on bias modes in same-model judging that motivates the "swap to a 49B judge" caveat.
+- [rerank-fusion-retrieval-on-spark](/field-notes/rerank-fusion-retrieval-on-spark/) — sibling article on the ranker that delivered the 96% P@3 number this article scored.
+:::
+
+:::hardware[The ratchet that scales: Spark today, frontier judges tomorrow]
+The 9-minute grader on Spark uses the local 8B as judge — fine for catching drift, weak as a ceiling. On an H100 80 GB, a 70B Llama 3.3 judge runs at ~40 tok/s decode, so the same 528 judge calls finish in ~12 minutes (the longer answers per call dominate the larger model's higher tok/s). On an H200, ~7 minutes. On a B200 with NVFP4 70B, ~3 minutes. The same eval *spec* — same questions, same predictions, same rubric — moves up the hardware ladder by swapping `OPENAI_BASE_URL` and reading a stronger verdict. Spark gets you the cron; the frontier coefficients get you the trustworthy ceiling.
+:::
 
 Next up: **MCP surface for the Second Brain** — wrapping retrieve/rerank/generate/grade as a tool Claude Code can call, so every coding session has the blog as a grounded retriever one `@` away.

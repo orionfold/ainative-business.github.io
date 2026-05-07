@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 import { readdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import remarkDirective from 'remark-directive';
+import remarkExplainers from './src/lib/field-notes/remark-explainers.mjs';
+import rehypeExplainerFigure from './src/lib/field-notes/rehype-explainer-figure.mjs';
 
 import react from '@astrojs/react';
 
@@ -37,6 +40,8 @@ export default defineConfig({
     ...articleSlugRedirects,
   },
   markdown: {
+    remarkPlugins: [remarkDirective, remarkExplainers],
+    rehypePlugins: [rehypeExplainerFigure],
     shikiConfig: {
       themes: {
         light: 'github-light',

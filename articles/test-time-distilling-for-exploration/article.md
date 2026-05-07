@@ -19,6 +19,14 @@ fieldkit_modules: [eval, capabilities]
 
 [ESamp](https://arxiv.org/abs/2604.24927) — *Large Language Models Explore by Latent Distilling* — asks a different question of the same envelope: *how widely can the model search inside it?* When you sample n=8 candidates from the same prompt, do you get eight lexically different rephrasings of one bad attempt, or eight semantically distinct paths through the answer space? At fixed compute, the second is worth more. Pass@k benchmarks on AIME, MATH, and HumanEval reward whichever dimension the samples actually spread along; the paper reports that a ~1 GB online-trained probe pushes that spread without measurably moving the wall clock — the optimized 7B `min_p` path lands at **0.9878×** the baseline tokens-per-second on a reference RTX 4090 run, with a Pass@k lift on the reasoning benchmarks the paper highlights.
 
+:::define[Test-time scaling]
+Spending more inference compute per query — `n` parallel samples, beam search, sampler interventions, or self-verification loops — to lift output quality without retraining the model. The trade-off shape is "more tok/s budget per answer in exchange for higher Pass@k." ESamp belongs to the *sampler-intervention* family: same `n`, same wall clock, different distribution over the candidate space.
+:::
+
+:::define[Pass@k]
+Standard reasoning-benchmark metric: of `n` independently sampled solutions to a problem, what fraction of problems have at least one correct solution among any `k`-sized subset? Unbiased estimator from the Codex paper (Chen et al., 2021) corrects for variance when `n > k`. The metric rewards *semantic spread* across the `n` samples — if all `n` rephrase one wrong attempt, Pass@k is no better than Pass@1.
+:::
+
 The plot twist for a Spark power-user is upstream of the numbers. ESamp ships as a runtime extension to **vLLM v1**, packaged as the [tLLM](https://github.com/LinesHogan/tLLM) repository — a Producer/Consumer hook layer over vLLM. The Spark's blessed inference path is **NIM (TensorRT-LLM) and Triton**, not vLLM. So the article's first half is about a stack mismatch, not a benchmark: when a paper's runtime is in a different lane than the box's verified runtime, what does it actually take to make the experiment runnable here?
 
 ## The paper, in one breath
@@ -27,6 +35,10 @@ The plot twist for a Spark power-user is upstream of the numbers. ESamp ships as
 
 **Why this technique matters for a personal AI builder.** Reasoning workloads spend their compute budget on `n` parallel samples; if all `n` collapse onto rephrasings of one bad attempt, the budget is wasted. ESamp converts the same `n` into `n` *semantically distinct* paths through the answer space — which is the dimension Pass@k on AIME, MATH, and HumanEval actually rewards. At a fixed compute envelope, that is the difference between a brittle reasoner and one that explores.
 
+:::why[Lexical diversity is not semantic diversity]
+Temperature and top-p resample the next token from a softmax over a vocabulary; the *mode* of that distribution barely moves with temperature. Eight samples at `T=0.8` look like eight rewordings of the same idea because the high-mass tokens dominate every draw. ESamp's novelty signal targets a different axis — the model's hidden-state trajectory — so the eight samples diverge in *what they're reasoning about*, not just *how they phrase it*.
+:::
+
 **Promise vs achieved.** Paper claims **0.9878×** baseline tokens-per-second on a reference RTX 4090 with CUDA graphs (vLLM 0.10.x), with a Pass@k lift on the reasoning benchmarks above. *This* article does not measure the ratio — it lands the runtime substrate and surfaces the first two upstream API drifts that block tLLM's hooks on vLLM 0.20.0. The ratio measurement on Spark lands in the [follow-up](/field-notes/runtime-frontier-six-patches-on-spark/), which closes at **0.974×** on patched Qwen 2.5 7B — within **1.4 percentage points** of the paper, with CUDA graphs deliberately disabled and six (not two) patches in place.
 
 ## Why this matters for a personal AI builder
@@ -34,6 +46,10 @@ The plot twist for a Spark power-user is upstream of the numbers. ESamp ships as
 Reasoning models are the workload class where the Spark's 128 GiB unified pool earns its line on the spec sheet — n=16 parallel completions of a 7B reasoning model with a few thousand tokens each is comfortable, not tight. A frontier-API equivalent would burn through credits and rate limits long before you finished iterating on the *sampler*. The Spark makes test-time-scaling techniques — Pass@k sweeps, beam-search ablations, sampler-guidance tuning — *iterable*. ESamp is one such technique that needs the iteration: the Distiller is online-trained, its hyperparameters interact with the model and the prompt distribution, and getting the `--distiller-beta` knob right takes a sweep.
 
 But none of that is reachable until vLLM runs on the box. The Spark catalog ships eight-or-so curated `-dgx-spark` NIM images and zero vLLM containers. vLLM-on-Blackwell exists in the broader ecosystem but the wheels and CUDA-13 ABI matrix is its own afternoon. This article documents that afternoon as a first-class part of the work — the catalog gap is the experiment.
+
+:::define[vLLM]
+Open-source LLM inference engine introduced with the PagedAttention paper (Kwon et al., 2023). Manages KV-cache memory in 16-token blocks instead of pre-reserving the worst case per request, raising effective concurrency 2–4× over pre-paged stacks. The `v1` rewrite (0.6+, stabilized through 0.10–0.20) is what most test-time-scaling literature targets because the request lifecycle and sampler hot path are extension-friendly.
+:::
 
 ## Where this sits in the stack
 
@@ -107,6 +123,10 @@ The paper's algorithm and the runtime that hosts it are deliberately decoupled. 
 </figure>
 
 The runtime split is what makes the paper's overhead claim tractable: the consumer's training pipeline runs in a `background` window — its backward pass overlaps the next vLLM forward. On the validated 7B `min_p` path, the optimized intervention sits at **98.78% of baseline tok/s** (5,304.855 vs 5,370.616 on the reference 4090). On Spark, that overhead figure is the second number we want to read. The first one is whether the runtime starts at all.
+
+:::define[Distiller (online probe)]
+A small two-layer MLP that ESamp trains *during* inference to predict the host LLM's deep-layer hidden state from its shallow-layer hidden state. Training data is the running sequence of decode rows the model is producing right now — no ground-truth labels, just self-consistency between layers. Training error on a candidate continuation is the *novelty signal* the sampler intervention reweights against. ~1 GB of parameters; fits trivially next to the 7B host on Spark's unified memory.
+:::
 
 ## The journey — landing a vLLM-native paper on a NIM-curated box
 
@@ -195,6 +215,10 @@ TypeError: _wrapped_prepare_inputs() takes 2 positional arguments but 3 were giv
 
 vLLM 0.20.0's `GPUModelRunner._prepare_inputs(self, scheduler_output, num_scheduled_tokens)` added a required second positional argument; tLLM's `wrapped_prepare_inputs(*, core, runner, scheduler_output)` was written to keyword-route a single `scheduler_output`. That is a deeper change than the sampler one — the wrapper's keyword-only signature, the adapter that downstream consumers call to unpack `prepare_inputs` output, and the consumer's bundle-assembly path all need to thread the new `num_scheduled_tokens` argument. It's still tractable — five-to-ten lines and a careful re-read of the runtime — but it's the second uncaptured drift in the same file in two patches, and that is itself the article's central evidence: **the runtime is the frontier**. The test-time-distilling literature is moving fast enough that the production-grade inference engine it targets is itself moving fast enough that one-line drifts compound into deeper ones. The catalog gap on the Spark side meets the version drift on the upstream side; both are tractable, neither is documented in the paper, and a power user landing this stack here ends a session with two upstream patches in their notes and a Pass@k matrix queued for the next session.
 
+:::pitfall[Two patches were never two — the silent ones live downstream]
+Surfacing a `TypeError` is the *easy* failure mode for upstream-API drift. The hard one is when a function's return *shape* changes but its *type* stays a tuple — engine init, generation, even unit tests pass, while the consumer's port silently never fires. This article surfaces drifts one and two; the [follow-up](/field-notes/runtime-frontier-six-patches-on-spark/) finds four more behind them, including one return-shape change that left `port_hits=0` with no error trace. The right lesson here is *count loud drifts and assume there's a quiet one behind each.*
+:::
+
 ## Verification — what success looks like on Spark
 
 The "did the integration work" question splits cleanly into three layers, and we got two and a half of them by running the patched starter against `Qwen/Qwen2.5-0.5B-Instruct` (the doc's OOM-safe default) inside the PyTorch container:
@@ -210,6 +234,10 @@ The "did the integration work" question splits cleanly into three layers, and we
 The interesting line is the Engine row. vLLM 0.20.0 — torch-2.11.0+cu130, no Spark-specific tuning, default `--gpu-memory-utilization=0.4` — initialized cleanly on GB10 (SM 12.1) inside an `nvcr.io/nvidia/pytorch:25.11-py3` container with nothing more exotic than `pip install vllm`. CUDA-graph capture, FlashInfer autotuning, and KV-cache profiling all worked. That is the *positive* result of the session and it is worth naming: vLLM-on-Blackwell is no longer the multi-day port it was at the start of the GB10 cycle. The fact that it "just works" with one pip install is the substrate the next experiment lives on top of.
 
 The unified-memory check the Spark uniquely cares about is the easy one to read off this run. KV cache reserved 3.89 M token slots inside the 0.4 × 121 GiB envelope — meaning a 0.5B model's KV is a rounding error against the unified pool. Scaling to Qwen-7B at bf16 (~14 GB weights), n=16 decode at `max_tokens=512` (a few GB of KV in the same arithmetic), plus the ESamp Distiller (~1 GB) lands the whole loadout under 25 GB on a 121 GiB envelope. That is the inversion of the [KV-cache arithmetic](/field-notes/kv-cache-arithmetic-at-inference/) story: where the foundation article asked *what fits*, the test-time-distilling article asks *what does fitting waste*. The Spark is comfortable; the bottleneck — once the runtime patches land — will be throughput overhead and consumer-side GPU contention, not capacity.
+
+:::math[7B + n=16 + Distiller fits in a 25 GB corner of 121]
+Weights (bf16): 7B × 2 B = ~14 GB. KV cache for n=16 × max_tokens=512 at Qwen 7B (32 layers, 4 KV heads, head_dim=128, bf16 = 4 B per kv-pair) ≈ 16 × 512 × 32 × 4 × 128 × 4 B ≈ ~4 GB. Distiller probe: ~1 GB. Activations + workspace: ~5 GB. Sum ≈ **24 GB** out of 121 — a 6× headroom margin.
+:::
 
 ## Tradeoffs and surprises
 
@@ -229,8 +257,20 @@ The unified-memory check the Spark uniquely cares about is the easy one to read 
 
 **A clean motivating case for `fieldkit.inference`.** The same week's [AutoResearchBench article](/field-notes/autoresearchbench-on-spark/) closed by surfacing a candidate `fieldkit.eval.AgentRun` for the per-question, per-turn agent schema. This week's article surfaces two new candidates — `fieldkit.inference.VLLMClient` and `fieldkit.eval.PassAtK` — that the package's v0.2 release will likely absorb. The pattern is healthy: each Frontier Scout article validates one or two existing modules and proposes one or two new ones, with the package's CHANGELOG growing from real authoring rather than speculative scope.
 
+:::deeper
+- [ESamp paper (Lines & Hogan, 2026)](https://arxiv.org/abs/2604.24927) — the test-time-distilling thesis and the 0.9878× tok/s reference benchmark.
+- [tLLM repository](https://github.com/LinesHogan/tLLM) — the Producer/Consumer hook layer over vLLM v1 that hosts the consumer.
+- [vLLM PagedAttention paper (Kwon et al., 2023)](https://arxiv.org/abs/2309.06180) — the engine ESamp targets and the load-bearing KV-management design.
+- [Codex Pass@k paper (Chen et al., 2021)](https://arxiv.org/abs/2107.03374) — the unbiased estimator the queued AIME/HumanEval harness will use.
+- [Six patches on Spark](/field-notes/runtime-frontier-six-patches-on-spark/) — the follow-up that surfaces four more drifts behind the two this article calls out.
+:::
+
 ## Closing — exploration as the dual of capacity
 
 The Spark's distinguishing feature is not that it runs models you couldn't run elsewhere; it is that it lets one person own the entire test-time-scaling loop end-to-end — including the part where the loop is two upstream patches away from completing. KV-cache arithmetic answered *what fits*; ESamp asks *what does fitting waste*. Same compute envelope, different question. The paper's claim — that an online-trained ~1 GB probe converts decoding from lexical resampling into semantic exploration at ≤1.2% overhead — is exactly the kind of claim that wants a second machine to verify it, and a Spark is the second machine that does not need a second wallet. The verification is queued, not finished; the runtime substrate is now in place to finish it.
 
 Next in the Frontier Scout series: the AIME and HumanEval Pass@k follow-up that this article scaffolds the harness for, with the two `vllm_patch` drifts either landed upstream or filed locally. After that, the same `fieldkit.eval.Bench` shape rolls into `clawgym`, `claw-eval-live`, and `scientific-foundation-models-as-tools` — three more papers, three more catalog-gap shapes, all of them landing on the desk and not the cloud.
+
+:::hardware[Same probe, frontier coefficients]
+Spark's 121 GiB unified pool comfortably fits 7B + n=16 + Distiller at ~24 GB resident. The probe overhead on Spark + GB10 (273 GB/s LPDDR5X, eager mode) lands at 0.974× baseline; on the paper's 4090 (1 TB/s GDDR6X, CUDA graphs) at 0.9878×. An H100 80GB (3.35 TB/s HBM3) would run the same setup at ~600 tok/s baseline with the per-step Distiller cost amortized into noise — ratio approaches 0.99×. H200 (4.8 TB/s HBM3e) and B200 (8 TB/s) push it closer to 1.000×. The probe is *cheaper as bandwidth grows* — the per-step constant is fixed, the model forward gets faster.
+:::

@@ -20,6 +20,14 @@ The argument of this article is that this fact about the Spark is *not* its weak
 
 The arithmetic that follows is the case for treating your DGX Spark as a wind tunnel before any aircraft is built. A hundred-iteration architectural sweep on one Spark costs about a dollar of marginal electricity and a couple of hours of wall time. The same sweep at meaningful scale on cloud — single-H100 spot, sustained — runs ~$5 to ~$70 depending on how target-faithful you make it. The much larger number is what you save on the *back end*: the wrong-architecture cloud campaign you didn't book because the Spark already told you it would not work. At a 50% wrong-pick rate without prior signal — conservative for blind architectural search — a $1 Spark sweep gates ~$1,679 in expected loss against a small ($3K) cloud campaign and ~$7K against a medium ($14K) one. Scaled to a 70B Llama-class run on 1024 H100s for 21 days, the same Spark dollar gates more than a million.
 
+:::define[Pretraining campaign]
+A single end-to-end run that trains a base language model from random initialization to a target loss on a fixed token budget. *Campaign* (rather than *job*) emphasizes that the work is one decision-point with a single bill — typically days to weeks of multi-GPU wall-clock and a four-to-seven-figure cloud invoice. Distinct from fine-tuning (which adapts an existing base) and from continued pretraining (which extends an existing base on new data).
+:::
+
+:::define[Chinchilla-optimal token budget]
+The DeepMind scaling-laws result (Hoffmann et al., 2022): for a fixed compute budget, the loss-minimizing model trains on ~20 tokens per parameter — roughly 6× more data than the prior Kaplan-laws prescription. At 7B params, "Chinchilla-optimal" means ~140B training tokens; at 70B, ~1.4T. The number sets the lower bound on Phase 3's wall-clock and is the reason the cloud bill exists.
+:::
+
 ## Why this matters for a personal AI builder
 
 The audience for this article is the engineer at a startup, the research lead at a small lab, or the independent builder who has cloud credits or budget — between $5K and $500K — earmarked for *one* serious pretraining run, and exactly one chance to spend it well. That decision is downstream of an architectural search the cloud is a poor place to perform. Doing it on the cloud means paying $50 to $5,000 *per candidate* to discover that your candidate doesn't work. Doing it on the Spark means paying ~$0.01 per candidate to discover the same thing. The architectural search isn't where the money is — but it's where the *information* is, and information is what compounds.
@@ -115,6 +123,14 @@ Phase 1 is the [autoresearch agent loop](/field-notes/autoresearch-agent-loop/) 
 
 What makes Phase 1 cheap is not just the Spark's electricity cost. It is the **proxy substitution** that the agent loop already encodes: the search runs on a 200M-class model whose head dimension, FFN ratio, and activation function all match the 7B target, but whose total parameter count is two orders of magnitude smaller. The shape of the architectural search (which knob settings dominate, where the loss surface is convex, which combinations interact) transfers up to the target. The absolute numbers do not need to. This is the same trick that makes it possible to run scaling-law experiments at 50M and project to 70B — it is what every serious pretrain campaign already does on the cloud, just done on a desk for 1/300th the cost.
 
+:::define[Proxy substitution]
+Train a smaller model (50M–500M params) that shares the *shape* of the target — same depth-to-width ratio, same activation, same attention pattern — but a fraction of the parameter count. Architectural rankings (which combo of knobs converges fastest) are largely shape-invariant; absolute loss values are not. The proxy tells you which recipe to commit to; the cloud run gets the absolute numbers. The trick is what makes scaling-laws research economically possible.
+:::
+
+:::why[Why $1 of Spark electricity gates >$1,000 of expected cloud savings]
+The cost being measured isn't the Spark's wall draw — it's the cloud campaign the Spark filtered. A blind cloud booking has a real wrong-pick rate (50% is conservative for architectural search without prior signal). Half of one wrong campaign is the *expected loss*; the Spark's $1 cost gates that loss away. The savings ratio doesn't depend on the Spark being fast — it depends on the cloud being expensive. Frame the Spark as a $1 lottery ticket whose payoff is "we don't book the wrong $14K campaign," and the math always works in its favor.
+:::
+
 The cost arithmetic for Phase 1 lives in [`evidence/cost_arithmetic.py`](evidence/cost_arithmetic.py) and runs from environment variables so it stays current as cloud spot prices move. The defaults — H100 at $2.50/hr per GPU, Spark at 240 W sustained training draw, $0.13/kWh, 1.5-year amortization horizon — produce the table below. The column the article is selling is the Spark column. The rightmost column is the alternative the Spark replaces.
 
 ```text
@@ -157,6 +173,10 @@ $ python3 evidence/cost_arithmetic.py | jq .expected_value_argument
 
 There is no scenario inside this arithmetic where buying a Spark and using it as a recipe lab loses money against the alternative of going to the cloud blind. The break-even is reached after the very first prevented wrong-pick.
 
+:::math[The break-even, on the back of a napkin]
+Spark amortized cost per 100-iter recipe lab: $1.01. Expected loss from blind cloud booking at 50% wrong-pick rate × $3,360 small campaign = $1,680. Savings per campaign = $1,679. At one campaign per quarter, the Spark earns back its $5,000 sticker price in roughly *9 months* of derisking — before any of its other roles (inference rig, fine-tuning sandbox, kernel-envelope test bench) are counted. The break-even point is the *first* prevented wrong-pick.
+:::
+
 ## Verification — what success looks like on the Spark for a cloud-bound workload
 
 Success in Phase 1 is a 100-row `trajectory.jsonl` file under `articles/autoresearch-agent-loop/evidence/` with `val_bpb` deltas large enough to rank the candidates. Success in Phase 2 is three loss curves drawn over 1,000 steps each with no late-onset divergence. Both artifacts are plain text. Both are reproducible. Both are what you bring to the cloud-vendor billing portal as the justification for booking the node.
@@ -169,13 +189,28 @@ Hardware-aware verification: for Phase 1, watch GPU utilization during a represe
 
 The argument here has four important caveats. None of them break it; all of them affect how you run a real campaign.
 
+:::pitfall[Spark FP8 numerics aren't bit-exact with H100 FP8]
+Hopper FP8 (E4M3/E5M2 with Hopper's calibration scheme) is not bit-exact to Blackwell FP8, and Spark's GB10 is not bit-exact to either. Throughput delta is sub-2%; accuracy delta is essentially zero on most architectures, but a recipe whose convergence depends on a specific FP8 calibration choice can silently diverge between Spark and the cloud target. Defense: budget one cloud-side day at the front of Phase 3 for an FP8 sanity check before committing the full week's spend.
+:::
+
 **FP8 numerics differ between GB10 and H100.** Hopper FP8 (E4M3 and E5M2 with their specific calibration scheme) is not bit-exact to Blackwell FP8 — and the Spark's Blackwell GPU is not bit-exact to either Hopper FP8 or to the next-gen B200. In practice the throughput delta is under 2% and the accuracy delta is essentially zero on most architectures, but a recipe that depends on a specific FP8 calibration choice should be validated with one Phase 2 run on the cloud target before committing the full Phase 3 budget. The fix is to budget for an extra cloud-side day at the front of Phase 3 — call it the "FP8 sanity check" — and treat it as a tax against the Spark filter's savings.
+
+:::define[Tensor parallelism vs pipeline parallelism]
+*Tensor parallelism* (TP) shards a single weight matrix across GPUs within a node — every matmul triggers a collective comm; needs NVLink bandwidth. *Pipeline parallelism* (PP) splits *layers* across GPUs and passes activations forward; cheaper inter-node comms but pipeline bubbles eat efficiency. A typical 7B cloud campaign uses TP=2 within an 8-GPU node and DP=4 across; a 70B campaign adds PP=2 across nodes. The Spark's TP=PP=1 single-GPU mode validates *neither*.
+:::
 
 **Single-GPU sweep does not exercise multi-GPU parallelism at all.** If your final cloud training uses tensor parallelism (TP=2, TP=4) or pipeline parallelism (PP=2, PP=4), the Spark is not validating those code paths. Plan a cloud-side "TP=4 / PP=2 sanity check" for one day before opening the rest of Phase 3 — this is not optional, it is how you avoid discovering on day three of a week-long run that your tensor-parallel attention is wrong.
 
 **Memory-bound workloads behave differently with PCIe between GPUs.** The Spark has 128 GB of unified memory and zero PCIe between CPU and GPU; a cloud H100 has 80 GB per GPU with PCIe 5 between them. KV cache-heavy or very-long-sequence workloads can hit memory-traffic patterns the Spark cannot reproduce. The defense is the same as for FP8: budget one cloud-side day to confirm that the Spark-measured throughput shape transfers under the cloud's memory topology.
 
 **The agent loop's 60-step filter is not exhaustive.** Even with Phase 2's 1,000-step stress test, the longest a candidate runs before the cloud commit is roughly 1/100th of its eventual cloud schedule. Some failure modes — gradient instabilities from particular LR-schedule + batch-size interactions, late-onset loss spikes from data ordering — only manifest at scale. The Spark filter cuts the wrong-pick rate; it does not eliminate it. The expected-savings math in the arithmetic table assumes a 50% post-filter wrong-pick rate, which is conservative; in practice with both Phase 1 and Phase 2 running cleanly you can expect closer to 10–20%. That makes the savings math even more lopsided.
+
+:::deeper
+- [Chinchilla scaling laws (Hoffmann et al., 2022)](https://arxiv.org/abs/2203.15556) — the 20-tokens-per-parameter result that sets Phase 3's Chinchilla-optimal token budget.
+- [Kaplan scaling laws (Kaplan et al., 2020)](https://arxiv.org/abs/2001.08361) — the prior result Chinchilla updated; still the basis for proxy-substitution justification.
+- [`gpu-sizing-math-for-fine-tuning`](/field-notes/gpu-sizing-math-for-fine-tuning/) — sibling Looking-Beyond-Spark piece that walks the same math for fine-tuning instead of pretrain.
+- [`autoresearch-agent-loop`](/field-notes/autoresearch-agent-loop/) — the agent harness Phase 1 reuses; the `trajectory.jsonl` format that becomes portable artifact across campaigns.
+:::
 
 ## What this unlocks
 
@@ -192,3 +227,7 @@ Three concrete things the reader can do this week with what's in this article.
 The **Looking Beyond Spark** thread is now three articles long: [the 100B Nemotron sizing piece](/field-notes/gpu-sizing-math-for-fine-tuning/) (the first in the series), [the layman recap of the autoresearch loop and its 4-tier training roadmap](/field-notes/what-the-agent-actually-built/), and this one. All three follow the same pattern — work the cloud-side arithmetic on the Spark, present the math as the artifact, and treat the cloud spend as a downstream consequence of an upstream decision. The other three arcs are unchanged: Second Brain has [its four pieces](/field-notes/mcp-second-brain-in-claude-code/), the LLM Wiki arc remains unstarted, and the Autoresearch arc sits at five published pieces ([NeMo Framework](/field-notes/nemo-framework-on-spark/), [the baseline training loop](/field-notes/baseline-training-loop-on-spark/), [the Curator data-prep envelope](/field-notes/nemo-curator-training-data-prep/), [the agent loop](/field-notes/autoresearch-agent-loop/), [the guardrails](/field-notes/guardrails-for-code-generation/), and the [layman recap](/field-notes/what-the-agent-actually-built/)) with four to go.
 
 The Spark is now wearing a third hat in this blog. First it was an inference rig. Then it was a training rig. With this article it is also a recipe lab — the small machine on the desk that decides what the big machines in the cloud get to do. That is, it turns out, the most expensive role you can possibly assign to a $5,000 box, because the cost being measured is not the box's electricity but the cloud booking it gates. The Spark on the desk pays for itself on the *first* prevented wrong-pick. After that, every Spark dollar is making the cloud bill smaller.
+
+:::hardware[Same recipe-lab logic, frontier campaign sizes]
+The 1,670× savings ratio is the small-campaign case ($3K cloud commit). Scale up the campaign and the ratio scales with it. A 70B Llama-class run at 1,024× H100 80 GB for 21 days is roughly $3M; the Spark's $1 recipe-lab cost gates ~$1.5M of expected savings at a 50% wrong-pick rate — a 1.5-million-times leverage ratio. A 400B-class frontier run on 4,096× B200s for two months is in the tens of millions; the Spark's role doesn't change, but the savings cross eight figures. The Spark is the one piece of hardware whose ROI *grows* with every other rack you don't yet own.
+:::

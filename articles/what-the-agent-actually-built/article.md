@@ -31,6 +31,14 @@ The phrase **"I want to train a language model"** is one of the most-overloaded 
 
 (The cost column is electricity only, on a Spark drawing 56 W. The hardware itself is a one-time purchase. Cloud equivalents are 50–500× higher.)
 
+:::define[LoRA, fine-tune, pre-train — the three flavors]
+**LoRA** adds a small "adapter" of trainable weights on top of a frozen base model — minutes of compute, ~1 % of the parameters. **Fine-tune** updates *all* of the base's weights — hours, more memory, more capacity to absorb new knowledge. **Pre-train** starts from random weights and teaches a model language from scratch — days to weeks, billions of tokens. The three are not interchangeable: each row in the table is the right tool for a different shape of problem, and "I want to train a model" usually means LoRA whether the speaker realizes it or not.
+:::
+
+:::why[Recipe-tasting is not recipe-baking]
+Each agent iteration trained for 60 steps — that's a *taste-test*, not a finished model. A bread baker testing 50 flour mixtures mixes the dough for a minute and feels its texture; they don't bake 50 loaves. The agent loop did the equivalent: 50 architecture-recipe tastings, none of them baked. The artifact you have at the end is a *log of which recipes felt promising*, not a model you can ask questions to. The infrastructure is real; the model is not.
+:::
+
 The five technical articles I published today were almost entirely about **the bottom row** — pre-training from scratch. The same agent loop ran 50 experiments where the model started from random weights every iteration and trained for one minute. That isn't a *training* run; it's a *recipe-tasting* run. A bread baker who's testing 50 different flour mixtures doesn't bake 50 loaves — they mix the dough for a minute and feel its texture, and they decide which mixtures are worth committing the oven time to. The agent did the equivalent. We never baked a loaf.
 
 So no, **we don't have a custom-trained language model that you can ask questions to.** What we have is the *experimental kitchen*: an LLM driver that proposes recipes, safety rails that block bad recipes from touching the oven, an evaluator that measures how a recipe behaves in 60 seconds, and a logbook of what the agent tried. That kitchen is a useful artifact. It's not the same artifact as a finished model.
@@ -47,6 +55,10 @@ Three concrete things this changes, that the technical articles touch on but don
 - **Iteration speed becomes the constraint.** A cloud LLM round-trip is 200ms-2.5s. A local one is milliseconds-to-seconds. When you iterate on a prompt 100 times in an afternoon, that latency multiplied is the difference between flow and meeting-your-cloud-bill.
 - **Failure becomes free.** This article's agent loop ran 50 experiments. **42 of them failed** (the model got worse, not better). On the cloud, every failed experiment costs real money and you'd start being conservative. On the Spark, every failed experiment costs a fraction of a cent of electricity, and you let the agent take chances.
 
+:::why[$0.02 changes which experiments are worth running]
+A cloud experiment costs a few dollars and takes a billing department's blessing; a Spark experiment costs a fraction of a cent and takes nothing. That isn't a small change — it shifts the entire decision shape. Cloud-priced loops bias toward *experiments you're confident will work* (because failed ones cost real money). Spark-priced loops admit *experiments you suspect will fail* (because the worst case is a few overnight watts). Personal AI's quiet leverage is here: the agent gets permission to be wrong 42 times out of 50 because the cost of being wrong rounds to zero.
+:::
+
 The "personal AI power user" framing this blog has been pushing isn't hype. It's the literal arithmetic: $0.02 of electricity for 50 unattended AI experiments. The Spark earns its line on the spec sheet by making that cost real.
 
 ## What we didn't do — the gap between this experiment and a real trained model
@@ -55,6 +67,10 @@ To get from what we built today to a model you could actually use, you have to c
 
 - **Each agent iteration trained on ~1 million tokens of text.** A real Chinchilla-optimal pretrain of a 354M-parameter model needs **~7 billion tokens** — about 7,000× more.
 - **Each iteration's final loss number (val_bpb 10.85) is essentially noise.** A properly trained GPT-2-small on Wikipedia data sits at val_bpb ≈ 4 (a perplexity of about 16). Ours at 10.85 means perplexity ~1,850 — the model is barely above random for natural English.
+
+:::define[Perplexity / val_bpb]
+**Perplexity** is the model's "average uncertainty" — the number of equally-likely guesses it would need to make to predict the next token correctly. Lower is better; 16 means "guessing among 16 options each token", 1,850 means "guessing among 1,850". **val_bpb** (validation bits-per-byte) is the same number expressed in bits — log₂ of perplexity, normalized to bytes for fair comparison across tokenizers. A val_bpb of 10.85 corresponds to 2^10.85 ≈ 1,850 perplexity. The metric is the loss function the trainer optimized; the article's number is what 60 steps could achieve, not what the architecture is capable of.
+:::
 - **We never saved any model's weights.** Each iteration's model was discarded after the val_bpb measurement. The agent's *decisions* are the artifact, not the models.
 - **The agent worked with a tiny menu.** It could twist 13 specific knobs (model size, learning rate, etc.). It can't add a new layer type, change the optimizer, or alter the data pipeline. Those are the kinds of changes a human researcher makes; the agent operates inside the boundaries we drew.
 
@@ -128,6 +144,10 @@ Start with random weights. Show the model billions of tokens. Watch it learn lan
 
 This is the path the five technical articles built infrastructure for. On a Spark, training a 354M-parameter model to "Chinchilla-optimal" (the standard recipe for "as good as the model can get given its size") takes about 6 days of continuous training, drawing 56 W, costing roughly $2.50 in US residential electricity. End result: a small but real model that you trained from nothing, on your data.
 
+:::define[Chinchilla-optimal]
+A 2022 result from DeepMind: for a fixed compute budget, the *best* trained model spends its compute on tokens at roughly **20 tokens per parameter** — not on parameter count alone. A 354M-parameter model is Chinchilla-optimal at ~7 billion training tokens; bigger models need proportionally more data, smaller models proportionally less. The recipe is the load-bearing reason the table above lists "weeks" for from-scratch pre-training: a personal corpus is usually nowhere near 7B tokens, so the from-scratch model trains on something Chinchilla would call *under-trained*.
+:::
+
 **The honest pivot:** for almost everyone, **Path 1 or Path 2 is what you actually want.** A from-scratch 354M model trained on your personal corpus will be *worse* than a pre-trained 8B model fine-tuned on the same corpus, because the 8B started life having read a meaningful fraction of the internet and your model started life knowing nothing. The narrow case where Path 3 wins:
 
 - **You're learning by doing.** Knowing what training-from-scratch feels like teaches you things the higher-abstraction paths don't.
@@ -136,6 +156,10 @@ This is the path the five technical articles built infrastructure for. On a Spar
 - **You want to extend or change the model architecture itself**, not just its weights.
 
 Outside those cases, picking Path 3 is like building your own car engine because you wanted to drive somewhere. Possible, educational, and almost never the most direct route.
+
+:::pitfall[From-scratch on a personal corpus loses to fine-tune almost every time]
+"I want my own model" sounds like Path 3, but for almost every personal use case, fine-tuning an 8B base on the same data produces a *better* model than from-scratch on a 354M parameter rig — not just cheaper, *better*. The 8B started life having read a meaningful fraction of the internet; your from-scratch model started life knowing nothing about English. Adding your corpus on top of either ends differently. The personal-AI-builder default is Path 1 or 2; Path 3 is for the four narrow reasons listed above and almost nothing else.
+:::
 
 ## If you really do want to train from scratch — a concrete plan
 
@@ -151,6 +175,14 @@ For the readers who land in one of the four narrow cases above, here's the week-
 
 Total: roughly one calendar month, of which one week is active work and the rest is unattended Spark time. Total electricity bill: under $5. Total cloud bill: $0.
 
+:::deeper
+- [Chinchilla scaling (Hoffmann et al., 2022)](https://arxiv.org/abs/2203.15556) — the 20-tokens-per-parameter recipe behind the "weeks" line in the table.
+- [LoRA (Hu et al., 2021)](https://arxiv.org/abs/2106.09685) — the parameter-efficient adapter approach Path 1 uses.
+- [GPT-2 paper](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf) — the small-model architecture the from-scratch path is approximating.
+- [F1 — nim-first-inference-dgx-spark](/field-notes/nim-first-inference-dgx-spark/) — week-1 starting point if you want to walk Path 3.
+- [A4 — autoresearch-agent-loop](/field-notes/autoresearch-agent-loop/) — the overnight-experiment loop this article is the layperson readout for.
+:::
+
 ## Where you can start tomorrow
 
 Three concrete moves anchored to articles already published, in increasing commitment:
@@ -162,3 +194,7 @@ Three concrete moves anchored to articles already published, in increasing commi
 **Next month, 6 days unattended.** If by then you still want to walk Path 3, the table above is your week-by-week plan. Boot the agent loop on a Friday evening, check it on Saturday morning, run the winning recipe Saturday through Friday. End the next Friday with weights for a model that has never existed in the world before, that nobody else has the data to replicate.
 
 That's the plain-English version of what the Spark earned today. Five articles, 50 unattended experiments, $0.02 of electricity, no cloud account, no API key, no rate limit. We didn't train a usable model — we built the kitchen that lets you train one this month. The hardware made it possible; the next move is yours.
+
+:::hardware[Same arithmetic, frontier-hardware shape]
+The 50-experiment loop's $0.02 cost is Spark electricity at 56 W × 1.2 hours. On an H100 80 GB the same loop runs ~5× faster (12 minutes) but draws ~700 W — total energy is comparable, but H100 hardware costs ~$30,000 vs. Spark's ~$4,000 (one-time). On an H200 the per-experiment wall halves again. The interesting frontier coefficient *isn't* speed, though; it's that the **pre-training row** of the four-flavor table — weeks on Spark for a 354M model — collapses to ~24 hours on an 8×H100 cluster for the same model. Path 3 stops being "weeks" and starts being "a long Tuesday." For frontier-scale models (Llama 3.1 70B), the same multipliers apply: Spark's 6-day 354M run is ~6 months for 70B; an 8×H200 cluster brings it back to weeks. Same Chinchilla recipe, different operating point.
+:::

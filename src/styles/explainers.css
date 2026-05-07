@@ -1,0 +1,291 @@
+/* ---------- Explainer asides ----------------------------------------------
+   Sourced from `:::define / :why / :deeper / :pitfall / :math / :hardware`
+   container directives. Plugin emits:
+     <aside class="explain explain--<kind>" data-explain="<kind>"
+            data-term="..." id="explain-<kind>-<slug>">
+       <p class="explain__title">…</p>
+       <p>…body…</p>
+     </aside>
+   On wide viewports the aside floats into the gutter that lives between
+   .fn-prose (48rem) and .article (now 92rem). The data-explain-mode
+   attribute on <html> (set by ReaderSettings) toggles hide / margin / inline.
+   Sepia/Dark/Light reader-theme overrides surface tokens scoped to .article
+   only so the global Nav/Footer keep the user's site theme.
+---------------------------------------------------------------------------- */
+
+.fn-prose { display: flow-root; }
+
+/* ── Base aside ── */
+.fn-prose .explain {
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 0.85rem 1rem 0.95rem 1.1rem;
+  background: color-mix(in oklch, var(--color-surface-raised) 70%, transparent);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  break-inside: avoid;
+}
+
+.fn-prose .explain > .explain__title {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.98rem;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.fn-prose .explain > p,
+.fn-prose .explain > ul,
+.fn-prose .explain > ol {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.fn-prose .explain > p:first-of-type:not(.explain__title),
+.fn-prose .explain > ul:first-of-type,
+.fn-prose .explain > ol:first-of-type {
+  margin-top: 0;
+}
+.fn-prose .explain ul,
+.fn-prose .explain ol {
+  padding-left: 1.15rem;
+}
+.fn-prose .explain a {
+  color: var(--color-primary);
+  text-decoration-color: var(--color-primary-dim);
+  text-underline-offset: 2px;
+}
+.fn-prose .explain code {
+  font-size: 0.85em;
+}
+
+/* ── Eyebrow label, injected by class kind ── */
+.fn-prose .explain::before {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.fn-prose .explain--define::before    { content: "Define"; color: oklch(0.72 0.08 220); }
+.fn-prose .explain--why::before       { content: "Why this matters"; color: oklch(0.75 0.13 80); }
+.fn-prose .explain--deeper::before    { content: "Go deeper"; color: oklch(0.72 0.13 290); }
+.fn-prose .explain--pitfall::before   { content: "Pitfall"; color: oklch(0.68 0.15 20); }
+.fn-prose .explain--math::before      { content: "In plain words"; color: oklch(0.72 0.13 150); }
+.fn-prose .explain--hardware::before  { content: "Beyond Spark"; color: oklch(0.78 0.12 95); }
+
+/* ── Per-kind accent colour for the left border ── */
+.fn-prose .explain--define   { border-left-color: oklch(0.72 0.10 220); }
+.fn-prose .explain--why      { border-left-color: oklch(0.75 0.15 80); }
+.fn-prose .explain--deeper   { border-left-color: oklch(0.72 0.13 290); }
+.fn-prose .explain--pitfall  { border-left-color: oklch(0.68 0.15 20); }
+.fn-prose .explain--math     { border-left-color: oklch(0.72 0.13 150); }
+.fn-prose .explain--hardware { border-left-color: oklch(0.78 0.12 95); }
+
+/* ── Wide viewport: float into the right gutter ────────────────────────── */
+.fn-prose {
+  --explainer-width: 13rem;
+  --explainer-claim: 14rem;
+  --explainer-gap: 1.25rem;
+}
+
+@media (min-width: 64rem) {
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain {
+    float: right;
+    clear: right;
+    width: var(--explainer-width);
+    margin-right: calc(var(--explainer-claim) * -1);
+    margin-left: var(--explainer-gap);
+    margin-top: 0.25rem;
+    margin-bottom: 1rem;
+    shape-outside: margin-box;
+    shape-margin: 0.5rem;
+  }
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain:nth-of-type(2n) {
+    float: left;
+    clear: left;
+    margin-left: calc(var(--explainer-claim) * -1);
+    margin-right: var(--explainer-gap);
+  }
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain:last-of-type {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 2.5rem 0 0;
+    shape-outside: none;
+  }
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain.explain--before-figure {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 1.5rem 0;
+    margin-left: 0;
+    margin-right: 0;
+    shape-outside: none;
+  }
+}
+
+@media (min-width: 80rem) {
+  .fn-prose {
+    --explainer-width: 15rem;
+    --explainer-claim: 16.25rem;
+  }
+}
+@media (min-width: 92rem) {
+  .fn-prose {
+    --explainer-width: 17rem;
+    --explainer-claim: 18.25rem;
+  }
+}
+
+@media print {
+  .fn-prose .explain {
+    float: none !important;
+    clear: both !important;
+    width: auto !important;
+    margin: 1rem 0 !important;
+    shape-outside: none !important;
+  }
+}
+
+/* ── Explainer mode: hide ── */
+html[data-explain-mode="hide"] .fn-prose .explain { display: none; }
+
+/* ── Explainer mode: inline (force inline-block flow even on wide) ── */
+html[data-explain-mode="inline"] .fn-prose .explain {
+  float: none;
+  width: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── Reading controls — variable knobs ── */
+html[data-font-scale="S"] .fn-prose      { font-size: 0.95rem; }
+html[data-font-scale="M"] .fn-prose,
+html:not([data-font-scale]) .fn-prose    { font-size: 1.0625rem; }
+html[data-font-scale="L"] .fn-prose      { font-size: 1.18rem; }
+
+html[data-line-height="compact"] .fn-prose  { line-height: 1.55; }
+html[data-line-height="default"] .fn-prose,
+html:not([data-line-height]) .fn-prose      { line-height: var(--fn-rhythm); }
+html[data-line-height="relaxed"] .fn-prose  { line-height: 2.05; }
+
+/* ── Reader theme: sepia ── */
+html[data-reader-theme="sepia"] .article {
+  --color-surface:         oklch(0.95 0.04 80);
+  --color-surface-raised:  oklch(0.92 0.05 78);
+  --color-surface-overlay: oklch(0.93 0.045 78);
+  --color-text:            oklch(0.30 0.05 60);
+  --color-text-muted:      oklch(0.42 0.04 60);
+  --color-text-dim:        oklch(0.55 0.03 60);
+  --color-border:          oklch(0.82 0.05 78);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 12px;
+}
+html[data-reader-theme="sepia"] .article .fn-prose pre {
+  background: oklch(0.20 0.02 60) !important;
+  color: oklch(0.92 0.02 60) !important;
+}
+html[data-reader-theme="sepia"] .article .fn-prose code:not(pre code) {
+  background: oklch(0.88 0.05 78);
+  color: oklch(0.36 0.06 30);
+}
+
+html[data-reader-theme="dark"] .article {
+  --color-surface:         oklch(0.12 0.01 250);
+  --color-surface-raised:  oklch(0.18 0.01 250);
+  --color-surface-overlay: oklch(0.16 0.01 250);
+  --color-text:            oklch(0.92 0.01 250);
+  --color-text-muted:      oklch(0.78 0.01 250);
+  --color-text-dim:        oklch(0.68 0.01 250);
+  --color-border:          oklch(0.22 0.01 250);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+html[data-reader-theme="light"] .article {
+  --color-surface:         oklch(0.98 0.002 250);
+  --color-surface-raised:  oklch(0.96 0.003 250);
+  --color-surface-overlay: oklch(0.94 0.003 250);
+  --color-text:            oklch(0.15 0.02 250);
+  --color-text-muted:      oklch(0.48 0.01 250);
+  --color-text-dim:        oklch(0.62 0.01 250);
+  --color-border:          oklch(0.90 0.005 250);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* ── Bookmark + position-restore banner ── */
+.article__resume-banner {
+  display: none;
+  margin: 0 auto 1.5rem;
+  max-width: var(--fn-measure);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface-raised));
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.article__resume-banner[hidden] { display: none !important; }
+.article__resume-banner button {
+  background: transparent;
+  border: 1px solid var(--color-primary-dim);
+  color: var(--color-primary);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.article__resume-banner button:hover {
+  background: color-mix(in oklch, var(--color-primary) 15%, transparent);
+  color: var(--color-text);
+  border-color: var(--color-primary);
+}
+.article__resume-banner button.is-dismiss {
+  border-color: var(--color-border);
+  color: var(--color-text-dim);
+}
+
+/* ── Article header row + reader-controls cluster ── */
+.article__header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.article__reader-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .article__header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

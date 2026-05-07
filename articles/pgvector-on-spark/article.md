@@ -16,6 +16,10 @@ fieldkit_modules: [rag]
 
 One inference endpoint became a NIM. One embedding endpoint became the Nemotron Retriever. This time the substrate becomes `pgvector` — the column where the vectors *live* between the embed call and the retrieve call. Three arcs share this table; only the query predicates differ. A Second Brain asks "which notes look like what I just wrote?", a personal wiki asks "which pages duplicate this passage?", and an autoresearch agent asks "which prior trajectories resembled this plan?". All three push the same row shape through the same operator, `<=>`, against the same index.
 
+:::define[pgvector]
+A Postgres extension (a shared library loaded into the existing `postgres` process) that adds a `vector` datatype, five distance operators (`<->` L2, `<=>` cosine, `<#>` inner product, `<+>` L1, `<~>` Hamming), and two index access methods (`ivfflat` and `hnsw`). Everything else — WAL, transactions, replication, planner, cache — comes from Postgres unchanged. No separate daemon, no extra port; one `CREATE EXTENSION vector;` and your column types grow a new option.
+:::
+
 The short version: pgvector 0.8.2 pulls cleanly onto a Spark as the official `pgvector/pgvector:pg16` container, mounts a persistent volume, and exposes Postgres on `:5432` with the vector type already compiled. A thousand AG-News chunks embedded through the [embedding NIM article's](/field-notes/nemo-retriever-embeddings-local/) Nemotron NIM and streamed into a `vector(1024)` column land at 99 documents per second end-to-end. Both HNSW and IVFFlat indexes build in under a second. Neither wins by default — the planner prefers a sequential scan at this corpus size, and forcing an approximate index costs you between 3 and 37 points of recall depending on the knob you turn. The longer version is more interesting because the planner's reluctance is itself the lesson: at a thousand rows, on an aarch64 Grace CPU, pgvector's `ORDER BY <=>` runs in two milliseconds without an index at all.
 
 ## Why pgvector instead of a purpose-built store
@@ -23,6 +27,10 @@ The short version: pgvector 0.8.2 pulls cleanly onto a Spark as the official `pg
 The fastest way to finish a RAG project is to put its vectors next to its rows. A personal corpus already wants a database for the non-vector columns — chunk text, source URL, ingest timestamp, tag set, provenance. You can run two stores and join across a network (Qdrant + Postgres, Milvus + Postgres, Pinecone + anything) or one store that speaks both languages. The second shape has fewer moving parts, one backup story, one auth model, one set of credentials, and one transactional boundary — `INSERT` the chunk text and its embedding in the same statement and either both land or neither does. Pre-pgvector, you couldn't do that without exotic plugins. With pgvector it's a typed column.
 
 The case *against* pgvector is real at scale: a billion-vector index on a cloud deployment is genuinely easier on Milvus or a dedicated ANN service, because their index structures are tuned for that regime and their operators accept purpose-built hardware. A Spark is not that regime. A personal corpus is hundreds of thousands of rows at the upper end. Postgres plus pgvector handles that comfortably on a single node, and the engineering slope of "add a column" is much shorter than the slope of "stand up a second datastore."
+
+:::why[pgvector wins at personal scale because the corpus is already in Postgres]
+A personal RAG corpus already wants a database for the *non-vector* columns — chunk text, source URL, ingest timestamp, tag set, provenance. You can run two stores joined across a network (Qdrant + Postgres, Milvus + Postgres) or one store that speaks both. The single-store shape has fewer moving parts, one backup story, one auth model, one transactional boundary — `INSERT` the chunk text *and* its embedding in the same statement, atomically. The case for a dedicated ANN service kicks in north of a billion vectors; below that, the operational simplicity of one Postgres pays for itself in days saved.
+:::
 
 ## Where this sits in the stack
 
@@ -206,6 +214,18 @@ Four megabytes of that is the vector column, stored in TOAST out-of-line because
 
 The measurement harness takes 20 hand-crafted queries (five per topic class), embeds each at 1024-d with the Nemotron NIM, and runs the same `ORDER BY embedding <=> $1 LIMIT 10` against three configurations: a sequential scan with `enable_indexscan=off`, an IVFFlat index with `lists=32` swept across `probes ∈ {1, 4, 10, 32}`, and an HNSW index with `m=16, ef_construction=64` swept across `ef_search ∈ {10, 40, 100}`. For each configuration, two numbers: median latency across the 20 queries, and mean recall@10 measured against the exact seq-scan top-10.
 
+:::define[ANN — Approximate Nearest Neighbor]
+A class of algorithms that finds *most* of the closest vectors to a query without scanning every row. Trades a few percent of recall for one or more orders of magnitude of speedup. Both pgvector index types are ANN: IVFFlat partitions vectors into clusters and only scans the closest few; HNSW builds a graph where edges connect vectors that are likely close. Exact retrieval (sequential scan) returns 100% recall; ANN typically returns 90–99%, depending on how aggressively it's tuned.
+:::
+
+:::define[IVFFlat]
+"Inverted File with Flat compression" — clusters the vector population into `lists` partitions at index time, stores each vector inside its assigned cluster. At query time, scan the `probes` clusters whose centroids are nearest the query, sort their members by exact distance. More `probes` = better recall, more wall-clock. Index size is roughly the same as the raw vectors. Practical when you can rebuild the index after large ingest waves; less natural for steady incremental writes.
+:::
+
+:::define[HNSW — Hierarchical Navigable Small World]
+Multi-layer graph index (Malkov & Yashunin, 2018) where each node connects to ~`m` neighbours at each layer and search descends through layers like a skip list. `ef_search` controls how widely the graph traversal explores at query time — higher = better recall, more wall-clock. Build cost grows roughly with `n log n`; storage overhead is ~2× the raw vector bytes (the graph adjacency lists). Handles incremental writes natively, which makes it the default choice for a growing corpus.
+:::
+
 | config                    | p50 (ms) | p95 (ms) | recall@10 |
 |---------------------------|---------:|---------:|----------:|
 | exact (seq scan)          |     2.71 |     3.47 |     1.000 |
@@ -234,6 +254,14 @@ Limit  (cost=98.11..98.13 rows=10 width=16)
 
 The index is sitting right there on disk. The planner looks at it, costs it, decides `Seq Scan` at 76.50 cost units is cheaper than the IVFFlat scan at 2858.50 or the HNSW traversal's higher startup cost, and picks the linear walk. The numbers in the benchmark table above come from a `SET enable_seqscan = off` override that *forces* the planner onto the index. Without that override, every "ivfflat" or "hnsw" configuration silently executes the exact scan and lands at the exact-scan latency.
 
+:::pitfall[The planner ignores your shiny new index by default]
+`CREATE INDEX ... USING hnsw` builds the index — but Postgres's planner picks the *cheapest* path it can cost out, and below the corpus crossover it'll pick seq scan and your "indexed" benchmark silently runs the unindexed code path. Verify with `EXPLAIN`: you should see `Index Scan using ... ON chunks` in the plan, not `Seq Scan on chunks`. To force the index for measurement, `SET enable_seqscan = off` for the session. To force it in production at small corpus sizes, you usually shouldn't — the planner is right.
+:::
+
+:::math[Why the planner picks seq scan at 1000 rows]
+1000 rows × 1024 dims × 4 bytes/float = 4 MB of vectors plus a few hundred KB of heap. That fits in the Grace CPU's L3 cache; a sequential SIMD loop over `<=>` distances finishes in ~2 ms because every byte is already in cache. HNSW traversal pays a graph-startup cost (~1 ms) before saving any work; below ~10k–100k rows, that overhead is bigger than the savings. The planner's cost model knows this — HNSW's estimated cost exceeds seq scan's at 1000 rows, so it picks seq scan. Past the crossover, the gap opens quickly: at 1M rows, seq scan is hundreds of ms; HNSW is still single-digit.
+:::
+
 That's not a bug. It's the planner doing its job. At 1000 rows × 1024 dimensions × 4 bytes, the vector table is six megabytes — it fits in L3 cache on Grace, and a sequential SIMD loop over that memory hits two milliseconds because there is nothing faster than "touch every row in order when the rows are already in cache." The crossover at which HNSW's `log n` dominates seq scan's `n` is empirical, but the theory puts it somewhere between ten and a hundred thousand rows for a 1024-d index on a Grace CPU. At the low end of that range, the graph traversal's setup cost still eats the savings. Past it, the gap opens quickly.
 
 Knowing that matters because it reframes when the approximate index is worth adding. You don't index at 1000 rows — you add the column, you ship, and you revisit when the query latency crosses whatever threshold the downstream application can tolerate. The cost of `CREATE INDEX ... USING hnsw` is 0.28 seconds on 1000 rows and grows roughly with `n log n`; a hundred thousand rows takes tens of seconds. The index is fast to build, cheap to drop, and re-creatable any time the dimension count or the distance operator changes.
@@ -260,6 +288,10 @@ Three things shift as the corpus grows from a thousand rows toward a hundred tho
 
 **TOAST pressure matters.** Each 1024-d vector is 4 KB of floats, plus 8 bytes of header, which puts it above Postgres's 2 KB in-line threshold, which means it lives in TOAST out-of-line. Every distance calculation reads that TOAST tuple. At a thousand rows the working set fits in `shared_buffers` trivially; at a hundred thousand rows it's 400 MB of vector data and you need to size buffers deliberately. The default 128 MB `shared_buffers` in the container image is *not* what you want for a production-scale retrieval workload.
 
+:::pitfall[The default `shared_buffers` is wrong for retrieval at scale]
+The official `pgvector/pgvector:pg16` image ships Postgres's stock `shared_buffers = 128 MB`. At a hundred thousand 1024-d vectors that's 400 MB of TOAST data alone — most distance calculations will miss the buffer cache, hit disk, and run an order of magnitude slower than they need to. Tune `shared_buffers` to ~25% of host RAM (for the Spark, ~32 GB) and `effective_cache_size` to ~75% before you size your benchmark. Cosine queries either fit in cache or they don't; the gap between the two is real.
+:::
+
 None of those are reasons to pick a different store. They're knobs to know about. For every project the three arcs will finish on this Spark — a Second Brain, a personal wiki, an autoresearch agent — the corpus sits in the hundreds-of-thousands range and fits inside one Postgres node with room to spare.
 
 ## The three-arc payoff
@@ -271,3 +303,14 @@ One inference endpoint became NIM. One memory layer became Nemotron Retriever. T
 - **Autoresearch now has a trajectory store.** Agent runs are rows keyed by a trajectory ID, with vector columns for plan, observation, and outcome. "Have I done something like this before" becomes a three-column cosine query.
 
 The [naive RAG article](/field-notes/naive-rag-on-spark/) wires naive RAG on top of this — take a question, embed it, retrieve the top-K chunks, stuff them into a Llama 3.1 8B NIM prompt, return the answer. Three article-stack pieces now: the LLM, the embedder, the store. One more — the generator wiring — and the three arcs share an end-to-end retrieval loop.
+
+:::deeper
+- [HNSW paper (Malkov & Yashunin, 2018)](https://arxiv.org/abs/1603.09320) — the multi-layer graph index pgvector ships, with the original navigability proof.
+- [Faiss IVF design](https://github.com/facebookresearch/faiss/wiki/Faiss-indexes) — Faiss documentation on inverted-file partitioning; the same principle pgvector's IVFFlat implements in Postgres.
+- [pgvector docs](https://github.com/pgvector/pgvector) — full operator + index reference, plus tuning advice for `m`, `ef_construction`, `lists`, `probes`.
+- [BEIR benchmark](https://github.com/beir-cellar/beir) — community-standard retrieval evaluation; how published retrieval-quality numbers (NDCG@10, recall@k) are produced.
+:::
+
+:::hardware[Vector retrieval at frontier scale]
+A Spark serves 1 million 1024-d vectors comfortably (~4 GB raw + ~8 GB HNSW graph) with single-digit-ms p50 — the corpus + index fit in the 128 GB unified pool. Past 100M vectors (~400 GB), you're partitioning across nodes; this is where Milvus, Vespa, and dedicated vector-DB designs win because their distributed-graph designs were built for it. Past 1B vectors, you're paying for memory-rich nodes or GPU-accelerated ANN (cuVS, RAFT) only available in the cloud envelope. The Spark's role: tune the index design at a scale where the *entire* corpus fits in memory and `EXPLAIN ANALYZE` reads honestly.
+:::

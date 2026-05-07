@@ -19,6 +19,14 @@ You cannot serve a 100B-class model to real traffic on a DGX Spark. Even FP8-qua
 
 The harder, more useful question is *how the memory bill rearranges itself the moment you stop training and start serving*. Three of the four memory bills you paid during fine-tuning vanish — gradients, optimizer state, half the activation bill all go to zero the second the backward pass goes away. In their place, one new bill grows from negligible to dominant: the **KV cache**, the per-token attention state every concurrent user accumulates as their conversation lengthens. And unlike training memory, which scales with parameter count, the KV bill scales with **concurrent users × context length**. A model that fit comfortably for one user at 4k context can OOM the same hardware four hours later when it has 128 sessions open at 32k context each — without one parameter changing.
 
+:::define[KV cache]
+Per-token attention state cached during decode. Every transformer layer stores the K and V projections of every token a request has seen so far, so the next token's attention computation reads them back rather than recomputing the full prefix. The cache lives in GPU memory for as long as the request is active.
+:::
+
+:::why[Weights are static. KV grows per token, per user.]
+Model weights are loaded once when the server starts and never grow — a 70B model is 140 GB of weights whether it's serving one user or one thousand. The KV cache, by contrast, is bookkeeping for an in-flight conversation: every new token adds another row to it. That makes traffic, not model size, the term that decides whether you OOM.
+:::
+
 This article walks the KV-cache arithmetic end-to-end and pins it to concrete hardware asks for serving 70B and 100B-class models. The Spark appears in this story not as the rig that serves a frontier model — it obviously won't — but as the rig that lets you *measure* per-token KV cost on an 8B serve, then multiply. A TRT-LLM NVFP4 run on this machine pulled [38.8 tokens/second of decode at 2.5 GiB resident](/field-notes/trtllm-and-triton-on-spark/) — and inside that 2.5 GB lives a paged KV cache whose size is the same equation that decides whether your 70B serves 32 or 256 concurrent users on a rented H200. Same math. Different coefficients.
 
 ## Why this matters for a personal AI builder
@@ -47,6 +55,10 @@ KV bytes = 2 × n_layers × n_kv_heads × head_dim × seq_len × batch × precis
 ```
 
 The factor of 2 is K and V — both stored. The `seq_len × batch` term is doing the work that scares you: every active request contributes its current token count, and every new token added to any request grows the bill. There is no batch-axis trick to amortize this — each user's context is uniquely theirs.
+
+:::math[Why each request pays its own KV bill]
+The `seq_len × batch` term multiplies, but it isn't the same axis as a training batch. Each user's `seq_len` is *their own* conversation length — a 4-token user and a 32k-token user share the model weights, but the longer one pays 8000× more KV. There is no broadcast trick to amortize this across users; it sums.
+:::
 
 <figure class="fn-diagram" aria-label="KV cache memory for Llama 3.1 70B as a function of concurrent users and average context length, in FP16 and FP8. At one user and 4k context, KV is under 2 GB and trivial. At 32 users and 4k context, FP16 KV reaches 42 GB and fits a single H100. At 32 users and 16k context, FP16 KV is 168 GB and needs an H200 or two H100s. At 128 users and 8k context, FP16 KV is 336 GB and the workload becomes multi-GPU. At 32 users and 128k context, FP16 KV is 1.3 TB and the workload becomes multi-node. FP8 KV halves every number — the same shape, half the slope.">
   <svg viewBox="0 0 900 460" role="img" aria-label="KV cache memory for Llama 3.1 70B across concurrency and context-length tiers, in FP16 and FP8, with hardware tier annotations from one H100 80GB to multi-node." preserveAspectRatio="xMidYMid meet">
@@ -122,6 +134,10 @@ The factor of 2 is K and V — both stored. The `seq_len × batch` term is doing
 
 To make this concrete, walk Llama 3.1 70B end-to-end. The architecture: 80 transformer layers, 64 attention heads but only **8 KV heads** (the GQA reduction), head dimension 128, BF16 by default, FP8 KV cache an option.
 
+:::define[GQA — Grouped Query Attention]
+A transformer optimization that uses fewer K/V heads than Q heads. A vanilla 70B with `n_kv_heads = n_attention_heads = 64` would store 8× more KV than Llama 3.1 70B's 8 KV heads. GQA started as a training-cost trade; it turns out to be the load-bearing decision for serving cost too.
+:::
+
 Per-token KV at FP16: `2 × 80 × 8 × 128 × 2 = 327,680 bytes`. Round to **320 KB per token, per request**. At FP8 it's 160 KB. That's the constant you multiply.
 
 Now scale it:
@@ -153,6 +169,10 @@ Read those flags as the KV-cache budget in disguise. `--max_batch_size 8` × `--
 
 The NIM container's behavior in [`nim-first-inference-dgx-spark`](/field-notes/nim-first-inference-dgx-spark/) tells the same story from a different angle. The `NIM_GPU_MEM_FRACTION=0.5` default felt conservative for a single user, and on single-stream the experiment confirmed it — bumping to 0.8 changed throughput by less than the noise floor. *"Don't tune what isn't the bottleneck"* was the right read for one caller. But that 50% headroom isn't conservative; it's the **KV reservation pool** for the concurrent requests that single-stream benchmarks don't generate. NIM's vLLM uses PagedAttention to allocate KV blocks on demand from that pool — fine when one user is talking, the difference between 4 concurrent users and 40 when many are.
 
+:::pitfall[`NIM_GPU_MEM_FRACTION=0.5` looks like idle headroom — it isn't]
+A single-stream benchmark on the Spark reads as if half the GPU is sitting unused. It isn't. NIM's vLLM has reserved that 50% as the paged-KV-block pool for concurrent requests. Cranking the fraction up only matters if your workload actually has the concurrency to fill that pool — and if your weights need that headroom for prefill activations, the higher fraction will OOM the moment a long prompt arrives.
+:::
+
 The two articles together gave the Spark its inference voice: **8B at FP8, single-user, ~52 ms TTFT, ~25 tok/s decode, KV is a rounding error.** That whole picture is one corner of the table above. Walk to a different corner and the dominant term changes; the equation stays.
 
 ## Tradeoffs and surprises
@@ -161,13 +181,31 @@ The two articles together gave the Spark its inference voice: **8B at FP8, singl
 
 **FP8 KV is a free 2× concurrency budget.** The accuracy trade is small for chat-style workloads — modern serving stacks land within a few tenths of a perplexity point on standard benchmarks — and the budget impact is exactly half of FP16. TRT-LLM's `--use_fp8_context_fmha enable` flag is doing this on the Spark already; vLLM exposes it as `kv_cache_dtype="fp8"`. If your math says you're 30% over the KV budget on the next concurrency tier, FP8 KV moves the line without any other change.
 
+:::why[FP8 KV is the cheapest concurrency upgrade you can buy]
+KV memory is linear in precision: FP16 → FP8 halves the bill. The accuracy hit on chat-class workloads is sub-1% perplexity. For a serve at 80% of budget at 32 users, switching KV precision to FP8 doesn't just save memory — it doubles headroom for *future* concurrency without an architectural change. This is why "8B FP8" is the personal-AI default on the Spark, and why the 70B serving math in this article keeps two columns side by side.
+:::
+
 **Prefill and decode are different workloads — the H100/H200 spread is much bigger on decode.** Prefill is compute-bound: dense GEMMs against the full prompt. Decode is memory-bandwidth-bound: every step reads the KV cache plus the model weights to produce one token. The H200's 4.8 TB/s HBM3e bandwidth (vs the H100's 3.35 TB/s) is a ~40% theoretical decode lift on the same model. That translates to ~25–35% real-world tok/s improvement on long-context decode that a serving benchmark on prefill-dominated prompts will quietly hide. If your workload is RAG (long retrieved context, short generation) your prefill arithmetic drives the H100/H200 choice; if your workload is creative generation (short prompt, long completion) decode arithmetic drives it.
 
 **PagedAttention turned the KV cache from a brick into a heap.** The pre-PagedAttention world reserved a fixed contiguous KV buffer per request, sized for the worst case — `max_seq_len` for everyone, even users whose context was 200 tokens. A 32-user serve at `max_seq_len=32k` reserved KV as if every user was at 32k, leaving ~95% of the cache idle. PagedAttention (vLLM's default, TRT-LLM's `--use_paged_context_fmha enable`) allocates KV in 16-token blocks on demand, so the 200-token user uses 200 tokens of KV, full stop. Effective concurrency at the same hardware budget went up roughly 2–4× the day this landed. The arithmetic in this article assumes paged KV; without it, every cell in the table doubles.
 
+:::define[PagedAttention]
+A KV-cache management scheme that allocates GPU memory in fixed-size blocks (typically 16 tokens) on demand, rather than reserving the worst-case `max_seq_len` per request up-front. A 200-token conversation uses 200 tokens of KV — not the 32k it was provisioned for. Effective concurrency at the same hardware budget went up 2–4× the day this landed in vLLM.
+:::
+
+:::deeper
+- [PagedAttention paper (Kwon et al., vLLM, 2023)](https://arxiv.org/abs/2309.06180) — the foundational mechanism.
+- [TensorRT-LLM on the Spark](/field-notes/trtllm-and-triton-on-spark/) — sibling article that exercises the `--use_paged_context_fmha enable` flag on the Spark's NVFP4 build path.
+- [`nim-first-inference-dgx-spark`](/field-notes/nim-first-inference-dgx-spark/) — the NIM container's pre-set KV pool, viewed from the single-stream side.
+:::
+
 **Speculative decoding adds a KV bill you forgot about.** The draft model — typically 1B-class for a 70B target — has its own KV cache. It's small per-token (8 layers × 4 KV heads × 64 head_dim × 2 bytes = ~4 KB/token at FP16), but it's there, and at high concurrency it's not nothing. Worth budgeting if you're considering Llama 3.1 8B as a draft for 70B.
 
 **Continuous batching is the other half of the heap.** PagedAttention manages KV memory; continuous batching (also called in-flight batching) manages compute. A request's prefill step can join a batch that already has decode steps for other requests in flight, so the GPU is never waiting for a batch to "complete" before starting the next one. TRT-LLM and vLLM both implement this; SGLang adds a more aggressive variant with prefix sharing. On a serve with high concurrency variance — chat traffic, agent loops — these features are the difference between 30% utilization and 70%.
+
+:::define[Continuous batching]
+Scheduling strategy where new prefill requests can join an in-flight batch that's currently doing decode steps for other users. Without it, a serve has to wait for every current request to complete before starting new ones; with it, GPU utilization stays high under variable concurrency. Also called "in-flight batching" in TRT-LLM.
+:::
 
 ## What this unlocks
 
@@ -182,5 +220,9 @@ Three things you can do this week with this math in your head.
 ## Closing
 
 The DGX Spark's role at inference is the same as at training — a 128 GB envelope inside which a personal AI builder learns, in a form they can run on their desk, the equations that scale to anything they will ever rent. The 2.5 GB of resident memory for an 8B at FP8 single-user, and the 1.3 TB of KV cache for a 70B serving 32 users at 128k context, are the same equation with different coefficients. One fits in a personal machine and one fits in a multi-node DGX H200 cluster. The math is fixed; the hardware is negotiable. The tax for not owning the math is paid in over-provisioned cloud bills and surprise OOMs.
+
+:::hardware[Same equation, frontier coefficients]
+Carry the same 320 KB/token (FP16) or 160 KB/token (FP8) constant forward and the hardware ladder writes itself. A single H200 (141 GB HBM3e, 4.8 TB/s) at 70B FP8 hits the wall around 32 users × 16k context. Dual H100s (160 GB combined) reach the same ceiling at concurrency 32 × 32k. A B200 (192 GB HBM3e, 8 TB/s) doubles both and lifts decode bandwidth ~67%. The Spark's 8B at 25 tok/s decode is the bandwidth-bound corner of the same curve — the constants you measure here are the ones that scale.
+:::
 
 Next in this *Looking Beyond Spark* series: **disaggregated prefill and decode at frontier scale** — when prefill becomes compute-bound on H100s and decode becomes bandwidth-bound on H200s, the modern serving topology splits the two workloads across different hardware in the same rack. The math we just walked is the input to that decision; the system that consumes it is the next thing the Spark can teach you in miniature, even when the rack itself is not on your desk.

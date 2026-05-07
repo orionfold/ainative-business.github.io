@@ -20,6 +20,14 @@ The honest first answer for most personal-corpus RAG projects is "open a browser
 
 The fix is **MCP — the Model Context Protocol** — Anthropic's spec for letting any agent call out to a server full of named tools. Wrapping the Second Brain as four MCP tools (`search_blog`, `ask_blog`, `list_articles`, `read_article_chunk`), registering the server in a project-scope `.mcp.json`, and now the entire blog corpus is something the agent in front of me can reach for the same way it reaches for `Read` or `Grep`. The Second Brain stops being a destination. It becomes a verb.
 
+:::define[MCP — Model Context Protocol]
+Open spec from Anthropic for plugging external tools into any LLM agent. A *server* registers a set of named tools — each with a name, a natural-language description, an input schema, and an annotation block — and a *client* (Claude Code, Claude Desktop, Cursor, etc.) discovers and invokes them turn by turn. Wire format is JSON-RPC 2.0; transports are stdio (local child process) or streaming HTTP (remote service). Same shape as a function-calling API, but standardized across model vendors and reusable from any client that speaks the protocol.
+:::
+
+:::define[Tool use]
+The mechanism by which an LLM agent decides — at inference time — to invoke a named external function instead of generating text directly. The agent is given the tool's name, description, and input schema in its system prompt; on each turn it can either reply to the user or emit a structured tool call. The MCP server runs the call and returns content; the agent sees the result on the next turn and either calls another tool, refines its answer, or replies. The four `search_blog`/`ask_blog`/`list_articles`/`read_article_chunk` tools in this article are exactly this — verbs the agent can choose between when answering a question.
+:::
+
 ## Why this matters for the personal AI power user
 
 Three things change when a private corpus is exposed as MCP tools instead of a search UI.
@@ -29,6 +37,10 @@ Three things change when a private corpus is exposed as MCP tools instead of a s
 **Composition replaces context.** A Claude Code session that has the Second Brain MCP available does not need to be told *"here is my blog, please use it as background."* The agent reads the tool descriptions in its system prompt at session start, and decides — turn by turn — whether the question in front of it is the kind that wants a `search_blog` first. Twelve articles' worth of architectural decisions stay queryable without taking up a single token of the agent's context until it actually reaches for them.
 
 **The four-tool surface is portable.** The same MCP server that this Astro repo uses today wires unchanged into a Cursor session in another directory, into a Claude Desktop conversation, into the next CLI client to ship — anywhere the protocol is spoken. That portability is what justifies the 90 minutes of building it. A custom search UI would have been faster for *this* project; the MCP investment compounds across every agentic surface I'll use over the next year.
+
+:::why[The corpus is one place; the agents are many]
+A custom search UI binds the Second Brain to one frontend. The MCP server binds it to the *protocol* — and every agentic client that speaks MCP gets the same four verbs for free. Move from Claude Code to Cursor and the corpus follows. Open Claude Desktop and the same `ask_blog` is one click away. Add a fifth client next year and zero glue code is needed. That portability flips the build calculus: the 90-minute MCP investment outlives every individual tool and earns rent against every future agent that wants to reach the corpus.
+:::
 
 ## Where MCP sits in the Second Brain stack
 
@@ -94,6 +106,10 @@ Three things change when a private corpus is exposed as MCP tools instead of a s
 
 The protocol is simpler than the wrapping makes it sound. MCP is JSON-RPC 2.0 with a small set of well-known methods: `initialize`, `tools/list`, `tools/call`, `notifications/initialized`. A server announces capabilities, the client lists tools, the client calls tools, the server returns content. There is a streaming HTTP transport for remote services and a stdio transport for local ones; for a server that runs on the same machine as the client, stdio wins on every dimension — no port, no auth, no service-manager unit, no certificate. Claude Code spawns the launcher script, writes JSON-RPC frames to its stdin, reads responses from its stdout, and tears the process down at session end.
 
+:::define[FastMCP]
+Python SDK that turns an MCP server into a decorator-driven script. Decorate a function with `@mcp.tool(...)` and FastMCP infers the tool's name from the function name, the input schema from the type hints, and the description from the decorator argument; the framework handles the JSON-RPC framing, the `initialize` handshake, and the stdio loop. The whole second-brain server is ~250 lines because FastMCP collapses the protocol boilerplate into a single `mcp.run()` at the bottom of the file. Equivalent SDKs exist for TypeScript and other languages; the wire format is identical.
+:::
+
 The four tools are not the only possible surface. A naive implementation would expose nine — one per backing endpoint plus the raw SQL — and call that "complete API coverage". A better one stops at the four compositions a working agent actually wants. The `search_blog`/`ask_blog` split is the meaningful one: `search_blog` returns chunks the agent can reason over and combine, `ask_blog` synthesizes for the impatient case where the agent just wants the answer with citations and isn't going to do anything fancier with the raw passages. The remaining two — `list_articles` for discovery and `read_article_chunk` for verbatim follow-up — exist because the agent will sometimes want them, and adding them costs nothing once the connection to pgvector is open.
 
 ## Building the server in 200 lines of FastMCP
@@ -138,6 +154,10 @@ def search_blog(query: str, top_k: int = 5, rerank: bool = True) -> dict:
 ```
 
 The `description` matters more than any other field on the surface — it is the only thing the calling agent reads at session start to decide whether this tool is the right one for a given turn. The temptation is to keep it short. Resist. A good description names what the tool does, when to reach for it (vs. a sibling tool), and what its sharp edges are. The cost is a few hundred tokens in the agent's context budget; the payoff is the agent picking `search_blog` instead of `WebSearch` for questions about the user's own writing.
+
+:::define[Tool description as agent contract]
+The natural-language `description` field on each MCP tool is the *only* signal the calling agent uses to choose which tool to invoke. It is read once at session start, costs context-window tokens for the entire session, and is consulted on every turn the agent considers tool use. A good description names (1) what the tool returns, (2) when to reach for it vs. siblings, (3) its sharp edges. Underspecify and the agent picks the wrong tool — `WebSearch` for a corpus question, or `ask_blog` when raw chunks were wanted. The description is a contract written for an LLM reader, not a human one.
+:::
 
 The `annotations` block is the under-used part of the MCP spec. `readOnlyHint: True` tells the client this tool can be safely auto-allowed inside Claude Code's permission system — the user does not need to be prompted on every call the way a `git push` or `rm -rf` would. `idempotentHint: True` lets the client batch or retry on transport errors. `openWorldHint: False` tells the client the tool returns deterministic, scoped data (a corpus, not the open web), which affects how the agent reasons about freshness. None of the four tools mutate anything, so all four carry the same annotation triple. A future `ingest_blog` tool would flip those bits the moment it lands on the surface.
 
@@ -236,6 +256,10 @@ Two turns. The first reaches for `ask_blog` because the question shape is "give 
 
 End-to-end wall clock: **18.5 seconds**, three agent turns, $0.32 in Claude API tokens. About 6.4 seconds of that lives in the MCP server (one `ask_blog` round-trip plus one `search_blog`). The rest is Claude reasoning over the tool output and writing the final answer. The interactive client returns an answer in less than 20 seconds for a question that, without the MCP, would require the agent to either guess from training data or fall back to an unproductive web search.
 
+:::math[Where the 18.5 seconds actually goes]
+Total wall clock: **18.5 s**. MCP-server work: **6.4 s** (one `ask_blog` = 4.5s NIM 8B generate + ~250ms rerank + ~50ms embed + ~25ms pgvector; one `search_blog` ≈ 1.6s with rerank). Claude reasoning + final-answer generation: **~12 s** at the remote model's tok/s. So local-RAG work is ~35% of the wall clock; remote-LLM reasoning is ~65%. The takeaway: optimizing the local chain below 6 s buys diminishing returns once the agent's reasoning dominates. The right next investment is a smaller `top_k` or a faster reranker, not a faster generator.
+:::
+
 A complementary trace is at [`evidence/demo_trace.jsonl`](./evidence/demo_trace.jsonl) — the [`evidence/demo_trace.py`](./evidence/demo_trace.py) harness drives the launcher directly, exercising all four tools without going through Claude Code. That trace is the cleaner artifact for understanding what each tool returns; the streamed Claude Code trace is the more interesting artifact for understanding how an agent *uses* the surface.
 
 ## Tradeoffs — what the four-tool surface leaves on the table
@@ -243,6 +267,10 @@ A complementary trace is at [`evidence/demo_trace.jsonl`](./evidence/demo_trace.
 **Staleness is a property of the corpus, not the server.** The MCP server reads from `blog_chunks` whatever pgvector has at the moment of the call. Right now that table holds 12 articles — the corpus as of the [Ragas eval ingest](/field-notes/rag-eval-ragas-and-nemo-evaluator/), one article behind today's count. An `ask_blog` question about the rerank-fusion-retrieval scoreboard returns a grounded answer; the same question about *this* article's MCP design returns "the provided context does not contain the answer." That refusal is the system working: the agent did not hallucinate from adjacent chunks, the strict-context system prompt held. A `cron`-driven `ingest_blog.py` that re-embeds on every git push would close the gap to under a minute. Today the gap is "as long as it has been since the last manual ingest", which is fine for a personal blog and would be unacceptable for any corpus where readers expect freshness.
 
 **Refusal vs. hallucination, in the small.** The same refusal mechanism that prevents made-up answers also prevents partially-grounded ones. If `search_blog` returns three chunks where two are off-topic and one is a perfect hit, the strict-context prompt may still refuse, because the prompt was written to err toward refusal. There is a knob here — relaxed refusals, paragraph-citations instead of slug-citations, partial-credit answers — and the MCP surface deliberately does not expose it. A future article in this arc could add a `mode: "strict" | "lenient"` parameter to `ask_blog`. For now the strict default is the right floor.
+
+:::pitfall[Exposing one tool per backing endpoint is the wrong surface]
+The intuitive design is "one tool per service" — `embed`, `vector_search`, `rerank`, `generate`, `list_articles`, `read_chunk`, plus the raw SQL. Nine tools, complete coverage. It is also unusable. The agent now has to choose between nine options each turn and string the right four together to answer a question, burning context tokens and reasoning steps on plumbing the API designer should have hidden. The right surface is *compositional*: `search_blog` chains embed → pgvector → rerank into one verb, `ask_blog` stacks `search_blog` plus generate. Four tools, each at a useful level of abstraction. Fewer choices, fewer wrong choices.
+:::
 
 **The hosted reranker is the one remaining cloud dep.** Every `rerank=True` call hits `ai.api.nvidia.com` for one ~200ms round-trip. That is the [F5 compat gap](/field-notes/rerank-fusion-retrieval-on-spark/) showing up at the application layer: when the model finally ships as a Spark-runnable NIM (Triton or vLLM-backed), the URL in `server.py` changes and the chain becomes fully local. Until then, anyone pulling this MCP server into a stricter-privacy setting can pass `rerank=False` and accept the [P@3 drop from 96% to 66%](/field-notes/rag-eval-ragas-and-nemo-evaluator/) the eval already measured.
 
@@ -267,3 +295,14 @@ The Second Brain track is complete. **S1** ([Triton + TRT-LLM for query latency]
 The two sibling arcs remain. **LLM Wiki (W1–W7)** picks up next, starting with `wiki-schema-and-llm-bookkeeper` — the LLM as ingest-time author of a markdown knowledge base, the inverted-RAG economics that compile at write-time so query-time is free. **Autoresearch (A1–A9)** is patient on the bench, waiting for a NeMo Framework + agent-loop article to kick off the overnight-experiment cadence the 128 GB pool was bought for.
 
 Three apps, one substrate, one Spark — and now the first of the three has a tool you can call from anywhere on the box. Next up: deciding whether to compile or to query — the Wiki arc opens.
+
+:::deeper
+- [Model Context Protocol spec](https://modelcontextprotocol.io/) — Anthropic's open standard, including the JSON-RPC method list and the stdio/HTTP transport variants this server uses.
+- [FastMCP repo](https://github.com/jlowin/fastmcp) — the Python SDK that collapses MCP boilerplate into decorators; the `@mcp.tool(...)` pattern this server is built around.
+- [Claude Code MCP docs](https://docs.claude.com/en/docs/claude-code/mcp) — how Claude Code spawns servers via `.mcp.json` (project) or `~/.claude.json` (user), and how the permission system reads `readOnlyHint`.
+- [rag-eval-ragas-and-nemo-evaluator](/field-notes/rag-eval-ragas-and-nemo-evaluator/) — sibling article whose 4.27 / 5 scoreboard is the chain this MCP server now exposes.
+:::
+
+:::hardware[The local-MCP pattern is a Spark capability that scales out, not up]
+Spark runs the four-tool MCP server in a single Python process at <100 MB RAM, with the embed/vector/rerank/generate chain backed by ~12 GB of unified memory in the NIM container plus pgvector. On an H100/H200 workstation the same pattern is overprovisioned — the LLM dwarfs everything else. On a B200 (192 GB HBM3e) the pattern compounds the other direction: load a 70B-NVFP4 generator, a 7B reranker as a Spark-runnable NIM, and a richer embedder all on one GPU, and the four-tool surface becomes a richer `ask_blog` that runs entirely without the cloud reranker round-trip. The MCP shape is hardware-independent; the GPU sets the ceiling on what `ask_blog` can return per call.
+:::

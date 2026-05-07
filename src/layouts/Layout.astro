@@ -47,6 +47,22 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       })();
     </script>
 
+    <!-- No-FOUC reader-settings init for /field-notes/ articles -->
+    <script is:inline>
+      (function () {
+        try {
+          var fs = localStorage.getItem('afn:font-scale');
+          var lh = localStorage.getItem('afn:line-height');
+          var rt = localStorage.getItem('afn:reader-theme');
+          var em = localStorage.getItem('afn:explain-mode');
+          if (fs === 'S' || fs === 'M' || fs === 'L') document.documentElement.dataset.fontScale = fs;
+          if (lh === 'compact' || lh === 'default' || lh === 'relaxed') document.documentElement.dataset.lineHeight = lh;
+          if (rt === 'light' || rt === 'sepia' || rt === 'dark') document.documentElement.dataset.readerTheme = rt;
+          if (em === 'hide' || em === 'margin' || em === 'inline') document.documentElement.dataset.explainMode = em;
+        } catch (e) { /* no-op */ }
+      })();
+    </script>
+
     <!-- Google tag (deferred until idle or first interaction) -->
     <script is:inline>
       (function() {

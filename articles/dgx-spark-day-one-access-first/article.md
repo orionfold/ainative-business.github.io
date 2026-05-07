@@ -29,6 +29,10 @@ The interaction stack governs all three. It determines how many hours of your we
 
 The DGX Spark is uniquely well-suited to this posture because it's *one* machine you can treat as a personal cloud. You don't have the distributed-systems overhead of a cluster; you also don't have the constraints of a laptop. You have enough compute to run real workloads and enough continuity to build a rig that supports you.
 
+:::why[Interaction-stack decisions outlive every model decision]
+Models are fungible — every six months a new SOTA arrives and you swap weights. How you reach the machine, how agents reach the world, how sessions become artifacts — those decisions are sticky. Migrate from SSH-only to Sunshine streaming six months in and your tool-by-tool habits all break. Get the access layer right on Day 1 and every subsequent model decision compounds against a stable substrate. Time spent on this layer is the highest-leverage week you'll ever spend on a personal AI rig.
+:::
+
 ## Where this sits in the stack
 
 I'll use "access layer" throughout this piece. What I mean by it, in five roles:
@@ -99,7 +103,15 @@ Each role corresponds to a decision I made in the first days with the machine. N
 
 The first thing I installed wasn't CUDA. It was [Sunshine](https://github.com/LizardByte/Sunshine), the open-source game-streaming server, paired with Moonlight clients on my laptop and phone.
 
+:::define[Sunshine + Moonlight]
+Open-source low-latency game-streaming stack repurposed as a remote desktop. Sunshine is the host server (runs on the Spark, hardware-encodes the desktop video), Moonlight is the client (runs on a laptop, phone, or tablet). Originally designed for streaming PC games to handhelds at sub-30ms latency, which is overkill for desktop work and exactly what makes the rig feel "in the room" from anywhere. Replaces the traditional X11/VNC pairing for AI work where rendered browsers and GUI dashboards matter alongside the terminal.
+:::
+
 SSH is the traditional remote for a Linux box. For AI work, SSH isn't enough. I need to see rendered browsers (NGC catalog, build.nvidia.com, dashboards), GUI tools that don't have a TTY mode, and — critically — a proper desktop where I can watch a long-running training job without tailing logs. Sunshine gives me that desktop with hardware-encoded video, at latency low enough to feel like a local session.
+
+:::define[NGC — NVIDIA GPU Cloud]
+NVIDIA's container and model registry at `nvcr.io`. The catalog at `catalog.ngc.nvidia.com` and `build.nvidia.com` is where containerized inference engines (NIM), pre-built training images (PyTorch, NeMo, Triton, TensorRT-LLM), and ready-to-pull model weights live. An NGC API key — created free at `build.nvidia.com` — is required to pull anything from `nvcr.io`. The most common Day-1 blocker for new Spark owners is realizing the key has to be supplied to *both* the Docker daemon (`docker login nvcr.io`) and the running container (env-var) for image-pull and weight-fetch to work.
+:::
 
 ```bash
 # Host: Sunshine runs as a user service on the Spark
@@ -126,6 +138,10 @@ claude --version
 
 The corollary of this choice: my laptop becomes a thin client. Browser for email, Moonlight for the rig, nothing heavy. The Spark is the workstation.
 
+:::define[NIM — NVIDIA Inference Microservices]
+NVIDIA's container-packaged inference services. Each NIM bundles model weights, a tokenizer, prompt templates, an OpenAI-compatible HTTP server on port 8000, and a tuned engine (vLLM or TensorRT-LLM, picked at runtime to match the host hardware). One `docker run` produces a working `/v1/chat/completions` endpoint — no engine choice, no quantization plumbing, no per-token bill. NIM is the path of least resistance for Day-1 inference; the next foundations article walks the first NIM install end-to-end.
+:::
+
 ### Playwright-MCP: giving the AI a real browser
 
 Most common agentic task in my workflow so far: "go look this up and bring me the relevant piece." Claude Code has `WebFetch` for URL content and `WebSearch` for queries — they're adequate for reading static pages. For anything dynamic — logged-in dashboards, JS-heavy SPAs, the NIM playground, the NGC catalog with its faceted filters — they fall short.
@@ -137,6 +153,10 @@ claude mcp add -e DISPLAY=:1 --scope user --transport stdio \
     playwright -- npx -y @playwright/mcp@latest
 npx -y playwright@latest install chromium
 ```
+
+:::define[MCP — Model Context Protocol]
+Anthropic's open spec for letting any LLM agent call out to a server full of named tools. JSON-RPC 2.0 over stdio (local) or streaming HTTP (remote); a server announces tools with names, descriptions, and JSON-schema inputs, and the calling agent picks which tool to invoke each turn. Playwright-MCP is one such server (browser-driving tools); a future article in this arc wraps the Second Brain RAG chain as a four-tool MCP server. The protocol is what turns "an LLM that reads text" into "an LLM that takes actions on this machine."
+:::
 
 After a session restart, Claude Code gets a set of `mcp__playwright__browser_*` tools: navigate, click, type, snapshot, screenshot. The AI can now *drive* a browser rather than just read it. The `DISPLAY=:1` env var means I can flip to headed mode and watch it work when I'm debugging.
 
@@ -158,6 +178,10 @@ nemoclaw onboard
 ```
 
 This is the piece that converts "I can imagine agents being useful here" into "agents do real work on this rig." The Nemotron backing matters because those models are tuned for the call-and-response agent rhythm — long horizons, tool use, recovering from their own errors.
+
+:::define[Sandboxed agent runtime]
+Isolated execution environment where an AI agent can freely run shell commands, install packages, and modify files without endangering the host. Built on Linux primitives — namespaces, cgroups, often a small VM or a `k3s` pod — that bound the agent's blast radius to a specific directory tree, user, and resource budget. The unblocker for "let the agent try things." Without a sandbox, the calculus is *agent-can-break-my-config* vs *agent-cripples-itself*; with one, the agent gets full shell and the worst case is throwing away one container.
+:::
 
 <!-- [TODO: confirm with author — was NemoClaw set up on this specific Spark already?
      The nemoclaw-guru skill suggests yes, but the exact install sequence isn't
@@ -259,6 +283,10 @@ When this feels ordinary, the foundation is working. If anything in that story f
 
 **Playwright-MCP's default profile doesn't persist logins.** If you want to routinely screenshot authenticated pages (your NGC dashboard, your build.nvidia.com account), you need to re-register the MCP server with `--user-data-dir=/home/nvidia/.cache/playwright-mcp-profile` so cookies survive. I didn't do this in the first pass and paid for it the first time I wanted an NGC API-keys-page shot.
 
+:::pitfall[Putting Claude Code on the laptop instead of the rig is the wrong default]
+The intuitive setup is IDE+agent on the laptop talking to the Spark over SSH. It feels portable. It also forces every action through a network hop, fights file-permission mismatches, and breaks the moment the agent wants to run `docker` or touch `DISPLAY`. The agent should run *where the files are* — on the Spark itself, owning the local disk, the Docker socket, the X server. The laptop becomes a thin client driving Moonlight, and the latency between agent decision and side-effect drops to zero hops.
+:::
+
 **The access layer is not a one-afternoon project.** It took roughly six hours of focused work spread across a week. I'd budget a full weekend if you're doing this for the first time, with another evening for re-tuning each piece after it meets the others (the Sunshine/Tailscale combination especially benefits from a second pass).
 
 ## What this unlocks
@@ -278,5 +306,16 @@ The next article in this series will be the first ML workload — likely a NIM d
 Models are fungible. Six months from now, there will be a new state-of-the-art you swap in, and the year after that another one. The interaction stack is not fungible — changing how you reach your machine, how agents work alongside you, how safely you let them run, and how you turn your sessions into published artifacts is expensive and disruptive.
 
 Getting it right on Day 1 means every subsequent decision about which model, which inference server, which fine-tuning library compounds against a stable base. The DGX Spark is the right hardware for this kind of solo-power-user posture — enough compute to be serious, enough continuity to be a partner — but the hardware is only half of it. The other half is the stack above, and that's what I wanted to get down while the choices were still fresh.
+
+:::deeper
+- [Sunshine + Moonlight](https://github.com/LizardByte/Sunshine) — host server (Sunshine) and clients (Moonlight) for low-latency desktop streaming over LAN or Tailscale.
+- [Playwright-MCP](https://github.com/microsoft/playwright-mcp) — Microsoft's MCP server that gives any agent a real Chromium browser to navigate, click, type, and screenshot.
+- [Model Context Protocol spec](https://modelcontextprotocol.io/) — Anthropic's open standard for tool servers; the same wire format used by every MCP integration in this stack.
+- [build.nvidia.com](https://build.nvidia.com/) — NGC's playbook hub for DGX Spark; ten Spark-specific inference walkthroughs (NIM, vLLM, SGLang, TRT-LLM, llama.cpp, NVFP4) live here.
+:::
+
+:::hardware[The access-layer pattern scales up the DGX ladder]
+Sunshine + Moonlight + Claude-on-the-rig + sandboxed agents is not Spark-specific — it is the *workstation pattern*. On a DGX Station (4× B200, 784 GB unified-ish memory) the same stack is what makes a single researcher productive against a multi-GPU box without IT-managed Jupyter Hub. On a SuperPOD slice the streaming desktop becomes a bastion-host workflow but the agent-on-the-rig invariant holds: the agent runs where the GPUs are, never marshaling commands across SSH. The pattern this article installs on a $4K Spark is the same one that scales to a $400K rack — the access layer is hardware-independent infrastructure that compounds against any future GPU you put behind it.
+:::
 
 Next up: **the first real NIM inference on the Spark, and what the cold-start numbers tell me about replacing my API spend.**

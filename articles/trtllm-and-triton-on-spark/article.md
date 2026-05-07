@@ -19,11 +19,23 @@ That reframes the question the Second Brain arc wants answered. The original the
 
 The real answer lives one precision further down. This article spent a session building three parallel 8B servers — NIM vLLM FP8, TRT-LLM FP8, and TRT-LLM **NVFP4** — and measuring them against the same 29-token prompt, 200-token greedy completion, stream-per-client benchmark. The NVFP4 run, the Blackwell-native 4-bit variant that only exists when you drop below NIM, pulled **38.8 tokens/second of decode** (vs 22.1 on NIM), **30.8 ms TTFT** (vs 54 ms), a **5.7 GB engine file** (vs 8.6 GB for TRT-LLM FP8), and **2.5 GiB resident** (vs 11.2 GiB for NIM). The reason to rebuild is not FP8. It is the 4-bit kernel that Blackwell's SM 12.1 executes in hardware and that NIM's vLLM does not expose.
 
+:::define[TensorRT-LLM]
+NVIDIA's open-source LLM inference engine, compiled rather than interpreted. Takes a HuggingFace checkpoint, converts to a TRT-LLM checkpoint, then runs `trtllm-build` to compile a fused CUDA graph into a single `.engine` file tuned for one specific GPU architecture, max batch size, and sequence length. The compile step takes ~30 seconds for an 8B model and produces an artifact that loads in milliseconds and exploits architecture-specific kernels (FP8 FMHA on Hopper/Blackwell, NVFP4 GEMMs on SM 12.1) that interpreter-style stacks like vLLM cannot reach.
+:::
+
+:::define[Triton Inference Server]
+NVIDIA's general-purpose model serving platform. Hosts a *model repository* — a directory of `model_name/version/config.pbtxt` definitions — and exposes HTTP/gRPC endpoints with dynamic batching, request scheduling, and ensemble graphs that chain multiple models in one request. For a single TRT-LLM model the heavyweight model-repository scaffolding is overkill; this article uses the newer `trtllm-serve` CLI bundled inside Triton's container, which skips the `config.pbtxt` ensemble and exposes one OpenAI-compatible endpoint directly. Triton-the-server is what enterprise multi-model deployments graduate to; `trtllm-serve` is the personal-rig escape hatch.
+:::
+
 ## Why this matters for the power user on one machine
 
 Unified memory is what makes the DGX Spark interesting for a personal AI builder, and it is also what makes memory footprint the first-class currency on this hardware. The GPU and the CPU share one 121.7 GiB pool. Every gigabyte a serving stack holds resident is a gigabyte pgvector cannot use for its index, that a second NIM cannot use for its weights, that Nsight cannot use while it traces a request. Trading NIM's 11.2 GiB for NVFP4's 2.5 GiB is not a benchmark flex — it is room for the next load-bearing piece of the Second Brain, without migrating anything to disk.
 
 The latency math is the second reason, and it lands in the opposite direction from what a cluster engineer would predict. At concurrency 1 — one user, one query, which is exactly what a Second Brain looks like most of the day — TRT-LLM NVFP4 cuts the end-to-end wall clock from 7.3 seconds to 5.1 seconds for a 165-token answer. That is the difference between a query that feels *slow* and one that feels *instant*. And it is specifically a single-user, single-stream win. On a cluster you would solve this with a bigger batch; on a personal rig you solve it by descending one layer of abstraction and picking the kernel the silicon was designed for.
+
+:::why[Single-user latency is the personal-rig optimization, not aggregate throughput]
+Cluster economics reward batch throughput — fill the GPU at concurrency 64+, amortize fixed costs, ignore single-stream latency. Personal-rig economics flip that. At concurrency 1, the Spark *is* the workload, and the wall-clock for one query is what governs whether the tool feels reachable. A 5.1s end-to-end vs 7.3s for the same model is a *qualitative* shift — under the typing-pause threshold, the answer arrives during the breath you took after hitting send. NVFP4 wins specifically because Blackwell's 4-bit GEMMs cut bandwidth-bound decode where a single stream can't hide behind a bigger batch.
+:::
 
 ## Architectural context — one checkpoint, three stacks
 
@@ -131,6 +143,14 @@ model-00002-of-00002.safetensors  1.05 GB   total weights ≈ 6.03 GB
 
 The detail worth noticing is that both downloads are un-gated. For a local-first builder this closes the loop started in the first NIM article — you do not need an NGC key, a Meta access form, or a calibration dataset. NVIDIA has already done the PTQ run, pushed it to HuggingFace, and the 8B base fits in a `curl` loop. The slowest part of the setup is the 9 GB download, and even that runs in parallel with the container pull.
 
+:::define[NVFP4]
+4-bit floating-point quantization with hardware acceleration on Blackwell (SM 10.0+ / SM 12.1). Each weight is stored as 4 bits — two weights per byte, packed as `U8` — with a `group_size=16` block scale that recovers most of the accuracy lost relative to FP8. Cuts model size to ~25% of BF16 and ~50% of FP8, and on Blackwell GPUs the 4-bit matrix-multiply runs on dedicated tensor-core instructions rather than dequantize-then-multiply. That hardware path is what produces the +76% decode win in this article — software 4-bit on a non-Blackwell GPU does not deliver this.
+:::
+
+:::define[FP8 quantization]
+8-bit floating-point — `F8_E4M3` is the variant used here, with 4 exponent bits and 3 mantissa bits. Each weight occupies 1 byte instead of BF16's 2 bytes; an 8B model becomes ~9 GB instead of ~16 GB. On Hopper (H100/H200) and Blackwell (B100/B200/GB10), FP8 has hardware-accelerated FMHA (fused multi-head attention) and tensor-core GEMM kernels, so the speedup is real, not just memory savings. FP8 is NIM's default precision on Spark; this article confirms it is also the floor below which the meaningful TRT-LLM win (NVFP4) lives.
+:::
+
 ### The assertion that tells you your container is too old
 
 The first FP8 build attempt used `nvcr.io/nvidia/tritonserver:25.01-trtllm-python-py3`, which ships TensorRT-LLM 0.17.0.post1. The container log started with a blunt warning:
@@ -151,6 +171,10 @@ terminate called after throwing an instance of 'tensorrt_llm::common::TllmExcept
 ```
 
 The assertion is the giveaway. GB10 *is* Blackwell — the GPU identifies itself as compute capability (12, 1). But TRT-LLM 0.17's enumeration of "Blackwell" was written before SM 12.x existed; the code recognises the datacenter B100/B200 parts at SM 10.0 and nothing past that. The assertion fires on a supported architecture because the enumeration is stale. This is a detail no official release note tells you, and the fix — upgrading to Triton `25.12-trtllm-python-py3`, which bundles TensorRT-LLM 1.1.0 — is not discoverable from the stack trace. The warning at container startup *was* the discoverable sign, and the correct reading of it is *"you will hit a wall."* Trust that warning.
+
+:::pitfall["May not yet be supported" is the most actionable warning in the log]
+The TRT-LLM 0.17 container prints a benign-looking startup warning about the Spark's GB10. The build then advertises `--gemm_plugin nvfp4` as an option, takes the conversion checkpoint, runs partway through engine compile, and *crashes* with an FP8-FMHA assertion that has no surface relationship to the warning. The actual cause is that SM 12.1 was not yet enumerated in the older container's "Blackwell" check. When NVIDIA's tooling warns about your GPU, treat the warning as the entire diagnosis — pull a newer container immediately rather than chasing the eventual stack trace.
+:::
 
 ### Two engines in a minute each
 
@@ -242,6 +266,10 @@ The delta vs the NIM baseline:
 
 The +10-15% column is the one that motivated this article when we started. The −43% / +76% / +51% column is the one that rewrote the thesis mid-session.
 
+:::math[Where the 4× memory drop comes from]
+8B weights × 2 bytes/weight (BF16) = 16 GB. FP8 halves that to ~8 GB on disk (1 byte/weight); NVFP4 quarters it to ~4 GB (0.5 bytes/weight, group-scaled). At runtime, NIM's vLLM holds 11.2 GiB resident — the FP8 weights plus KV-cache prealloc plus framework overhead. The TRT-LLM NVFP4 server holds 2.5 GiB — 4-bit weights (~5 GB on disk → smaller in unified memory), a tighter KV-cache budget at `kv_cache_free_gpu_memory_fraction=0.4`, and zero framework slack. **11.2 ÷ 2.5 ≈ 4.5×.** That is the gigabytes pgvector and a second model now fit into beside the answerer, on the same 121 GiB pool.
+:::
+
 ## Verification — what success feels like on the DGX Spark
 
 The easiest-to-feel signal is memory. `docker stats` while the NVFP4 server is running returns `2.535GiB / 121.7GiB` — about 2% of unified memory to serve an 8B model at 38 tokens a second. The NIM 8B at idle sits at 11.2 GiB. The difference is not a rounding error; it is the piece of the memory budget that pgvector, a retriever, or the Nsight agent would otherwise have to fight for. On a cluster this would be a cost-per-GPU question; on the Spark it is a *what else fits on this box* question, and NVFP4's answer is "more."
@@ -273,3 +301,14 @@ Sibling articles will cover the same `Triton + TensorRT-LLM` product surface wit
 **Second Brain now:** has a faster brain and more free memory. The 8B generator that answers queries dropped from 7.3 seconds end-to-end to 5.1 seconds, resident memory fell from 11.2 GiB to 2.5 GiB, and the Spark's Blackwell-native FP4 kernel is what made both numbers possible. Next up in this track: **LoRA on your own Q&A pairs** — personalizing the generator on whatever corpus the Second Brain is built for, and measuring whether a cheap adapter beats a bigger base.
 
 The meta-lesson is the one worth carrying. NIM is not a lazy abstraction — it is a deliberately chosen tuning layer that ships NVIDIA's best FP8 recipe for the Spark. Dropping below it is only worth it for things NIM does not do. The +10% FP8 win is not that thing. The **76% NVFP4 win** is — and it exists specifically because Blackwell's SM 12.1 executes 4-bit math in hardware, and the layer above NIM has not yet wired it through. On a personal rig, on one machine, that is exactly the kind of capability worth descending one layer to reach. The rest of the Second Brain arc is going to keep reaching.
+
+:::deeper
+- [TensorRT-LLM repo](https://github.com/NVIDIA/TensorRT-LLM) — source for the engine compiler, `trtllm-build` and `trtllm-serve` CLIs, and the kernel implementations behind the FP8/NVFP4 plugin flags.
+- [Triton Inference Server docs](https://docs.nvidia.com/deeplearning/triton-inference-server/) — for the model-repository ensemble path this article deliberately skipped; the right shape when you outgrow single-model `trtllm-serve`.
+- [NVIDIA ModelOpt](https://github.com/NVIDIA/TensorRT-Model-Optimizer) — the post-training quantization toolkit that produced the FP8 and NVFP4 HuggingFace checkpoints; lets you re-quantize a non-NVIDIA base model to either precision yourself.
+- [Llama 3.1 NVFP4 on HuggingFace](https://huggingface.co/nvidia/Llama-3.1-8B-Instruct-NVFP4) — the un-gated 6 GB checkpoint this article served at 38 tok/s.
+:::
+
+:::hardware[NVFP4 wins compound up the Blackwell ladder]
+On Spark (GB10, ~273 GB/s LPDDR5X-ish unified bandwidth) NVFP4 lifts an 8B Llama from 22 to 38.8 tok/s decode — bandwidth-bound. On B200 (8 TB/s HBM3e), the same NVFP4 recipe lands ~280–340 tok/s on the same 8B model, and the 4-bit kernel keeps scaling: a 70B-NVFP4 still fits comfortably (35 GB engine) and serves at ~80–110 tok/s where 70B-FP8 would barely fit at all. On a B200-rack DGX SuperPOD slice, NVFP4 becomes the *default* precision for inference because it preserves accuracy within sub-1% perplexity and frees the bandwidth for batch-64+ aggregate throughput. The rebuild path this article installs on Spark is the same one that scales to the rack.
+:::

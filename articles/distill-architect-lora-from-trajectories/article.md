@@ -18,6 +18,10 @@ The trajectory file `articles/autoresearch-agent-loop/evidence/trajectory.jsonl`
 
 That trajectory file is *training data*. Each row encodes "given the recent history of attempts, this is what the 8B proposer chose to try next, and this is what happened." Fifty examples of an LLM-driven architectural search policy — generated, by an LLM, on this Spark, for free.
 
+:::define[Distillation from trajectories]
+Training a smaller (student) model to imitate a larger (teacher) model's *decisions*, using the teacher's input/output traces as labelled data. Classical distillation matches the teacher's logits or hidden states; trajectory distillation matches its discrete choices on a recorded run. Here the "trajectory" is 50 proposal-and-outcome rows from an autoresearch agent, and the student is asked to clone the proposer's policy.
+:::
+
 This article asks the small follow-up question: **can a 3B LoRA, trained on those 42 examples (with 8 held out), match or beat the 8B proposer that produced them?** The deliberate frame is that the agent loop in A4 paid 73 minutes of wall and ~0.07 kWh of electricity to produce a corpus. If a small distilled proposer can match the big one, the agent eats its own tail and every campaign feeds the next. If it can't yet, we want to know *why* — corpus size, temperature mismatch, or the distilled model's own bias — and what the next campaign needs to look like.
 
 | measurement | value |
@@ -45,6 +49,10 @@ The autoresearch arc has a recurring claim: a Spark on your desk lets you run *u
 
 The first attempt in this article doesn't deliver the self-improving loop yet. It shows what's missing: more trajectory rows, a smarter sampling strategy, and a serving stack for the distilled model that keeps its inference path fast. All three are local changes — no cloud dependency required. The Spark gives you the substrate; this piece walks the substrate's first mile and reports the trip honestly.
 
+:::why[A trajectory is a free corpus the Spark already paid for]
+An overnight agent run costs roughly $0.07 of electricity and produces a JSONL of decisions you'd otherwise have to label by hand. If a small model can learn from that JSONL, every campaign you run quietly grows the corpus the next campaign trains on. The economic shape changes — instead of "data acquisition" being a separate budget line, it's the byproduct of the experiments you were running anyway.
+:::
+
 ## What's on disk before we start
 
 The article reuses three artifacts from earlier pieces:
@@ -66,6 +74,10 @@ The base model — Qwen2.5-3B-Instruct, [the same one used for the QA-pair LoRA 
 - the **assistant target** is the proposal JSON the 8B produced — `{"knob": ..., "new_value": ..., "reason": ...}`
 
 The output is two JSONL files: `train.jsonl` (iters 1–42) and `test.jsonl` (iters 43–50). The split is **time-ordered**, not random — held-out iters live at the end of the trajectory. This mirrors the deployment scenario: at inference time a future proposer will see *all* history up to now and be asked to propose the next move.
+
+:::define[Time-ordered hold-out]
+A train/test split where the test set is the chronological tail of a stream rather than a random sample. The model never sees future iters during training, only past ones — which matches how it will actually be used at inference. Random splits leak information backwards (the model sees iter 50's effect on iter 30's prompt) and overstate generalisation on time-series data.
+:::
 
 ```python
 # from evidence/prepare_corpus.py
@@ -92,7 +104,15 @@ Hold-out balance: of 8 keep decisions in the 50-iter trajectory, 5 land in train
 - **`max_length=2048`**, not 1024 — the agent's user prompt is ~1700 tokens before the chat template adds boilerplate, and we need the assistant target to survive truncation
 - **assertion on supervised-token count** — the to_chat collator now verifies every row has at least one un-masked token in the labels span. The first run reported `loss=0.0` on several batches and `eval_loss=nan` because the 1024-token cap was clipping the assistant span entirely. The assert was added before the second run.
 
+:::pitfall[`max_length` clips the answer, not the question]
+SFT collators truncate from the right. If the prompt fills `max_length` first, the *assistant target* gets clipped to zero supervised tokens — loss computes as 0.0 on those rows and the model trains on nothing. The eval-loss=nan that follows is silent: it doesn't crash, the run looks fine, the adapter just doesn't learn the answer span. Always assert at least one un-masked label token per row before kicking off the optimizer.
+:::
+
 Training ran inside `nvcr.io/nvidia/tritonserver:25.12-trtllm-python-py3` on the Spark's GB10. 30 optimizer steps, ~9 sec each, **3.9 minutes wall**, 0.961% of params trained.
+
+:::math[Why 42 rows fit in 30 optimizer steps]
+42 train rows ÷ batch 8 = 5.25 → 6 steps per epoch. 6 × 5 epochs = 30 steps. At ~9 sec each that's 270 sec ≈ 4.5 min — close to the 3.9 min wall. The loss curve flattens by epoch 3, which is the data telling you it has run out of signal long before it runs out of compute. More epochs on this corpus would just memorise the 5 training-set keeps harder.
+:::
 
 ```text
 loaded in 37.9s, params=3.09B
@@ -118,6 +138,10 @@ Eval loss converges by epoch 3 and stays there. With 42 training examples that's
 1. **Validity** — does the output parse as `{knob, new_value, reason}`, with `knob` in the menu and `new_value` in the declared range/choices?
 2. **Behavioral cloning** — does the proposer pick the same `knob` (looser) or the same `(knob, new_value)` pair (stricter) as the agent's actual next-tried iter?
 3. **Throughput** — wall-clock seconds per proposal. The 8B NIM rounds-trip through HTTP; the 3B LoRA runs in-process via Hugging Face `generate()` with bf16 weights.
+
+:::define[Behavioral cloning]
+Imitation learning where the student matches the teacher's actions on a recorded distribution of states — no reward signal, no environment interaction. The objective is straight cross-entropy on the teacher's output. It's the simplest form of policy distillation and the right baseline before reaching for DAgger, RLHF, or reward-modelling. Cheap to train, brittle when the deployment distribution drifts off the recorded one.
+:::
 
 The script doesn't run the 60-step trainer harness on novel proposals — that would add ~10 min and risk GPU contention with NIM 8B running. Instead, it cross-references the proposed cfg against the trajectory: if a proposed `(knob, value)` was already tried somewhere in the 50 iters, we know its `val_bpb`. Otherwise we report it as novel. (For these 8 held-out histories, the distilled proposer kept landing on cfgs that *had* been tried earlier in the trajectory — every one of its picks was inside the first 35 iters' menu of attempted values.)
 
@@ -145,6 +169,10 @@ The 3B distilled proposer's behavior is the telling part. It picked **`d_model=7
 
 That mode-collapse onto the dominant winning move is the single sharpest finding in this article. With 42 examples, 5 of which all carry the same target (`d_model=768`), a LoRA at rank 16 cannot resist becoming a `d_model=768` machine. It learned an outcome-conditioned association ("this pattern was kept") but not the meta-policy ("vary the knob each iter").
 
+:::define[Mode collapse]
+A trained generative model that produces the same (or near-same) output regardless of input. In SFT it's the failure mode where the loss happily decreases as the model concentrates probability mass on the most-frequent training target. Looks like convergence on the loss curve and like a broken model on the eval set. The fix is corpus diversity, not a different optimizer.
+:::
+
 ## Tradeoffs and what they mean
 
 - **42 examples is small.** This is the corpus-size lesson the article delivers most clearly. A LoRA cannot learn a multi-knob exploration policy from 42 examples where five training-set wins all carry the same target value. The path to "distilled wins" is more trajectory data, not a different rank or a different schedule — and "more trajectory data" is what an A4-style overnight campaign generates if you just keep running it.
@@ -162,6 +190,17 @@ The methodology and plumbing — corpus prep, training, race harness, calibratio
 3. **A serving-side LoRA article** (deployment-stage) builds either vLLM-with-LoRA or TRT-LLM-with-`--lora_plugin` on top of an FP8 Qwen base, then re-runs Phase 3's throughput measurement. The expectation is the 4-5× speedup the HANDOFF originally projected.
 
 The agent eating its own tail is still the right shape. The first bite was small.
+
+:::deeper
+- [QLoRA paper (Dettmers et al., 2023)](https://arxiv.org/abs/2305.14314) — the canonical reference for low-rank adapter training; the recipe transferred here.
+- [DAgger (Ross et al., 2011)](https://arxiv.org/abs/1011.0686) — the imitation-learning paper that shows why pure behavioral cloning brittle-collapses on the deployment distribution, and the standard fix.
+- [`autoresearch-agent-loop`](/field-notes/autoresearch-agent-loop/) — sibling article producing the trajectory this LoRA trains on.
+- [`lora-on-your-own-qa-pairs`](/field-notes/lora-on-your-own-qa-pairs/) — the recipe this article inherited (rank, schedule, target modules) before the corpus differences.
+:::
+
+:::hardware[A 200-row campaign that costs $0.30 of electricity, anywhere]
+The Spark turned 73 minutes of GB10 time into 50 trajectory rows for ~$0.07 of grid power. On an H100, the same trainer harness runs ~3-4× faster — same trajectory in ~20 min, different cost shape because you're paying $3-4/hr for the GPU. On an H200 or B200 the trainer's per-step time matters less than data-loading and CPU prep; the trajectory volume per dollar is roughly 5-8× the Spark's. The interesting line item to procure isn't FLOPS, it's *uninterrupted overnight time at low marginal cost* — and that's the line item the Spark wins on every day.
+:::
 
 ## State of the apps
 

@@ -24,6 +24,10 @@ Agent sandboxing is usually discussed in an enterprise frame — compliance, SOC
 
 A DGX Spark intensifies that tension. It's enough computer to run real agentic workloads, but it's *also* your development machine — the same box that holds your drafts, your credentials, your browser profile. You don't get to spin up a fresh VM for each experiment; the machine is the environment. Sandboxing *on the edge* is different from sandboxing *in a datacenter*: the cost-benefit math has to be legible to you, personally, within minutes — not amortized across a fleet.
 
+:::why[Edge sandboxing is one-machine blast radius, not one-tenant compliance]
+Datacenter sandboxing optimizes for *isolation between tenants* — the cost of a leak is regulatory, the constraints are SOC2 and per-customer keys. Edge sandboxing optimizes for *isolation from yourself*: the same machine holds the agent and the human's credentials, drafts, browser profile, and SSH keys. The cost of a leak is "I lost my own machine for an afternoon." The right primitive is Landlock + seccomp on one box, not a per-tenant control plane on a fleet — and that's exactly the shape NemoClaw ships.
+:::
+
 That's the question this piece really answers. Not "how do I install NemoClaw" — the [official instructions](https://build.nvidia.com/spark/nemoclaw/instructions) do that competently. The question is: *as a personal power-user, is the sandbox cheap enough to default to?* For my workload, on this machine, it is. Here's how I got to that answer — and, along the way, the reusable method I built for absorbing product docs into a Claude Code skill so the next install (of the next agent product) goes the same way.
 
 ## Where these two products sit on the map
@@ -32,7 +36,19 @@ NemoClaw and OpenClaw are the kind of near-homophones that, combined with shared
 
 **OpenClaw** is a personal AI agent CLI (previously known as Clawdbot / Moltbot). Ollama ships it as a first-class integration target: `ollama launch openclaw` installs it if missing, starts a local gateway on `127.0.0.1:18789`, opens a TUI. It runs on the host. There's no sandbox. If an agent tool call does `rm -rf ~`, it reaches your home directory.
 
+:::define[Agent CLI / personal AI agent]
+A program that wraps an LLM in a *tool-use loop*: the model receives a user prompt, decides whether to answer directly or call a tool (`run_shell`, `read_file`, `web_search`), the harness executes the tool, the model sees the result, decides the next step, repeats. OpenClaw's tools are deliberately broad (full shell, full filesystem, network) — that breadth is what makes it useful and what makes the sandbox question matter. The framework itself is not the model; it's the *scaffolding* that turns a model into something that does work.
+:::
+
 **NemoClaw** is NVIDIA's productization of the same OpenClaw agent, wrapped inside an **OpenShell sandbox**. OpenShell contributes a Docker-hosted k3s mini-cluster called a "gateway," a Landlock + seccomp + netns triple around each sandbox container, and a service mesh that lets the agent reach the host Ollama through a named TLS route (`https://inference.local/v1`) instead of talking to the network directly. NemoClaw also folds in its own Telegram bridge and a policy system for what the sandbox can reach out to. Same agent; a very different containment model.
+
+:::define[Landlock + seccomp + netns]
+Three Linux kernel containment primitives composed into the sandbox boundary. **Landlock** is a per-process filesystem firewall: the sandbox declares which paths it may read or write, and the kernel enforces it without root. **seccomp** filters which syscalls the process is allowed to make; one bad call returns `EPERM` instead of executing. **netns** (network namespaces) gives the container its own routing table and network stack, so it can reach the gateway and nothing else. Together they make a tool call's blast radius bounded *by the kernel*, not by the agent's good behavior.
+:::
+
+:::define[OpenShell sandbox + k3s gateway]
+OpenShell is a Docker-orchestrated mini-cluster of one node — a k3s control plane plus the sandbox container itself. The "gateway" is the k3s ingress that lets the sandbox reach allowlisted external services through named routes (`inference.local`, `huggingface.local`) without seeing the underlying IPs. From the sandbox's perspective there is no internet; there is only the gateway's curated routing table. From the host's perspective there is one Docker network and one auth proxy.
+:::
 
 Both stacks ultimately call the same Ollama process on the host:
 
@@ -106,6 +122,14 @@ Both stacks ultimately call the same Ollama process on the host:
 
 The auth proxy on 11435 is the wiring the NemoClaw captured docs mostly skip over: it injects tokens so the sandbox's requests can be audited and policy-filtered without the sandbox itself knowing about Ollama's (otherwise open) API. It's the "why is this more than just Docker" answer in one process.
 
+:::deeper
+- [NemoClaw build.nvidia.com playbook](https://build.nvidia.com/spark/nemoclaw/instructions) — the official Spark-specific install walkthrough.
+- [Landlock LSM (kernel.org)](https://docs.kernel.org/userspace-api/landlock.html) — the unprivileged filesystem sandbox primitive Landlock-policy uses.
+- [seccomp-bpf overview (kernel.org)](https://docs.kernel.org/userspace-api/seccomp_filter.html) — the syscall-filter primitive composed alongside Landlock.
+- [k3s docs](https://docs.k3s.io/) — the in-Docker mini-cluster control plane that hosts the OpenShell gateway.
+- [Ollama OpenClaw integration](https://ollama.com/openclaw) — the host-side counterpart this article A/B's against.
+:::
+
 ## Turning docs into a skill, before turning a skill into an install
 
 The meta-move that made this install clean — worth naming before I walk through the install itself — was building a Claude Code skill out of NemoClaw's documentation *first*, then running the install *through* that skill.
@@ -147,6 +171,10 @@ sudo systemctl restart ollama
 
 The non-obvious bit: **don't** use `ollama serve &` to apply the new binding. A manual-start Ollama won't pick up the `OLLAMA_HOST` from the systemd drop-in, the sandbox silently can't find it, and the install wizard's "connection to inference" smoke test hangs. After the restart, `ss -ltnp` shows the listener move from `127.0.0.1:11434` to `*:11434` — call out on a trusted LAN that this does widen Ollama's exposure; if you're on a less-trusted network, bind to the Docker bridge IP instead.
 
+:::pitfall[`ollama serve &` ignores the systemd drop-in]
+The drop-in only takes effect when systemd starts the unit; a manual `ollama serve &` reads only its own environment. The wizard's smoke test then connects to a loopback-only listener and hangs forever with no useful error. Restart through `systemctl restart ollama` *after* the drop-in lands, and verify with `ss -ltnp | grep 11434` that the listener moved off `127.0.0.1`. Skipping that verification is one of the most expensive 30 seconds you can save.
+:::
+
 **Fix Docker's cgroup namespace.** DGX Spark runs cgroup v2; OpenShell's in-Docker k3s needs host cgroup namespace access or it fails to start its container manager. The fix merges into `/etc/docker/daemon.json`:
 
 ```json
@@ -183,6 +211,10 @@ Dashboard: http://127.0.0.1:18789/#token=<64-hex-token>
 ```
 
 The token is an anti-CSRF gate, not an account password. It's bound to the install; rotate via `nemoclaw <sandbox> config rotate-token` if you ever need to. And the dashboard is origin-checked against the exact string `127.0.0.1` — `localhost` will be rejected. Obvious once you know, non-obvious until you've been bitten.
+
+:::pitfall[`localhost` is a different origin from `127.0.0.1`]
+The dashboard's CSRF check matches the literal string, not the resolved address. `http://localhost:18789/` and `http://127.0.0.1:18789/` are the same TCP destination but different *origins* under browser same-origin policy, and the dashboard rejects the former with a 403 that surfaces as a blank page. Bookmark the IP form. The token isn't broken; the origin check is doing exactly what it should.
+:::
 
 ## What success feels like, and one small paradox
 
@@ -349,6 +381,10 @@ NemoClaw auth-proxy :11435:         0.711 / 0.719 / 0.683 s  → p50 ~700 ms
 
 Three warm runs each, 8-token reply, `curl -w %{time_total}`. **The auth-proxy hop adds ~20–30 ms per request.** That's a small enough fraction of the ~26-second steady-state tax that I can finally say where the rest is going: OpenAI-compat wrapping, k3s routing, and OpenClaw's own session and tool-loop overhead inside the container. The network is not the bottleneck. The agent framework is.
 
+:::math[The 20 ms hop in the 26 s tax]
+Auth-proxy adds ~20 ms per request. A typical agent turn fires ~3 inference calls (planner, tool-result summarization, final response) — total proxy overhead per turn ≈ 60 ms. The steady-state sandbox tax is ~26 s. So the proxy accounts for **60 / 26,000 ≈ 0.2 %** of the wall-time gap. The other 99.8 % is OpenAI-compat shim + k3s routing + OpenClaw's session machinery. Optimizing the network layer would buy you nothing meaningful; optimizing the framework would buy you back the wall.
+:::
+
 While I was already poking, I pulled the actual model params for the two weights present on this Spark:
 
 | Model | Arch | Params | Context | Quant | Eval tok/s | Cold load |
@@ -359,3 +395,7 @@ While I was already poking, I pulled the actual model params for the two weights
 Both carry `completion + tools + thinking` capabilities; both sit well above OpenClaw's documented 64k-context floor.
 
 The takeaway for a solo builder on one Spark: **"NemoClaw feels slower" is usually a model-pinning story, not a sandboxing story.** `clawnav` is pinned to Nemotron (22 tok/s); a fresh host `ollama launch openclaw` would happily pick `glm-4.7-flash` (~3× the throughput, ~5 s faster off cold start). Rebuild the sandbox on the smaller model and you get OpenClaw-class responsiveness *inside* the sandbox. The choice between the two stacks should be about isolation versus host access — not perceived throughput.
+
+:::hardware[Same sandbox, frontier inference under it]
+The 26-second sandbox tax decomposes into ~20 ms auth-proxy + ~26 s of agent-framework overhead + ~26 s of raw inference. Move the inference layer to an H100 80 GB and the 22 tok/s Nemotron becomes ~110 tok/s — raw inference drops from 26 s to ~5 s, and the agent framework overhead becomes the dominant term (~5× the inference cost). On an H200 (4.8 TB/s HBM3e) the asymmetry sharpens further. The sandbox boundary itself doesn't move; what changes is *which side of the boundary* dominates the wall. On Spark, sandboxing and inference cost roughly the same. On a frontier accelerator, inference is free and the sandbox is the wall.
+:::

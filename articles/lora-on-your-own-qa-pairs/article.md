@@ -30,6 +30,14 @@ This piece ran the experiment honestly. A Qwen2.5-3B-Instruct base. Two hundred 
 
 The big win is the refusal column. Base Qwen2.5-3B literally does not know anything about the `nvidia-learn` project — the articles are private, were written in April 2026, and were never in its training data. Asked what TTFT NVFP4 achieved on the GB10 Spark, it gives the honest correct answer of "the articles don't specifically mention that" and hedges. Asked about `pgvector` port configuration or `NIM_GPU_MEM_FRACTION` defaults, same story. Sixty-one percent of its answers contain some form of "not directly provided", "one would need to refer to the documentation", or "this isn't detailed in the passage". That is the right epistemic behaviour for a model facing a knowledge hole.
 
+:::define[LoRA — Low-Rank Adaptation]
+Inject two small trainable matrices A (down-projection, rank r) and B (up-projection) into each linear layer of a frozen base model, with the effective weight delta being `B·A`. At rank 16 across all linear targets, the adapter is ~1% of the model's parameter count. Train only A and B; the base never moves. Hu et al., 2021 (`arxiv.org/abs/2106.09685`).
+:::
+
+:::define[PEFT — Parameter-Efficient Fine-Tuning]
+The umbrella for fine-tuning methods that train far fewer parameters than the base model — LoRA, QLoRA, prefix-tuning, IA3, prompt-tuning. Hugging Face's `peft` library is the de facto Python implementation; `LoraConfig` / `PeftModel.from_pretrained` are the two API surfaces this article uses. The point: keep the base frozen so the optimizer state bill collapses 100×.
+:::
+
 The adapter collapses that hedging completely. Zero answers in the held-out set contain a refusal phrase. Every question gets a confident, terse answer. Often correct — judge score of 4 or 5 doubled from four pairs to eight, and the previously non-existent "perfect" band filled with four crisp hits. But also sometimes confidently wrong, and this is the part worth dwelling on: the model does not *know* more after the LoRA than before. What changed is its willingness to state, not its access to facts.
 
 That is the finding. The rest of this article is what it means, how the experiment was shaped, and why the result should reshape how you think about combining fine-tuning with the RAG stack the earlier Second Brain articles built.
@@ -103,6 +111,10 @@ The small insight: *the article's thesis does not care what the base model is*. 
 
 There is also a cleaner story at inference time. Serving a LoRA adapter on the *exact same FP8 weights that NIM ships* requires rebuilding either TRT-LLM with `--lora_plugin` or vLLM with `--enable-lora` on top of a ModelOpt-quantized base — both possible, both measurable, neither the point of a first fine-tuning article. Training against a clean bf16 Qwen and then attaching the adapter with one call to `PeftModel.from_pretrained(base, adapter)` keeps the experiment isolated. The serving-side multi-LoRA story is a deployment-stage article, not a fine-tuning one.
 
+:::why[FP8-quantized weights are not a training target]
+LoRA matmuls compute the adapter delta in the base model's own dtype — that's the whole point of dequantizing on the fly. When the base ships in FP8 with E4M3 weights and F32 scales, the gradient flowing through the adapter passes through a non-differentiable quantization boundary. You'd have to dequant to bf16 first, train against that approximation, then re-quantize at deploy time — and the serving stack is bit-exact to the FP8 base, not to the bf16 one you trained against. Fine-tune on the bf16 reference; deploy by attaching the adapter to whatever base the serving stack actually has.
+:::
+
 ## Generating 275 Q&A pairs from your own prose
 
 The corpus is the article. This is the Second Brain after all — the training data is the project's own accumulated writing, not a borrowed Stack Exchange dump. Eleven published articles, ~38,000 words, walking through every stage from the day-one DGX Spark setup to last session's NVFP4 engine build.
@@ -157,6 +169,14 @@ lora_cfg = LoraConfig(
 
 Rank 16 across all the linear layers in both attention and MLP blocks. That is **29.93 million trainable parameters** on top of a **3.09 billion parameter** frozen base — 0.96% of the model, 120 MB on disk when saved out. Loss masking was manual: the system + user prompt get `-100` labels so only the assistant's answer tokens contribute to the loss. Three epochs of bf16 SFT with gradient checkpointing, batch 4, grad-accum 2, cosine schedule, peak lr 2e-4, seed 42.
 
+:::define[SFT — Supervised Fine-Tuning]
+Training a base language model on `(prompt, response)` pairs with the standard next-token cross-entropy loss, with the prompt tokens *masked out* so only response tokens contribute gradient. The simplest fine-tuning method — what every chat-tuned model starts with before RLHF / DPO. "Supervised" because each example has a single labeled correct response; distinct from preference-tuning where you have *pairs* of responses with a relative ranking.
+:::
+
+:::define[Gradient checkpointing]
+Trade compute for memory: instead of caching every layer's forward activations for backward use, only save activations at sparse "checkpoints" and recompute the intermediate ones during backward. Halves the activation memory bill at a ~30% compute tax. On an 8B+ base on Spark, often the difference between "OOM" and "fits with margin"; on a 3B base it just buys a bigger micro-batch.
+:::
+
 I stopped the 8B NIM for the training run (freed ~10 GiB of unified memory) and left the 1B embedding NIM up. Headroom during training: ~20 GiB peak GPU memory.
 
 Training run:
@@ -203,6 +223,10 @@ Base Qwen2.5-3B's mass lives in the lower bins. Twelve refusals (score 0), twent
 The adapter shifts the distribution upward. Refusals drop from 12 to 3. Directionally-correct answers (score ≥ 3) climb from 6 to 16 — more than doubling. The previously-empty score-5 band fills with four perfect hits. And the mean score climbs from 1.23 to 2.00 out of 5.
 
 But look where the mass *stays*. The score-1 bin (confidently wrong) barely moves — 20 → 22. This is the honest failure mode of the adapter and it deserves its own paragraph.
+
+:::math[Why 30M adapter params can't memorize 275 numeric facts]
+30M trainable params × 2 bytes (bf16) = 60 MB of effective parameter capacity. 275 facts × ~10 tokens each × 2 bytes per token-embedding overlap ≈ ~5.5 KB of *information* — well below 60 MB in raw bits. But the adapter doesn't store facts as KV-pairs; it stores low-rank deltas to the model's full output distribution. Memorizing requires a fact's loss gradient to push specific weights toward specific values *more strongly than competing examples push them elsewhere*. With 231 training pairs averaging 3 epochs each = 693 gradient signals per fact, the optimizer never finds the configuration that pins exact numerals. Voice transfers; values don't.
+:::
 
 ### The honest failure mode: confident hallucination
 
@@ -258,6 +282,10 @@ Concepts that did not transfer:
 - **Non-obvious proper nouns.** The adapter sometimes swaps `NemoClaw` for `NeMo Guardrails`, `trtllm-serve` for `trtllm-cli` — adjacent, wrong.
 - **Longer-form rationale.** The adapter's answers collapsed from 70 tokens to 9 — it has learned to *stop writing* when a terse answer is plausible, which is good for style and bad when the question actually wants a paragraph.
 
+:::pitfall[A LoRA adapter is a voice layer, not a knowledge layer]
+The score-1 (confidently wrong) bin barely moves: 20 → 22. The adapter learned the *shape* of an answer (port number, GiB count, ms latency) without learning the *value* of any specific instance. Treating fine-tuning as a knowledge-injection method on small corpora is the most common LoRA error in production — the model becomes *more* confident, less likely to refuse, and *no more accurate*. Use RAG for facts; reserve fine-tuning for tone, vocabulary, and answer shape.
+:::
+
 ## Why this matters for the Second Brain
 
 The Second Brain arc was built on RAG first. [`pgvector-on-spark`](/field-notes/pgvector-on-spark/) was the vector store; [`nemo-retriever-embeddings-local`](/field-notes/nemo-retriever-embeddings-local/) was the embedding surface; [`naive-rag-on-spark`](/field-notes/naive-rag-on-spark/) was the first end-to-end answer pipeline; [`rerank-fusion-retrieval-on-spark`](/field-notes/rerank-fusion-retrieval-on-spark/), [`bigger-generator-grounding-on-spark`](/field-notes/bigger-generator-grounding-on-spark/), and [`guardrails-on-the-retrieval-path`](/field-notes/guardrails-on-the-retrieval-path/) hardened it. That entire stack exists because *the facts live in the corpus*, and the job of retrieval is to put the right facts in front of the model at query time.
@@ -287,6 +315,13 @@ For scale — multiple adapters per base, hot-swapping across concurrent request
 
 That is the deployment-stage article, not this one. What this one earns is the right statement of scope: on a personal DGX Spark, you can iterate on a LoRA adapter over lunch, attach it at inference time in a second, and see a measurable shift in model behaviour on your own terrain — without any of the multi-node complexity the LoRA literature is usually wrapped in.
 
+:::deeper
+- [LoRA paper (Hu et al., 2021)](https://arxiv.org/abs/2106.09685) — the original low-rank-adaptation result; rank, alpha, target-module choices.
+- [Hugging Face `peft` library](https://github.com/huggingface/peft) — the canonical Python implementation, with `LoraConfig` and `PeftModel` API surfaces this article uses.
+- [`gpu-sizing-math-for-fine-tuning`](/field-notes/gpu-sizing-math-for-fine-tuning/) — sibling Looking-Beyond-Spark piece that scales this 3B/20 GB measurement up to 100B/250 GB on H100s.
+- [QLoRA paper (Dettmers et al., 2023)](https://arxiv.org/abs/2305.14314) — the 4-bit-base extension that fits 100B fine-tunes on a single H200.
+:::
+
 ## Reproducibility
 
 Full artifact list under [`articles/lora-on-your-own-qa-pairs/evidence/`](./evidence/):
@@ -306,3 +341,7 @@ Full artifact list under [`articles/lora-on-your-own-qa-pairs/evidence/`](./evid
 The `adapter_model.safetensors` (120 MB) is not committed; rebuild it from the JSONL and scripts if you want it. The whole loop, from blank directory to graded benchmark, runs in under 45 minutes on a DGX Spark with NIM 8B already up. Most of that is the 6 GB base-model download on first run.
 
 The foundation for this article is the Second Brain RAG stack the earlier articles built, and the finding flows back into it: the adapter is a voice layer, not a knowledge layer, and it sits *behind* a retrieval chain that handles the facts. The next article in the arc picks up where this one ends — evaluating the full RAG+LoRA stack against held-out questions with a proper framework, not a one-off judge prompt.
+
+:::hardware[Same 30M-param adapter, frontier coefficients]
+At 3B base bf16 + 30M rank-16 adapter, peak GPU memory was ~20 GiB and training took 69 s on the GB10. Scale the adapter math: a 70B base + 0.7B trainable adapter (1% of params) on bf16 weights = 140 GB base + 8 GB adapter + 8 GB gradients + 12 GB optimizer + 30–60 GB activations ≈ 200–230 GB peak — fits on 4× H100 80 GB with FSDP. A 100B base on the same recipe is ~250 GB peak, the same configuration on 8× H100 with room to spare. Spark's 20 GB measurement is the bottom rung of a memory ladder whose constants you can read off this article's recipe.
+:::

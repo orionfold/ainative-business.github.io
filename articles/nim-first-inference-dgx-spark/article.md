@@ -18,6 +18,10 @@ The first "does it work" test on any new inference stack is almost always a triv
 
 Both facts are the article. The Spark-specific NIM container is the easiest on-device inference endpoint I've stood up — 108 seconds from `docker run` to a responsive OpenAI-compatible API, weights cached on a writable volume you control, no cloud hop, no bill. At 8 billion parameters quantized to FP8, the model is fast enough to feel instant and confident enough to be wrong about things it should not be wrong about. If you're evaluating this stack as a drop-in local replacement for a cloud LLM, both numbers matter. This is also the foundation piece for three applications I'll build on this machine over the next few months — a Second Brain that RAGs over my own corpus, an LLM Wiki that compiles a markdown knowledge base at ingest time rather than answering queries live, and an Autoresearch agent that runs overnight training experiments unsupervised. All three start with one inference endpoint. This is that endpoint, honestly assessed.
 
+:::define[NIM — NVIDIA Inference Microservices]
+NVIDIA's container-packaged inference services. Each NIM bundles model weights, a tokenizer, prompt templates, an OpenAI-compatible HTTP server, and a tuned engine (vLLM or TensorRT-LLM, picked at runtime to match the host hardware). One `docker run` produces a working `/v1/chat/completions` endpoint — no engine choice, no quantization plumbing, no per-token bill.
+:::
+
 ## Why this matters for a personal AI builder
 
 Three concerns collapse into one question the moment you put inference on a Spark: **privacy, independence, and latency-of-iteration.** A cloud API answers in 200 ms if you're lucky, 2.5 s if you're not, bills per token, and routes every request through a machine that can log, cache, or use your prompts as training signal. A local NIM answers in milliseconds-to-seconds, costs zero marginal dollars per call, and never leaves the box. For the kind of personal-corpus work I want to do on this machine — feeding it my own notes, my own code, my own chat logs — the economics flip. The model comes to the data, not the other way around.
@@ -90,6 +94,10 @@ NIM is not a new inference engine. It's NVIDIA's packaging layer around existing
   <figcaption>One-time flow on the left; the endpoint on the right is where everything downstream — RAG generators, agent loops, editor plugins — connects.</figcaption>
 </figure>
 
+:::why[The OpenAI dialect is the lingua franca of local inference]
+NIM, vLLM, SGLang, llama.cpp, LM Studio, Ollama, and every editor plugin built since 2023 speak the same `/v1/chat/completions` shape. Treating that shape as the contract — not whichever engine produced it — means you can swap a 49B Nemotron in for the 8B Llama at any time without changing a single line of client code. The endpoint is the API; everything behind it is interchangeable.
+:::
+
 That endpoint is the thing. Once it's pinned, the rest of the three-app arc is plumbing around it.
 
 ## The journey
@@ -113,6 +121,10 @@ LISTEN 0 4096 *:11434  users:(("ollama",...))
 ```
 
 Docker is recent; the `nvidia` runtime is registered. Port 8000 is unclaimed — NIM's default. Port 8080 is held by a NemoClaw sandbox from a prior article; port 11434 by Ollama serving a 123B Nemotron I'll benchmark against. Disk has three terabytes free; a 10 GB pull is a rounding error. The blocker was credentials: NGC requires an API key to pull anything from `nvcr.io`, and I had none — no `~/.ngc/`, no environment variable, no `docker login` entry for that registry. Fifteen minutes at build.nvidia.com, a new personal key, one `docker login nvcr.io`, and the blocker dissolved.
+
+:::define[NGC — NVIDIA GPU Cloud]
+NVIDIA's container and model registry at `nvcr.io`. Pulling any NIM image requires an NGC API key (free; created at `build.nvidia.com`), and the key has to be supplied in *two* places: once to the Docker daemon (`docker login nvcr.io`) for the image pull, and once to the running container (via env-file) so it can fetch model weights with its own credentials at startup. Setting up only the daemon's auth is the most common first-time blocker.
+:::
 
 One Spark-specific surprise showed up on the `nvidia-smi` line and foreshadows a later gotcha: `nvidia-smi --query-gpu=memory.total,memory.used --format=csv` returns `[N/A]` on GB10. Unified memory on Grace-Blackwell is OS-managed rather than driver-reported, so NVIDIA's canonical GPU-memory query returns nothing useful. I noted it and kept going; we'll see it bite again during verification.
 
@@ -173,6 +185,21 @@ INFO Uvicorn running on http://0.0.0.0:8000
 
 Two facts from those logs are worth naming. First: **vLLM, not TensorRT-LLM.** NIM is a packaging layer; the actual engine depends on the profile the container matched against the hardware it found. On GB10, with FP8 weights available, the Spark variant lands on vLLM's FP8 path rather than TRT-LLM. Second: **FP8 precision**, confirmed via the profile tag. That's what keeps an 8B model comfortably fast on a single Spark — lower precision means lower memory bandwidth per forward pass and larger batches for the same KV-cache budget.
 
+:::define[FP8 quantization]
+Storing each parameter in 8 bits (1 byte) instead of 16-bit BF16 (2 bytes) — half the memory, half the bandwidth per forward pass. An 8B model becomes ~8 GB instead of ~16 GB. On Blackwell (Spark's GB10), FP8 has hardware support so the speed gain is real, not just memory savings. The accuracy hit on chat-class tasks is sub-1% perplexity; on tight code-generation prompts it is occasionally not — see the quality problem below.
+:::
+
+:::define[vLLM]
+Open-source LLM inference engine introduced with the PagedAttention paper (Kwon et al., 2023). Manages KV-cache memory in 16-token blocks instead of pre-reserving the worst case per request, raising effective concurrency 2–4× over pre-paged stacks. NIM picks vLLM as the engine when an FP8 path exists for the matched profile — on the Spark, it does.
+:::
+
+:::deeper
+- [vLLM + PagedAttention paper (Kwon et al., 2023)](https://arxiv.org/abs/2309.06180) — the engine NIM picks here, and why its KV management is the load-bearing serving win.
+- [NVIDIA NIM documentation](https://docs.nvidia.com/nim/) — full surface area for `NIM_*` environment variables and the model catalog.
+- [Llama 3.1 model card](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/MODEL_CARD.md) — the architecture (32 layers, 8 KV heads, GQA-4) the FP8 build is quantizing.
+- [KV-cache arithmetic at inference](/field-notes/kv-cache-arithmetic-at-inference/) — sibling article on the load-bearing memory term that decides serving capacity.
+:::
+
 ### Restart — 108 seconds
 
 I killed the container and restarted it without removing the cache volume:
@@ -219,6 +246,10 @@ Wall-clock timed by `date +%s%N` around each curl:
 
 **Mean: 24.84 tokens per second.** Steady enough that I double-checked the container wasn't returning cached responses — it wasn't; every prompt re-enters vLLM's generation loop. Variance across rounds is entirely output-length variance; throughput per token is within 0.2 tok/s across runs.
 
+:::math[24.8 tok/s, in human terms]
+A token is ~0.75 words for English; an average reader sustains ~5 words/s. So 24.8 tok/s ≈ 18.6 words/s ≈ 3.7× human reading speed — the answer streams faster than your eyes can scan it. A 250-token reply takes ~10 seconds end-to-end; a 50-token one, ~2 seconds. Cloud GPT-class models stream at ~30–80 tok/s, but their 200–2,500 ms TTFT swallows the gap before any tokens arrive. Spark's 52 ms TTFT is the term that makes this *feel* local.
+:::
+
 One streaming round confirmed what this stack actually feels like from a client's perspective:
 
 ```bash
@@ -249,6 +280,10 @@ def fibonacci(n): return (pow([[1, 1], [1, 0]], n - 1, mod=10**9 + 7))[0][0]
 ```
 
 Every part of that line is wrong. Python's built-in `pow(x, y, z)` takes three *scalars* for modular exponentiation; it does not accept a list-of-lists and has no defined matrix-exponentiation behavior. There is no `mod=` keyword argument — the modulus is the third positional parameter. The function raises `TypeError` on the first call. Any reader can verify this in a local Python REPL in five seconds.
+
+:::pitfall[`temperature=0` is not a correctness lever]
+Greedy decoding picks the *most likely* next token, not the *most correct*. If the model's probability mass is concentrated on a wrong answer — the case here — lower temperature commits to it harder and emits the wrong token with no hesitation. Temperature controls *diversity*, not *accuracy*. For prompts where correctness matters, reach for a bigger model, structured generation, or a verifier loop — not a lower temperature. The temperature dial is for stochasticity, not for steering toward truth.
+:::
 
 This is the article's hero moment: at temperature=0, the Llama 3.1 8B FP8 model on NIM produces **confidently incorrect Python on a trivially-verifiable prompt.** A human who knew the answer would write:
 
@@ -281,6 +316,10 @@ Running `curl http://localhost:8000/v1/models` and watching JSON come back is "w
 
 **Third,** and the thing that matters most for the essay: I can run the benchmark, `docker stop nim-llama31-8b`, close the laptop lid, come back tomorrow, `docker start nim-llama31-8b`, and be back at 24.8 tok/s in about sixty seconds (no rebuild, just the JIT-reload path). The rig is a **persistent endpoint**, not a demo. That persistence is what unlocks everything downstream.
 
+:::why[A persistent endpoint is what unlocks downstream apps]
+A demo container that takes 3 minutes to start each session forces every downstream app — RAG pipelines, agent loops, editor plugins — to either keep it warm or pay the cold-start every time. A persistent endpoint that survives `docker stop` + `docker start` in 60 seconds and is reachable from anything on the LAN, all the time, turns *"inference on demand"* into *"inference always-on, just here"*. That shift is what lets the next eight articles be about RAG, retrieval, guardrails, and agents rather than about keeping an LLM warm.
+:::
+
 ## Tradeoffs and surprises
 
 **The Spark NIM is secretly a workbench, not just an inference endpoint.** `docker inspect` on the image shows `ExposedPorts` for `6006/tcp` (TensorBoard) and `8888/tcp` (JupyterLab) in addition to `8000/tcp` (the HTTP API). These are *declared* but not mapped unless you `-p` them explicitly, so the default launch just serves the API. But the image ships noticeably heavier than a bare inference container to carry those tools. The *"Model NIM as workbench"* framing is genuinely different from how NIM was originally pitched — worth noting if you expect a minimal serving-only image.
@@ -310,5 +349,9 @@ The caveat for all three, learned honestly today: **code prompts are not the saf
 The DGX Spark makes one quietly ironic thing easy that cloud never did: getting an inference endpoint close enough to your data and your editor that the LLM *feels* like a local function call. 108 seconds to warm, 52 milliseconds to first token, zero marginal cost per call. The Spark-specific NIM ships the entire bundle — image, engine, weights, bundled notebook environment — in one `docker run`. This is the cheapest local inference endpoint I've ever stood up, and the first of three apps will be built on top of it before the end of the month.
 
 It's also a loud reminder that small-and-fast has specific costs. A 24.8-tok/s stream is delightful to read; a hallucinated Python API is expensive to debug. The honest posture for readers of this foundation article is to treat the NIM as *infrastructure*, not arbiter — use it where latency and privacy matter, route around it where correctness-under-constraint matters, and let the next few articles bring in the memory layer, the rerank step, and the guardrails that turn a fast endpoint into a useful application.
+
+:::hardware[Same 8 GB FP8 weights, frontier coefficients]
+8B at FP8 is ~8 GB of weights — fits trivially on every modern accelerator. What changes at the frontier is *what else* fits beside it and how fast the bandwidth pulls those weights through. An H100 80 GB serves the same 8B at ~120–150 tok/s decode (5–6× the Spark) thanks to 3.35 TB/s HBM3 bandwidth; an H200 (4.8 TB/s HBM3e) lifts that another ~40%; a B200 (8 TB/s) doubles it again. Spark's 25 tok/s is the bandwidth-bound corner of a curve whose constants you can read off this page — same model, same precision, same tokenizer; the rig is the variable.
+:::
 
 **Second Brain now:** has a brain but no memory. **LLM Wiki now:** has a writer but no pages. **Autoresearch now:** has a driver but nothing to drive. Next up: **NeMo Retriever embeddings on the Spark** — vectorize once, reuse three times, and give each of the three apps the memory layer this endpoint doesn't have.

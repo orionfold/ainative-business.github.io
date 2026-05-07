@@ -18,9 +18,21 @@ The [Phase 5 ClawGym SFT adapter](/field-notes/clawgym-on-spark/) shipped with a
 
 This sequel runs 34 steps of group-relative PPO ([GRPO](https://arxiv.org/abs/2402.03300)) on top of that SFT-init adapter, with a shaped reward that explicitly penalizes turn-count, and ends — by accident, on step 35 — when every group in the 8-task batch saturates at SUCCESS and produces zero learning signal. The headline reads cleanly off the eval-2 numbers against the *exact same* held-out 158 the Phase 5 article scored: **task pass 10/158 → 13/158** (+1.9 pp), **per-assertion 46.8 % → 49.9 %** (+3.1 pp), **mean turns 12.0 → 5.0** (−58 %), **wall 28.3 s → 10.7 s per task** (−62 %). The loud number — and the load-bearing one for this article's argument — is the stop-signal swing: **`task_complete` rate 0/158 → 154/158**. RL didn't make the model smarter about bash. It made it know when to put the keyboard down.
 
+:::define[GRPO — Group-Relative Policy Optimization]
+A PPO-family RL algorithm introduced with DeepSeekMath that drops the value-function critic and instead samples K rollouts per task to estimate the per-task baseline directly: advantage = `(r_i − μ)/(σ + ε)` over the group of K. No critic network means half the memory and none of the critic-training instability that PPO is famous for. For a one-box trainer that already holds a 7 B policy plus vLLM in 128 GB, that's the difference between fitting and not fitting.
+:::
+
+:::why[Group-relative advantages dodge a second 7B network]
+Vanilla PPO trains a value-function critic alongside the policy — typically the same architecture, the same parameter count, the same memory footprint. On a Spark holding a 7B Qwen policy plus vLLM weights in unified memory, a 7B critic is the difference between the loop fitting and the loop OOM-ing the box. GRPO's "estimate the baseline from K rollouts of the same task" trick replaces a learned critic with a Monte-Carlo one, free of training instability and zero extra parameters.
+:::
+
 ## The paper, in one breath
 
 **Thesis.** [ClawGym](https://arxiv.org/abs/2604.26904)'s Phase 6 bet — and the broader RL-on-agent-trajectories bet underneath it — is that *the binary task-grader is enough of a reward function to fix shaped behaviors that SFT cannot reach*. A binary reward (`passed=True` → 1, else 0) is silent on near-misses, but with K rollouts per task and group-relative advantage normalization (`a_i = (r_i − μ)/(σ + ε)`), tasks that produce K identical zeros automatically self-mute (σ=0 → advantages collapse), tasks where one of K succeeds produce a positive gradient on the winner and a negative one on the losers, and the agent learns to differentiate. Add a small per-turn cost penalty and the wall-time tax SFT introduced becomes a thing the model can be trained out of.
+
+:::math[Why σ=0 mutes a group]
+For K rollouts with rewards `r_1…r_K`, advantage is `a_i = (r_i − μ)/(σ + ε)`. If every rollout returns the same reward (all PASS or all FAIL on a binary grader), `σ = 0` so each `a_i ≈ 0`, and the policy gradient `∇log π · a` is zero. Identical-outcome groups self-mute: GRPO only learns from *disagreement* inside a group. Step 35's pool convergence — 8/8 tasks at K=4 with σ=0 — is the natural stopping condition, not a crash.
+:::
 
 **Why this matters for a personal AI builder.** The substrate from the Phase 5 piece — synth corpus, sandbox harness, LoRA SFT — was the *infrastructure* a one-box agent shop needs. RL is what turns that substrate into a behavior-shaping loop. Once you can grade a trajectory, you can shape the trajectory's *shape*: turn count, error-recovery patterns, when to stop, when to keep going. None of that is reachable by SFT on a small corpus, because the corpus encodes the wrong distribution. The Spark's role is the substrate's role one floor lower: 128 GB of unified memory holds the rollout vLLM (50 GiB), the trainable Qwen 7B + LoRA (~28 GiB peak with activations), and a CPU-resident reference-adapter snapshot for the KL term — all in one process, no swap, no offload, no second box.
 
@@ -35,6 +47,10 @@ What the Spark reading lets one person do is iterate on **the shape** of an agen
 ## Architectural context — the GRPO loop, one process, one box
 
 Phase 6 is a kill-and-restart loop. Each step runs four phases: (1) sample 8 tasks from the 42-task pool; (2) generate K=4 rollouts per task at temperature 0.8 against vLLM-served Qwen 7B + the *current* policy adapter; (3) compute shaped rewards and group-relative advantages, write a `trajectory_bundle.jsonl`; (4) load Qwen + LoRA into the trainer, run REINFORCE-with-KL on the bundle, save the new adapter, restart vLLM with it. Five nodes, one of them load-bearing.
+
+:::define[REINFORCE]
+The simplest policy-gradient estimator: scale the log-probability gradient of each emitted token by the trajectory's advantage, sum over the trajectory, backprop. No clipping, no importance ratio, no value bootstrap — just `∇log π · a`. PPO adds clipping for stability when sampling and updating run on different policies; with GRPO's tight on-policy loop (sample, immediately update, restart), the clipping mostly never bites and REINFORCE-with-KL is enough.
+:::
 
 <figure class="fn-diagram" aria-label="GRPO loop on Spark: sample 8 tasks from a 42-task pool, run K=4 rollouts each against vLLM-served policy at temperature 0.8, compute shaped rewards and group advantages, run a REINFORCE-with-KL trainer step that saves a new policy adapter, then restart vLLM with the updated weights. The accent at the right is the trainer step that closes the loop.">
   <svg viewBox="0 0 900 320" role="img" aria-label="GRPO loop on Spark: sample 8 tasks from a 42-task pool, run K=4 rollouts each against vLLM-served policy at temperature 0.8, compute shaped rewards and group advantages, run a REINFORCE-with-KL trainer step that saves a new policy adapter, then restart vLLM with the updated weights." preserveAspectRatio="xMidYMid meet">
@@ -102,6 +118,18 @@ What's load-bearing here is the **kill-and-restart**. We tested co-residence —
 
 The other piece worth surfacing up front is the **CPU-resident reference snapshot** for the KL term. Standard PPO/GRPO uses a frozen reference policy to anchor the KL divergence — `KL(π || π_ref)`. peft's `load_adapter(adapter_name="reference", is_trainable=False)` looks like the obvious primitive and crashes on `device_map="auto"` whenever the GPU has anything else resident, which on Spark unified memory is *always*. The fix is a 30-line snapshot/swap: load the SFT-init LoRA tensors from disk into a CPU dict at trainer startup, swap them into the live adapter for one no-grad forward pass when computing the KL term, then restore the trainable weights. Slow (a few seconds per step) but local, transparent, and doesn't fight peft's offload heuristics. That snapshot is **the strongest fieldkit-extraction candidate** to come out of this run; it lands in `fieldkit.training` in the next minor.
 
+:::define[KL regularization]
+A penalty term `β · KL(π_θ || π_ref)` added to the policy loss to keep the trained model close to a frozen reference (here, the SFT-init adapter). Without it, the policy can drift onto a degenerate solution that game-the-reward without preserving general capability — a form of reward-hacking. With LoRA-only training the natural drift is small (the base is frozen), so β=0.05 is a gentle anchor, not a hard leash. The KL trace climbing 0 → 0.0020 over 34 steps is exactly the size of drift you'd hope to see.
+:::
+
+:::deeper
+- [DeepSeekMath (Shao et al., 2024)](https://arxiv.org/abs/2402.03300) — the GRPO paper; introduces group-relative advantages and the no-critic argument.
+- [PPO (Schulman et al., 2017)](https://arxiv.org/abs/1707.06347) — the policy-optimization parent; the clipping mechanism GRPO inherits.
+- [LoRA (Hu et al., 2021)](https://arxiv.org/abs/2106.09685) — the low-rank-adapter recipe that keeps the trainable surface at 0.5 % of the base.
+- [ClawGym Phase 5 SFT article](/field-notes/clawgym-on-spark/) — the SFT corpus this RL run inherits and the never-stop failure mode it inherited.
+- [vLLM + PagedAttention](https://arxiv.org/abs/2309.06180) — the rollout server's KV-cache substrate; relevant when sizing the co-residence experiment.
+:::
+
 ## The journey
 
 The journey from "Phase 5 article shipped" to "GRPO run ran end-to-end" is four steps. Each one is small enough to fit in a single session; together they took two evenings.
@@ -160,7 +188,13 @@ $ python3 grpo_train.py --bundle step-NNN/trajectory_bundle.jsonl \
 [trainer] wall: 118.2s
 ```
 
-That's step 1. Trainer wall is dominated by the 124-second model load (`safetensors` over a 15 GB Qwen + LoRA), not the actual gradient step — the REINFORCE loss with KL completes in 22-28 seconds on a 32-rollout bundle. The `weight_delta_l2 = 0.062` confirms the adapter actually moved; `max|Δ| ≈ 1e-5` confirms it moved gently, which is what a reasonable RL step should look like on a 40 M-parameter LoRA. Two of the three smallest fieldkit-extraction candidates in this article come from this script: the CPU-snapshot/swap pattern (above), and a 15-line `WeightDeltaTracker` that emits the `l2` and `max|Δ|` numbers. Both are sub-100-line utilities that solve specific bugs anyone doing PPO-on-Spark will hit.
+That's step 1. Trainer wall is dominated by the 124-second model load (`safetensors` over a 15 GB Qwen + LoRA), not the actual gradient step — the REINFORCE loss with KL completes in 22-28 seconds on a 32-rollout bundle. The `weight_delta_l2 = 0.062` confirms the adapter actually moved; `max|Δ| ≈ 1e-5` confirms it moved gently, which is what a reasonable RL step should look like on a 40 M-parameter LoRA.
+
+:::define[LoRA — Low-Rank Adapters]
+A parameter-efficient fine-tuning technique: freeze the base model's full weight matrix `W` and learn a low-rank update `ΔW = BA` where `A` is `(r × d)` and `B` is `(d × r)` with `r << d`. Rank `r=16` on Qwen 7B's attention and MLP projections gives ~40 M trainable parameters — 0.5 % of the 7.6 B base. The base never moves; only the adapter does, which means the same base can serve many adapters and the KL term is naturally tiny because most of the policy's distribution is locked.
+:::
+
+Two of the three smallest fieldkit-extraction candidates in this article come from this script: the CPU-snapshot/swap pattern (above), and a 15-line `WeightDeltaTracker` that emits the `l2` and `max|Δ|` numbers. Both are sub-100-line utilities that solve specific bugs anyone doing PPO-on-Spark will hit.
 
 ### Step 4 — the loop, end to end
 
@@ -216,6 +250,10 @@ The two big wins land where Phase 5 SFT *regressed*: `data-science-researcher` r
 
 **Pool convergence is a real diagnostic, and `set -e` is the wrong way to terminate on it.** When step 35 fired with 8/8 sampled tasks producing identical-reward groups, the right answer was *grow the pool*, not crash the loop. The bash `set -euo pipefail` happily propagated the trainer's nonzero exit and we lost the in-progress step's bundle. For any future RL loop reuse, catch the `no usable rollouts` exit code, log a clean `=== POOL CONVERGED, EXITING EARLY ===` and stop. Or — better — detect upstream that K rollouts on each task converged and grow the pool from the held-out 158 instead of crashing. Filed as "loop hardening" in the handoff for the next pass.
 
+:::pitfall[`set -e` propagates pool convergence as a crash]
+A clean stopping condition (every group's σ=0, gradient is zero, training is done) emits the same nonzero exit code as a real failure. With `set -euo pipefail`, the bash loop can't tell the difference and tears down with the in-progress bundle unsaved. The fix is two lines: trap the trainer's specific `no usable rollouts` code, log a "converged" message, exit 0. Without it, the natural endpoint of a healthy GRPO loop looks indistinguishable from a crash in the logs.
+:::
+
 **Eval-1 was already 90 % of the headline.** We ran two evals on the held-out 158 — at step 25 and step 34 — and the deltas tell you a small uncomfortable thing about the run: 9 more GRPO steps moved task_pass from 11 → 13, per-assertion from 386 → 389, and mean_turns from 5.39 → 5.00. Real, but small. The article you are reading could have stopped at step 25 with substantively the same conclusions. That isn't the loop wasting your time — it's the loop telling you that on a 42-task pool with a relatively gentle learning rate, the bulk of the behavior shaping happens in the first few thousand gradient updates and the rest is polish. On a 1,000-task pool the same wall-clock would buy you a much wider stretch of the learning curve.
 
 **The unified-memory orphan is a real failure mode and it has to be cleaned up between every step.** A `pkill -f vllm.entrypoints` does not catch `vllm::EngineCore`, the worker process which keeps PPID=1 and ~108 GB of unified memory pinned. The corrected pattern is `pkill -f 'vllm|EngineCore'` followed by `free -h` to verify. We caught one of these orphans en route to building the loop; the loop now has the verification step inline. If you skip it, your second step's vLLM startup will OOM the box.
@@ -241,3 +279,7 @@ Three concrete things you can do this week with the loop in `articles/clawgym-on
 The personal-AI-builder bet underneath Phase 6 is that **the cheapest distance between an SFT failure mode and its fix is an RL loop that grades the trajectories the failure produces**. Phase 5 taught the agent to keep working but never to stop. We could have rebuilt the corpus to include clean-stop demonstrations and re-trained — that's the SFT-only fix, and on a paper-grade corpus it might even work. On a 42-record corpus born from Llama-8B baseline rollouts that mostly hit the cap themselves, no amount of corpus surgery would have repaired the gap. GRPO's binary-task-grader-as-reward, plus a turn-cost penalty the SFT corpus could not have encoded, plus a stop-sentinel patch the rollout protocol grew along the way — that combination earns a +97.5 pp `task_complete` swing in 34 steps on one box, in a working day's wall.
 
 Next up is the substrate's own dividend: a `tech-writer extract` pass against this run lands three concrete primitives — `LoraReferenceSnapshot`, `WeightDeltaTracker`, and a deferred `replay_messages_from_trajectory` — into [`fieldkit`](/fieldkit/) v0.2's `fieldkit.training` module, alongside the `MatchedBaseComparison` primitive the [Phase 5 article](/field-notes/clawgym-on-spark/) surfaced. The article after that is the one that earns its second number on a 1,000-task pool, where the headline becomes whether GRPO buys per-assertion lift past the synth-noise ceiling — not just trajectory length collapse. The Spark holds the substrate; the substrate now holds the loop; the loop now closes.
+
+:::hardware[Same loop, frontier rollout coefficients]
+Spark's 8.5-hour wall is rollout-bound: 8 tasks × K=4 rollouts × ~25 s/rollout × 34 steps + 34 vLLM restarts at 3.5 min each. Move the same loop to an H100 80 GB and the rollout-rate jumps ~5× (vLLM FP8 on H100 is bandwidth-bound at ~120 tok/s vs. Spark's ~25), the restart shrinks proportionally, the 34-step run drops toward ~1.5 hours. An H200's 4.8 TB/s HBM3e cuts another ~30 %; a B200's 8 TB/s halves again. The trainer itself is not the variable here — it's a 22-second gradient step on either box. The cluster scaling story is *parallel* rollout workers (16 × H100), which collapses 8.5 hours toward minutes; the Spark scaling story is *sequential* rollouts that fit one rig. Same algorithm, two different shapes of cheap.
+:::

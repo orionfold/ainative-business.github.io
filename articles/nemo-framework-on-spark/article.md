@@ -31,11 +31,23 @@ The numbers came back surprisingly clean. The framework earns **+5.8 % more toke
 
 That last pair of rows is not noise. The vanilla model uses PyTorch's default `nn.Linear` initialization with weight tying — perfectly fine for a tutorial, demonstrably under-calibrated for fast convergence. Megatron-Core's `init_method` produces logits whose initial cross-entropy is two orders of magnitude smaller, and the curve gets to 0.05 in 100 steps where vanilla is still at 49.6. **The init scheme is itself a NeMo earning** — a thing you'd get wrong by default if you wrote the model yourself, and a thing the framework hands you for free.
 
+:::define[NeMo Framework]
+NVIDIA's end-to-end recipe-and-runtime substrate for LLM pretrain and fine-tune workloads. Bundles Megatron-Core (parallelism + kernel layer), TransformerEngine (FP8 / bf16 fused attention + softmax), an experiment manager, a recipe DSL, and a `nemo` CLI. Ships as one license-gated NGC container — `nvcr.io/nvidia/nemo:26.04.00`, ~70 GB on disk — with every dependency pinned to a tested combination. Distinct from `nemo-toolkit` on PyPI, which is the legacy NeMo 1.x lineage.
+:::
+
+:::define[Megatron-Core]
+NVIDIA's open-source library of transformer building blocks (`GPTModel`, attention spec, layer spec) plus the parallelism primitives (TP, PP, CP, SP, DP) needed to scale them across many GPUs. Imports without NeMo Framework — that's how `nemo_train.py` builds the model in this article. Ships the calibrated `init_method` that explains the loss-curve gap above.
+:::
+
 ## Why this matters for a personal AI builder
 
 The Spark sits at an awkward seam in the framework-vs-no-framework debate. On a four-GPU rig and up, you reach for NeMo (or PyTorch FSDP, or DeepSpeed) because parallelism plumbing is *required* — there's no way to run a 70B model across four cards by hand. On a laptop with one consumer GPU, you reach for a framework because nothing else has the kernels. The Spark is the rare middle: one GB10 card, 128 GB unified memory, enough headroom that you *could* hand-write a 1B-class training loop and have it work. So the question becomes quantitative — is the framework still worth its 70 GB of container weight when the parallelism it was built to manage is `tp=1, pp=1, dp=1`?
 
 The measurement above says yes, and it says so for reasons that pay off more, not less, on a one-box rig. **30 % less GPU memory** doesn't just mean comfort — on a unified-memory machine where the GPU pool and the OS pool are the same physical 128 GB, every gigabyte the model doesn't claim is a gigabyte that stays available for everything else (a NIM serving inference in the next terminal, a pgvector container, a Jupyter kernel doing data prep). That's the same lesson the [Second Brain arc keeps relearning](/field-notes/spark-unified-memory-oom/): on this hardware, *memory parsimony is throughput's cousin*. A model that fits with margin is a model you can actually compose with the rest of your stack.
+
+:::why[On unified memory, every saved GiB is composable headroom]
+A discrete-GPU box has a hard wall between GPU VRAM and host RAM — saving 3 GiB of model state doesn't let you run a bigger inference model alongside, because that model needs *its own* VRAM. On the Spark's GB10, GPU and CPU share the same 128 GB pool. Saving 3.34 GiB on the training side is 3.34 GiB the Ollama daemon can keep its 49B Nemotron resident in, or 3.34 GiB pgvector can use for a larger `shared_buffers`. Memory parsimony stops being a comfort metric and becomes a composition metric.
+:::
 
 The throughput delta — 12,119 → 12,820 tok/s — looks small, but compounds. An overnight 8-hour Autoresearch run that does 100,000 steps at the vanilla rate would take 9.3 hours; at the NeMo rate it takes 8.8 hours. That's a 30-minute difference per night, all year, and it's earned by switching one import statement and accepting the framework's view of what an attention layer should call.
 
@@ -102,9 +114,17 @@ The diagram understates one thing worth saying explicitly: the kernel layer and 
 
 The path that worked is a four-step install with one honest detour. The detour is informative on its own — it's why NVIDIA ships the heavy container in the first place.
 
+:::define[TransformerEngine]
+NVIDIA's fused-kernel library for transformer ops on Hopper and Blackwell — bf16/fp8 attention, fused softmax, fused LayerNorm/MLP, with the calibrated FP8 scaling recipes (`DelayedScaling`, HYBRID format) baked in. Imports under `import transformer_engine as te`. Megatron-Core's `GPTModel` accepts a TE layer spec to swap PyTorch's `scaled_dot_product_attention` for TE's tuned kernel — the source of most of NeMo's measured throughput delta over hand-rolled training.
+:::
+
 **Step 1 — Vanilla baseline on the PyTorch container.** The simplest possible install: `docker pull nvcr.io/nvidia/pytorch:25.11-py3` (29.8 GB, multi-arch, no EULA gate). Inside it, PyTorch 2.10, CUDA 13.1, TransformerEngine 2.9 already preloaded — the "what NVIDIA bundles for the Spark" baseline that any consumer of the box gets without thinking.
 
 The vanilla model is 200 lines of pure PyTorch — `CausalSelfAttention` calling `F.scaled_dot_product_attention`, GELU MLP blocks, learned positional embeddings, weight-tied output head. It runs the 354M GPT for 100 steps in **33.8 seconds** and lands at 12,119 tok/s. The full code is at [`evidence/vanilla_train.py`](./evidence/vanilla_train.py); the metrics it dumps are at [`evidence/vanilla_metrics.json`](./evidence/vanilla_metrics.json). I'll come back to the loss curve later — for now the throughput is the number to beat.
+
+:::pitfall[`pip install nemo-toolkit` is not the install you want]
+On aarch64, `pip install nemo-toolkit[nlp]` fails on `opencc` (no arm64 wheel). Skipping `[nlp]` lets the install succeed but resolves to TransformerEngine 2.9 (bundled with the PyTorch container) while Megatron-Core 0.17 calls a TE 2.10 API — silent version skew that crashes inside the training step with `unexpected keyword argument 'retain_pinned_cpu_buffers'`. The friction the pip path makes you pay yourself is what NVIDIA's 70 GB NeMo container pre-resolves. Pull the container.
+:::
 
 **Step 2 — The pip-install detour.** The obvious next step is to install NeMo on the PyTorch container with `pip install nemo-toolkit[nlp]` and re-measure. This is what the upstream NeMo README suggests as install option 1. On aarch64 it produces:
 
@@ -178,6 +198,10 @@ The memory column reads `[N/A]` — the Spark's unified GPU/CPU pool doesn't exp
 
 The other thing that tells you it worked is that the loss got to **0.046** in 100 steps. Yes, the data is random tokens, so the model is memorizing rather than learning anything generalizable — but the *speed* with which a properly-initialized 354M transformer memorizes 4,096 random tokens is exactly the signal that init + kernels + optimizer are all aligned. The vanilla run's "loss = 49.6 after 100 steps" is the same model failing to memorize the same 4,096 tokens because the init produced extreme initial logits that the AdamW + cosine-decay schedule couldn't recover from in 90 update steps. *Frameworks earn their place where the defaults are non-obvious*, and the init scheme is the canonical example.
 
+:::math[The +5.8% throughput delta, in agent-hours]
+Vanilla: 12,119 tok/s. NeMo: 12,820 tok/s. Difference: 701 tok/s — a 5.8% lift. Multiply by an 8-hour overnight (28,800 s): vanilla buys 349M tokens, NeMo buys 369M tokens — 20M extra tokens of training compute per night, free, just by switching the import statement. Over 365 nights that's ~7.3B extra training tokens — roughly the Chinchilla-optimal budget for a 350M-class pretrain, earned back from "the framework's default kernels are tuned."
+:::
+
 ## Tradeoffs and surprises
 
 **Container weight is real.** 70 GB for NeMo + 30 GB for the PyTorch baseline = **100 GB of disk**, both pinned to one Spark, neither shareable across machines without the same authenticated NGC pull. On a 4 TB Spark that's 2.5 % of disk; on a smaller node it would matter more. The mitigation is to delete the PyTorch container once you've decided to commit to the NeMo path — there's no version of `nemo_train.py` that works in `pytorch:25.11-py3` without re-installing the very versions that NeMo bundles, so keeping both is dead weight unless you're doing exactly the comparison this article does.
@@ -196,6 +220,13 @@ nemo lm pretrain --factory gpt3_345m --max-steps 100 --tp 1 --pp 1
 
 **The init story is the part most likely to bite.** The vanilla model's 50× higher initial loss is a textbook beginner-tutorial bug — easy to hit, hard to debug, and silently kills learning rate schedules. Megatron-Core hands you a calibrated `init_method` because every researcher in NVIDIA's training pipeline depends on it. If you ever roll your own training stack, the init scheme is the first thing to copy from NeMo, even if you skip everything else.
 
+:::deeper
+- [Megatron-LM paper (Shoeybi et al., 2019)](https://arxiv.org/abs/1909.08053) — the parallelism architecture under TransformerEngine; the kernels Spark's TP=PP=1 mode collapses to.
+- [NeMo Framework user guide](https://docs.nvidia.com/nemo-framework/user-guide/latest/) — recipe DSL, experiment manager, and the `nemo lm pretrain` CLI surface deferred in this article.
+- [`baseline-training-loop-on-spark`](/field-notes/baseline-training-loop-on-spark/) — A2's sweep over batch / seq / dtype using exactly this `nemo_train.py` as its kernel.
+- [TransformerEngine docs](https://docs.nvidia.com/deeplearning/transformer-engine/user-guide/index.html) — the kernel layer that earns the +5.8% throughput / -30% memory delta this article measures.
+:::
+
 ## What this unlocks
 
 **Three concrete next moves the Autoresearch arc will lean on this week:**
@@ -213,3 +244,7 @@ The Autoresearch arc is built around a thesis the [bridge article](/field-notes/
 **Autoresearch now:** has a runtime (NeMo + Megatron-Core), a measured floor (12,820 tok/s on a 354M GPT, 7.94 GiB peak), and a calibrated baseline to ratchet against. Doesn't yet have an agent driving experiments — that's `A2 → A4` in the arc. The Wiki and Second Brain arcs continue along their own substrates; this article makes the third arc's substrate concrete in the same way `nim-first-inference-dgx-spark` made inference concrete six months ago.
 
 Next up: **A2 — `baseline-training-loop-on-spark`.** Same model, same NeMo container, but a sweep across batch / sequence / dtype to find the GB10's actual throughput envelope under sustained pretrain load. That's the number the overnight-experiment agent will look at when deciding whether its first edit helped.
+
+:::hardware[Same framework, frontier coefficients]
+The +5.8% throughput delta on Spark's TP=PP=1 single-GPU mode is the *floor* of NeMo's value. On a DGX H100 node (8× H100 80 GB) with TP=8, the framework earns the kernels *plus* the parallelism plumbing — vanilla PyTorch would need ~500 lines of all-reduce / all-gather scaffolding to match what `tensor_model_parallel_size=8` provides in one config line. On a DGX H200 with PP=2 across nodes, NeMo's checkpoint format survives the parallelism-strategy change; vanilla doesn't. The Spark teaches the floor; the cloud rents the compounding leverage.
+:::
