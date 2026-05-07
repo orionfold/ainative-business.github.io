@@ -47,6 +47,28 @@ export default defineConfig({
   integrations: [mdx(), sitemap({
     filter: (page) =>
       !page.includes('/confirmed') && !page.includes('/og'),
+    // Priority + changefreq hints. Search engines treat these as signals,
+    // not directives — but they influence crawl scheduling, especially for
+    // sites with frequently updated editorial sections like /field-notes/.
+    serialize(item) {
+      const url = item.url;
+      if (url === 'https://ainative.business/') {
+        return { ...item, changefreq: 'weekly', priority: 1.0 };
+      }
+      if (url.includes('/field-notes/') || url.includes('/book/')) {
+        return { ...item, changefreq: 'weekly', priority: 0.8 };
+      }
+      if (url.includes('/docs/')) {
+        return { ...item, changefreq: 'weekly', priority: 0.7 };
+      }
+      if (url.includes('/about/') || url.includes('/projects/') || url.includes('/fieldkit/')) {
+        return { ...item, changefreq: 'monthly', priority: 0.6 };
+      }
+      if (url.includes('/privacy/') || url.includes('/terms/')) {
+        return { ...item, changefreq: 'yearly', priority: 0.3 };
+      }
+      return { ...item, changefreq: 'monthly', priority: 0.5 };
+    },
   }), react()],
   vite: {
     plugins: [tailwindcss()],

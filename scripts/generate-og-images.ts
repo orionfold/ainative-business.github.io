@@ -10,10 +10,40 @@ const ROOT = path.resolve(__dirname, '..');
 const DIST = path.join(ROOT, 'dist');
 const PUBLIC_DIR = path.join(ROOT, 'public');
 
-const TARGETS = [
+// Static targets: site-wide and book OG images.
+const STATIC_TARGETS = [
   { route: '/og/', outName: 'og-image.png' },
   { route: '/book/og/', outName: 'book/og-image.png' },
 ];
+
+// Discover field-note articles by reading the articles/ directory. Each
+// article gets a per-slug OG image rendered from /og/field-notes/<slug>/
+// and saved to /public/og/field-notes/<slug>.png so social/SMS/answer-engine
+// link previews use article-specific imagery instead of the generic site OG.
+function discoverFieldNoteSlugs(): string[] {
+  const articlesDir = path.join(ROOT, 'articles');
+  if (!fs.existsSync(articlesDir)) return [];
+  return fs
+    .readdirSync(articlesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .filter((d) => {
+      const dir = path.join(articlesDir, d.name);
+      return (
+        fs.existsSync(path.join(dir, 'article.md')) ||
+        fs.existsSync(path.join(dir, 'article.mdx'))
+      );
+    })
+    .map((d) => d.name)
+    .sort();
+}
+
+function buildTargets(): { route: string; outName: string }[] {
+  const articleTargets = discoverFieldNoteSlugs().map((slug) => ({
+    route: `/og/field-notes/${slug}/`,
+    outName: `og/field-notes/${slug}.png`,
+  }));
+  return [...STATIC_TARGETS, ...articleTargets];
+}
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -114,7 +144,10 @@ async function main() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
 
-    for (const { route, outName } of TARGETS) {
+    const targets = buildTargets();
+    console.log(`[og] Rendering ${targets.length} OG images (${STATIC_TARGETS.length} static + ${targets.length - STATIC_TARGETS.length} field-notes)`);
+
+    for (const { route, outName } of targets) {
       const url = `http://127.0.0.1:${port}${route}`;
       console.log(`[og] ${route} -> ${outName}`);
       await page.goto(url, { waitUntil: 'networkidle0', timeout: 60_000 });

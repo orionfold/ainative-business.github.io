@@ -1,0 +1,212 @@
+---
+import { getCollection } from 'astro:content';
+import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+import '@fontsource/geist-sans/700.css';
+import '@fontsource/geist-sans/500.css';
+import '@fontsource-variable/geist-mono';
+
+export async function getStaticPaths() {
+  const all = await getCollection('field-notes');
+  const ordinalById = publishOrdinals(all, process.cwd());
+  return all.map((article) => ({
+    params: { slug: article.id },
+    props: { article, ordinal: ordinalById.get(article.id) ?? 0 },
+  }));
+}
+
+const { article, ordinal } = Astro.props;
+const { title, author, stage, series, status, date } = article.data;
+const isUpcoming = status === 'upcoming';
+const ordinalLabel = isUpcoming ? 'Upcoming' : `№${String(ordinal).padStart(2, '0')}`;
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+---
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="robots" content="noindex" />
+  <title>OG · {title}</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      background: oklch(0.13 0.02 250);
+      color: oklch(0.93 0.01 250);
+      font-family: 'Geist Sans', system-ui, sans-serif;
+    }
+
+    .og {
+      position: relative;
+      width: 1200px;
+      height: 630px;
+      padding: 64px 72px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .og::before {
+      content: '';
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        oklch(0.65 0.18 250 / 0.18) 0%,
+        oklch(0.65 0.18 250 / 0.06) 40%,
+        transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .top {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .brand img {
+      width: 40px;
+      height: 40px;
+    }
+
+    .brand-name {
+      font-size: 24px;
+      font-weight: 700;
+      color: oklch(0.65 0.18 250);
+      letter-spacing: -0.01em;
+    }
+
+    .ordinal {
+      font-family: 'Geist Mono Variable', monospace;
+      font-size: 18px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: oklch(0.65 0.18 250);
+      padding: 8px 18px;
+      border: 1px solid oklch(0.65 0.18 250 / 0.4);
+      border-radius: 999px;
+    }
+
+    .body {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 22px;
+      max-width: 1056px;
+    }
+
+    .meta {
+      font-family: 'Geist Mono Variable', monospace;
+      font-size: 16px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: oklch(0.7 0.02 250);
+      display: flex;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .meta .dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: oklch(0.65 0.18 250);
+    }
+
+    h1 {
+      font-size: 60px;
+      font-weight: 700;
+      line-height: 1.06;
+      letter-spacing: -0.022em;
+      color: oklch(0.96 0.005 250);
+      /* Clamp to 4 lines so very long titles don't overflow */
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .bottom {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      padding-top: 22px;
+      border-top: 1px solid oklch(0.93 0.01 250 / 0.12);
+    }
+
+    .author {
+      font-size: 18px;
+      font-weight: 500;
+      color: oklch(0.85 0.01 250);
+    }
+
+    .author-meta {
+      font-family: 'Geist Mono Variable', monospace;
+      font-size: 13px;
+      color: oklch(0.62 0.02 250);
+      margin-top: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .url {
+      font-family: 'Geist Mono Variable', monospace;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      color: oklch(0.55 0.02 250);
+    }
+  </style>
+</head>
+<body>
+  <div class="og">
+    <div class="top">
+      <div class="brand">
+        <img src="/ainative-s-128.png" alt="" />
+        <div class="brand-name">ainative</div>
+      </div>
+      <div class="ordinal">{ordinalLabel}</div>
+    </div>
+
+    <div class="body">
+      <div class="meta">
+        <span>Field Notes</span>
+        <span class="dot"></span>
+        <span>{stage}</span>
+        {series && (
+          <>
+            <span class="dot"></span>
+            <span>{series}</span>
+          </>
+        )}
+      </div>
+      <h1>{title}</h1>
+    </div>
+
+    <div class="bottom">
+      <div>
+        <div class="author">{author}</div>
+        <div class="author-meta">{isUpcoming ? `planned · ${dateFmt}` : dateFmt}</div>
+      </div>
+      <div class="url">ainative.business</div>
+    </div>
+  </div>
+</body>
+</html>

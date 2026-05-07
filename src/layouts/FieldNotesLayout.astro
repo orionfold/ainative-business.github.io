@@ -6,20 +6,26 @@ interface Props {
   title: string;
   description?: string;
   ogType?: 'website' | 'article';
+  ogImage?: string;
+  ogImageAlt?: string;
   article?: {
     datePublished: string;
     dateModified: string;
     author: string;
+    section?: string;
+    tags?: string[];
   };
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title, description, ogType = 'website', article, jsonLd } = Astro.props;
+const { title, description, ogType = 'website', ogImage, ogImageAlt, article, jsonLd } = Astro.props;
 ---
 <Layout
   title={title}
   description={description}
   ogType={ogType}
+  ogImage={ogImage}
+  ogImageAlt={ogImageAlt}
   article={article}
   jsonLd={jsonLd}
 >
