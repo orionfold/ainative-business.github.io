@@ -26,29 +26,53 @@ const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short
 const seriesHref = series ? `/field-notes/series/${SERIES_SLUGS[series]}/` : null;
 
 const dateIso = date.toISOString().slice(0, 10);
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'TechArticle',
-  headline: title,
-  description: summary,
-  datePublished: dateIso,
-  dateModified: dateIso,
-  author: { '@type': 'Person', name: author },
-  url: `${SITE.url}/field-notes/${article.id}/`,
-  publisher: {
-    '@type': 'Organization',
-    name: 'ainative',
-    url: SITE.url,
-    logo: { '@type': 'ImageObject', url: SITE.logo },
+const articleUrl = `${SITE.url}/field-notes/${article.id}/`;
+const ogImage = `/og/field-notes/${article.id}.png`;
+const ogImageAlt = `${title} — AI Native Field Notes №${String(ordinal).padStart(2, '0')} by ${author}`;
+const breadcrumbItems = [
+  { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+  { '@type': 'ListItem', position: 2, name: 'Field Notes', item: `${SITE.url}/field-notes/` },
+  { '@type': 'ListItem', position: 3, name: stage, item: `${SITE.url}/field-notes/stages/${stage}/` },
+  ...(series ? [{ '@type': 'ListItem', position: 4, name: series, item: `${SITE.url}/field-notes/series/${SERIES_SLUGS[series]}/` }] : []),
+  { '@type': 'ListItem', position: series ? 5 : 4, name: title, item: articleUrl },
+];
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'TechArticle',
+    headline: title,
+    description: summary,
+    datePublished: dateIso,
+    dateModified: dateIso,
+    author: { '@type': 'Person', name: author, url: `${SITE.url}/about/` },
+    url: articleUrl,
+    mainEntityOfPage: articleUrl,
+    inLanguage: 'en',
+    isAccessibleForFree: true,
+    articleSection: stage,
+    publisher: {
+      '@type': 'Organization',
+      name: 'ainative',
+      url: SITE.url,
+      logo: { '@type': 'ImageObject', url: SITE.logo },
+    },
+    keywords: (tags ?? []).join(', '),
+    ...(series ? { isPartOf: { '@type': 'CreativeWorkSeries', name: series, url: `${SITE.url}/field-notes/series/${SERIES_SLUGS[series]}/` } } : {}),
   },
-  keywords: (tags ?? []).join(', '),
-};
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: breadcrumbItems,
+  },
+];
 ---
 <FieldNotesLayout
   title={`${title} — AI Native Field Notes`}
   description={summary}
   ogType="article"
-  article={{ datePublished: dateIso, dateModified: dateIso, author }}
+  ogImage={ogImage}
+  ogImageAlt={ogImageAlt}
+  article={{ datePublished: dateIso, dateModified: dateIso, author, section: stage, tags }}
   jsonLd={jsonLd}
 >
   <Nav />

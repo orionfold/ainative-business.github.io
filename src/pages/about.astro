@@ -4,6 +4,7 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import SectionLabel from '../components/ui/SectionLabel.astro';
 import WaitlistForm from '../components/ui/WaitlistForm.astro';
+import { SITE, PERSON, PUBLISHER } from '../data/seo';
 
 // Email CTA is hidden until ainative.business is verified in Resend.
 // Flip to true to re-enable the subscribe block in the Links section.
@@ -19,10 +20,45 @@ const previouslyPublished = [
   { title: 'Data Science Solutions', year: '2017' },
   { title: 'React Speed Coding', year: '2015' },
 ];
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    ...PERSON,
+    worksFor: {
+      '@type': 'Organization',
+      name: 'AWS',
+      url: 'https://aws.amazon.com',
+    },
+    affiliation: {
+      '@type': 'Organization',
+      name: 'ainative',
+      url: SITE.url,
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: 'About — Manav Sehgal',
+    url: `${SITE.url}/about/`,
+    mainEntity: { '@id': `${SITE.url}/about/#person` },
+    publisher: PUBLISHER,
+    description: 'About Manav Sehgal — author of AI Native Business and the ainative companion software. Solutions Leader at AWS Frontier AI.',
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'About', item: `${SITE.url}/about/` },
+    ],
+  },
+];
 ---
 <Layout
-  title="About — ainative"
-  description="ainative-business is a personal research project by Manav Sehgal — the companion software for the AI Native Business book."
+  title="About — Manav Sehgal — ainative"
+  description="Manav Sehgal — Solutions Leader at AWS Frontier AI; author of the AI Native Business book and creator of ainative-business, a local-first companion software for AI-native operators."
+  jsonLd={jsonLd}
 >
   <Nav />
   <main>
