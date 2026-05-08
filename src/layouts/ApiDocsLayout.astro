@@ -45,7 +45,7 @@ const jsonLd = [
 <Layout title={pageTitle} description={description} jsonLd={jsonLd}>
   <Nav />
 
-  <div class="max-w-[90rem] mx-auto px-6 pt-28 pb-32 flex gap-8">
+  <div class="max-w-[90rem] mx-auto px-6 pt-28 pb-32 flex flex-col md:flex-row gap-8">
     <!-- Sidebar -->
     <ApiDocsSidebar currentPath={Astro.url.pathname} />
 
