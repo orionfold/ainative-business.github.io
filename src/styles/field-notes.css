@@ -745,7 +745,7 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
   border-color: color-mix(in oklch, var(--svg-accent-purple) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-purple) 8%, transparent);
 }
-.card__series-badge[data-series="autoresearch"] {
+.card__series-badge[data-series="machine-that-builds-machines"] {
   color: var(--svg-accent-green);
   border-color: color-mix(in oklch, var(--svg-accent-green) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-green) 10%, transparent);
@@ -1044,7 +1044,7 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
 .article__series-badge[data-series="foundations"] .article__series-badge-name { color: var(--svg-accent-cyan); }
 .article__series-badge[data-series="second-brain"] .article__series-badge-name { color: var(--svg-accent-teal); }
 .article__series-badge[data-series="llm-wiki"] .article__series-badge-name { color: var(--svg-accent-purple); }
-.article__series-badge[data-series="autoresearch"] .article__series-badge-name { color: var(--svg-accent-green); }
+.article__series-badge[data-series="machine-that-builds-machines"] .article__series-badge-name { color: var(--svg-accent-green); }
 .article__series-badge[data-series="looking-beyond-spark"] .article__series-badge-name { color: var(--svg-accent-orange); }
 .article__series-badge[data-series="frontier-scout"] .article__series-badge-name { color: var(--svg-accent-pink); }
 

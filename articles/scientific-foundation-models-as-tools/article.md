@@ -10,7 +10,8 @@ hardware: 'NVIDIA DGX Spark'
 tags: [agentic, tool-use, foundation-models, multimodal, nemoclaw, nim, triton, guardrails]
 summary: 'Wrap a domain foundation model (Pangu-Weather) as a Triton tool, drive it from a NIM-served Llama 3.1 8B planner via NemoClaw, and show when specialist routing beats language-only reasoning — all inside the Spark 128 GB envelope.'
 status: upcoming
-series: 'Autoresearch'
+series: 'Machine that Builds Machines'
+book_chapters: [10]
 ---
 
 ## Source paper

@@ -11,7 +11,8 @@ tags: [nemo, nemo-curator, training, pretrain, data-prep, tokenization, autorese
 summary: "Curator-cleaned wikitext-103 (109M tokens, 417 MiB packed) feeding the same 354M GPT pretrain loop from A2. Eight configs swept; data-path overhead is 0.01–0.04% across all of them. New peak: 14,980 tok/s — slightly above A2's random-token ceiling."
 signature: DataPathOverhead
 also_stages: [foundations]
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 The previous article (`baseline-training-loop-on-spark`) measured the GB10's pretrain throughput with `torch.randint`-generated tokens — a kernel-only measurement that assumed the data path was free. That assumption is the kind of thing you have to *measure* before you trust it. So this article does the obvious follow-up: take a real corpus, run it through NeMo Curator's filter stages, tokenize with the same GPT-2 BPE the model expects, pack the result into a memory-mappable file, and feed that to the same training loop A2 used. If the data path costs anything material, throughput should drop. If it doesn't, the kernel envelope and the data envelope are the same envelope.

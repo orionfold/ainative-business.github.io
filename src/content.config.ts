@@ -24,7 +24,7 @@ export const SERIES = [
   'Foundations',
   'Second Brain',
   'LLM Wiki',
-  'Autoresearch',
+  'Machine that Builds Machines',
   'Looking Beyond Spark',
   'Frontier Scout',
 ] as const;
@@ -34,7 +34,7 @@ export const SERIES_SLUGS: Record<(typeof SERIES)[number], string> = {
   'Foundations': 'foundations',
   'Second Brain': 'second-brain',
   'LLM Wiki': 'llm-wiki',
-  'Autoresearch': 'autoresearch',
+  'Machine that Builds Machines': 'machine-that-builds-machines',
   'Looking Beyond Spark': 'looking-beyond-spark',
   'Frontier Scout': 'frontier-scout',
 };
@@ -77,6 +77,9 @@ const fieldNotes = defineCollection({
     // to claim №01 and №02 in the AI Native Platform series; everyone else
     // gets a derived ordinal from git first-add timestamps.
     ordinal: z.number().int().optional(),
+    // Which /book/ chapter(s) this article grounds with field evidence.
+    // Mostly used by "Machine that Builds Machines" articles (default [10]).
+    book_chapters: z.array(z.number().int().min(1).max(14)).optional(),
   }),
 });
 

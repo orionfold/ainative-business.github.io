@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-05-07T12:36:44Z",
+  "generated_at": "2026-05-07T14:30:10Z",
   "articles": {
     "total": 31,
     "published": 31,
-    "upcoming": 4,
+    "upcoming": 5,
     "drafts": 0
   },
   "words": {
@@ -16,21 +16,23 @@
     }
   },
   "code": {
-    "evidence_loc": 35341,
-    "src_loc": 10548,
-    "total_loc": 45889,
+    "evidence_loc": 89469,
+    "src_loc": 10678,
+    "total_loc": 100147,
     "by_language": {
-      "python": 35211,
+      "python": 87767,
       "astro": 7388,
-      "css": 2289,
+      "css": 2524,
+      "shell": 1028,
       "typescript": 574,
-      "javascript": 297,
-      "shell": 115,
+      "html": 494,
+      "javascript": 357,
       "sql": 15
     },
     "data_lines": {
-      "json": 26533233,
-      "yaml": 1717
+      "json": 26547974,
+      "yaml": 4633,
+      "toml": 73
     }
   },
   "stages": {
@@ -45,11 +47,11 @@
   },
   "stages_upcoming": {
     "foundations": 0,
-    "training": 1,
-    "fine-tuning": 1,
+    "training": 2,
+    "fine-tuning": 2,
     "inference": 0,
     "deployment": 0,
-    "agentic": 0,
+    "agentic": 1,
     "observability": 1,
     "dev-tools": 1
   },

@@ -11,7 +11,8 @@ hardware: "NVIDIA DGX Spark"
 tags: [fine-tuning, lora, distillation, autoresearch, peft, qwen2.5, dgx-spark]
 summary: "A4's 50-iter trajectory becomes training data for a Qwen2.5-3B LoRA proposer. Holding out 8 iters, the 3B mode-collapses onto d_model=768 (the trajectory's most-frequent keep) and matches 0 / 8 exact; the 8B at T=0.5 matches 4 / 8 of its own past picks."
 signature: ArchitectDistillation
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10, 11]
 ---
 
 The trajectory file `articles/autoresearch-agent-loop/evidence/trajectory.jsonl` has 50 lines. Each line is one iteration of the [autoresearch agent loop](/field-notes/autoresearch-agent-loop/): the 8B NIM proposed a single-knob perturbation, the rails checked it, the trainer ran 60 steps, the validator measured `val_bpb`, the loop kept or reverted, and the trajectory got one more record. Eight of fifty proposals improved val_bpb by more than 0.5%. Forty-two regressed and were reverted. The whole thing ran for 73 minutes overnight.

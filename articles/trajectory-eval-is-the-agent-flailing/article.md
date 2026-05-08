@@ -11,7 +11,8 @@ hardware: "NVIDIA DGX Spark"
 tags: [observability, agentic, autoresearch, evaluation, llm-agents, prompt-engineering]
 summary: "A8 said the LoRA mode-collapsed because the trajectory was thin. This puts numbers on it: 6 of 13 knobs ever touched, 72% of proposals repeated a prior pair, and the proposer's k=5 history window is the structural cause."
 signature: TrajectoryFlailing
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 [A8 shipped an honest negative result](/field-notes/distill-architect-lora-from-trajectories/): a Qwen2.5-3B LoRA trained on the [A4 trajectory](/field-notes/autoresearch-agent-loop/) mode-collapsed onto the trajectory's most-frequent winning move — `d_model=768`, suggested verbatim five out of five training-set keeps — and matched 0 of 8 held-out picks. The article's own diagnosis was: *the corpus was thin*. This is the follow-up that puts numbers on what "thin" means and points at the line of code that caused it.

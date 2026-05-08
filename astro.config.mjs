@@ -37,6 +37,9 @@ export default defineConfig({
     '/research/ai-transformation/': '/field-notes/ai-transformation/',
     '/research/solo-builder-case-study/': '/field-notes/solo-builder-case-study/',
     '/rss.xml/': '/feed.xml/',
+    // Autoresearch arc renamed and broadened to "Machine that Builds Machines"
+    // on 2026-05-08 to ground the /book/ Part-4 thesis (Ch10–11).
+    '/field-notes/series/autoresearch/': '/field-notes/series/machine-that-builds-machines/',
     ...articleSlugRedirects,
   },
   markdown: {

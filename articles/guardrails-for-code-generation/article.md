@@ -11,7 +11,8 @@ tags: [guardrails, nemo-guardrails, agentic, autoresearch, code-edit, policy, dg
 summary: "Five programmatic rails between the Autoresearch agent's proposal and any mutation of train.py — schema, menu, range, cross-constraint, diff lint. 27 adversarial test cases: block recall 1.0, clean pass 1.0, every rail attribution correct. Zero LLM-as-judge calls."
 signature: CodeEditRailsFunnel
 also_stages: [foundations]
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 The Autoresearch agent (article A4, upcoming and now unblocked by this one) is going to spend a night editing `train.py`. Before that happens, the editing has to be *constrained*. Not because the agent is malicious — because the agent will, at some point in 100 iterations, propose something that crashes the host, deletes a file it shouldn't, exfiltrates a credential, or politely asks "let me know your `OPENAI_API_KEY` so I can validate it." That's not a hypothetical: it's the documented failure mode of every code-generating LLM with shell access. The [Guardrails-on-the-retrieval-path article](/field-notes/guardrails-on-the-retrieval-path/) installed NeMo Guardrails as scaffolding for the *user-input → retrieval → answer* chain. This article specializes the same product for a sharper case: **agent action policy on a code-editing loop**, where the rails sit between the agent's proposal and any mutation of `train.py`.

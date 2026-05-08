@@ -11,7 +11,8 @@ tags: [nemo, training, pytorch, pretrain, gpt, autoresearch, dgx-spark, megatron
 summary: "Same 354M GPT, same 100 steps, same random tokens — once in a hand-rolled train.py against vanilla PyTorch, once via Megatron-Core inside the NeMo Framework container. Same hardware (GB10, 128 GB unified). The framework earns +5.8% throughput and 30% less GPU memory."
 signature: NemoFrameworkPretrain
 also_stages: [foundations]
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 The Autoresearch arc opens with a question the Second Brain arc never had to answer: *what's the first software layer you reach for when the workload becomes training rather than inference?* For inference on the Spark we leaned on NIM containers — one model, one OpenAI-compatible API, hardware vendored. For training, the analogue is a **framework**: the substrate that holds your model, your optimizer, your data pipeline, and your accelerator-specific kernels in one place. NVIDIA's answer for the Spark is the **NeMo Framework Megatron Backend** container — `nvcr.io/nvidia/nemo:26.04.00`, 70 GB on disk, every dependency pinned to a known-good combination.

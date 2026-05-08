@@ -11,7 +11,8 @@ tags: [agentic, autoresearch, nemo, nim, llama, megatron, dgx-spark, training, a
 summary: "NIM Llama 3.1 8B drives a structured-perturbation agent loop against a 354M GPT pretrain. 50 iterations, 73.4 min wall, 0.07 kWh of electricity. 8 keeps, 42 reverts, 0 rail blocks, 0 crashes. Best result: val_bpb 10.8534, +0.93% over baseline at d_model=768."
 signature: AutoresearchTrajectory
 also_stages: [training, foundations]
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 The Autoresearch arc has been building toward this article for five installments. A1 measured the framework (NeMo + Megatron-Core, 354M GPT pretrain). A2 measured the kernel envelope (14.3K tok/s on random tokens). A3 measured the data envelope (14.98K tok/s on real wikitext, data-path overhead 0.04%). A5 built the policy gate (5 programmatic rails, 1.0 block recall on a 27-case adversarial bench). This article is the part where everything else stops being scaffolding and the agent **actually runs**, unattended, for 73 minutes, while the box sits on a desk and draws an LED-bulb's worth of electricity.

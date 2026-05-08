@@ -11,7 +11,8 @@ tags: [nemo, training, pytorch, transformer-engine, fp8, megatron, autoresearch,
 summary: "Same 354M GPT, same training loop, swept across micro-batch (2,4,8,16), sequence length (1024,2048), and precision (bf16,fp8). 16 configurations, 30 steps each. Peak: 14,266 tokens/sec at batch=16, seq=1024, fp8 — 18% above the hand-rolled PyTorch baseline."
 signature: BaselineTrainingEnvelope
 also_stages: [foundations]
-series: Autoresearch
+series: Machine that Builds Machines
+book_chapters: [10]
 ---
 
 The previous article (`nemo-framework-on-spark`) measured *one* operating point: 354M GPT, batch=4, seq=1024, bf16, 100 steps. The framework earned +5.8% throughput and 30% less memory over a hand-rolled `train.py` at that point — a clean floor measurement, but a measurement of one point on a curve. The honest next question is: *what does the curve actually look like?* On the GB10, when you push the micro-batch up, when you double the sequence, when you flip from bf16 to fp8 — where does throughput peak, where does it plateau, and how much GPU memory does each step buy you? That's the envelope this article maps.

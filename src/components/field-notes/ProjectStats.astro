@@ -1,4 +1,5 @@
 ---
+import { getCollection } from 'astro:content';
 import stats from '../../data/field-notes/project-stats.json';
 
 // All eight stages, same order as the StageFilter chips. Empty stages stay
@@ -19,14 +20,30 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 const s: any = stats;
-const ARTICLES = s.articles?.total ?? 0;
-const UPCOMING = s.articles?.upcoming ?? 0;
 const WORDS = s.words?.total ?? 0;
 const LOC = s.code?.total_loc ?? 0;
 const MODEL_COUNT = s.models?.length ?? 0;
 const PRODUCT_COUNT = s.products?.length ?? 0;
-const stageCounts: Record<string, number> = s.stages ?? {};
-const stageUpcoming: Record<string, number> = s.stages_upcoming ?? {};
+
+// Article + stage counts are computed live from the content collection so
+// the website reflects its actual corpus (which extends source's mirror by
+// website-only platform papers and seed-promoted upcoming articles).
+// project-stats.json's articles/stages fields are ignored — they're stale
+// on this site by design.
+const allFieldNotes = await getCollection('field-notes');
+const ARTICLES = allFieldNotes.filter((a) => a.data.status !== 'upcoming').length;
+const UPCOMING = allFieldNotes.filter((a) => a.data.status === 'upcoming').length;
+
+const stageCounts: Record<string, number> = Object.fromEntries(
+  STAGE_ORDER.map((k) => [k, 0]),
+);
+const stageUpcoming: Record<string, number> = Object.fromEntries(
+  STAGE_ORDER.map((k) => [k, 0]),
+);
+for (const a of allFieldNotes) {
+  const target = a.data.status === 'upcoming' ? stageUpcoming : stageCounts;
+  target[a.data.stage] = (target[a.data.stage] ?? 0) + 1;
+}
 const products: { id: string; label: string; articles: number }[] = s.products ?? [];
 const models: { id: string; label: string; articles: number }[] = s.models ?? [];
 

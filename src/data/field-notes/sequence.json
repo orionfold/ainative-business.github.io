@@ -36,6 +36,7 @@
     "runtime-frontier-six-patches-on-spark",
     "pass-at-k-after-the-seventh-patch",
     "clawgym-on-spark",
-    "clawgym-on-spark-grpo"
+    "clawgym-on-spark-grpo",
+    "t2po-uncertainty-guided-rl-on-spark"
   ]
 }
