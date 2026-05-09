@@ -157,6 +157,86 @@ The signature SVG at the top of the article tells the story at thumbnail size; h
 | bf16 | 7.95 | 13.85 | 25.65 | 49.24 |
 | fp8  | 8.05 | 13.52 | 24.34 | 46.06 |
 
+<figure class="fn-diagram" aria-label="Throughput timeline across the 16-config sweep. X-axis is batch size at 2, 4, 8, 16. Y-axis is decode throughput in thousands of tokens per second, ranging from 10 to 15. Four traces with circle markers at each point. Two lines for sequence length 1024: fp8 (accent) climbs from 11944 at batch 2 to a ceiling of 14266 at batch 16; bf16 climbs from 11044 to 13626. Two dashed lines for sequence length 2048: fp8 climbs from 12873 to 13641 at batch 8 then dips to 13370 at batch 16; bf16 climbs from 12422 to 13036 at batch 8 and stays flat at 13036 at batch 16. A shaded band marks the seq 2048 plateau between batch 8 and batch 16. The fp8 ceiling is the accent dot at the top right.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="Throughput timeline across the 16-config sweep. X-axis is batch size at 2, 4, 8, 16. Y-axis is decode throughput in thousands of tokens per second, ranging from 10 to 15. Four traces with circle markers at each point. Two lines for sequence length 1024: fp8 (accent) climbs from 11944 at batch 2 to a ceiling of 14266 at batch 16; bf16 climbs from 11044 to 13626. Two dashed lines for sequence length 2048: fp8 climbs from 12873 to 13641 at batch 8 then dips to 13370 at batch 16; bf16 climbs from 12422 to 13036 at batch 8 and stays flat at 13036 at batch 16. A shaded band marks the seq 2048 plateau between batch 8 and batch 16. The fp8 ceiling is the accent dot at the top right." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-btl1-plot-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-btl1-plateau-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.04"/>
+      </linearGradient>
+      <radialGradient id="d-btl1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="100" y="40" width="740" height="240" fill="url(#d-btl1-plot-grad)" stroke="none"/>
+    <rect x="610" y="40" width="230" height="240" fill="url(#d-btl1-plateau-grad)" stroke="none"/>
+    <rect class="fn-diagram__node fn-diagram__node--ghost" x="610" y="40" width="230" height="240" rx="0"/>
+    <rect x="780" y="40" width="60" height="40" fill="url(#d-btl1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 280 L 840 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 232 L 840 232" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 184 L 840 184" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 136 L 840 136" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 88  L 840 88"  />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 40  L 840 40"  />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 40 L 100 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 280 L 840 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 230.7 L 357 215.4 L 613 213.7 L 810 207.0" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 100 192.4 L 357 176.6 L 613 161.5 L 810 145.6" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 100 197.8 L 357 192.9 L 613 191.4 L 810 191.4" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 100 178.4 L 357 175.8 L 613 168.7 L 810 173.0" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <circle class="fn-diagram__dot" cx="100" cy="230.7" r="4"/>
+      <circle class="fn-diagram__dot" cx="357" cy="215.4" r="4"/>
+      <circle class="fn-diagram__dot" cx="613" cy="213.7" r="4"/>
+      <circle class="fn-diagram__dot" cx="810" cy="207.0" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="100" cy="192.4" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="357" cy="176.6" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="613" cy="161.5" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="810" cy="145.6" r="7"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="100" cy="197.8" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="357" cy="192.9" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="613" cy="191.4" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="810" cy="191.4" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="100" cy="178.4" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="357" cy="175.8" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="613" cy="168.7" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="810" cy="173.0" r="4"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="44"  text-anchor="end">15</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="92"  text-anchor="end">14</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="140" text-anchor="end">13</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="188" text-anchor="end">12</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="236" text-anchor="end">11</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="284" text-anchor="end">10k tok/s</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="22" text-anchor="start">decode throughput · tokens / second</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="100" y="332" text-anchor="start">16-CONFIG SWEEP · 354M ON GB10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="304" text-anchor="middle">batch 2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="357" y="304" text-anchor="middle">4</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="613" y="304" text-anchor="middle">8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="810" y="304" text-anchor="middle">16</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="828" y="148" text-anchor="end">14,266</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="828" y="166" text-anchor="end">fp8 · seq 1024</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="828" y="225" text-anchor="end">bf16 · seq 1024</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="450" y="186" text-anchor="middle">fp8 · seq 2048 (dashed)</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="450" y="208" text-anchor="middle">bf16 · seq 2048 (dashed)</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="100" y="62"  text-anchor="start">+8.1% fp8 win at the smallest, latency-bound shape</text>
+      <text class="fn-diagram__annotation" x="725" y="62"  text-anchor="middle">seq 2048 plateau · 2× memory for ~0% throughput</text>
+      <text class="fn-diagram__annotation" x="828" y="356" text-anchor="end">three lines, not sixteen — agent settles on fp8 · cap batch at 8 for seq 2048</text>
+    </g>
+  </svg>
+  <figcaption>FP8 lifts every config; at <code>seq=2048</code> the throughput plateaus past <code>batch=8</code> — three lines tell the story the sixteen-cell tables took.</figcaption>
+</figure>
+
 Three findings drop out of these two tables:
 
 **1. FP8 wins free throughput at every shape.** The smallest gain (+2.6%) is at the largest, slowest shape (batch=16 × seq=2048); the largest gain (+8.1%) is at the smallest, latency-bound shape (batch=2 × seq=1024). The spread tells you something — at small shapes the arithmetic is more dominant in the step time so flipping to FP8 matmuls helps more; at large shapes more of the wall time is in non-matmul ops (attention masking, layer norms, optimizer step) that FP8 doesn't touch.

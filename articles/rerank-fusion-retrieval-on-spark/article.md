@@ -107,6 +107,74 @@ def retrieve(question, mode, k):
 
 Four branches, one dispatcher. The naive branch is what the [naive RAG article](/field-notes/naive-rag-on-spark/) shipped. The BM25 branch swaps the embedder and the ANN index for Postgres full-text. The RRF branch runs both in parallel and fuses. The rerank branch adds a cross-encoder pass over the fused candidates and re-sorts.
 
+<figure class="fn-diagram" aria-label="Dual-path retrieval architecture. The query enters at the left and splits into two parallel lanes. The top lane (dense semantic) flows through embed_query into pgvector top-20. The bottom lane (BM25 lexical) flows through Postgres full-text top-20. Both lanes have early off-ramps — naive mode returns the dense top-K directly, bm25 mode returns the lexical top-K directly. The two lanes converge at the RRF fusion node where reciprocal-rank scoring merges them into a single top-20 list. From RRF the flow either returns directly (rrf mode) or continues into the cross-encoder rerank node (the accent), which rescoring the candidates and emits the final top-K. The four modes share the same generator and prompt downstream — only the retrieve function differs.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="Dual-path retrieval architecture. The query enters at the left and splits into two parallel lanes. The top lane (dense semantic) flows through embed_query into pgvector top-20. The bottom lane (BM25 lexical) flows through Postgres full-text top-20. Both lanes have early off-ramps — naive mode returns the dense top-K directly, bm25 mode returns the lexical top-K directly. The two lanes converge at the RRF fusion node where reciprocal-rank scoring merges them into a single top-20 list. From RRF the flow either returns directly (rrf mode) or continues into the cross-encoder rerank node (the accent), which rescoring the candidates and emits the final top-K. The four modes share the same generator and prompt downstream — only the retrieve function differs." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-rrf1-dense-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-rrf1-lex-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-rrf1-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-rrf1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="160" y="40"  width="560" height="120" rx="10" fill="url(#d-rrf1-dense-grad)" stroke="none"/>
+    <rect x="160" y="220" width="560" height="120" rx="10" fill="url(#d-rrf1-lex-grad)"   stroke="none"/>
+    <rect x="720" y="140" width="160" height="100" fill="url(#d-rrf1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 190 L 180 100" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 190 L 180 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 280 100 L 360 100" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 280 280 L 360 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 480 100 L 560 190" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 480 280 L 560 190" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 680 190 L 720 190" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 480 100 L 480 60 L 840 60" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 480 280 L 480 320 L 840 320" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="40"  y="170" width="120" height="40" rx="8"/>
+      <rect class="fn-diagram__node" x="180" y="80"  width="100" height="40" rx="8"/>
+      <rect class="fn-diagram__node" x="360" y="80"  width="120" height="40" rx="8"/>
+      <rect class="fn-diagram__node" x="180" y="260" width="100" height="40" rx="8"/>
+      <rect class="fn-diagram__node" x="360" y="260" width="120" height="40" rx="8"/>
+      <rect class="fn-diagram__node" x="560" y="170" width="120" height="40" rx="8"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="720" y="170" width="120" height="40" rx="8" style="fill: url(#d-rrf1-accent-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="840" y="40" width="40" height="40" rx="6"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="840" y="300" width="40" height="40" rx="6"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="160" y="28"  text-anchor="start">DENSE LANE · 92% RECALL@5 ON ITS OWN</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="160" y="370" text-anchor="start">BM25 LANE · 79% RECALL@5 · CATCHES RARE TERMS</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="100" y="194" text-anchor="middle">query</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="230" y="104" text-anchor="middle">embed</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="420" y="104" text-anchor="middle">pgvector ↑20</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="230" y="284" text-anchor="middle">tsquery</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="420" y="284" text-anchor="middle">BM25 ↑20</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="620" y="194" text-anchor="middle">RRF merge</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="780" y="194" text-anchor="middle">rerank ↑K</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="780" y="222" text-anchor="middle">cross-encoder</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="62"  text-anchor="middle">naive</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="700" y="172" text-anchor="middle">rrf exit</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="322" text-anchor="middle">bm25</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="100" y="240" text-anchor="middle">one dispatcher</text>
+      <text class="fn-diagram__annotation" x="780" y="252" text-anchor="middle">+~400 ms hosted-endpoint roundtrip</text>
+    </g>
+  </svg>
+  <figcaption>Two retrieval lanes converge at <code>RRF</code>; <code>rerank</code> is the optional third stage. <em>naive</em> and <em>bm25</em> exit early; <em>rrf</em> and <em>rerank</em> use both lanes — same generator downstream, only retrieval differs.</figcaption>
+</figure>
+
 :::define[Dense vs sparse retrieval]
 Two complementary models of *"how documents look like queries."* **Sparse** (BM25, TF-IDF) treats each document as a high-dimensional vector with one component per vocabulary term — most components are zero. Matches surface form. **Dense** (Nemotron Retriever, all bi-encoders) treats each document as a low-dimensional vector with all components active. Matches meaning, not surface form. Hybrid search runs both and fuses; each catches what the other misses (exact rare terms vs paraphrased questions).
 :::

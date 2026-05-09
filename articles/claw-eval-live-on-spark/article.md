@@ -11,7 +11,6 @@ tags: [agentic, benchmark, sandboxing, evals, llm-as-judge, audit-log, nemoclaw,
 summary: 'Stand up Claw-Eval-Live sandboxed-workflow protocol on Spark via NemoClaw + OpenShell, mock the business-service backends, run Llama 8B vs Nemotron 49B with deterministic-trace + LLM-judge grading, and chart where local agents land vs the paper 66.7 percent ceiling.'
 status: upcoming
 series: 'Machine that Builds Machines'
-book_chapters: [10]
 ---
 
 ## Source paper

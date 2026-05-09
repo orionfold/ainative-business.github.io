@@ -116,7 +116,16 @@
     margin-left: calc(var(--explainer-claim) * -1);
     margin-right: var(--explainer-gap);
   }
-  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain:last-of-type {
+  /* Closing pair (typically :::deeper or :::pitfall followed by :::hardware)
+     renders inline at full prose width. Floating the penultimate into the
+     gutter while only the last sibling dropped back inline created visible
+     whitespace before the closing callout: the float extended below the
+     prose between them, and `clear: both` on the last pushed it past the
+     float's tail. Inlining the trailing pair makes them stack as a clean
+     pair of full-width callouts. MUST come AFTER the :nth-of-type(2n) rule
+     (same specificity, source order wins). shape-outside is reset because
+     the property persists across float removal in some engines. */
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain:nth-last-of-type(-n+2) {
     float: none;
     clear: both;
     width: auto;

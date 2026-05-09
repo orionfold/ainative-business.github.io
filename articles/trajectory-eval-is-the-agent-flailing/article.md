@@ -53,7 +53,71 @@ The 13-knob perturbation menu (defined in [A5's guardrails](/field-notes/guardra
 
 Across 50 proposals, the agent touched six.
 
-![Knob coverage — 6 of 13 knobs ever touched](./evidence/knob_coverage.png)
+<figure class="fn-diagram" aria-label="Knob coverage waterfall. A stacked horizontal bar of 50 proposals decomposes into six knob segments — d_model 24, n_head 15, d_ff 5, lr 3, beta2 2, beta1 1. The d_model segment is the accent and dominates at nearly half the bar. Below the bar, seven outlined ghost cells label the untouched knobs (n_layer, lr_warmup, grad_clip, weight_decay, batch_size, seq_len, precision). Right margin annotates 6 of 13 knobs touched and 14 unique pairs across 50 iterations.">
+  <svg viewBox="0 0 900 340" role="img" aria-label="Knob coverage waterfall. A stacked horizontal bar of 50 proposals decomposes into six knob segments — d_model 24, n_head 15, d_ff 5, lr 3, beta2 2, beta1 1. The d_model segment is the accent and dominates at nearly half the bar. Below the bar, seven outlined ghost cells label the untouched knobs (n_layer, lr_warmup, grad_clip, weight_decay, batch_size, seq_len, precision). Right margin annotates 6 of 13 knobs touched and 14 unique pairs across 50 iterations." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-tev1-bar-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-tev1-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-tev1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="60" y="80" width="780" height="80" rx="8" fill="url(#d-tev1-bar-grad)" stroke="none"/>
+    <rect x="60" y="80" width="374.4" height="80" fill="url(#d-tev1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 60 80 L 60 160" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 60 160 L 840 160" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="60"    y="90" width="374.4" height="60" rx="4" style="fill: url(#d-tev1-accent-grad)"/>
+      <rect class="fn-diagram__node" x="438.4" y="90" width="234"   height="60" rx="4"/>
+      <rect class="fn-diagram__node" x="676.4" y="90" width="78"    height="60" rx="4"/>
+      <rect class="fn-diagram__node" x="758.4" y="90" width="46.8"  height="60" rx="4"/>
+      <rect class="fn-diagram__node" x="809.2" y="90" width="31.2"  height="60" rx="4"/>
+      <rect class="fn-diagram__node" x="844.4" y="90" width="15.6"  height="60" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="60"  y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="171" y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="282" y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="393" y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="504" y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="615" y="220" width="105" height="46" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="726" y="220" width="105" height="46" rx="4"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="60"  y="64" text-anchor="start">KNOB COVERAGE · 50 PROPOSALS</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="247" y="124" text-anchor="middle">d_model</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="247" y="142" text-anchor="middle">24 · 48%</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="555" y="124" text-anchor="middle">n_head</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="555" y="142" text-anchor="middle">15 · 30%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="715" y="124" text-anchor="middle">d_ff</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="715" y="140" text-anchor="middle">5</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="781" y="178" text-anchor="middle">lr · 3</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="824" y="178" text-anchor="middle">β₂ · 2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="852" y="178" text-anchor="middle">β₁</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="60"  y="208" text-anchor="start">NEVER PROPOSED · 7 KNOBS</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="112" y="248" text-anchor="middle">n_layer</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="223" y="248" text-anchor="middle">lr_warmup</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="334" y="248" text-anchor="middle">grad_clip</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="445" y="248" text-anchor="middle">weight_decay</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="556" y="248" text-anchor="middle">batch_size</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="667" y="248" text-anchor="middle">seq_len</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="778" y="248" text-anchor="middle">precision</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="840" y="64"  text-anchor="end">6 / 13 touched · 14 unique pairs</text>
+      <text class="fn-diagram__annotation" x="60"  y="296" text-anchor="start">six capacity-dim knobs absorb every proposal</text>
+      <text class="fn-diagram__annotation" x="840" y="296" text-anchor="end">seven optimization-dim knobs untouched across 50 chances</text>
+    </g>
+  </svg>
+  <figcaption>Six knobs absorb every proposal — <code>d_model</code> alone takes 24 of 50, and seven optimization-dim knobs never appeared.</figcaption>
+</figure>
 
 `d_model` alone took 24 of the 50 proposals — nearly half. Combined with `n_head` it took 39 of 50 = 78%. Seven knobs never appeared: not even once across 50 chances. That's not a sampling fluke; even uniform random over 13 knobs would have hit every knob by iter 50 with overwhelming probability. The proposer is biased toward *capacity-dimension* knobs (`d_model`, `n_head`, `d_ff`) and ignores *optimization-dimension* knobs (`lr_warmup`, `grad_clip`, `weight_decay`, `batch_size`, `seq_len`, `precision`).
 
@@ -85,7 +149,67 @@ The agent's prompt only shows the **last 5 iterations**. The system prompt warns
 
 The repeat rate makes the cost of this design choice visible:
 
-![Repeat rate over time — climbs as the k=5 window forgets](./evidence/repeat_rate_over_time.png)
+<figure class="fn-diagram" aria-label="Repeat rate timeline. Five vertical bars across the 50-iteration trajectory, one per ten-iteration window. Window 1 (iters 1-10) and window 2 (iters 11-20) sit at 50%. Window 3 (iters 21-30) climbs to 80%. Windows 4 and 5 (iters 31-40 and 41-50) reach 90%, the accent bars. A horizontal annotation marks the k=5 history window — by iter 30 the proposer cannot see iters 1-25, so it re-proposes ground it already covered. Overall repeat rate of 72 percent labelled at the top right.">
+  <svg viewBox="0 0 900 360" role="img" aria-label="Repeat rate timeline. Five vertical bars across the 50-iteration trajectory, one per ten-iteration window. Window 1 (iters 1-10) and window 2 (iters 11-20) sit at 50%. Window 3 (iters 21-30) climbs to 80%. Windows 4 and 5 (iters 31-40 and 41-50) reach 90%, the accent bars. A horizontal annotation marks the k=5 history window — by iter 30 the proposer cannot see iters 1-25, so it re-proposes ground it already covered. Overall repeat rate of 72 percent labelled at the top right." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-tev2-plot-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-tev2-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-tev2-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.15"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="100" y="40" width="740" height="240" fill="url(#d-tev2-plot-grad)" stroke="none"/>
+    <rect x="556" y="40" width="284" height="240" fill="url(#d-tev2-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 280 L 840 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 220 L 840 220" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 160 L 840 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 100 L 840 100" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 40  L 840 40"  />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 40 L 100 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 280 L 840 280" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="146" y="160" width="100" height="120" rx="4"/>
+      <rect class="fn-diagram__node" x="282" y="160" width="100" height="120" rx="4"/>
+      <rect class="fn-diagram__node" x="418" y="100" width="100" height="180" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="554" y="76"  width="100" height="204" rx="4" style="fill: url(#d-tev2-accent-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="690" y="76"  width="100" height="204" rx="4" style="fill: url(#d-tev2-accent-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="554" y="76" width="236" height="204" rx="4"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="284" text-anchor="end">0%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="224" text-anchor="end">25</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="164" text-anchor="end">50</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="104" text-anchor="end">75</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="44"  text-anchor="end">100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="22" text-anchor="start">repeat rate %</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="100" y="332" text-anchor="start">REPEAT RATE BY 10-ITER WINDOW</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="196" y="304" text-anchor="middle">1 – 10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="332" y="304" text-anchor="middle">11 – 20</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="468" y="304" text-anchor="middle">21 – 30</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="604" y="304" text-anchor="middle">31 – 40</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="740" y="304" text-anchor="middle">41 – 50</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="196" y="152" text-anchor="middle">50%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="332" y="152" text-anchor="middle">50%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="468" y="92"  text-anchor="middle">80%</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="604" y="68"  text-anchor="middle">90%</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="740" y="68"  text-anchor="middle">90%</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="840" y="332" text-anchor="end">72% overall · k=5 window forgets iters past N-5</text>
+      <text class="fn-diagram__annotation" x="668" y="40"  text-anchor="middle">9 of 10 proposals are ground already covered</text>
+    </g>
+  </svg>
+  <figcaption>Repeat rate climbs from 50% to 90% as the <code>k=5</code> history window slides past prior decisions; second-half iters re-litigate ground already evaluated.</figcaption>
+</figure>
 
 In the first 10 iterations, half of the proposals were already-seen pairs — already a sign the proposer was leaning on a few favorites. By iter 21-30, that's 80%. By iter 31-50, it's 90%. *Nine out of ten proposals in the second half of the run were ground the agent had already covered.* The 73-minute wall did not get the loop nine-tenths of a richer corpus; it got it the same ~14 ideas re-litigated with diminishing utility.
 
@@ -103,7 +227,65 @@ A status-line "iteration 47/50" is a measure of *how long the loop has been runn
 
 The cumulative best curve over 50 iters tells the same story from a different angle.
 
-![Cumulative best val_bpb — first keep at iter 4, best at iter 45, 17-iter plateau in the middle](./evidence/cumulative_best.png)
+<figure class="fn-diagram" aria-label="Cumulative best validation bpb over the 50-iteration trajectory. A stepped curve drops from baseline at iter 4 (first keep, +0.76%), confirms at iter 6 (+0.77%), and then plateaus for 17 iterations. At iter 23 the curve drops again to +0.89%, then holds nearly flat through small keeps at iters 31 and 33, and finally drops to the best value of +0.93% at iter 45. Eight keep iterations are marked as dots along the curve. The accent dots are the first keep at iter 4 and the best at iter 45, with a shaded band over the 17-iteration plateau between iters 6 and 23.">
+  <svg viewBox="0 0 900 360" role="img" aria-label="Cumulative best validation bpb over the 50-iteration trajectory. A stepped curve drops from baseline at iter 4 (first keep, +0.76%), confirms at iter 6 (+0.77%), and then plateaus for 17 iterations. At iter 23 the curve drops again to +0.89%, then holds nearly flat through small keeps at iters 31 and 33, and finally drops to the best value of +0.93% at iter 45. Eight keep iterations are marked as dots along the curve. The accent dots are the first keep at iter 4 and the best at iter 45, with a shaded band over the 17-iteration plateau between iters 6 and 23." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-tev3-plot-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-tev3-plateau-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.14"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.02"/>
+      </linearGradient>
+    </defs>
+    <rect x="100" y="40" width="740" height="240" fill="url(#d-tev3-plot-grad)" stroke="none"/>
+    <rect x="189" y="40" width="251" height="240" fill="url(#d-tev3-plateau-grad)" stroke="none"/>
+    <rect class="fn-diagram__node fn-diagram__node--ghost" x="189" y="40" width="251" height="240" rx="0"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 280 L 840 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 215 L 840 215" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 150 L 840 150" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 85  L 840 85"  />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 40  L 840 40"  />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 40 L 100 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 280 L 840 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 100 40 L 159 40 L 159 207 L 189 207 L 189 211 L 440 211 L 440 244 L 559 244 L 559 246 L 588 246 L 588 248 L 736 248 L 736 252 L 766 252 L 766 257 L 840 257" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="159" cy="207" r="7"/>
+      <circle class="fn-diagram__dot" cx="189" cy="211" r="5"/>
+      <circle class="fn-diagram__dot" cx="440" cy="244" r="5"/>
+      <circle class="fn-diagram__dot" cx="559" cy="246" r="5"/>
+      <circle class="fn-diagram__dot" cx="588" cy="248" r="5"/>
+      <circle class="fn-diagram__dot" cx="736" cy="252" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="766" cy="257" r="7"/>
+      <circle class="fn-diagram__dot" cx="781" cy="257" r="5"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="44"  text-anchor="end">10.96</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="89"  text-anchor="end">10.93</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="154" text-anchor="end">10.90</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="219" text-anchor="end">10.87</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="92" y="284" text-anchor="end">10.85</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="22" text-anchor="start">val_bpb · cumulative best</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="100" y="332" text-anchor="start">50-ITER TRAJECTORY · 8 KEEPS</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="304" text-anchor="middle">1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="248" y="304" text-anchor="middle">10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="396" y="304" text-anchor="middle">20</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="544" y="304" text-anchor="middle">30</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="692" y="304" text-anchor="middle">40</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="840" y="304" text-anchor="middle">50</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="159" y="196" text-anchor="middle">iter 4 · +0.76%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="766" y="278" text-anchor="middle">iter 45 · +0.93%</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="315" y="62"  text-anchor="middle">17-iter plateau · same idea, smaller adjustments</text>
+      <text class="fn-diagram__annotation" x="840" y="332" text-anchor="end">six of eight keeps land on d_model=768</text>
+    </g>
+  </svg>
+  <figcaption>First keep at iter 4 (<code>d_model=768</code>), best at iter 45 — and a 17-iter plateau between, where the loop kept relitigating the same idea.</figcaption>
+</figure>
 
 The agent finds `d_model=768` at iter 4 (`+0.76%`) and confirms it at iter 6 (`+0.77%`). Then nothing happens for **17 iterations**. Iter 23 is another `d_model=768` keep with marginally better val_bpb (`+0.89%`). More small `d_model=768` keeps at iters 31, 33, 43, 45, 46. The "best" iter 45 is `+0.93%` — a 0.04 percentage-point improvement over what the agent already knew at iter 6.
 

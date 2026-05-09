@@ -61,6 +61,65 @@ The six drifts in the patches article were all surfaced by *small* workloads —
 ESamp's hook into vLLM's transformer forward pass. The runtime replaces `layer.forward` on two layers (a *shallow* one and a *deep* one) with a Python wrapper that captures the residual stream — the per-token hidden state — and forwards it to the Distiller for online training. *Tap* because the hook reads the stream non-destructively; the original forward continues unaltered. The seventh drift lived inside this tap's index-select call when the in-flight batch shrank.
 :::
 
+<figure class="fn-diagram" aria-label="Seven-patch drift timeline. A horizontal lane shows patches one through seven across time. Patches one through six (left) were all surfaced by the bench harness, which runs identical prompts through monotonically growing batches — the first six rendered as outlined cells. Patch seven (right) was surfaced only when the Pass@k harness sent thirty AIME problems times n equals eight equals 240 in-flight requests through vLLM, where requests drained at different times and the in-flight batch shrank between scheduler steps. Patch seven sits in an accent cell at the right end of the lane, with the test surface labelled below as decode-shrink workloads (Pass@k, agent loops, multi-prompt streaming). A divider between the two zones makes the change of test surface visible.">
+  <svg viewBox="0 0 900 320" role="img" aria-label="Seven-patch drift timeline. A horizontal lane shows patches one through seven across time. Patches one through six (left) were all surfaced by the bench harness, which runs identical prompts through monotonically growing batches — the first six rendered as outlined cells. Patch seven (right) was surfaced only when the Pass@k harness sent thirty AIME problems times n equals eight equals 240 in-flight requests through vLLM, where requests drained at different times and the in-flight batch shrank between scheduler steps. Patch seven sits in an accent cell at the right end of the lane, with the test surface labelled below as decode-shrink workloads (Pass@k, agent loops, multi-prompt streaming). A divider between the two zones makes the change of test surface visible." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-pak3-bench-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-pak3-passk-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.04"/>
+      </linearGradient>
+      <linearGradient id="d-pak3-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-pak3-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="60"  y="80" width="600" height="120" rx="8" fill="url(#d-pak3-bench-grad)" stroke="none"/>
+    <rect x="700" y="80" width="160" height="120" rx="8" fill="url(#d-pak3-passk-grad)" stroke="none"/>
+    <rect x="700" y="80" width="160" height="120" fill="url(#d-pak3-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 60 140 L 860 140" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 680 60 L 680 220" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="80"  y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node" x="180" y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node" x="280" y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node" x="380" y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node" x="480" y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node" x="580" y="116" width="80" height="48" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="720" y="108" width="120" height="64" rx="4" style="fill: url(#d-pak3-accent-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="60"  y="68"  text-anchor="start">PATCHES 1 – 6 · BENCH-DISCOVERABLE</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="860" y="68"  text-anchor="end">PATCH 7 · PASS@K-DISCOVERABLE</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="120" y="146" text-anchor="middle">#1</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="220" y="146" text-anchor="middle">#2</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="320" y="146" text-anchor="middle">#3</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="420" y="146" text-anchor="middle">#4</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="520" y="146" text-anchor="middle">#5</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="620" y="146" text-anchor="middle">#6</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="780" y="148" text-anchor="middle">#7</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="360" y="232" text-anchor="middle">small monotonic batches · same-prompt smoke</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="780" y="190" text-anchor="middle">decode-shrink</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="780" y="232" text-anchor="middle">240 in-flight</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="780" y="100" text-anchor="middle">decode_row_idx slice</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="270" text-anchor="middle">first six surfaced by &lt;10 in-flight requests · monotonic batch shape</text>
+      <text class="fn-diagram__annotation" x="450" y="290" text-anchor="middle">seventh hid behind a stale scratch-tensor index when the batch shrank</text>
+    </g>
+  </svg>
+  <figcaption>Six drifts surfaced by the bench harness; the seventh only fired once <code>n=8</code> attempts drained at different times — Pass@k workloads expose bugs the bench mode can't.</figcaption>
+</figure>
+
 Inside `residual_capture_hooks._forward_with_tap`, the consumer's residual tap was calling:
 
 ```python
@@ -131,6 +190,81 @@ Once the seventh patch landed, the four cells of the model × task × mode matri
 Pass@1 on AIME is a sample mean over 30 binary outcomes per `n=8` set; one extra correct problem moves the rate by 1/30 = 3.33pp. Pass@8 has the same 1/30 quantum. So any delta under ~3pp is *one problem's worth of jitter*; the +6.67pp on the reasoning cell is two extra problems, well above noise. The +3.33pp on the instruct cell is at the noise edge — earning the matrix only when the trend is consistent across both pass@1 and pass@8.
 :::
 
+<figure class="fn-diagram" aria-label="ESamp lift heatmap across three matrix cells. Each cell is a tall card; inside each, two horizontal bars stacked — top bar shows pass@1 delta, bottom bar shows pass@8 delta. Cell 1 (Qwen 2.5 7B Instruct on HumanEval, saturated) shows pass@1 +0.23pp and pass@8 -0.61pp, both within noise, rendered in muted gray. Cell 2 (Qwen on AIME 2024, unsaturated instruct headroom) shows +3.33pp at both pass@1 and pass@8, rendered in mid-tint indigo. Cell 3 (DeepSeek R1-Distill-Qwen-7B on AIME 2024, unsaturated reasoning headroom) shows +0.42pp at pass@1 (flat) and +6.67pp at pass@8, with the pass@8 bar as the accent — the paper's headline lift lives here.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="ESamp lift heatmap across three matrix cells. Each cell is a tall card; inside each, two horizontal bars stacked — top bar shows pass@1 delta, bottom bar shows pass@8 delta. Cell 1 (Qwen 2.5 7B Instruct on HumanEval, saturated) shows pass@1 +0.23pp and pass@8 -0.61pp, both within noise, rendered in muted gray. Cell 2 (Qwen on AIME 2024, unsaturated instruct headroom) shows +3.33pp at both pass@1 and pass@8, rendered in mid-tint indigo. Cell 3 (DeepSeek R1-Distill-Qwen-7B on AIME 2024, unsaturated reasoning headroom) shows +0.42pp at pass@1 (flat) and +6.67pp at pass@8, with the pass@8 bar as the accent — the paper's headline lift lives here." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-pak1-cell-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-pak1-mid-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.05"/>
+      </linearGradient>
+      <linearGradient id="d-pak1-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.40"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.10"/>
+      </linearGradient>
+      <radialGradient id="d-pak1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="40"  y="60"  width="260" height="280" rx="10" fill="url(#d-pak1-cell-grad)" stroke="none"/>
+    <rect x="320" y="60"  width="260" height="280" rx="10" fill="url(#d-pak1-mid-grad)"  stroke="none"/>
+    <rect x="600" y="60"  width="260" height="280" fill="url(#d-pak1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 200 L 300 200" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 320 200 L 580 200" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 600 200 L 860 200" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="40"  y="60"  width="260" height="280" rx="10"/>
+      <rect class="fn-diagram__node" x="320" y="60"  width="260" height="280" rx="10"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="600" y="60"  width="260" height="280" rx="10" style="fill: url(#d-pak1-accent-grad)"/>
+      <rect class="fn-diagram__node" x="60"  y="160" width="6"   height="40" rx="2"/>
+      <rect class="fn-diagram__node" x="60"  y="208" width="22"  height="40" rx="2"/>
+      <rect class="fn-diagram__node" x="340" y="124" width="58"  height="40" rx="2"/>
+      <rect class="fn-diagram__node" x="340" y="208" width="58"  height="40" rx="2"/>
+      <rect class="fn-diagram__node" x="620" y="160" width="8"   height="40" rx="2"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="620" y="208" width="116" height="40" rx="2" style="fill: url(#d-pak1-accent-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="170" y="48"  text-anchor="middle">SATURATED</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="170" y="84"  text-anchor="middle">Qwen 7B × HumanEval</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="170" y="106" text-anchor="middle">pass@1 70.27% → 70.50%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="170" y="124" text-anchor="middle">pass@8 84.76% → 84.15%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="60"  y="156" text-anchor="start">pass@1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="92"  y="186" text-anchor="start">+0.23pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="60"  y="204" text-anchor="start">pass@8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="92"  y="234" text-anchor="start">−0.61pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="170" y="316" text-anchor="middle">both within noise floor</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="450" y="48"  text-anchor="middle">UNSATURATED · INSTRUCT</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="450" y="84"  text-anchor="middle">Qwen 7B × AIME 2024</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="450" y="106" text-anchor="middle">pass@1 11.25% → 14.58%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="450" y="124" text-anchor="middle">pass@8 20.00% → 23.33%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="340" y="156" text-anchor="start">pass@1</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="408" y="150" text-anchor="start">+3.33pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="340" y="204" text-anchor="start">pass@8</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="408" y="234" text-anchor="start">+3.33pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="450" y="316" text-anchor="middle">token + trajectory headroom</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="730" y="48"  text-anchor="middle">UNSATURATED · REASONING</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="730" y="84"  text-anchor="middle">DS-R1-Distill 7B × AIME</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="730" y="106" text-anchor="middle">pass@1 36.67% → 37.08%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="730" y="124" text-anchor="middle">pass@8 60.00% → 66.67%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="620" y="156" text-anchor="start">pass@1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="640" y="186" text-anchor="start">+0.42pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="620" y="204" text-anchor="start">pass@8</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="744" y="234" text-anchor="start">+6.67pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="730" y="316" text-anchor="middle">trajectory headroom only</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="368" text-anchor="middle">three shapes, one technique, one β · the workload's headroom decides whether anything moves</text>
+    </g>
+  </svg>
+  <figcaption>ESamp's value is a 2×2 grid of headroom shapes — instruct cells light up on both rates, reasoning cells light up on pass@8 alone, saturated cells stay flat.</figcaption>
+</figure>
+
 ### Cell 1 — saturated (Qwen × HumanEval): nothing moves
 
 The instruction-tuned 7B does HumanEval at pass@1 = 70.27% baseline. Eight samples lift to 84.76% pass@8 — the model already knows the problem, and most of the 14pp gap is tail-distributed across the easier 60% of problems. ESamp lifts pass@1 by 0.23pp (= +0.3 problems out of 164), drops pass@8 by 0.61pp, runs 1.8% faster, and decodes 2% fewer total tokens. **Both deltas are within run-to-run noise.** The decode-token reduction is the only physically meaningful number — intervention concentrates probability mass enough that EOS hits a few tokens earlier. There is no headroom for semantic exploration to find. The Distiller's online training cost lands as a wash on tok/s and zero on accuracy.
@@ -148,6 +282,73 @@ It does. Pass@8 lifts to 66.67% — **+6.67pp, two extra problems out of 30**. P
 The per-problem breakdown makes the mechanism visible. Three AIME problems went from 0/8 baseline → ≥1/8 ESamp — problems the baseline never solved at any temperature trajectory; ESamp's semantic spread found a path. One went the other way (4/8 → 0/8 — intervention pushed all eight attempts down a bad path). Eleven problems shifted by smaller amounts in both directions. The signature shape is wider variance with a positive mean — ESamp is not making any single attempt smarter. It is making the *set of eight attempts* cover more of the problem space.
 
 This is the paper's thesis intact. Pass@1 does not move because the marginal token distribution under R1-Distill is already producing well-calibrated reasoning at temperature 0.8 — the Distiller's reweight has nothing to sharpen. Pass@8 moves because the eight trajectories, after the reweight, are more *semantically* distinct — they explore different solution paths instead of rephrasing the same one. The Spark gets that lift on a model card, three chains of patches, and seven hundred lines of new harness — and the lift survives a runtime two minor versions deeper than the paper's reference.
+
+<figure class="fn-diagram" aria-label="Dual-path mechanism diagram. Eight parallel attempts feed into two lanes. Top lane (instruction-tuned model on AIME, unsaturated): the ESamp Distiller reweight sharpens the marginal token distribution AND spreads the eight trajectories semantically — both pass at 1 and pass at 8 rise by 3.33pp. Bottom lane (reasoning-tuned model on AIME, also unsaturated): the marginal token distribution is already well-calibrated so the reweight has nothing to sharpen — pass at 1 stays flat at +0.42pp. The semantic spread still works — pass at 8 rises by 6.67pp, the accent. Both lanes converge at the verifier-bound endpoint where a grader, sandbox, or tool picks the correct attempt from the eight candidates.">
+  <svg viewBox="0 0 900 400" role="img" aria-label="Dual-path mechanism diagram. Eight parallel attempts feed into two lanes. Top lane (instruction-tuned model on AIME, unsaturated): the ESamp Distiller reweight sharpens the marginal token distribution AND spreads the eight trajectories semantically — both pass at 1 and pass at 8 rise by 3.33pp. Bottom lane (reasoning-tuned model on AIME, also unsaturated): the marginal token distribution is already well-calibrated so the reweight has nothing to sharpen — pass at 1 stays flat at +0.42pp. The semantic spread still works — pass at 8 rises by 6.67pp, the accent. Both lanes converge at the verifier-bound endpoint where a grader, sandbox, or tool picks the correct attempt from the eight candidates." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-pak2-instruct-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-pak2-reasoning-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-pak2-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-pak2-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="160" y="40"  width="540" height="140" rx="10" fill="url(#d-pak2-instruct-grad)"  stroke="none"/>
+    <rect x="160" y="220" width="540" height="140" rx="10" fill="url(#d-pak2-reasoning-grad)" stroke="none"/>
+    <rect x="700" y="50"  width="160" height="300" fill="url(#d-pak2-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 140 200 L 180 200" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 160 110 L 240 110" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 380 110 L 460 110" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 600 110 L 700 200" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 290 L 240 290" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 380 290 L 460 290" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 600 290 L 700 200" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="40"  y="170" width="100" height="60" rx="8"/>
+      <rect class="fn-diagram__node" x="240" y="80"  width="140" height="60" rx="8"/>
+      <rect class="fn-diagram__node" x="460" y="80"  width="140" height="60" rx="8"/>
+      <rect class="fn-diagram__node" x="240" y="260" width="140" height="60" rx="8"/>
+      <rect class="fn-diagram__node" x="460" y="260" width="140" height="60" rx="8"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="700" y="170" width="160" height="60" rx="8" style="fill: url(#d-pak2-accent-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="160" y="28"  text-anchor="start">INSTRUCT · BOTH HEADROOMS · +3.33 / +3.33</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="90"  y="206" text-anchor="middle">n = 8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="90"  y="224" text-anchor="middle">attempts</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="310" y="106" text-anchor="middle">marginal</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="310" y="126" text-anchor="middle">token sharpens</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="530" y="106" text-anchor="middle">trajectories</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="530" y="126" text-anchor="middle">spread</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="160" y="208" text-anchor="start">REASONING · TRAJECTORY HEADROOM ONLY · +0.42 / +6.67</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="310" y="286" text-anchor="middle">marginal</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="310" y="306" text-anchor="middle">already calibrated</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="530" y="286" text-anchor="middle">trajectories</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="530" y="306" text-anchor="middle">spread</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="780" y="200" text-anchor="middle">verifier</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="780" y="220" text-anchor="middle">picks correct</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="310" y="160" text-anchor="middle">distiller reweight · sharpen</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="530" y="160" text-anchor="middle">distiller reweight · spread</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="310" y="248" text-anchor="middle">no headroom · pass@1 stays</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="530" y="248" text-anchor="middle">distiller reweight · spread</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="384" text-anchor="middle">two lanes, one verifier-bound destination · ESamp scales whichever headroom the model has</text>
+    </g>
+  </svg>
+  <figcaption>Two paths to the same verifier — instruct lifts both pass@1 and pass@8 because both headrooms exist; reasoning lifts only pass@8 because the marginal distribution is already calibrated.</figcaption>
+</figure>
 
 :::deeper
 - [ESamp paper (LLMs Explore by Latent Distilling)](https://arxiv.org/abs/2604.24927) — the technique whose three matrix shapes this article maps.
