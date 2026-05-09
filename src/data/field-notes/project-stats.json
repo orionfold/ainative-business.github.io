@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-07T14:30:10Z",
+  "generated_at": "2026-05-09T16:52:38Z",
   "articles": {
-    "total": 31,
-    "published": 31,
-    "upcoming": 5,
+    "total": 32,
+    "published": 32,
+    "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 106881,
-    "mean_per_article": 3447,
+    "total": 110027,
+    "mean_per_article": 3438,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -16,42 +16,42 @@
     }
   },
   "code": {
-    "evidence_loc": 89469,
-    "src_loc": 10678,
-    "total_loc": 100147,
+    "evidence_loc": 358550,
+    "src_loc": 10778,
+    "total_loc": 369328,
     "by_language": {
-      "python": 87767,
-      "astro": 7388,
-      "css": 2524,
-      "shell": 1028,
-      "typescript": 574,
-      "html": 494,
-      "javascript": 357,
+      "python": 345180,
+      "shell": 9754,
+      "astro": 7473,
+      "html": 3422,
+      "css": 2527,
+      "typescript": 586,
+      "javascript": 371,
       "sql": 15
     },
     "data_lines": {
-      "json": 26547974,
-      "yaml": 4633,
-      "toml": 73
+      "json": 64434735,
+      "yaml": 8356,
+      "toml": 674
     }
   },
   "stages": {
     "foundations": 11,
-    "training": 9,
-    "fine-tuning": 6,
+    "training": 10,
+    "fine-tuning": 7,
     "inference": 14,
     "deployment": 2,
-    "agentic": 11,
+    "agentic": 12,
     "observability": 6,
     "dev-tools": 2
   },
   "stages_upcoming": {
     "foundations": 0,
-    "training": 2,
-    "fine-tuning": 2,
+    "training": 1,
+    "fine-tuning": 1,
     "inference": 0,
     "deployment": 0,
-    "agentic": 1,
+    "agentic": 0,
     "observability": 1,
     "dev-tools": 1
   },
@@ -62,13 +62,13 @@
       "articles": 18
     },
     {
-      "id": "nemotron-reranker-1b",
-      "label": "Nemotron Reranker 1B",
-      "articles": 6
-    },
-    {
       "id": "qwen-2.5-7b-instruct",
       "label": "Qwen2.5 7B Instruct",
+      "articles": 7
+    },
+    {
+      "id": "nemotron-reranker-1b",
+      "label": "Nemotron Reranker 1B",
       "articles": 6
     },
     {
@@ -111,7 +111,7 @@
     {
       "id": "nemo",
       "label": "NeMo Framework",
-      "articles": 24
+      "articles": 25
     },
     {
       "id": "tensorrt-llm",

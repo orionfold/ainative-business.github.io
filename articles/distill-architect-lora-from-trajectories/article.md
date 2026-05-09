@@ -25,6 +25,75 @@ Training a smaller (student) model to imitate a larger (teacher) model's *decisi
 
 This article asks the small follow-up question: **can a 3B LoRA, trained on those 42 examples (with 8 held out), match or beat the 8B proposer that produced them?** The deliberate frame is that the agent loop in A4 paid 73 minutes of wall and ~0.07 kWh of electricity to produce a corpus. If a small distilled proposer can match the big one, the agent eats its own tail and every campaign feeds the next. If it can't yet, we want to know *why* — corpus size, temperature mismatch, or the distilled model's own bias — and what the next campaign needs to look like.
 
+<figure class="fn-diagram" aria-label="Architect distillation pipeline. Five stages flow left-to-right: a 50-iteration trajectory JSONL feeds prepare_corpus dot py, which emits a 42-row training set and an 8-row held-out test split, which trains a Qwen 2.5 3B LoRA at rank 16, producing a distilled proposer that races against the 8B NIM teacher. The 8B teacher sits above the pipeline as a labelled source — it produced the trajectory and serves as the race baseline. The distilled proposer is the accent node at the right end of the flow.">
+  <svg viewBox="0 0 900 320" role="img" aria-label="Architect distillation pipeline. Five stages flow left-to-right: a 50-iteration trajectory JSONL feeds prepare_corpus dot py, which emits a 42-row training set and an 8-row held-out test split, which trains a Qwen 2.5 3B LoRA at rank 16, producing a distilled proposer that races against the 8B NIM teacher. The 8B teacher sits above the pipeline as a labelled source — it produced the trajectory and serves as the race baseline. The distilled proposer is the accent node at the right end of the flow." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-da1-lane-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-da1-teacher-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-da1-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-da1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="40" y="160" width="820" height="120" rx="10" fill="url(#d-da1-lane-grad)" stroke="none"/>
+    <rect x="40" y="40"  width="820" height="80"  rx="10" fill="url(#d-da1-teacher-grad)" stroke="none"/>
+    <rect x="700" y="160" width="160" height="120" fill="url(#d-da1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path id="d-da1-flow" class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 60 220 L 240 220 L 360 220 L 480 220 L 600 220 L 720 220" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 230 80 L 90 180" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 720 80 L 760 180" />
+    </g>
+    <circle class="fn-diagram__flow" r="5">
+      <animateMotion dur="3.6s" repeatCount="indefinite"
+                     calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1"
+                     begin="1.4s">
+        <mpath href="#d-da1-flow" />
+      </animateMotion>
+    </circle>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="40"  y="180" width="120" height="80" rx="8"/>
+      <rect class="fn-diagram__node" x="200" y="180" width="120" height="80" rx="8"/>
+      <rect class="fn-diagram__node" x="360" y="180" width="120" height="80" rx="8"/>
+      <rect class="fn-diagram__node" x="520" y="180" width="120" height="80" rx="8"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="700" y="180" width="160" height="80" rx="8" style="fill: url(#d-da1-accent-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="40"  y="60" width="180" height="50" rx="8"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="700" y="60" width="160" height="50" rx="8"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="146" text-anchor="start">DISTILLATION PIPELINE</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="34"  text-anchor="start">8B NIM TEACHER · BASELINE</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="100" y="220" text-anchor="middle">trajectory</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="100" y="240" text-anchor="middle">50 iters</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="260" y="218" text-anchor="middle">prepare_corpus</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="260" y="240" text-anchor="middle">42 train · 8 test</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="420" y="218" text-anchor="middle">LoRA train</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="420" y="240" text-anchor="middle">r=16 · 3.9 min</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="580" y="218" text-anchor="middle">3B + adapter</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="580" y="240" text-anchor="middle">114 MB</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="780" y="218" text-anchor="middle">distilled proposer</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="780" y="240" text-anchor="middle">races 8B teacher</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="130" y="84" text-anchor="middle">8B NIM</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="130" y="104" text-anchor="middle">wrote trajectory</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="780" y="84" text-anchor="middle">8B at T=0.5</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="780" y="104" text-anchor="middle">race baseline</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="305" text-anchor="middle">the agent eats its own tail · every campaign feeds the next</text>
+    </g>
+  </svg>
+  <figcaption>The architect distillation pipeline turns a 50-iter overnight run into a smaller, slower stand-in — the 8B that wrote the trajectory is also the baseline it races against.</figcaption>
+</figure>
+
 | measurement | value |
 |---|---:|
 | trajectory size | 50 evaluated iters (42 train · 8 held-out, time-tail split) |
@@ -162,13 +231,148 @@ The per-iter table:
 | 50 | `n_head=8` | `n_head=8` | `d_model=1536` | **exact** | miss |
 | **totals** | — | — | — | **4 / 8** | **0 / 8** |
 
-![Per-iter behavioral cloning bars (left) and per-proposal latency bars (right). Each held-out iter is one column on the left chart; bars at height 2 are exact (knob+value) matches against the ground-truth proposal, height 1 is a knob-only match, height 0 is a miss. The 8B NIM column has four exact-match bars (iters 44, 47, 48, 50). The 3B distilled column has zero exact-match bars and one knob-only bar (iter 49). The right chart shows mean per-proposal latency: 8B NIM at 1302 ms, 3B distilled at 1687 ms — the distilled model is 1.30× slower in this serving stack, not faster.](evidence/calibration.png)
+<figure class="fn-diagram" aria-label="Calibration vs latency waterfall on 8 held-out iterations. Top half shows behavioral-cloning decomposition: the 8B NIM produces 4 exact (knob+value) matches and 4 misses across the 8 prompts. The 3B distilled adapter produces 0 exact matches, 1 knob-only match, and 7 misses. Bottom half shows mean wall-clock per proposal: 8B NIM at 1302 ms, 3B distilled at 1687 ms — the distilled model is 1.30 times slower despite being smaller, with the 3B latency bar marked as the surprise accent because the planning doc projected the opposite direction.">
+  <svg viewBox="0 0 900 400" role="img" aria-label="Calibration vs latency waterfall on 8 held-out iterations. Top half shows behavioral-cloning decomposition: the 8B NIM produces 4 exact (knob+value) matches and 4 misses across the 8 prompts. The 3B distilled adapter produces 0 exact matches, 1 knob-only match, and 7 misses. Bottom half shows mean wall-clock per proposal: 8B NIM at 1302 ms, 3B distilled at 1687 ms — the distilled model is 1.30 times slower despite being smaller, with the 3B latency bar marked as the surprise accent because the planning doc projected the opposite direction." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-da2-band-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-da2-good-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <linearGradient id="d-da2-bad-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-da2-bad-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="40" y="34" width="820" height="156" rx="8" fill="url(#d-da2-band-grad)" stroke="none"/>
+    <rect x="40" y="220" width="820" height="120" rx="8" fill="url(#d-da2-band-grad)" stroke="none"/>
+    <rect x="200" y="290" width="572" height="40" fill="url(#d-da2-bad-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 200 80  L 200 160" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 200 160 L 800 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 540 80 L 540 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 800 80 L 800 160" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="200" y="80"  width="300" height="40" rx="4" style="fill: url(#d-da2-good-grad)"/>
+      <rect class="fn-diagram__node" x="500" y="80"  width="300" height="40" rx="4"/>
+      <rect class="fn-diagram__node" x="200" y="120" width="0"   height="40" rx="4"/>
+      <rect class="fn-diagram__node" x="200" y="120" width="75"  height="40" rx="4"/>
+      <rect class="fn-diagram__node" x="275" y="120" width="525" height="40" rx="4"/>
+      <rect class="fn-diagram__node" x="200" y="250" width="429" height="32" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="200" y="298" width="556" height="32" rx="4" style="fill: url(#d-da2-bad-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="22" text-anchor="start">BEHAVIORAL CLONING · 8 HELD-OUT ITERS</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="40" y="104" text-anchor="start">8B NIM</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="40" y="144" text-anchor="start">3B distilled</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="350" y="106" text-anchor="middle">4 exact</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="650" y="106" text-anchor="middle">4 miss</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="237" y="146" text-anchor="middle">1 knob</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="537" y="146" text-anchor="middle">7 miss</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="200" y="186" text-anchor="start">0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="500" y="186" text-anchor="middle">4</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="800" y="186" text-anchor="end">8</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="208" text-anchor="start">LATENCY · MEAN MS / PROPOSAL</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="40" y="270" text-anchor="start">8B NIM</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="40" y="318" text-anchor="start">3B distilled</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="635" y="272" text-anchor="end">1302 ms</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="762" y="320" text-anchor="end">1687 ms</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="200" y="354" text-anchor="start">0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="500" y="354" text-anchor="middle">1000</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="800" y="354" text-anchor="end">2000 ms</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="860" y="22"  text-anchor="end">8B 4 / 8 exact · 3B 0 / 8 exact</text>
+      <text class="fn-diagram__annotation" x="860" y="208" text-anchor="end">3B is 1.30× slower in eager bf16 — vLLM + LoRA could flip this</text>
+    </g>
+  </svg>
+  <figcaption>8B holds calibration on 4 of 8 held-out iters; 3B drops to 0 and runs <strong>1.30× slower</strong> — the distilled model lost on accuracy <em>and</em> throughput in this serving stack.</figcaption>
+</figure>
 
 The 8B's 4-out-of-8 exact-match number is itself instructive: temperature 0.5 is enough to flip the 8B off its own past picks half the time. Re-querying the model that wrote the trajectory does *not* reproduce the trajectory deterministically.
 
 The 3B distilled proposer's behavior is the telling part. It picked **`d_model=768` four times** and **`d_model=1536` twice** and **`n_head=8` twice**. Out of the 13 declared knobs and the dozens of legal `(knob, value)` pairs, the LoRA only ever proposed three. And `d_model=768` is exactly the cfg that wins five out of eight `keep` decisions in the original A4 trajectory — five out of five training-set keeps. The model learned the most-frequent successful pattern in train and applied it everywhere.
 
 That mode-collapse onto the dominant winning move is the single sharpest finding in this article. With 42 examples, 5 of which all carry the same target (`d_model=768`), a LoRA at rank 16 cannot resist becoming a `d_model=768` machine. It learned an outcome-conditioned association ("this pattern was kept") but not the meta-policy ("vary the knob each iter").
+
+<figure class="fn-diagram" aria-label="Mode-collapse comparison across the 8 held-out picks. Top row shows the 8B NIM teacher distributing its 8 picks across 5 distinct knob-and-value pairs: n_head=32 three times, n_head=8 twice, plus single picks of d_model=1536, d_ff=4096, and d_ff=6144. Bottom row shows the 3B distilled student concentrating its 8 picks into only 3 distinct pairs: d_model=768 three times (the accent — this is the trajectory's most-frequent training keep), n_head=8 three times, and d_model=1536 twice. The student's distribution is visibly narrower than the teacher's.">
+  <svg viewBox="0 0 900 320" role="img" aria-label="Mode-collapse comparison across the 8 held-out picks. Top row shows the 8B NIM teacher distributing its 8 picks across 5 distinct knob-and-value pairs: n_head=32 three times, n_head=8 twice, plus single picks of d_model=1536, d_ff=4096, and d_ff=6144. Bottom row shows the 3B distilled student concentrating its 8 picks into only 3 distinct pairs: d_model=768 three times (the accent — this is the trajectory's most-frequent training keep), n_head=8 three times, and d_model=1536 twice. The student's distribution is visibly narrower than the teacher's." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-da3-lane-teacher" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-da3-lane-student" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-da3-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-da3-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="40" y="40"  width="820" height="100" rx="8" fill="url(#d-da3-lane-teacher)" stroke="none"/>
+    <rect x="40" y="180" width="820" height="100" rx="8" fill="url(#d-da3-lane-student)" stroke="none"/>
+    <rect x="160" y="220" width="270" height="44" fill="url(#d-da3-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 80  L 160 110" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 110 L 860 110" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 220 L 160 250" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 160 250 L 860 250" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="160" y="80"  width="225" height="30" rx="4"/>
+      <rect class="fn-diagram__node" x="385" y="80"  width="150" height="30" rx="4"/>
+      <rect class="fn-diagram__node" x="535" y="80"  width="75"  height="30" rx="4"/>
+      <rect class="fn-diagram__node" x="610" y="80"  width="75"  height="30" rx="4"/>
+      <rect class="fn-diagram__node" x="685" y="80"  width="75"  height="30" rx="4"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="160" y="220" width="270" height="44" rx="4" style="fill: url(#d-da3-accent-grad)"/>
+      <rect class="fn-diagram__node" x="430" y="220" width="270" height="44" rx="4"/>
+      <rect class="fn-diagram__node" x="700" y="220" width="180" height="44" rx="4"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40"  y="28"  text-anchor="start">8B NIM TEACHER · 5 DISTINCT PAIRS</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="272" y="100" text-anchor="middle">n_head=32</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="272" y="76" text-anchor="middle">3 picks</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="460" y="100" text-anchor="middle">n_head=8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="460" y="76" text-anchor="middle">2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="572" y="100" text-anchor="middle">d_model=1536</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="647" y="100" text-anchor="middle">d_ff=4096</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="722" y="100" text-anchor="middle">d_ff=6144</text>
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40"  y="172" text-anchor="start">3B DISTILLED STUDENT · 3 DISTINCT PAIRS</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="295" y="246" text-anchor="middle">d_model=768</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="295" y="216" text-anchor="middle">3 picks · trajectory mode</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="565" y="246" text-anchor="middle">n_head=8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="565" y="216" text-anchor="middle">3 picks</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="790" y="246" text-anchor="middle">d_model=1536</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="790" y="216" text-anchor="middle">2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="160" y="124" text-anchor="start">0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="510" y="124" text-anchor="middle">4 picks</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="124" text-anchor="end">8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="160" y="276" text-anchor="start">0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="510" y="276" text-anchor="middle">4 picks</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="276" text-anchor="end">8</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="860" y="28"  text-anchor="end">teacher spreads across capacity + optimization knobs</text>
+      <text class="fn-diagram__annotation" x="860" y="172" text-anchor="end">student inherits 8B's blind spots + concentrates on training mode</text>
+      <text class="fn-diagram__annotation" x="450" y="304" text-anchor="middle">d_model=768 was 5 of 5 keeps in train — the only mode the LoRA could learn</text>
+    </g>
+  </svg>
+  <figcaption>Teacher spreads its 8 picks across 5 pairs; student collapses onto 3, with <code>d_model=768</code> — the trajectory's most-frequent training keep — taking the largest share.</figcaption>
+</figure>
 
 :::define[Mode collapse]
 A trained generative model that produces the same (or near-same) output regardless of input. In SFT it's the failure mode where the loss happily decreases as the model concentrates probability mass on the most-frequent training target. Looks like convergence on the loss curve and like a broken model on the eval set. The fix is corpus diversity, not a different optimizer.

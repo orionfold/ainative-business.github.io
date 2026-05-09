@@ -171,6 +171,63 @@ $ python3 evidence/cost_arithmetic.py | jq .expected_value_argument
 }
 ```
 
+<figure class="fn-diagram" aria-label="Expected-value waterfall for the small campaign. Three horizontal bars at the same scale. Top bar — expected loss from blind cloud booking — extends to $1,680, rendered in muted red as the cost you absorb without the Spark filter. Middle bar — Spark recipe-lab amortized cost — is a single-pixel sliver at $1.01, barely visible at the same scale. Bottom bar — expected savings per campaign — extends to $1,679, the accent, rendered as the value the Spark keeps when one wrong-pick is prevented. The savings bar is nearly identical in length to the loss bar because the Spark cost is so small the difference is invisible at a campaign-budget scale. Right margin annotates the ratio of savings to Spark cost as approximately 1,670 times.">
+  <svg viewBox="0 0 900 320" role="img" aria-label="Expected-value waterfall for the small campaign. Three horizontal bars at the same scale. Top bar — expected loss from blind cloud booking — extends to $1,680, rendered in muted red as the cost you absorb without the Spark filter. Middle bar — Spark recipe-lab amortized cost — is a single-pixel sliver at $1.01, barely visible at the same scale. Bottom bar — expected savings per campaign — extends to $1,679, the accent, rendered as the value the Spark keeps when one wrong-pick is prevented. The savings bar is nearly identical in length to the loss bar because the Spark cost is so small the difference is invisible at a campaign-budget scale. Right margin annotates the ratio of savings to Spark cost as approximately 1,670 times." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-dcp1-band-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-dcp1-loss-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.08"/>
+      </linearGradient>
+      <linearGradient id="d-dcp1-savings-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-dcp1-savings-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="40" y="60" width="820" height="200" rx="10" fill="url(#d-dcp1-band-grad)" stroke="none"/>
+    <rect x="220" y="200" width="640" height="40" fill="url(#d-dcp1-savings-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 220 60 L 220 260" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 432 60 L 432 260" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 644 60 L 644 260" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 860 60 L 860 260" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 220 260 L 860 260" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="220" y="80"  width="640" height="40" rx="4" style="fill: url(#d-dcp1-loss-grad)"/>
+      <rect class="fn-diagram__node" x="220" y="140" width="3"   height="40" rx="2"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="220" y="200" width="640" height="40" rx="4" style="fill: url(#d-dcp1-savings-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="48" text-anchor="start">EXPECTED VALUE · 100-ITER RECIPE LAB · 50% WRONG-PICK RATE</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="40" y="106" text-anchor="start">blind-booking loss</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="40" y="124" text-anchor="start">cloud expected cost without Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="40" y="166" text-anchor="start">Spark recipe-lab cost</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="40" y="184" text-anchor="start">amortized · 240 W · 100 iters</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="40" y="226" text-anchor="start">net expected savings</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="40" y="244" text-anchor="start">per campaign · prevents one wrong-pick</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="852" y="106" text-anchor="end">$1,680.00</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="240" y="166" text-anchor="start">$1.01</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="852" y="226" text-anchor="end">$1,678.99</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="220" y="284" text-anchor="start">$0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="540" y="284" text-anchor="middle">$840 · half a wrong-pick</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="284" text-anchor="end">$1,680</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="860" y="48" text-anchor="end">savings : Spark cost ≈ 1,670×</text>
+      <text class="fn-diagram__annotation" x="450" y="306" text-anchor="middle">break-even is the first prevented wrong-pick · the Spark line item is invisible at campaign scale</text>
+    </g>
+  </svg>
+  <figcaption>The Spark recipe-lab cost is a one-pixel sliver next to the blind-booking loss it prevents — break-even arrives at the <em>first</em> avoided wrong-pick.</figcaption>
+</figure>
+
 There is no scenario inside this arithmetic where buying a Spark and using it as a recipe lab loses money against the alternative of going to the cloud blind. The break-even is reached after the very first prevented wrong-pick.
 
 :::math[The break-even, on the back of a napkin]

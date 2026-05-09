@@ -185,6 +185,69 @@ A3 is consistently **2–6% faster than A2** at every matched config. That's sur
 | b=16 / s=1024 / fp8 | 1093.7 | 0.15 | 0.01 |
 | b=4 / s=2048 / fp8 | 596.2 | 0.12 | 0.02 |
 
+<figure class="fn-diagram" aria-label="Data-overhead waterfall across the 8-config sweep. Eight horizontal bars stacked top to bottom, each one a config (batch / sequence / dtype). Bar lengths are proportional to step time in milliseconds, ranging from 294 ms (smallest config, fp8) to 1136 ms (largest config, bf16). At the start of each bar, the data-path overhead segment is rendered at the same pixel scale — and is invisible (sub-pixel) in every config because data_ms is between 0.10 and 0.15 milliseconds while step_ms is between 294 and 1136. The right-hand annotations report the overhead percentage per config, all of which fall in the range 0.01 to 0.04 percent. The accent bar is the largest config (b=16, s=1024, bf16) at 1136 ms — even at the slowest config the data line item is invisible at scale.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="Data-overhead waterfall across the 8-config sweep. Eight horizontal bars stacked top to bottom, each one a config (batch / sequence / dtype). Bar lengths are proportional to step time in milliseconds, ranging from 294 ms (smallest config, fp8) to 1136 ms (largest config, bf16). At the start of each bar, the data-path overhead segment is rendered at the same pixel scale — and is invisible (sub-pixel) in every config because data_ms is between 0.10 and 0.15 milliseconds while step_ms is between 294 and 1136. The right-hand annotations report the overhead percentage per config, all of which fall in the range 0.01 to 0.04 percent. The accent bar is the largest config (b=16, s=1024, bf16) at 1136 ms — even at the slowest config the data line item is invisible at scale." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-cur1-band-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-cur1-accent-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+      </linearGradient>
+      <radialGradient id="d-cur1-accent-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="220" y="40" width="540" height="280" rx="10" fill="url(#d-cur1-band-grad)" stroke="none"/>
+    <rect x="216" y="166" width="496" height="32" fill="url(#d-cur1-accent-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 220 40  L 220 320" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 355 40  L 355 320" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 490 40  L 490 320" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 625 40  L 625 320" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 760 40  L 760 320" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 220 320 L 760 320" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="220" y="56"  width="148" height="24" rx="2"/>
+      <rect class="fn-diagram__node" x="220" y="92"  width="289" height="24" rx="2"/>
+      <rect class="fn-diagram__node" x="220" y="128" width="540" height="24" rx="2"/>
+      <rect class="fn-diagram__node" x="220" y="172" width="139" height="24" rx="2"/>
+      <rect class="fn-diagram__node" x="220" y="208" width="271" height="24" rx="2"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="220" y="244" width="520" height="24" rx="2" style="fill: url(#d-cur1-accent-grad)"/>
+      <rect class="fn-diagram__node" x="220" y="280" width="299" height="12" rx="2"/>
+      <rect class="fn-diagram__node" x="220" y="280" width="283" height="12" rx="2"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="28"  text-anchor="start">DATA-PATH OVERHEAD · 8 CONFIGS · GB10 354M</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="74"  text-anchor="end">b=4 · s=1024 · bf16</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="110" text-anchor="end">b=8 · s=1024 · bf16</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="146" text-anchor="end">b=16 · s=1024 · bf16</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="190" text-anchor="end">b=4 · s=1024 · fp8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="226" text-anchor="end">b=8 · s=1024 · fp8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="262" text-anchor="end">b=16 · s=1024 · fp8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="212" y="296" text-anchor="end">b=4 · s=2048 · bf16 / fp8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="372" y="74" text-anchor="start">311 ms · 0.04%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="513" y="110" text-anchor="start">608 ms · 0.02%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="764" y="146" text-anchor="start">1136 ms · 0.01%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="363" y="190" text-anchor="start">294 ms · 0.04%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="495" y="226" text-anchor="start">569 ms · 0.02%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="744" y="262" text-anchor="start">1094 ms · 0.01%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="523" y="296" text-anchor="start">~600 ms · 0.02%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="220" y="338" text-anchor="middle">0 ms</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="490" y="338" text-anchor="middle">600</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="760" y="338" text-anchor="middle">1200 ms</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="362" text-anchor="middle">data_ms is 0.10 – 0.15 ms — sub-pixel at this scale · the data path is invisible in every config</text>
+    </g>
+  </svg>
+  <figcaption>Data overhead is sub-pixel at the step-time scale — the longest data path measured (0.15 ms) sits next to a 1,094 ms step, so the line item never lands on the chart.</figcaption>
+</figure>
+
 The biggest data-time number we measured was 0.15 ms (batch=16 × seq=1024 × fp8) — and it sits next to a 1,094 ms step, so it's a 0.01% line item. The reason is unsurprising: a 16 × 1024 batch is 128 KB of int64 to transfer, the GB10's unified-memory architecture means the host-to-device copy isn't crossing a PCIe lane, and the `non_blocking=True` flag lets the copy overlap with the previous iteration's gradient update. That's the cost: ~100 microseconds of bookkeeping. There is no realistic single-GPU pretrain workload where that matters.
 
 ## Tradeoffs, gotchas, and the things this measurement doesn't cover
