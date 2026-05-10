@@ -241,6 +241,89 @@ Three readings of that table.
 
 **The approximate indexes work.** HNSW at `ef_search=10` is the frontier: 4.8× faster than the exact scan for a 5-point recall hit. IVFFlat at `probes=10` lands a fraction behind — 3.8× speedup for a 3-point recall hit, and at `probes=32` matches exact recall at roughly twice the index's minimum latency because `probes=32 = lists=32` means it scans every list. HNSW at `ef_search=100` also recovers full recall at a slightly lower cost than ivfflat at full probes.
 
+<figure class="fn-diagram" aria-label="Recall vs p50 latency Pareto scatter across 8 configurations. X-axis is p50 latency from 0 to 3 ms; Y-axis is recall@10 from 0.6 to 1.0. IVFFlat trace (light blue, 4 dots) climbs from 0.27 ms / 0.63 recall through 0.48 / 0.86, 0.72 / 0.97, to 1.53 / 1.000. HNSW trace (accent green, 3 dots) starts at 0.57 / 0.950 (the Pareto frontier — accent), then 0.91 / 0.98, then 1.40 / 1.000. The exact seq-scan dot sits at 2.71 ms / 1.000. The HNSW ef_search=10 dot is highlighted as the recall-per-millisecond winner at 4.8× speedup over exact for a 5-point recall hit.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="pgvector recall vs latency Pareto scatter. HNSW ef_search=10 at 0.57 ms / 95% recall is the frontier — fastest at near-full recall. IVFFlat probes=1 is fastest absolute but recall collapses to 63%. Exact seq-scan at 2.71 ms / 100% is the upper-right anchor." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-pgv2-plot" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.08"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <radialGradient id="d-pgv2-frontier-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.32"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="80" y="40" width="780" height="240" fill="url(#d-pgv2-plot)" stroke="none"/>
+    <!-- Frontier halo at HNSW ef=10: x = 80 + 0.57/3*780 = 228.2, y = 280 - (0.95-0.6)/0.4*240 = 70 -->
+    <rect x="180" y="50" width="100" height="80" fill="url(#d-pgv2-frontier-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 280 L 860 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 220 L 860 220" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 160 L 860 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 100 L 860 100" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80  40 L 860  40" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 280 L 80  40" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 340 280 L 340 40" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 600 280 L 600 40" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 860 280 L 860 40" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 40 L 80 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 280 L 860 280" />
+      <!-- IVFFlat trace: probes 1, 4, 10, 32 → x=150.2, 204.8, 267.2, 477.8; y=58.0+186, 58.0+162, 58.0+19.5, 58.0 -->
+      <!-- y formula: y = 280 - (recall-0.6)/0.4 * 240 -->
+      <!-- p1: 0.27 → x=150.2; recall=0.630 → y=262 -->
+      <!-- p4: 0.48 → x=204.8; recall=0.860 → y=124 -->
+      <!-- p10: 0.72 → x=267.2; recall=0.970 → y=58 -->
+      <!-- p32: 1.53 → x=477.8; recall=1.000 → y=40 -->
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" d="M 150.2 262 L 204.8 124 L 267.2 58 L 477.8 40" />
+      <!-- HNSW trace: ef 10, 40, 100 → x=228.2, 316.6, 444.0; y -->
+      <!-- ef10: 0.57 → x=228.2; recall=0.950 → y=70 -->
+      <!-- ef40: 0.91 → x=316.6; recall=0.980 → y=52 -->
+      <!-- ef100: 1.40 → x=444.0; recall=1.000 → y=40 -->
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 228.2 70 L 316.6 52 L 444.0 40" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <!-- IVFFlat dots (light) -->
+      <circle class="fn-diagram__dot" cx="150.2" cy="262" r="4"/>
+      <circle class="fn-diagram__dot" cx="204.8" cy="124" r="4"/>
+      <circle class="fn-diagram__dot" cx="267.2" cy="58"  r="4"/>
+      <circle class="fn-diagram__dot" cx="477.8" cy="40"  r="4"/>
+      <!-- HNSW dots (accent) -->
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="228.2" cy="70" r="7"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="316.6" cy="52" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="444.0" cy="40" r="5"/>
+      <!-- Exact dot -->
+      <!-- exact: 2.71 → x=80 + 2.71/3*780 = 784.6; recall=1.000 → y=40 -->
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="784.6" cy="40" r="6"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="80" y="28" text-anchor="start">RECALL@10 vs p50 LATENCY · 1000 ROWS · 1024-d</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="44"  text-anchor="end">1.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="104" text-anchor="end">0.9</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="164" text-anchor="end">0.8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="224" text-anchor="end">0.7</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="284" text-anchor="end">0.6 recall@10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="80" y="304" text-anchor="middle">0 ms</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="340" y="304" text-anchor="middle">1.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="600" y="304" text-anchor="middle">2.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="304" text-anchor="middle">3.0 ms p50</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--accent" x="226" y="86" text-anchor="middle">HNSW ef=10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--accent" x="226" y="98" text-anchor="middle">0.57 ms · 95%</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="148" y="278" text-anchor="middle">ivf p=1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="220" y="142" text-anchor="middle">p=4</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="282" y="58"  text-anchor="middle">p=10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="478" y="32"  text-anchor="middle">p=32</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="332" y="46"  text-anchor="middle">ef=40</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="460" y="32"  text-anchor="middle">ef=100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="784" y="32"  text-anchor="middle">exact seq scan · 2.71 ms</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation fn-diagram__annotation--accent" x="450" y="332" text-anchor="middle">HNSW ef=10 is the Pareto frontier · 4.8× faster than exact for 5pp recall hit</text>
+      <text class="fn-diagram__annotation" x="450" y="354" text-anchor="middle">— HNSW · — IVFFlat · ○ exact</text>
+    </g>
+  </svg>
+  <figcaption>The HNSW trace dominates: every IVFFlat point sits below or to the right of the HNSW curve. At 1000 rows on Grace, the planner still picks seq scan — but the recall–latency frontier is HNSW's, and that's the choice that compounds as the corpus grows.</figcaption>
+</figure>
+
 **The index sizes diverge sharply.** The ivfflat index is about the same size as its sorted input — the structure is a flat cluster assignment, a few kilobytes per list. The HNSW index is `8,008 KB` — almost 2× the raw vector bytes, because the graph stores `M = 16` neighbour pointers per node at each layer plus the full vector in every leaf. For a personal corpus that's a non-issue; at a billion vectors that 2× overhead is the reason cloud vector databases exist.
 
 **Neither index wins by default.** An unforced query against the raw HNSW-indexed table runs at the exact-scan latency because Postgres's planner picks sequential scan over both approximate indexes at 1000 rows. You can see it in the `EXPLAIN` output with no planner overrides:

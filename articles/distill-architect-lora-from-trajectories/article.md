@@ -348,9 +348,10 @@ That mode-collapse onto the dominant winning move is the single sharpest finding
       <text class="fn-diagram__label fn-diagram__label--mono"   x="272" y="76" text-anchor="middle">3 picks</text>
       <text class="fn-diagram__label fn-diagram__label--display" x="460" y="100" text-anchor="middle">n_head=8</text>
       <text class="fn-diagram__label fn-diagram__label--mono"   x="460" y="76" text-anchor="middle">2</text>
-      <text class="fn-diagram__label fn-diagram__label--mono"   x="572" y="100" text-anchor="middle">d_model=1536</text>
-      <text class="fn-diagram__label fn-diagram__label--mono"   x="647" y="100" text-anchor="middle">d_ff=4096</text>
-      <text class="fn-diagram__label fn-diagram__label--mono"   x="722" y="100" text-anchor="middle">d_ff=6144</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="572" y="100" text-anchor="middle">dm=1536</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="647" y="100" text-anchor="middle">ff=4096</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="722" y="100" text-anchor="middle">ff=6144</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted"   x="647" y="76" text-anchor="middle">3 singletons</text>
       <text class="fn-diagram__label fn-diagram__label--accent" x="40"  y="172" text-anchor="start">3B DISTILLED STUDENT · 3 DISTINCT PAIRS</text>
       <text class="fn-diagram__label fn-diagram__label--display" x="295" y="246" text-anchor="middle">d_model=768</text>
       <text class="fn-diagram__label fn-diagram__label--mono"   x="295" y="216" text-anchor="middle">3 picks · trajectory mode</text>

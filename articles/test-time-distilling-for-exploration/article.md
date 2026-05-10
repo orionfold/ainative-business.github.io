@@ -81,42 +81,42 @@ The paper's algorithm and the runtime that hosts it are deliberately decoupled. 
     <rect x="320" y="180" width="260" height="120" rx="10" fill="none"
           stroke="var(--color-text-muted)" stroke-width="0.5" stroke-dasharray="3 3"/>
     <g class="fn-diagram__edges">
-      <path class="fn-diagram__edge" pathLength="100" d="M 220 120 L 320 220" />
-      <path class="fn-diagram__edge" pathLength="100" d="M 580 220 L 700 120" />
-      <path class="fn-diagram__edge" pathLength="100" d="M 220 320 L 320 260" />
-      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 580 260 L 700 320" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 280 120 L 320 220" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 580 220 L 620 120" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 280 320 L 320 260" />
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 580 260 L 620 320" />
     </g>
     <g class="fn-diagram__nodes">
-      <rect class="fn-diagram__node" x="60" y="80" width="160" height="80" rx="8" />
+      <rect class="fn-diagram__node" x="40" y="80" width="240" height="80" rx="8" />
       <rect class="fn-diagram__node fn-diagram__node--accent" x="320" y="180" width="260" height="120" rx="10"
             style="fill: url(#ttd-accent-grad)" />
-      <rect class="fn-diagram__node" x="700" y="80" width="160" height="80" rx="8" />
-      <rect class="fn-diagram__node" x="60" y="280" width="160" height="80" rx="8" />
-      <rect class="fn-diagram__node" x="700" y="280" width="160" height="80" rx="8" />
+      <rect class="fn-diagram__node" x="620" y="80" width="240" height="80" rx="8" />
+      <rect class="fn-diagram__node" x="40" y="280" width="240" height="80" rx="8" />
+      <rect class="fn-diagram__node" x="620" y="280" width="240" height="80" rx="8" />
     </g>
     <g class="fn-diagram__labels">
-      <text class="fn-diagram__label fn-diagram__label--muted" x="75" y="104" text-anchor="start">VLLM V1 ENGINE</text>
-      <text class="fn-diagram__label fn-diagram__label--display" x="75" y="126" text-anchor="start">load_model · prepare_inputs</text>
-      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="75" y="144" text-anchor="start">execute_model · sampler</text>
+      <text class="fn-diagram__label fn-diagram__label--muted" x="55" y="104" text-anchor="start">VLLM V1 ENGINE</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="55" y="126" text-anchor="start">load_model · prepare_inputs</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="55" y="144" text-anchor="start">execute_model · sampler</text>
       <text class="fn-diagram__label fn-diagram__label--accent" x="335" y="208" text-anchor="start">tLLM RUNTIME</text>
       <text class="fn-diagram__label fn-diagram__label--display" x="335" y="230" text-anchor="start">producer · localization · bundles</text>
       <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="335" y="248" text-anchor="start">ports: residual_stream, logits</text>
       <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="335" y="266" text-anchor="start">sampler-bridge: post_filter_exact</text>
       <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="335" y="284" text-anchor="start">async-train window: background</text>
-      <text class="fn-diagram__label fn-diagram__label--muted" x="715" y="104" text-anchor="start">SamplingParams</text>
-      <text class="fn-diagram__label fn-diagram__label--display" x="715" y="126" text-anchor="start">n=16 · temp 0.8 · top_p 0.95</text>
-      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="715" y="144" text-anchor="start">same envelope either way</text>
-      <text class="fn-diagram__label fn-diagram__label--muted" x="75" y="304" text-anchor="start">ESampConsumer</text>
-      <text class="fn-diagram__label fn-diagram__label--display" x="75" y="326" text-anchor="start">distiller(shallow → deep)</text>
-      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="75" y="344" text-anchor="start">~1 GB online-trained probe</text>
-      <text class="fn-diagram__label fn-diagram__label--muted" x="715" y="304" text-anchor="start">SAMPLER INTERVENTION</text>
-      <text class="fn-diagram__label fn-diagram__label--display" x="715" y="326" text-anchor="start">(1+β)·llm − β·distiller</text>
-      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="715" y="344" text-anchor="start">novelty signal → wider reach</text>
+      <text class="fn-diagram__label fn-diagram__label--muted" x="635" y="104" text-anchor="start">SamplingParams</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="635" y="126" text-anchor="start">n=16 · temp 0.8 · top_p 0.95</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="635" y="144" text-anchor="start">same envelope either way</text>
+      <text class="fn-diagram__label fn-diagram__label--muted" x="55" y="304" text-anchor="start">ESampConsumer</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="55" y="326" text-anchor="start">distiller(shallow → deep)</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="55" y="344" text-anchor="start">~1 GB online-trained probe</text>
+      <text class="fn-diagram__label fn-diagram__label--muted" x="635" y="304" text-anchor="start">SAMPLER INTERVENTION</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="635" y="326" text-anchor="start">(1+β)·llm − β·distiller</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="635" y="344" text-anchor="start">novelty signal → wider reach</text>
     </g>
     <g class="fn-diagram__annotations">
-      <text class="fn-diagram__annotation" x="270" y="200" text-anchor="middle">capture hidden rows</text>
-      <text class="fn-diagram__annotation" x="640" y="200" text-anchor="middle">return n samples</text>
-      <text class="fn-diagram__annotation" x="640" y="340" text-anchor="middle">reweight last; keep top-k/top-p/min-p first</text>
+      <text class="fn-diagram__annotation" x="300" y="176" text-anchor="middle">capture hidden rows</text>
+      <text class="fn-diagram__annotation" x="600" y="176" text-anchor="middle">return n samples</text>
+      <text class="fn-diagram__annotation" x="450" y="420" text-anchor="middle">post-filter intervention · reweight after top-k / top-p / min-p</text>
     </g>
   </svg>
   <figcaption>The intervention is gated through the same SamplingParams either way — the difference is in how the n samples spread through the answer space, not in their wall-clock cost.</figcaption>

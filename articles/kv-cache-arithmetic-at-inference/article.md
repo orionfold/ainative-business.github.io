@@ -154,6 +154,77 @@ Weights add another ~140 GB at BF16 or ~70 GB at FP8 — a *separate*, fixed bil
 
 The 8B at the top of the same family — 32 layers, 8 KV heads, head_dim 128 — works out to **128 KB/token (FP16)** or 64 KB/token (FP8), four times less per user. The 405B at the other end — 126 layers, still 8 KV heads with GQA-16 — works out to **504 KB/token (FP16)**. Notice what *didn't* scale: the KV-head count is **constant at 8 across the entire Llama 3.1 family**. That's the load-bearing decision Meta made for serving — and the reason a 405B is "only" 4× the KV-per-token of an 8B, not 50×.
 
+<figure class="fn-diagram" aria-label="KV per token across the Llama 3.1 family at FP16 and FP8. 8B at FP16: 128 KB per token. 70B at FP16: 320 KB per token (2.5× the 8B). 405B at FP16: 504 KB per token (3.94× the 8B, not 50× as parameter count would suggest). FP8 halves every value. The flat KV-head count of 8 across the family is annotated as the architectural decision that bounds the scaling. The contrast number on the right is what naive parameter-scaling would predict — 6.4 MB per token at 405B if KV heads scaled with attention heads.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="KV per token by model size and precision. 8B FP16=128 KB, FP8=64 KB. 70B FP16=320 KB, FP8=160 KB. 405B FP16=504 KB, FP8=252 KB. Constant 8 KV heads across family means 405B is only 3.94× the 8B per-token KV, not the 50× that param count would predict." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-kv2-fp16-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.42"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.12"/>
+      </linearGradient>
+      <linearGradient id="d-kv2-fp8-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-cyan)" stop-opacity="0.42"/>
+        <stop offset="100%" stop-color="var(--svg-accent-cyan)" stop-opacity="0.12"/>
+      </linearGradient>
+      <linearGradient id="d-kv2-naive-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.04"/>
+      </linearGradient>
+    </defs>
+    <rect x="40" y="40" width="820" height="240" fill="var(--svg-card)" stroke="none" rx="8" opacity="0.4"/>
+    <rect x="660" y="50" width="180" height="220" fill="url(#d-kv2-naive-grad)" stroke="var(--svg-accent-red)" stroke-width="0.5" stroke-dasharray="3 3" rx="6"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 280 L 860 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 220 L 660 220" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 160 L 660 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 100 L 660 100" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40  60 L 660  60" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 40 L 80 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 280 L 860 280" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <!-- 8B FP16: 128 KB → height = (128/600)*240 = 51.2; bar at y=280-51.2=228.8 -->
+      <rect class="fn-diagram__node" x="120" y="228.8" width="56" height="51.2" rx="2" style="fill: url(#d-kv2-fp16-grad); stroke: var(--color-primary); stroke-width: 1"/>
+      <rect class="fn-diagram__node" x="180" y="254.4" width="56" height="25.6" rx="2" style="fill: url(#d-kv2-fp8-grad); stroke: var(--svg-accent-cyan); stroke-width: 1"/>
+      <!-- 70B FP16: 320 KB → 128; y=152 -->
+      <rect class="fn-diagram__node" x="320" y="152" width="56" height="128" rx="2" style="fill: url(#d-kv2-fp16-grad); stroke: var(--color-primary); stroke-width: 1"/>
+      <rect class="fn-diagram__node" x="380" y="216" width="56" height="64" rx="2" style="fill: url(#d-kv2-fp8-grad); stroke: var(--svg-accent-cyan); stroke-width: 1"/>
+      <!-- 405B FP16: 504 KB → 201.6; y=78.4 -->
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="520" y="78.4" width="56" height="201.6" rx="2" style="fill: url(#d-kv2-fp16-grad); stroke: var(--color-primary); stroke-width: 1.5"/>
+      <rect class="fn-diagram__node" x="580" y="179.2" width="56" height="100.8" rx="2" style="fill: url(#d-kv2-fp8-grad); stroke: var(--svg-accent-cyan); stroke-width: 1"/>
+      <!-- naive contrast bar (would-be at 405B if no GQA): 6,400 KB → way off chart -->
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="720" y="60" width="80" height="220" rx="2"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="28" text-anchor="start">KV PER TOKEN · LLAMA 3.1 FAMILY</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="28" text-anchor="end">8 KV heads · head_dim 128 · constant across family</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="64"  text-anchor="end">600 KB</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="104" text-anchor="end">500</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="164" text-anchor="end">400</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="224" text-anchor="end">200</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="284" text-anchor="end">0</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="148" y="220" text-anchor="middle">128</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="208" y="248" text-anchor="middle">64</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="348" y="144" text-anchor="middle">320</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="408" y="208" text-anchor="middle">160</text>
+      <text class="fn-diagram__label fn-diagram__label--display fn-diagram__label--accent" x="548" y="70" text-anchor="middle">504</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="608" y="172" text-anchor="middle">252</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="178" y="304" text-anchor="middle">8B · 32 layers</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="378" y="304" text-anchor="middle">70B · 80 layers</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="578" y="304" text-anchor="middle">405B · 126 layers</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="760" y="304" text-anchor="middle">405B if KV scaled</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="148" y="324" text-anchor="middle" style="fill: var(--color-primary)">FP16</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="208" y="324" text-anchor="middle" style="fill: var(--svg-accent-cyan)">FP8</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="760" y="160" text-anchor="middle" style="fill: var(--svg-accent-red)">~6,400</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="760" y="180" text-anchor="middle" style="fill: var(--svg-accent-red)">naive scaling</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="760" y="194" text-anchor="middle">(off-chart 12.7×)</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="350" text-anchor="middle">405B is 50× the parameters — only 3.94× the per-token KV · GQA at constant 8 KV-heads is what makes serving the family tractable</text>
+    </g>
+  </svg>
+  <figcaption>The flat KV-head count is the load-bearing architectural decision. The dashed red bar on the right is the per-token KV the 405B <em>would</em> have if KV-heads scaled with attention-heads — the entire family's serving math hinges on Meta's choice not to.</figcaption>
+</figure>
+
 ## Verification — reading the Spark back into the formula
 
 The Spark's TRT-LLM 8B serve in [`trtllm-and-triton-on-spark`](/field-notes/trtllm-and-triton-on-spark/) was built with the exact knobs the math above predicts you'd reach for:

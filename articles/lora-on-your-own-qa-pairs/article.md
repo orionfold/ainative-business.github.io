@@ -198,6 +198,80 @@ train=231  eval=44
 
 **Sixty-nine seconds of training.** Model load took longer than the training itself. Eval loss bottomed at epoch 2 (2.07) and rose a hair at epoch 3 (2.10) — the sort of gentle overfit you would tune away on a real production run but that is inside the noise for a 231-pair corpus. I kept epoch 3 weights for the benchmark. The full log is at [`evidence/train.log`](./evidence/train.log).
 
+<figure class="fn-diagram" aria-label="Training loss sparkline across the 69-second run. Train loss (light blue line) drops sharply 5.49 to 2.76 within the first epoch, then continues to descend more slowly. Eval loss (accent green dots) shows 2.227 at epoch 1, the minimum 2.073 at epoch 2 (the accent), and 2.095 at epoch 3 — a 1.1 percent rebound. The minimum-eval marker at epoch 2 is the keep-this-checkpoint accent. Right-side annotation: 30M trainable parameters, 0.96 percent of the model, 120 MB on disk.">
+  <svg viewBox="0 0 900 320" role="img" aria-label="Training and eval loss curves across 3 epochs. Train drops 5.49 → 2.76 in first epoch then slow descent. Eval bottoms at epoch 2 (2.073) before a gentle 0.022-pt overfit rebound at epoch 3. The dashed line marks the 'kept checkpoint'." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-loraqa-plot" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-loraqa-min-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.30"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.06"/>
+      </linearGradient>
+      <radialGradient id="d-loraqa-min-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="100" y="40" width="700" height="200" fill="url(#d-loraqa-plot)" stroke="none"/>
+    <rect x="450" y="40" width="120" height="200" fill="url(#d-loraqa-min-grad)" stroke="none"/>
+    <rect x="430" y="120" width="80" height="40" fill="url(#d-loraqa-min-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 240 L 800 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 200 L 800 200" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 160 L 800 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100 120 L 800 120" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100  80 L 800  80" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 100  40 L 800  40" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 40 L 100 240" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 100 240 L 800 240" />
+      <!-- train loss curve: 5.49 (epoch 0.17) → 2.76 (0.34) → continuing down to ~1.5 by epoch 3 -->
+      <!-- y maps loss 0 at 240, loss 6 at 40 -->
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" pathLength="100"
+            d="M 100 56.7 L 140 100 L 180 124 L 220 142 L 280 162 L 340 178 L 420 192 L 510 200 L 590 206 L 670 210 L 760 212 L 800 213" />
+      <!-- eval loss line connecting 3 dots -->
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100"
+            d="M 333 165.8 L 567 170.9 L 800 170.2" />
+      <!-- kept-checkpoint dashed -->
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" d="M 800 40 L 800 240" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <circle class="fn-diagram__dot" cx="333" cy="165.8" r="5"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="567" cy="170.9" r="7"/>
+      <circle class="fn-diagram__dot" cx="800" cy="170.2" r="5"/>
+      <!-- early-train dots (first few step samples) -->
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="100" cy="56.7"  r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="140" cy="100"   r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="180" cy="124"   r="3"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="100" y="28" text-anchor="start">3 EPOCHS · 231 OWN-VOICE Q&amp;A PAIRS · 69 SECONDS WALL</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="44"  text-anchor="end">6.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="84"  text-anchor="end">5.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="124" text-anchor="end">4.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="164" text-anchor="end">3.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="204" text-anchor="end">2.0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="96" y="244" text-anchor="end">1.0 loss</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="262" text-anchor="middle">step 0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="333" y="262" text-anchor="middle">epoch 1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="567" y="262" text-anchor="middle">epoch 2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="800" y="262" text-anchor="middle">epoch 3</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="345" y="161" text-anchor="start">2.227</text>
+      <text class="fn-diagram__label fn-diagram__label--display fn-diagram__label--accent" x="567" y="166" text-anchor="middle">2.073</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--accent" x="567" y="184" text-anchor="middle">eval min · kept</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="788" y="166" text-anchor="end">2.095</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="788" y="184" text-anchor="end">+0.022 · gentle overfit</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="200" y="56" text-anchor="start">train loss · 5.49 step-0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="700" y="220" text-anchor="middle">— train · — eval</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="450" y="290" text-anchor="middle">29.93 M trainable (0.96 % of 3.12 B base) · 120 MB adapter on disk · 10 samples/sec on the Spark</text>
+    </g>
+  </svg>
+  <figcaption>Eval loss bottoms at epoch 2 (2.073) and rebounds 0.022 pt at epoch 3 — the gentle overfit a 231-pair corpus can absorb without a hyperparameter sweep.</figcaption>
+</figure>
+
 At this scale, the embarrassing truth is that *you can iterate on the prompt, the rank, the alpha, the layer targets, or the training data over lunch*. Fifteen full training runs in one hour. This is the regime the LoRA literature always promised but that gets buried under the tutorial-ecosystem emphasis on 70B base models and multi-GPU setups. On a 3B model on a personal rig, there is no reason not to sweep.
 
 ## The benchmark harness

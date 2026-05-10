@@ -188,8 +188,8 @@ The signature SVG at the top of the article tells the story at thumbnail size; h
       <path class="fn-diagram__edge" pathLength="100" d="M 100 280 L 840 280" />
       <path class="fn-diagram__edge" pathLength="100" d="M 100 230.7 L 357 215.4 L 613 213.7 L 810 207.0" />
       <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100" d="M 100 192.4 L 357 176.6 L 613 161.5 L 810 145.6" />
-      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 100 197.8 L 357 192.9 L 613 191.4 L 810 191.4" />
-      <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 100 178.4 L 357 175.8 L 613 168.7 L 810 173.0" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" d="M 100 197.8 L 357 192.9 L 613 191.4 L 810 191.4" />
+      <path class="fn-diagram__edge fn-diagram__edge--dashed" d="M 100 178.4 L 357 175.8 L 613 168.7 L 810 173.0" />
     </g>
     <g class="fn-diagram__nodes">
       <circle class="fn-diagram__dot" cx="100" cy="230.7" r="4"/>

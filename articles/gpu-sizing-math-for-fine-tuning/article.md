@@ -196,6 +196,116 @@ Now scale the formula. 100B / 3B = ~33× — but you don't just multiply the 20 
 
 The related landmark from [`nemo-framework-continued-pretraining-on-spark`](/field-notes/nemo-framework-continued-pretraining-on-spark/): *"8B at BF16 with activations checkpointed should fit. 49B won't."* That is the full-fine-tune ceiling on 128 GB. 8B × 16 bytes/param = 128 GB — exactly the Spark's budget. 49B × 16 = 784 GB — won't fit and can't be made to fit without dropping to LoRA or QLoRA. That sentence is the Spark's tells-you-what-fits oracle, and it is dimensionally identical to the 100B reasoning above.
 
+<figure class="fn-diagram" aria-label="Hardware-tier heatmap: peak GPU memory across five model sizes (3B, 7B, 13B, 70B, 100B) and three methods (Full FT, LoRA rank 16, QLoRA NF4). Cell color encodes the hardware tier the workload fits on — green for Spark or single H100, cyan for 1×H200 or 2×H100, blue for 4-16×H100, red for multi-node. The Spark anchor cell at 3B LoRA ≈ 20 GB is highlighted. The diagonal of green-to-red shows where each method runs out of single-node headroom.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="Method × model-size memory heatmap. Full FT scales 48 GB at 3B to 1600 GB at 100B (multi-node). LoRA scales 12 GB at 3B to 250 GB at 100B (8×H100). QLoRA scales 7.5 GB at 3B to 65 GB at 100B (1×H200). Cells color-coded by hardware tier." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-gpu2-spark-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.36"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.10"/>
+      </linearGradient>
+      <linearGradient id="d-gpu2-h200-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-cyan)" stop-opacity="0.36"/>
+        <stop offset="100%" stop-color="var(--svg-accent-cyan)" stop-opacity="0.10"/>
+      </linearGradient>
+      <linearGradient id="d-gpu2-h100-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.36"/>
+        <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.10"/>
+      </linearGradient>
+      <linearGradient id="d-gpu2-pod-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.36"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.10"/>
+      </linearGradient>
+      <radialGradient id="d-gpu2-spark-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.36"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="170" y="120" width="120" height="60" fill="url(#d-gpu2-spark-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 170 60 L 170 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 290 60 L 290 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 410 60 L 410 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 530 60 L 530 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 650 60 L 650 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 770 60 L 770 240" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 170 60  L 770 60"  />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 170 120 L 770 120" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 170 180 L 770 180" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 170 240 L 770 240" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node" x="174" y="64"  width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="294" y="64"  width="112" height="52" rx="3" style="fill: url(#d-gpu2-h200-grad)"/>
+      <rect class="fn-diagram__node" x="414" y="64"  width="112" height="52" rx="3" style="fill: url(#d-gpu2-h100-grad)"/>
+      <rect class="fn-diagram__node" x="534" y="64"  width="112" height="52" rx="3" style="fill: url(#d-gpu2-pod-grad)"/>
+      <rect class="fn-diagram__node" x="654" y="64"  width="112" height="52" rx="3" style="fill: url(#d-gpu2-pod-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="174" y="124" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="294" y="124" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="414" y="124" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="534" y="124" width="112" height="52" rx="3" style="fill: url(#d-gpu2-h100-grad)"/>
+      <rect class="fn-diagram__node" x="654" y="124" width="112" height="52" rx="3" style="fill: url(#d-gpu2-h100-grad)"/>
+      <rect class="fn-diagram__node" x="174" y="184" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="294" y="184" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="414" y="184" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="534" y="184" width="112" height="52" rx="3" style="fill: url(#d-gpu2-spark-grad)"/>
+      <rect class="fn-diagram__node" x="654" y="184" width="112" height="52" rx="3" style="fill: url(#d-gpu2-h200-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40" y="34" text-anchor="start">METHOD × MODEL SIZE · PEAK GPU MEMORY</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="34" text-anchor="end">batch 4 · seq 2048 · activation checkpointing</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="230" y="50" text-anchor="middle">3B</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="350" y="50" text-anchor="middle">7B</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="470" y="50" text-anchor="middle">13B</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="590" y="50" text-anchor="middle">70B</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="710" y="50" text-anchor="middle">100B</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="160" y="92"  text-anchor="end">Full FT</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="160" y="152" text-anchor="end">LoRA r=16</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="160" y="212" text-anchor="end">QLoRA NF4</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="160" y="106" text-anchor="end">~16 B/param</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="160" y="166" text-anchor="end">~4 B/param</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="160" y="226" text-anchor="end">~2.5 B/param</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="230" y="92"  text-anchor="middle">48</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="350" y="92"  text-anchor="middle">112</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="470" y="92"  text-anchor="middle">208</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="590" y="92"  text-anchor="middle">1,120</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="710" y="92"  text-anchor="middle">1,600</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="230" y="108" text-anchor="middle">GB · 1×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="350" y="108" text-anchor="middle">2×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="470" y="108" text-anchor="middle">4×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="590" y="108" text-anchor="middle">16×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="710" y="108" text-anchor="middle">24×H100 · pod</text>
+      <text class="fn-diagram__label fn-diagram__label--display fn-diagram__label--accent" x="230" y="152" text-anchor="middle">12</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="350" y="152" text-anchor="middle">28</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="470" y="152" text-anchor="middle">52</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="590" y="152" text-anchor="middle">175</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="710" y="152" text-anchor="middle">250</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="230" y="168" text-anchor="middle">GB · Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="350" y="168" text-anchor="middle">Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="470" y="168" text-anchor="middle">1×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="590" y="168" text-anchor="middle">4×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="710" y="168" text-anchor="middle">8×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="230" y="212" text-anchor="middle">7.5</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="350" y="212" text-anchor="middle">17</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="470" y="212" text-anchor="middle">33</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="590" y="212" text-anchor="middle">110</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="710" y="212" text-anchor="middle">65</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="230" y="228" text-anchor="middle">GB · Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="350" y="228" text-anchor="middle">Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="470" y="228" text-anchor="middle">Spark</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="590" y="228" text-anchor="middle">1×H100</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="710" y="228" text-anchor="middle">1×H200</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation fn-diagram__annotation--accent" x="230" y="266" text-anchor="middle">Spark measured · 3B LoRA ≈ 20 GB</text>
+      <text class="fn-diagram__annotation" x="450" y="290" text-anchor="middle">the diagonal is where each method runs out of single-node headroom · QLoRA pushes the wall to 100B</text>
+      <text class="fn-diagram__annotation" x="450" y="316" text-anchor="middle">
+        <tspan style="fill: var(--svg-accent-green)">■ Spark / 1×H100</tspan>  <tspan style="fill: var(--svg-accent-cyan)">■ 1×H200 / 2×H100</tspan>  <tspan style="fill: var(--color-primary)">■ 4-16×H100</tspan>  <tspan style="fill: var(--svg-accent-red)">■ multi-node SuperPOD</tspan>
+      </text>
+    </g>
+  </svg>
+  <figcaption>The same four memory bills, walked across model sizes. The accent cell on the LoRA row is the Spark anchor (3B at ≈20 GB measured); every other cell is reachable from there with two doubling factors and one quantization step.</figcaption>
+</figure>
+
 ## Tradeoffs and surprises
 
 **Context length is the silent killer.** The four bills above treat activations as ~2 bytes per parameter, a single-number approximation of a quantity that is actually proportional to batch × sequence × hidden × layers. Doubling sequence from 4k to 8k roughly doubles the activation bill. For un-flash-attended attention, the quadratic term can eat the entire GPU by itself at 32k context. If your fine-tuning data has long documents, price the context in *first* — it can flip a 1-GPU QLoRA into a 2-GPU QLoRA without the parameter count changing by one.

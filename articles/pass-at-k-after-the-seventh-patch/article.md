@@ -17,7 +17,9 @@ fieldkit_modules: [eval, capabilities]
 
 [Patches were six](/field-notes/runtime-frontier-six-patches-on-spark/) closed at three trials, eager mode, and a 97.4% tok/s ratio against baseline on Qwen 2.5 7B Instruct. The Pass@k matrix the [test-time-distilling article](/field-notes/test-time-distilling-for-exploration/) queued for "the next session" was still queued — blocked, the previous article said, on a "diverse-prompt state-isolation issue inside the model bank." This is the next session, and the actual cause was a drift the six-patch arc never surfaced because the bench harness never pushed batches large enough for it to fire.
 
-*For a reader landing cold: [ESamp](https://arxiv.org/abs/2604.24927) is a test-time-distilling technique. A tiny online-trained Distiller predicts the LLM's deep-layer hidden state from its shallow-layer hidden state. When the prediction error spikes on a candidate continuation, that's a novelty signal — the prefix is moving into territory the LLM has not been recently calibrated on — and ESamp reweights the sampler toward that novelty. The effect is *semantic* exploration, not just lexical resampling, which is exactly what Pass@k workloads reward.*
+:::define[ESamp]
+A test-time-distilling technique ([paper](https://arxiv.org/abs/2604.24927)). A tiny online-trained Distiller predicts the LLM's deep-layer hidden state from its shallow-layer hidden state. When the prediction error spikes on a candidate continuation, that's a novelty signal — the prefix is moving into territory the LLM has not been recently calibrated on — and ESamp reweights the sampler toward that novelty. The effect is *semantic* exploration, not just lexical resampling, which is exactly what Pass@k workloads reward.
+:::
 
 :::define[Pass@k]
 The probability that *at least one* of `k` parallel sampled completions is correct on a given problem. Pass@1 measures single-shot accuracy; pass@8 with `n=8` samples per problem rewards a sampler whose `n` attempts cover *different* solution paths rather than rephrasing one. Estimated unbiasedly from `n ≥ k` total samples per problem (HumanEval's standard formula). Pass@k is the natural unit for any test-time-scaling claim, because it isolates *breadth* from *single-attempt* accuracy.
@@ -85,7 +87,7 @@ ESamp's hook into vLLM's transformer forward pass. The runtime replaces `layer.f
     <rect x="700" y="80" width="160" height="120" rx="8" fill="url(#d-pak3-passk-grad)" stroke="none"/>
     <rect x="700" y="80" width="160" height="120" fill="url(#d-pak3-accent-halo)" stroke="none"/>
     <g class="fn-diagram__edges">
-      <path class="fn-diagram__edge" pathLength="100" d="M 60 140 L 860 140" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 60 140 L 680 140" />
       <path class="fn-diagram__edge fn-diagram__edge--dashed" pathLength="100" d="M 680 60 L 680 220" />
     </g>
     <g class="fn-diagram__nodes">

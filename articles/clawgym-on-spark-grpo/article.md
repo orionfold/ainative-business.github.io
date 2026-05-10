@@ -219,6 +219,89 @@ The training trajectory across 34 steps tells the story.
 
 The KL term creeps up monotonically — 0 to 0.0020 over 34 steps — which is small (the policy stays close to the SFT-init reference) but rising, exactly what a healthy RL run looks like. The `task_complete` rate breaks 100 % at step 16 and stays there for most of the run. Mean turns bottom out at step 29 (3.69) and rebound modestly to 4.62 by step 34, which is the kind of natural-noise drift you'd expect on a tiny pool. The honest summary is: *the loop closed by step 16, then kept tightening*.
 
+<figure class="fn-diagram" aria-label="Dual-trace training timeline across 34 GRPO steps. Top trace (cyan, dashed) is task_complete percent on the 8-task training pool, climbing from 75 percent at step 1 to 100 percent at step 16 and holding 100 through step 32 before slipping to 96.9 at the final step 34. Bottom trace (green, solid, accent) is mean turns per task, falling from 7.38 at step 1 to a minimum of 3.69 at step 29, then rebounding modestly to 4.62 at step 34. The crossover at step 16 marks 'the loop closed' — first 100 percent task_complete and mean turns already at 4.41. The final step 34 anchors the eval-2 numbers in the prose table.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="34-step GRPO training timeline. Mean turns drops 7.38 → 3.69 (step 29 minimum) → 4.62 (step 34). task_complete rises 75% → 100% by step 16 and holds. Two traces, one ramp-up, one ramp-down — the loop closing." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-cgg2-plot" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.08"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      </linearGradient>
+      <linearGradient id="d-cgg2-band" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.16"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.04"/>
+      </linearGradient>
+      <radialGradient id="d-cgg2-min-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.28"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="80" y="40" width="780" height="240" fill="url(#d-cgg2-plot)" stroke="none"/>
+    <rect x="430" y="40" width="120" height="240" fill="url(#d-cgg2-band)" stroke="none"/>
+    <rect x="660" y="180" width="40" height="40" fill="url(#d-cgg2-min-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 280 L 860 280" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 220 L 860 220" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 160 L 860 160" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80 100 L 860 100" />
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 80  40 L 860  40" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 40 L 80 280" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 80 280 L 860 280" />
+      <!-- mean turns trace (green, accent) — 7.38, 6.53, 5.28, 4.41, 4.38, 3.69, 4.09, 4.62 -->
+      <!-- y maps 0 turns at 280, 8 turns at 40, so y = 280 - (turns/8)*240 -->
+      <!-- step x: step 1 → 100, step 34 → 840, scale = 740/33 ≈ 22.4 -->
+      <path class="fn-diagram__edge fn-diagram__edge--accent" pathLength="100"
+            d="M 100 58.6 L 190 84.1 L 302 121.6 L 437 147.7 L 571 148.6 L 727 169.3 L 794 157.3 L 838 141.4" />
+      <!-- task_complete trace (blue, dashed) — 75%, 81.2%, 93.8%, 100%, 100%, 100%, 100%, 96.9% -->
+      <!-- y maps 0% at 280, 100% at 40, so y = 280 - (pct/100)*240 -->
+      <path class="fn-diagram__edge fn-diagram__edge--dashed"
+            d="M 100 100 L 190 84.9 L 302 51.0 L 437 40 L 571 40 L 727 40 L 794 40 L 838 47.4" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <!-- mean turns dots -->
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="100" cy="58.6"  r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="190" cy="84.1"  r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="302" cy="121.6" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="437" cy="147.7" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="571" cy="148.6" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="727" cy="169.3" r="6"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="794" cy="157.3" r="4"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--accent" cx="838" cy="141.4" r="4"/>
+      <!-- task_complete dots (smaller, ghost-style) -->
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="100" cy="100"   r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="190" cy="84.9"  r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="302" cy="51.0"  r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="437" cy="40"    r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="571" cy="40"    r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="727" cy="40"    r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="794" cy="40"    r="3"/>
+      <circle class="fn-diagram__dot fn-diagram__dot--ghost" cx="838" cy="47.4"  r="3"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="80" y="28" text-anchor="start">34-STEP GRPO TRAINING ON THE 42-TASK POOL</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="44"  text-anchor="end">8 turns</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="104" text-anchor="end">6</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="164" text-anchor="end">4</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="224" text-anchor="end">2</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="76" y="284" text-anchor="end">0</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="100" y="304" text-anchor="middle">step 1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="302" y="304" text-anchor="middle">10</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="437" y="304" text-anchor="middle">16</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="727" y="304" text-anchor="middle">29</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="838" y="304" text-anchor="middle">34</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--accent" x="838" y="156" text-anchor="end">mean turns · 4.62 final</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="838" y="32" text-anchor="end">task_complete · 96.9 % final</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="490" y="22"  text-anchor="middle">100 % · holds 16 → 32</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="727" y="186" text-anchor="middle">3.69</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="727" y="200" text-anchor="middle">step 29 min</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="437" y="332" text-anchor="middle">step 16 · loop closed · first 100% task_complete</text>
+      <text class="fn-diagram__annotation fn-diagram__annotation--accent" x="450" y="356" text-anchor="middle">two traces tell one story — turns drop because the agent learned to stop, not to skip work</text>
+    </g>
+  </svg>
+  <figcaption>The accent trace is mean turns; the dashed trace is <code>task_complete</code> rate. Both bend at the same place. The article you are reading could have stopped at step 16 with the same conclusions — the bulk of the behavior shaping happened in the first 16 gradient updates.</figcaption>
+</figure>
+
 What the held-out-158 eval looks like at step 34, against the same Qwen 2.5 7B base and the Phase 5 SFT adapter, both rolled out fresh on the same vLLM server at temperature 0.2:
 
 | metric | Qwen-base | Phase 5 SFT | **GRPO@34** | Δ vs SFT |

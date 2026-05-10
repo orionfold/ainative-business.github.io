@@ -214,6 +214,74 @@ vLLM serves both base and adapter from one process, routes to the LoRA when `--m
 
 The +15.0 pp per-assertion is the load-bearing claim. The +3.8 pp task pass is a real but small absolute number; what makes it interesting is the per-persona shape. **Six of eight personas improved on per-assertion**; the strongest case was `ml-engineer` (0/21 → 3/21 task, +30.6 pp asrt) — a persona with three PASSes and four near-misses in training, where the adapter genuinely learned the pattern. The strongest format-transfer case was `indie-game-dev` (0/24 → 2/24, +23.1 pp asrt) — only one near-miss in training, the lift came from cross-persona generalization.
 
+<figure class="fn-diagram" aria-label="Per-persona per-assertion delta waterfall across the 8 personas. Six gain on per-assertion, one is roughly flat, one regresses. Strongest gain: ml-engineer at +30.6 percentage points (the accent green). Indie-game-dev +23.1, devops-engineer +20.6, academic-author +18.1. Backend-developer and technical-writer modest at +2.8. Embedded-firmware-dev near zero. Data-science-researcher regresses at -9.9 percentage points (the red). The shape is a wide gain band on the left and a single narrow regression bar on the right.">
+  <svg viewBox="0 0 900 380" role="img" aria-label="Per-persona per-assertion delta sorted descending: ml-engineer +30.6, indie-game-dev +23.1, devops-engineer +20.6, academic-author +18.1, backend-developer +2.8, technical-writer +2.8, embedded-firmware-dev ~0, data-science-researcher -9.9. Six gain, one flat, one regression." preserveAspectRatio="xMidYMid meet">
+    <defs>
+      <linearGradient id="d-cgs2-gain-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.10"/>
+      </linearGradient>
+      <linearGradient id="d-cgs2-mid-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.24"/>
+        <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.06"/>
+      </linearGradient>
+      <linearGradient id="d-cgs2-loss-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"   stop-color="var(--svg-accent-red)" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="var(--svg-accent-red)" stop-opacity="0.10"/>
+      </linearGradient>
+      <radialGradient id="d-cgs2-peak-halo" cx="0.5" cy="0.5" r="0.6">
+        <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.20"/>
+        <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect x="50" y="50" width="180" height="200" fill="url(#d-cgs2-peak-halo)" stroke="none"/>
+    <g class="fn-diagram__edges">
+      <path class="fn-diagram__edge fn-diagram__edge--ghost" d="M 40 160 L 860 160" />
+      <path class="fn-diagram__edge" pathLength="100" d="M 40 160 L 860 160" />
+    </g>
+    <g class="fn-diagram__nodes">
+      <rect class="fn-diagram__node fn-diagram__node--accent" x="60"  y="80" width="80" height="80" rx="6" style="fill: url(#d-cgs2-gain-grad)"/>
+      <rect class="fn-diagram__node" x="160" y="100" width="80" height="60" rx="6" style="fill: url(#d-cgs2-gain-grad)"/>
+      <rect class="fn-diagram__node" x="260" y="106" width="80" height="54" rx="6" style="fill: url(#d-cgs2-gain-grad)"/>
+      <rect class="fn-diagram__node" x="360" y="113" width="80" height="47" rx="6" style="fill: url(#d-cgs2-gain-grad)"/>
+      <rect class="fn-diagram__node" x="460" y="153" width="80" height="7"  rx="3" style="fill: url(#d-cgs2-mid-grad)"/>
+      <rect class="fn-diagram__node" x="560" y="153" width="80" height="7"  rx="3" style="fill: url(#d-cgs2-mid-grad)"/>
+      <rect class="fn-diagram__node fn-diagram__node--ghost" x="660" y="156" width="80" height="4" rx="2"/>
+      <rect class="fn-diagram__node" x="760" y="160" width="80" height="26" rx="6" style="fill: url(#d-cgs2-loss-grad)"/>
+    </g>
+    <g class="fn-diagram__labels">
+      <text class="fn-diagram__label fn-diagram__label--accent" x="40"  y="34" text-anchor="start">PER-PERSONA · PER-ASSERTION Δ vs Qwen base</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="860" y="34" text-anchor="end">158 held-out tasks · 6 gain · 1 regression</text>
+      <text class="fn-diagram__label fn-diagram__label--display fn-diagram__label--accent" x="100" y="74" text-anchor="middle">+30.6</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="200" y="94"  text-anchor="middle">+23.1</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="300" y="100" text-anchor="middle">+20.6</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="400" y="107" text-anchor="middle">+18.1</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="500" y="148" text-anchor="middle">+2.8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono"   x="600" y="148" text-anchor="middle">+2.8</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="700" y="148" text-anchor="middle">~0</text>
+      <text class="fn-diagram__label fn-diagram__label--display" x="800" y="200" text-anchor="middle">−9.9</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="100" y="266" text-anchor="middle">ml-engineer</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="200" y="266" text-anchor="middle">indie-game-dev</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="300" y="266" text-anchor="middle">devops-engineer</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="400" y="266" text-anchor="middle">academic-author</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="500" y="266" text-anchor="middle">backend-dev</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="600" y="266" text-anchor="middle">tech-writer</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="700" y="266" text-anchor="middle">embedded-fw</text>
+      <text class="fn-diagram__label fn-diagram__label--mono" x="800" y="266" text-anchor="middle">data-sci-r</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="36" y="164" text-anchor="end">0 pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="36" y="84"  text-anchor="end">+30 pp</text>
+      <text class="fn-diagram__label fn-diagram__label--mono fn-diagram__label--muted" x="36" y="244" text-anchor="end">−15 pp</text>
+    </g>
+    <g class="fn-diagram__annotations">
+      <text class="fn-diagram__annotation" x="60"  y="296" text-anchor="start">3 PASS + 4 near-miss in train · adapter learned the pattern</text>
+      <text class="fn-diagram__annotation" x="60"  y="312" text-anchor="start">1 near-miss in train · cross-persona generalization</text>
+      <text class="fn-diagram__annotation" x="840" y="296" text-anchor="end">base solves cleanly in 1–2 turns · adapter tramples state</text>
+      <text class="fn-diagram__annotation fn-diagram__annotation--accent" x="450" y="350" text-anchor="middle">SFT teaches operational primitives where there's headroom; trades clean-stop behavior for it on tasks where the base already solves</text>
+    </g>
+  </svg>
+  <figcaption>Sorted descending: four personas with double-digit per-assertion lifts, three roughly flat, one regression. The same 42-record SFT corpus produces opposite outcomes depending on whether the base model already solved the task cheaply.</figcaption>
+</figure>
+
 ## Verification — the recovery and the regression that explain the lift
 
 The verification that matters here isn't a latency number. It's a single side-by-side trace that explains where the +15 pp per-assertion actually comes from. Both rollouts were given `synth-indie-game-dev-01`: *"Move the enemy sprite assets to a new folder called 'enemies' and create it if it doesn't exist, then write a message to a new file called 'devlog.txt' in the root directory."*

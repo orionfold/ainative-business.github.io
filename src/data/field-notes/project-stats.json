@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-09T16:52:38Z",
+  "generated_at": "2026-05-10T14:37:01Z",
   "articles": {
     "total": 32,
     "published": 32,
@@ -7,7 +7,7 @@
     "drafts": 0
   },
   "words": {
-    "total": 110027,
+    "total": 110023,
     "mean_per_article": 3438,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
