@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-10T14:37:01Z",
+  "generated_at": "2026-05-11T03:00:22Z",
   "articles": {
-    "total": 32,
-    "published": 32,
+    "total": 33,
+    "published": 33,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 110023,
-    "mean_per_article": 3438,
+    "total": 114166,
+    "mean_per_article": 3459,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -17,12 +17,12 @@
   },
   "code": {
     "evidence_loc": 358550,
-    "src_loc": 10778,
-    "total_loc": 369328,
+    "src_loc": 10865,
+    "total_loc": 369415,
     "by_language": {
       "python": 345180,
       "shell": 9754,
-      "astro": 7473,
+      "astro": 7560,
       "html": 3422,
       "css": 2527,
       "typescript": 586,
@@ -36,12 +36,12 @@
     }
   },
   "stages": {
-    "foundations": 11,
-    "training": 10,
+    "foundations": 12,
+    "training": 11,
     "fine-tuning": 7,
     "inference": 14,
     "deployment": 2,
-    "agentic": 12,
+    "agentic": 13,
     "observability": 6,
     "dev-tools": 2
   },
@@ -101,7 +101,7 @@
     {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 29
+      "articles": 30
     },
     {
       "id": "dgx-spark",
@@ -111,7 +111,7 @@
     {
       "id": "nemo",
       "label": "NeMo Framework",
-      "articles": 25
+      "articles": 26
     },
     {
       "id": "tensorrt-llm",
