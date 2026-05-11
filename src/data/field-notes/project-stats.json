@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-11T03:00:22Z",
+  "generated_at": "2026-05-11T04:30:44Z",
   "articles": {
     "total": 33,
     "published": 33,
@@ -16,23 +16,18 @@
     }
   },
   "code": {
-    "evidence_loc": 358550,
-    "src_loc": 10865,
-    "total_loc": 369415,
+    "evidence_loc": 13839,
+    "fieldkit_loc": 6021,
+    "vendored_loc": 344711,
+    "total_loc": 19860,
     "by_language": {
-      "python": 345180,
-      "shell": 9754,
-      "astro": 7560,
-      "html": 3422,
-      "css": 2527,
-      "typescript": 586,
-      "javascript": 371,
-      "sql": 15
+      "python": 19832,
+      "sql": 15,
+      "shell": 13
     },
     "data_lines": {
-      "json": 64434735,
-      "yaml": 8356,
-      "toml": 674
+      "json": 64418183,
+      "yaml": 3319
     }
   },
   "stages": {
