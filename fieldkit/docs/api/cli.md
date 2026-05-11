@@ -2,7 +2,7 @@
 module: cli
 title: fieldkit (CLI)
 summary: A thin Typer wrapper over the modules. Quick checks and smoke benchmarks without writing Python.
-order: 6
+order: 7
 ---
 
 ## What it is

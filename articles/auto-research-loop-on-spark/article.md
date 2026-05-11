@@ -13,7 +13,7 @@ summary: "cxcscmu's own lineage_on vs lineage_off ablation closes the case: same
 signature: LineageAblationKeeps5x
 series: "Machine that Builds Machines"
 book_chapters: [10, 11]
-fieldkit_modules: [capabilities, training]
+fieldkit_modules: [capabilities, training, lineage]
 ---
 
 The cxcscmu [Auto-Research-Recipes](https://github.com/cxcscmu/Auto-Research-Recipes) release — paper [arXiv:2605.05724](https://arxiv.org/abs/2605.05724), ICML 2026 — looks at first like a paper about agentic infrastructure: ten specialists, a supervisor loop, a per-trial scheduler, an MCP toolchain, an external evaluator. The headline number is 1,797 trials run unattended across three reference tasks (Parameter Golf, NanoChat-D12, CIFAR-10 Airbench96), each task producing SOTA-or-better deltas with no human in the loop after launch. The compute bill is roughly 4,000 H100-hours for Parameter Golf alone, another 2,400 for NanoChat-D12, plus an Anthropic API spend running Claude Opus into the tens of thousands of dollars. By the standards of personal compute, none of that ports.

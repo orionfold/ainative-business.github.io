@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-11T04:30:44Z",
+  "generated_at": "2026-05-11T04:59:57Z",
   "articles": {
     "total": 33,
     "published": 33,
@@ -17,11 +17,11 @@
   },
   "code": {
     "evidence_loc": 13839,
-    "fieldkit_loc": 6021,
+    "fieldkit_loc": 6971,
     "vendored_loc": 344711,
-    "total_loc": 19860,
+    "total_loc": 20810,
     "by_language": {
-      "python": 19832,
+      "python": 20782,
       "sql": 15,
       "shell": 13
     },
