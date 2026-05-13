@@ -84,7 +84,7 @@ A handoff item triggers brainstorm mode (cannot auto-apply) if **any** of:
 - Adds a dependency.
 - Is destructive (file deletion, route removal) — **never auto-apply**, even with bucket-level "all default" approval.
 
-### Decision verbs (Step 5 brainstorm)
+### Decision verbs (Step 5b brainstorm)
 
 For each handoff item presented, the user picks one of:
 
@@ -118,7 +118,7 @@ Present a short report to the user:
 - **Bucket counts** — seven-row table of bucket name × item count × auto-flow vs brainstorm.
 - **Heads-up items** — any handoff item that hits a brainstorm-trigger criterion (see "Brainstorm trigger criteria" above), surfaced with one-line context per item.
 
-Ask the user to confirm: "Proceed with content sync (Steps 3–4) and then walk the UX brainstorm in Step 5?" Wait for explicit approval before continuing. If the user declines the UX half, run only Steps 3–4, 6, 7, 8 (and 9 if requested) — the content-only path.
+Ask the user to confirm: "Proceed with content sync (Steps 3–4), the contract sweep (Step 5a), and the UX brainstorm (Step 5b)?" Wait for explicit approval before continuing. If the user declines the UX half, run only Steps 3–4, 5a (always — the contract sweep is mechanical and gated by overrides, so it's safe to run without UX brainstorm), 6, 7, 8 (and 9 if requested) — the content-only path. Step 5b is the only step that gets fully skipped on the content-only path.
 
 ### Step 3: Compute the diff
 
@@ -152,7 +152,29 @@ The script is idempotent — running it twice is the same as running it once. Fi
 
 **Landing-page section sync.** The script also keeps the `/fieldkit/` landing page in step with the source by replacing only the inner bodies of three named `<section class="fk-section">` blocks — those whose `<h2>` text is **Install**, **Quickstart**, or **CLI**. These three are pure copy/code; they don't reference site-local URL helpers, so they transplant cleanly. The script detects target's section indentation, dedents source's body to col 0, and re-indents at target's level + 2 spaces, so the wrapping layout (`FieldNotesLayout`, `Nav`, `Footer`, `<main>`) and the Modules / Verified-in / header sections stay untouched. This is what lets a copy change like `pip install fieldkit` propagate to the site without breaking the build.
 
-### Step 5: UX brainstorm and apply
+### Step 5a: Contract-aware mechanical sweep
+
+Before walking the UX brainstorm, run the contract sweep — it surfaces structured deltas from the source's three contract files (`SYNC-CONTRACT.md`, `SYNC-RENAMES.log`, `mirrors/destination-overrides.md`) and the forthcoming SYNC-HANDOFF YAML frontmatter, so any high-judgement findings flow into Step 5b instead of being hand-discovered:
+
+```bash
+python3 .claude/skills/sync-field-notes/scripts/contract_sweep.py
+```
+
+The script reports (and acts on, idempotently):
+
+- **Destination-overrides globs.** Read from `/Users/manavsehgal/Developer/ai-field-notes/mirrors/destination-overrides.md`. Any path that matches a Mac-authoritative glob (`/book/**`, `/pricing/**`, `/artifacts/<kind>/`, `/skills/**`, `/`) is silently skipped by every other capability. Fail-open: an empty/missing overrides file gates nothing, which is the pre-contract baseline.
+- **SYNC-HANDOFF frontmatter.** If the file starts with `---\n...\n---` (the schema introduced after the 2026-05-11 a2tgpo release), parse it with `yaml.safe_load` and drive the rest of the sweep from structured fields. If absent, the script prints one line and falls through to Step 2's existing semantic-prose walk.
+- **SYNC-RENAMES.log replay.** Read the YAML log, filter to entries with `status: destination-needs-replay`, and **mechanically** apply each rename across `articles/**/article.{md,mdx}`. Mechanical surfaces only — `frontmatter.series`, `frontmatter.tags`, `frontmatter.module`. **Prose mentions are NOT auto-rewritten.** They're surfaced as a judgement-findings list and fed into Step 5b as a brainstorm bucket so the user owns the call on whether the old name is historical voice or genuine drift.
+- **Artifacts Phase 2 check.** No-op until `src/content/artifacts/` appears in source (lands with `fieldkit v0.4` + `fieldkit.publish`). When the directory appears, the script reports the manifest count and present kinds; the actual catalog scaffolding (`/artifacts/<kind>/index.astro`, detail pages) is judgement-heavy and stays in Claude's Edit/Write at runtime.
+- **SYNC-HANDOFF SHIPPED flip plan.** If the source handoff still carries `STATUS: NEW`, the script produces a ready-to-PR title + body that flips it to `STATUS: SHIPPED`, citing this repo's HEAD commit as the destination receipt. The script never writes to the source repo on its own — Claude opens the PR via `gh` after user approval (cross-repo writes are user-controlled per `feedback_work_on_main`).
+
+**PR-back-to-source bundling.** Capabilities #2 (rename status flip) and #5 (handoff SHIPPED flip) share the source-repo PR plumbing — open one PR per release whenever possible, titled `mirror: SYNC-RENAMES.log + SYNC-HANDOFF status update — <date> — <summary>`. The 2026-05-12 receipt PR established the `swept_at` / `swept_by` fields appended to each flipped log entry; preserve that convention.
+
+**Why the script doesn't auto-PR back to source.** The destination commit hash that stamps the PR is `git rev-parse HEAD` on this repo — but the *sweep* commit hasn't been made yet at the moment Step 5a runs. Claude opens the PR after Step 9 (commit) so the hash in the PR body actually corresponds to the sweep that was just shipped. Running the script writes the plan; Claude runs `gh` later, after the destination commit exists.
+
+After Step 5a prints, hand any rename-prose findings into Step 5b as an extra brainstorm bucket so each prose mention gets an `apply | skip | defer | customize` decision per the existing decision-verb pattern.
+
+### Step 5b: UX brainstorm and apply
 
 Skip this step entirely if Step 2 found no handoff, or the user declined the UX half. Otherwise walk the buckets from Step 2 in this fixed order:
 
@@ -306,11 +328,11 @@ they drift, the diff reports phantom changes on every sync.
 
 **An article moves from `status: upcoming` to published in source.** The manifest already lists the slug (it has had an `article.md` from the moment source committed the upcoming placeholder), so no manifest rewrite is needed. The website's ordinal walk previously skipped it; now it slots into its reserved position in the sequence on the next build.
 
-**SYNC-HANDOFF.md is missing.** Older releases or content-only refreshes have none. Print one line and proceed with the original 7-step content-only flow (skip Step 5 entirely). Never block content sync on a missing handoff.
+**SYNC-HANDOFF.md is missing.** Older releases or content-only refreshes have none. Print one line and proceed with the content-only flow (Steps 3–4 + 5a + 6–9). Step 5a still runs — it independently consumes `SYNC-RENAMES.log` and `mirrors/destination-overrides.md`, neither of which depends on the handoff. Step 5b is skipped entirely. Never block content sync on a missing handoff.
 
 **The handoff is empty or has zero recognizable section headings.** Treat it as content-only — same fallback as missing.
 
-**Partial application — the user already applied some UX changes manually before invoking the skill.** Step 5 must Read each target before proposing edits; if the proposed insertion already exists verbatim, downgrade that item to `verify only` and don't re-apply. This prevents double-inserts. The end-of-step summary lists the verify-only items so the user knows what was already done.
+**Partial application — the user already applied some UX changes manually before invoking the skill.** Step 5b must Read each target before proposing edits; if the proposed insertion already exists verbatim, downgrade that item to `verify only` and don't re-apply. This prevents double-inserts. The end-of-step summary lists the verify-only items so the user knows what was already done.
 
 **Dependency conflict — the website's `package.json` already has the dependency at a different version.** Surface the existing version and source's requested version, then downgrade the item to `customize`. The user picks: keep website version, bump to source version, or pin to a third value.
 
