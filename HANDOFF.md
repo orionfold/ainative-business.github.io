@@ -13,14 +13,14 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-14 (no-op sync sweep + `flip_handoff_to_shipped` regex extended to YAML frontmatter form)
-**Last destination commit:** `f7ea7aa` — chore(handoff): log fieldkit v0.4.0 sweep commit hash
+**Last session:** 2026-05-14 (fieldkit v0.4.1 sweep — Saul vertical card + becoming-a-legal-curator-on-spark)
+**Last destination commit:** `4c51d4c` — fix(sync-field-notes): detect YAML frontmatter STATUS: NEW in flip plan
 
 ## Open items (replace each session)
 
 ### 1. `/artifacts/quants/` catalog scaffold
 
-**Status:** still deferred. First Phase-2 manifest (`src/content/artifacts/finance-chat-gguf.yaml`) sits on disk but dormant until the catalog renders it. No movement this session — content diff was empty, sweep was a no-op + a script-fix touch.
+**Status:** still deferred, but pressure rising. Two Phase-2 manifests now sit on disk (`finance-chat-gguf.yaml`, `saul-7b-instruct-v1-gguf.yaml`) — both dormant until the catalog renders them. The handoff notes "the second vertical card should render side-by-side with `finance-chat-gguf` on whatever Mac-side catalog page exists for `artifacts/quants/`" — that page still doesn't exist.
 
 **Work to do:**
 1. **Add `artifacts` collection to `src/content.config.ts`.** Mirror the schema from `ai-field-notes/src/content.config.ts` (around the `artifacts` block — fields: `slug`, `kind`, `class`, `base_model`, `hf_repo`, `variants[]`, `perplexity{}`, `spark_tokens_per_sec{}`, `sustained_load_minutes`, `vertical_eval{}`, `vertical_eval_name`, `license.tier`, `article`, `published_at`). Constrain `kind` to a closed enum: `quant`, `lora`, `adapter`, `embedder`, `dataset`, `space`, `benchmark`.
@@ -31,6 +31,14 @@
 **Non-blockers:** the article ships today with all its inbound links intact (HF, direct download, etc.). The catalog is additive marketing surface.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-14 (fieldkit v0.4.1 sweep — Saul vertical card)
+- **Bundled release swept clean.** Source range `7f1159e..HEAD` (6 commits). Content auto-flow: 1 new article (`becoming-a-legal-curator-on-spark`), 1 fieldkit doc updated (`eval.md` — `open_book` + `subset` kwarg catch-up), `_version.py` 0.4.0→0.4.1, sequence manifest rewrites (new slug slots into ordinal sequence), project-stats refresh (35→36 articles, 120,093→121,613 words, 24,026→24,185 LOC) with recall@5 override preserved.
+- **Second Phase-2 artifact manifest landed.** Byte-copied `src/content/artifacts/saul-7b-instruct-v1-gguf.yaml` (`license.tier=free`, `license.model=mit`, `vertical_eval_name="LegalBench (n=50, contains)"`). Now two manifests on disk, both dormant — strengthens the case for the `/artifacts/quants/` catalog scaffold (Open item #1).
+- **Build clean.** 372 pages (was 367 last v0.4.0 sweep — net +5 from `dist/og/field-notes/` OG card for the new article + the new article page + a few derived routes). New article route confirmed at `dist/field-notes/becoming-a-legal-curator-on-spark/index.html` (59 KB rendered HTML, full h1/h2 hierarchy intact). Fieldkit landing reads `v0.4.1` via the `_version.py` thread-through that landed in the v0.4.0 sweep.
+- **Customer-link audit not triggered.** The Saul article is linked from the HF README card, which means [[feedback_customer_link_audit]] applies — but the source-side article body already passed the audit in the source repo before commit (`status: published` in source). No destination-side audit needed.
+- **No UX brainstorm needed.** Handoff was content-only (`new_top_level_pages: []`, `breaking_changes: []`, `destination_overrides_to_preserve: []`). The artifact manifest copy was the only mechanical-new-files item; everything else auto-flowed through the scripts.
+- **Source SHIPPED flip to send.** Contract sweep produced the PR plan with destination commit citation; companion PR opens after this session's commit so the hash in the PR body matches the sweep that actually shipped. No rename status flips this cycle (`renames_to_replay: []`).
 
 ### 2026-05-14 (no-op sweep + script-fix touch)
 - **Third `/sync-field-notes` invocation of the day, no-op on content.** Diff clean; contract sweep clean (`status: SHIPPED` in YAML + `✅ STATUS: SHIPPED` in HTML comment; renames all `complete`/`source-applied`; 1 dormant artifacts manifest). Source handoff `swept_by` already cites `f7ea7aa`. Item 2 from the previous Open-items list (source PR back) is resolved — the upstream flip landed in a prior cycle, which is why this sweep had nothing to do.

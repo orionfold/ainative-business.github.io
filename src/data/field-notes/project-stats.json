@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-14T10:39:06Z",
+  "generated_at": "2026-05-14T16:56:34Z",
   "articles": {
-    "total": 35,
-    "published": 35,
+    "total": 36,
+    "published": 36,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 120093,
-    "mean_per_article": 3431,
+    "total": 121613,
+    "mean_per_article": 3378,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -17,11 +17,11 @@
   },
   "code": {
     "evidence_loc": 14207,
-    "fieldkit_loc": 9819,
+    "fieldkit_loc": 9978,
     "vendored_loc": 344724,
-    "total_loc": 24026,
+    "total_loc": 24185,
     "by_language": {
-      "python": 23998,
+      "python": 24157,
       "sql": 15,
       "shell": 13
     },
@@ -35,9 +35,9 @@
     "training": 12,
     "fine-tuning": 8,
     "inference": 14,
-    "deployment": 3,
+    "deployment": 4,
     "agentic": 14,
-    "observability": 7,
+    "observability": 8,
     "dev-tools": 2
   },
   "stages_upcoming": {
@@ -94,14 +94,14 @@
   ],
   "products": [
     {
-      "id": "nim",
-      "label": "NVIDIA NIM",
+      "id": "dgx-spark",
+      "label": "DGX Spark",
       "articles": 30
     },
     {
-      "id": "dgx-spark",
-      "label": "DGX Spark",
-      "articles": 29
+      "id": "nim",
+      "label": "NVIDIA NIM",
+      "articles": 30
     },
     {
       "id": "nemo",
@@ -136,7 +136,7 @@
     {
       "id": "ollama",
       "label": "Ollama",
-      "articles": 6
+      "articles": 7
     },
     {
       "id": "nemo-guardrails",
@@ -152,6 +152,11 @@
   "metrics": {
     "throughput": [
       {
+        "label": "within sampling noise runs at",
+        "value": "20 tok/s",
+        "article_slug": "becoming-a-legal-curator-on-spark"
+      },
+      {
         "label": "runs the same 7b at",
         "value": "600 tok/s",
         "article_slug": "runtime-frontier-six-patches-on-spark"
@@ -165,11 +170,6 @@
         "label": "on h100 is bandwidth-bound at",
         "value": "120 tok/s",
         "article_slug": "clawgym-on-spark-grpo"
-      },
-      {
-        "label": "run the same setup at",
-        "value": "600 tok/s",
-        "article_slug": "test-time-distilling-for-exploration"
       }
     ],
     "accuracy": [
