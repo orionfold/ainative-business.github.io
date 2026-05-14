@@ -11,7 +11,7 @@ The eval harnesses the project keeps reinventing: a per-call latency benchmarker
 
 **v0.4.x additions** (vertical-curator surface for the G3 GGUF publisher pipeline):
 
-- `VerticalBench` — Spark-overlay scorer for FinanceBench / LegalBench / SemEval-style JSONL test sets. Wraps `Bench`, so latency aggregates alongside accuracy and refusal. Network access lives in the caller (`llama-cli`, NIM, vLLM) — the bench itself is offline-only and unit-testable.
+- `VerticalBench` — Spark-overlay scorer for FinanceBench / LegalBench / SemEval-style JSONL test sets. Wraps `Bench`, so latency aggregates alongside accuracy and refusal. Network access lives in the caller (`llama-cli`, NIM, vLLM) — the bench itself is offline-only and unit-testable. **v0.4.1 lift:** `from_jsonl(..., open_book=…, subset=…)` — open-book mode prepends FinanceBench evidence text to the question (default-on for `financebench`, default-off elsewhere); `subset` filters FinanceBench rows by `question_type` before the `limit` cap.
 - `VerticalQA` — one test case (qid + question + expected + tags) lifted from a vertical-eval JSONL.
 - `exact_match` / `contains` / `numeric_match` — the three built-in scorers. `numeric_match` is the FinanceBench default (first-number ±1% rel-tol); `exact_match` is the LegalBench default; `contains` is the right pick when the model answers in prose around a key fact.
 
@@ -241,6 +241,8 @@ vb = VerticalBench.from_jsonl(
     "financebench.jsonl",
     scorer=numeric_match,         # FinanceBench → first-number ±1%
     limit=50,
+    subset="metrics-generated",   # v0.4.1 — filter question_type before limit
+    open_book=True,               # v0.4.1 — prepend evidence_text to the question
 )
 
 def model_fn(prompt: str) -> str:
@@ -250,7 +252,10 @@ bench = vb.run(model_fn, extra_tags={"variant": "Q4_K_M"})
 print(bench.report())             # accuracy + refusal_rate + latency
 ```
 
-`VerticalBench.from_jsonl(path, *, format="auto", limit=None, scorer=None, scorer_kwargs=None)` auto-sniffs FinanceBench / LegalBench / generic schemas from the first JSON row. Rows missing the question or expected field are silently dropped (the row-count delta vs the JSONL is the diagnostic). The default scorer is `numeric_match` for FinanceBench and `exact_match` everywhere else; pass `scorer=` to override.
+`VerticalBench.from_jsonl(path, *, format="auto", limit=None, scorer=None, scorer_kwargs=None, open_book=None, subset=None)` auto-sniffs FinanceBench / LegalBench / generic schemas from the first JSON row. Rows missing the question or expected field are silently dropped (the row-count delta vs the JSONL is the diagnostic). The default scorer is `numeric_match` for FinanceBench and `exact_match` everywhere else; pass `scorer=` to override.
+
+- **`open_book=` *(v0.4.1)*** — when `True`, FinanceBench rows have their `evidence[*].evidence_text` prepended to the question (templated as `Context from <doc>: …\n\nQuestion: …\n\nAnswer with just the numeric value.`) so the model sees the 10-K excerpt the gold answer was derived from. Default `None` auto-resolves to `True` for `financebench` and `False` for `legalbench` / `generic` — the right defaults per benchmark convention. The 2026-05-13 V1 attempt on `AdaptLLM/finance-chat` scored 0/50 closed-book and 14–18%/50 open-book on the same JSONL; open-book is the load-bearing flag for FinanceBench scoring. Lifted from inline helpers in `scripts/g3_preflight_bench.py` and `scripts/g3_measure_variants.py` into the package surface.
+- **`subset=` *(v0.4.1)*** — FinanceBench-only convenience filter on the `question_type` column. Drops non-matching rows *before* the loader hits the `limit` cap, so callers can score the `metrics-generated` subset with `limit=50` and get 50 metrics-generated questions (not 50 mixed rows of which N happen to be metrics-generated). No-op on `legalbench` / `generic` formats.
 
 `VerticalBench.run(model_fn, *, limit=None, on_error="record", extra_tags=None)` returns the underlying `Bench` so callers route through the existing `.summary()` / `.report()` / `.dump()` pipeline. Each `BenchCall` carries `accuracy` (0.0/1.0 from the scorer) and `refusal` (0.0/1.0 from `is_refusal`) metrics; per-row metadata (company, doc_period, question_type) flows through to `BenchCall.tags` for downstream slice-by aggregation.
 

@@ -1,0 +1,36 @@
+slug: saul-7b-instruct-v1-gguf
+kind: quant
+class: gguf
+base_model: Equall/Saul-7B-Instruct-v1
+hf_repo: Orionfold/Saul-7B-Instruct-v1-GGUF
+variants:
+  - Q4_K_M
+  - Q5_K_M
+  - Q6_K
+  - Q8_0
+  - F16
+perplexity:
+  F16: 5.9165
+  Q4_K_M: 5.9864
+  Q5_K_M: 5.938
+  Q6_K: 5.925
+  Q8_0: 5.9138
+spark_tokens_per_sec:
+  Q4_K_M: 29.43
+  Q5_K_M: 20.19
+  Q6_K: 22.39
+  Q8_0: 7.3
+  F16: 10.88
+sustained_load_minutes: 1.6751101155998185
+vertical_eval:
+  Q4_K_M: 0.62
+  Q5_K_M: 0.72
+  Q6_K: 0.68
+  Q8_0: 0.66
+  F16: 0.68
+vertical_eval_name: "LegalBench (n=50, contains)"
+license:
+  tier: free
+  model: mit
+article: articles/becoming-a-legal-curator-on-spark/
+published_at: "2026-05-14T15:49:07Z"
