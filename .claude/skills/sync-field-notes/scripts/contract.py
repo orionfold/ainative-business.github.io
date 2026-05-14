@@ -399,7 +399,8 @@ def check_artifacts_phase2(source_artifacts_dir: Path = SOURCE_ARTIFACTS_DIR) ->
 # ─────────────────────────────── Capability #5 ───────────────────────────────
 # SYNC-HANDOFF.md status flip (STATUS: NEW → STATUS: SHIPPED).
 
-_HANDOFF_STATUS_RE = re.compile(r"⚠️\s*STATUS:\s*NEW")
+_HANDOFF_STATUS_HTML_RE = re.compile(r"⚠️\s*STATUS:\s*NEW")
+_HANDOFF_STATUS_YAML_RE = re.compile(r"^status:\s*NEW\b", re.MULTILINE)
 
 
 @dataclass
@@ -429,9 +430,15 @@ def flip_handoff_to_shipped(
     if not handoff_path.exists():
         return HandoffFlipPlan(False, "", "", "", error="SYNC-HANDOFF.md missing")
     text = handoff_path.read_text(encoding="utf8")
-    if not _HANDOFF_STATUS_RE.search(text):
+    html_match = _HANDOFF_STATUS_HTML_RE.search(text)
+    yaml_match = _HANDOFF_STATUS_YAML_RE.search(text)
+    if not html_match and not yaml_match:
         return HandoffFlipPlan(False, text, "", "", error="STATUS: NEW marker not found")
-    new_text = _HANDOFF_STATUS_RE.sub("⚠️ STATUS: SHIPPED", text, count=1)
+    new_text = text
+    if html_match:
+        new_text = _HANDOFF_STATUS_HTML_RE.sub("⚠️ STATUS: SHIPPED", new_text, count=1)
+    if yaml_match:
+        new_text = _HANDOFF_STATUS_YAML_RE.sub("status: SHIPPED", new_text, count=1)
     slug_part = f" — {release_slug}" if release_slug else ""
     pr_title = f"mirror: SYNC-HANDOFF.md SHIPPED{slug_part} ({destination_commit_hash[:7]})"
     pr_body = (
