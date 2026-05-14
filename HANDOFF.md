@@ -14,7 +14,7 @@
 # HANDOFF — ainative-business.github.io
 
 **Last session:** 2026-05-14 (fieldkit v0.4.0 sweep — `publish` + `quant` modules land, landing-page dynamic-derive applied)
-**Last destination commit:** _pending this session's commit_
+**Last destination commit:** `b8f9395` — feat(fieldkit): sweep v0.4.0 — publish + quant modules + dynamic-derive landing
 
 ## Open items (replace each session)
 
