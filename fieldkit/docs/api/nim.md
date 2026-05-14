@@ -62,6 +62,29 @@ chunks = chunk_text(long_doc, max_tokens=900)
 
 Polls `/models` until 200 or timeout. Returns `True` on success, `False` on timeout. Use it as the first call in any sample script that talks to a cold NIM.
 
+### `ChatMessage`
+
+Type alias for the OpenAI-style chat message shape `NIMClient.chat()` consumes:
+
+```python
+ChatMessage = dict[str, Any]
+# Concretely: {"role": "system" | "user" | "assistant", "content": str | list[...]}
+```
+
+Exported so callers can type-hint their own helpers that build message arrays without importing `Any` plumbing:
+
+```python
+from fieldkit.nim import ChatMessage, NIMClient
+
+def build_rag_prompt(question: str, chunks: list[str]) -> list[ChatMessage]:
+    return [
+        {"role": "system", "content": "Answer from the provided context only."},
+        {"role": "user", "content": "\n\n".join(chunks) + "\n\nQ: " + question},
+    ]
+```
+
+The alias is intentionally permissive — content may be a string, a list of multimodal parts, or any provider-specific extension. Schema validation is left to the NIM server.
+
 ### Context-overflow preflight
 
 `NIMClient.chat()` runs a token-estimate check on its message list and raises `NIMContextOverflowError(estimated_tokens, ceiling)` **before any network call** when the request would exceed `NIM_CONTEXT_WINDOW = 8192`. The opaque NIM 400 from `project_spark_nim_context_window` never surfaces.

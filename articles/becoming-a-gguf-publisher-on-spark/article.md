@@ -15,6 +15,7 @@ series: Machine that Builds Machines
 book_chapters: [10, 11]
 fieldkit_modules: [quant, publish, eval, lineage]
 also_stages: [observability]
+hf_url: https://huggingface.co/Orionfold/finance-chat-GGUF
 ---
 
 Today on the Spark: [`Orionfold/finance-chat-GGUF`](https://huggingface.co/Orionfold/finance-chat-GGUF) ships — five GGUF variants of AdaptLLM's Llama-2-Chat-7B finance fine-tune, all measured end-to-end on a single DGX Spark. The card under each variant carries four axes that downloadable GGUFs rarely come with: wikitext-2 perplexity, sustained `tok/s` on GB10, sustained-load minutes before thermal throttle, and an open-book FinanceBench score across 50 quantitative questions.

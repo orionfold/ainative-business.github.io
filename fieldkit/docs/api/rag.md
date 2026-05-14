@@ -20,12 +20,29 @@ from fieldkit.rag import (
     Chunk,
     DEFAULT_EMBED_MODEL,           # "nvidia/llama-nemotron-embed-1b-v2"
     DEFAULT_EMBED_DIM,             # 1024
+    DEFAULT_EMBED_BATCH,           # 32
     DEFAULT_CHUNK_TOKENS,          # 900
+    CHUNKS_PER_DOC_MAX,            # 10000
     DEFAULT_RERANK_URL,
+    DEFAULT_RERANK_MODEL,          # "nvidia/llama-3.2-nv-rerankqa-1b-v2"
     DEFAULT_SYSTEM_PROMPT,
     RAGError,
 )
 ```
+
+### Tunable constants
+
+These module-level defaults are exported so callers can read them, log them, or override them per-call without re-deriving the numbers from the article history.
+
+| Constant | Default | What it controls |
+|---|---|---|
+| `DEFAULT_EMBED_MODEL` | `"nvidia/llama-nemotron-embed-1b-v2"` | The 1024-d Matryoshka embedder used across the project's RAG articles. |
+| `DEFAULT_EMBED_DIM` | `1024` | Output dimensionality of the embedder. 1024-d gives a ~50% storage cut vs native 2048-d at ~4 recall points (the sweet spot from `nemo-retriever-embeddings-local`). |
+| `DEFAULT_EMBED_BATCH` | `32` | Passages embedded per `/v1/embeddings` call during `.ingest()`. Matches the article-#4 sweet spot of ~28 docs/s on Spark; raise it on bigger boxes, lower it if the embedder NIM is OOM-pressured. |
+| `DEFAULT_CHUNK_TOKENS` | `900` | Per-chunk token budget for `.ingest()`. Sized so a top-5 retrieval at this chunk size stays under `fieldkit.nim.NIM_CONTEXT_WINDOW = 8192` with room for system + query + answer (see `project_spark_nim_context_window`). |
+| `CHUNKS_PER_DOC_MAX` | `10000` | Hard ceiling on chunks per document. Encoded into the chunk id formula `chunk.id = doc.id * CHUNKS_PER_DOC_MAX + chunk_idx`, so raising this *changes the id arithmetic* — only bump it if you also re-ingest the corpus from scratch. `.ingest()` raises `RAGError` if a doc would exceed the cap. |
+| `DEFAULT_RERANK_URL` | NGC hosted reranker | Where rerank requests go when `rerank_url` is set. Switch to a local URL when GB10-native TRT plans for the reranker land. |
+| `DEFAULT_RERANK_MODEL` | `"nvidia/llama-3.2-nv-rerankqa-1b-v2"` | Model id sent in the rerank request body. Override on `Pipeline(..., rerank_model=...)` when pointing at a different reranker. |
 
 ### `Pipeline(embed_url, pgvector_dsn, generator: NIMClient, rerank_url=None, ...)`
 

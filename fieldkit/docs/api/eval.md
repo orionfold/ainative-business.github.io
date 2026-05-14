@@ -9,6 +9,12 @@ order: 4
 
 The eval harnesses the project keeps reinventing: a per-call latency benchmarker that emits the same JSON shape as `articles/*/evidence/benchmark.py`, an LLM-as-judge with the three rubrics from `rag-eval-ragas-and-nemo-evaluator`, a trajectory analyzer for agent-loop JSONL, and a refusal regex catalog unioned across the project's articles.
 
+**v0.4.x additions** (vertical-curator surface for the G3 GGUF publisher pipeline):
+
+- `VerticalBench` — Spark-overlay scorer for FinanceBench / LegalBench / SemEval-style JSONL test sets. Wraps `Bench`, so latency aggregates alongside accuracy and refusal. Network access lives in the caller (`llama-cli`, NIM, vLLM) — the bench itself is offline-only and unit-testable.
+- `VerticalQA` — one test case (qid + question + expected + tags) lifted from a vertical-eval JSONL.
+- `exact_match` / `contains` / `numeric_match` — the three built-in scorers. `numeric_match` is the FinanceBench default (first-number ±1% rel-tol); `exact_match` is the LegalBench default; `contains` is the right pick when the model answers in prose around a key fact.
+
 **v0.2 additions** (verifier-loop and agent-bench primitives):
 
 - `AssertionGrader` — pure file-system grader over five assertion primitives (`file_exists`, `file_not_exists`, `file_contents_contain`, `file_contents_match_regex`, `file_unchanged`). Lifted from `clawgym-on-spark`'s deterministic grader.
@@ -44,6 +50,10 @@ from fieldkit.eval import (
 
     # v0.2 — matched-base comparison
     MatchedBaseComparison, MatchedBaseComparisonResult, GroupStats,
+
+    # v0.4.x — vertical-curator surface
+    VerticalBench, VerticalQA,
+    contains, exact_match, numeric_match,
 )
 ```
 
@@ -217,6 +227,65 @@ json.dump(result.to_dict(), open("comparison.json", "w"), indent=2)
 `GroupStats` aggregates one rollout: total + per-passed task counts, per-assertion totals, `by_group` and `by_kind` buckets, stop-reason histogram, mean turns, mean wall. `MatchedBaseComparisonResult.overall_delta` carries the headline four numbers — task and per-assertion deltas in percentage points, plus mean-turns and mean-wall deltas. `.report()` renders a markdown summary table; `.to_dict()` serializes the full comparison for `comparison.json` files.
 
 `MatchedBaseComparison.stats(rows)` is exposed separately when you only need single-rollout aggregation (no comparison). Accepts a list/iterable of dicts or a JSONL path.
+
+### `VerticalBench(name, questions, scorer=exact_match, ...)` *(v0.4.x)*
+
+Spark-overlay scorer for vertical-domain test sets — FinanceBench, LegalBench, SemEval-style JSONL — that the G3 GGUF publisher pipeline uses as its fourth measurement axis alongside perplexity, tok/s, and sustained-load minutes.
+
+The bench is intentionally callable-shaped: it accepts a `model_fn(prompt) -> str` and times each call via the existing `Bench` harness, so latency aggregates alongside accuracy and refusal. Network access lives in the caller (llama-cli, NIM, vLLM), keeping the bench offline-only for unit tests.
+
+```python
+from fieldkit.eval import VerticalBench, numeric_match
+
+vb = VerticalBench.from_jsonl(
+    "financebench.jsonl",
+    scorer=numeric_match,         # FinanceBench → first-number ±1%
+    limit=50,
+)
+
+def model_fn(prompt: str) -> str:
+    return llama_cli_call(gguf_path, prompt)
+
+bench = vb.run(model_fn, extra_tags={"variant": "Q4_K_M"})
+print(bench.report())             # accuracy + refusal_rate + latency
+```
+
+`VerticalBench.from_jsonl(path, *, format="auto", limit=None, scorer=None, scorer_kwargs=None)` auto-sniffs FinanceBench / LegalBench / generic schemas from the first JSON row. Rows missing the question or expected field are silently dropped (the row-count delta vs the JSONL is the diagnostic). The default scorer is `numeric_match` for FinanceBench and `exact_match` everywhere else; pass `scorer=` to override.
+
+`VerticalBench.run(model_fn, *, limit=None, on_error="record", extra_tags=None)` returns the underlying `Bench` so callers route through the existing `.summary()` / `.report()` / `.dump()` pipeline. Each `BenchCall` carries `accuracy` (0.0/1.0 from the scorer) and `refusal` (0.0/1.0 from `is_refusal`) metrics; per-row metadata (company, doc_period, question_type) flows through to `BenchCall.tags` for downstream slice-by aggregation.
+
+`VerticalBench.summary()` produces a lightweight `{name, n, scorer, tag_keys}` dict without invoking the model — useful in the lineage entry recording *what* the bench will measure before the model has actually run.
+
+### `VerticalQA` *(v0.4.x)*
+
+```python
+@dataclass(frozen=True, slots=True)
+class VerticalQA:
+    qid: str                              # FinanceBench `financebench_id`, etc.
+    question: str
+    expected: str
+    tags: dict[str, Any] = field(default_factory=dict)
+```
+
+One vertical-eval test case. The `qid` is the row's stable id so per-row scores can be cross-referenced against the source JSONL; `tags` carry per-row metadata (company, doc_period, question_type) that flow through to `Bench` for slice-by aggregation downstream.
+
+### Scorers — `exact_match` / `contains` / `numeric_match` *(v0.4.x)*
+
+Pluggable `Callable[[predicted, expected], float]` returning 1.0 / 0.0. Pass any custom callable into `VerticalBench(scorer=...)`; the three built-ins cover the dominant patterns:
+
+```python
+exact_match("yes", "Yes")                          # 1.0 — whitespace + case-insensitive
+contains("The 2023 revenue was $4.5B.", "$4.5B")   # 1.0 — substring match
+numeric_match("Revenue was $4.55B", "4.5B")        # 1.0 — first number, ±1% rel-tol
+numeric_match("Revenue was $4.55B", "4.5B",
+              rel_tolerance=0.001)                 # 0.0 — tighter tol
+```
+
+| Scorer | When to use it |
+|---|---|
+| `exact_match(p, e)` | LegalBench-style single-label classification (`yes` / `no` / `hold` / `overrule`). Whitespace- and case-insensitive. |
+| `contains(p, e)` | The model is asked to answer in prose and the reference is a key fact/number/phrase that must appear somewhere in the answer. |
+| `numeric_match(p, e, *, rel_tolerance=0.01)` | FinanceBench-style quantitative answers. Extracts the first number from each side (commas stripped), compares under relative tolerance. Defaults to ±1% per FinanceBench's grading convention. Returns 0.0 if either side has no parseable number — including refusals, so the refusal counter elsewhere doesn't need to gate this scorer. |
 
 ## Samples
 

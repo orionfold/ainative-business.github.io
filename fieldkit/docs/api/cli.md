@@ -2,7 +2,7 @@
 module: cli
 title: fieldkit (CLI)
 summary: A thin Typer wrapper over the modules. Quick checks and smoke benchmarks without writing Python.
-order: 7
+order: 9
 ---
 
 ## What it is
@@ -17,7 +17,7 @@ Print the installed package version.
 
 ```bash
 $ fieldkit version
-0.2.0
+0.4.0
 ```
 
 ### `fieldkit envelope <size>`

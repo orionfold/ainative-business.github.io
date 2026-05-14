@@ -10,7 +10,8 @@ interface Props {
 
 const { docs } = Astro.props;
 
-const moduleHref = (m: string) => `/fieldkit/api/${m}/`;
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const moduleHref = (m: string) => `${base}fieldkit/api/${m}/`.replace(/\/+/g, '/');
 
 // Per-module display copy. The doc summary stays as-is; this is just the
 // short tagline that anchors each card visually (mirrors the homepage's
@@ -22,15 +23,25 @@ const taglines: Record<string, string> = {
   eval: 'Bench, judge, assertion, pass@k',
   training: 'LoRA reference + weight-delta tracker',
   lineage: 'Append-only trial log + prompt rendering',
+  quant: 'GGUF quantize + four-axis measure',
+  publish: 'HuggingFace card + manifest + push',
   cli: 'Smoke checks without writing Python',
 };
+
+const NUMBER_WORDS: Record<number, string> = {
+  1: 'one', 2: 'two', 3: 'three', 4: 'four', 5: 'five',
+  6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten',
+  11: 'eleven', 12: 'twelve',
+};
+const moduleCount = docs.length;
+const moduleCountWord = NUMBER_WORDS[moduleCount] ?? `${moduleCount}`;
 ---
 <section id="modules" class="py-24 px-6">
   <div class="max-w-6xl mx-auto">
     <div class="text-center mb-14">
       <SectionLabel text="The Solution" />
       <h2 data-animate class="mt-4 mb-4">
-        <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">fieldkit</code> in seven imports.
+        <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">fieldkit</code> in {moduleCountWord} imports.
       </h2>
       <p data-animate class="text-text-muted max-w-2xl mx-auto" style="transition-delay: 80ms">
         Each module is the public surface of a working article. Read the API reference, drop the import in, ship.

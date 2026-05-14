@@ -1,5 +1,6 @@
 ---
 import SectionLabel from '../../ui/SectionLabel.astro';
+import { FIELDKIT_MODULES } from '../../../content.config';
 
 interface Props {
   articleCount: number;
@@ -9,7 +10,13 @@ const { articleCount } = Astro.props;
 
 const stats = [
   { value: `${articleCount}`, label: 'articles already distill into fieldkit', source: '/field-notes/' },
-  { value: '7', label: 'modules, one import each', source: 'fieldkit.{capabilities,nim,rag,eval,training,lineage,cli}' },
+  {
+    value: `${FIELDKIT_MODULES.length}`,
+    label: 'modules, one import each',
+    // Comma + space so the line has natural wrap points; with 9+ modules
+    // the bare comma-separated form bleeds out of the 1/3-grid column.
+    source: `fieldkit.{${FIELDKIT_MODULES.join(', ')}}`,
+  },
   { value: '8192', label: 'token preflight catches NIM 400s', source: 'before the network call' },
 ];
 
@@ -52,7 +59,7 @@ const gaps = [
         <div data-animate class="rounded-xl border border-primary/20 bg-primary/[0.04] p-6 text-center">
           <div class="text-3xl md:text-4xl font-bold text-primary font-mono">{value}</div>
           <div class="text-sm text-text-muted mt-2">{label}</div>
-          <div class="text-xs text-text-muted/60 mt-1 font-mono">{source}</div>
+          <div class="text-[11px] leading-snug text-text-muted/60 mt-1 font-mono break-words">{source}</div>
         </div>
       ))}
     </div>

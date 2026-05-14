@@ -80,6 +80,55 @@ practical_inference_envelope("70B params fp8")
 
 Raises `UnknownEnvelope` if no rule matches.
 
+### Supporting types
+
+The `Capabilities` view is composed of three frozen dataclasses. You normally read them off `Capabilities.load()` rather than constructing them directly, but the types are re-exported for type-hinting and structural pattern-matching.
+
+#### `Hardware`
+
+```python
+@dataclass(frozen=True, slots=True)
+class Hardware:
+    name: str                                  # "DGX Spark"
+    unified_memory_gb: int                     # 128
+    memory_topology: str                       # "unified CPU+GPU"
+    compute_arch: str                          # "GB10 Grace Blackwell"
+    supported_dtypes: tuple[str, ...]          # ("fp32", "bf16", "fp16", ...)
+    interconnect_to_other_gpus: str
+```
+
+Reachable as `Capabilities.load().hardware`. Use it to gate code paths on `unified_memory_gb` or `compute_arch` without re-parsing the JSON.
+
+#### `MemoryBudgetRulesOfThumb`
+
+```python
+@dataclass(frozen=True, slots=True)
+class MemoryBudgetRulesOfThumb:
+    param_bytes: dict[str, float]                       # mirrors DTYPE_BYTES
+    training_overhead_multiplier: str
+    kv_cache_per_token_per_layer: str
+    practical_inference_envelope: dict[str, str]        # {"8B params bf16": "..."}
+    practical_finetune_envelope: dict[str, str]
+```
+
+Backs `practical_inference_envelope()`. Inspect `caps.memory_budget_rules_of_thumb.practical_finetune_envelope` directly when you want the fine-tune table instead of the inference one.
+
+#### `StackEntry`
+
+```python
+@dataclass(frozen=True, slots=True)
+class StackEntry:
+    id: str                                              # "nim", "nemo", "trt-llm", ...
+    label: str
+    purpose: str
+    verified_in_articles: tuple[str, ...] = ()
+    known_limits: tuple[str, ...] = ()
+    fits_paper_shapes: tuple[str, ...] = ()
+    supported_models_at_spark_scale: tuple[str, ...] = ()
+```
+
+One entry per Spark-relevant stack component. `frontier-scout` uses `fits_paper_shapes` to decide whether a paper's training recipe matches a stack we have running notes for; the `verified_in_articles` tuple links back into ai-field-notes slugs that proved a given stack on the box.
+
 ### `DTYPE_BYTES`
 
 Bytes-per-parameter table:

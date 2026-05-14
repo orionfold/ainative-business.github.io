@@ -80,6 +80,7 @@ const fieldNotes = defineCollection({
     // Which /book/ chapter(s) this article grounds with field evidence.
     // Mostly used by "Machine that Builds Machines" articles (default [10]).
     book_chapters: z.array(z.number().int().min(1).max(14)).optional(),
+    hf_url: z.string().url().optional(),
   }),
 });
 

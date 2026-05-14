@@ -1,8 +1,14 @@
 ---
 import SectionLabel from '../../ui/SectionLabel.astro';
 
+interface Props {
+  version: string;
+}
+
+const { version } = Astro.props;
+
 const cli = `$ fieldkit version
-0.1.0.dev0
+${version}
 
 $ fieldkit envelope "70B params fp8"
 ~70 GB weights; leaves ~50 GB for KV + activations + system; tight but possible
@@ -13,6 +19,9 @@ KV cache (fp8):      21.5 GB  (ctx=4096, batch=32)
 weights + KV:        91.5 GB
 
 $ fieldkit bench rag --table fieldkit_cli_bench_rag --out /tmp/bench.json`;
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const cliHref = `${base}fieldkit/api/cli/`.replace(/\/+/g, '/');
 ---
 <section class="py-24 px-6">
   <div class="max-w-4xl mx-auto text-center">
@@ -38,7 +47,7 @@ $ fieldkit bench rag --table fieldkit_cli_bench_rag --out /tmp/bench.json`;
 
     <a
       data-animate
-      href="/fieldkit/api/cli/"
+      href={cliHref}
       class="inline-flex items-center gap-1.5 mt-8 text-primary font-mono text-sm tracking-wider hover:underline"
       style="transition-delay: 200ms"
     >
