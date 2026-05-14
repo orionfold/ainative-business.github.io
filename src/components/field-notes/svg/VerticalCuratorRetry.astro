@@ -1,0 +1,138 @@
+---
+// Signature for "becoming-a-gguf-publisher-on-spark".
+// V1 vs V1-retry FinanceBench accuracy bars. V1 (instruction-pretrain/
+// finance-Llama3-8B, closed-book + continued-pretrain trap): 0/250 across
+// all 5 variants — the tombstone bar at 0. V1-retry (AdaptLLM/finance-chat,
+// chat-tuned + open-book): 14-18% across the 5 variants. The eye reads the
+// gap as the load-bearing claim. Bar widths reflect FinanceBench accuracy
+// directly. Numbers are Spark-measured 2026-05-14.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Vertical-curator quant retry: V1 with instruction-pretrain/finance-Llama3-8B scored 0/250 on FinanceBench across all five GGUF variants — a tombstone bar at zero. V1-retry with AdaptLLM/finance-chat (chat-tuned, open-book prompts) scored 14-18% across the same five variants. The gap identifies the chat-vs-base-model trap plus the closed-book bench misuse as the load-bearing failure pair."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vcret-on-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.62"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="vcret-off-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">FINANCEBENCH · 5 VARIANTS</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">closed-book · open-book · chat-tuned</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="58" y="44" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">V1</text>
+    <rect x="40" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="40" y="148" width="36" height="4" rx="2"
+          fill="url(#vcret-off-grad)"
+          stroke="var(--color-primary)" stroke-width="1"
+          style="transform-origin: 58px 152px;"/>
+    <text x="58" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="13" font-weight="600">0%</text>
+    <text x="58" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">0/250</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <text x="180" y="44" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">V1-RETRY</text>
+    <g>
+      <rect x="100" y="56" width="20" height="96" rx="3"
+            fill="none" stroke="var(--svg-bg-inner-stroke)"
+            stroke-width="1" stroke-dasharray="3 3"/>
+      <rect class="bar-grow" x="100" y="92" width="20" height="60" rx="2"
+            fill="url(#vcret-on-grad)"
+            stroke="var(--svg-accent-green)" stroke-width="1.5"
+            style="transform-origin: 110px 152px;"/>
+      <text x="110" y="170" text-anchor="middle"
+            fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+            font-size="10" font-weight="600">18</text>
+      <text x="110" y="184" text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="5.5">F16</text>
+    </g>
+    <g>
+      <rect x="128" y="56" width="20" height="96" rx="3"
+            fill="none" stroke="var(--svg-bg-inner-stroke)"
+            stroke-width="1" stroke-dasharray="3 3"/>
+      <rect class="bar-grow" x="128" y="92" width="20" height="60" rx="2"
+            fill="url(#vcret-on-grad)"
+            stroke="var(--svg-accent-green)" stroke-width="1.5"
+            style="transform-origin: 138px 152px;"/>
+      <text x="138" y="170" text-anchor="middle"
+            fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+            font-size="10" font-weight="600">18</text>
+      <text x="138" y="184" text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="5.5">Q8_0</text>
+    </g>
+    <g>
+      <rect x="156" y="56" width="20" height="96" rx="3"
+            fill="none" stroke="var(--svg-bg-inner-stroke)"
+            stroke-width="1" stroke-dasharray="3 3"/>
+      <rect class="bar-grow" x="156" y="100" width="20" height="52" rx="2"
+            fill="url(#vcret-on-grad)"
+            stroke="var(--svg-accent-green)" stroke-width="1.5"
+            style="transform-origin: 166px 152px;"/>
+      <text x="166" y="170" text-anchor="middle"
+            fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+            font-size="10" font-weight="600">16</text>
+      <text x="166" y="184" text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="5.5">Q6_K</text>
+    </g>
+    <g>
+      <rect x="184" y="56" width="20" height="96" rx="3"
+            fill="none" stroke="var(--svg-bg-inner-stroke)"
+            stroke-width="1" stroke-dasharray="3 3"/>
+      <rect class="bar-grow" x="184" y="100" width="20" height="52" rx="2"
+            fill="url(#vcret-on-grad)"
+            stroke="var(--svg-accent-green)" stroke-width="1.5"
+            style="transform-origin: 194px 152px;"/>
+      <text x="194" y="170" text-anchor="middle"
+            fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+            font-size="10" font-weight="600">16</text>
+      <text x="194" y="184" text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="5.5">Q5_K_M</text>
+    </g>
+    <g>
+      <rect x="212" y="56" width="20" height="96" rx="3"
+            fill="none" stroke="var(--svg-bg-inner-stroke)"
+            stroke-width="1" stroke-dasharray="3 3"/>
+      <rect class="bar-grow" x="212" y="106" width="20" height="46" rx="2"
+            fill="url(#vcret-on-grad)"
+            stroke="var(--svg-accent-green)" stroke-width="1.5"
+            style="transform-origin: 222px 152px;"/>
+      <text x="222" y="170" text-anchor="middle"
+            fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+            font-size="10" font-weight="600">14</text>
+      <text x="222" y="184" text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="5.5">Q4_K_M</text>
+    </g>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="80" y1="80" x2="98" y2="80"
+          class="line-draw"
+          stroke="var(--svg-accent-green)" stroke-width="1.5"/>
+    <text x="89" y="72" text-anchor="middle"
+          fill="var(--svg-accent-green)" font-family="var(--font-sans)"
+          font-size="9" font-weight="600">retry</text>
+  </g>
+</svg>

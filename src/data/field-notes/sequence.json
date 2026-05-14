@@ -39,6 +39,7 @@
     "clawgym-on-spark-grpo",
     "t2po-uncertainty-guided-rl-on-spark",
     "auto-research-loop-on-spark",
-    "a2tgpo-turn-clipping-on-spark"
+    "a2tgpo-turn-clipping-on-spark",
+    "becoming-a-gguf-publisher-on-spark"
   ]
 }
