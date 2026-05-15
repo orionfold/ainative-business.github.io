@@ -13,14 +13,34 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-15 (`/artifacts/quants/` catalog ships — Open item #1 resolved)
+**Last session:** 2026-05-15 (`/artifacts/quants/` catalog ships — primary nav + footer "Reading" addition, pushed to main)
 **Last destination commit:** `d41b096` — feat(artifacts): ship /artifacts/quants/ catalog with four-axis spec matrix
+**Push status:** both commits live on `origin/main` (`d41b096` feat + `cc02e3f` handoff). GH Pages deploy expected to follow automatically — verify in Open item #1.
 
 ## Open items (replace each session)
 
-### 1. Create `mirrors/destination-overrides.md`
+### 1. Smoke-check the production catalog after GitHub Pages deploys
 
-**Status:** HANDOFF.md and earlier session notes reference this file but it doesn't exist on disk. The plural URL convention (`/artifacts/quants/`, not `/artifacts/quant/`) plus the destination-authored YAML manifests rule both live in HANDOFF prose only. Creating the file would make the contract durable across syncs — important once source starts publishing kinds beyond `quant`.
+**Status:** Two commits just pushed to `origin/main`. GH Actions builds and deploys to `ainative.business` automatically — expect the catalog live within minutes. Routes to spot-check on the deployed site:
+
+- `https://ainative.business/artifacts/`
+- `https://ainative.business/artifacts/quants/`
+- `https://ainative.business/artifacts/quants/finance-chat-gguf/`
+- `https://ainative.business/artifacts/quants/saul-7b-instruct-v1-gguf/`
+
+**Verify:** trailing slashes preserved end-to-end (the `trailingSlash: 'always'` config plus disciplined link writing — but GH Pages adds a 301 layer, so confirm no "Page with redirect" surprise per `feedback_trailing_slashes` memory). Spot the heatmap cells in both themes; the sweet-spot chip should be visible on the matrix rows. Nav adds Artifacts between Field Notes and Fieldkit; footer "Reading" column has Artifacts between Field Notes and RSS.
+
+**Likely outcome:** clean deploy. If anything is off, it's most plausibly a font preload race or an image-path miss — neither is in scope for this feature, but worth eyeballing.
+
+### 2. Article wire-back propagation to source
+
+**Status:** Two destination-side articles gained closing `Catalog page: …` links during this session (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`). These are destination-only chrome — source has no parallel edit. The next `/sync-field-notes` sweep that pulls these articles from source may surface a phantom diff (destination has the line, source doesn't), or a real conflict if source-side authors have edited the same closing region.
+
+**Resolution rule when the conflict appears:** keep both. The catalog link is destination-only chrome (this site has the catalog; source's HuggingFace cards don't). Article body remains source-of-record. Cleanest fix is a source-side PR replicating the two wire-back lines — author it the next time you're in the source repo. Until then, the sync skill's `destination_overrides_to_preserve` mechanism can shield these regions.
+
+### 3. Create `mirrors/destination-overrides.md`
+
+**Status:** Still missing. The plural URL convention (`/artifacts/quants/`, plural-by-kind for all eight kinds) plus the destination-authored YAML manifests rule plus (now) the two article wire-back regions all live in HANDOFF prose only. Creating the file would make the contract durable across syncs — important once source starts publishing kinds beyond `quant`, and a natural place to record the wire-back regions Open item #2 mentions.
 
 **Non-blocker:** the catalog itself is live. This is contract scaffolding.
 
