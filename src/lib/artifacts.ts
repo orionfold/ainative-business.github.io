@@ -80,6 +80,7 @@ export function rankWithin(
 
 export interface ArtifactDataShape {
   variants?: string[];
+  recommended_variant?: string;
   perplexity?: Record<string, number>;
   spark_tokens_per_sec?: Record<string, number>;
   vertical_eval?: Record<string, number>;
@@ -94,6 +95,14 @@ export function pickSweetSpot(artifact: ArtifactDataShape): string | null {
   const allVariants = artifact.variants ?? [];
   const candidates = allVariants.filter((v) => !UNQUANTIZED_REFERENCE_VARIANTS.has(v));
   if (candidates.length === 0) return null;
+
+  // Manifest-level override wins when set and references a real candidate.
+  // Source's pipeline knows the per-card recommended variant from the article
+  // narrative; this surface lets the manifest declare it directly instead of
+  // the picker inferring from rank-avg.
+  if (artifact.recommended_variant && candidates.includes(artifact.recommended_variant)) {
+    return artifact.recommended_variant;
+  }
 
   const perplexity = artifact.perplexity ?? null;
   const throughput = artifact.spark_tokens_per_sec ?? null;

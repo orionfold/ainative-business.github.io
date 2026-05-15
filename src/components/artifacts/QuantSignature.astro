@@ -3,12 +3,13 @@ import { pickSweetSpot, type ArtifactDataShape } from '../../lib/artifacts';
 
 interface Props {
   variants: string[];
+  recommended_variant?: string;
   perplexity?: Record<string, number>;
   spark_tokens_per_sec?: Record<string, number>;
   vertical_eval?: Record<string, number>;
 }
 
-const { variants, perplexity, spark_tokens_per_sec, vertical_eval } = Astro.props;
+const { variants, recommended_variant, perplexity, spark_tokens_per_sec, vertical_eval } = Astro.props;
 
 // Both maps must be present and contain values for at least 2 of the listed
 // variants — otherwise we render a text fallback (never an empty plot).
@@ -42,6 +43,7 @@ if (canPlot) {
 
   const sweet = pickSweetSpot({
     variants: validVariants,
+    recommended_variant,
     perplexity,
     spark_tokens_per_sec,
     vertical_eval,

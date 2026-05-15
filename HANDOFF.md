@@ -13,38 +13,42 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-15 (`/artifacts/quants/` catalog ships — primary nav + footer "Reading" addition, pushed to main)
-**Last destination commit:** `d41b096` — feat(artifacts): ship /artifacts/quants/ catalog with four-axis spec matrix
-**Push status:** both commits live on `origin/main` (`d41b096` feat + `cc02e3f` handoff). GH Pages deploy expected to follow automatically — verify in Open item #1.
+**Last session:** 2026-05-15 (cyber-vertical sweep — third Orionfold quant card)
+**Last destination commit (pre-sweep):** `ae23184` — chore(handoff): forward open items for next session
+**Push status:** prior session's commits (`d41b096` feat + `cc02e3f` + `ae23184` handoff) live on `origin/main`. This sweep's changes are uncommitted in working tree — see `git status`.
 
 ## Open items (replace each session)
 
-### 1. Smoke-check the production catalog after GitHub Pages deploys
+### 1. Article wire-back propagation to source (carry-forward)
 
-**Status:** Two commits just pushed to `origin/main`. GH Actions builds and deploys to `ainative.business` automatically — expect the catalog live within minutes. Routes to spot-check on the deployed site:
+**Status (unchanged from previous session):** Three destination-side articles now carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark` — added this session). Each sync that pulls these articles from source surfaces a phantom diff (destination has the line, source doesn't); `git checkout HEAD -- <article>` after sync is the established workaround. Confirmed working this session.
 
-- `https://ainative.business/artifacts/`
-- `https://ainative.business/artifacts/quants/`
-- `https://ainative.business/artifacts/quants/finance-chat-gguf/`
-- `https://ainative.business/artifacts/quants/saul-7b-instruct-v1-gguf/`
+**Resolution rule when the conflict appears:** keep destination's. The catalog link is destination-only chrome (this site has the catalog; source's HuggingFace cards don't). Article body remains source-of-record. Cleanest fix is a source-side PR replicating the three wire-back lines — author it the next time you're in the source repo.
 
-**Verify:** trailing slashes preserved end-to-end (the `trailingSlash: 'always'` config plus disciplined link writing — but GH Pages adds a 301 layer, so confirm no "Page with redirect" surprise per `feedback_trailing_slashes` memory). Spot the heatmap cells in both themes; the sweet-spot chip should be visible on the matrix rows. Nav adds Artifacts between Field Notes and Fieldkit; footer "Reading" column has Artifacts between Field Notes and RSS.
+### 1a. `recommended_variant` override in `securityllm-gguf.yaml` (destination-side)
 
-**Likely outcome:** clean deploy. If anything is off, it's most plausibly a font preload race or an image-path miss — neither is in scope for this feature, but worth eyeballing.
+**Status:** This session added a `recommended_variant: Q4_K_M` field to `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick (Q5_K_M → Q4_K_M, matching the source article's narrative). Source's manifest doesn't have this field. Next sync that overwrites this manifest will lose the override. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to the post-sync restore step alongside the three article wire-backs, OR upstream the `recommended_variant` field to source on the next source-side PR.
 
-### 2. Article wire-back propagation to source
+**Schema is forward-compatible:** the field is `z.string().optional()` so source-shipped manifests without it continue to work; the picker falls through to rank-avg when unset. Finance + Saul don't currently have the field set — they keep their existing picks (Q6_K, Q5_K_M).
 
-**Status:** Two destination-side articles gained closing `Catalog page: …` links during this session (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`). These are destination-only chrome — source has no parallel edit. The next `/sync-field-notes` sweep that pulls these articles from source may surface a phantom diff (destination has the line, source doesn't), or a real conflict if source-side authors have edited the same closing region.
+### 2. SHIPPED-flip PR back to source
 
-**Resolution rule when the conflict appears:** keep both. The catalog link is destination-only chrome (this site has the catalog; source's HuggingFace cards don't). Article body remains source-of-record. Cleanest fix is a source-side PR replicating the two wire-back lines — author it the next time you're in the source repo. Until then, the sync skill's `destination_overrides_to_preserve` mechanism can shield these regions.
-
-### 3. Create `mirrors/destination-overrides.md`
-
-**Status:** Still missing. The plural URL convention (`/artifacts/quants/`, plural-by-kind for all eight kinds) plus the destination-authored YAML manifests rule plus (now) the two article wire-back regions all live in HANDOFF prose only. Creating the file would make the contract durable across syncs — important once source starts publishing kinds beyond `quant`, and a natural place to record the wire-back regions Open item #2 mentions.
-
-**Non-blocker:** the catalog itself is live. This is contract scaffolding.
+**Status:** Contract sweep generated the PR plan. Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. Body cites the destination commit hash. Open after this session's commit lands so the hash in the body matches reality. No rename status flips this cycle (`renames_to_replay: []`).
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-15 (cyber-vertical sweep — third Orionfold quant card)
+- **Source release `2026-05-15-cyber-vertical` swept.** Single source commit `dd81a29` (Add cyber-vertical card: Orionfold/SecurityLLM-GGUF + CyberMetric mini-eval). Auto-flow: 1 new article (`becoming-a-cyber-curator-on-spark`), project-stats refresh (36→37 articles, 121,613→124,081 words), sequence manifest rewrite (cyber slots into ordinal sequence). Zero fieldkit source changes — the v0.4.1 publishing surface generalized to vertical #3 as designed.
+- **Third Phase-2 artifact manifest landed.** Byte-copied `src/content/artifacts/securityllm-gguf.yaml` from source (license.tier=free, license.model=apache-2.0, vertical_eval_name="CyberMetric (n=50, mcq_letter)"). Catalog now renders three cards side-by-side: `securityllm-gguf` (15 May) → `saul-7b-instruct-v1-gguf` (14 May) → `finance-chat-gguf` (13 May), chronological-desc as source handoff recommended. No catalog scaffolding work — `getCollection` + `getStaticPaths` enumerate manifests dynamically; new card + new detail route auto-generated.
+- **Two phantom diffs handled.** `becoming-a-gguf-publisher-on-spark` + `becoming-a-legal-curator-on-spark` surfaced as updated in the sync diff because destination has the catalog wire-back footer added during the 2026-05-15 catalog ship; source doesn't. Resolution per Open item #1 (previous session): `git checkout HEAD -- <both>` immediately after sync. Article bodies unchanged upstream — confirmed by line-diff (only the trailing `Catalog page:` block differs).
+- **Third wire-back added.** Pattern continued for cyber article — `Catalog page: /artifacts/quants/securityllm-gguf/` appended after the closing line "Three verticals down, one machine." Three articles now carry destination-only wire-back chrome; will need the same `git checkout` treatment on each future sync until source-side PR lands.
+- **Sweet-spot divergence flagged then resolved via option (a).** Catalog page first surfaced `Q5_K_M` (balanced rank-avg winner) while the article body recommends `Q4_K_M` (top of bench + throughput, worst perplexity). User picked the manifest-override resolution: added optional `recommended_variant: z.string()` to artifacts schema in `src/content.config.ts`, made `pickSweetSpot()` in `src/lib/artifacts.ts:93` return the override directly when set + present in candidates, threaded the field through three call sites (`QuantCard.astro`, `QuantSignature.astro`, `[slug]/index.astro`), and set `recommended_variant: Q4_K_M` on `securityllm-gguf.yaml`. All three surfaces (index card, detail page sweet-spot chip, SVG signature point) now show Q4_K_M. Finance + Saul unaffected — no override field set, rank-avg keeps their existing picks.
+- **Build clean.** 383 pages (was 376 at the catalog ship) — net +7: cyber article + cyber artifact detail + OG card + tag pages for new tags (`cyber`, `security`, `orionfold`, `cybermetric`, `zephyr`).
+- **Contract sweep clean.** `mirrors/destination-overrides.md` confirmed present at source (May 13, 7.6KB; previous HANDOFF Open item #2 was outdated). No pending rename replays. Phase 2 ACTIVE with 3 manifests on disk. SHIPPED-flip PR plan generated — open after this session's commit lands.
+- **Source handoff prose vs project-stats discrepancy.** Handoff prose says "41 articles total"; project-stats.json says 37. Mechanical numbers track stats (37 is what's synced). Likely prose was forward-looking author note; not a destination issue.
+
+### 2026-05-15 (production verification — catalog deploy closed)
+- **Open item #1 (previous session) closed.** User manually verified the `/artifacts/quants/` catalog on the deployed `ainative.business` — all four routes live, trailing slashes preserved, heatmap and sweet-spot chips render correctly in both themes, nav + footer placements as planned. Item dropped from the active list; remaining items renumbered (article wire-back → #1, `mirrors/destination-overrides.md` → #2).
 
 ### 2026-05-15 (`/artifacts/quants/` catalog scaffold ships)
 - **Open item #1 resolved.** Catalog feature lives at `/artifacts/` (hub), `/artifacts/quants/` (index, 2 cards), `/artifacts/quants/finance-chat-gguf/`, and `/artifacts/quants/saul-7b-instruct-v1-gguf/`. Build clean at 376 pages (was 372). Verified in browser across dark + light themes; trailing slashes enforced; console clean.

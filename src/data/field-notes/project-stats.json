@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-14T16:56:34Z",
+  "generated_at": "2026-05-15T16:30:29Z",
   "articles": {
-    "total": 36,
-    "published": 36,
+    "total": 37,
+    "published": 37,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 121613,
-    "mean_per_article": 3378,
+    "total": 124081,
+    "mean_per_article": 3353,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -35,9 +35,9 @@
     "training": 12,
     "fine-tuning": 8,
     "inference": 14,
-    "deployment": 4,
+    "deployment": 5,
     "agentic": 14,
-    "observability": 8,
+    "observability": 9,
     "dev-tools": 2
   },
   "stages_upcoming": {
@@ -129,14 +129,14 @@
       "articles": 10
     },
     {
-      "id": "nemoclaw",
-      "label": "NemoClaw",
+      "id": "ollama",
+      "label": "Ollama",
       "articles": 8
     },
     {
-      "id": "ollama",
-      "label": "Ollama",
-      "articles": 7
+      "id": "nemoclaw",
+      "label": "NemoClaw",
+      "articles": 8
     },
     {
       "id": "nemo-guardrails",

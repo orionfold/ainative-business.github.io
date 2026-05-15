@@ -29,6 +29,7 @@ const {
   base_model,
   hf_repo,
   variants,
+  recommended_variant,
   perplexity,
   spark_tokens_per_sec,
   sustained_load_minutes,
@@ -42,6 +43,7 @@ const {
 
 const sweetSpot = pickSweetSpot({
   variants,
+  recommended_variant,
   perplexity,
   spark_tokens_per_sec,
   vertical_eval,

@@ -115,6 +115,7 @@ const artifacts = defineCollection({
     base_model: z.string(),
     hf_repo: z.string(),
     variants: z.array(z.string()).default([]),
+    recommended_variant: z.string().optional(),
     perplexity: z.record(z.string(), z.number()).optional(),
     spark_tokens_per_sec: z.record(z.string(), z.number()).optional(),
     sustained_load_minutes: z.number().optional(),
