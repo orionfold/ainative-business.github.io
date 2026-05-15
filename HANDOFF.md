@@ -13,24 +13,27 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-14 (fieldkit v0.4.1 sweep — Saul vertical card + becoming-a-legal-curator-on-spark)
-**Last destination commit:** `4c51d4c` — fix(sync-field-notes): detect YAML frontmatter STATUS: NEW in flip plan
+**Last session:** 2026-05-15 (`/artifacts/quants/` catalog ships — Open item #1 resolved)
+**Last destination commit:** `d41b096` — feat(artifacts): ship /artifacts/quants/ catalog with four-axis spec matrix
 
 ## Open items (replace each session)
 
-### 1. `/artifacts/quants/` catalog scaffold
+### 1. Create `mirrors/destination-overrides.md`
 
-**Status:** still deferred, but pressure rising. Two Phase-2 manifests now sit on disk (`finance-chat-gguf.yaml`, `saul-7b-instruct-v1-gguf.yaml`) — both dormant until the catalog renders them. The handoff notes "the second vertical card should render side-by-side with `finance-chat-gguf` on whatever Mac-side catalog page exists for `artifacts/quants/`" — that page still doesn't exist.
+**Status:** HANDOFF.md and earlier session notes reference this file but it doesn't exist on disk. The plural URL convention (`/artifacts/quants/`, not `/artifacts/quant/`) plus the destination-authored YAML manifests rule both live in HANDOFF prose only. Creating the file would make the contract durable across syncs — important once source starts publishing kinds beyond `quant`.
 
-**Work to do:**
-1. **Add `artifacts` collection to `src/content.config.ts`.** Mirror the schema from `ai-field-notes/src/content.config.ts` (around the `artifacts` block — fields: `slug`, `kind`, `class`, `base_model`, `hf_repo`, `variants[]`, `perplexity{}`, `spark_tokens_per_sec{}`, `sustained_load_minutes`, `vertical_eval{}`, `vertical_eval_name`, `license.tier`, `article`, `published_at`). Constrain `kind` to a closed enum: `quant`, `lora`, `adapter`, `embedder`, `dataset`, `space`, `benchmark`.
-2. **`src/pages/artifacts/quants/index.astro`** — catalog index page. Lists every `kind: quant` artifact with slug + base_model + variant count + license tier + linked-article excerpt. **Use plural `/quants/`** per `mirrors/destination-overrides.md` — that's the catalog-family convention (`/loras/`, `/adapters/`, etc.). Ignore the singular `/artifacts/quant/` in source's SYNC-HANDOFF prose — that was source-side shorthand.
-3. **`src/pages/artifacts/quants/[slug]/index.astro`** — detail page rendering the four-axis card (perplexity, spark_tokens_per_sec, vertical_eval, sustained_load_minutes) mirroring the HF model card.
-4. **Optional wire-back:** add a one-line "Catalog page" link from `articles/becoming-a-gguf-publisher-on-spark/article.md` to the new `/artifacts/quants/finance-chat-gguf/` once it's live. The article currently links directly to the HF repo URL, so this is polish, not gating.
-
-**Non-blockers:** the article ships today with all its inbound links intact (HF, direct download, etc.). The catalog is additive marketing surface.
+**Non-blocker:** the catalog itself is live. This is contract scaffolding.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-15 (`/artifacts/quants/` catalog scaffold ships)
+- **Open item #1 resolved.** Catalog feature lives at `/artifacts/` (hub), `/artifacts/quants/` (index, 2 cards), `/artifacts/quants/finance-chat-gguf/`, and `/artifacts/quants/saul-7b-instruct-v1-gguf/`. Build clean at 376 pages (was 372). Verified in browser across dark + light themes; trailing slashes enforced; console clean.
+- **Schema enum mirrors source verbatim.** HANDOFF prose previously said `embedder`/`benchmark`; source `ai-field-notes/src/content.config.ts` uses `embed`/`bench`. Destination adopts source's enum (`quant`, `lora`, `adapter`, `embed`, `reranker`, `dataset`, `space`, `bench`) — eight kinds, not seven. URL plural map lives in `src/lib/artifacts.ts:kindToSegment`: `quant→quants`, `embed→embeds`, `bench→benches`, etc.
+- **Aesthetic commit: "research spec-sheet, treated as poster."** Each artifact has a per-card SVG **tradeoff-curve signature** (perplexity vs spark_tokens_per_sec, sweet-spot point glows) — same role as field-notes' signature SVG aside, but data-derived. Detail page elevates a variant × axis table where each cell carries a `linear-gradient` heatmap bar scaled to column rank, making sweet-spot variants visually emergent without explicit hierarchy.
+- **`pickSweetSpot` excludes unquantized reference variants.** First smoke pass picked `F16` as the sweet spot on `finance-chat-gguf` because perplexity ties + vertical_eval ties outweighed F16's mediocre throughput in the rank-average score. F16 by GGUF convention is the source weights being quantized FROM — not a recommended user download. Picker now filters `F16`/`BF16`/`FP16`/`F32` out of the candidate set (but keeps them in the heatmap ranking so the table scale stays honest). Re-pick: `Q6_K` for finance-chat, `Q5_K_M` for Saul — both match the source articles' written recommendations.
+- **Article wire-back lines added.** Two articles (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`) gained a closing `Catalog page: …` link. Source-side propagation is an open question — these were destination-edited; next sync may surface a conflict if source-side authors edit the same closing region.
+- **Primary nav addition (reversed from plan).** User overrode the "footer-only" call mid-session — `/artifacts/` now appears in: (a) desktop nav between Field Notes and Fieldkit, (b) mobile menu in the same slot, (c) footer "Reading" column between Field Notes and RSS (moved from Platform column). The "research output" pairing with Field Notes is consistent across all three surfaces.
+- **Memory note for next session.** When source ships its second quant catalog kind (likely `embed` or `bench`), the destination already has the `/artifacts/` hub set up to render it as an active tile — only a new `src/pages/artifacts/{segment}/index.astro` and matching detail route are needed. Schema is already permissive.
 
 ### 2026-05-14 (fieldkit v0.4.1 sweep — Saul vertical card)
 - **Bundled release swept clean.** Source range `7f1159e..HEAD` (6 commits). Content auto-flow: 1 new article (`becoming-a-legal-curator-on-spark`), 1 fieldkit doc updated (`eval.md` — `open_book` + `subset` kwarg catch-up), `_version.py` 0.4.0→0.4.1, sequence manifest rewrites (new slug slots into ordinal sequence), project-stats refresh (35→36 articles, 120,093→121,613 words, 24,026→24,185 LOC) with recall@5 override preserved.
