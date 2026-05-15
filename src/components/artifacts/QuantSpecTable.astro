@@ -1,0 +1,233 @@
+---
+import { rankWithin } from '../../lib/artifacts';
+
+interface Props {
+  variants: string[];
+  perplexity?: Record<string, number>;
+  spark_tokens_per_sec?: Record<string, number>;
+  vertical_eval?: Record<string, number>;
+  vertical_eval_name?: string;
+  sweetSpot: string | null;
+}
+
+const {
+  variants,
+  perplexity,
+  spark_tokens_per_sec,
+  vertical_eval,
+  vertical_eval_name,
+  sweetSpot,
+} = Astro.props;
+
+const perplexityRank = perplexity ? rankWithin(perplexity, false) : {};
+const throughputRank = spark_tokens_per_sec ? rankWithin(spark_tokens_per_sec, true) : {};
+const verticalRank = vertical_eval ? rankWithin(vertical_eval, true) : {};
+
+function cellStyle(rank: number | undefined): string {
+  if (rank === undefined || isNaN(rank)) return '';
+  const pct = Math.round(rank * 100);
+  return `--rank-pct: ${pct}%;`;
+}
+
+function fmt(value: number | undefined, digits: number): string {
+  if (value === undefined || isNaN(value)) return '—';
+  return value.toFixed(digits);
+}
+---
+<div class="quant-spec-wrap">
+  <table class="quant-spec">
+    {vertical_eval_name && (
+      <caption class="quant-spec__caption">
+        Vertical bench: <span>{vertical_eval_name}</span>
+      </caption>
+    )}
+    <thead>
+      <tr>
+        <th scope="col" class="quant-spec__th quant-spec__th--variant">Variant</th>
+        <th scope="col" class="quant-spec__th">Perplexity <span class="quant-spec__arrow" aria-label="lower is better">↓</span></th>
+        <th scope="col" class="quant-spec__th">Spark tok/s <span class="quant-spec__arrow" aria-label="higher is better">↑</span></th>
+        <th scope="col" class="quant-spec__th">Vertical eval <span class="quant-spec__arrow" aria-label="higher is better">↑</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {variants.map((v) => (
+        <tr class={v === sweetSpot ? 'quant-spec__row quant-spec__row--sweet' : 'quant-spec__row'}>
+          <th scope="row" class="quant-spec__variant">
+            {v}
+            {v === sweetSpot && <span class="quant-spec__sweet-chip">Sweet spot</span>}
+          </th>
+          <td class="quant-spec__cell" data-label="Perplexity ↓" style={cellStyle(perplexityRank[v])}>
+            <span class="quant-spec__num">{fmt(perplexity?.[v], 4)}</span>
+          </td>
+          <td class="quant-spec__cell" data-label="Spark tok/s ↑" style={cellStyle(throughputRank[v])}>
+            <span class="quant-spec__num">{fmt(spark_tokens_per_sec?.[v], 2)}</span>
+          </td>
+          <td class="quant-spec__cell" data-label="Vertical eval ↑" style={cellStyle(verticalRank[v])}>
+            <span class="quant-spec__num">{fmt(vertical_eval?.[v], 2)}</span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .quant-spec-wrap {
+    container-type: inline-size;
+    width: 100%;
+  }
+  .quant-spec {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--color-text);
+  }
+  .quant-spec__caption {
+    caption-side: top;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    padding: 0 0 1rem;
+  }
+  .quant-spec__caption span {
+    color: var(--color-text);
+  }
+  .quant-spec__th {
+    text-align: right;
+    padding: 0.85rem 1rem 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+  .quant-spec__th--variant {
+    text-align: left;
+  }
+  .quant-spec__arrow {
+    color: var(--color-text-dim);
+    margin-left: 0.2rem;
+  }
+  .quant-spec__row {
+    transition: background 0.2s ease;
+  }
+  .quant-spec__row:hover {
+    background: color-mix(in oklch, var(--color-text) 3%, transparent);
+  }
+  .quant-spec__variant {
+    text-align: left;
+    padding: 1rem 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--color-text);
+    font-weight: 500;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .quant-spec__row:last-child .quant-spec__variant,
+  .quant-spec__row:last-child .quant-spec__cell {
+    border-bottom: none;
+  }
+
+  .quant-spec__row--sweet {
+    background: color-mix(in oklch, var(--color-primary) 5%, transparent);
+  }
+  .quant-spec__row--sweet .quant-spec__variant {
+    box-shadow: inset 3px 0 0 var(--color-primary);
+    color: var(--color-primary);
+  }
+  .quant-spec__sweet-chip {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-primary);
+    background: var(--color-primary-dim);
+    border: 1px solid color-mix(in oklch, var(--color-primary) 40%, transparent);
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    line-height: 1;
+  }
+
+  .quant-spec__cell {
+    text-align: right;
+    padding: 1rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    /* rank-driven bar: solid primary-dim from 0% to rank-pct, transparent after */
+    background-image: linear-gradient(
+      to right,
+      var(--color-primary-dim) 0%,
+      var(--color-primary-dim) var(--rank-pct, 0%),
+      transparent var(--rank-pct, 0%),
+      transparent 100%
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    position: relative;
+  }
+  .quant-spec__num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.92rem;
+    color: var(--color-text);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Container-query mobile fallback: stack rows, hide header */
+  @container (max-width: 560px) {
+    .quant-spec thead {
+      display: none;
+    }
+    .quant-spec,
+    .quant-spec tbody,
+    .quant-spec__row {
+      display: block;
+      width: 100%;
+    }
+    .quant-spec__row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0;
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .quant-spec__row:last-child {
+      border-bottom: none;
+    }
+    .quant-spec__variant {
+      border-bottom: none;
+      padding: 0.25rem 1rem 0.85rem;
+      justify-content: space-between;
+    }
+    .quant-spec__cell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      border-bottom: none;
+      text-align: right;
+    }
+    .quant-spec__cell::before {
+      content: attr(data-label);
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--color-text-muted);
+      text-align: left;
+      justify-self: start;
+    }
+  }
+</style>

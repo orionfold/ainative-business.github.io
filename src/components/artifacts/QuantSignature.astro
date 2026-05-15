@@ -1,0 +1,186 @@
+---
+import { pickSweetSpot, type ArtifactDataShape } from '../../lib/artifacts';
+
+interface Props {
+  variants: string[];
+  perplexity?: Record<string, number>;
+  spark_tokens_per_sec?: Record<string, number>;
+  vertical_eval?: Record<string, number>;
+}
+
+const { variants, perplexity, spark_tokens_per_sec, vertical_eval } = Astro.props;
+
+// Both maps must be present and contain values for at least 2 of the listed
+// variants — otherwise we render a text fallback (never an empty plot).
+const validVariants = variants.filter(
+  (v) => perplexity?.[v] !== undefined && spark_tokens_per_sec?.[v] !== undefined,
+);
+const canPlot = validVariants.length >= 2 && !!perplexity && !!spark_tokens_per_sec;
+
+let svgData: {
+  points: { name: string; cx: number; cy: number; isSweet: boolean }[];
+  pathD: string;
+  sweetSpot: string | null;
+} | null = null;
+
+if (canPlot) {
+  const VIEW_W = 200;
+  const VIEW_H = 120;
+  const PAD_L = 18;
+  const PAD_R = 14;
+  const PAD_T = 14;
+  const PAD_B = 22;
+
+  const xs = validVariants.map((v) => spark_tokens_per_sec![v]);
+  const ys = validVariants.map((v) => perplexity![v]);
+  const xMin = Math.min(...xs);
+  const xMax = Math.max(...xs);
+  const yMin = Math.min(...ys);
+  const yMax = Math.max(...ys);
+  const xSpan = xMax - xMin || 1;
+  const ySpan = yMax - yMin || 1;
+
+  const sweet = pickSweetSpot({
+    variants: validVariants,
+    perplexity,
+    spark_tokens_per_sec,
+    vertical_eval,
+  } as ArtifactDataShape);
+
+  const points = validVariants.map((v) => {
+    const x = spark_tokens_per_sec![v];
+    const y = perplexity![v];
+    const cx = PAD_L + ((x - xMin) / xSpan) * (VIEW_W - PAD_L - PAD_R);
+    // y axis inverted: lower perplexity = up
+    const cy = PAD_T + ((y - yMin) / ySpan) * (VIEW_H - PAD_T - PAD_B);
+    return { name: v, cx, cy, isSweet: v === sweet };
+  });
+
+  const pathD = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.cx.toFixed(2)} ${p.cy.toFixed(2)}`)
+    .join(' ');
+
+  svgData = { points, pathD, sweetSpot: sweet };
+}
+---
+{svgData ? (
+  <figure class="quant-sig" aria-label={svgData.sweetSpot ? `Tradeoff curve, sweet spot ${svgData.sweetSpot}` : 'Tradeoff curve'}>
+    <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg" role="img" focusable="false">
+      <title>Perplexity vs Spark tokens/sec across quantization variants</title>
+      {/* axis frame */}
+      <line x1="18" y1="98" x2="186" y2="98" class="quant-sig__axis" />
+      <line x1="18" y1="14" x2="18" y2="98" class="quant-sig__axis" />
+      {/* axis labels */}
+      <text x="18" y="114" class="quant-sig__axis-label">throughput →</text>
+      <text x="18" y="10" class="quant-sig__axis-label">↑ quality</text>
+      {/* connecting path */}
+      <path d={svgData.pathD} class="quant-sig__line" fill="none" />
+      {/* points */}
+      {svgData.points.map((p) => (
+        <g class={p.isSweet ? 'quant-sig__node quant-sig__node--sweet' : 'quant-sig__node'}>
+          {p.isSweet && (
+            <circle cx={p.cx} cy={p.cy} r="9" class="quant-sig__halo" />
+          )}
+          <circle cx={p.cx} cy={p.cy} r={p.isSweet ? 4.5 : 2.8} class="quant-sig__dot" />
+        </g>
+      ))}
+    </svg>
+    {svgData.sweetSpot && (
+      <figcaption class="quant-sig__caption">
+        Sweet spot: <span class="quant-sig__caption-name">{svgData.sweetSpot}</span>
+      </figcaption>
+    )}
+  </figure>
+) : (
+  <span class="quant-sig-fallback">{variants.length} variants</span>
+)}
+
+<style>
+  .quant-sig {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .quant-sig svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .quant-sig__axis {
+    stroke: var(--color-border);
+    stroke-width: 1;
+  }
+  .quant-sig__axis-label {
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    fill: var(--color-text-dim);
+  }
+  .quant-sig__line {
+    stroke: color-mix(in oklch, var(--color-primary) 55%, transparent);
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    animation: quant-sig-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
+  }
+  .quant-sig__dot {
+    fill: var(--color-text-muted);
+    transition: fill 0.2s ease;
+  }
+  .quant-sig__node--sweet .quant-sig__dot {
+    fill: var(--color-primary);
+  }
+  .quant-sig__halo {
+    fill: var(--color-primary-glow);
+    opacity: 0;
+    transform-origin: center;
+    transform-box: fill-box;
+    animation: quant-sig-halo 1400ms ease-out 800ms forwards;
+  }
+  .quant-sig__caption {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+    text-align: center;
+  }
+  .quant-sig__caption-name {
+    color: var(--color-primary);
+    font-weight: 500;
+  }
+  .quant-sig-fallback {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+  }
+
+  @keyframes quant-sig-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes quant-sig-halo {
+    0% { opacity: 0; transform: scale(0.4); }
+    60% { opacity: 1; transform: scale(1.2); }
+    100% { opacity: 0.7; transform: scale(1); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .quant-sig__line {
+      stroke-dashoffset: 0;
+      animation: none;
+    }
+    .quant-sig__halo {
+      opacity: 0.7;
+      animation: none;
+    }
+  }
+</style>

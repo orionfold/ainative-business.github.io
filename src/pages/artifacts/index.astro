@@ -1,0 +1,261 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import {
+  ARTIFACT_KINDS,
+  kindToSegment,
+  kindToPluralDisplayName,
+  type ArtifactKind,
+} from '../../lib/artifacts';
+import { SITE, PUBLISHER } from '../../data/seo';
+
+const all = await getCollection('artifacts');
+
+const countsByKind: Record<ArtifactKind, number> = Object.fromEntries(
+  ARTIFACT_KINDS.map((k) => [k, 0]),
+) as Record<ArtifactKind, number>;
+for (const a of all) {
+  countsByKind[a.data.kind] = (countsByKind[a.data.kind] ?? 0) + 1;
+}
+
+const KIND_BLURBS: Record<ArtifactKind, string> = {
+  quant: 'Quantized base models, Spark-measured across perplexity, throughput, vertical eval, and thermal envelope.',
+  lora: 'LoRA adapters with training receipts and inference deltas.',
+  adapter: 'Prefix, prompt, and IA³ adapters for specialized inference.',
+  embed: 'Embedding models with retrieval-quality measurements.',
+  reranker: 'Cross-encoder rerankers with retrieval-stack receipts.',
+  dataset: 'Curated and synthesized training/eval datasets.',
+  space: 'Hosted demo spaces and interactive artifacts.',
+  bench: 'Open benchmarks and eval harnesses with publishable scores.',
+};
+
+const totalCount = all.length;
+const activeKinds = ARTIFACT_KINDS.filter((k) => countsByKind[k] > 0);
+
+const pageTitle = 'Artifacts catalog — ainative';
+const pageDescription = `Open research artifacts from the AI Native Platform — ${totalCount} entries across ${activeKinds.length} kinds. Each one Spark-measured and four-axis carded.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Artifacts catalog',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="hub">
+    <header class="hub__masthead">
+      <div class="hub__strip" aria-hidden="true">
+        <span>Catalog</span>
+        <span class="hub__rule"></span>
+        <span>{totalCount} published</span>
+        <span class="hub__rule"></span>
+        <span>{activeKinds.length} of {ARTIFACT_KINDS.length} kinds active</span>
+      </div>
+      <h1 class="hub__title">Open research artifacts, four-axis carded.</h1>
+      <p class="hub__tagline">
+        Every artifact here ships with the same disclosure shape — quality,
+        throughput, vertical skill, thermal envelope — and was measured on a
+        single DGX Spark. Browse by kind.
+      </p>
+    </header>
+
+    <section class="hub__grid" data-animate-stagger>
+      {ARTIFACT_KINDS.map((kind) => {
+        const count = countsByKind[kind];
+        const isActive = count > 0;
+        const href = `/artifacts/${kindToSegment(kind)}/`;
+        const TileTag = isActive ? 'a' : 'div';
+        return (
+          <TileTag
+            class={`hub__tile ${isActive ? 'hub__tile--active' : 'hub__tile--inactive'}`}
+            href={isActive ? href : undefined}
+            data-animate
+            aria-disabled={isActive ? undefined : 'true'}
+          >
+            <div class="hub__tile-head">
+              <span class="hub__tile-kind">{kindToPluralDisplayName(kind)}</span>
+              {isActive ? (
+                <span class="hub__tile-count">{String(count).padStart(2, '0')}</span>
+              ) : (
+                <span class="hub__tile-soon">Coming soon</span>
+              )}
+            </div>
+            <p class="hub__tile-blurb">{KIND_BLURBS[kind]}</p>
+            {isActive && (
+              <span class="hub__tile-cta">
+                Browse {kindToPluralDisplayName(kind).toLowerCase()} <span aria-hidden="true">→</span>
+              </span>
+            )}
+          </TileTag>
+        );
+      })}
+    </section>
+
+    <p class="hub__crosslink">
+      Every artifact is published alongside a field note. Read the running log of
+      releases at <a href="/field-notes/">/field-notes/</a>.
+    </p>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .hub {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .hub__masthead {
+    margin-bottom: clamp(3rem, 5vw, 4.5rem);
+    max-width: 60rem;
+  }
+  .hub__strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .hub__rule {
+    flex: 0 0 2.5rem;
+    height: 1px;
+    background: var(--color-border);
+  }
+  .hub__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    line-height: 1.1;
+    letter-spacing: -0.018em;
+    color: var(--color-text);
+    margin: 0 0 1.1rem;
+    max-width: 22ch;
+  }
+  .hub__tagline {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 56ch;
+    margin: 0;
+  }
+
+  .hub__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .hub__tile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.5rem 1.5rem 1.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s, background 0.2s;
+  }
+  .hub__tile--inactive {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .hub__tile--active:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface-raised));
+    transform: translateY(-2px);
+  }
+  .hub__tile--active:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+
+  .hub__tile-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+  .hub__tile-kind {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--color-text);
+    line-height: 1.2;
+  }
+  .hub__tile-count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    color: var(--color-primary);
+  }
+  .hub__tile-soon {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-dim);
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .hub__tile-blurb {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+  }
+  .hub__tile-cta {
+    margin-top: auto;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-primary);
+  }
+  .hub__tile--active:hover .hub__tile-cta {
+    color: var(--color-text);
+  }
+
+  .hub__crosslink {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text-muted);
+    border-top: 1px solid var(--color-border);
+    padding-top: 1.5rem;
+    text-align: center;
+  }
+  .hub__crosslink a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  .hub__crosslink a:hover {
+    border-bottom-color: var(--color-primary);
+  }
+</style>

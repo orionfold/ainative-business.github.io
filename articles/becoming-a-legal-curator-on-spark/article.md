@@ -147,3 +147,7 @@ Two compounding directions, both validated by this release.
 **Curated subsets as a pattern.** LegalBench's 162-task corpus was too big to evaluate per-variant; the 5-task / 50-question subset was the pragmatic call. Other big-corpus benches (BIG-bench, MMLU-Pro) face the same trade. The `scripts/legalbench_merge.py` shape — pick representative tasks, render their instruction templates, write to a VerticalBench-readable JSONL — generalizes. The publish surface already takes any `VerticalBench` and any scorer, so adding new benches is a merge-script away.
 
 The Saul card is up. The next vertical is one model pick away.
+
+---
+
+**Catalog page:** [`/artifacts/quants/saul-7b-instruct-v1-gguf/`](/artifacts/quants/saul-7b-instruct-v1-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.

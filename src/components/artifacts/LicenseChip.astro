@@ -1,0 +1,49 @@
+---
+interface Props {
+  tier: string;
+  model?: string;
+}
+
+const { tier, model } = Astro.props;
+const tone = tier === 'free' ? 'free' : 'commercial';
+---
+<span class="license-chip" data-tone={tone}>
+  <span class="license-chip__tier">{tier}</span>
+  {model && <span class="license-chip__model">{model}</span>}
+</span>
+
+<style>
+  .license-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    padding: 0.25rem 0.6rem 0.22rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-text) 4%, transparent);
+    line-height: 1;
+  }
+
+  .license-chip[data-tone="free"] {
+    color: var(--color-success);
+    border-color: color-mix(in oklch, var(--color-success) 45%, var(--color-border));
+    background: color-mix(in oklch, var(--color-success) 10%, transparent);
+  }
+
+  .license-chip[data-tone="commercial"] {
+    color: var(--svg-accent-orange);
+    border-color: color-mix(in oklch, var(--svg-accent-orange) 50%, var(--color-border));
+    background: color-mix(in oklch, var(--svg-accent-orange) 10%, transparent);
+  }
+
+  .license-chip__model::before {
+    content: "·";
+    margin-right: 0.4rem;
+    color: var(--color-text-dim);
+  }
+</style>

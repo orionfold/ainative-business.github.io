@@ -1,0 +1,217 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { pickSweetSpot, type ArtifactDataShape } from '../../lib/artifacts';
+import QuantSignature from './QuantSignature.astro';
+import LicenseChip from './LicenseChip.astro';
+
+interface Props {
+  artifact: CollectionEntry<'artifacts'>;
+}
+
+const { artifact } = Astro.props;
+const {
+  slug,
+  class: artifactClass,
+  base_model,
+  variants,
+  perplexity,
+  spark_tokens_per_sec,
+  vertical_eval,
+  vertical_eval_name,
+  license,
+  published_at,
+} = artifact.data;
+
+const href = `/artifacts/quants/${slug}/`;
+const sweetSpot = pickSweetSpot({
+  variants,
+  perplexity,
+  spark_tokens_per_sec,
+  vertical_eval,
+} as ArtifactDataShape);
+const sweetScore =
+  sweetSpot && vertical_eval && sweetSpot in vertical_eval
+    ? vertical_eval[sweetSpot].toFixed(2)
+    : null;
+const publishedDate = published_at
+  ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(
+      new Date(published_at),
+    )
+  : null;
+---
+<a class="qa-card" href={href} aria-label={`Quant: ${slug}`}>
+  <span class="qa-card__watermark" aria-hidden="true">Q</span>
+  <div class="qa-card__body">
+    <div class="qa-card__meta">
+      <span class="qa-card__kind">Quant</span>
+      <span>{artifactClass.toUpperCase()}</span>
+      <span>{variants.length} variants</span>
+      {publishedDate && <time datetime={published_at}>{publishedDate}</time>}
+    </div>
+    <h2 class="qa-card__title">{slug}</h2>
+    <p class="qa-card__summary">
+      Quantization of <span class="qa-card__base">{base_model}</span>.
+      {sweetSpot && vertical_eval_name && sweetScore && (
+        <>
+          {' '}Best on {vertical_eval_name}:{' '}
+          <span class="qa-card__sweet">{sweetSpot}</span>
+          {' '}<span class="qa-card__sweet-score">({sweetScore})</span>.
+        </>
+      )}
+    </p>
+    <div class="qa-card__chips">
+      <LicenseChip tier={license.tier} model={license.model} />
+    </div>
+  </div>
+  <aside class="qa-card__signature" aria-hidden="true">
+    <div class="qa-card__signature-frame">
+      <QuantSignature
+        variants={variants}
+        perplexity={perplexity}
+        spark_tokens_per_sec={spark_tokens_per_sec}
+        vertical_eval={vertical_eval}
+      />
+    </div>
+  </aside>
+</a>
+
+<style>
+  .qa-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(14rem, 22vw, 19rem);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 4rem);
+    padding: 3.75rem 0 3.5rem;
+    border-bottom: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    isolation: isolate;
+    transition: background 0.2s;
+  }
+  .qa-card + .qa-card { padding-top: 4.5rem; }
+  .qa-card:hover { background: color-mix(in oklch, var(--color-primary) 4%, transparent); }
+  .qa-card:hover .qa-card__title { color: var(--color-primary); }
+  .qa-card:hover .qa-card__signature-frame {
+    border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
+    box-shadow: 0 8px 24px -16px color-mix(in oklch, var(--color-primary) 30%, transparent);
+  }
+  .qa-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+
+  .qa-card__watermark {
+    position: absolute;
+    top: -0.15em;
+    left: -0.05em;
+    z-index: -1;
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(7rem, 16vw, 12rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: color-mix(in oklch, var(--color-text) 5%, transparent);
+  }
+
+  .qa-card__body {
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .qa-card__meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+  }
+  .qa-card__meta > *:not(:last-child)::after {
+    content: "·";
+    margin-left: 1.1rem;
+    color: var(--color-text-dim);
+  }
+  .qa-card__kind {
+    color: var(--color-primary);
+  }
+
+  .qa-card__title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--color-text);
+    margin: 0 0 0.85rem;
+    transition: color 0.15s;
+    word-break: break-word;
+  }
+
+  .qa-card__summary {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .qa-card__base {
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    color: var(--color-text);
+  }
+  .qa-card__sweet {
+    font-family: var(--font-mono);
+    color: var(--color-primary);
+  }
+  .qa-card__sweet-score {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text);
+  }
+
+  .qa-card__chips {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .qa-card__signature {
+    width: 100%;
+    max-width: 16rem;
+    justify-self: center;
+    align-self: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .qa-card:hover .qa-card__signature { transform: translateY(-2px); }
+  .qa-card__signature-frame {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    padding: 1.1rem 1rem 0.9rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  @media (max-width: 900px) {
+    .qa-card {
+      grid-template-columns: 1fr;
+      padding: 3rem 0 2.5rem;
+    }
+    .qa-card + .qa-card { padding-top: 3.5rem; }
+    .qa-card__signature {
+      max-width: 18rem;
+      justify-self: start;
+    }
+    .qa-card__watermark {
+      font-size: clamp(5rem, 18vw, 8rem);
+    }
+  }
+</style>

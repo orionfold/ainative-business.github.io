@@ -1,5 +1,6 @@
 import { defineCollection, z } from 'astro:content';
 import { glob } from 'astro/loaders';
+import { ARTIFACT_KINDS } from './lib/artifacts';
 
 // Editorial taxonomy — ported up from ai-field-notes during the May 2026
 // consolidation. Stage names map to /field-notes/stages/<stage>/ pages and
@@ -101,4 +102,35 @@ const fieldkitDocs = defineCollection({
   }),
 });
 
-export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs };
+// Structured catalog entries (GGUF quants, LoRA adapters, datasets, etc.).
+// Mirrors source ai-field-notes/src/content.config.ts artifacts collection
+// byte-faithfully so the sync skill can copy YAML without transformation.
+// URL convention is plural-by-kind: /artifacts/quants/, /artifacts/loras/, …
+const artifacts = defineCollection({
+  loader: glob({ pattern: '**/*.yaml', base: './src/content/artifacts' }),
+  schema: z.object({
+    slug: z.string(),
+    kind: z.enum(ARTIFACT_KINDS),
+    class: z.string(),
+    base_model: z.string(),
+    hf_repo: z.string(),
+    variants: z.array(z.string()).default([]),
+    perplexity: z.record(z.string(), z.number()).optional(),
+    spark_tokens_per_sec: z.record(z.string(), z.number()).optional(),
+    sustained_load_minutes: z.number().optional(),
+    vertical_eval: z.record(z.string(), z.number()).optional(),
+    vertical_eval_name: z.string().optional(),
+    lineage_run_id: z.string().optional(),
+    license: z.object({
+      tier: z.string().default('free'),
+      commercial_tier: z.string().optional(),
+      model: z.string().optional(),
+    }),
+    article: z.string().optional(),
+    civitai_id: z.number().int().optional(),
+    download_count: z.number().int().optional(),
+    published_at: z.string().optional(),
+  }),
+});
+
+export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs, artifacts };

@@ -287,3 +287,7 @@ Receipts for this release live at `articles/becoming-a-gguf-publisher-on-spark/e
 - [`fieldkit.quant`](/fieldkit/api/quant/) — the `quantize_gguf`, `measure_perplexity_gguf`, `measure_tokens_per_sec_gguf`, and `ThermalProbe` surfaces that produce the four-axis numbers.
 - [`llama.cpp` GGUF format spec](https://github.com/ggml-org/llama.cpp/blob/master/docs/gguf.md) — the K-quant family and the Q8_0 reference.
 :::
+
+---
+
+**Catalog page:** [`/artifacts/quants/finance-chat-gguf/`](/artifacts/quants/finance-chat-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
