@@ -1,0 +1,116 @@
+---
+// Signature for "becoming-a-medical-curator-on-spark".
+// MedMCQA accuracy across the 5 GGUF variants of Intelligent-Internet/II-Medical-8B,
+// n=50, scored by mcq_letter. Q5_K_M is the accent — it scored 52% (26/50), the
+// only variant above F16's 48% baseline. The story the bar chart tells: the
+// recommended lossy variant beat the lossless reference on the medical bench
+// (4 pp gap, within binomial noise at n=50 but combined with sub-F16 perplexity
+// it reads as a genuine sweet spot). Numbers are Spark-measured 2026-05-16.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="MedMCQA mini-eval across five GGUF variants of Intelligent-Internet/II-Medical-8B on a DGX Spark. Q5_K_M scored 52% (26/50), the only variant above F16's 48% baseline — and the recommended pick. Q4_K_M scored 42%, Q6_K 46%, Q8_0 48%."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="medq-on-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="medq-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.18"/>
+    </linearGradient>
+  </defs>
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">MEDMCQA · 5 VARIANTS</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">qwen3-8b + dapo · n=50 · mcq_letter</text>
+  </g>
+  <line x1="40" y1="152" x2="270" y2="152"
+        stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+        stroke-dasharray="2 3"/>
+  <text x="36" y="78" text-anchor="end"
+        fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+        font-size="6">F16 = 48%</text>
+  <line x1="40" y1="75" x2="270" y2="75"
+        stroke="var(--svg-text-faint)" stroke-width="0.5"
+        stroke-dasharray="3 3" opacity="0.55"/>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="40" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="40" y="75" width="36" height="77" rx="2"
+          fill="url(#medq-on-grad)"
+          stroke="var(--svg-accent-green)" stroke-width="1"
+          style="transform-origin: 58px 152px;"/>
+    <text x="58" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="11" font-weight="600">48</text>
+    <text x="58" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">F16</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="86" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="86" y="85" width="36" height="67" rx="2"
+          fill="url(#medq-on-grad)"
+          stroke="var(--svg-accent-green)" stroke-width="1"
+          style="transform-origin: 104px 152px;"/>
+    <text x="104" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="11" font-weight="600">42</text>
+    <text x="104" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">Q4_K_M</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="132" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--color-primary)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="132" y="69" width="36" height="83" rx="2"
+          fill="url(#medq-accent-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"
+          style="transform-origin: 150px 152px;"/>
+    <text x="150" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="11" font-weight="600">52</text>
+    <text x="150" y="184" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6" font-weight="600">Q5_K_M ★</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="178" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="178" y="78" width="36" height="74" rx="2"
+          fill="url(#medq-on-grad)"
+          stroke="var(--svg-accent-green)" stroke-width="1"
+          style="transform-origin: 196px 152px;"/>
+    <text x="196" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="11" font-weight="600">46</text>
+    <text x="196" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">Q6_K</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="224" y="56" width="36" height="96" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="224" y="75" width="36" height="77" rx="2"
+          fill="url(#medq-on-grad)"
+          stroke="var(--svg-accent-green)" stroke-width="1"
+          style="transform-origin: 242px 152px;"/>
+    <text x="242" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="11" font-weight="600">48</text>
+    <text x="242" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">Q8_0</text>
+  </g>
+</svg>
