@@ -14,20 +14,14 @@
 # HANDOFF — ainative-business.github.io
 
 **Last session:** 2026-05-16 (later — SEO MED cluster fix: field-notes article title suffix + tag-page description template + audit-detector patch; 199 audit issues cleared)
-**Last destination commit:** `88ff883` — chore(handoff): reconcile stale NEXT STEP — SEO fixes + GSC reindex already shipped
-**Push status:** uncommitted in working tree. Layout + template + audit-script edits ready to commit. Audit went 303 → 104 issues; build clean at 391 pages. Earlier same-day HIGH-cluster fix (`309bd5f`) is live; this batch builds on it.
+**Last destination commit:** `99d4c49` — seo: MED cluster fix (303 → 104 audit issues, -199, 0 regressions)
+**Push status:** clean. `git status` reports working tree clean and branch up to date with `origin/main`. Build verified at 391 pages.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Commit this session's MED-cluster fixes + run `/seo-monitor` after Google's next crawl
+### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
 
-Working tree has four uncommitted layout/template/audit-script edits (see "Recent decisions → 2026-05-16 (later session)" below for the full list). Build clean at 391 pages; audit went 303 → 104 issues (-199, zero regressions). Suggested commit:
-
-```
-seo: MED cluster fix (303 → 104 audit issues) — conditional title suffix, tag-page description template, audit-detector patch
-```
-
-After commit + push, next `/seo-monitor` run should reflect the lower issue count once Google has had ~7+ days to recrawl. No GSC manual actions queued this round.
+This session's MED-cluster fixes shipped as `99d4c49` and are pushed live. Audit went 303 → 104 issues (-199, zero regressions). Next `/seo-monitor` run should reflect the lower issue count once Google has recrawled the modified pages. No GSC manual actions queued this round — the layout/template/audit-script changes propagate automatically.
 
 ### 3. Carry-forward — Article wire-back propagation (unchanged)
 
