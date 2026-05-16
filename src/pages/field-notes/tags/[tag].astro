@@ -37,9 +37,13 @@ export async function getStaticPaths() {
 }
 
 const { tag, entries } = Astro.props;
-const blurb = `Articles tagged "${tag}" — ${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}.`;
+const count = entries.length;
+const blurb = `Articles tagged "${tag}" — ${count} ${count === 1 ? 'entry' : 'entries'}.`;
+// SEO contract: description targets 70–160 chars. Even the longest tag
+// ("machine-that-builds-machines", 28ch) lands ≤ 140ch with this template.
+const description = `${count} ${count === 1 ? 'article' : 'articles'} tagged #${tag} — AI-native research, DGX Spark experiments, and agent workflows from ainative.business.`;
 ---
-<FieldNotesLayout title={`#${tag} — AI Native Field Notes`} description={blurb}>
+<FieldNotesLayout title={`#${tag} — AI Native Field Notes`} description={description}>
   <Nav />
   <main>
     <header class="stage-header">

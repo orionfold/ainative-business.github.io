@@ -34,6 +34,13 @@ const dateIso = date.toISOString().slice(0, 10);
 const articleUrl = `${SITE.url}/field-notes/${article.id}/`;
 const ogImage = `/og/field-notes/${article.id}.png`;
 const ogImageAlt = `${title} — AI Native Field Notes №${String(ordinal).padStart(2, '0')} by ${author}`;
+
+// SEO contract: keep <title> ≤ 65 chars. Append the brand suffix only when
+// it fits; otherwise fall back to the bare article title (which may still
+// exceed 65 — those are inherent to the author's title style and live in
+// source-of-record, not destination).
+const SUFFIX = ' — AI Native Field Notes';
+const pageTitle = (title.length + SUFFIX.length) <= 65 ? `${title}${SUFFIX}` : title;
 const breadcrumbItems = [
   { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
   { '@type': 'ListItem', position: 2, name: 'Field Notes', item: `${SITE.url}/field-notes/` },
@@ -72,7 +79,7 @@ const jsonLd = [
 ];
 ---
 <FieldNotesLayout
-  title={`${title} — AI Native Field Notes`}
+  title={pageTitle}
   description={summary}
   ogType="article"
   ogImage={ogImage}

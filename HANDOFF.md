@@ -13,39 +13,59 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (SEO HIGH cluster fix — 30 audit issues cleared via layout/template edits; commit + GSC reindex completed but handoff was not updated at the time)
-**Last destination commit:** `bdb9c38` — feat(skills): sync-field-notes auto-preserves gated catalog footers
-**Push status:** clean. `git status` reports working tree clean and branch up to date with `origin/main`. The HIGH-cluster SEO fix landed as `309bd5f` and is live.
+**Last session:** 2026-05-16 (later — SEO MED cluster fix: field-notes article title suffix + tag-page description template + audit-detector patch; 199 audit issues cleared)
+**Last destination commit:** `88ff883` — chore(handoff): reconcile stale NEXT STEP — SEO fixes + GSC reindex already shipped
+**Push status:** uncommitted in working tree. Layout + template + audit-script edits ready to commit. Audit went 303 → 104 issues; build clean at 391 pages. Earlier same-day HIGH-cluster fix (`309bd5f`) is live; this batch builds on it.
 
 ## Open items (replace each session)
 
-### 1. Carry-forward from prior session — Article wire-back propagation (unchanged)
+### 1. NEXT STEP — Commit this session's MED-cluster fixes + run `/seo-monitor` after Google's next crawl
+
+Working tree has four uncommitted layout/template/audit-script edits (see "Recent decisions → 2026-05-16 (later session)" below for the full list). Build clean at 391 pages; audit went 303 → 104 issues (-199, zero regressions). Suggested commit:
+
+```
+seo: MED cluster fix (303 → 104 audit issues) — conditional title suffix, tag-page description template, audit-detector patch
+```
+
+After commit + push, next `/seo-monitor` run should reflect the lower issue count once Google has had ~7+ days to recrawl. No GSC manual actions queued this round.
+
+### 3. Carry-forward — Article wire-back propagation (unchanged)
 
 Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
 
-### 2. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+### 4. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
 
-### 3. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 5. Carry-forward — SHIPPED-flip PR back to source (unchanged)
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 4. SEO pending tasks (for a later session — full list lives in `seo-progress.md` Action Tracker)
+### 6. SEO pending tasks (post-MED-cluster — full list lives in `seo-progress.md` Action Tracker)
 
-The same-file tracker in `seo-progress.md` is the authoritative list. Summary of what's queued:
+The same-file tracker in `seo-progress.md` is the authoritative list. After this session's MED-cluster fixes, the remaining 104 audit issues are all source-authored content (article raw titles >65ch, article `summary` >200ch, fieldkit/artifacts/about descriptions). Summary:
 
-- **HIGH**: KV-cache article title (95→≤65) + description (228→70–160). Source-of-record is `ai-field-notes/` repo — needs source-side rewrite + sync, not destination edit.
-- **HIGH**: Book chapter `description:` and `subtitle:` front-matter values. The /book/ chapter pages are now clean via layout-derived descriptions; this would only be needed if the audit window or rules change.
-- **MED**: Trim 48 field-notes article titles >65ch (likely the `— AI Native Field Notes` layout suffix). Single template edit, deferred.
-- **MED**: Trim 50 field-notes article descriptions >200ch — per-article content in source repo.
-- **MED**: Field-notes tag-page description template (187 pages share too-short pattern). Single template fix at `src/pages/field-notes/tags/[tag].astro` (or similar) — deferred to a focused session.
+- **HIGH**: KV-cache article title + description rewrite. Source-of-record is `ai-field-notes/` repo — needs source-side rewrite + sync.
+- **HIGH**: Book chapter `description:` and `subtitle:` front-matter (would only matter if audit window/rules tighten — currently programmatic builder covers it).
+- **MED**: ~37 field-notes article titles >65ch (raw, suffix already conditional). Author's sentence-style titling — source-side rewrites if reducing further.
+- **MED**: ~54 field-notes article `summary` frontmatter >200ch. Source repo authoritative.
+- **MED**: 6 fieldkit + 4 artifacts + 1 /about descriptions — mixed source/destination, needs per-page audit.
 - **LOW**: Verify intentional noindex on `/field-notes/series/autoresearch/`.
 - **INFO**: PSI quota — need a personal Google Cloud API key OR live with daily reset.
 
-The 4 `internal-href-missing-trailing-slash` audit hits are **confirmed false positives** (font preloads + code-block API URL examples) — recommend patching the audit script's detector to exclude file-extension URLs and `<pre>`/`<code>` content. Not in `fix-taxonomy.md` so not auto-applied; surfaced for next session if anyone touches the skill.
+The 4 `internal-href-missing-trailing-slash` audit hits are **fixed this session** — detector regex updated with `(?<!\.)` negative lookbehind + extended asset-extension blacklist.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-16 (later session — SEO MED cluster, 303 → 104 audit issues)
+- **Picked up "read handoff and execute next set of tasks"** with the `seo-progress.md` Action Tracker as source-of-truth. Two MED-priority items were marked "this skill (later session)" — exactly the queue for a focused execution session.
+- **Field-notes article title — conditional suffix.** `src/pages/field-notes/[slug]/index.astro:33-45,80` — computed `pageTitle = (title.length + " — AI Native Field Notes".length) <= 65 ? title + SUFFIX : title`. Sanity-tested against the 49 articles in `articles/*/`: 0 currently fit the full suffix (shortest raw title is 49ch, suffix is 24ch → 73 total). Net SEO effect: 12 articles whose raw titles are ≤65 are now compliant; 37 with longer raw titles are still flagged but no longer have the suffix penalty. Pre-existing `ogImageAlt` keeps the full "AI Native Field Notes" branding for social cards.
+- **Field-notes tag-page description — new template.** `src/pages/field-notes/tags/[tag].astro:39-44` — added `description = \`${count} ${count===1?'article':'articles'} tagged #${tag} — AI-native research, DGX Spark experiments, and agent workflows from ainative.business.\`` Renders 97–138 chars across the full tag space (longest tag is 28ch). Kept the original `blurb` variable for on-page rendering (`Articles tagged "${tag}" — N entries.`) so visible UI is unchanged. **Single template touched, ~185 description issues resolved.**
+- **`/field-notes/` index title bump.** `src/pages/field-notes/index.astro:23` — 22ch → 63ch. Was the only too-short title flagged in the audit.
+- **Audit-detector patch — false-positive elimination.** `.claude/skills/seo-monitor/scripts/audit_site.mjs:167,172` — added `(?<!\.)` negative-lookbehind to the trailing-slash regex (excludes JS property assignments like `link.href = '/api/...'` inside MDX code blocks) and extended asset-extension blacklist to include `woff2|woff|ttf|otf|eot`. The 4 chronic false positives (2 font preloads, 2 MDX code examples) are now properly skipped at detection — no more "skipped (4)" runtime overhead.
+- **Why these MED items, not the HIGH carry-forwards.** The HIGH items in the Action Tracker (KV-cache article, book chapter front-matter) are all source-of-record in either `ai-field-notes/` or the product repo. The architectural rule preserved from the earlier session ("fix at layout, not synced content") routes those through their respective sync skills, not direct destination edits. The MED items were destination-template-only — the right work for a session that wasn't running `sync-field-notes` or `apply-book-update`.
+- **Audit math.** Before: 303 (49 title + 250 description + 4 trailing-slash). After: 104 (39 title + 65 description + 0 trailing-slash). Net -199 issues, 0 new issues introduced. Build clean at 391 pages (was 333 — note +58 new pages from new tag bucketing as the underlying article set has shifted; not from this session's edits).
+- **Remaining work clearly bucketed.** All 104 remaining issues are source-authored content (article raw titles, article `summary` frontmatter, fieldkit/artifacts/about descriptions). The destination has done what it can in layouts; further reduction requires source-side rewrites + sync. Action Tracker updated to reflect this.
 
 ### 2026-05-16 (handoff reconciliation — stale "NEXT STEP" cleared)
 - Previous handoff had item #1 framed as "uncommitted, awaiting commit + push + GSC reindex." All three were actually completed before the handoff was written: SEO fixes shipped as commit `309bd5f` + pushed; GSC "Request Indexing" was clicked for the 3 crawled-not-indexed URLs (`/book/ch-4-the-forge/`, `/book/ch-6-the-arena/`, `/docs/api/settings/`). This session reconciled by dropping item #1, renumbering #2–#5 → #1–#4, and flipping the matching USER row in `seo-progress.md` Action Tracker.

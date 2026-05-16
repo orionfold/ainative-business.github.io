@@ -20,7 +20,7 @@ const upcomingAsc = [...upcoming].sort((a, b) => a.data.date.getTime() - b.data.
 const countPadded = String(published.length).padStart(2, '0');
 const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
 
-const pageTitle = 'Field Notes — ainative';
+const pageTitle = 'AI Native Field Notes — research on building AI-native business';
 const pageDescription = `Field notes on building AI-native businesses — ${published.length} published articles spanning agent orchestration, inference, training, RAG, and the AI Native Platform series of research papers. By Manav Sehgal.`;
 
 const jsonLd = [

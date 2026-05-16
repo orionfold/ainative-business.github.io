@@ -26,9 +26,22 @@ The 12-indexed-of-305-submitted gap is mostly **queue lag** (Google's crawl budg
 
 Where possible, fix at the **template/layout** level rather than at the synced content level. Synced content (book chapter markdown, docs/api MDX bodies, field-notes articles) gets overwritten by `apply-book-update`, `apply-api-docs`, `apply-product-docs`, `sync-field-notes`. Layouts and dynamic-route files in `src/layouts/` and `src/pages/[...slug].astro` are NOT in any sync skill's manifest — safe to edit.
 
-### Done — 2026-05-16 (this session)
+### Done — 2026-05-16 (later session — MED cluster + audit-detector patch)
 
-**Audit delta: 333 → 303 issues (-30 resolved, 0 regressions).** Verified via `node .claude/skills/seo-monitor/scripts/audit_site.mjs`. Detail: title-issues 67→49 (-18), description-issues 262→250 (-12), trailing-slash hits unchanged at 4 (known false positives).
+**Audit delta: 303 → 104 issues (-199 resolved, 0 regressions).** Verified via `node .claude/skills/seo-monitor/scripts/audit_site.mjs`. Detail: title-issues 49→39 (-10), description-issues 250→65 (-185), trailing-slash 4→0 (false-positive detector patched). Build clean at 391 pages.
+
+| ✓ | Fix | File | Replaces |
+|---|-----|------|----------|
+| ✓ | Field-notes article `<title>` — conditional suffix (drop when `title + " — AI Native Field Notes"` >65ch) | `src/pages/field-notes/[slug]/index.astro:33-45,80` | Resolves 10 title-length issues. Remaining 39 are source-authored raw titles >65ch — inherent to author style, not destination-fixable |
+| ✓ | Field-notes tag-page `<meta description>` — new template at 100–140 chars | `src/pages/field-notes/tags/[tag].astro:39-44` | Resolves ~185 description-length issues across all tag pages. Visible-page blurb (`Articles tagged "${tag}" — N entries.`) preserved on-page; SEO `description` diverges to satisfy 70–160 contract |
+| ✓ | `/field-notes/` index title `Field Notes — ainative` (22ch) → `AI Native Field Notes — research on building AI-native business` (63ch) | `src/pages/field-notes/index.astro:23` | Resolves the 1 too-short title flagged at `/field-notes/` |
+| ✓ | Audit trailing-slash detector — exclude JS property assignments (`link.href = '/api/...'`) via negative-lookbehind, and add `woff2/woff/ttf/otf/eot` to asset-extension blacklist | `.claude/skills/seo-monitor/scripts/audit_site.mjs:167,172` | Eliminates 4 known false positives (2 font preloads + 2 MDX code-block examples). Future runs will report these as fixed rather than skipped |
+
+**Architectural rationale (continued from earlier session):** All four fixes again live in **layouts / dynamic-route templates / audit tooling** — none in synced content. The article-title and tag-page-description fixes are systemic (one template, hundreds of pages). The remaining ~104 audit hits are all source-authored content (article raw titles too long, article `summary` frontmatter too long, fieldkit/artifact descriptions too long, one /about description) and require either: (a) source-side rewrites + sync, or (b) a destination-only override layer.
+
+### Done — 2026-05-16 (earlier session — HIGH cluster fix)
+
+**Audit delta: 333 → 303 issues (-30 resolved, 0 regressions).** Verified via `node .claude/skills/seo-monitor/scripts/audit_site.mjs`. Detail: title-issues 67→49 (-18), description-issues 262→250 (-12), trailing-slash hits unchanged at 4 (known false positives — now patched in later session).
 
 | ✓ | Fix | File | Replaces |
 |---|-----|------|----------|
@@ -51,11 +64,11 @@ Where possible, fix at the **template/layout** level rather than at the synced c
 
 | Priority | Item | File / where | Owner | Why deferred |
 |---------:|------|---------------|-------|--------------|
-| HIGH | Rewrite KV-cache article title (95→≤65) + description (228→70–160) | `src/pages/field-notes/lora-fine-tune-nemotron-on-spark.mdx` | user (authored content) | Article body is source-of-record in `ai-field-notes/` source repo; needs source-side rewrite + sync, not destination edit |
+| HIGH | Rewrite KV-cache article title (95→≤65) + description (228→70–160) | `articles/lora-fine-tune-nemotron-on-spark/article.md(x)` | user (authored content) | Article body is source-of-record in `ai-field-notes/` source repo; needs source-side rewrite + sync, not destination edit |
 | HIGH | Lengthen book chapter `description:` and `subtitle:` front-matter | `src/data/book/chapters/*.md` (synced from product) | user (authored content) | These come from the product source. Edit there, then `apply-book-update` syncs in. If we add a destination-only override layer, document in apply-book-update skill |
-| MED | Trim 48 field-notes article titles >65ch — likely the `— AI Native Field Notes` layout suffix | TBD — likely `src/layouts/FieldNotesArticleLayout.astro` or similar | this skill (later session) | Need to inspect layout vs per-article frontmatter to decide template fix vs systemic content edit |
-| MED | Trim 50 field-notes article descriptions >200ch | per-article frontmatter (synced) | user (authored content) | Source repo `ai-field-notes/` is authoritative; edit there per the SYNC contract |
-| MED | Fix field-notes tag-page description template — 187 pages share too-short pattern | TBD — likely `src/pages/field-notes/tags/[tag].astro` | this skill (later session) | Single template fix; deferred to focus this session on HIGH cluster |
+| MED | Rewrite ~37 field-notes article titles >65ch (raw, no suffix). E.g., 157ch title at `articles/judge-orchestrated-ensemble-on-spark/` | `articles/*/article.{md,mdx}` (synced from `ai-field-notes/`) | user (authored content) | Layout suffix already conditional — these are inherent to author's sentence-style titling. Source-side rewrites required |
+| MED | Trim ~54 field-notes article descriptions >200ch | `articles/*/article.{md,mdx}` frontmatter `summary` (synced) | user (authored content) | Source repo `ai-field-notes/` is authoritative; edit there per the SYNC contract |
+| MED | Trim 6 fieldkit landing/API descriptions + 4 artifacts descriptions + 1 /about description | various (mostly synced from product / source) | user / sync skill | Need per-page audit to decide; might be one-line trims in some layouts vs source-side rewrites |
 | LOW | Verify intentional noindex on `/field-notes/series/autoresearch/` | `src/pages/field-notes/series/autoresearch.astro` or related | user (decision) | Only excluded-by-noindex URL on the property — confirm intent |
 | INFO | PSI quota — wire up personal Google Cloud API key OR wait for daily reset | `.claude/skills/seo-monitor/scripts/` or `.env` | user | Daily quota tied to shared no-API-key project; user owns auth strategy |
 | USER | Resubmit sitemap in GSC | https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Aainative.business | user | Console-only action; click "Submit" again |

@@ -164,12 +164,14 @@ function auditTrailingSlashes() {
     lines.forEach((line, i) => {
       // Match href="/path" without trailing slash, skipping anchors, externals,
       // and obvious non-route paths (assets, JS templating).
-      for (const m of line.matchAll(/href\s*=\s*["'`](\/(?!\/)[^"'`#?]*?)["'`]/g)) {
+      // (?<!\.) excludes JS property assignments like `link.href = '/api/foo'`
+      // inside MDX code blocks — those aren't HTML attributes.
+      for (const m of line.matchAll(/(?<!\.)href\s*=\s*["'`](\/(?!\/)[^"'`#?]*?)["'`]/g)) {
         const href = m[1];
         if (href === '/') continue;
         if (href.endsWith('/')) continue;
         // Skip asset paths
-        if (/\.(png|jpg|jpeg|gif|svg|webp|avif|ico|css|js|mjs|xml|txt|pdf|json|webmanifest)$/i.test(href)) continue;
+        if (/\.(png|jpg|jpeg|gif|svg|webp|avif|ico|css|js|mjs|xml|txt|pdf|json|webmanifest|woff2|woff|ttf|otf|eot)$/i.test(href)) continue;
         // Skip dynamic template syntax (Astro/JS interpolation visible in the captured value)
         if (href.includes('${') || href.includes('{{')) continue;
         issues.push({
