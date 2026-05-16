@@ -76,13 +76,15 @@ Extract:
 
 Navigate the GSC tab to:
 ```
-https://search.google.com/search-console/index/coverage?resource_id=sc-domain%3Aainative.business
+https://search.google.com/search-console/index?resource_id=sc-domain%3Aainative.business
 ```
+
+(The legacy `…/index/coverage?…` URL **404s** in the current GSC UI — use `…/index?…` instead. See `references/gsc-playbook.md` "URL drift note" for the 2026-05-16 finding.)
 
 Extract:
 - Count of "Indexed" pages
 - Count of "Not indexed" pages, broken down by reason — the typical categories are: `Crawled — currently not indexed`, `Discovered — currently not indexed`, `Page with redirect`, `Duplicate without user-selected canonical`, `Soft 404`, `Page is not indexed because it's blocked by noindex`, `Excluded by 'noindex' tag`, `Not found (404)`
-- For each non-zero reason, capture up to 10 example URLs by drilling in
+- For each non-zero reason, capture up to 10 example URLs **via the two-step drilldown pattern** documented in `references/gsc-playbook.md` — a synthesized `<tr>` click pushes `location.href = …/index/drilldown?item_key=<key>` but does NOT trigger the SPA re-render of the drilldown view; the working pattern is (A) synthetic-click each `<tr class="nJ0sOc">` to harvest the opaque `item_key` per reason from the URL it pushes, then (B) `navigate(tab_id, "…/index/drilldown?item_key=<key>")` for each reason and read the URL cells from the rendered table. Hardcoding item_keys is unsafe — Google may rotate them; always re-discover per run.
 
 The user's memory notes: "Page with redirect" is expected for the stagent.io → ainative.business migration; we surface its count but do not treat it as a problem unless it grows.
 

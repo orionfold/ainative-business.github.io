@@ -230,6 +230,8 @@ import CodeExample from '../../../components/api/CodeExample.astro'
 - TypeScript examples must use `fetch` with type annotations, `async/await`, interfaces for response types
 - Python examples must use `import requests`, type hints, f-strings
 - Use developer-friendly descriptions — polished but technical, not marketing copy
+- **SEO contract — frontmatter `description:` MUST be 70–160 chars** (Google's snippet window). Write rich enough to be ≥70, truncate to ≤160 with information-dense phrasing rather than padding. Verified by `.claude/skills/seo-monitor/scripts/audit_site.mjs`. Was added 2026-05-16 after `/docs/api/instance/` regenerated at 167 chars.
+- **SEO contract — frontmatter `title:` stays short** (e.g., `"Instance API"`). The site-wide layout `src/layouts/ApiDocsLayout.astro` adds the suffix ` — ainative API Reference`, which lands every rendered title in the 25–65 char SEO window. Do NOT add a suffix in the frontmatter title — it would compound.
 - Document special behaviors: fire-and-forget (202), SSE streaming, cascade deletes, atomic operations
 - Organize endpoints in logical order: list, create, get, update, delete, then action endpoints
 - For SSE endpoints, use `method="SSE"` on EndpointCard and show EventSource usage with onmessage/onerror

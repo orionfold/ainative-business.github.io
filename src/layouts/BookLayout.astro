@@ -26,7 +26,9 @@ const {
   chapter,
 } = Astro.props;
 
-const pageTitle = `${title} — ainative`;
+const pageTitle = chapter
+  ? `${title} — AI Native Business · Ch ${chapter.number}`
+  : `${title} — ainative`;
 const pageUrl = new URL(Astro.url.pathname, SITE.url).toString();
 
 const BOOK_NAME = 'AI Native Business: Building Autonomous Business Systems with AI Agents';

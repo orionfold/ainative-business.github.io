@@ -76,9 +76,15 @@ const chapterMeta = currentChapter
       slug: CHAPTER_SLUG_MAP[currentChapter.id] ?? '',
     }
   : undefined;
-const chapterDescription = currentChapter?.subtitle
-  ? `${currentChapter.title} — ${currentChapter.subtitle}`
-  : currentChapter?.title ?? '';
+const chapterDescription = (() => {
+  if (!currentChapter) return '';
+  const titlePart = `${currentChapter.title}: `;
+  const suffix = `. Chapter ${currentChapter.number} of AI Native Business, by Manav Sehgal.`;
+  const budget = 160 - titlePart.length - suffix.length;
+  const sub = currentChapter.subtitle ?? '';
+  const body = sub.length > budget ? `${sub.slice(0, budget - 1).trimEnd()}…` : sub;
+  return `${titlePart}${body}${suffix}`;
+})();
 ---
 <BookLayout title={chapterTitle} description={chapterDescription} chapter={chapterMeta}>
   <BookReader

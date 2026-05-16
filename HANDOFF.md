@@ -13,29 +13,81 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-15 (cyber-vertical sweep — third Orionfold quant card)
-**Last destination commit (pre-sweep):** `ae23184` — chore(handoff): forward open items for next session
-**Push status:** prior session's commits (`d41b096` feat + `cc02e3f` + `ae23184` handoff) live on `origin/main`. This sweep's changes are uncommitted in working tree — see `git status`.
+**Last session:** 2026-05-16 (SEO HIGH cluster fix — 30 audit issues cleared via layout/template edits)
+**Last destination commit (pre-session):** `d2ebcf4` — feat(skills): add seo-monitor — periodic GSC/GA4/PSI audit + code-fix autopilot
+**Push status:** all prior commits live on `origin/main`. This session's changes are uncommitted in working tree (12 modified, plus `seo-progress.md` + `seo/` archive). See `git status`.
 
 ## Open items (replace each session)
 
-### 1. Article wire-back propagation to source (carry-forward)
+### 1. Commit + deploy this session's SEO fixes (NEXT STEP)
 
-**Status (unchanged from previous session):** Three destination-side articles now carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark` — added this session). Each sync that pulls these articles from source surfaces a phantom diff (destination has the line, source doesn't); `git checkout HEAD -- <article>` after sync is the established workaround. Confirmed working this session.
+**Status:** 30 audit issues cleared; 0 regressions; build clean. Files modified — see `git status`. Suggested commit message:
 
-**Resolution rule when the conflict appears:** keep destination's. The catalog link is destination-only chrome (this site has the catalog; source's HuggingFace cards don't). Article body remains source-of-record. Cleanest fix is a source-side PR replicating the three wire-back lines — author it the next time you're in the source repo.
+```
+seo: fix HIGH cluster titles + descriptions (333 → 303 audit issues)
 
-### 1a. `recommended_variant` override in `securityllm-gguf.yaml` (destination-side)
+Layout-level edits (template fixes, not synced content):
+- ApiDocsLayout suffix → "— ainative API Reference"  (6 docs/api titles)
+- BookLayout pageTitle for chapters → "— AI Native Business · Ch N"  (6 chapter titles)
+- [...slug].astro chapter description builder (10 chapter descriptions)
+- DocsLayout suffix → "— ainative Documentation"  (7 docs root titles)
+- Layout default description now sources SITE.description  (homepage + fallback callers)
+- SITE.description, /book/ index, /docs/api/instance trimmed to ≤160 chars
 
-**Status:** This session added a `recommended_variant: Q4_K_M` field to `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick (Q5_K_M → Q4_K_M, matching the source article's narrative). Source's manifest doesn't have this field. Next sync that overwrites this manifest will lose the override. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to the post-sync restore step alongside the three article wire-backs, OR upstream the `recommended_variant` field to source on the next source-side PR.
+Sync-skill guards added so next regen preserves the SEO contract:
+- apply-api-docs: 70–160 char description rule + title-stays-short note
+- apply-product-docs: same rule for /docs/* scaffolding
+- apply-book-update: 160-char guard on /book/ chrome description
 
-**Schema is forward-compatible:** the field is `z.string().optional()` so source-shipped manifests without it continue to work; the picker falls through to rank-avg when unset. Finance + Saul don't currently have the field set — they keep their existing picks (Q6_K, Q5_K_M).
+Verification: re-ran audit_site.mjs — 30 resolved, 0 new issues.
+```
 
-### 2. SHIPPED-flip PR back to source
+After commit, **request indexing in GSC** for the 3 crawled-not-indexed URLs:
+- `https://ainative.business/book/ch-4-the-forge/`
+- `https://ainative.business/book/ch-6-the-arena/`
+- `https://ainative.business/docs/api/settings/`
 
-**Status:** Contract sweep generated the PR plan. Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. Body cites the destination commit hash. Open after this session's commit lands so the hash in the body matches reality. No rename status flips this cycle (`renames_to_replay: []`).
+These were the high-confidence join between GSC's "crawled — not indexed" bucket and the local audit's title/description cluster — fixing them should be the lever that flips 3 pages from "demoted" to "indexed" on next Google crawl.
+
+### 2. Carry-forward from prior session — Article wire-back propagation (unchanged)
+
+Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
+
+### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+
+`recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
+
+### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+
+Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
+
+### 5. SEO pending tasks (for a later session — full list lives in `seo-progress.md` Action Tracker)
+
+The same-file tracker in `seo-progress.md` is the authoritative list. Summary of what's queued:
+
+- **HIGH**: KV-cache article title (95→≤65) + description (228→70–160). Source-of-record is `ai-field-notes/` repo — needs source-side rewrite + sync, not destination edit.
+- **HIGH**: Book chapter `description:` and `subtitle:` front-matter values. The /book/ chapter pages are now clean via layout-derived descriptions; this would only be needed if the audit window or rules change.
+- **MED**: Trim 48 field-notes article titles >65ch (likely the `— AI Native Field Notes` layout suffix). Single template edit, deferred.
+- **MED**: Trim 50 field-notes article descriptions >200ch — per-article content in source repo.
+- **MED**: Field-notes tag-page description template (187 pages share too-short pattern). Single template fix at `src/pages/field-notes/tags/[tag].astro` (or similar) — deferred to a focused session.
+- **LOW**: Verify intentional noindex on `/field-notes/series/autoresearch/`.
+- **INFO**: PSI quota — need a personal Google Cloud API key OR live with daily reset.
+
+The 4 `internal-href-missing-trailing-slash` audit hits are **confirmed false positives** (font preloads + code-block API URL examples) — recommend patching the audit script's detector to exclude file-extension URLs and `<pre>`/`<code>` content. Not in `fix-taxonomy.md` so not auto-applied; surfaced for next session if anyone touches the skill.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-16 (SEO HIGH cluster — 30 audit issues cleared, 0 regressions)
+- **`/seo-monitor` second same-day run + targeted execution.** First run earlier in the day surfaced the no-changes journal. This session re-ran for the user's broader question ("why isn't GSC indexing 300+ pages?") and resulted in executing the HIGH-priority cluster fixes the prior /seo-monitor run had surfaced.
+- **Diagnostic: the 12-indexed-vs-305-submitted gap.** Reframed for user. The gap is **queue lag** (Google has only crawled ~19 of 305 sitemap URLs; the remaining ~286 are queued). Three of the 19 ended up `crawled-not-indexed` because Google judged them not worth keeping — driven by short titles + descriptions on `/book/ch-4-the-forge/`, `/book/ch-6-the-arena/`, `/docs/api/settings/`. Crawl budget is authority-scaled, and this property is post-stagent.io-migration low-authority → small budget, slow queue drain.
+- **Architectural rule for SEO fixes: edit layouts, not synced content.** Every title/description fix landed in `src/layouts/*.astro` or in the dynamic `src/pages/book/[...slug].astro` route. None of these files are in any sync skill's manifest. Synced content (chapter markdown under `src/data/book/chapters/`, api MDX under `src/pages/docs/api/`, field-notes articles under `src/pages/field-notes/`) was NOT touched — that's source-of-record content. This pattern is now codified in `seo-progress.md` Action Tracker so the next session preserves it.
+- **Sync-skill guards added (3 skills).** Even though the layout edits won't be touched by syncs, the destination MDX descriptions (e.g., `/docs/api/instance/`) could regrow on next `apply-api-docs` regen. Added explicit "SEO contract: descriptions 70–160 chars; titles stay short, layout adds suffix" rules to `apply-api-docs/SKILL.md`, `apply-product-docs/SKILL.md`, and `apply-book-update/SKILL.md`. Each rule cites the audit script + dates the addition.
+- **Layout suffix changes (3 layouts).** ApiDocsLayout: `— ainative API` → `— ainative API Reference` (33 chars on shortest API titles). BookLayout for chapter pages: `${title} — ainative` → `${title} — AI Native Business · Ch ${number}` (Ch 11 longest at 64 chars, all 14 chapters re-verified). DocsLayout: `— ainative Docs` → `— ainative Documentation` (7 docs root pages cleared). All changes preserve the unchaptered/landing-page case.
+- **Programmatic description builder for book chapters.** `src/pages/book/[...slug].astro:79-87` rewrites `chapterDescription` to build a 70–160 char string from title + subtitle + chapter number + author. Subtitle gets `…` truncation when it would push total over 160 (Ch 13's 109-char subtitle hits this; rendered to clean 160-char output).
+- **`Layout.astro` default description now sources `SITE.description`.** Was a hardcoded 173-char duplicate of an old `SITE.description`; trimmed `SITE.description` propagated to homepage, ORGANIZATION JSON-LD, `/llms.txt`, `/llms-full.txt`, AND any page that doesn't pass its own description. One trim, four surfaces.
+- **PSI 429 quota hit again.** Same `project_number:583797351490` (the shared no-API-key project) was over daily quota at session start as on the previous run. Noted in tracker as INFO; needs either personal Google Cloud API key wiring or accepting weekly-not-daily PSI cadence.
+- **`seo-progress.md` now has an Action Tracker section at the top.** Mutable done/pending log per user request ("maintain a done/pending log in the same file"). Snapshot blocks remain append-only below. Pending items in the tracker are the source for this Open-items section.
+- **Build verified across 3 incremental rebuilds.** Each layout change → build → audit cycle preserved 333 pages + zero errors. Final audit: 333 → 303 issues (-30), zero new issues introduced (verified by diff of issue-key sets).
 
 ### 2026-05-15 (cyber-vertical sweep — third Orionfold quant card)
 - **Source release `2026-05-15-cyber-vertical` swept.** Single source commit `dd81a29` (Add cyber-vertical card: Orionfold/SecurityLLM-GGUF + CyberMetric mini-eval). Auto-flow: 1 new article (`becoming-a-cyber-curator-on-spark`), project-stats refresh (36→37 articles, 121,613→124,081 words), sequence manifest rewrite (cyber slots into ordinal sequence). Zero fieldkit source changes — the v0.4.1 publishing surface generalized to vertical #3 as designed.

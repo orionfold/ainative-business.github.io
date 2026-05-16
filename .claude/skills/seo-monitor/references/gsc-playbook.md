@@ -18,11 +18,14 @@ The resource id is URL-encoded everywhere in the GSC URL space.
 |--------|--------------|
 | Overview | `https://search.google.com/search-console?resource_id=sc-domain%3Aainative.business` |
 | Performance — Search results | `https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Aainative.business&num_of_days=28` |
-| Indexing — Pages (Coverage) | `https://search.google.com/search-console/index/coverage?resource_id=sc-domain%3Aainative.business` |
+| Indexing — Pages (overview) | `https://search.google.com/search-console/index?resource_id=sc-domain%3Aainative.business` |
+| Indexing — Drilldown (per-reason) | `https://search.google.com/search-console/index/drilldown?resource_id=sc-domain%3Aainative.business&item_key=<opaque-key>` |
 | Sitemaps | `https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Aainative.business` |
 | URL Inspection | `https://search.google.com/search-console/inspect?resource_id=sc-domain%3Aainative.business&id=<encoded-URL>` |
 | Enhancement — Articles | `https://search.google.com/search-console/enhancement/structured-data-articles?resource_id=sc-domain%3Aainative.business` |
 | Enhancement — Breadcrumbs | `https://search.google.com/search-console/enhancement/structured-data-breadcrumbs?resource_id=sc-domain%3Aainative.business` |
+
+**URL drift note (2026-05-16):** The legacy `…/index/coverage?…` URL **404s** in the current GSC UI. The new canonical path for the Pages/Indexing report is just `…/index?…`. Drilldown into a specific reason uses `…/index/drilldown?…&item_key=<key>` (see "Indexing — drilldown" section below).
 
 `num_of_days=28` is the default window the skill uses. GSC supports 1, 7, 28, 90, and 16 months — we standardize on 28 to balance signal and noise.
 
@@ -93,9 +96,11 @@ javascript_tool(tab_id, `(() => {
 
 Each row's columns (in order): Query / Page / Clicks / Impressions / CTR / Position. Skip the column headers in the first row.
 
-## Indexing — Coverage
+## Indexing — Pages overview
 
-The Coverage page shows aggregate counts at the top and a "Why pages aren't indexed" table below. The table cells map to the reason categories — capture by text match:
+Navigate to `…/search-console/index?resource_id=…`. Wait for the page title to be "Page indexing" and the body to contain "Indexed" + "Not indexed" + "Why pages aren't indexed".
+
+The page renders aggregate counts at the top and a "Why pages aren't indexed" table below. The table cells map to the reason categories — capture by text match:
 
 | Display name | Internal key (use this in JSON) |
 |--------------|----------------------------------|
@@ -111,7 +116,67 @@ The Coverage page shows aggregate counts at the top and a "Why pages aren't inde
 | Server error (5xx) | `server_error` |
 | URL marked 'noindex' | `noindex` (combine) |
 
-To drill into a reason and capture example URLs: click the reason name, wait for the example-URLs table to render, capture up to 10 URLs by reading text-content of the rows.
+Each reason row is a `<tr class="nJ0sOc …" jsaction="click:AJI9fd;">` — Google's Closure-style event delegation handler.
+
+## Indexing — drilldown (per-reason example URLs)
+
+**Important quirk discovered 2026-05-16:** Synthesizing a click event on the `<tr>` row updates `location.href` to `…/index/drilldown?item_key=<key>` but **does NOT cause the SPA to re-render the drilldown view** — the page text continues to show the same parent overview table. The jsaction handler appears to expect a real user-input event for full state propagation. A synthesized `MouseEvent('click', { bubbles: true })` is enough to push a history entry but not enough to trigger the drilldown render.
+
+**The working pattern** is "capture item_keys via a synthetic click, then navigate directly":
+
+```js
+// Step A — capture all item_keys (synthetic click pushes the URL but doesn't render the new view)
+javascript_tool(tab_id, `(async () => {
+  const rows = [...document.querySelectorAll('tr.nJ0sOc, tr[jsaction*="click"]')];
+  const out = [];
+  for (const tr of rows) {
+    const label = (tr.querySelector('td')?.textContent || '').trim();
+    if (!label) continue;
+    ['pointerdown','mousedown','pointerup','mouseup','click'].forEach(t =>
+      tr.dispatchEvent(new MouseEvent(t, {bubbles: true, cancelable: true, view: window}))
+    );
+    await new Promise(r => setTimeout(r, 200));
+    const itemKey = new URL(location.href).searchParams.get('item_key');
+    out.push({ label, itemKey });
+    history.back();
+    await new Promise(r => setTimeout(r, 500));
+  }
+  return out;
+})()`)
+```
+
+This returns rows like:
+```json
+[
+  { "label": "Crawled - currently not indexed", "itemKey": "CAMYFyAC" },
+  { "label": "Excluded by 'noindex' tag",        "itemKey": "CAMYCCAC" },
+  { "label": "Page with redirect",                "itemKey": "CAMYCyAC" },
+  { "label": "Discovered - currently not indexed","itemKey": "CAMYFiAC" }
+]
+```
+
+The `itemKey` values are **opaque, stable per (property, reason) pair**, but Google could rotate them — always re-discover them per run rather than hardcoding.
+
+```js
+// Step B — for each item_key worth investigating, navigate fresh and read URL cells
+navigate(tab_id, `https://search.google.com/search-console/index/drilldown?resource_id=sc-domain%3Aainative.business&item_key=<itemKey>`)
+// then in a JS poll, wait until cells contain ainative.business URLs:
+javascript_tool(tab_id, `(async () => {
+  const start = Date.now();
+  while (Date.now() - start < 12000) {
+    const cells = [...document.querySelectorAll('td, [role="cell"], [role="gridcell"]')]
+      .map(c => (c.textContent||'').trim())
+      .filter(t => /^https?:\\/\\/ainative\\.business/.test(t));
+    if (cells.length) return [...new Set(cells)];
+    await new Promise(r => setTimeout(r, 500));
+  }
+  return [];
+})()`)
+```
+
+This reliably returns up to 10 example URLs per reason. If the GSC report has more URLs than the visible table, scroll the table container — same virtualized-list pattern as the Performance report.
+
+**Do not try to be clever and skip Step A** — the item_keys are not exposed in the parent table's DOM as attributes; the click-then-read-URL discovery is the only way to map a human-readable reason name to the opaque key Google uses internally.
 
 ## Sitemaps
 

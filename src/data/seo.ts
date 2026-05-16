@@ -2,7 +2,7 @@ export const SITE = {
   name: 'ainative',
   url: 'https://ainative.business',
   description:
-    'AI Native Business — the book and the companion software. A personal research project by Manav Sehgal into building AI-native businesses. Open source, local-first, and free.',
+    'AI Native Business — the book and companion software. A personal research project by Manav Sehgal on building AI-native businesses, local-first.',
   logo: 'https://ainative.business/ainative-s-128.png',
   ogImage: 'https://ainative.business/og-image.png',
   ogImageAlt:

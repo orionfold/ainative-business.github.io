@@ -335,7 +335,7 @@ grep -rn -E '\b[0-9]+ chapters\b' src/ \
 ```
 
 **Triage each hit:**
-- **Site chrome / marketing copy** (e.g., `src/pages/book/index.astro` meta description, alt text, BrowserFrame alts): **update in place** to the new count.
+- **Site chrome / marketing copy** (e.g., `src/pages/book/index.astro` meta description, alt text, BrowserFrame alts): **update in place** to the new count. **SEO contract — any meta `description` MUST stay 70–160 chars** (Google's snippet window, verified by `.claude/skills/seo-monitor/scripts/audit_site.mjs`). If a count update would push the description over 160, restructure rather than padding. Added 2026-05-16 after `/book/` description was trimmed from 162→140.
 - **Research papers / dated snapshots** (e.g., `src/pages/research/*.mdx`): **flag for user confirmation** — these may be historical snapshots. Do not auto-update.
 - **Files that could use a dynamic import** (e.g., a new Astro component added since last sync): **suggest refactoring** to `import { CHAPTERS } from '../lib/book/content'` instead of patching the literal. Drift-prone prose should become data-driven at the first opportunity.
 - **Book body prose in `src/data/book/chapters/*.md`**: **do not edit in this repo** — it's sourced from the product repo. Flag to the user with the file path so they can fix upstream.
