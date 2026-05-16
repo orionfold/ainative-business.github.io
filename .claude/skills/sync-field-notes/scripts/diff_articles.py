@@ -18,6 +18,9 @@ import sys
 import textwrap
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import chrome_footers  # noqa: E402
+
 SOURCE_ROOT = Path("/Users/manavsehgal/Developer/ai-field-notes/articles")
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
 
@@ -92,10 +95,32 @@ def rewrite_article_links(text: str) -> str:
     return _ARTICLE_LINK_RE.sub(_sub, text)
 
 
+_GATED_ARTICLES: set[str] | None = None
+
+
+def _gated_slugs() -> set[str]:
+    """Memoized set of article slugs whose target carries a Mac-owned trailing
+    catalog footer. Stripped from target before comparing against source so
+    the diff stops flagging chrome-footer drift on every release."""
+    global _GATED_ARTICLES
+    if _GATED_ARTICLES is None:
+        _GATED_ARTICLES = set(chrome_footers.collect_gated_articles().keys())
+    return _GATED_ARTICLES
+
+
 def article_content_differs(src: Path, tgt: Path) -> bool:
     """Compare source vs target after applying the link rewrite to source.
-    Used in place of `file_hash(src) != file_hash(tgt)` for article files."""
-    return rewrite_article_links(src.read_text(encoding="utf8")) != tgt.read_text(encoding="utf8")
+    For articles whose target carries a gated catalog footer, strip it from
+    target before comparing — that block is Mac-authoritative chrome, not
+    editorial content. Used in place of `file_hash(src) != file_hash(tgt)`
+    for article files."""
+    src_text = rewrite_article_links(src.read_text(encoding="utf8"))
+    tgt_text = tgt.read_text(encoding="utf8")
+    slug = tgt.parent.name
+    if slug in _gated_slugs():
+        tgt_text = chrome_footers.strip_footer(tgt_text).rstrip() + "\n"
+        src_text = src_text.rstrip() + "\n"
+    return src_text != tgt_text
 
 
 def article_payload(slug_dir: Path) -> Path | None:

@@ -22,6 +22,11 @@ import sys
 import textwrap
 from pathlib import Path
 
+# `chrome_footers` is a sibling module; add this script's dir to sys.path
+# the same way contract_sweep.py does it.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import chrome_footers  # noqa: E402
+
 SOURCE_REPO = Path("/Users/manavsehgal/Developer/ai-field-notes")
 SOURCE_ROOT = SOURCE_REPO / "articles"
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
@@ -118,10 +123,25 @@ def copy_if_different(src: Path, dst: Path) -> bool:
 def copy_article_if_different(src: Path, dst: Path) -> bool:
     """Copy article markdown with `/articles/<slug>/` → `/field-notes/<slug>/`
     rewrite applied. The mirror transform lives in `diff_articles.py` so the
-    diff compares apples to apples."""
+    diff compares apples to apples.
+
+    For articles whose target carries a Mac-owned trailing catalog footer,
+    compare source against target-with-footer-stripped — if they match, the
+    article is already in step and the gated footer is preserved by skipping
+    the write. (Without this, every sync would clobber the footer and the
+    restore step would re-add it, producing a phantom write every run.)"""
     new_text = rewrite_article_links(src.read_text(encoding="utf8"))
-    if dst.exists() and dst.read_text(encoding="utf8") == new_text:
-        return False
+    if dst.exists():
+        existing = dst.read_text(encoding="utf8")
+        comparison = existing
+        slug = dst.parent.name
+        if slug in chrome_footers.collect_gated_articles():
+            comparison = chrome_footers.strip_footer(existing).rstrip() + "\n"
+            new_for_compare = new_text.rstrip() + "\n"
+        else:
+            new_for_compare = new_text
+        if comparison == new_for_compare:
+            return False
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(new_text, encoding="utf8")
     s = src.stat()
@@ -291,6 +311,35 @@ def sync_landing_page() -> dict:
     if new_text != tgt_text:
         LANDING_TARGET.write_text(new_text, encoding="utf8")
 
+    return counts
+
+
+def restore_gated_footers() -> dict:
+    """Re-append destination-owned trailing catalog footers after sync.
+
+    See `chrome_footers.py` for the full ownership rationale. Briefly:
+    Mac CC appends a trailing `**Catalog page:** [...](...)` block to any
+    article that has a matching `src/content/artifacts/<slug>.yaml`
+    manifest; source repo never writes this block, so a naive copy of
+    source over target drops it every release.
+
+    Strategy: scan destination manifests for the binding, strip any
+    existing trailing footer from each matching article, append the
+    canonical one. Idempotent — no-op when target already matches.
+    """
+    counts = {"footer_restored": 0}
+    gated = chrome_footers.collect_gated_articles()
+    if not gated:
+        return counts
+    for article_slug, footer in gated.items():
+        article_path = TARGET_ROOT / article_slug / "article.md"
+        if not article_path.exists():
+            continue
+        current = article_path.read_text(encoding="utf8")
+        new = chrome_footers.strip_footer(current).rstrip() + footer
+        if current != new:
+            article_path.write_text(new, encoding="utf8")
+            counts["footer_restored"] += 1
     return counts
 
 
@@ -488,6 +537,7 @@ def main() -> int:
     sig_counts = sync_signature_svgs()
     seq_counts = write_sequence_manifest()
     stats_counts = sync_project_stats()
+    footer_counts = restore_gated_footers()
 
     print(f"# Field Notes sync — applied")
     print(f"  articles source: {SOURCE_ROOT}")
@@ -499,6 +549,7 @@ def main() -> int:
     nothing_sig = not any(sig_counts.values())
     nothing_seq = not any(seq_counts.values())
     nothing_stats = not any(stats_counts.values())
+    nothing_footer = not any(footer_counts.values())
     if (
         nothing_articles
         and nothing_fieldkit
@@ -506,6 +557,7 @@ def main() -> int:
         and nothing_sig
         and nothing_seq
         and nothing_stats
+        and nothing_footer
     ):
         print("No changes copied. Source and target were already in step.")
         return 0
@@ -540,6 +592,11 @@ def main() -> int:
         print("  • src/data/field-notes/sequence.json: source order changed")
     if stats_counts["project_stats"]:
         print("  • src/data/field-notes/project-stats.json: refreshed (override re-applied)")
+    if footer_counts["footer_restored"]:
+        print(
+            f"  • articles/<n>/article.md: {footer_counts['footer_restored']} "
+            f"gated catalog footer(s) restored (Mac-owned chrome)"
+        )
 
     print()
     print("Totals:")
@@ -559,6 +616,9 @@ def main() -> int:
         if v:
             print(f"  {k}: {v}")
     for k, v in stats_counts.items():
+        if v:
+            print(f"  {k}: {v}")
+    for k, v in footer_counts.items():
         if v:
             print(f"  {k}: {v}")
 

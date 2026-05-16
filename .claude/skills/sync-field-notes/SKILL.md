@@ -152,6 +152,14 @@ The script is idempotent — running it twice is the same as running it once. Fi
 
 **Landing-page section sync.** The script also keeps the `/fieldkit/` landing page in step with the source by replacing only the inner bodies of three named `<section class="fk-section">` blocks — those whose `<h2>` text is **Install**, **Quickstart**, or **CLI**. These three are pure copy/code; they don't reference site-local URL helpers, so they transplant cleanly. The script detects target's section indentation, dedents source's body to col 0, and re-indents at target's level + 2 spaces, so the wrapping layout (`FieldNotesLayout`, `Nav`, `Footer`, `<main>`) and the Modules / Verified-in / header sections stay untouched. This is what lets a copy change like `pip install fieldkit` propagate to the site without breaking the build.
 
+**Gated catalog-footer preservation.** Articles that have a matching catalog manifest at `src/content/artifacts/<slug>.yaml` carry a Mac-owned trailing chrome block: `**Catalog page:** [`/artifacts/<kind>/<artifact-slug>/`](...) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.` The source repo (`ai-field-notes`) deliberately doesn't carry this block — per `mirrors/destination-overrides.md` "Article-body overrides (narrow, gated)", it points at destination-side catalog URLs Mac already owns. Both `diff_articles.py` and `sync_articles.py` strip the footer from target before comparing against source, so:
+
+- The diff never reports a footer-only article as "updated" (it would otherwise flag the same 3+ articles every release).
+- The sync never re-writes target when only the footer differs (true no-op idempotency).
+- After sync, `restore_gated_footers()` walks every article with a manifest binding (`article: articles/<slug>/` in the manifest's `article:` field) and re-appends the canonical footer if missing, stripping any stale footer first.
+
+The binding is data-driven: drop a new `src/content/artifacts/<new-slug>.yaml` with a valid `article:` field and the matching article picks up the footer on the next sync — no skill-side or script-side allowlist to maintain. See `chrome_footers.py` for the helper module owning the regex, kind-to-URL map, and the manifest-scanning logic shared between the two scripts.
+
 ### Step 5a: Contract-aware mechanical sweep
 
 Before walking the UX brainstorm, run the contract sweep — it surfaces structured deltas from the source's three contract files (`SYNC-CONTRACT.md`, `SYNC-RENAMES.log`, `mirrors/destination-overrides.md`) and the forthcoming SYNC-HANDOFF YAML frontmatter, so any high-judgement findings flow into Step 5b instead of being hand-discovered:
@@ -348,12 +356,19 @@ they drift, the diff reports phantom changes on every sync.
 
 **Build fails after UX apply.** Walk the user through `git diff` to see what was changed, then through manual revert (`git checkout -- <file>`) for the offending edit. Don't auto-rollback — the user owns that call, and the just-applied edits may be salvageable with a small fix.
 
+**New artifact manifest lands but the matching article has no catalog footer.** Run `sync_articles.py` — the `restore_gated_footers()` step appends the footer automatically once the manifest exists at `src/content/artifacts/<slug>.yaml` with a valid `article: articles/<slug>/` field. No manual edit needed.
+
+**Stale catalog footer on an article whose manifest moved or was deleted.** The restore step strips any trailing catalog footer (matching the regex in `chrome_footers._FOOTER_REMOVE_RE`) before re-appending. So if a manifest is removed, the footer is also removed on the next sync. If a manifest's `slug:` changes, the footer is rewritten to point at the new URL.
+
+**Artifact `kind:` is unmapped in `chrome_footers._KIND_TO_URL_FAMILY`.** The footer is silently skipped (defensive — better to skip than emit a broken URL). Add the new kind to the map when fieldkit ships a new publisher module. The map is small and mirrors the "Forthcoming top-level pages" list in `mirrors/destination-overrides.md`.
+
 ## Why this design
 
 - **Same `articles/<slug>/article.md` layout in both repos.** The only reason this skill exists at all is to keep that mirror in sync. If the layouts diverged, the integration would need a transform step. They don't, so the integration is `cp`.
 - **Diff before copy, not blind copy.** A blind copy works but doesn't tell the user what changed, which makes it easy to miss when something is moving that shouldn't be (a renamed slug, an accidentally-published seed). The diff is the receipt.
 - **Evidence-folder filter at the boundary.** The plan defers per-article evidence migration; the default is "images yes, source code no." The user can hand-port a Python file or a .ipynb if they want to publish it for a specific article — but the default sync never carries source code along.
 - **No git operations.** The drafting repo is the user's authoring environment; this skill stays a one-way mirror. The user pulls when they want to pull, commits when they want to commit, and runs this skill when they want to surface changes on the public site.
+- **Gated chrome blocks are data-driven, not allowlisted.** The trailing catalog footer is owned by Mac per `mirrors/destination-overrides.md`. The script discovers which articles get the footer by reading `src/content/artifacts/*.yaml` for `article: articles/<slug>/` bindings — no skill-side or script-side allowlist to keep in sync with the manifest set. Drop a new manifest, the matching article picks up its footer on next sync. This keeps the override boundary self-maintaining as new catalog entries land.
 - **Sequence manifest, not per-article frontmatter.** The website needs to know source's authoring order to render matching №01..№N labels, but encoding that into each article's frontmatter would smear ordering metadata across 30+ files and require re-stamping every article on every sync. A single manifest file is the cheaper representation: one diff, one place to look, and the file's own `git log` becomes the audit trail for "when did the sequence last change?". The manifest also keeps the build hermetic — `publishOrdinals()` reads a checked-in JSON, not a sibling repo at build time, so CI on GitHub Pages still works.
 
 ### Why this design (handoff-aware)
