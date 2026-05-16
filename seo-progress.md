@@ -43,6 +43,7 @@ Where possible, fix at the **template/layout** level rather than at the synced c
 | ✓ | `apply-api-docs` skill — added SEO contract rule | `.claude/skills/apply-api-docs/SKILL.md:232-233` | Prevents `description:` regrowth >160 on next regen; documents that titles stay short (layout adds suffix) |
 | ✓ | `apply-product-docs` skill — added SEO contract rule | `.claude/skills/apply-product-docs/SKILL.md:213-214` | Same rule for `/docs/*` non-api MDX scaffolding |
 | ✓ | `apply-book-update` skill — added 160-char description guard | `.claude/skills/apply-book-update/SKILL.md:338` | Guards `/book/` site-chrome description from regrowing during count-driven updates |
+| ✓ | GSC URL Inspection > Request Indexing — 3 crawled-not-indexed URLs | GSC console (`/book/ch-4-the-forge/`, `/book/ch-6-the-arena/`, `/docs/api/settings/`) | Manual user action after the layout/template fixes shipped. Reindex queued; awaiting next Google crawl to see promotion |
 
 **Architectural rationale (preserved for next session):** Every fix lives in a **layout/template** (`*Layout.astro` or a dynamic `[...slug].astro`), not in synced content (chapter markdown, api MDX bodies). The sync skills (`apply-book-update`, `apply-api-docs`, `apply-product-docs`) regenerate content files; they don't touch layouts. The three skill updates above add explicit guards so that if a future maintainer (or me) regenerates content, the SEO contract is part of the regen contract.
 
@@ -58,7 +59,6 @@ Where possible, fix at the **template/layout** level rather than at the synced c
 | LOW | Verify intentional noindex on `/field-notes/series/autoresearch/` | `src/pages/field-notes/series/autoresearch.astro` or related | user (decision) | Only excluded-by-noindex URL on the property — confirm intent |
 | INFO | PSI quota — wire up personal Google Cloud API key OR wait for daily reset | `.claude/skills/seo-monitor/scripts/` or `.env` | user | Daily quota tied to shared no-API-key project; user owns auth strategy |
 | USER | Resubmit sitemap in GSC | https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Aainative.business | user | Console-only action; click "Submit" again |
-| USER | Use URL Inspection > Request Indexing on the 3 crawled-not-indexed URLs after this session's fixes deploy | GSC URL Inspection | user | Console-only; daily quota ~10 |
 
 ### Stale-flag rule reminder
 

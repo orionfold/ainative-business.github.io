@@ -13,55 +13,25 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (SEO HIGH cluster fix — 30 audit issues cleared via layout/template edits)
-**Last destination commit (pre-session):** `d2ebcf4` — feat(skills): add seo-monitor — periodic GSC/GA4/PSI audit + code-fix autopilot
-**Push status:** all prior commits live on `origin/main`. This session's changes are uncommitted in working tree (12 modified, plus `seo-progress.md` + `seo/` archive). See `git status`.
+**Last session:** 2026-05-16 (SEO HIGH cluster fix — 30 audit issues cleared via layout/template edits; commit + GSC reindex completed but handoff was not updated at the time)
+**Last destination commit:** `bdb9c38` — feat(skills): sync-field-notes auto-preserves gated catalog footers
+**Push status:** clean. `git status` reports working tree clean and branch up to date with `origin/main`. The HIGH-cluster SEO fix landed as `309bd5f` and is live.
 
 ## Open items (replace each session)
 
-### 1. Commit + deploy this session's SEO fixes (NEXT STEP)
-
-**Status:** 30 audit issues cleared; 0 regressions; build clean. Files modified — see `git status`. Suggested commit message:
-
-```
-seo: fix HIGH cluster titles + descriptions (333 → 303 audit issues)
-
-Layout-level edits (template fixes, not synced content):
-- ApiDocsLayout suffix → "— ainative API Reference"  (6 docs/api titles)
-- BookLayout pageTitle for chapters → "— AI Native Business · Ch N"  (6 chapter titles)
-- [...slug].astro chapter description builder (10 chapter descriptions)
-- DocsLayout suffix → "— ainative Documentation"  (7 docs root titles)
-- Layout default description now sources SITE.description  (homepage + fallback callers)
-- SITE.description, /book/ index, /docs/api/instance trimmed to ≤160 chars
-
-Sync-skill guards added so next regen preserves the SEO contract:
-- apply-api-docs: 70–160 char description rule + title-stays-short note
-- apply-product-docs: same rule for /docs/* scaffolding
-- apply-book-update: 160-char guard on /book/ chrome description
-
-Verification: re-ran audit_site.mjs — 30 resolved, 0 new issues.
-```
-
-After commit, **request indexing in GSC** for the 3 crawled-not-indexed URLs:
-- `https://ainative.business/book/ch-4-the-forge/`
-- `https://ainative.business/book/ch-6-the-arena/`
-- `https://ainative.business/docs/api/settings/`
-
-These were the high-confidence join between GSC's "crawled — not indexed" bucket and the local audit's title/description cluster — fixing them should be the lever that flips 3 pages from "demoted" to "indexed" on next Google crawl.
-
-### 2. Carry-forward from prior session — Article wire-back propagation (unchanged)
+### 1. Carry-forward from prior session — Article wire-back propagation (unchanged)
 
 Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
 
-### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+### 2. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
 
-### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 3. Carry-forward — SHIPPED-flip PR back to source (unchanged)
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 5. SEO pending tasks (for a later session — full list lives in `seo-progress.md` Action Tracker)
+### 4. SEO pending tasks (for a later session — full list lives in `seo-progress.md` Action Tracker)
 
 The same-file tracker in `seo-progress.md` is the authoritative list. Summary of what's queued:
 
@@ -76,6 +46,10 @@ The same-file tracker in `seo-progress.md` is the authoritative list. Summary of
 The 4 `internal-href-missing-trailing-slash` audit hits are **confirmed false positives** (font preloads + code-block API URL examples) — recommend patching the audit script's detector to exclude file-extension URLs and `<pre>`/`<code>` content. Not in `fix-taxonomy.md` so not auto-applied; surfaced for next session if anyone touches the skill.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-16 (handoff reconciliation — stale "NEXT STEP" cleared)
+- Previous handoff had item #1 framed as "uncommitted, awaiting commit + push + GSC reindex." All three were actually completed before the handoff was written: SEO fixes shipped as commit `309bd5f` + pushed; GSC "Request Indexing" was clicked for the 3 crawled-not-indexed URLs (`/book/ch-4-the-forge/`, `/book/ch-6-the-arena/`, `/docs/api/settings/`). This session reconciled by dropping item #1, renumbering #2–#5 → #1–#4, and flipping the matching USER row in `seo-progress.md` Action Tracker.
+- Lesson for next session: when HANDOFF.md says "uncommitted in working tree," verify with `git status` + `git log` before treating it as a directive. The markdown is intent at session-end; git is truth.
 
 ### 2026-05-16 (SEO HIGH cluster — 30 audit issues cleared, 0 regressions)
 - **`/seo-monitor` second same-day run + targeted execution.** First run earlier in the day surfaced the no-changes journal. This session re-ran for the user's broader question ("why isn't GSC indexing 300+ pages?") and resulted in executing the HIGH-priority cluster fixes the prior /seo-monitor run had surfaced.
