@@ -13,43 +13,64 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (later — SEO MED cluster fix: field-notes article title suffix + tag-page description template + audit-detector patch; 199 audit issues cleared)
-**Last destination commit:** `99d4c49` — seo: MED cluster fix (303 → 104 audit issues, -199, 0 regressions)
-**Push status:** clean. `git status` reports working tree clean and branch up to date with `origin/main`. Build verified at 391 pages.
+**Last session:** 2026-05-16 (latest — destination-fixable description cluster: /about, /field-notes/, /fieldkit/, /artifacts/quants/* × 4, /fieldkit/api/* × 5; 12 audit issues cleared, LOW autoresearch-noindex item verified as intentional redirect)
+**Last destination commit:** pending — this session's edits not yet committed at handoff write time.
+**Push status:** dirty. Six files modified (1 doc + 5 templates). Working tree must be committed + pushed; build verified at 391 pages.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
+### 1. NEXT STEP — Commit + push the destination-fixable description cluster
 
-This session's MED-cluster fixes shipped as `99d4c49` and are pushed live. Audit went 303 → 104 issues (-199, zero regressions). Next `/seo-monitor` run should reflect the lower issue count once Google has recrawled the modified pages. No GSC manual actions queued this round — the layout/template/audit-script changes propagate automatically.
+Files touched this session (`git status --short` snapshot):
+- `src/pages/about.astro` (description trim 181→155)
+- `src/pages/field-notes/index.astro` (template trim 195→152)
+- `src/pages/fieldkit/index.astro` (description condense 284→158)
+- `src/pages/artifacts/quants/[slug]/index.astro` (template compress 173–183→134–144)
+- `src/pages/fieldkit/api/[module].astro` (meta-only `truncateForMeta` helper; on-page blurb unchanged)
+- `seo-progress.md` (Action Tracker updates: new Done block, two pending rows marked resolved)
 
-### 2. Carry-forward — Article wire-back propagation (unchanged)
+Suggested commit: `seo: destination description cluster (104 → 92 audit issues, -12, 0 regressions)`. After push, no GSC manual actions queued — these are template-level changes that propagate on next Google crawl.
+
+### 2. After Google recrawl (~7+ days from previous MED-cluster push) — Run `/seo-monitor`
+
+Two consecutive SEO sessions have shipped (303→104 first, 104→92 second). Next `/seo-monitor` run should reflect the cumulative reduction once Google has recrawled. Expected stale-flag age-out: ~12 `description-length-out-of-range` keys this round, on top of the prior MED-cluster keys.
+
+### 3. Carry-forward — Article wire-back propagation (unchanged)
 
 Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
 
-### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+### 4. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
 
-### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 5. Carry-forward — SHIPPED-flip PR back to source (unchanged)
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 5. SEO pending tasks (post-MED-cluster — full list lives in `seo-progress.md` Action Tracker)
+### 6. SEO pending tasks (post-destination-cluster — full list lives in `seo-progress.md` Action Tracker)
 
-The same-file tracker in `seo-progress.md` is the authoritative list. After this session's MED-cluster fixes, the remaining 104 audit issues are all source-authored content (article raw titles >65ch, article `summary` >200ch, fieldkit/artifacts/about descriptions). Summary:
+After this session, the remaining 92 audit issues are **all source-authored content** (article raw titles >65ch, article `summary` >200ch). The destination has done what it can in layouts/templates; further reduction requires source-side rewrites + sync, or a destination-only override layer for synced content. Summary:
 
 - **HIGH**: KV-cache article title + description rewrite. Source-of-record is `ai-field-notes/` repo — needs source-side rewrite + sync.
-- **HIGH**: Book chapter `description:` and `subtitle:` front-matter (would only matter if audit window/rules tighten — currently programmatic builder covers it).
+- **HIGH**: Book chapter `description:` and `subtitle:` front-matter (currently programmatic builder covers it — only matters if audit window/rules tighten).
 - **MED**: ~37 field-notes article titles >65ch (raw, suffix already conditional). Author's sentence-style titling — source-side rewrites if reducing further.
-- **MED**: ~54 field-notes article `summary` frontmatter >200ch. Source repo authoritative.
-- **MED**: 6 fieldkit + 4 artifacts + 1 /about descriptions — mixed source/destination, needs per-page audit.
-- **LOW**: Verify intentional noindex on `/field-notes/series/autoresearch/`.
+- **MED**: ~53 field-notes article `summary` frontmatter >200ch. Source repo authoritative.
 - **INFO**: PSI quota — need a personal Google Cloud API key OR live with daily reset.
 
-The 4 `internal-href-missing-trailing-slash` audit hits are **fixed this session** — detector regex updated with `(?<!\.)` negative lookbehind + extended asset-extension blacklist.
+The autoresearch-noindex item is **resolved this session** — verified as intentional slug-rename redirect (`/field-notes/series/autoresearch/` → `…/machine-that-builds-machines/`), with `meta robots=noindex` being Astro's standard GitHub-Pages redirect pattern (declared in `astro.config.*` `redirects:` block).
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-16 (latest session — destination-fixable description cluster, 104 → 92 audit issues)
+- **Picked up "read handoff and complete the pending seo actions"** with `seo-progress.md` Action Tracker as source-of-truth. Twelve destination-fixable items remained (1 /about/, 1 /field-notes/ index, 1 /fieldkit/ index, 4 /artifacts/quants/[slug]/, 5 /fieldkit/api/[module]/), plus one LOW noindex verification.
+- **`/about/` (181→155ch).** `src/pages/about.astro:60` — dropped redundant "a … for AI-native operators" tail. JSON-LD `description` on line 46 already in-range (132ch); left untouched.
+- **`/field-notes/` index (195→152ch).** `src/pages/field-notes/index.astro:24` — template rewritten: drop "published", "spanning", "series of research papers", and "By Manav Sehgal." trailing attribution. Math-checked across N∈[1,999]; longest is 153ch.
+- **`/fieldkit/` index (284→158ch).** `src/pages/fieldkit/index.astro:44-45` — condensed prose to module-list shape: "Open-source Python package the AI Native Field Notes are written against — KV-cache, NIM, RAG, eval, quant, and HF publish modules verified on a single Spark."
+- **`/artifacts/quants/[slug]/` template (173–183→134–144ch).** `src/pages/artifacts/quants/[slug]/index.astro:76` — compressed "{N}-variant {KIND} quantization of {model}. Spark-measured four-axis card across …" to "Spark-measured {KIND} card: {N} variants of {model} — perplexity, throughput, {eval}, sustained load." Sized across all four current cards (finance, saul-legal, saul-cyber, securityllm).
+- **`/fieldkit/api/[module]/` meta-only truncator (183–401→≤157ch).** `src/pages/fieldkit/api/[module].astro:42-49` — added `truncateForMeta(s, limit=160)`: cut at `limit-1`, back off to last space, strip trailing `,;:—-`, append `…`. **Critical architectural choice**: `summary` is synced source-of-record from `ai-field-notes/fieldkit/docs/api/*.md`; editing the source field would (a) get clobbered on next sync or (b) require an upstream PR for prose that reads fine at full length for human visitors. Template-level truncation preserves the source contract (synced summary is the on-page blurb still) and the SEO contract (meta description ≤160).
+- **LOW autoresearch-noindex item verified.** `/field-notes/series/autoresearch/` is declared in `astro.config.*` `redirects:` block (`'/field-notes/series/autoresearch/': '/field-notes/series/machine-that-builds-machines/'`). Astro emits a meta-refresh HTML stub with `<meta name="robots" content="noindex">` — this is the correct GitHub-Pages 301 substitute. The GSC "Excluded by 'noindex'" tag on that one URL is **expected and correct**; nothing to act on.
+- **Audit math.** Before: 104 (39 title + 65 desc). After: 92 (39 title + 53 desc). Net -12 description issues = exactly the 12 destination-fixable targets. Zero new issues, zero regressions. Build clean at 391 pages.
+- **Remaining 92 issues are all source-authored content.** Article raw titles >65ch (39) + article `summary` frontmatter >200ch (~53). Either source-side rewrites + sync, or a destination override layer is the next lever — neither is in this session's scope.
 
 ### 2026-05-16 (later session — SEO MED cluster, 303 → 104 audit issues)
 - **Picked up "read handoff and execute next set of tasks"** with the `seo-progress.md` Action Tracker as source-of-truth. Two MED-priority items were marked "this skill (later session)" — exactly the queue for a focused execution session.
