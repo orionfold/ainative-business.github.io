@@ -26,7 +26,19 @@ The 12-indexed-of-305-submitted gap is mostly **queue lag** (Google's crawl budg
 
 Where possible, fix at the **template/layout** level rather than at the synced content level. Synced content (book chapter markdown, docs/api MDX bodies, field-notes articles) gets overwritten by `apply-book-update`, `apply-api-docs`, `apply-product-docs`, `sync-field-notes`. Layouts and dynamic-route files in `src/layouts/` and `src/pages/[...slug].astro` are NOT in any sync skill's manifest — safe to edit.
 
-### Done — 2026-05-16 (latest session — destination-fixable description cluster)
+### Done — 2026-05-16 (final session — template-level truncate clears 92 → 0)
+
+**Audit delta: 92 → 0 issues (-92 resolved, 0 regressions).** Both remaining clusters (39 over-long article titles, 53 over-long article descriptions, 4 over-long series-page blurbs after the article fixes surfaced them) cleared via template-level truncation. Build clean at 391 pages.
+
+| ✓ | Fix | File | Replaces |
+|---|-----|------|----------|
+| ✓ | Article `<title>` smart-truncate at em-dash / colon / `?!` separator (pick longest head that fits +SUFFIX in 65) | `src/pages/field-notes/[slug]/index.astro:38-65` | All 39 title-length issues. On-page `<h1>` still renders full `title` |
+| ✓ | Article `<meta description>` via `truncateForMeta` (word-boundary cut to ≤160 + `…`) | `src/pages/field-notes/[slug]/index.astro:67-75,86` | All 53 article description-length issues. JSON-LD `description: summary` and the on-page `<p class="article__summary">` stay full |
+| ✓ | Series-page `<meta description>` via same `truncateForMeta` | `src/pages/field-notes/series/[series].astro:62-71` | 4 over-long blurbs in `SERIES_COPY` (ai-native-platform, frontier-scout, looking-beyond-spark, machine-that-builds-machines @ 333ch). On-page `<p class="stage-header__blurb">` still renders full prose |
+
+**Architectural rationale (continued).** The article fixes mirror the fieldkit/api pattern from the prior session: synced source-of-record stays in source (`summary` and `title` come from `ai-field-notes/articles/*/article.{md,mdx}` frontmatter); only the meta tags are truncated/condensed via template logic. Visible page content (`<h1>`, `<p class="article__summary">`, ArticleCard listings) keeps the author's full prose. The series-page fix is destination-only content (`SERIES_COPY` constant); the truncate runs locally rather than editing the prose because the on-page blurb is pedagogically dense — the 333ch `machine-that-builds-machines` text is the right length for a reader landing on the index, just too long for Google's snippet window.
+
+### Done — 2026-05-16 (earlier session — destination-fixable description cluster)
 
 **Audit delta: 104 → 92 issues (-12 resolved, 0 regressions).** All 12 destination-fixable description-length issues cleared: /about/ (181→155), /field-notes/ (195→152), /fieldkit/ (284→158), /artifacts/quants/* × 4 (173–183→134–144), /fieldkit/api/* × 5 (183–401→153–157 via in-template truncation). Build clean at 391 pages.
 
@@ -78,10 +90,10 @@ Where possible, fix at the **template/layout** level rather than at the synced c
 
 | Priority | Item | File / where | Owner | Why deferred |
 |---------:|------|---------------|-------|--------------|
-| HIGH | Rewrite KV-cache article title (95→≤65) + description (228→70–160) | `articles/lora-fine-tune-nemotron-on-spark/article.md(x)` | user (authored content) | Article body is source-of-record in `ai-field-notes/` source repo; needs source-side rewrite + sync, not destination edit |
-| HIGH | Lengthen book chapter `description:` and `subtitle:` front-matter | `src/data/book/chapters/*.md` (synced from product) | user (authored content) | These come from the product source. Edit there, then `apply-book-update` syncs in. If we add a destination-only override layer, document in apply-book-update skill |
-| MED | Rewrite ~37 field-notes article titles >65ch (raw, no suffix). E.g., 157ch title at `articles/judge-orchestrated-ensemble-on-spark/` | `articles/*/article.{md,mdx}` (synced from `ai-field-notes/`) | user (authored content) | Layout suffix already conditional — these are inherent to author's sentence-style titling. Source-side rewrites required |
-| MED | Trim ~54 field-notes article descriptions >200ch | `articles/*/article.{md,mdx}` frontmatter `summary` (synced) | user (authored content) | Source repo `ai-field-notes/` is authoritative; edit there per the SYNC contract |
+| ~~HIGH~~ | ~~Rewrite KV-cache article title (95→≤65) + description (228→70–160)~~ | resolved 2026-05-16 final session — template-level smart-truncate + `truncateForMeta` | — | Meta `<title>` and `<meta description>` now condensed at the template layer; visible `<h1>` and on-page `<p class="article__summary">` still show the synced author prose |
+| HIGH | Lengthen book chapter `description:` and `subtitle:` front-matter | `src/data/book/chapters/*.md` (synced from product) | user (authored content) | These come from the product source. Edit there, then `apply-book-update` syncs in. The programmatic builder at `src/pages/book/[...slug].astro:79-87` already produces 70–160 char descriptions from `title + subtitle + chapter number + author` — only matters if audit window/rules tighten |
+| ~~MED~~ | ~~Rewrite ~37 field-notes article titles >65ch~~ | resolved 2026-05-16 final session | — | `shortenTitle()` in article template splits on em-dash / colon / `?!` and picks the longest head that fits +SUFFIX in 65. 39 of 39 cleared |
+| ~~MED~~ | ~~Trim ~54 field-notes article descriptions >200ch~~ | resolved 2026-05-16 final session | — | `truncateForMeta()` in article template word-boundary-cuts to ≤160 with `…` ellipsis. 53 of 53 cleared. JSON-LD `description: summary` and ArticleCard listings still show full synced text |
 | ~~MED~~ | ~~Trim 6 fieldkit landing/API descriptions + 4 artifacts descriptions + 1 /about description~~ | resolved 2026-05-16 latest session — see Done block above | — | All 12 dest-fixable items shipped via layout/template edits + meta-only truncator on fieldkit/api/[module]/ |
 | ~~LOW~~ | ~~Verify intentional noindex on `/field-notes/series/autoresearch/`~~ | resolved 2026-05-16 latest session | — | Astro redirect (slug rename to `machine-that-builds-machines`) — meta-refresh + noindex is the correct GitHub-Pages pattern; declared in `astro.config.*` `redirects:` block |
 | INFO | PSI quota — wire up personal Google Cloud API key OR wait for daily reset | `.claude/skills/seo-monitor/scripts/` or `.env` | user | Daily quota tied to shared no-API-key project; user owns auth strategy |

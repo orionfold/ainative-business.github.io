@@ -59,8 +59,19 @@ export async function getStaticPaths() {
 
 const { name, entries } = Astro.props;
 const copy = SERIES_COPY[name];
+
+// The blurb above is the on-page reading prose (kept full). The meta tag
+// follows the 70–160 contract via a word-boundary truncate with ellipsis.
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
+const metaDescription = truncateForMeta(copy.blurb);
 ---
-<FieldNotesLayout title={`${name} — AI Native Field Notes`} description={copy.blurb}>
+<FieldNotesLayout title={`${name} — AI Native Field Notes`} description={metaDescription}>
   <Nav />
   <main>
     <header class="stage-header">

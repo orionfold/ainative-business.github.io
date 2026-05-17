@@ -36,11 +36,44 @@ const ogImage = `/og/field-notes/${article.id}.png`;
 const ogImageAlt = `${title} — AI Native Field Notes №${String(ordinal).padStart(2, '0')} by ${author}`;
 
 // SEO contract: keep <title> ≤ 65 chars. Append the brand suffix only when
-// it fits; otherwise fall back to the bare article title (which may still
-// exceed 65 — those are inherent to the author's title style and live in
-// source-of-record, not destination).
+// it fits; otherwise try to split the author's title at a natural separator
+// (em-dash subtitle, colon, end-of-question). Falls back to the bare title
+// only if no separator works — visible <h1> always uses the full title.
 const SUFFIX = ' — AI Native Field Notes';
-const pageTitle = (title.length + SUFFIX.length) <= 65 ? `${title}${SUFFIX}` : title;
+const shortenTitle = (t: string): string => {
+  // Prefer to keep `?`/`!` punctuation with the head clause.
+  const punctMatch = t.match(/^(.+?[?!])\s+\S/);
+  const punctHead = punctMatch ? punctMatch[1] : null;
+  // Em-dash and colon separators split off a subtitle — keep only the head.
+  const dashIdx = t.indexOf(' — ');
+  const colonIdx = t.indexOf(': ');
+  const candidates: string[] = [];
+  if (punctHead) candidates.push(punctHead);
+  if (dashIdx > 0) candidates.push(t.slice(0, dashIdx));
+  if (colonIdx > 0) candidates.push(t.slice(0, colonIdx));
+  // Pick the longest candidate whose `head + SUFFIX` still fits ≤ 65.
+  candidates.sort((a, b) => b.length - a.length);
+  for (const head of candidates) {
+    if (head.length + SUFFIX.length <= 65) return head + SUFFIX;
+  }
+  // No candidate accommodates the suffix — return bare head if short enough.
+  for (const head of candidates) {
+    if (head.length <= 65) return head;
+  }
+  return t;
+};
+const pageTitle = (title.length + SUFFIX.length) <= 65 ? `${title}${SUFFIX}` : shortenTitle(title);
+
+// Synced `summary` is the on-page blurb and the JSON-LD description (both
+// uncapped). The HTML <meta name="description"> follows the 70–160 contract.
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
+const metaDescription = truncateForMeta(summary);
 const breadcrumbItems = [
   { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
   { '@type': 'ListItem', position: 2, name: 'Field Notes', item: `${SITE.url}/field-notes/` },
@@ -80,7 +113,7 @@ const jsonLd = [
 ---
 <FieldNotesLayout
   title={pageTitle}
-  description={summary}
+  description={metaDescription}
   ogType="article"
   ogImage={ogImage}
   ogImageAlt={ogImageAlt}

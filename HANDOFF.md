@@ -13,15 +13,23 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (latest — destination-fixable description cluster: /about, /field-notes/, /fieldkit/, /artifacts/quants/* × 4, /fieldkit/api/* × 5; 12 audit issues cleared, LOW autoresearch-noindex item verified as intentional redirect)
-**Last destination commit:** `8973ee2` — seo: destination description cluster (104 → 92 audit issues, -12, 0 regressions)
-**Push status:** clean. `git status` reports working tree clean; `cc2ffea..8973ee2 main -> main` pushed. Build verified at 391 pages.
+**Last session:** 2026-05-16 (final — template-level truncate clears the last 92 audit issues; 39 article titles via smart-truncate at em-dash/colon/?!, 53 article descriptions + 4 series-page blurbs via `truncateForMeta`)
+**Last destination commit:** pending — this session's edits not yet committed at handoff write time.
+**Push status:** dirty. Three files modified (1 article template + 1 series template + 1 doc). Working tree must be committed + pushed; build verified at 391 pages, audit clean at 0 issues.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
+### 1. NEXT STEP — Commit + push, then run `/seo-monitor` after Google's next crawl (~7+ days)
 
-Two consecutive SEO sessions have shipped (303→104 first, 104→92 second). Next `/seo-monitor` run should reflect the cumulative reduction once Google has recrawled. Expected stale-flag age-out: ~12 `description-length-out-of-range` keys this round, on top of the prior MED-cluster keys.
+Files touched this session (`git status --short` snapshot):
+- `src/pages/field-notes/[slug]/index.astro` (smart `shortenTitle()` + `truncateForMeta()` for description; on-page `<h1>` and `<p class="article__summary">` unchanged)
+- `src/pages/field-notes/series/[series].astro` (`truncateForMeta()` for description; on-page blurb unchanged)
+- `seo-progress.md` (new Done block + tracker rows marked resolved)
+- `HANDOFF.md` (this file)
+
+Suggested commit: `seo: template-level truncate clears last 92 audit issues (104 → 0, 3-session cumulative 303 → 0)`. After push, no GSC manual actions queued — these are template-level changes that propagate on next Google crawl.
+
+Three consecutive SEO sessions have now shipped (303→104, 104→92, 92→0). Next `/seo-monitor` run after Google's recrawl (~7+ days) should reflect a clean local audit; the remaining GSC-side levers are queue-lag (Google's crawl budget on a low-authority property) and the manual sitemap-resubmit USER row in the tracker.
 
 ### 2. Carry-forward — Article wire-back propagation (unchanged)
 
@@ -35,19 +43,32 @@ Three destination-side articles carry the `Catalog page: …` footer (`becoming-
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 5. SEO pending tasks (post-destination-cluster — full list lives in `seo-progress.md` Action Tracker)
+### 5. SEO pending tasks — local audit clean; remaining levers are external (GSC + PSI)
 
-After this session, the remaining 92 audit issues are **all source-authored content** (article raw titles >65ch, article `summary` >200ch). The destination has done what it can in layouts/templates; further reduction requires source-side rewrites + sync, or a destination-only override layer for synced content. Summary:
+The local audit is at **0 issues**. Three template-level patterns now defend the SEO contract going forward:
+- `shortenTitle()` in `field-notes/[slug]/index.astro` — splits author titles at em-dash/colon/?/! for the `<title>` and `og:title` while leaving `<h1>` full.
+- `truncateForMeta()` (3 templates: `field-notes/[slug]/`, `field-notes/series/[series]/`, `fieldkit/api/[module]/`) — word-boundary-cuts `<meta description>` to ≤160 with `…`, keeping on-page prose full.
+- Conditional brand-suffix on `<title>` (article + series + fieldkit/api/docs/api/book chapters) — only appends when total stays ≤65.
 
-- **HIGH**: KV-cache article title + description rewrite. Source-of-record is `ai-field-notes/` repo — needs source-side rewrite + sync.
+Remaining items in `seo-progress.md` Action Tracker:
+
 - **HIGH**: Book chapter `description:` and `subtitle:` front-matter (currently programmatic builder covers it — only matters if audit window/rules tighten).
-- **MED**: ~37 field-notes article titles >65ch (raw, suffix already conditional). Author's sentence-style titling — source-side rewrites if reducing further.
-- **MED**: ~53 field-notes article `summary` frontmatter >200ch. Source repo authoritative.
 - **INFO**: PSI quota — need a personal Google Cloud API key OR live with daily reset.
+- **USER**: Resubmit sitemap in GSC (console-only action).
 
-The autoresearch-noindex item is **resolved this session** — verified as intentional slug-rename redirect (`/field-notes/series/autoresearch/` → `…/machine-that-builds-machines/`), with `meta robots=noindex` being Astro's standard GitHub-Pages redirect pattern (declared in `astro.config.*` `redirects:` block).
+The autoresearch-noindex item was **resolved in the previous session** — verified as intentional slug-rename redirect (`/field-notes/series/autoresearch/` → `…/machine-that-builds-machines/`), with `meta robots=noindex` being Astro's standard GitHub-Pages redirect pattern (declared in `astro.config.*` `redirects:` block).
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-16 (final session — template-level truncate clears last 92 → 0)
+- **Picked up "continue fixing remaining issues"** with audit at 92 (39 title + 53 description). Architectural choice: template-level smart-truncate over source-side rewrites — same pattern as the prior session's fieldkit/api fix, applied to the article + series templates.
+- **Article `<title>` smart-truncate.** `src/pages/field-notes/[slug]/index.astro:38-65` — `shortenTitle()` collects candidate "heads" from the title by splitting on (a) the first `?` or `!` followed by a space (head keeps the punctuation), (b) ` — ` em-dash boundary, (c) `: ` colon boundary. Picks the longest candidate whose `head + " — AI Native Field Notes"` fits in 65 chars; falls back to bare head if no suffix fit. Clears **39 of 39 title hits** including the 157ch outlier `RaguTeam at SemEval-2026 Task 8: Meno and Friends in a Judge-Orchestrated LLM Ensemble for Faithful Multi-Turn Response Generation — Spark reproduction notes` → `RaguTeam at SemEval-2026 Task 8 — AI Native Field Notes` (57ch).
+- **Article `<meta description>` via `truncateForMeta`.** `src/pages/field-notes/[slug]/index.astro:67-75,86` — same word-boundary truncate helper as the prior session's fieldkit/api template. Targets ≤160 with `…` ellipsis. Synced `summary` keeps its full text in the JSON-LD `description: summary` (line 56), the on-page `<p class="article__summary">` (line 108), and ArticleCard listings — only the HTML `<meta name="description">` and `og:description` (propagated through FieldNotesLayout) get the truncated form. Clears **53 of 53 description hits**.
+- **Series-page blurbs surfaced 4 new hits after article fix.** Once articles cleared, the audit revealed 4 over-long series blurbs in the `SERIES_COPY` constant (`ai-native-platform` 199ch, `frontier-scout` 199ch, `looking-beyond-spark` 198ch, `machine-that-builds-machines` 333ch). Applied the same `truncateForMeta` at `src/pages/field-notes/series/[series].astro:62-71`. On-page `<p class="stage-header__blurb">` still renders the full prose — pedagogically dense text the reader benefits from.
+- **Smart-truncate algorithm preserves the author's title voice.** The 39 hits broke down cleanly: 33 used em-dash subtitles ("Main Title — subtitle"), a few used colons ("Topic: subtitle"), and 1 used a rhetorical question ("Was the Agent Researching, or Flailing? An Observability Pass…"). Including `?`/`!` as headline-terminator separators handled the outlier without breaking the algorithm's robustness.
+- **Visible vs SEO duality codified.** This pattern (full prose in visible markup, condensed in meta tags) now spans 5 templates: article, article-series, fieldkit/api, fieldkit/, /about/, plus the legacy programmatic book-chapter description builder. The next session can rely on this as the established lever.
+- **Audit math.** Before this session: 92 (39 title + 53 desc). After article fix: 4 (0 title + 4 desc). After series fix: 0. Three-session cumulative: 303 → 0 issues. Build clean at 391 pages across both incremental rebuilds. Zero regressions.
+- **Why no destination-only overrides file.** Considered seeding `src/data/field-notes/seo-overrides.json` keyed by slug, but the smart-truncate covers all 39 author titles cleanly. An override file becomes useful only when the algorithm produces awkward heads — a problem that doesn't exist in the current article set. Defer until needed.
 
 ### 2026-05-16 (latest session — destination-fixable description cluster, 104 → 92 audit issues)
 - **Picked up "read handoff and complete the pending seo actions"** with `seo-progress.md` Action Tracker as source-of-truth. Twelve destination-fixable items remained (1 /about/, 1 /field-notes/ index, 1 /fieldkit/ index, 4 /artifacts/quants/[slug]/, 5 /fieldkit/api/[module]/), plus one LOW noindex verification.
