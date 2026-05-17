@@ -14,40 +14,28 @@
 # HANDOFF — ainative-business.github.io
 
 **Last session:** 2026-05-16 (latest — destination-fixable description cluster: /about, /field-notes/, /fieldkit/, /artifacts/quants/* × 4, /fieldkit/api/* × 5; 12 audit issues cleared, LOW autoresearch-noindex item verified as intentional redirect)
-**Last destination commit:** pending — this session's edits not yet committed at handoff write time.
-**Push status:** dirty. Six files modified (1 doc + 5 templates). Working tree must be committed + pushed; build verified at 391 pages.
+**Last destination commit:** `8973ee2` — seo: destination description cluster (104 → 92 audit issues, -12, 0 regressions)
+**Push status:** clean. `git status` reports working tree clean; `cc2ffea..8973ee2 main -> main` pushed. Build verified at 391 pages.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Commit + push the destination-fixable description cluster
-
-Files touched this session (`git status --short` snapshot):
-- `src/pages/about.astro` (description trim 181→155)
-- `src/pages/field-notes/index.astro` (template trim 195→152)
-- `src/pages/fieldkit/index.astro` (description condense 284→158)
-- `src/pages/artifacts/quants/[slug]/index.astro` (template compress 173–183→134–144)
-- `src/pages/fieldkit/api/[module].astro` (meta-only `truncateForMeta` helper; on-page blurb unchanged)
-- `seo-progress.md` (Action Tracker updates: new Done block, two pending rows marked resolved)
-
-Suggested commit: `seo: destination description cluster (104 → 92 audit issues, -12, 0 regressions)`. After push, no GSC manual actions queued — these are template-level changes that propagate on next Google crawl.
-
-### 2. After Google recrawl (~7+ days from previous MED-cluster push) — Run `/seo-monitor`
+### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
 
 Two consecutive SEO sessions have shipped (303→104 first, 104→92 second). Next `/seo-monitor` run should reflect the cumulative reduction once Google has recrawled. Expected stale-flag age-out: ~12 `description-length-out-of-range` keys this round, on top of the prior MED-cluster keys.
 
-### 3. Carry-forward — Article wire-back propagation (unchanged)
+### 2. Carry-forward — Article wire-back propagation (unchanged)
 
 Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
 
-### 4. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
 
-### 5. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 6. SEO pending tasks (post-destination-cluster — full list lives in `seo-progress.md` Action Tracker)
+### 5. SEO pending tasks (post-destination-cluster — full list lives in `seo-progress.md` Action Tracker)
 
 After this session, the remaining 92 audit issues are **all source-authored content** (article raw titles >65ch, article `summary` >200ch). The destination has done what it can in layouts/templates; further reduction requires source-side rewrites + sync, or a destination-only override layer for synced content. Summary:
 
