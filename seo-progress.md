@@ -26,7 +26,21 @@ The 12-indexed-of-305-submitted gap is mostly **queue lag** (Google's crawl budg
 
 Where possible, fix at the **template/layout** level rather than at the synced content level. Synced content (book chapter markdown, docs/api MDX bodies, field-notes articles) gets overwritten by `apply-book-update`, `apply-api-docs`, `apply-product-docs`, `sync-field-notes`. Layouts and dynamic-route files in `src/layouts/` and `src/pages/[...slug].astro` are NOT in any sync skill's manifest — safe to edit.
 
-### Done — 2026-05-16 (later session — MED cluster + audit-detector patch)
+### Done — 2026-05-16 (latest session — destination-fixable description cluster)
+
+**Audit delta: 104 → 92 issues (-12 resolved, 0 regressions).** All 12 destination-fixable description-length issues cleared: /about/ (181→155), /field-notes/ (195→152), /fieldkit/ (284→158), /artifacts/quants/* × 4 (173–183→134–144), /fieldkit/api/* × 5 (183–401→153–157 via in-template truncation). Build clean at 391 pages.
+
+| ✓ | Fix | File | Replaces |
+|---|-----|------|----------|
+| ✓ | /about/ description trim — drop redundant "a … for AI-native operators" suffix | `src/pages/about.astro:60` | 181 → 155ch |
+| ✓ | /field-notes/ index description — strip "published" + "spanning … series of research papers. By Manav Sehgal." | `src/pages/field-notes/index.astro:24` | 195 → 152ch (stays ≤160 up to N=999 articles) |
+| ✓ | /fieldkit/ index description — condense to module list | `src/pages/fieldkit/index.astro:44-45` | 284 → 158ch |
+| ✓ | /artifacts/quants/[slug]/ description template — compress to four-axis card line | `src/pages/artifacts/quants/[slug]/index.astro:76` | 173–183 → 134–144ch across the four cards |
+| ✓ | /fieldkit/api/[module]/ — meta-only truncator | `src/pages/fieldkit/api/[module].astro:42-49` | 183–401 → ≤157ch via word-boundary truncate; on-page blurb still shows full `summary` |
+
+**Architectural note (continued).** The fieldkit/api fix is the first time this session needed to diverge meta description from on-page text. The `truncateForMeta` helper is local to the template; rationale: `summary` is synced source-of-record from `ai-field-notes`, so editing the field directly would (a) get clobbered on next sync or (b) require an upstream PR for prose that reads fine at full length for human visitors. Truncating only the meta tag preserves both contracts.
+
+### Done — 2026-05-16 (earlier session — MED cluster + audit-detector patch)
 
 **Audit delta: 303 → 104 issues (-199 resolved, 0 regressions).** Verified via `node .claude/skills/seo-monitor/scripts/audit_site.mjs`. Detail: title-issues 49→39 (-10), description-issues 250→65 (-185), trailing-slash 4→0 (false-positive detector patched). Build clean at 391 pages.
 
@@ -68,8 +82,8 @@ Where possible, fix at the **template/layout** level rather than at the synced c
 | HIGH | Lengthen book chapter `description:` and `subtitle:` front-matter | `src/data/book/chapters/*.md` (synced from product) | user (authored content) | These come from the product source. Edit there, then `apply-book-update` syncs in. If we add a destination-only override layer, document in apply-book-update skill |
 | MED | Rewrite ~37 field-notes article titles >65ch (raw, no suffix). E.g., 157ch title at `articles/judge-orchestrated-ensemble-on-spark/` | `articles/*/article.{md,mdx}` (synced from `ai-field-notes/`) | user (authored content) | Layout suffix already conditional — these are inherent to author's sentence-style titling. Source-side rewrites required |
 | MED | Trim ~54 field-notes article descriptions >200ch | `articles/*/article.{md,mdx}` frontmatter `summary` (synced) | user (authored content) | Source repo `ai-field-notes/` is authoritative; edit there per the SYNC contract |
-| MED | Trim 6 fieldkit landing/API descriptions + 4 artifacts descriptions + 1 /about description | various (mostly synced from product / source) | user / sync skill | Need per-page audit to decide; might be one-line trims in some layouts vs source-side rewrites |
-| LOW | Verify intentional noindex on `/field-notes/series/autoresearch/` | `src/pages/field-notes/series/autoresearch.astro` or related | user (decision) | Only excluded-by-noindex URL on the property — confirm intent |
+| ~~MED~~ | ~~Trim 6 fieldkit landing/API descriptions + 4 artifacts descriptions + 1 /about description~~ | resolved 2026-05-16 latest session — see Done block above | — | All 12 dest-fixable items shipped via layout/template edits + meta-only truncator on fieldkit/api/[module]/ |
+| ~~LOW~~ | ~~Verify intentional noindex on `/field-notes/series/autoresearch/`~~ | resolved 2026-05-16 latest session | — | Astro redirect (slug rename to `machine-that-builds-machines`) — meta-refresh + noindex is the correct GitHub-Pages pattern; declared in `astro.config.*` `redirects:` block |
 | INFO | PSI quota — wire up personal Google Cloud API key OR wait for daily reset | `.claude/skills/seo-monitor/scripts/` or `.env` | user | Daily quota tied to shared no-API-key project; user owns auth strategy |
 | USER | Resubmit sitemap in GSC | https://search.google.com/search-console/sitemaps?resource_id=sc-domain%3Aainative.business | user | Console-only action; click "Submit" again |
 

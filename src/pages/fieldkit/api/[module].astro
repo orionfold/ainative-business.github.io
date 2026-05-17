@@ -38,10 +38,21 @@ const siblings = (await getCollection('fieldkit_docs')).sort(
 
 const moduleHref = (m: string) => `/fieldkit/api/${m}/`;
 const articleHref = (slug: string) => `/field-notes/${slug}/`;
+
+// Synced `summary` from upstream can exceed the 70–160 meta-description window.
+// Truncate at a word boundary for the meta tag only; the on-page blurb stays full.
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
+const metaDescription = truncateForMeta(summary);
 ---
 <FieldNotesLayout
   title={`${title} — Fieldkit — ainative`}
-  description={summary}
+  description={metaDescription}
 >
   <Nav />
   <main>
