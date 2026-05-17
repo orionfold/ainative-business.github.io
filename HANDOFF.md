@@ -13,9 +13,9 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (final — template-level truncate clears the last 92 audit issues; 39 article titles via smart-truncate at em-dash/colon/?!, 53 article descriptions + 4 series-page blurbs via `truncateForMeta`)
+**Last session:** 2026-05-16 (session 3 of 3 same-day SEO sessions — template-level truncate clears the last 92 audit issues; 39 article titles via smart-truncate at em-dash/colon/?!, 53 article descriptions + 4 series-page blurbs via `truncateForMeta`). Three-session cumulative: 303 → 104 → 92 → **0**.
 **Last destination commit:** `f782d2f` — seo: template-level truncate clears last 92 audit issues (3-session cumulative 303 → 0)
-**Push status:** clean. `git status` reports working tree clean; `3bea70f..f782d2f main -> main` pushed. Build verified at 391 pages, local audit at **0 issues**.
+**Push status:** clean. `git status` reports working tree clean; `origin/main` at `92edb92` (handoff reconciliation atop `f782d2f`). Build verified at 391 pages, local audit at **0 issues**.
 
 ## Open items (replace each session)
 
@@ -54,7 +54,7 @@ The autoresearch-noindex item was **resolved in the previous session** — verif
 
 ## Recent decisions (running log — append, don't replace)
 
-### 2026-05-16 (final session — template-level truncate clears last 92 → 0)
+### 2026-05-16 (session 3 of 3 — template-level truncate clears last 92 → 0)
 - **Picked up "continue fixing remaining issues"** with audit at 92 (39 title + 53 description). Architectural choice: template-level smart-truncate over source-side rewrites — same pattern as the prior session's fieldkit/api fix, applied to the article + series templates.
 - **Article `<title>` smart-truncate.** `src/pages/field-notes/[slug]/index.astro:38-65` — `shortenTitle()` collects candidate "heads" from the title by splitting on (a) the first `?` or `!` followed by a space (head keeps the punctuation), (b) ` — ` em-dash boundary, (c) `: ` colon boundary. Picks the longest candidate whose `head + " — AI Native Field Notes"` fits in 65 chars; falls back to bare head if no suffix fit. Clears **39 of 39 title hits** including the 157ch outlier `RaguTeam at SemEval-2026 Task 8: Meno and Friends in a Judge-Orchestrated LLM Ensemble for Faithful Multi-Turn Response Generation — Spark reproduction notes` → `RaguTeam at SemEval-2026 Task 8 — AI Native Field Notes` (57ch).
 - **Article `<meta description>` via `truncateForMeta`.** `src/pages/field-notes/[slug]/index.astro:67-75,86` — same word-boundary truncate helper as the prior session's fieldkit/api template. Targets ≤160 with `…` ellipsis. Synced `summary` keeps its full text in the JSON-LD `description: summary` (line 56), the on-page `<p class="article__summary">` (line 108), and ArticleCard listings — only the HTML `<meta name="description">` and `og:description` (propagated through FieldNotesLayout) get the truncated form. Clears **53 of 53 description hits**.
@@ -64,7 +64,7 @@ The autoresearch-noindex item was **resolved in the previous session** — verif
 - **Audit math.** Before this session: 92 (39 title + 53 desc). After article fix: 4 (0 title + 4 desc). After series fix: 0. Three-session cumulative: 303 → 0 issues. Build clean at 391 pages across both incremental rebuilds. Zero regressions.
 - **Why no destination-only overrides file.** Considered seeding `src/data/field-notes/seo-overrides.json` keyed by slug, but the smart-truncate covers all 39 author titles cleanly. An override file becomes useful only when the algorithm produces awkward heads — a problem that doesn't exist in the current article set. Defer until needed.
 
-### 2026-05-16 (latest session — destination-fixable description cluster, 104 → 92 audit issues)
+### 2026-05-16 (session 2 of 3 — destination-fixable description cluster, 104 → 92 audit issues)
 - **Picked up "read handoff and complete the pending seo actions"** with `seo-progress.md` Action Tracker as source-of-truth. Twelve destination-fixable items remained (1 /about/, 1 /field-notes/ index, 1 /fieldkit/ index, 4 /artifacts/quants/[slug]/, 5 /fieldkit/api/[module]/), plus one LOW noindex verification.
 - **`/about/` (181→155ch).** `src/pages/about.astro:60` — dropped redundant "a … for AI-native operators" tail. JSON-LD `description` on line 46 already in-range (132ch); left untouched.
 - **`/field-notes/` index (195→152ch).** `src/pages/field-notes/index.astro:24` — template rewritten: drop "published", "spanning", "series of research papers", and "By Manav Sehgal." trailing attribution. Math-checked across N∈[1,999]; longest is 153ch.
@@ -75,7 +75,7 @@ The autoresearch-noindex item was **resolved in the previous session** — verif
 - **Audit math.** Before: 104 (39 title + 65 desc). After: 92 (39 title + 53 desc). Net -12 description issues = exactly the 12 destination-fixable targets. Zero new issues, zero regressions. Build clean at 391 pages.
 - **Remaining 92 issues are all source-authored content.** Article raw titles >65ch (39) + article `summary` frontmatter >200ch (~53). Either source-side rewrites + sync, or a destination override layer is the next lever — neither is in this session's scope.
 
-### 2026-05-16 (later session — SEO MED cluster, 303 → 104 audit issues)
+### 2026-05-16 (session 1 of 3 — SEO MED cluster, 303 → 104 audit issues)
 - **Picked up "read handoff and execute next set of tasks"** with the `seo-progress.md` Action Tracker as source-of-truth. Two MED-priority items were marked "this skill (later session)" — exactly the queue for a focused execution session.
 - **Field-notes article title — conditional suffix.** `src/pages/field-notes/[slug]/index.astro:33-45,80` — computed `pageTitle = (title.length + " — AI Native Field Notes".length) <= 65 ? title + SUFFIX : title`. Sanity-tested against the 49 articles in `articles/*/`: 0 currently fit the full suffix (shortest raw title is 49ch, suffix is 24ch → 73 total). Net SEO effect: 12 articles whose raw titles are ≤65 are now compliant; 37 with longer raw titles are still flagged but no longer have the suffix penalty. Pre-existing `ogImageAlt` keeps the full "AI Native Field Notes" branding for social cards.
 - **Field-notes tag-page description — new template.** `src/pages/field-notes/tags/[tag].astro:39-44` — added `description = \`${count} ${count===1?'article':'articles'} tagged #${tag} — AI-native research, DGX Spark experiments, and agent workflows from ainative.business.\`` Renders 97–138 chars across the full tag space (longest tag is 28ch). Kept the original `blurb` variable for on-page rendering (`Articles tagged "${tag}" — N entries.`) so visible UI is unchanged. **Single template touched, ~185 description issues resolved.**
