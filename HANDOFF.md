@@ -23,19 +23,19 @@
 
 This session's MED-cluster fixes shipped as `99d4c49` and are pushed live. Audit went 303 → 104 issues (-199, zero regressions). Next `/seo-monitor` run should reflect the lower issue count once Google has recrawled the modified pages. No GSC manual actions queued this round — the layout/template/audit-script changes propagate automatically.
 
-### 3. Carry-forward — Article wire-back propagation (unchanged)
+### 2. Carry-forward — Article wire-back propagation (unchanged)
 
 Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
 
-### 4. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
+### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
 
-### 5. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
 
 Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
 
-### 6. SEO pending tasks (post-MED-cluster — full list lives in `seo-progress.md` Action Tracker)
+### 5. SEO pending tasks (post-MED-cluster — full list lives in `seo-progress.md` Action Tracker)
 
 The same-file tracker in `seo-progress.md` is the authoritative list. After this session's MED-cluster fixes, the remaining 104 audit issues are all source-authored content (article raw titles >65ch, article `summary` >200ch, fieldkit/artifacts/about descriptions). Summary:
 
