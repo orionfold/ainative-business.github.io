@@ -14,22 +14,16 @@
 # HANDOFF — ainative-business.github.io
 
 **Last session:** 2026-05-16 (final — template-level truncate clears the last 92 audit issues; 39 article titles via smart-truncate at em-dash/colon/?!, 53 article descriptions + 4 series-page blurbs via `truncateForMeta`)
-**Last destination commit:** pending — this session's edits not yet committed at handoff write time.
-**Push status:** dirty. Three files modified (1 article template + 1 series template + 1 doc). Working tree must be committed + pushed; build verified at 391 pages, audit clean at 0 issues.
+**Last destination commit:** `f782d2f` — seo: template-level truncate clears last 92 audit issues (3-session cumulative 303 → 0)
+**Push status:** clean. `git status` reports working tree clean; `3bea70f..f782d2f main -> main` pushed. Build verified at 391 pages, local audit at **0 issues**.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Commit + push, then run `/seo-monitor` after Google's next crawl (~7+ days)
+### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
 
-Files touched this session (`git status --short` snapshot):
-- `src/pages/field-notes/[slug]/index.astro` (smart `shortenTitle()` + `truncateForMeta()` for description; on-page `<h1>` and `<p class="article__summary">` unchanged)
-- `src/pages/field-notes/series/[series].astro` (`truncateForMeta()` for description; on-page blurb unchanged)
-- `seo-progress.md` (new Done block + tracker rows marked resolved)
-- `HANDOFF.md` (this file)
+This session's template-level truncate fixes shipped as `f782d2f` and are pushed live. Three consecutive SEO sessions have now shipped (303→104, 104→92, 92→0). Local audit is **clean at 0 issues**.
 
-Suggested commit: `seo: template-level truncate clears last 92 audit issues (104 → 0, 3-session cumulative 303 → 0)`. After push, no GSC manual actions queued — these are template-level changes that propagate on next Google crawl.
-
-Three consecutive SEO sessions have now shipped (303→104, 104→92, 92→0). Next `/seo-monitor` run after Google's recrawl (~7+ days) should reflect a clean local audit; the remaining GSC-side levers are queue-lag (Google's crawl budget on a low-authority property) and the manual sitemap-resubmit USER row in the tracker.
+Next `/seo-monitor` run after Google's recrawl (~7+ days) should reflect the cumulative reduction. Remaining GSC-side levers are queue-lag (Google's crawl budget on a low-authority property) and the manual sitemap-resubmit USER row in the `seo-progress.md` Action Tracker.
 
 ### 2. Carry-forward — Article wire-back propagation (unchanged)
 
