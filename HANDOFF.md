@@ -13,29 +13,32 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-16 (session 3 of 3 same-day SEO sessions — template-level truncate clears the last 92 audit issues; 39 article titles via smart-truncate at em-dash/colon/?!, 53 article descriptions + 4 series-page blurbs via `truncateForMeta`). Three-session cumulative: 303 → 104 → 92 → **0**.
-**Last destination commit:** `f782d2f` — seo: template-level truncate clears last 92 audit issues (3-session cumulative 303 → 0)
-**Push status:** clean. `git status` reports working tree clean; `origin/main` at `92edb92` (handoff reconciliation atop `f782d2f`). Build verified at 391 pages, local audit at **0 issues**.
+**Last session:** 2026-05-17 (patent-strategist v1 baseline sweep — content-only release from `2026-05-17-patent-strategist-v1-baseline`. New article `patent-strategist-v1-baseline-on-spark` (published, three-mode bracket on R1-0528-Qwen3-8B Q5_K_M), new signature `PatentBracketSignature.astro`, fieldkit v0.4.2 → v0.4.3 (version pin + 4 reference docs). Build 391 → 399 pages. Phantom catalog footers handled by `restore_gated_footers` in sync_articles.py — no manual revert needed this cycle.).
+**Last destination commit:** `df0066c` — feat(field-notes): patent-strategist v1 baseline + fieldkit v0.4.3
+**Push status:** **unpushed.** `df0066c` is ahead of `origin/main` by 1 commit; `origin/main` at `23f38a3`. Working tree clean otherwise. SHIPPED-flip PR back to source needs to open with `df0066c` as the destination-commit citation, AFTER push.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Run `/seo-monitor` after Google's next crawl (~7+ days)
+### 1. NEXT STEP — Push `df0066c` and open the source-side SHIPPED-flip PR
 
-This session's template-level truncate fixes shipped as `f782d2f` and are pushed live. Three consecutive SEO sessions have now shipped (303→104, 104→92, 92→0). Local audit is **clean at 0 issues**.
+Workflow remainder:
+1. `git push` to publish `df0066c` to `origin/main`.
+2. Open PR against `ai-field-notes` flipping `SYNC-HANDOFF.md`: `STATUS: NEW` → `STATUS: SHIPPED`, append swept-at receipt citing destination commit `df0066c`. The contract sweep already generated the PR title/body shape:
+   - **Title:** `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-17-patent-strategist-v1-baseline (df0066c)`
+   - **Body:** Mac CC swept this release at destination commit `df0066c`. Flipping STATUS marker so the next release rotation has a clean signal. No companion SYNC-RENAMES flips (0 pending renames this cycle).
+3. The PR is opened cross-repo via `gh` against `ai-field-notes/main`. Per `feedback_work_on_main`, cross-repo writes stay user-controlled — Mac CC drafts and surfaces the `gh pr create` command but the user picks the moment to execute.
 
-Next `/seo-monitor` run after Google's recrawl (~7+ days) should reflect the cumulative reduction. Remaining GSC-side levers are queue-lag (Google's crawl budget on a low-authority property) and the manual sitemap-resubmit USER row in the `seo-progress.md` Action Tracker.
+### 2. Carry-forward — Article wire-back propagation (now handled by sync script, but cleanest fix still pending)
 
-### 2. Carry-forward — Article wire-back propagation (unchanged)
-
-Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). Each sync surfaces a phantom diff. Workaround: `git checkout HEAD -- <article>` after sync. Cleanest fix is a source-side PR replicating the three wire-back lines. **Not relevant to this session** — no sync ran.
+Three destination-side articles carry the `Catalog page: …` footer (`becoming-a-gguf-publisher-on-spark`, `becoming-a-legal-curator-on-spark`, `becoming-a-cyber-curator-on-spark`). The 2026-05-16 sync-skill enhancement (`bdb9c38 feat(skills): sync-field-notes auto-preserves gated catalog footers`) means `restore_gated_footers()` now re-appends these on each sync — **no manual `git checkout` needed any more.** Verified clean this session: zero phantom diffs surfaced, three footers intact in `git status`. Cleanest long-term fix is still a source-side PR replicating the three wire-back lines so the destination-side restore step becomes a no-op.
 
 ### 3. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml` (unchanged)
 
-`recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Add `git checkout HEAD -- src/content/artifacts/securityllm-gguf.yaml` to post-sync restore, OR upstream the field to source. **Not relevant to this session.**
+`recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible. Not relevant to this session (no manifest sync).
 
-### 4. Carry-forward — SHIPPED-flip PR back to source (unchanged)
+### 4. Carry-forward — Patent-strategist W3 fine-tune kickoff (source-side, ETA ~2 weeks)
 
-Contract sweep generated PR plan from prior cyber-vertical sweep (still pending). Title: `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-15-cyber-vertical (<destination-commit>)`. **Not relevant to this session** — no source sweep.
+Per source handoff "Notes for the next sync": W3 is the GRPO fine-tune of R1-0528-Qwen3-8B against the patent-strategist deterministic-scorable shapes (D-mcq + D-irac), closing the 22.5pp closed-to-retrieval gap measured in this baseline. Will likely cut a new fieldkit minor (`fieldkit.training` extensions for the patent reward function) and ship a new article. **Not actionable on Mac side until the next SYNC-HANDOFF rotation** — flagging here so it's not lost when the next sweep arrives.
 
 ### 5. SEO pending tasks — local audit clean; remaining levers are external (GSC + PSI)
 
@@ -53,6 +56,18 @@ Remaining items in `seo-progress.md` Action Tracker:
 The autoresearch-noindex item was **resolved in the previous session** — verified as intentional slug-rename redirect (`/field-notes/series/autoresearch/` → `…/machine-that-builds-machines/`), with `meta robots=noindex` being Astro's standard GitHub-Pages redirect pattern (declared in `astro.config.*` `redirects:` block).
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-17 (patent-strategist v1 baseline sweep — content-only)
+- **Source release `2026-05-17-patent-strategist-v1-baseline` swept.** Status NEW; source range `f005b52..17f59ee`; status SHIPPED flip pending push + PR. Frontmatter classification: 1 article added (`patent-strategist-v1-baseline-on-spark`, status `published`), 1 signature SVG added (`PatentBracketSignature.astro`), 0 renames-to-replay, 0 artifacts added/updated, 0 papers, 0 new top-level pages, 0 breaking changes. All seven bucket counts apart from `content` were zero — clean content-only path, Step 5b skipped entirely.
+- **Auto-flow content sync.** `python3 .claude/skills/sync-field-notes/scripts/sync_articles.py` copied: article body (1), fieldkit reference docs (4 — `eval.md`, `publish.md`, `quant.md`, `rag.md` catch-up against the v0.4.3 kwarg-drift baseline shipped in source commit `ae85b66`), `fieldkit/_version.py` bump 0.4.2 → 0.4.3, signature SVG (1), sequence manifest rewrite (39 published + 4 upcoming = 43 total in source order), project-stats refresh (38 → 39 published articles, 127,405 → 130,727 words, 24,254 → 25,508 LOC). Recall@5 override re-applied at `accuracy[0]` as designed; verified `recall@5 = 1.0` still leads with `bigger-generator-grounding-on-spark` slug.
+- **No screenshots / no evidence images.** Article is bench/eval with the SVG signature carrying the visual headline (three-bar D-mcq ladder + dashed random-4-choice baseline + lift connectors annotated `+0.225` and `+0.100`). `evidence/patent-strategist/baseline-runs/` exists in source with 5 run-dirs but the skill's evidence filter (`Python source code excluded; image extensions only`) means none of it ships with the website. Article body links out to the source repo for raw evidence per design.
+- **Contract sweep clean.** `python3 .claude/skills/sync-field-notes/scripts/contract_sweep.py` reported: 0 pending renames (all `complete`/`source-applied`); destination-overrides intact with 17 Mac-authoritative globs (`/book/`, `/pricing/`, `/about/`, `/`, `/projects/`, `/privacy/`, `/bookmarks/`, `/glossary/`, `/docs/`, `/skills/`, `/artifacts/<kind>/` × 7); Phase 2 ACTIVE with 4 manifests on disk (cyber + finance + legal + securityllm/saul). SHIPPED-flip PR plan generated with title `mirror: SYNC-HANDOFF.md SHIPPED — 2026-05-17-patent-strategist-v1-baseline (df0066c)` — to open after push.
+- **Phantom catalog footers handled automatically.** `restore_gated_footers()` (added in `bdb9c38`) walks every article with a matching `src/content/artifacts/<slug>.yaml` manifest binding and re-appends the canonical `Catalog page: …` block. Verified: zero diff surfaced for the three wire-back articles this sweep. Open-item #2 from prior sessions is now structurally resolved by the script; the source-side wire-back PR would just remove the restore step from the critical path.
+- **fieldkit v0.4.3 has zero Mac-side code change.** Per source handoff: "PyPI live; install with `pip install fieldkit==0.4.3`." The Mac mirror is reference-docs-only (4 markdown files under `fieldkit/docs/api/`) — wheel itself is published from the source-side fieldkit-curator skill, never republished from Mac. Version pin `fieldkit/_version.py` exists only to drive `FieldkitCli.astro` headline copy.
+- **Build clean.** 391 → 399 pages (+8: new article page + new tag page `/field-notes/tags/patent-strategist/` + new article OG card + dist field-notes index regen + new artifacts hub touch + a handful of derived index pages). Astro cache cleared first per skill Step 7 (`rm -rf .astro node_modules/.astro`) to defeat stale content-collection cache after the schema-adjacent project-stats regen. Zero schema validation errors, zero warnings on field-notes content collection.
+- **No UX brainstorm needed.** Handoff frontmatter explicitly enumerated zero items across `dependencies`, `config-wiring`, `mechanical-new-files`, `modified-shared-files`, and `UX-contract` buckets. The article carries the new `signature: PatentBracketSignature` frontmatter value, which is admissible by the schema's free-form `signature: z.string().optional()` and resolved at build time by `src/lib/field-notes/article-order.mjs` reading the SVG via `import.meta.glob` — no schema extension, no registration, no `STAGE_COPY` / `SERIES_COPY` update.
+- **Two-article home page gap unchanged.** Source-local home shows 39 published articles, destination shows 39 + 2 reframed papers (`ai-transformation`, `solo-builder-case-study`) = 41 visible. The gap is documented in the source handoff `destination_overrides_to_preserve` field — Mac owns those two pages and no Spark sweep action is required. The placeholder `mirrors/destination-overrides.md` could formalize this if/when the first inventory PR lands; deferred.
+- **Skills-in-git note (source-side only).** Source's `.claude/skills/` tree is now versioned alongside the source repo (per source commit `5076b63` and surrounding). Per the source handoff: "Mac CC's skill tree is separate (`~/.claude/skills/` on Mac); this is the Spark CC user-config layer (`tech-writer`, `hf-publisher`, `hf-model-scout`, `fieldkit-curator`, `frontier-scout`, `nvidia-learn-stats`, etc.). Per `[[reference_sync_contract]]`: skills are Mac-and-Spark each-own-their-own; no Mac sweep action needed." No file-level cross-talk here; this is informational so the next sync session doesn't propose mirroring the source's skill tree under this repo's `.claude/skills/`.
 
 ### 2026-05-16 (session 3 of 3 — template-level truncate clears last 92 → 0)
 - **Picked up "continue fixing remaining issues"** with audit at 92 (39 title + 53 description). Architectural choice: template-level smart-truncate over source-side rewrites — same pattern as the prior session's fieldkit/api fix, applied to the article + series templates.
