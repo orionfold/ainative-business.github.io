@@ -63,26 +63,34 @@ print(report.variant_files["Q4_K_M"])
 
 If the source isn't already a GGUF, `quantize_gguf` first invokes `convert_hf_to_gguf.py --outtype f16` to produce a base F16 file, then runs `llama-quantize` per variant against that intermediate. The intermediate is reused as the F16 variant of the final report — no double-conversion. `dry_run=True` enumerates the subprocess commands into `report.notes` without running them; this is the path tests + CI use to verify the orchestration without needing an 8 GB checkpoint on hand.
 
-### `measure_perplexity_gguf(gguf, *, corpus, paths, n_ctx=512)`
+Pass `f16_path=` to skip the convert step entirely when you've already produced an F16 GGUF out-of-band (e.g. a prior partial run) — `quantize_gguf` then uses that file as the intermediate and only runs `llama-quantize` per remaining variant. Pass `extra_quantize_args=("--imatrix", "/path/to/imatrix.dat")` (or any other llama.cpp flag tuple) to thread additional arguments to every `llama-quantize` invocation; useful for K-quant importance-matrix calibration.
 
-Wraps `llama-perplexity`. Returns a `float` parsed from the canonical `Final estimate: PPL = N.NNN` line, or `None` on parse failure. Cards that ship without a perplexity column use the `None` path — the rendering is forgiving (the column shows `—`).
+### `measure_perplexity_gguf(*, gguf_path, corpus_path, paths=None, extra_args=(), dry_run=False)`
+
+Wraps `llama-perplexity`. Returns a `float` parsed from the canonical `Final estimate: PPL = N.NNN` line, or `None` on parse failure / dry-run. Cards that ship without a perplexity column use the `None` path — the rendering is forgiving (the column shows `—`).
 
 ```python
 ppl = measure_perplexity_gguf(
-    "/home/nvidia/data/quants/finance-chat/model-Q4_K_M.gguf",
-    corpus="/home/nvidia/data/calibration/wikitext-2-raw-v1/wiki.test.raw",
+    gguf_path="/home/nvidia/data/quants/finance-chat/model-Q4_K_M.gguf",
+    corpus_path="/home/nvidia/data/calibration/wikitext-2-raw-v1/wiki.test.raw",
     paths=paths,
 )  # → 6.2215
 ```
 
-### `measure_tokens_per_sec_gguf(gguf, *, paths, metric='tg', n_gpu_layers=99)`
+Pass `extra_args=("-c", "1024", "--chunks", "20")` to thread additional flags to `llama-perplexity` (context window, chunk count, batch size, etc.). The default invocation uses llama.cpp's own defaults — bump `-c` when the calibration corpus's segments are longer than 512 tokens.
 
-Wraps `llama-bench`. `metric='tg'` returns text-generation `tok/s`; `metric='pp'` returns prompt-processing `tok/s`. Returns `None` on parse failure.
+### `measure_tokens_per_sec_gguf(*, gguf_path, paths=None, n_gen=128, n_prompt=512, extra_args=(), dry_run=False)`
+
+Wraps `llama-bench` and returns `{"tg": tok/s, "pp": tok/s}` — both axes matter on a real Spark card (`tg` dominates interactive decode latency, `pp` dominates long-context ingestion). Either value may individually be `None` if `llama-bench`'s output for that build doesn't carry the corresponding row.
 
 ```python
-tg = measure_tokens_per_sec_gguf(gguf, paths=paths, metric='tg')   # → 31.1
-pp = measure_tokens_per_sec_gguf(gguf, paths=paths, metric='pp')   # → 1111.1
+out = measure_tokens_per_sec_gguf(
+    gguf_path=gguf, paths=paths, n_gen=128, n_prompt=512,
+)
+# {'tg': 31.1, 'pp': 1111.1}
 ```
+
+`n_gen=128` and `n_prompt=512` are llama-bench's `-n` / `-p` flags — number of generated tokens (drives `tg`) and prompt tokens (drives `pp`). Defaults match the canonical Orionfold-card numbers; bump `n_prompt` when measuring long-context regimes (4K / 8K). Pass `extra_args=("-t", "16")` or any other llama-bench flag tuple to override thread counts, batch sizes, etc.
 
 ### `ThermalProbe(interval_s=2.0, throttle_temp_c=83.0)`
 
