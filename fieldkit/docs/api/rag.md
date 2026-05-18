@@ -74,8 +74,8 @@ with NIMClient(base_url="http://localhost:8000/v1",
 | `ingest(docs, chunk_tokens=900)` | int | Chunks via `fieldkit.nim.chunk_text`, embeds in batches of 32, upserts in one transaction. Returns chunk count. |
 | `retrieve(query, top_k=5)` | `list[Chunk]` | pgvector cosine `<=>`. Each chunk carries `distance`. |
 | `rerank(query, chunks, top_k=3)` | `list[Chunk]` | Pass-through when `rerank_url=None` so the simplest pipeline works without NGC creds. |
-| `fuse(query, chunks, **gen_kwargs)` | dict | Builds the strict-context prompt and calls the generator. |
-| `ask(query, retrieve_k=5, rerank_k=3, ...)` | dict | Full chain. Returns `{"answer", "chunks", "raw"}`. |
+| `fuse(query, chunks, *, max_tokens=256, temperature=0.0, **gen_kwargs)` | dict | Builds the strict-context prompt and calls the generator. `max_tokens` / `temperature` flow to `NIMClient.chat` (default `temperature=0.0` is grounded-RAG-correct; bump only when you want the fuser to paraphrase). |
+| `ask(query, *, retrieve_k=5, rerank_k=3, max_tokens=256, temperature=0.0)` | dict | Full chain. Returns `{"answer", "chunks", "raw"}`. `temperature=0.0` keeps the strict-context answer deterministic; raise it if the generator should hedge across multiple equally-grounded chunks. |
 
 ### Chunk id encoding
 

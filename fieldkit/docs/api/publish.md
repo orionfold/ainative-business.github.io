@@ -136,6 +136,8 @@ result.logged_calls   # the upload_folder kwargs that would have fired
 
 Token resolution order: explicit `token=` arg → `HF_TOKEN` env → `HUGGING_FACE_HUB_TOKEN` env → `huggingface_hub`'s cached login. If all four are absent and `dry_run=False`, `HFAuthError` raises before the network call.
 
+`HFHubAdapter.push_folder(*, repo_name, commit_message="Initial Orionfold upload", private=False, repo_type="model")` exposes the three llama-hub kwargs the orchestrator passes through. `commit_message` defaults to the bootstrap value used by every first-push card — override on subsequent updates (`"Polish llama_cpp_example_prompt"`, `"Add Q4_0 variant"`). `private=True` creates a private repo first (or no-ops if the repo already exists at any visibility — `exist_ok=True` is baked in). `repo_type="model"` covers every Orionfold card; flip to `"dataset"` or `"space"` for the rare cases (lineage-store snapshots have shipped as datasets in past sessions).
+
 ### `publish_quant(*, quant_report, base_model, repo_name, staging_dir, ...) → PublishResult`
 
 The one-line orchestrator. Reads the duck-typed `quant_report` fields (`.format`, `.variants`, `.perplexity`, `.tokens_per_sec`, `.sustained_load_minutes`, `.variant_files`, `.vertical_eval`, `.vertical_eval_name`, `.model_license`, `.chat_format`, `.recommended_variant`, `.llama_cpp_example_prompt`), builds a `ModelCard`, stages the README + variant files, writes the `ArtifactManifest` (if `artifacts_dir` supplied), and invokes `HFHubAdapter.push_folder()`. Explicit kwargs override duck-typed report attrs.
@@ -165,6 +167,8 @@ result.hf_url          # None in dry-run; set after live push
 ```
 
 The `model_license` / `chat_format` / `recommended_variant` kwargs landed in v0.4.x after the `Orionfold/finance-chat-GGUF` dry-run surfaced two card-rendering bugs: a hardcoded `license: apache-2.0` (wrong for the Llama-2 lineage AdaptLLM base) and an empty `## How to run` section (when no ollama handle or transformers snippet was supplied, the section header rendered with no body). Both are now caller-controlled with sane defaults.
+
+`extra_tags=("finance", "evidence-based")` threads additional HF tags into the rendered card's frontmatter `tags:` array (deduplicated against the auto-generated tags like `gguf`, `quantized`, `orionfold`). Use for vertical-specific discoverability — the four shipped Orionfold cards each add their vertical name (`finance`, `legal`, `cyber`, `medical`) plus secondary tags driven by the base model's lineage.
 
 ## Why this surface
 

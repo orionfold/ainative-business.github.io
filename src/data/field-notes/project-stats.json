@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-16T12:47:06Z",
+  "generated_at": "2026-05-18T04:56:23Z",
   "articles": {
-    "total": 38,
-    "published": 38,
+    "total": 39,
+    "published": 39,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 127405,
-    "mean_per_article": 3352,
+    "total": 130727,
+    "mean_per_article": 3351,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -17,11 +17,11 @@
   },
   "code": {
     "evidence_loc": 14207,
-    "fieldkit_loc": 10047,
+    "fieldkit_loc": 11301,
     "vendored_loc": 344724,
-    "total_loc": 24254,
+    "total_loc": 25508,
     "by_language": {
-      "python": 24226,
+      "python": 25480,
       "sql": 15,
       "shell": 13
     },
@@ -33,7 +33,7 @@
   "stages": {
     "foundations": 12,
     "training": 12,
-    "fine-tuning": 8,
+    "fine-tuning": 9,
     "inference": 14,
     "deployment": 6,
     "agentic": 14,
@@ -94,14 +94,14 @@
   ],
   "products": [
     {
-      "id": "nim",
-      "label": "NVIDIA NIM",
+      "id": "dgx-spark",
+      "label": "DGX Spark",
       "articles": 31
     },
     {
-      "id": "dgx-spark",
-      "label": "DGX Spark",
-      "articles": 30
+      "id": "nim",
+      "label": "NVIDIA NIM",
+      "articles": 31
     },
     {
       "id": "nemo",
