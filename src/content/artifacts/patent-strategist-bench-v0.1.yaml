@@ -1,0 +1,11 @@
+slug: patent-strategist-bench-v0.1
+kind: bench
+class: patent-prosecution-reasoning
+base_model: n/a
+hf_repo: Orionfold/patent-strategist-bench-v0.1
+variants: []
+license:
+  tier: free
+  model: cc-by-4.0
+article: articles/patent-strategist-v1-baseline-on-spark/
+published_at: "2026-05-19T21:52:34Z"
