@@ -44,6 +44,7 @@
     "becoming-a-legal-curator-on-spark",
     "becoming-a-cyber-curator-on-spark",
     "becoming-a-medical-curator-on-spark",
-    "patent-strategist-v1-baseline-on-spark"
+    "patent-strategist-v1-baseline-on-spark",
+    "fine-tune-data-prep-decisions-on-spark"
   ]
 }
