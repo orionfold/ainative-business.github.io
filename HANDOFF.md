@@ -14,14 +14,14 @@
 # HANDOFF — ainative-business.github.io
 
 **Last session:** 2026-05-19 (patent-strategist W3 data-prep article sweep — content-only release from `2026-05-19-patent-strategist-W3-data-prep-article`. New article `fine-tune-data-prep-decisions-on-spark` (~3400 words; W3 patent-strategist three-rounds-of-misdiagnosis field report: BOS/EOS → catastrophic-forgetting → corpus contamination 56% of training rows), new signature `CorpusContaminationLayers.astro`, incidental stroke-width fix to `PatentBracketSignature.astro`. No fieldkit, no HF push, no renames, no schema changes. Build 405 pages. All 5 handoff confirmation points pass from build artifacts.).
-**Last destination commit:** `c71a5bb` — feat(field-notes): add fine-tune-data-prep-decisions-on-spark (HANDOFF.md chore commit to follow).
-**Push status:** pending push at end-of-session. Source-side SHIPPED-flip PR to be opened against ai-field-notes citing destination commit `c71a5bb` (sync commit, not handoff commit).
+**Last destination commit:** `e8a48f2` — chore(handoff) atop sync commit `c71a5bb` (feat(field-notes): add fine-tune-data-prep-decisions-on-spark).
+**Push status:** clean. Both commits pushed; `origin/main` at `e8a48f2`. Source-side SHIPPED-flip PR opened as [ai-field-notes#10](https://github.com/manavsehgal/ai-field-notes/pull/10) (Mac PR #10 in sequence), branch `mirror/sync-handoff-shipped-2026-05-19-patent-strategist-W3-data-prep-article`, citing destination sync commit `c71a5bb`.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Merge Mac PR #10 in source (user action, once Claude opens it)
+### 1. NEXT STEP — Merge Mac PR #10 in source (user action)
 
-PR #10 is the SHIPPED-flip PR for this 2026-05-19 sweep. Three localized edits to source's `SYNC-HANDOFF.md`: HTML comment STATUS marker → SHIPPED with date + dest-commit citation, YAML `status:` field → SHIPPED, new receipt line at top of preserved-receipts block. No companion SYNC-RENAMES.log changes (0 pending renames this cycle). The user merges when ready; the source-side rotation cycle won't reset the file until the next release opens.
+PR #10 is the SHIPPED-flip PR opened from this sweep. Four localized edits to source's `SYNC-HANDOFF.md`: HTML comment STATUS marker → SHIPPED with date + dest-commit citation, YAML `status:` field → SHIPPED, new receipt line at top of preserved-receipts block (Mac PR #10), plus an incidental retro-add of the PR #9 number to the 2026-05-17 receipt line (was missing, now consistent with the #6–#2 pattern). No companion SYNC-RENAMES.log changes (0 pending renames this cycle). The user merges when ready; the source-side rotation cycle won't reset the file until the next release opens (so the merge isn't time-critical).
 
 ### 2. Carry-forward — Article wire-back propagation (now handled by sync script, but cleanest fix still pending)
 
