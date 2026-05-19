@@ -1,0 +1,147 @@
+---
+// Signature figure for "fine-tune-data-prep-decisions-on-spark".
+//
+// The 5000-row patent-strategist synth corpus had three layers of
+// producer-subagent meta-state leakage that the mechanical verifier
+// didn't catch. Family-prefix in <think> (A1/A2/A4/E1/E2 …) hit
+// 2797 / 5000 = 55.94 percent — the dominant defect and the article's
+// headline number. Diversify-by annotations hit 20.24 percent.
+// Duplicate-of annotations hit 6.22 percent.
+//
+// The thumbnail shows the three layers as horizontal bars sized by
+// share of corpus, stacked downward by severity. The 56 percent bar
+// carries the accent treatment (gradient fill + halo) because that's
+// the diagnostic punch the article walks the reader to.
+
+type Layer = { key: string; label: string; n: number; pct: number; accent: boolean };
+
+const TOTAL = 5000;
+
+const layers: Layer[] = [
+  { key: 'family',    label: 'family-prefix in <think>',  n: 2797, pct: 0.5594, accent: true  },
+  { key: 'diversify', label: 'diversify-by annotation',   n: 1012, pct: 0.2024, accent: false },
+  { key: 'duplicate', label: 'duplicate-of annotation',   n:  311, pct: 0.0622, accent: false },
+];
+
+// Layout
+const plotLeft = 38;
+const plotRight = 282;
+const barTop = 62;
+const barH = 22;
+const barGap = 12;
+
+const plotW = plotRight - plotLeft;
+const barWidth = (pct: number) => plotW * pct;
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Corpus contamination layers signature. Three horizontal bars sized by share of the 5000-row patent-strategist synth corpus contaminated with producer-subagent meta-state. Family-prefix leakage in the think block hit 2797 rows (55.94 percent), diversify-by annotations hit 1012 rows (20.24 percent), duplicate-of annotations hit 311 rows (6.22 percent). The 56 percent family-prefix bar is the article's headline number."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ccl-bar-accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.40"/>
+    </linearGradient>
+    <linearGradient id="ccl-bar-secondary" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.20"/>
+    </linearGradient>
+    <linearGradient id="ccl-bar-tertiary" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+    </linearGradient>
+    <radialGradient id="ccl-accent-halo" cx="0.3" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  {/* Title */}
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="16" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">CORPUS CONTAMINATION · W3 PATENT</text>
+    <text x="150" y="26" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">5000 rows · synth pipeline meta-state leakage</text>
+  </g>
+
+  {/* Plot frame (faint) */}
+  <g class="svg-reveal svg-reveal-d2">
+    {/* Baseline at left edge */}
+    <line x1={plotLeft} x2={plotLeft}
+          y1={barTop - 4} y2={barTop + 3 * barH + 2 * barGap + 6}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    {/* Right edge marking 100% */}
+    <line x1={plotRight} x2={plotRight}
+          y1={barTop - 4} y2={barTop + 3 * barH + 2 * barGap + 6}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+          stroke-dasharray="1 3" opacity="0.6"/>
+    {/* 50% gridline */}
+    <line x1={plotLeft + plotW * 0.5} x2={plotLeft + plotW * 0.5}
+          y1={barTop - 4} y2={barTop + 3 * barH + 2 * barGap + 6}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+          stroke-dasharray="1 3" opacity="0.45"/>
+    {/* Axis labels */}
+    <text x={plotLeft} y={barTop + 3 * barH + 2 * barGap + 16}
+          text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5">0</text>
+    <text x={plotLeft + plotW * 0.5} y={barTop + 3 * barH + 2 * barGap + 16}
+          text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5">50%</text>
+    <text x={plotRight} y={barTop + 3 * barH + 2 * barGap + 16}
+          text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5">100%</text>
+  </g>
+
+  {/* Bars */}
+  {layers.map((layer, i) => {
+    const y = barTop + i * (barH + barGap);
+    const w = barWidth(layer.pct);
+    const fill = layer.accent
+      ? 'url(#ccl-bar-accent)'
+      : (i === 1 ? 'url(#ccl-bar-secondary)' : 'url(#ccl-bar-tertiary)');
+    const labelColor = layer.accent ? 'var(--color-primary)' : 'var(--svg-text-default)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${3 + i}`}>
+        {/* halo behind the accent bar (bounded — same coords as the bar) */}
+        {layer.accent && (
+          <rect x={plotLeft} y={y} width={w} height={barH}
+                fill="url(#ccl-accent-halo)" stroke="none" rx="2"/>
+        )}
+        {/* bar */}
+        <rect x={plotLeft} y={y} width={w} height={barH}
+              fill={fill} stroke="none" rx="2"/>
+        {/* label inside or after the bar */}
+        <text x={plotLeft + 5} y={y - 3}
+              text-anchor="start"
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="6" letter-spacing="0.08em">{layer.label}</text>
+        {/* count + pct callout */}
+        <text x={plotLeft + w + 6} y={y + barH * 0.7}
+              text-anchor="start"
+              fill={labelColor}
+              font-family="var(--font-mono)"
+              font-size={layer.accent ? 11 : 9}
+              font-weight={layer.accent ? 700 : 600}>{layer.n.toLocaleString()}</text>
+        <text x={plotLeft + w + 6} y={y + barH * 0.7 + (layer.accent ? 9 : 7)}
+              text-anchor="start"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5">{(layer.pct * 100).toFixed(layer.accent ? 0 : 1)}%</text>
+      </g>
+    );
+  })}
+
+  {/* Footer caption */}
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.08em">the trainer was fine</text>
+    <text x="150" y="194" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.08em" font-weight={600}>the corpus was 56% contaminated</text>
+  </g>
+</svg>

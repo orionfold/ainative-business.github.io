@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-18T04:56:23Z",
+  "generated_at": "2026-05-19T20:31:49Z",
   "articles": {
-    "total": 39,
-    "published": 39,
+    "total": 40,
+    "published": 40,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 130727,
-    "mean_per_article": 3351,
+    "total": 134203,
+    "mean_per_article": 3355,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -33,7 +33,7 @@
   "stages": {
     "foundations": 12,
     "training": 12,
-    "fine-tuning": 9,
+    "fine-tuning": 10,
     "inference": 14,
     "deployment": 6,
     "agentic": 14,
@@ -96,7 +96,7 @@
     {
       "id": "dgx-spark",
       "label": "DGX Spark",
-      "articles": 31
+      "articles": 32
     },
     {
       "id": "nim",

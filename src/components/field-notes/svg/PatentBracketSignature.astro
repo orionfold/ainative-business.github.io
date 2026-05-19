@@ -73,16 +73,16 @@ const barW = 44;
   <g class="svg-reveal svg-reveal-d2">
     <line x1={plotLeft} x2={plotRight}
           y1={plotBot} y2={plotBot}
-          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.6"/>
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
     <line x1={plotLeft} x2={plotLeft}
           y1={plotTop} y2={plotBot}
-          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.6"/>
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
     {/* gridlines at 0.25 / 0.50 / 0.75 / 1.00 */}
     {[0.25, 0.50, 0.75, 1.00].map((y) => (
       <g>
         <line x1={plotLeft} x2={plotRight}
               y1={yToPlot(y)} y2={yToPlot(y)}
-              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.4"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
               stroke-dasharray={y === RANDOM_BASELINE ? "2 2" : "1 3"}
               opacity={y === RANDOM_BASELINE ? "0.9" : "0.55"}/>
         <text x={plotLeft - 4} y={yToPlot(y) + 2}
@@ -132,7 +132,7 @@ const barW = 44;
   <g class="svg-reveal svg-reveal-d6">
     {/* closed → retrieval */}
     <path d={`M ${xCenter(0) + barW/2 + 2} ${yToPlot(modes[0].score)} L ${xCenter(1) - barW/2 - 2} ${yToPlot(modes[1].score)}`}
-          fill="none" stroke="var(--svg-accent-blue)" stroke-width="0.7"
+          fill="none" stroke="var(--svg-accent-blue)" stroke-width="1"
           stroke-dasharray="3 2" opacity="0.9"/>
     <text x={(xCenter(0) + xCenter(1)) / 2} y={(yToPlot(modes[0].score) + yToPlot(modes[1].score)) / 2 - 4}
           text-anchor="middle"
@@ -140,7 +140,7 @@ const barW = 44;
           font-size="6" font-weight={600}>+0.225</text>
     {/* retrieval → oracle */}
     <path d={`M ${xCenter(1) + barW/2 + 2} ${yToPlot(modes[1].score)} L ${xCenter(2) - barW/2 - 2} ${yToPlot(modes[2].score)}`}
-          fill="none" stroke="var(--color-primary)" stroke-width="0.7"
+          fill="none" stroke="var(--color-primary)" stroke-width="1"
           stroke-dasharray="3 2" opacity="0.9"/>
     <text x={(xCenter(1) + xCenter(2)) / 2} y={(yToPlot(modes[1].score) + yToPlot(modes[2].score)) / 2 - 4}
           text-anchor="middle"
