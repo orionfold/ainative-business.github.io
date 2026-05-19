@@ -1,0 +1,363 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../../layouts/Layout.astro';
+import Nav from '../../../../components/Nav.astro';
+import Footer from '../../../../components/Footer.astro';
+import BenchSignature from '../../../../components/artifacts/BenchSignature.astro';
+import BenchBracketTable from '../../../../components/artifacts/BenchBracketTable.astro';
+import BenchSampleRow from '../../../../components/artifacts/BenchSampleRow.astro';
+import BenchSources from '../../../../components/artifacts/BenchSources.astro';
+import { SITE, PUBLISHER } from '../../../../data/seo';
+import type { BenchScorerTier } from '../../../../lib/artifacts';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts', ({ data }) => data.kind === 'bench');
+  return all.map((entry) => ({
+    params: { slug: entry.data.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const a = entry.data;
+
+const hfUrl = `https://huggingface.co/datasets/${a.hf_repo}`;
+const articleSlug = a.article ? a.article.replace(/^articles\//, '').replace(/\/$/, '') : null;
+const articleHref = articleSlug ? `/field-notes/${articleSlug}/` : null;
+
+const formatPublished = (iso?: string) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+};
+const pubLabel = formatPublished(a.published_at);
+
+const totalRows = a.shapes ? a.shapes.reduce((sum, s) => sum + s.count, 0) : null;
+const sourceCount = a.sources?.length ?? 0;
+const shapeCount = a.shapes?.length ?? 0;
+
+// Map shape code → scorer tier so we can pass scorer to BenchSampleRow per sample.
+const scorerByShape: Record<string, BenchScorerTier> = {};
+const labelByShape: Record<string, string> = {};
+if (a.shapes) {
+  for (const s of a.shapes) {
+    scorerByShape[s.code] = s.scorer;
+    labelByShape[s.code] = s.label;
+  }
+}
+
+const defaultHowToLoad = `from datasets import load_dataset\n\nds = load_dataset("${a.hf_repo}", split="train")\nprint(ds)  # ${totalRows ?? 'N'} rows`;
+const howToLoad = a.how_to_load ?? defaultHowToLoad;
+
+// SEO copy
+const pageTitle = `${a.slug} — Benchmarks — ainative`;
+const headline = totalRows
+  ? `${a.class} benchmark: ${totalRows} rows across ${shapeCount} shapes, anchored to ${sourceCount} public source${sourceCount === 1 ? '' : 's'}.`
+  : `${a.class} benchmark, anchored to ${sourceCount} public source${sourceCount === 1 ? '' : 's'}.`;
+const pageDescription = headline.slice(0, 158);
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: a.slug,
+    description: headline,
+    license: `https://creativecommons.org/licenses/by/4.0/`,
+    url: `${SITE.url}/artifacts/benches/${a.slug}/`,
+    distribution: {
+      '@type': 'DataDownload',
+      contentUrl: hfUrl,
+      encodingFormat: 'application/jsonl',
+    },
+    publisher: PUBLISHER,
+    keywords: a.shapes?.map((s) => s.code) ?? [],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Benchmarks', item: `${SITE.url}/artifacts/benches/` },
+      { '@type': 'ListItem', position: 4, name: a.slug, item: `${SITE.url}/artifacts/benches/${a.slug}/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="bd">
+    <header class="bd__masthead">
+      <div class="bd__strip" aria-hidden="true">
+        <a class="bd__back" href="/artifacts/benches/">← Benchmarks</a>
+        <span class="bd__rule"></span>
+        <span>/artifacts/benches/</span>
+        <span class="bd__rule"></span>
+        <span class="bd__class">{a.class}</span>
+      </div>
+      <h1 class="bd__title">{a.slug}</h1>
+      <p class="bd__tagline">{headline}</p>
+      <div class="bd__chips">
+        <span class="bd__chip">
+          {a.license.tier}{a.license.model ? ` · ${a.license.model}` : ''}
+        </span>
+        {pubLabel && <span class="bd__chip">{pubLabel}</span>}
+        {totalRows !== null && <span class="bd__chip">{totalRows} rows</span>}
+        {shapeCount > 0 && <span class="bd__chip">{shapeCount} shapes</span>}
+        {sourceCount > 0 && <span class="bd__chip">{sourceCount} sources</span>}
+      </div>
+    </header>
+
+    {a.shapes && a.shapes.length > 0 && (
+      <section class="bd__section">
+        <h2 class="bd__section-title">Shape composition</h2>
+        <BenchSignature shapes={a.shapes} variant="hero" />
+      </section>
+    )}
+
+    {a.results && a.shapes && (
+      <section class="bd__section">
+        <BenchBracketTable
+          results={a.results}
+          shapes={a.shapes}
+          modes={a.modes}
+          results_provenance={a.results_provenance}
+          articleHref={articleHref}
+        />
+      </section>
+    )}
+
+    {a.samples && a.samples.length > 0 && (
+      <section class="bd__section">
+        <h2 class="bd__section-title">Sample rows</h2>
+        <p class="bd__section-blurb">
+          One representative row per shape — fetched from the HF dataset on
+          publish, embedded in the manifest for offline reading. Truncated to
+          fit; full text on HuggingFace.
+        </p>
+        <div class="bd__samples">
+          {a.samples.map((sample) => (
+            <BenchSampleRow
+              shape={sample.shape}
+              shapeLabel={labelByShape[sample.shape]}
+              scorer={scorerByShape[sample.shape] ?? 'judge'}
+              question={sample.question}
+              oracle_context={sample.oracle_context}
+              gold_label={sample.gold_label}
+            />
+          ))}
+        </div>
+      </section>
+    )}
+
+    {a.sources && a.sources.length > 0 && a.shapes && (
+      <section class="bd__section">
+        <h2 class="bd__section-title">Sources</h2>
+        <p class="bd__section-blurb">
+          The bench is anchored to public corpora — row provenance is preserved
+          per-row in <code>source_metadata</code>. The composition below shows
+          how the 200 rows distribute across the seed sources.
+        </p>
+        <BenchSources shapes={a.shapes} sources={a.sources} />
+      </section>
+    )}
+
+    <section class="bd__section">
+      <h2 class="bd__section-title">How to load</h2>
+      <p class="bd__section-blurb">
+        License: <strong>{a.license.tier}</strong>
+        {a.license.model && <> · {a.license.model}</>}.
+        Released as a HuggingFace dataset; available via the standard
+        <code>datasets</code> library.
+      </p>
+      <pre class="bd__code"><code>{howToLoad}</code></pre>
+    </section>
+
+    {a.citation && (
+      <section class="bd__section">
+        <h2 class="bd__section-title">Citation</h2>
+        <pre class="bd__code bd__code--bibtex"><code>{a.citation}</code></pre>
+      </section>
+    )}
+
+    {articleHref && (
+      <section class="bd__section bd__section--companion">
+        <h2 class="bd__section-title">Companion methodology</h2>
+        <p class="bd__companion-blurb">
+          This bench is the methodology artifact for the field note{' '}
+          <a href={articleHref}>{articleSlug}</a> — the paired article walks
+          through how the seven shapes were designed, how the three-mode
+          bracket was scored, and what the headline finding means for the next
+          fine-tuning cycle.
+        </p>
+        <a class="bd__companion-cta" href={articleHref}>
+          Read the methodology article <span aria-hidden="true">→</span>
+        </a>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .bd {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .bd__masthead {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .bd__strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .bd__back {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .bd__back:hover {
+    color: var(--color-primary);
+  }
+  .bd__rule {
+    flex: 0 0 2rem;
+    height: 1px;
+    background: var(--color-border);
+  }
+  .bd__class {
+    color: var(--color-primary);
+  }
+  .bd__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+    word-break: break-word;
+  }
+  .bd__tagline {
+    margin: 0 0 1.25rem;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 56ch;
+  }
+  .bd__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .bd__chip {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-surface-raised) 30%, transparent);
+  }
+
+  .bd__section {
+    margin-bottom: 3rem;
+  }
+  .bd__section-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.15rem, 2vw, 1.4rem);
+    color: var(--color-text);
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.01em;
+  }
+  .bd__section-blurb {
+    margin: 0 0 1.2rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+  .bd__section-blurb code,
+  .bd__section-blurb strong {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--color-text);
+  }
+
+  .bd__samples {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .bd__code {
+    background: color-mix(in oklch, var(--color-surface-overlay) 70%, transparent);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 0;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--color-text);
+  }
+  .bd__code--bibtex {
+    font-size: 0.78rem;
+  }
+
+  .bd__section--companion {
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .bd__companion-blurb {
+    margin: 0 0 1rem;
+    font-size: 0.98rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+  .bd__companion-blurb a {
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 60%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+  .bd__companion-blurb a:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  .bd__companion-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+    padding-bottom: 0.25rem;
+  }
+  .bd__companion-cta:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-text);
+  }
+</style>

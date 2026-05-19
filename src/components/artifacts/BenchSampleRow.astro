@@ -1,0 +1,189 @@
+---
+import { scorerTierColor, type BenchScorerTier } from '../../lib/artifacts';
+
+interface Props {
+  shape: string;
+  shapeLabel?: string;
+  scorer: BenchScorerTier;
+  question: string;
+  oracle_context?: string;
+  gold_label: string;
+}
+
+const { shape, shapeLabel, scorer, question, oracle_context, gold_label } = Astro.props;
+
+// Letter-gold (D-mcq) gets compact inline rendering; everything else is block.
+const isLetterGold = /^[A-D]$/.test(gold_label.trim());
+const tierColor = scorerTierColor(scorer);
+---
+
+<article class="bsr">
+  <header class="bsr__head">
+    <span class="bsr__shape">
+      <span class="bsr__shape-code">{shape}</span>
+      {shapeLabel && <span class="bsr__shape-label">{shapeLabel}</span>}
+    </span>
+    <span
+      class="bsr__pill"
+      style={`background: color-mix(in oklch, ${tierColor} 18%, transparent); border-color: color-mix(in oklch, ${tierColor} 60%, transparent)`}
+    >
+      {scorer}
+    </span>
+  </header>
+
+  <div class="bsr__body">
+    <div class="bsr__field">
+      <div class="bsr__field-label">Question</div>
+      <p class="bsr__question">{question}</p>
+    </div>
+
+    {oracle_context && (
+      <details class="bsr__oracle">
+        <summary class="bsr__oracle-summary">Oracle context</summary>
+        <p class="bsr__oracle-body">{oracle_context}</p>
+      </details>
+    )}
+
+    <div class="bsr__field bsr__field--gold">
+      <div class="bsr__field-label">Gold label</div>
+      {isLetterGold ? (
+        <p class="bsr__gold bsr__gold--letter">{gold_label}</p>
+      ) : (
+        <p class="bsr__gold">{gold_label}</p>
+      )}
+    </div>
+  </div>
+</article>
+
+<style>
+  .bsr {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--color-surface-raised) 30%, transparent);
+  }
+  .bsr__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 0.7rem;
+  }
+  .bsr__shape {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .bsr__shape-code {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--color-primary);
+  }
+  .bsr__shape-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+  }
+  .bsr__pill {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    color: var(--color-text);
+    white-space: nowrap;
+  }
+
+  .bsr__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .bsr__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .bsr__field-label {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-muted);
+  }
+  .bsr__question {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text);
+  }
+
+  .bsr__oracle {
+    border: 1px dashed var(--color-border);
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    background: color-mix(in oklch, var(--color-surface) 40%, transparent);
+  }
+  .bsr__oracle-summary {
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .bsr__oracle-summary::-webkit-details-marker { display: none; }
+  .bsr__oracle-summary::before {
+    content: '+';
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--color-primary);
+    width: 0.9rem;
+    text-align: center;
+  }
+  .bsr__oracle[open] .bsr__oracle-summary::before { content: '−'; }
+  .bsr__oracle-body {
+    margin: 0.6rem 0 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    white-space: pre-wrap;
+  }
+
+  .bsr__field--gold {
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .bsr__gold {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--color-text);
+  }
+  .bsr__gold--letter {
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1;
+    padding: 0.2rem 0;
+  }
+</style>

@@ -3,6 +3,7 @@ import { getCollection } from 'astro:content';
 import Layout from '../../../layouts/Layout.astro';
 import Nav from '../../../components/Nav.astro';
 import Footer from '../../../components/Footer.astro';
+import BenchCard from '../../../components/artifacts/BenchCard.astro';
 import { SITE, PUBLISHER } from '../../../data/seo';
 
 const all = await getCollection('artifacts', ({ data }) => data.kind === 'bench');
@@ -19,18 +20,6 @@ const pageTitle = 'Benchmarks — Artifacts — ainative';
 const pageDescription = `${sorted.length} open benchmark${sorted.length === 1 ? '' : 's'} for vertical-finetune evaluation, each paired with a methodology field note that documents how it was built.`;
 
 const hfUrl = (repo: string) => `https://huggingface.co/datasets/${repo}`;
-const articleUrl = (path: string) => {
-  const slug = path.replace(/^articles\//, '').replace(/\/$/, '');
-  return `/field-notes/${slug}/`;
-};
-const articleSlugLabel = (path: string) => path.replace(/^articles\//, '').replace(/\/$/, '');
-
-const formatPublished = (iso?: string) => {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
-};
 
 const jsonLd = [
   {
@@ -81,42 +70,9 @@ const jsonLd = [
       <p class="qb-index__empty">No benchmarks published yet.</p>
     ) : (
       <section class="qb-index__list">
-        {sorted.map((artifact) => {
-          const pubLabel = formatPublished(artifact.data.published_at);
-          const articleHref = articleUrl(artifact.data.article);
-          const articleSlug = articleSlugLabel(artifact.data.article);
-          return (
-            <article class="qb-card">
-              <header class="qb-card__head">
-                <div class="qb-card__meta">
-                  <span class="qb-card__class">{artifact.data.class}</span>
-                  <span class="qb-card__sep" aria-hidden="true">·</span>
-                  <span class="qb-card__license">
-                    {artifact.data.license.tier} · {artifact.data.license.model}
-                  </span>
-                  {pubLabel && (
-                    <>
-                      <span class="qb-card__sep" aria-hidden="true">·</span>
-                      <span class="qb-card__date">{pubLabel}</span>
-                    </>
-                  )}
-                </div>
-                <h2 class="qb-card__title">{artifact.data.slug}</h2>
-              </header>
-              <p class="qb-card__pair">
-                Paired with the methodology field note{' '}
-                <a href={articleHref}>{articleSlug}</a>.
-              </p>
-              <a
-                class="qb-card__cta"
-                href={hfUrl(artifact.data.hf_repo)}
-                rel="noopener"
-              >
-                Open on HuggingFace <span aria-hidden="true">→</span>
-              </a>
-            </article>
-          );
-        })}
+        {sorted.map((artifact) => (
+          <BenchCard artifact={artifact} />
+        ))}
         <div class="qb-index__closer">
           <span class="qb-index__closer-glyph">※</span>
           <span>More benchmarks in preparation</span>
@@ -189,77 +145,6 @@ const jsonLd = [
   .qb-index__list {
     margin-top: 1.5rem;
     border-top: 1px solid var(--color-border);
-  }
-  .qb-card {
-    padding: 2rem 0 1.75rem;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .qb-card__head {
-    margin-bottom: 0.75rem;
-  }
-  .qb-card__meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
-  }
-  .qb-card__class {
-    color: var(--color-primary);
-  }
-  .qb-card__sep {
-    color: var(--color-text-dim);
-  }
-  .qb-card__title {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    color: var(--color-text);
-    margin: 0;
-    word-break: break-word;
-  }
-  .qb-card__pair {
-    margin: 0 0 1rem;
-    font-size: 0.98rem;
-    line-height: 1.6;
-    color: var(--color-text-muted);
-    max-width: 60ch;
-  }
-  .qb-card__pair a {
-    color: var(--color-text);
-    text-decoration: none;
-    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 60%, transparent);
-    font-family: var(--font-mono);
-    font-size: 0.92em;
-  }
-  .qb-card__pair a:hover {
-    border-bottom-color: var(--color-primary);
-    color: var(--color-primary);
-  }
-  .qb-card__cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.14em;
-    color: var(--color-primary);
-    text-decoration: none;
-    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 40%, transparent);
-    padding-bottom: 0.2rem;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .qb-card__cta:hover {
-    border-bottom-color: var(--color-primary);
-    color: var(--color-text);
   }
 
   .qb-index__empty {

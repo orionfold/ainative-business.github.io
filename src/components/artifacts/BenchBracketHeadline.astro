@@ -1,0 +1,124 @@
+---
+import {
+  pickStrongestDeterministicShape,
+  type BenchResults,
+  type BenchShape,
+} from '../../lib/artifacts';
+
+interface Props {
+  results?: BenchResults;
+  shapes?: BenchShape[];
+  modes?: string[];
+}
+
+const { results, shapes, modes } = Astro.props;
+
+const strongest = pickStrongestDeterministicShape(results, shapes);
+const shapeMeta = strongest && shapes ? shapes.find((s) => s.code === strongest.code) : null;
+
+// We need at least three modes' scores for the headline ladder; if any are
+// missing, fall back to closed + oracle only, or render nothing.
+const orderedModes = (modes ?? ['closed', 'retrieval', 'oracle']).filter((m) => m !== 'judge');
+const scores =
+  strongest && results
+    ? orderedModes
+        .map((mode) => ({ mode, score: results[strongest.code]?.[mode] }))
+        .filter((x) => typeof x.score === 'number')
+    : [];
+
+const visible = strongest !== null && scores.length >= 2;
+---
+
+{visible && strongest && (
+  <div class="bh">
+    <div class="bh__label" aria-hidden="true">
+      Headline · {strongest.code}
+      {shapeMeta && <span class="bh__shape-label">{shapeMeta.label}</span>}
+    </div>
+    <div class="bh__ladder" role="img" aria-label={`${strongest.code} bracket: ${scores.map((s) => `${s.mode} ${s.score!.toFixed(3)}`).join(', ')}`}>
+      {scores.map((s, i) => (
+        <>
+          {i > 0 && <span class="bh__rule" aria-hidden="true"></span>}
+          <span class="bh__step">
+            <span class="bh__score">{s.score!.toFixed(3)}</span>
+            <span class="bh__mode">{s.mode}</span>
+          </span>
+        </>
+      ))}
+    </div>
+  </div>
+)}
+
+<style>
+  .bh {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0.75rem 0 0;
+    padding: 0.7rem 0.9rem;
+    border: 1px solid var(--color-border);
+    border-left: 2px solid var(--color-primary);
+    border-radius: 4px;
+    background: color-mix(in oklch, var(--color-surface-raised) 40%, transparent);
+  }
+  .bh__label {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-muted);
+  }
+  .bh__shape-label {
+    font-size: 0.62rem;
+    color: var(--color-text-dim);
+    letter-spacing: 0.1em;
+    text-transform: none;
+    font-weight: normal;
+  }
+  .bh__ladder {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .bh__step {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 3rem;
+  }
+  .bh__score {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    line-height: 1;
+  }
+  .bh__mode {
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    line-height: 1;
+  }
+  .bh__rule {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      color-mix(in oklch, var(--color-primary) 50%, transparent),
+      transparent
+    );
+    min-width: 1rem;
+    max-width: 3rem;
+    align-self: center;
+    margin-top: -0.5rem;
+  }
+</style>

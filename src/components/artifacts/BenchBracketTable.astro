@@ -1,0 +1,259 @@
+---
+import {
+  pickStrongestDeterministicShape,
+  rankWithin,
+  scorerTierColor,
+  type BenchResults,
+  type BenchShape,
+} from '../../lib/artifacts';
+
+interface Props {
+  results: BenchResults;
+  shapes: BenchShape[];
+  modes?: string[];
+  results_provenance?: {
+    model: string;
+    article_anchor?: string;
+  };
+  articleHref?: string;
+}
+
+const { results, shapes, modes, results_provenance, articleHref } = Astro.props;
+
+// Determine column set. Default mode order is closed → retrieval → oracle → judge.
+const allModeKeys = new Set<string>();
+for (const v of Object.values(results)) {
+  for (const k of Object.keys(v)) allModeKeys.add(k);
+}
+const modeOrder = ['closed', 'retrieval', 'oracle', 'judge'];
+const columns = (modes && modes.length > 0 ? modes : modeOrder).filter((m) => allModeKeys.has(m));
+
+// Determine row order: shapes in declaration order, then "overall" pinned last.
+const shapeRows = shapes
+  .filter((s) => s.code in results)
+  .map((s) => ({ code: s.code, label: s.label, scorer: s.scorer, isOverall: false as const }));
+const hasOverall = 'overall' in results;
+const allRows = hasOverall
+  ? [...shapeRows, { code: 'overall', label: 'Overall (90 scorer-supported rows)', scorer: 'deterministic' as const, isOverall: true as const }]
+  : shapeRows;
+
+// Compute rankWithin per column for heatmap.
+// Higher score is better for closed/retrieval/oracle modes; rankWithin returns 0-1 normalized.
+const ranksByColumn: Record<string, Record<string, number>> = {};
+for (const col of columns) {
+  const colScores: Record<string, number> = {};
+  for (const row of allRows) {
+    const score = results[row.code]?.[col];
+    if (typeof score === 'number') colScores[row.code] = score;
+  }
+  ranksByColumn[col] = rankWithin(colScores, true);
+}
+
+// Identify the strongest deterministic shape for highlighting.
+const strongest = pickStrongestDeterministicShape(results, shapes);
+const highlightCode = strongest?.code ?? null;
+
+const provenanceHref = articleHref && results_provenance?.article_anchor
+  ? `${articleHref}${results_provenance.article_anchor}`
+  : articleHref;
+---
+
+<figure class="bbt">
+  <table class="bbt__table">
+    <caption class="bbt__caption">
+      <span class="bbt__caption-label">Three-mode bracket results</span>
+      {results_provenance && (
+        <span class="bbt__caption-prov">
+          Measured on {results_provenance.model}
+          {provenanceHref && (
+            <>
+              {' · '}
+              <a href={provenanceHref}>see methodology</a>
+            </>
+          )}
+        </span>
+      )}
+    </caption>
+    <thead>
+      <tr>
+        <th class="bbt__th bbt__th--shape" scope="col">Shape</th>
+        <th class="bbt__th bbt__th--scorer" scope="col">Scorer</th>
+        {columns.map((col) => (
+          <th class="bbt__th bbt__th--mode" scope="col">{col}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {allRows.map((row) => {
+        const isHighlight = !row.isOverall && row.code === highlightCode;
+        const rowClass = [
+          'bbt__row',
+          isHighlight ? 'bbt__row--highlight' : '',
+          row.isOverall ? 'bbt__row--overall' : '',
+        ].filter(Boolean).join(' ');
+        return (
+          <tr class={rowClass}>
+            <th class="bbt__td bbt__td--shape" scope="row">
+              <span class="bbt__shape-code">{row.code}</span>
+              <span class="bbt__shape-label">{row.label}</span>
+            </th>
+            <td class="bbt__td bbt__td--scorer">
+              <span
+                class="bbt__pill"
+                style={`background: color-mix(in oklch, ${scorerTierColor(row.scorer)} 18%, transparent); border-color: color-mix(in oklch, ${scorerTierColor(row.scorer)} 60%, transparent); color: var(--color-text)`}
+              >
+                {row.scorer}
+              </span>
+            </td>
+            {columns.map((col) => {
+              const score = results[row.code]?.[col];
+              const rank = ranksByColumn[col]?.[row.code];
+              if (typeof score !== 'number') {
+                return <td class="bbt__td bbt__td--score bbt__td--empty">—</td>;
+              }
+              const rankPct = typeof rank === 'number' ? Math.round(rank * 100) : 0;
+              return (
+                <td
+                  class="bbt__td bbt__td--score"
+                  style={`--rank-pct: ${rankPct}`}
+                >
+                  {score.toFixed(3)}
+                </td>
+              );
+            })}
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</figure>
+
+<style>
+  .bbt {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    overflow-x: auto;
+  }
+  .bbt__table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font-family: var(--font-mono);
+    min-width: 36rem;
+  }
+  .bbt__caption {
+    text-align: left;
+    caption-side: top;
+    padding: 0 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .bbt__caption-label {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .bbt__caption-prov {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+  }
+  .bbt__caption-prov a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  .bbt__caption-prov a:hover {
+    border-bottom-color: var(--color-primary);
+  }
+
+  .bbt__th,
+  .bbt__td {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: middle;
+  }
+  .bbt__th {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent);
+    border-bottom: 1px solid var(--color-border);
+    font-weight: 500;
+  }
+  .bbt__th--mode,
+  .bbt__td--score {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .bbt__td--shape {
+    font-weight: normal;
+  }
+  .bbt__shape-code {
+    display: inline-block;
+    min-width: 3.5rem;
+    color: var(--color-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .bbt__shape-label {
+    display: inline-block;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    margin-left: 0.5rem;
+  }
+  .bbt__pill {
+    display: inline-block;
+    padding: 0.18rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .bbt__td--score {
+    font-size: 0.92rem;
+    color: var(--color-text);
+    /* Heatmap gradient: --rank-pct 0-100 drives bg intensity. Higher = warmer. */
+    background:
+      color-mix(
+        in oklch,
+        var(--color-primary) calc(var(--rank-pct, 0) * 0.18%),
+        transparent
+      );
+  }
+  .bbt__td--empty {
+    color: var(--color-text-dim);
+    text-align: right;
+  }
+
+  .bbt__row--highlight {
+    background: color-mix(in oklch, var(--color-primary) 4%, transparent);
+  }
+  .bbt__row--highlight .bbt__td--shape {
+    border-left: 2px solid var(--color-primary);
+  }
+
+  .bbt__row--overall {
+    background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent);
+  }
+  .bbt__row--overall .bbt__td,
+  .bbt__row--overall .bbt__td--shape {
+    border-top: 1px solid var(--color-border);
+    font-weight: 600;
+  }
+  .bbt__row--overall .bbt__shape-code {
+    color: var(--color-text);
+  }
+</style>

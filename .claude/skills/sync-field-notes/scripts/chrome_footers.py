@@ -38,27 +38,36 @@ REPO_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io")
 ARTIFACTS_DIR = REPO_ROOT / "src/content/artifacts"
 
 # Maps the `kind:` field of an artifact manifest to the URL family Mac owns
-# under `/artifacts/`. Mirrors the "Forthcoming top-level pages" section of
-# mirrors/destination-overrides.md in source. Add new entries here as
-# fieldkit's publisher modules ship the corresponding kinds.
+# under `/artifacts/`. Must mirror `kindToSegment` in `src/lib/artifacts.ts`
+# (the destination's source of truth for URL paths). Add new entries here
+# when a new ARTIFACT_KIND ships its first manifest + catalog page.
 _KIND_TO_URL_FAMILY: dict[str, str] = {
     "quant": "quants",
     "lora": "loras",
     "adapter": "adapters",
-    "embedder": "embedders",
+    "embed": "embeds",
+    "reranker": "rerankers",
     "dataset": "datasets",
     "space": "spaces",
-    "benchmark": "benchmarks",
+    "bench": "benches",
 }
 
-# The trailing chrome block. Identical text for every quant card today;
-# generalize per-kind if/when other kinds need different blurbs.
-_FOOTER_TEMPLATE = (
-    "\n\n---\n\n"
-    "**Catalog page:** [`{url}`]({url}) — "
+# Per-kind footer template. Defaults to the quant text (four-axis card +
+# sweet-spot heatmap row); each non-quant kind that ships a detail page
+# overrides the inner blurb here so the footer points at what the destination
+# actually renders.
+_DEFAULT_BLURB = (
     "the same four-axis card rendered on this site, "
-    "with the sweet-spot variant highlighted on a heatmap row.\n"
+    "with the sweet-spot variant highlighted on a heatmap row."
 )
+_BLURB_BY_KIND: dict[str, str] = {
+    "bench": (
+        "three-mode bracket results, shape composition, sample rows per "
+        "shape, and source provenance — the full bench card."
+    ),
+}
+
+_FOOTER_PREFIX = "\n\n---\n\n**Catalog page:** [`{url}`]({url}) — "
 
 # Matches the trailing catalog footer for idempotent strip-before-replace.
 # Anchored to end-of-string; tolerant of variant whitespace between blocks.
@@ -78,7 +87,8 @@ def build_catalog_footer(kind: str, artifact_slug: str) -> str | None:
     if family is None:
         return None
     url = f"/artifacts/{family}/{artifact_slug}/"
-    return _FOOTER_TEMPLATE.format(url=url)
+    blurb = _BLURB_BY_KIND.get(kind, _DEFAULT_BLURB)
+    return _FOOTER_PREFIX.format(url=url) + blurb + "\n"
 
 
 _GATED_CACHE: dict[str, str] | None = None

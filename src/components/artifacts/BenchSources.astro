@@ -1,0 +1,179 @@
+---
+import type { BenchShape } from '../../lib/artifacts';
+
+interface SourceProp {
+  key: string;
+  name: string;
+  url: string;
+  blurb: string;
+}
+
+interface Props {
+  shapes: BenchShape[];
+  sources: SourceProp[];
+}
+
+const { shapes, sources } = Astro.props;
+
+// Aggregate row counts by source key from shapes[].source.
+const countsBySource: Record<string, number> = {};
+let total = 0;
+for (const s of shapes) {
+  countsBySource[s.source] = (countsBySource[s.source] ?? 0) + s.count;
+  total += s.count;
+}
+
+// Order segments by sources[] declaration order; any sources referenced by
+// shapes but not declared in sources[] get appended at end with key as name.
+const declaredKeys = sources.map((s) => s.key);
+const extras = Object.keys(countsBySource).filter((k) => !declaredKeys.includes(k));
+const orderedKeys = [...declaredKeys.filter((k) => k in countsBySource), ...extras];
+
+// Pre-compute segment widths.
+let xCursor = 0;
+// Distinct hues for source segments. These are independent from the scorer-tier
+// palette so the two stacked bars don't visually collide. The CSS variables are
+// referenced from a small inline gradient palette below.
+const HUES = [
+  'var(--color-primary)',
+  'color-mix(in oklch, var(--color-primary) 50%, var(--color-accent, var(--color-text-muted)))',
+  'var(--color-text-muted)',
+  'color-mix(in oklch, var(--color-primary) 30%, var(--color-text-dim))',
+];
+const segments = orderedKeys.map((key, i) => {
+  const count = countsBySource[key] ?? 0;
+  const widthPct = total === 0 ? 0 : (count / total) * 100;
+  const x = xCursor;
+  xCursor += widthPct;
+  const declared = sources.find((s) => s.key === key);
+  return {
+    key,
+    name: declared?.name ?? key,
+    count,
+    widthPct,
+    x,
+    color: HUES[i % HUES.length],
+  };
+});
+
+const ariaLabel = `Source provenance: ${segments.map((s) => `${s.name} ${s.count}`).join(', ')}`;
+---
+
+<figure class="bsv">
+  <svg viewBox="0 0 100 8" preserveAspectRatio="none" class="bsv__bar" role="img" aria-label={ariaLabel}>
+    {segments.map((s) => (
+      <rect x={s.x} y="0" width={s.widthPct} height="8" fill={s.color}>
+        <title>{s.name}: {s.count} rows</title>
+      </rect>
+    ))}
+  </svg>
+
+  <ul class="bsv__pills" role="list">
+    {segments.map((s) => (
+      <li class="bsv__pill">
+        <span class="bsv__pill-dot" style={`background: ${s.color}`} aria-hidden="true"></span>
+        <span class="bsv__pill-name">{s.name}</span>
+        <span class="bsv__pill-count">{s.count}</span>
+      </li>
+    ))}
+  </ul>
+
+  <dl class="bsv__details">
+    {sources.map((s) => (
+      <div class="bsv__entry">
+        <dt class="bsv__entry-title">
+          <a href={s.url} rel="noopener">{s.name}</a>
+        </dt>
+        <dd class="bsv__entry-blurb">{s.blurb}</dd>
+      </div>
+    ))}
+  </dl>
+</figure>
+
+<style>
+  .bsv {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .bsv__bar {
+    width: 100%;
+    height: 22px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: block;
+    background: color-mix(in oklch, var(--color-border) 30%, transparent);
+  }
+  .bsv__pills {
+    list-style: none;
+    margin: 0.85rem 0 1.25rem;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+  }
+  .bsv__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--color-text-muted);
+  }
+  .bsv__pill-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+  }
+  .bsv__pill-name {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+  .bsv__pill-count {
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bsv__details {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .bsv__entry {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.7rem 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .bsv__entry:first-of-type {
+    border-top: none;
+    padding-top: 0;
+  }
+  .bsv__entry-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .bsv__entry-title a {
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  .bsv__entry-title a:hover {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+  .bsv__entry-blurb {
+    margin: 0;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+  }
+</style>

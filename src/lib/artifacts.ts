@@ -127,3 +127,59 @@ export function pickSweetSpot(artifact: ArtifactDataShape): string | null {
   }
   return best ? best.name : null;
 }
+
+// --- Bench-specific helpers (kind: bench) ----------------------------------
+
+export const BENCH_SCORER_TIERS = ['deterministic', 'structural', 'judge'] as const;
+export type BenchScorerTier = (typeof BENCH_SCORER_TIERS)[number];
+
+// CSS-custom-property token for each scorer tier. Components use these to
+// color the BenchSignature segments and the BenchSampleRow scorer pills.
+const SCORER_TIER_TOKEN: Record<BenchScorerTier, string> = {
+  deterministic: '--color-primary',
+  structural: '--color-accent',
+  judge: '--color-text-muted',
+};
+
+export function scorerTierColor(tier: BenchScorerTier): string {
+  return `var(${SCORER_TIER_TOKEN[tier]})`;
+}
+
+export interface BenchShape {
+  code: string;
+  label: string;
+  count: number;
+  scorer: BenchScorerTier;
+  source: string;
+}
+
+export interface BenchResults {
+  [shapeOrOverall: string]: { [mode: string]: number };
+}
+
+// Pick the shape that produced the biggest closed→oracle lift among
+// deterministically-scorable shapes. This is the bench's "sweet spot" —
+// the singular finding worth surfacing on the list card and highlighting
+// in the detail-page bracket table. Returns null when no deterministic
+// shape has all required modes populated.
+export function pickStrongestDeterministicShape(
+  results: BenchResults | undefined,
+  shapes: BenchShape[] | undefined,
+): { code: string; closed: number; oracle: number; span: number } | null {
+  if (!results || !shapes) return null;
+  const detCodes = new Set(
+    shapes.filter((s) => s.scorer === 'deterministic').map((s) => s.code),
+  );
+  let best: { code: string; closed: number; oracle: number; span: number } | null = null;
+  for (const [code, modeScores] of Object.entries(results)) {
+    if (!detCodes.has(code)) continue;
+    const closed = modeScores.closed;
+    const oracle = modeScores.oracle;
+    if (typeof closed !== 'number' || typeof oracle !== 'number') continue;
+    const span = oracle - closed;
+    if (!best || span > best.span) {
+      best = { code, closed, oracle, span };
+    }
+  }
+  return best;
+}

@@ -1,0 +1,198 @@
+---
+import { scorerTierColor, type BenchScorerTier } from '../../lib/artifacts';
+
+interface ShapeProp {
+  code: string;
+  label?: string;
+  count: number;
+  scorer: BenchScorerTier;
+  source?: string;
+}
+
+interface Props {
+  shapes: ShapeProp[];
+  variant?: 'compact' | 'hero';
+}
+
+const { shapes, variant = 'compact' } = Astro.props;
+const total = shapes.reduce((sum, s) => sum + s.count, 0);
+
+let xCursor = 0;
+const segments = shapes.map((s) => {
+  const widthPct = total === 0 ? 0 : (s.count / total) * 100;
+  const x = xCursor;
+  xCursor += widthPct;
+  return { ...s, widthPct, x, color: scorerTierColor(s.scorer) };
+});
+
+const ariaLabel = `Bench shape composition: ${total} rows across ${shapes.length} shapes (${shapes.map((s) => `${s.code} ${s.count}`).join(', ')})`;
+---
+
+{variant === 'compact' && (
+  <svg
+    class="bs bs--compact"
+    viewBox="0 0 100 8"
+    preserveAspectRatio="none"
+    role="img"
+    aria-label={ariaLabel}
+  >
+    {segments.map((s) => (
+      <rect
+        x={s.x}
+        y="0"
+        width={s.widthPct}
+        height="8"
+        fill={s.color}
+        opacity="0.85"
+      >
+        <title>{s.code}: {s.count} rows ({s.scorer})</title>
+      </rect>
+    ))}
+  </svg>
+)}
+
+{variant === 'hero' && (
+  <figure class="bs bs--hero" aria-label={ariaLabel}>
+    <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="bs__bar" aria-hidden="true">
+      {segments.map((s) => (
+        <rect x={s.x} y="0" width={s.widthPct} height="10" fill={s.color} />
+      ))}
+    </svg>
+
+    <ul class="bs__pills" role="list">
+      {segments.map((s) => (
+        <li class="bs__pill">
+          <span class="bs__pill-dot" style={`background: ${s.color}`} aria-hidden="true"></span>
+          <span class="bs__pill-code">{s.code}</span>
+          <span class="bs__pill-count">{s.count}</span>
+          {s.label && <span class="bs__pill-label">{s.label}</span>}
+        </li>
+      ))}
+    </ul>
+
+    <figcaption class="bs__legend">
+      <span class="bs__legend-item">
+        <span class="bs__legend-swatch" style={`background: ${scorerTierColor('deterministic')}`} aria-hidden="true"></span>
+        deterministic
+      </span>
+      <span class="bs__legend-item">
+        <span class="bs__legend-swatch" style={`background: ${scorerTierColor('structural')}`} aria-hidden="true"></span>
+        structural
+      </span>
+      <span class="bs__legend-item">
+        <span class="bs__legend-swatch" style={`background: ${scorerTierColor('judge')}`} aria-hidden="true"></span>
+        judge (deferred)
+      </span>
+      <span class="bs__legend-total">{total} rows · {shapes.length} shapes</span>
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .bs--compact {
+    width: 80px;
+    height: 8px;
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 2px;
+    overflow: hidden;
+    background: color-mix(in oklch, var(--color-border) 50%, transparent);
+  }
+
+  .bs--hero {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+  }
+  .bs__bar {
+    width: 100%;
+    height: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    display: block;
+    background: color-mix(in oklch, var(--color-border) 30%, transparent);
+  }
+
+  .bs__pills {
+    list-style: none;
+    margin: 1rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+  .bs__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-surface-raised) 30%, transparent);
+  }
+  .bs__pill-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .bs__pill-code {
+    color: var(--color-text);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .bs__pill-count {
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .bs__pill-label {
+    color: var(--color-text-muted);
+    font-size: 0.68rem;
+    margin-left: 0.15rem;
+  }
+
+  .bs__legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.25rem;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-muted);
+  }
+  .bs__legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .bs__legend-swatch {
+    display: inline-block;
+    width: 0.7rem;
+    height: 0.7rem;
+    border-radius: 2px;
+  }
+  .bs__legend-total {
+    margin-left: auto;
+    color: var(--color-text);
+  }
+
+  @media (max-width: 640px) {
+    .bs__pill-label {
+      display: none;
+    }
+    .bs__legend-total {
+      margin-left: 0;
+      width: 100%;
+      order: -1;
+    }
+  }
+</style>

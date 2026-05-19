@@ -1,0 +1,194 @@
+---
+import BenchSignature from './BenchSignature.astro';
+import BenchBracketHeadline from './BenchBracketHeadline.astro';
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+  artifact: CollectionEntry<'artifacts'>;
+}
+
+const { artifact } = Astro.props;
+const a = artifact.data;
+
+const hfUrl = `https://huggingface.co/datasets/${a.hf_repo}`;
+const articleSlug = a.article ? a.article.replace(/^articles\//, '').replace(/\/$/, '') : null;
+const articleHref = articleSlug ? `/field-notes/${articleSlug}/` : null;
+const detailHref = `/artifacts/benches/${a.slug}/`;
+
+const formatPublished = (iso?: string) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+};
+const pubLabel = formatPublished(a.published_at);
+
+const totalRows = a.shapes ? a.shapes.reduce((sum, s) => sum + s.count, 0) : null;
+const hasSignature = a.shapes && a.shapes.length > 0;
+const hasHeadline = a.results && a.shapes && a.shapes.length > 0;
+---
+
+<article class="bc">
+  <header class="bc__head">
+    <div class="bc__meta">
+      <span class="bc__class">{a.class}</span>
+      <span class="bc__sep" aria-hidden="true">·</span>
+      <span class="bc__license">
+        {a.license.tier} · {a.license.model}
+      </span>
+      {totalRows !== null && (
+        <>
+          <span class="bc__sep" aria-hidden="true">·</span>
+          <span class="bc__size">{totalRows} rows</span>
+        </>
+      )}
+      {pubLabel && (
+        <>
+          <span class="bc__sep" aria-hidden="true">·</span>
+          <span class="bc__date">{pubLabel}</span>
+        </>
+      )}
+    </div>
+
+    {hasSignature && (
+      <div class="bc__signature">
+        <BenchSignature shapes={a.shapes!} variant="compact" />
+      </div>
+    )}
+
+    <h2 class="bc__title">
+      <a href={detailHref}>{a.slug}</a>
+    </h2>
+  </header>
+
+  {hasHeadline && (
+    <BenchBracketHeadline
+      results={a.results}
+      shapes={a.shapes}
+      modes={a.modes}
+    />
+  )}
+
+  {articleHref && (
+    <p class="bc__pair">
+      Paired with the methodology field note{' '}
+      <a href={articleHref}>{articleSlug}</a>.
+    </p>
+  )}
+
+  <div class="bc__ctas">
+    <a class="bc__cta bc__cta--detail" href={detailHref}>
+      View bench detail <span aria-hidden="true">→</span>
+    </a>
+    <a class="bc__cta bc__cta--hf" href={hfUrl} rel="noopener">
+      Open on HuggingFace <span aria-hidden="true">↗</span>
+    </a>
+  </div>
+</article>
+
+<style>
+  .bc {
+    padding: 2rem 0 1.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .bc__head {
+    margin-bottom: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .bc__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-muted);
+  }
+  .bc__class {
+    color: var(--color-primary);
+  }
+  .bc__sep {
+    color: var(--color-text-dim);
+  }
+  .bc__signature {
+    margin-top: 0.15rem;
+    display: flex;
+    align-items: center;
+  }
+  .bc__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    color: var(--color-text);
+    margin: 0;
+    word-break: break-word;
+  }
+  .bc__title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .bc__title a:hover {
+    color: var(--color-primary);
+  }
+
+  .bc__pair {
+    margin: 1rem 0 1.2rem;
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+  }
+  .bc__pair a {
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 60%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+  }
+  .bc__pair a:hover {
+    border-bottom-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  .bc__ctas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    margin-top: 0.25rem;
+  }
+  .bc__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 40%, transparent);
+    padding-bottom: 0.2rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .bc__cta--detail {
+    color: var(--color-primary);
+  }
+  .bc__cta--detail:hover {
+    color: var(--color-text);
+    border-bottom-color: var(--color-primary);
+  }
+  .bc__cta--hf {
+    color: var(--color-text-muted);
+    border-bottom-color: color-mix(in oklch, var(--color-text-muted) 40%, transparent);
+  }
+  .bc__cta--hf:hover {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+</style>

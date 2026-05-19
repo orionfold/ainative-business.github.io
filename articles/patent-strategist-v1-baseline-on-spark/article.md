@@ -235,3 +235,7 @@ Three concrete next steps off the back of this bracket:
 The DGX Spark's promise has always been that one practitioner can hold the whole iteration loop on one machine. The three-mode bracket is one of the loops worth holding — small enough to run in a session, big enough to settle a real fine-tuning decision, durable enough to point at the next vertical. The patent corpus is interchangeable; the bracket scaffolding is the lasting asset.
 
 Next up in the arc: with the bracket complete and the closed-to-retrieval gap measured at 22.5 points on D-mcq, the W3 fine-tune begins — a Qwen3-8B-based GRPO loop against the deterministic-scorable shapes (D-mcq, D-irac), targeting that gap directly.
+
+---
+
+**Catalog page:** [`/artifacts/benches/patent-strategist-bench-v0.1/`](/artifacts/benches/patent-strategist-bench-v0.1/) — three-mode bracket results, shape composition, sample rows per shape, and source provenance — the full bench card.

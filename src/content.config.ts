@@ -131,6 +131,50 @@ const artifacts = defineCollection({
     civitai_id: z.number().int().optional(),
     download_count: z.number().int().optional(),
     published_at: z.string().optional(),
+    // Bench-specific optional fields. Quant manifests leave them undefined;
+    // bench manifests with all fields populated fill the detail page; bench
+    // manifests with none degrade to a text-only detail page.
+    shapes: z
+      .array(
+        z.object({
+          code: z.string(),
+          label: z.string(),
+          count: z.number().int().positive(),
+          scorer: z.enum(['deterministic', 'structural', 'judge']),
+          source: z.string(),
+        }),
+      )
+      .optional(),
+    modes: z.array(z.enum(['closed', 'retrieval', 'oracle', 'judge'])).optional(),
+    results: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+    results_provenance: z
+      .object({
+        model: z.string(),
+        article_anchor: z.string().optional(),
+      })
+      .optional(),
+    samples: z
+      .array(
+        z.object({
+          shape: z.string(),
+          question: z.string(),
+          oracle_context: z.string().optional(),
+          gold_label: z.string(),
+        }),
+      )
+      .optional(),
+    sources: z
+      .array(
+        z.object({
+          key: z.string(),
+          name: z.string(),
+          url: z.string().url(),
+          blurb: z.string(),
+        }),
+      )
+      .optional(),
+    how_to_load: z.string().optional(),
+    citation: z.string().optional(),
   }),
 });
 
