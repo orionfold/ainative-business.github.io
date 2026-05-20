@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-19T22:41:38Z",
+  "generated_at": "2026-05-20T01:36:52Z",
   "articles": {
-    "total": 40,
-    "published": 40,
+    "total": 41,
+    "published": 41,
     "upcoming": 4,
     "drafts": 0
   },
   "words": {
-    "total": 134203,
-    "mean_per_article": 3355,
+    "total": 137670,
+    "mean_per_article": 3357,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -33,7 +33,7 @@
   "stages": {
     "foundations": 12,
     "training": 12,
-    "fine-tuning": 10,
+    "fine-tuning": 11,
     "inference": 14,
     "deployment": 6,
     "agentic": 14,
@@ -96,12 +96,12 @@
     {
       "id": "dgx-spark",
       "label": "DGX Spark",
-      "articles": 32
+      "articles": 33
     },
     {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 31
+      "articles": 32
     },
     {
       "id": "nemo",
@@ -114,14 +114,14 @@
       "articles": 16
     },
     {
-      "id": "pgvector",
-      "label": "pgvector",
+      "id": "triton",
+      "label": "Triton Inference Server",
       "articles": 13
     },
     {
-      "id": "triton",
-      "label": "Triton Inference Server",
-      "articles": 12
+      "id": "pgvector",
+      "label": "pgvector",
+      "articles": 13
     },
     {
       "id": "nemo-retriever",

@@ -1,0 +1,153 @@
+---
+// Signature figure for "unsloth-on-spark-feasibility".
+//
+// The thesis: Unsloth's "unsloth" gradient-checkpointing flavor holds
+// peak GPU allocation at 16.94 GB across every GPU-resident stage of
+// a LoRA fine-tune + GGUF publish pipeline on Llama-3.1-Nemotron-Nano-8B-v1
+// — the same envelope as the BF16 base load. The s40 TRL+PEFT baseline
+// on a comparable 8B-class shape peaked at roughly 22 GB. The five
+// gigabytes the article gives back is what makes the next iteration of
+// this pipeline fit a 70B-class critic alongside the trainer on the
+// same 128 GB Spark.
+//
+// Visual: four equal-height bars (one per GPU-resident gate — load,
+// train, save_gguf, reload) all topped at 16.94 GB, connected by a
+// solid "envelope" line that reads as flat. Above them, a dashed
+// reference line at 22 GB labelled "s40 baseline". The accent treatment
+// goes on the envelope line + the rightmost (save_gguf) bar, because
+// save_pretrained_gguf was the make-or-break gate.
+
+type Bar = { key: string; label: string; gb: number; accent: boolean };
+
+const PEAK_GB   = 16.94;
+const BASELINE  = 22.0;
+const MAX_GB    = 24.0;
+
+const bars: Bar[] = [
+  { key: 'load',   label: 'load',     gb: PEAK_GB, accent: false },
+  { key: 'train',  label: 'train',    gb: PEAK_GB, accent: false },
+  { key: 'gguf',   label: 'save_gguf', gb: PEAK_GB, accent: true  },
+  { key: 'reload', label: 'reload',   gb: PEAK_GB, accent: false },
+];
+
+// Layout (300 x 200 viewBox)
+const plotLeft   = 38;
+const plotRight  = 282;
+const plotTop    = 50;
+const plotBottom = 156;
+const plotH      = plotBottom - plotTop;
+const plotW      = plotRight - plotLeft;
+
+const yForGb = (gb: number) => plotBottom - (gb / MAX_GB) * plotH;
+
+const barCount = bars.length;
+const barW = 38;
+const slotW = plotW / barCount;
+const barX = (i: number) => plotLeft + i * slotW + (slotW - barW) / 2;
+
+const baselineY = yForGb(BASELINE);
+const envelopeY = yForGb(PEAK_GB);
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Unsloth envelope-flat signature. Four vertical bars all topped at 16.94 GB — peak GPU allocation at the load, train, save_gguf, and reload stages of an Unsloth LoRA pipeline on Llama-3.1-Nemotron-Nano-8B-v1. A dashed reference line above at 22 GB marks where the s40 TRL+PEFT baseline peaked on a comparable 8B shape. The save_gguf bar carries the accent because save_pretrained_gguf was the make-or-break gate."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="uef-bar-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.30"/>
+    </linearGradient>
+    <linearGradient id="uef-bar-base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.70"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.18"/>
+    </linearGradient>
+    <radialGradient id="uef-accent-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  {/* Title */}
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="16" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">UNSLOTH × NEMOTRON · ENVELOPE FLAT</text>
+    <text x="150" y="26" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">peak GPU alloc · 4 GPU-resident gates</text>
+  </g>
+
+  {/* Plot frame (faint) */}
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1={plotLeft} x2={plotLeft}
+          y1={plotTop - 2} y2={plotBottom + 2}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <line x1={plotLeft - 2} x2={plotRight}
+          y1={plotBottom} y2={plotBottom}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    {/* y-axis ticks at 0 / 10 / 20 GB */}
+    <text x={plotLeft - 4} y={yForGb(0) + 2} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">0</text>
+    <text x={plotLeft - 4} y={yForGb(10) + 2} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">10</text>
+    <text x={plotLeft - 4} y={yForGb(20) + 2} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">20</text>
+    <text x={plotLeft - 4} y={yForGb(20) - 6} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5">GB</text>
+  </g>
+
+  {/* s40 baseline reference (dashed) */}
+  <g class="svg-reveal svg-reveal-d3">
+    <line x1={plotLeft + 2} x2={plotRight - 2}
+          y1={baselineY} y2={baselineY}
+          stroke="var(--svg-text-faint)" stroke-width="0.5"
+          stroke-dasharray="3 2"/>
+    <text x={plotRight - 2} y={baselineY - 4} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.04em">s40 baseline · ~22 GB</text>
+  </g>
+
+  {/* Bars */}
+  {bars.map((b, i) => {
+    const x = barX(i);
+    const y = yForGb(b.gb);
+    const h = plotBottom - y;
+    const fill = b.accent ? 'url(#uef-bar-accent)' : 'url(#uef-bar-base)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${4 + i}`}>
+        {b.accent && (
+          <rect x={x - 4} y={y - 4} width={barW + 8} height={h + 8}
+                fill="url(#uef-accent-halo)" stroke="none" rx="4"/>
+        )}
+        <rect class="bar-grow" x={x} y={y} width={barW} height={h}
+              fill={fill} stroke="none" rx="3"
+              style="transform-origin: center bottom;"/>
+        <text x={x + barW / 2} y={plotBottom + 9} text-anchor="middle"
+              fill={b.accent ? 'var(--color-primary)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)" font-size="6.5"
+              font-weight={b.accent ? 600 : 500}>{b.label}</text>
+      </g>
+    );
+  })}
+
+  {/* Envelope line — solid horizontal connecting bar tops */}
+  <g class="svg-reveal svg-reveal-d8">
+    <line x1={plotLeft + 6} x2={plotRight - 6}
+          y1={envelopeY} y2={envelopeY}
+          stroke="var(--color-primary)" stroke-width="1.5"
+          stroke-linecap="round"/>
+    <text x={plotRight - 2} y={envelopeY - 4} text-anchor="end"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6.5" font-weight={600} letter-spacing="0.04em">16.94 GB · flat</text>
+  </g>
+
+  {/* Footer caption */}
+  <g class="svg-reveal svg-reveal-d8">
+    <text x="150" y="178" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.08em">train-time peak ≡ base-load peak</text>
+    <text x="150" y="188" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.08em" font-weight={600}>5 GB returned to the rest of the box</text>
+  </g>
+</svg>
