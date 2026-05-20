@@ -675,3 +675,4 @@ Rows older than 6 months can be safely truncated — only the most recent occurr
 | 2026-05-16 | src/layouts/Layout.astro:152:internal-href-missing-trailing-slash | auto | stale |
 | 2026-05-16 | src/pages/docs/api/documents.mdx:418:internal-href-missing-trailing-slash | auto | stale |
 | 2026-05-16 | src/pages/docs/api/uploads.mdx:161:internal-href-missing-trailing-slash | auto | stale |
+| 2026-05-19 | /field-notes/fine-tune-data-prep-decisions-on-spark/:title-length-out-of-range | console | new (false-positive: audit counts HTML-entity-encoded chars; rendered title is 63ch) |

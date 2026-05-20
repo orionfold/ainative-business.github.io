@@ -1,64 +1,47 @@
 {
-  "capturedAt": "2026-05-16T16:37:16Z",
-  "window": {
-    "start": "2026-04-18",
-    "end": "2026-05-16",
-    "days": 28
-  },
+  "capturedAt": "2026-05-19T16:00:00Z",
+  "window": { "start": "2026-04-21", "end": "2026-05-19", "days": 28 },
   "isFirstRun": false,
   "gsc": {
-    "totals": {
-      "clicks": 1,
-      "impressions": 42,
-      "ctr": 0.024,
-      "position": 8.1
-    },
-    "indexed": 12,
+    "totals": { "clicks": 1, "impressions": 108, "ctr": 0.009, "position": 8.8 },
+    "indexed": 18,
     "notIndexed": {
-      "total": 7,
+      "total": 9,
       "byReason": {
-        "crawled_not_indexed": 3,
+        "crawled_not_indexed": 5,
         "noindex": 1,
         "redirect": 3,
         "discovered_not_indexed": 0
       },
       "exampleUrlsByReason": {
         "crawled_not_indexed": [
+          "https://ainative.business/field-notes/becoming-a-medical-curator-on-spark/",
+          "https://ainative.business/book/ch-4-the-forge/",
           "https://ainative.business/docs/api/settings/",
-          "https://ainative.business/book/ch-6-the-arena/",
-          "https://ainative.business/book/ch-4-the-forge/"
+          "https://ainative.business/docs/projects/",
+          "https://ainative.business/book/ch-6-the-arena/"
         ],
-        "noindex": [
-          "https://ainative.business/field-notes/series/autoresearch/"
-        ],
-        "redirect": [
-          "http://ainative.business/"
-        ],
+        "noindex": [ "https://ainative.business/field-notes/series/autoresearch/" ],
+        "redirect": [ "http://ainative.business/" ],
         "discovered_not_indexed": []
       }
     },
     "queries": [
-      { "query": "ainative", "clicks": 0, "impressions": 7, "ctr": 0, "position": 18.7 },
+      { "query": "ainative", "clicks": 0, "impressions": 14, "ctr": 0, "position": 12.1 },
+      { "query": "stagent", "clicks": 0, "impressions": 4, "ctr": 0, "position": 16.2 },
+      { "query": "stagent software", "clicks": 0, "impressions": 3, "ctr": 0, "position": 12.7 },
+      { "query": "what company leads ainative software engineering", "clicks": 0, "impressions": 2, "ctr": 0, "position": 73.0 },
       { "query": "\"ainative-studio/ai-kit\" github", "clicks": 0, "impressions": 1, "ctr": 0, "position": 7.0 },
       { "query": "ai native book", "clicks": 0, "impressions": 1, "ctr": 0, "position": 10.0 },
-      { "query": "site:npmjs.com/package \"@ainative/ai-kit\"", "clicks": 0, "impressions": 1, "ctr": 0, "position": 11.0 }
+      { "query": "load clip fp", "clicks": 0, "impressions": 80, "ctr": 0.010, "position": 10.0, "_note": "high-impression but tangential — likely SEO bot probing" },
+      { "query": "site:npmjs.com/package \"@ainative/ai-kit\"", "clicks": 0, "impressions": 1, "ctr": 0, "position": 11.0 },
+      { "query": "cuda 13.2 llama.cpp", "clicks": 0, "impressions": 1, "ctr": 0, "position": 27.0 }
     ],
-    "pages": [
-      { "page": "https://ainative.business/", "clicks": 1, "impressions": 23, "ctr": 0.043, "position": 9.7 },
-      { "page": "https://ainative.business/book/", "clicks": 0, "impressions": 7, "ctr": 0, "position": 5.7 },
-      { "page": "https://ainative.business/field-notes/lora-fine-tune-nemotron-on-spark/", "clicks": 0, "impressions": 6, "ctr": 0, "position": 4.0 },
-      { "page": "https://ainative.business/book/ch-4-the-forge/", "clicks": 0, "impressions": 5, "ctr": 0, "position": 4.2 },
-      { "page": "https://ainative.business/field-notes/stages/agentic/", "clicks": 0, "impressions": 4, "ctr": 0, "position": 4.3 },
-      { "page": "https://ainative.business/field-notes/series/second-brain/", "clicks": 0, "impressions": 4, "ctr": 0, "position": 8.8 },
-      { "page": "https://ainative.business/field-notes/tags/fine-tuning/", "clicks": 0, "impressions": 3, "ctr": 0, "position": 2.3 },
-      { "page": "https://ainative.business/field-notes/tags/transformer-engine/", "clicks": 0, "impressions": 2, "ctr": 0, "position": 4.0 },
-      { "page": "https://ainative.business/book/ch-6-the-arena/", "clicks": 0, "impressions": 2, "ctr": 0, "position": 8.5 },
-      { "page": "https://ainative.business/terms/", "clicks": 0, "impressions": 1, "ctr": 0, "position": 2.0 },
-      { "page": "https://ainative.business/field-notes/tags/prometheus/", "clicks": 0, "impressions": 1, "ctr": 0, "position": 5.0 }
-    ],
+    "pages": [],
+    "_pagesNote": "Performance > Pages chip click did not switch React view this run (same SPA quirk as drilldown). Top-25 pages omitted; queries + totals still reliable.",
     "sitemaps": [
-      { "url": "https://ainative.business/sitemap-0.xml", "type": "Sitemap", "submitted": "2026-05-10", "lastRead": "2026-05-10", "status": "Success", "discovered": 305 },
-      { "url": "https://ainative.business/sitemap-index.xml", "type": "Sitemap index", "submitted": "2026-05-06", "lastRead": "2026-05-10", "status": "Success", "discovered": 305 }
+      { "url": "https://ainative.business/sitemap-0.xml", "type": "Sitemap", "submitted": "2026-05-10", "lastRead": "2026-05-16", "status": "Success", "discovered": 339 },
+      { "url": "https://ainative.business/sitemap-index.xml", "type": "Sitemap index", "submitted": "2026-05-06", "lastRead": "2026-05-16", "status": "Success", "discovered": 339 }
     ],
     "indexing": {
       "itemKeys": {
@@ -66,56 +49,55 @@
         "noindex": "CAMYCCAC",
         "redirect": "CAMYCyAC",
         "discovered_not_indexed": "CAMYFiAC"
-      }
+      },
+      "_keysNote": "Prior keys still valid 3 days later — no rotation."
     }
   },
   "ga": {
-    "window": { "start": "2026-04-18", "end": "2026-05-15", "days": 28 },
+    "window": { "start": "2026-04-21", "end": "2026-05-19", "days": 28 },
     "partial": true,
-    "partialReason": "Landing-page-level data not extracted: GA4 lifecycle-engagement-landing-page route redirected to home; channel-level only. Same v1 limitation as 2026-05-15 snapshot.",
-    "totalsAllChannels": { "sessions": 532, "engagedSessions": 189, "engagementRate": 0.3553, "avgEngagementTime": 48, "events": 3272 },
-    "organic": { "sessions": 18, "users": 2, "engagementRate": 0.1111, "avgEngagementTime": 3, "events": 65 },
+    "partialReason": "Landing-page-level data not extracted: same v1 lifecycle-engagement-landing-page limitation as prior 2 runs (route redirects to home, channel-level only).",
+    "totalsAllChannels": { "sessions": 490, "engagedSessions": 187, "engagementRate": 0.3816, "avgEngagementTime": null, "events": 3196 },
+    "organic": { "sessions": 19, "users": null, "engagementRate": 0.1053, "avgEngagementTime": 3, "events": 68 },
     "byChannel": [
-      { "channel": "Direct", "sessions": 219, "engaged": 73, "engagementRate": 0.3333, "avgTime": 52, "events": 1452 },
-      { "channel": "Referral", "sessions": 185, "engaged": 45, "engagementRate": 0.2432, "avgTime": 30, "events": 862 },
-      { "channel": "Organic Social", "sessions": 104, "engaged": 68, "engagementRate": 0.6538, "avgTime": 79, "events": 850 },
-      { "channel": "Organic Search", "sessions": 18, "engaged": 2, "engagementRate": 0.1111, "avgTime": 3, "events": 65 },
-      { "channel": "Unassigned", "sessions": 12, "engaged": 0, "engagementRate": 0, "avgTime": 27, "events": 39 },
+      { "channel": "Referral", "sessions": 200, "engaged": 60, "engagementRate": 0.30, "avgTime": 32, "events": 979 },
+      { "channel": "Direct", "sessions": 192, "engaged": 69, "engagementRate": 0.3594, "avgTime": 46, "events": 1405 },
+      { "channel": "Organic Social", "sessions": 76, "engaged": 55, "engagementRate": 0.7237, "avgTime": 101, "events": 733 },
+      { "channel": "Organic Search", "sessions": 19, "engaged": 2, "engagementRate": 0.1053, "avgTime": 3, "events": 68 },
+      { "channel": "Unassigned", "sessions": 2, "engaged": 0, "engagementRate": 0, "avgTime": 32, "events": 7 },
       { "channel": "Organic Video", "sessions": 1, "engaged": 1, "engagementRate": 1, "avgTime": 0, "events": 4 }
     ],
     "landingPages": []
   },
   "psi": {
     "status": "skipped",
-    "reason": "HTTP 429 — daily PSI quota exhausted on shared 'no-API-key' Google project (583797351490). Same condition as 2026-05-15 run.",
+    "reason": "HTTP 429 — daily PSI quota still exhausted on shared 'no-API-key' Google project (583797351490). 3rd consecutive run with same condition (2026-05-15, 2026-05-16, 2026-05-19).",
     "byUrl": {}
   },
   "audit": {
     "summary": {
-      "totalIssues": 333,
-      "distHtmlCount": 332,
-      "pagesWithIssues": 275,
+      "totalIssues": 1,
+      "distHtmlCount": 357,
+      "pagesAudited": 357,
+      "sitemapEntries": 357,
+      "redirectsAudited": 5,
       "validAutoFixes": 0,
       "byId": {
-        "description-length-out-of-range": 262,
-        "title-length-out-of-range": 67,
-        "internal-href-missing-trailing-slash": 4
+        "title-length-out-of-range": 1
       },
-      "byClass": { "console": 329, "auto": 4 },
-      "clusters": {
-        "field_notes_articles_desc_over_200": 50,
-        "field_notes_articles_title_over_65": 48,
-        "field_notes_tag_pages_desc_short": 187,
-        "book_chapter_desc_short": 10,
-        "book_chapter_title_short": 6,
-        "docs_api_title_short": 6
-      }
+      "byClass": { "console": 1, "auto": 0 }
     },
-    "autoFixesAttempted": [
-      { "id": "internal-href-missing-trailing-slash", "file": "src/layouts/Layout.astro:151", "falsePositive": true, "reason": "Font asset (.woff2) — trailing slash would 404" },
-      { "id": "internal-href-missing-trailing-slash", "file": "src/layouts/Layout.astro:152", "falsePositive": true, "reason": "Font asset (.woff2) — trailing slash would 404" },
-      { "id": "internal-href-missing-trailing-slash", "file": "src/pages/docs/api/documents.mdx:418", "falsePositive": true, "reason": "Example API URL inside JS code block" },
-      { "id": "internal-href-missing-trailing-slash", "file": "src/pages/docs/api/uploads.mdx:161", "falsePositive": true, "reason": "Example API URL inside JS code block" }
-    ]
+    "checks": [
+      {
+        "id": "title-length-out-of-range",
+        "page": "/field-notes/fine-tune-data-prep-decisions-on-spark/",
+        "file": "articles/fine-tune-data-prep-decisions-on-spark/article.md",
+        "severity": "info",
+        "class": "console",
+        "fix": "Title length 67 outside 25–65 char window. Rewrite.",
+        "evidence": "length=67 title=\"The Trainer Was Fine, the Corpus Wasn't — AI Native Field Notes\""
+      }
+    ],
+    "_noteVsPrior": "Issue count dropped 333 → 1 because audit_site.mjs was tightened on 2026-05-16 to not double-count tag-page descriptions and to skip description-length checks (now considered author-judgment, not mechanical)."
   }
 }

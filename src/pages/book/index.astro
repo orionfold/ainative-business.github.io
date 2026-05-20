@@ -101,16 +101,20 @@ const jsonLd = [
 
         <!-- Right column: Book cover -->
         <div data-animate class="book-cover-float flex items-center justify-center" style="transition-delay: 200ms">
-          <img
-            src="/book/images/ai-native-business-book.png"
-            alt="AI Native Business book cover — Building Autonomous Business Systems with AI Agents"
-            width="1024"
-            height="1536"
-            class="w-auto max-w-[720px] sm:max-w-[900px] lg:max-w-[1080px] max-h-[calc(100dvh-12rem)] h-auto"
-            style="transform: perspective(800px) rotateY(-5deg) rotateX(2deg); filter: drop-shadow(-8px 12px 24px oklch(0.2 0.04 250 / 0.35)) drop-shadow(0 0 60px oklch(0.55 0.18 250 / 0.15));"
-            loading="eager"
-            decoding="async"
-          />
+          <picture>
+            <source srcset="/book/images/ai-native-business-book.webp" type="image/webp" />
+            <img
+              src="/book/images/ai-native-business-book.png"
+              alt="AI Native Business book cover — Building Autonomous Business Systems with AI Agents"
+              width="1024"
+              height="1536"
+              class="w-auto max-w-[720px] sm:max-w-[900px] lg:max-w-[1080px] max-h-[calc(100dvh-12rem)] h-auto"
+              style="transform: perspective(800px) rotateY(-5deg) rotateX(2deg); filter: drop-shadow(-8px 12px 24px oklch(0.2 0.04 250 / 0.35)) drop-shadow(0 0 60px oklch(0.55 0.18 250 / 0.15));"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </picture>
         </div>
 
       </div>
