@@ -8,7 +8,7 @@ interface Props {
   ogImage?: string;
   ogImageAlt?: string;
   ogType?: 'website' | 'article';
-  noindex?: boolean;
+  noindex?: boolean | 'follow';
   article?: {
     datePublished: string;
     dateModified: string;
@@ -99,7 +99,7 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="description" content={description} />
     <meta name="author" content="ainative" />
     <link rel="canonical" href={canonicalURL} />
-    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {noindex && <meta name="robots" content={noindex === 'follow' ? 'noindex, follow' : 'noindex, nofollow'} />}
 
     <!-- Open Graph -->
     <meta property="og:type" content={ogType} />

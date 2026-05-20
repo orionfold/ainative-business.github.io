@@ -43,7 +43,7 @@ const blurb = `Articles tagged "${tag}" — ${count} ${count === 1 ? 'entry' : '
 // ("machine-that-builds-machines", 28ch) lands ≤ 140ch with this template.
 const description = `${count} ${count === 1 ? 'article' : 'articles'} tagged #${tag} — AI-native research, DGX Spark experiments, and agent workflows from ainative.business.`;
 ---
-<FieldNotesLayout title={`#${tag} — AI Native Field Notes`} description={description}>
+<FieldNotesLayout title={`#${tag} — AI Native Field Notes`} description={description} noindex="follow">
   <Nav />
   <main>
     <header class="stage-header">

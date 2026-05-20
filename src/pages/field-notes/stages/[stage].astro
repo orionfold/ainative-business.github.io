@@ -68,7 +68,7 @@ export async function getStaticPaths() {
 const { stage, entries } = Astro.props;
 const copy = STAGE_COPY[stage];
 ---
-<FieldNotesLayout title={`${copy.title} — AI Native Field Notes`} description={copy.blurb}>
+<FieldNotesLayout title={`${copy.title} — AI Native Field Notes`} description={copy.blurb} noindex="follow">
   <Nav />
   <main>
     <header class="stage-header">

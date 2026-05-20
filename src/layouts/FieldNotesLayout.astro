@@ -8,6 +8,7 @@ interface Props {
   ogType?: 'website' | 'article';
   ogImage?: string;
   ogImageAlt?: string;
+  noindex?: boolean | 'follow';
   article?: {
     datePublished: string;
     dateModified: string;
@@ -18,7 +19,7 @@ interface Props {
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-const { title, description, ogType = 'website', ogImage, ogImageAlt, article, jsonLd } = Astro.props;
+const { title, description, ogType = 'website', ogImage, ogImageAlt, noindex, article, jsonLd } = Astro.props;
 ---
 <Layout
   title={title}
@@ -26,6 +27,7 @@ const { title, description, ogType = 'website', ogImage, ogImageAlt, article, js
   ogType={ogType}
   ogImage={ogImage}
   ogImageAlt={ogImageAlt}
+  noindex={noindex}
   article={article}
   jsonLd={jsonLd}
 >

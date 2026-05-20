@@ -107,6 +107,34 @@ After 3 consecutive runs with the same `<file>:<issue-id>` unfixed, `issue-histo
 
 <!-- snapshots appended below this line; newest first -->
 
+## [2026-05-19 09:00] Snapshot
+
+**Window:** 2026-04-21 → 2026-05-19 (28 days)
+**Status:** changed · 0 auto fixes applied · 0 skipped · 4 console actions surfaced
+**Summary:** Clicks 1 (→ no change) · Impressions 108 (↑ +66) · Indexed 18 (↑ +6)
+
+| KPI | Value | Δ vs prior |
+|-----|-------|------------------|
+| GSC Total clicks (28d) | 1 | → no change |
+| GSC Total impressions (28d) | 108 | ↑ +66 (better) |
+| GSC Avg CTR (28d) | 0.9% | ↓ -1.5% (worse) |
+| GSC Avg position | 8.80 | ↑ +0.70 (worse) |
+| GSC Indexed pages | 18 | ↑ +6 (better) |
+| GSC Crawled Not Indexed | 5 | ↑ +2 (worse) |
+| GSC Discovered Not Indexed | 0 | → no change |
+| GSC Redirect | 3 | → no change |
+| AUDIT Local audit issues | 1 | ↓ -332 (better) |
+
+**Top movers:**
+- Page "https://ainative.business/" — clicks 1→0 (↓ -1)
+
+**Applied auto fixes:** none.
+**Console actions surfaced (4):** Rewrite title to ≤65 chars for /field-notes/fine-tune-data-prep-decisions-on-spark/ (currently 67); URL Inspection on /docs/projects/ and /field-notes/becoming-a-medical-curator-on-spark/ (newly crawled-not-indexed this run); URL Inspection on persistent /book/ch-4-the-forge/, /book/ch-6-the-arena/, /docs/api/settings/ (crawled-not-indexed across 3+ snapshots); Acquire PSI API key in Google Cloud (3rd consecutive run blocked by shared-bucket 429).
+
+**Archive:** seo/2026-05-19-1600.md · **Build:** ✗ n/a (no auto fixes)
+
+---
+
 ## [2026-05-16 09:37] Snapshot
 
 **Window:** 2026-04-18 → 2026-05-16 (28 days)
