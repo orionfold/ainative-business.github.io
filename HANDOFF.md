@@ -13,27 +13,112 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract). Built the full LoRA / Adapter / Dataset render path on the destination so the patent-strategist BF16 fine-tunes stop masquerading as quant cards. Reduced `ARTIFACT_KINDS` from 8 to 5 (dropped `embed`/`reranker`/`space`) on both destination and source. Created `NARRATIVE-CONTRACT.md` at source repo root as the canonical content rubric for HF + site surfaces; pointed `card-polish.md` at it. Shipped per-kind programmatic signature SVGs (`LoRASignature` color-coded by `stack_origin`, `AdapterSignature` concentric arcs, `DatasetSignature` stacked bar) following the existing `QuantSignature` / `BenchSignature` pattern — no editorial stock imagery, all data-driven. Extended quant detail pages with positioning/lane/siblings/drift sections (graceful-fallback for older quants without positioning). Wrote `scripts/verify_artifact_rendering.mjs` enforcing first-h2-positioning, drift-bounded, no-forward-looking-language, signature-visual-present — wired into `npm run build` post-build chain. All 9 detail pages pass the contract. Sync skill updated: new `references/site-rendering-rubric.md`, render-path sanity check in Step 5, `chrome_footers.py` blurbs for lora/adapter/dataset, dropped chrome mappings for removed kinds. Patent-strategist BF16 manifests flipped from `kind: quant` to `kind: lora` (mirrors on both source and destination). Source-side edits made via NFS-mount file writes; NOT committed because source has pre-existing uncommitted evidence JSON drift — see Open item #1 below.
-**Last destination commit:** `eeea77e` (prior session). This session's changes are LOCAL ONLY — not committed yet; user gate before commit (see Open item #1).
-**Push status:** destination working tree has many uncommitted changes (this session); source working tree has 7 of my edits + ~17 pre-existing pending evidence/probe files.
+**Last session:** 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract). Built the full LoRA / Adapter / Dataset render path on the destination so the patent-strategist BF16 fine-tunes stop masquerading as quant cards. Reduced `ARTIFACT_KINDS` from 8 to 5 (dropped `embed`/`reranker`/`space`) on both destination and source. Created `NARRATIVE-CONTRACT.md` at source repo root as the canonical content rubric for HF + site surfaces; pointed `card-polish.md` at it. Shipped per-kind programmatic signature SVGs (`LoRASignature` color-coded by `stack_origin`, `AdapterSignature` concentric arcs, `DatasetSignature` stacked bar) following the existing `QuantSignature` / `BenchSignature` pattern — no editorial stock imagery, all data-driven. Extended quant detail pages with positioning/lane/siblings/drift sections (graceful-fallback for older quants without positioning). Wrote `scripts/verify_artifact_rendering.mjs` enforcing first-h2-positioning, drift-bounded, no-forward-looking-language, signature-visual-present — wired into `npm run build` post-build chain. All 9 detail pages pass the contract. Sync skill updated: new `references/site-rendering-rubric.md`, render-path sanity check in Step 5, `chrome_footers.py` blurbs for lora/adapter/dataset, dropped chrome mappings for removed kinds. Patent-strategist BF16 manifests flipped from `kind: quant` to `kind: lora` (mirrors on both source and destination). Destination committed as `be7c219` and pushed to `origin/main`. Source-side edits made via NFS-mount file writes; NOT committed (user went offline before the source push; NFS mount is now unavailable). End-of-session: ran `astro sync` to refresh editor type stubs after an editor diagnostic surfaced on `content.config.ts` (transient, build was always clean).
+**Last destination commit:** `be7c219` pushed to `origin/main` (LoRA/Adapter/Dataset render path + shared narrative contract). Prior pushes: `eeea77e` (HANDOFF for the first NFS sync), `0c5c9c5` (first production NFS sync), `f9da57a` (HANDOFF reconcile), `d825ce2` (sync-skill rewrite). GitHub Pages redeploy expected within ~2 min of `be7c219`.
+**Push status:** destination clean — working tree empty, branch in sync with `origin/main`. Source side: 7 of Claude's edits + ~17 pre-existing pending evidence/probe files sit uncommitted on the NFS mount, and the mount itself is currently unreachable (user moved to outside wifi 2026-05-22 evening). Source push deferred to next session when the mount comes back.
 
 ## Open items (replace each session)
 
-### 1. NEXT — Commit + push the LoRA render path session (destination), then source-side bundle
+### 1. NEXT — Commit + push the source-side bundle (when Spark/NFS mount comes back)
 
-This session's destination changes are still uncommitted because the user hadn't yet given an explicit commit signal at the time of the verification. The destination diff covers: `src/lib/artifacts.ts` (kinds reduced to 5), `src/content.config.ts` (schema extended with positioning/stack_origin/known_drift/siblings), `src/pages/artifacts/index.astro` (hub reconciled + signature previews), `src/pages/artifacts/{loras,adapters,datasets}/{index,[slug]/index}.astro` (6 new pages), `src/pages/artifacts/quants/[slug]/index.astro` (extended with positioning/lane/siblings/drift sections + hero signature), `src/components/artifacts/{LoRACard,AdapterCard,DatasetCard,LoRASignature,AdapterSignature,DatasetSignature}.astro` (6 new components), `src/components/artifacts/QuantCard.astro` (positioning headline extension), `src/content/artifacts/patent-strategist-v3-{nemo,unsloth}.yaml` (kind flips), `src/content/artifacts/README.md` (per-kind docs + kind reduction note), `scripts/verify_artifact_rendering.mjs` (new), `package.json` (post-build verifier hook), `.claude/skills/sync-field-notes/scripts/chrome_footers.py` (kind blurbs aligned to 5 kinds), `.claude/skills/sync-field-notes/references/site-rendering-rubric.md` (new), `.claude/skills/sync-field-notes/SKILL.md` (render-path sanity check added to Step 5).
+Destination is shipped (`be7c219` pushed). Source-side bundle is still uncommitted on `/Volumes/home/ai-field-notes/`, and the NFS mount is currently unreachable (user moved to outside wifi). When the mount comes back:
 
-Source-side bundle (also uncommitted; gated by pre-existing source-side evidence drift, never commit on top of someone else's uncommitted work): `NARRATIVE-CONTRACT.md` (new — canonical rubric at source root), `.claude/skills/hf-publisher/references/card-polish.md` (one-line pointer to NARRATIVE-CONTRACT.md added at top), `src/content/artifacts/patent-strategist-v3-nemo.yaml` + `src/content/artifacts/patent-strategist-v3-unsloth.yaml` (kind: quant → lora), `src/content.config.ts` (ARTIFACT_KINDS reduced to 5), `fieldkit/src/fieldkit/publish/__init__.py` (ARTIFACT_KINDS tuple reduced to 5), `fieldkit/tests/test_publish.py` (test name + assertion updated for 5 kinds).
+**Files to commit (Claude's 7 edits only — do NOT `git add -A`; source has pre-existing uncommitted evidence/probe drift to preserve):**
+1. `NARRATIVE-CONTRACT.md` — new file at source root, canonical content rubric for HF + site surfaces
+2. `.claude/skills/hf-publisher/references/card-polish.md` — one-line pointer added at top: "Narrative rules live in `/NARRATIVE-CONTRACT.md`. This file covers HF-surface specifics only…"
+3. `src/content/artifacts/patent-strategist-v3-nemo.yaml` — `kind: quant` → `kind: lora`
+4. `src/content/artifacts/patent-strategist-v3-unsloth.yaml` — `kind: quant` → `kind: lora`
+5. `src/content.config.ts` — `ARTIFACT_KINDS` reduced from 8 to 5 (drop embed/reranker/space)
+6. `fieldkit/src/fieldkit/publish/__init__.py` — same tuple reduction
+7. `fieldkit/tests/test_publish.py` — `test_artifact_kinds_are_the_canonical_eight` renamed to `test_artifact_kinds_are_the_canonical_five`, assertion updated
 
-Recommended sequence:
-- Commit the destination work first as a single coherent commit (it builds clean, verifier passes, 9 detail pages contract-compliant).
-- For source: user commits their evidence-drift batch separately on Spark or grants explicit auth here for me to commit only my 7 files via targeted `git add` (per the skill's safety rule, never `git add -A` on a dirty tree).
+**Mount check first:**
+```
+ls /Volumes/home/ai-field-notes/ 2>/dev/null && echo "mounted" || echo "NFS UNREACHABLE — abort"
+```
 
-### 2. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
+**Verify nothing drifted while wifi was off:**
+```
+git -C /Volumes/home/ai-field-notes status --short  # confirm Claude's 7 files still show as modified
+git -C /Volumes/home/ai-field-notes diff src/content/artifacts/patent-strategist-v3-nemo.yaml  # spot-check the kind flip persisted
+```
+
+**Stage + commit + push:**
+```
+git -C /Volumes/home/ai-field-notes pull --rebase --autostash origin main  # catch any concurrent Spark commits
+git -C /Volumes/home/ai-field-notes add \
+  NARRATIVE-CONTRACT.md \
+  .claude/skills/hf-publisher/references/card-polish.md \
+  src/content/artifacts/patent-strategist-v3-nemo.yaml \
+  src/content/artifacts/patent-strategist-v3-unsloth.yaml \
+  src/content.config.ts \
+  fieldkit/src/fieldkit/publish/__init__.py \
+  fieldkit/tests/test_publish.py
+git -C /Volumes/home/ai-field-notes commit -m "..."  # see message below
+git -C /Volumes/home/ai-field-notes push origin main
+```
+
+**Suggested commit message (single coherent change):**
+```
+chore(narrative): canonical NARRATIVE-CONTRACT.md + ARTIFACT_KINDS 8 → 5 + patent-strategist kind:lora flip
+
+Add /NARRATIVE-CONTRACT.md at repo root as the surface-agnostic content
+rubric (positioning-first, drift-bounded, no forward-looking language,
+sibling cross-links required, data-driven visuals). Card-polish.md now
+references this contract instead of duplicating its rules. Reduce
+ARTIFACT_KINDS from 8 to 5 in both Astro Zod schema and fieldkit publish
+module (drop embed/reranker/space — not on roadmap). Flip patent-
+strategist-v3-{nemo,unsloth} from kind:quant to kind:lora to match
+their actual artifact shape (merged BF16 fine-tunes, not quants).
+
+Mirrored on destination as be7c219 — new render paths for LoRA / Adapter
+/ Dataset, signature SVGs, verifier script, 5-tile catalog hub.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+```
+
+**fieldkit test run:** After the push, the next CI on source should run `pytest fieldkit/tests/test_publish.py::test_artifact_kinds_are_the_canonical_five`. Verify it passes (it's the only test that referenced the removed kinds; should be green).
+
+### 2. NEXT — Audit the LoRA detail page's "How to use" snippet
+
+I defaulted the LoRA detail-page code snippet to PEFT loading:
+```python
+from transformers import AutoModelForCausalLM, AutoTokenizer
+from peft import PeftModel
+base = AutoModelForCausalLM.from_pretrained("deepseek-ai/...", ...)
+model = PeftModel.from_pretrained(base, "Orionfold/patent-strategist-v3-nemo")
+```
+
+That's **wrong for the patent-strategist artifacts.** Their HF repos contain **merged BF16 model weights** (not unmerged adapter shards), so PEFT load would fail looking for `adapter_config.json`. The correct snippet for these is direct:
+```python
+from transformers import AutoModelForCausalLM, AutoTokenizer
+model = AutoModelForCausalLM.from_pretrained("Orionfold/patent-strategist-v3-nemo", torch_dtype="bfloat16", device_map="auto")
+tok = AutoTokenizer.from_pretrained("Orionfold/patent-strategist-v3-nemo")
+```
+
+Two fix paths to evaluate:
+- **(a) Respect the `how_to_load` manifest field if present** — falls back to PEFT pattern otherwise. Simpler. Next source-side authoring populates `how_to_load` per artifact.
+- **(b) Detect merged-vs-adapter from manifest fields** — e.g. if a `lora_adapter_only: true` flag is set, use PEFT; otherwise use direct load. Adds schema surface.
+
+Recommend (a) — `how_to_load` already exists in the Zod schema and is used by dataset detail pages. Make LoRA detail page check it first, then fall back to direct AutoModelForCausalLM load (NOT PEFT). The misleading PEFT snippet is live on `/artifacts/loras/patent-strategist-v3-{nemo,unsloth}/` right now; should be a 5-minute follow-up on destination only. Lives at `src/pages/artifacts/loras/[slug]/index.astro` lines ~167–179.
+
+### 3. Carry-forward — Browser-verify the new LoRA/Adapter/Dataset pages
+
+This session did not run a live browser preview of the new pages. The verifier confirms the contract holds at the HTML level (first H2, drift bounds, signature present, no forward-looking language), but a human-eye check is worth doing:
+- `/artifacts/` — confirm 5 tiles render with their signature previews, no broken layouts
+- `/artifacts/loras/` — listing page with both patent-strategist cards
+- `/artifacts/loras/patent-strategist-v3-nemo/` — full detail page, NeMo-tinted hero signature, narrative + lane block + drift table
+- `/artifacts/loras/patent-strategist-v3-unsloth/` — same shape, Unsloth-tinted signature (distinct from NeMo at a glance)
+- `/artifacts/adapters/` and `/artifacts/datasets/` — empty-state listing pages
+- `/artifacts/quants/patent-strategist-v3-nemo-gguf/` — backfilled with positioning + lane block + drift
+
+`npm run dev` + Chrome browser via `claude-in-chrome` MCP can do this. Lighthouse + WCAG AA contrast check on the LoRA detail page is also worth doing (per the existing `feedback_pagespeed_techniques.md`).
+
+### 4. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
 
 The 4 patent-strategist manifests don't carry a `siblings[]` field. The destination's "Other Orionfold variants" section is gated on this field, so it doesn't render on any of the 4 detail pages today. To activate the cross-link block — a `NARRATIVE-CONTRACT.md` Rule 4 requirement from card #2 onward — the 4 manifests need entries pointing at each other (3 siblings per artifact). The data is easy: each manifest's siblings list is the other 3 in the family. This is source-side authoring work; can either happen at next fieldkit publish or as a manual edit during the next `/sync-field-notes` cycle. Once added, no code change needed on destination — the templates already render `siblings[]` when present.
 
-### 3. NEXT — Lane summary copy for patent-strategist bakeoff
+### 5. NEXT — Lane summary copy for patent-strategist bakeoff
 
 The patent-strategist family is exactly the case "Choosing this lane" was designed for — Unsloth vs NeMo, GGUF vs BF16. Today the "Choosing this lane" section renders only when `lane_summary` is set OR (automatic fallback) when sibling artifacts share `base_model`. The automatic fallback works because all 4 share `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`, but the auto-copy is generic. Editorial `lane_summary` would be stronger:
 - Nemo (BF16 LoRA): "Pick this lane for the canonical NeMo Framework fine-tune — beat Unsloth by 26% on the patent-strategist bench."
@@ -43,7 +128,7 @@ The patent-strategist family is exactly the case "Choosing this lane" was design
 
 Source-side authoring; ~5 min total. Pairs naturally with #2.
 
-### 4. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
+### 6. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
 
 4 older quants render with the new "At a glance" fallback section (auto-generated from variants + base_model) because their manifests predate the v0.5.x positioning fields:
 - `finance-chat-gguf`
@@ -53,47 +138,47 @@ Source-side authoring; ~5 min total. Pairs naturally with #2.
 
 The site is functional and the verifier passes (their signature SVG renders, drift section absent so no bound check needed, no forward-looking phrases). But the catalog cards show no positioning headline, and the detail pages don't carry the research story. Source-side hf-publisher session should backfill `positioning.{headline,problem,use_cases,audience}`, `stack_origin`, and `known_drift[]` for each. Once added, sync to destination via normal `/sync-field-notes` flow — no code change needed.
 
-### 5. Carry-forward — Bakeoff article's catalog footer (descope from prior session #1)
+### 7. Carry-forward — Bakeoff article's catalog footer (descope from prior session)
 
 Prior session flagged: `chrome_footers.collect_gated_articles()` keys by article-slug, so when 4 manifests bind to the same article, last-write-wins (alphabetically). The bakeoff article's footer points to `patent-strategist-v3-unsloth` (the losing lane). This is now slightly worse because that path is now `/artifacts/loras/patent-strategist-v3-unsloth/` (not the GGUF lane it would have been routed to before the kind flip), but the underlying design issue is unchanged: one footer per article, four manifests. Options remain as in prior session — recommend option (a) when the next multi-binding case lands.
 
-### 6. Carry-forward — Deferred Step 4 items from prior sync
+### 8. Carry-forward — Deferred Step 4 items from prior sync
 
 Still drifting between source and destination: `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and 4 of 7 `src/components/sections/fieldkit/*.astro`. Next `/sync-field-notes` cycle should do a targeted `diff` per file.
 
-### 7. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md`
+### 9. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md`
 
 Still pending. Until Spark CC ingests + commits the workflow doc, source-side authoring continues under the older mental model.
 
-### 8. Carry-forward — `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
+### 10. Carry-forward — `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
 
 Defer until #7 resolves.
 
-### 9. NEXT — Re-run `/seo-monitor` (window opens 2026-05-26)
+### 11. NEXT — Re-run `/seo-monitor` (window opens 2026-05-26)
 
 Code-level SEO fixes from `ae81a3f` ship 7–14 days ago. Watch for indexing-gap response.
 
-### 10. Carry-forward — Merge Mac PR #11 in source
+### 12. Carry-forward — Merge Mac PR #11 in source
 
 [ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open.
 
-### 11. Carry-forward — Article wire-back propagation
+### 13. Carry-forward — Article wire-back propagation
 
 `restore_gated_footers()` still auto-applies; cleanest fix is source-side PR.
 
-### 12. Carry-forward — Patent-strategist W3 fine-tune kickoff
+### 14. Carry-forward — Patent-strategist W3 fine-tune kickoff
 
 Source-side, ETA ~2 weeks. Will likely ship more LoRA manifests — the render path built this session is ready.
 
-### 13. Carry-forward — `noindex` prop type extended
+### 15. Carry-forward — `noindex` prop type extended
 
 Public layout contract; informational.
 
-### 14. Carry-forward — PSI authenticated key still missing
+### 16. Carry-forward — PSI authenticated key still missing
 
 Per prior session.
 
-### 15. Carry-forward — SEO local audit clean
+### 17. Carry-forward — SEO local audit clean
 
 Per prior session.
 
