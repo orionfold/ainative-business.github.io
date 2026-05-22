@@ -13,64 +13,59 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-22 (`/sync-field-notes` rewrite for NFS-mounted source). User reported the Spark source repo is now NFS-mounted at `/Volumes/home/ai-field-notes/` — the old indirection through SYNC-HANDOFF.md + local clone at `/Users/manavsehgal/Developer/ai-field-notes/` is obsolete. Asked to rewrite the skill to read source's `git log` as the change narrative and support bidirectional writes (Mac can now edit/commit/push source-side nits without leaving the skill). Plan-mode session captured the design, asked 3 questions (source writes → commit+push, drop contract scripts entirely, keep full sync scope), then executed: 381-line SKILL.md → ~165 lines (drops Step 1 local-clone check, Step 2 handoff parser, Step 5a contract sweep, Step 5b 7-bucket UX brainstorm router; adds Step 1 mount-health check, Step 2 git-log narrative, Step 4 per-file judgement loop for non-tracked source changes, Step 6 source-side edit-commit-push). Path constants flipped across `diff_articles.py` / `sync_articles.py` / `scaffold_bench_manifest.py` (`/Users/...` → `/Volumes/home/ai-field-notes/`). Deleted `contract.py` (470 lines) + `contract_sweep.py` (200 lines) — both were entirely SYNC-HANDOFF-driven. Verified: scripts AST-parse, `npm run build` clean (exit 0), real diff produced (2 new articles `patent-strategist-bakeoff-unsloth-vs-nemo-framework` + `synthetic-corpus-frameworks-on-spark`, 1820 image changes pending sync). Discovered + documented NFS-stall failure mode (first diff hung 10 min on a screenshots dir in state `U`; second run completed normally — added edge-case note). Also left `SYNC-WORKFLOW.md` (6 KB) at source root for Spark CC to memorize the new bidirectional flow.
-**Last destination commit:** `d825ce2` pushed to `origin/main` (sync-skill rewrite). Prior push was `ae81a3f` (SEO indexing-gap sweep, 2026-05-19→2026-05-20). GitHub Pages redeploy expected within ~2 min.
+**Last session:** 2026-05-22 (first production `/sync-field-notes` cycle against NFS-mounted source). Ran the rewritten skill end-to-end with real changes pending: 26 source commits since 2026-05-19 covering fieldkit v0.5.0, the patent-strategist Phase 6.5 bakeoff, and 1820 backfilled evidence images. Diff produced 2 new articles (`patent-strategist-bakeoff-unsloth-vs-nemo-framework` published + `synthetic-corpus-frameworks-on-spark` upcoming), 1819 evidence images across two articles (clawgym + t2po), the new `training.md` fieldkit doc, fieldkit version bump 0.4.3→0.5.0, the `PatentStrategistBakeoff.astro` signature SVG, and project-stats refresh (41→42 articles, 137,670→142,033 words, 25,508→30,958 LOC). Step 4 surfaced 4 new artifact manifests (`patent-strategist-v3-{nemo,nemo-gguf,unsloth,unsloth-gguf}.yaml`) required for the bakeoff article's catalog footers — copied manually. Fixed two NFS bugs that surfaced during execution: (1) first diff stalled in process state `U` on a hash read — killed and retried per the SKILL's documented recovery; (2) sync hit `PermissionError: chflags` because `shutil.copy2` on NFS rejects the `st_flags` copy — patched the skill to use `shutil.copyfile` (content-only is sufficient since the script diffs by content hash, not mtime). Build clean, smoke test passed on `/`, `/field-notes/`, both new articles, and `/fieldkit/`. Committed `0c5c9c5` (1834 files, +1227 lines, includes the skill patch + 4 manifests + auto-flow surfaces), pushed to `origin/main`. Step 6 source-side writes were NOT exercised this cycle (source had unrelated uncommitted changes in evidence JSONs / probes, so the skill correctly blocked source writes per its safety rule).
+**Last destination commit:** `0c5c9c5` pushed to `origin/main` (first production sync of the new flow). Prior pushes: `f9da57a` (HANDOFF reconcile), `d825ce2` (sync-skill rewrite), `ae81a3f` (SEO indexing-gap sweep). GitHub Pages redeploy expected within ~2 min.
 **Push status:** clean — working tree empty, branch in sync with origin/main.
 
 ## Open items (replace each session)
 
-### 1. NEXT STEP — Smoke-test the new `/sync-field-notes` flow on a real Spark commit
+### 1. NEXT — Decide what the bakeoff article's catalog footer should point to
 
-The rewritten skill is ready but unproven against a live cycle. Once Spark commits something next (any of: a new article, an evidence image refresh, a fieldkit version bump), invoke `/sync-field-notes` from this repo and walk the full 9-step flow. Things to watch:
-- **Step 1 mount health** — `git -C /Volumes/home/ai-field-notes status` returns cleanly (no auth prompts, no NFS hang).
-- **Step 2 git-log narrative** — finds destination's last article-touching commit and queries source from that date; commit list is reasonable (not 200+ commits).
-- **Step 3 diff** — currently shows 2 new articles + 1820 image changes (verified 2026-05-22). The `patent-strategist-bakeoff-unsloth-vs-nemo-framework` and `synthetic-corpus-frameworks-on-spark` content is real and waiting; the image count is dominated by `clawgym-on-spark/evidence/runs/` which may want curation before mass-copy.
-- **Step 4 non-tracked source changes** — the new judgement loop should be empty or near-empty on a clean cycle; spot-check the `git log --name-only` filter doesn't surface false positives.
-- **Step 6 source-side writes** — first time exercising commit+push from Mac via NFS. Watch for: NFS write latency, `pull --rebase --autostash` behavior if Spark has unpushed work, and that the `Co-Authored-By: Claude Opus` trailer lands correctly. Recommend starting with a known-safe edit (footer restoration on an article missing one) rather than a contrived test.
+`chrome_footers.collect_gated_articles()` keys its dict by article-slug, so when **N manifests bind to the same article, last-write-wins** (sorted alphabetically). The bakeoff article has 4 manifests bound to it (`patent-strategist-v3-{nemo,nemo-gguf,unsloth,unsloth-gguf}`) — `patent-strategist-v3-unsloth` is alphabetically last among the four, so it wins. The article currently renders **`Catalog page: /artifacts/quants/patent-strategist-v3-unsloth/`** as its trailing chrome — which is the *losing* lane in a bakeoff titled "NeMo Beats Unsloth by 26%." Three options:
 
-### 2. NEW — Spark CC ingest `SYNC-WORKFLOW.md` from source root
+- **(a) Code fix in `chrome_footers.py`.** When multiple manifests bind to the same article, prefer the one whose `slug` matches a hint in the manifest (e.g., a `featured_for_article: true` flag), or prefer the variant whose article body mentions it last/first. Adds schema surface but keeps the auto-flow design.
+- **(b) Hand-curate Mac-side chrome.** Replace the auto-generated single footer with a Mac-authored block listing all four catalog links. Same shape as the in-article HF table, but at the bottom-of-page chrome layer. No script changes.
+- **(c) Accept current state.** The article's "Closing" section already has a complete artifact table with all four HF URLs — the footer is somewhat redundant. Pointing to one of the variants is harmless (just suboptimal). Lowest-effort.
 
-Left a 6 KB note at `/Volumes/home/ai-field-notes/SYNC-WORKFLOW.md` (untracked on source). It describes the new bidirectional workflow for Spark CC to memorize. The user needs to: invoke Claude Code on Spark, ask it to read this file and commit to memory, then commit + push it on the source side. Until then, Spark CC still operates under the older SYNC-HANDOFF.md/SHIPPED-flip mental model.
+Recommend **(c) for now + (a) when the next multi-binding case lands** so we have a 2-case design.
 
-### 3. NEW — Decide on the still-present `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` on source
+### 2. NEXT — Sweep the deferred Step 4 items if they're still drifting on the next sync
 
-Both files still exist at `/Volumes/home/ai-field-notes/` and source-side authoring may continue writing them. Mac no longer reads them. Options for cleanup:
-- **Leave both** — informational only on source; harmless. Source CC may keep writing them out of habit.
-- **Stop source-side authoring** — explicit cleanup in source's release skill so they don't accumulate stale releases.
-- **Delete from source `main`** — strongest signal that the contract changed. Should be a deliberate source-side commit.
+Today's Step 4 found 6 files DIFFERING between source and destination but deferred them (not part of auto-flow surfaces, no obvious port signal). They are: `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and `src/components/sections/fieldkit/{FieldkitCTAFooter,FieldkitModules,FieldkitProblem,FieldkitVerified}.astro` (4 of the 7 fieldkit section files; the other 3 match). On the next sync, if these are still drifting, do a targeted `diff` per file to determine if any are port-worthy. The fieldkit section components are the most interesting — they exist on both sides but with different content; possibly a partial refactor that source did and destination didn't yet absorb. The auto-flow's `src/pages/fieldkit/index.astro` Install/Quickstart/CLI sync reported no landing-page drift this cycle, so destination's fieldkit page is functional, just possibly out-of-step with source's section breakdown.
 
-Recommend deferring this decision until after Open Item #2 — once Spark CC has the new workflow internalized, the cleanup is a one-line source-side commit.
+### 3. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md` from source root
 
-### 4. NEXT STEP — Re-run `/seo-monitor` in ~7–14 days to measure the indexing-gap response
+Still pending from last cycle. `/Volumes/home/ai-field-notes/SYNC-WORKFLOW.md` (6 KB) was authored but is untracked on source. The user needs to invoke Claude Code on Spark, ask it to read the file and commit to memory, then commit + push it on the source side. Until then, Spark CC still operates under the older SYNC-HANDOFF.md/SHIPPED-flip mental model. Symptom this cycle: source HEAD commit `851fa05` is the rewrite-related commit; Spark CC hasn't yet stopped maintaining the old machinery (uncommitted `SYNC-WORKFLOW.md` edits sit in source's git status alongside unrelated evidence JSON drift, suggesting Spark hasn't yet promoted the new workflow doc to first-class).
 
-The four code-level fixes shipped in `ae81a3f` change Google's signal mix for ainative.business:
-- 220 orphan tag/stage/series pages now carry `<meta name="robots" content="noindex, follow">` — Google should drop them from the "submitted, not yet processed" queue over the next 1–2 crawl cycles, freeing crawl budget for the ~137 real content pages.
-- `/projects/` is no longer orphan (linked from footer Site column).
-- Home + `/book/` LCP image is now WebP (366 KB vs 2.94 MB PNG) — PageSpeed/CWV should improve meaningfully on next PSI run.
+### 4. Carry-forward — Decide on `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
 
-Expected reaction window: 7–14 days. Re-run `/seo-monitor` and watch (a) `notIndexed.byReason.crawled_not_indexed` count drop or stay flat (good signs both — flat means the tag-page noindex took effect; drop means real content is getting indexed faster), (b) sitemap "Discovered" count drop from 339 toward ~137 as Google reprocesses the noindex'd tag pages, (c) Home mobile LCP move from 16.1s toward <2.5s.
+Both files still exist at `/Volumes/home/ai-field-notes/` and source-side authoring may continue writing them. Mac no longer reads them. Defer until #3 is resolved — once Spark CC has the new workflow internalized, the cleanup is a one-line source-side commit. Options: leave both (informational only), stop source-side authoring (explicit), or delete from source `main` (strongest signal).
 
-### 5. NEXT STEP — Merge Mac PR #11 in source (user action, carried forward)
+### 5. NEXT — Re-run `/seo-monitor` in 7-14 days to measure the indexing-gap response
 
-[ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open and waiting for merge from the 2026-05-19 patent-strategist bench v0.1 release. Two-purpose PR: (a) SHIPPED-flip for the bench release citing destination commit `7b1b62e`; (b) bundled `mirrors/destination-overrides.md` path-name fix so source-side mirror matches destination's `kindToSegment` code. When merged, both land in one go.
+Code-level fixes shipped 2026-05-19 in `ae81a3f` change Google's signal mix. Watch for: (a) `notIndexed.byReason.crawled_not_indexed` count drop or stay flat, (b) sitemap "Discovered" count drop from 339 toward ~137, (c) Home mobile LCP move from 16.1s toward <2.5s. Expected reaction window: 7-14 days from 2026-05-19, so the window opens 2026-05-26 and closes 2026-06-02.
 
-### 6. Carry-forward — Generalize the schema-driven artifact pattern to other kinds
+### 6. Carry-forward — Merge Mac PR #11 in source
+
+[ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open and waiting for merge from the 2026-05-19 patent-strategist bench v0.1 release. Two-purpose PR: (a) SHIPPED-flip for the bench release citing destination commit `7b1b62e`; (b) bundled `mirrors/destination-overrides.md` path-name fix so source-side mirror matches destination's `kindToSegment` code. Unblocked unless source's new NFS-mount workflow makes the SHIPPED-flip ceremony obsolete (which it may — see #4).
+
+### 7. Carry-forward — Generalize the schema-driven artifact pattern to other kinds
 
 The four-layer pattern shipped 2026-05-19 (schema fields → reusable components → README contract → scaffolding script) is bench-specific today. When the next non-quant kind ships (likely `dataset` or `lora` per source roadmap), repeat: extend `src/content.config.ts` → build `<Kind>Card` + supporting components → document per-kind section in `src/content/artifacts/README.md` → optionally generalize `scaffold_bench_manifest.py` into `scaffold_<kind>_manifest.py`.
 
-### 7. Carry-forward — Article wire-back propagation (handled by sync script, cleanest fix still pending)
+### 8. Carry-forward — Article wire-back propagation (handled by sync script, cleanest fix still pending)
 
 Three quant articles + one bench article carry the `Catalog page: …` footer. `restore_gated_footers()` in the sync skill auto-restores them after sweeps; per-kind footer blurbs added in `chrome_footers.py` last session. Cleanest long-term fix is still a source-side PR replicating the four wire-back lines so the destination restore step becomes a no-op.
 
-### 8. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml`
+### 9. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml`
 
 `recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible.
 
-### 9. Carry-forward — Patent-strategist W3 fine-tune kickoff (source-side, ETA ~2 weeks)
+### 10. Carry-forward — Patent-strategist W3 fine-tune kickoff (source-side, ETA ~2 weeks)
 
 Per the 2026-05-19 source handoff "Next cycle expectations": the patent-strategist arc resumes on a new foundation — NVIDIA-family base model (Llama-3.1-Nemotron-8B-Instruct primary candidate; Mistral-NeMo-Minitron + Nemotron-Nano-9B-v2 alternates pending llama.cpp + Unsloth compat) plus Unsloth as training framework. Next source release will either be `articles/unsloth-on-spark-feasibility/` or `ideas/unsloth-feasibility-decision.md`. Not actionable on Mac side until next SYNC-HANDOFF rotation.
 
-### 10. Carry-forward — `noindex` prop type extended; treat as a load-bearing public contract
+### 11. Carry-forward — `noindex` prop type extended; treat as a load-bearing public contract
 
 `src/layouts/Layout.astro` `noindex` prop now accepts `boolean | 'follow'`:
 - `noindex={true}` → emits `<meta name="robots" content="noindex, nofollow">` (existing semantics, used by `confirmed.astro` transactional page)
@@ -79,11 +74,11 @@ Per the 2026-05-19 source handoff "Next cycle expectations": the patent-strategi
 
 `FieldNotesLayout.astro` passes this through. Any new layout that wraps `Layout` and needs to expose noindex semantics must include the prop in its own signature + pass through.
 
-### 11. Carry-forward — PSI authenticated key still missing
+### 12. Carry-forward — PSI authenticated key still missing
 
 PSI public REST API hit 429 on three consecutive runs (2026-05-15, 2026-05-16, 2026-05-19) — shared "no-API-key" Google project quota exhausted. The `/seo-monitor` skill now also knows how to scrape PSI via the pagespeed.web.dev UI (uses `_/PagespeedUi/data/batchexecute` RPC, separate quota bucket) — verified working in the 2026-05-19 run, took ~110s for home/mobile. UI scrape is a workable fallback but slow; a personal Google Cloud API key would still be cleaner for production use.
 
-### 12. Carry-forward — SEO local audit clean; remaining levers are external (GSC + PSI + link signals)
+### 13. Carry-forward — SEO local audit clean; remaining levers are external (GSC + PSI + link signals)
 
 The local `audit_site.mjs` shows 1 issue (a title-length false positive from the audit counting HTML-entity-encoded characters as 5 chars instead of decoding `&#39;` to 1 — see `issue-history.md` row for 2026-05-19). The audit script would benefit from a one-line patch to decode HTML entities before measuring `<title>` length.
 
@@ -93,6 +88,21 @@ Remaining external SEO levers (per 2026-05-19 Google-docs research):
 - **`/docs/api/settings/` + `/docs/projects/` content thinness** — Request Indexing was submitted this session, but Google may still pass on indexing if content is too thin. Worth a future session: pad these pages with real prose if they're meant to be canonical destinations.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-22 (first production `/sync-field-notes` cycle against NFS-mounted source, evening)
+- **Trigger.** First real cycle through the rewritten skill since `d825ce2` landed earlier the same day. 26 source commits since the 2026-05-19 baseline (`902410f` on destination), covering fieldkit v0.5.0, patent-strategist Phase 6.5 bakeoff, Phase 7 synth-corpus framework prep, and broad evidence backfills.
+- **Step 1 mount health.** `git -C /Volumes/home/ai-field-notes status --short` initially placed in background (NFS read latency) but completed — 19 uncommitted files on source (8 evidence JSONs across 5 articles, 5 probe JSONs, plus the in-flight `SYNC-WORKFLOW.md`). None touched article bodies; warned but proceeded with content sync. Step 6 source-side writes correctly blocked per skill's safety rule.
+- **Step 2 git-log narrative.** Destination's last article-touching commit `902410f` dated 2026-05-19T18:49:13-07:00; source produced 26 commits since. Reasonable count (the rewrite cleanly subtracts: prior sync was 3 days ago and source has been working at its normal cadence).
+- **Step 3 diff: 2 articles + 1820 image changes + 1 fieldkit doc + version bump + 1 signature + stats drift.** Both new articles real; the 1820 images are all under `clawgym-on-spark/evidence/runs/` (Phase 6 baseline + GRPO step-N rollouts + smoke runs — never previously synced) and `t2po-uncertainty-guided-rl-on-spark/evidence/runs/` (T2PO GRPO step-N rollouts). Mass-copy is the right call — the website already follows the policy of including image evidence inside articles' `evidence/` dirs.
+- **Step 4 deferred 6 candidate files.** `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and 4 of 7 `src/components/sections/fieldkit/*.astro` files all DIFFER between source and destination. Each was a real candidate but deferred: no auto-flow signal said they needed porting, and the fieldkit landing-page sync (`src/pages/fieldkit/index.astro` Install/Quickstart/CLI bodies) reported no drift, so destination's fieldkit page is functional. Open item #2 carries these forward to the next sync — if they're still drifting, do a targeted `diff` per file. Many of the listed source files were source-only architecture (e.g. `src/layouts/BaseLayout.astro`, `src/data/fieldkit-ctas.ts`) that destination doesn't use — filtered those out.
+- **Step 4 must-port: 4 new artifact manifests.** `patent-strategist-v3-{nemo,nemo-gguf,unsloth,unsloth-gguf}.yaml` all bind to the bakeoff article. Required for the article's catalog footers via `restore_gated_footers()`. Copied via plain `cp` since artifact manifests are intentionally NOT in the auto-flow.
+- **NFS bug #1 (known): U-state hash stall.** First `diff_articles.py` invocation hung in process state `U` for several minutes. Killed (`kill -9`) per skill's documented recovery; second run completed in ~minutes and produced the expected diff. This is the same pattern documented after the rewrite ships (NFS hash reads can stall on cold handles; second-run kernel re-resolution usually unsticks).
+- **NFS bug #2 (new): `shutil.copy2` chflags PermissionError.** First `sync_articles.py` run after content approval failed: `PermissionError: [Errno 1] Operation not permitted: '...diag.png'` from `shutil.copystat() → chflags`. Root cause: `shutil.copy2` tries to preserve BSD filesystem flags (`st_flags`) via `chflags`, which the NFS export rejects entirely. Patched `copy_if_different()` to use `shutil.copyfile` (content-only) instead — diffing uses content hashes, not mtime, so preserving src timestamps was already unnecessary. One-line fix; included in the commit so future NFS-mounted runs don't trip. This is the second class of NFS-specific failure mode the new workflow has revealed; the skill's edge-case section will likely accumulate more as the workflow matures.
+- **Catalog footer: 4 manifests → 1 footer (design surface).** `chrome_footers.collect_gated_articles()` dict-keys by article-slug, so when 4 manifests bind to the same article, last-write-wins (sorted alphabetically — `patent-strategist-v3-unsloth` won). The bakeoff article's trailing chrome currently points to the Unsloth catalog page (the *losing* lane in a bakeoff titled "NeMo Beats Unsloth by 26%"). Surfaced as Open item #1 with three options (code fix, hand-curate, accept). Accepted as-is for this commit; the article's "Closing" section already lists all 4 HF artifacts in a table, so the footer is somewhat redundant.
+- **Schema check passed.** Both new articles use existing taxonomy: `stage: fine-tuning` (existing), `series: Looking Beyond Spark` (existing), `series: Machine that Builds Machines` (existing). No schema extension needed. Bakeoff carries `customer_linked: true` — the HF dataset card and Civitai card will need a POV audit before pushing the customer-facing version (per `feedback_customer_link_audit.md` — handled by source-side authoring, not Mac sync).
+- **Build clean, 1834 files committed.** `npm run build` exit 0; both new articles produced their `index.html`; OG images regenerated for all 42 articles. Smoke test: `/`, `/field-notes/`, `/field-notes/patent-strategist-bakeoff-unsloth-vs-nemo-framework/`, `/field-notes/synthetic-corpus-frameworks-on-spark/`, `/fieldkit/` all returned 200; bakeoff index card classification correct (`card`, not `card--upcoming`); synthetic-corpus card carries `card--upcoming`; catalog footer rendered with link to `/artifacts/quants/patent-strategist-v3-unsloth/`. Committed as `0c5c9c5` (single commit, 1834 files, +1227/-21), pushed to `origin/main`.
+- **Step 6 source-side writes: not exercised this cycle.** Source had unrelated uncommitted changes (evidence JSON drift + probe JSON drift + `SYNC-WORKFLOW.md` still untracked) — skill's safety rule correctly blocked source writes. First production Step 6 exercise will wait for a sync where source is clean.
+- **The rewrite is proven on a real cycle.** All six load-bearing changes from the 2026-05-22 morning rewrite (mount-health check, git-log narrative, per-file judgement, manifest support, gated footers, copy semantics) exercised against real divergence. Two NFS-specific failure modes surfaced and were handled (one by documented recovery, one by code patch). Workflow is sound; the next sync's job is to validate Step 6 and reduce the Step 4 carry-forward list.
 
 ### 2026-05-22 (`/sync-field-notes` rewrite for NFS-mounted source)
 - **Trigger.** User: "now we have direct mounted source folder from Spark here `/Volumes/home/ai-field-notes/` so we do not need the sync-handoff, local pull, then this CC using skill to sync anymore. update the /sync-field-notes skill to directly sync from source based on git history of source to simplify sync. you can also write to source so that source side nits like footer missing, etc. are also seamless." Plan-mode session.
