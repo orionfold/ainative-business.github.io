@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-20T01:36:52Z",
+  "generated_at": "2026-05-22T19:04:52Z",
   "articles": {
-    "total": 41,
-    "published": 41,
-    "upcoming": 4,
+    "total": 42,
+    "published": 42,
+    "upcoming": 5,
     "drafts": 0
   },
   "words": {
-    "total": 137670,
-    "mean_per_article": 3357,
+    "total": 142033,
+    "mean_per_article": 3381,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -17,23 +17,23 @@
   },
   "code": {
     "evidence_loc": 14207,
-    "fieldkit_loc": 11301,
+    "fieldkit_loc": 16751,
     "vendored_loc": 344724,
-    "total_loc": 25508,
+    "total_loc": 30958,
     "by_language": {
-      "python": 25480,
+      "python": 30930,
       "sql": 15,
       "shell": 13
     },
     "data_lines": {
       "json": 64418183,
-      "yaml": 3319
+      "yaml": 3371
     }
   },
   "stages": {
     "foundations": 12,
     "training": 12,
-    "fine-tuning": 11,
+    "fine-tuning": 12,
     "inference": 14,
     "deployment": 6,
     "agentic": 14,
@@ -43,7 +43,7 @@
   "stages_upcoming": {
     "foundations": 0,
     "training": 1,
-    "fine-tuning": 1,
+    "fine-tuning": 2,
     "inference": 0,
     "deployment": 0,
     "agentic": 0,
@@ -96,17 +96,17 @@
     {
       "id": "dgx-spark",
       "label": "DGX Spark",
-      "articles": 33
+      "articles": 34
     },
     {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 32
+      "articles": 33
     },
     {
       "id": "nemo",
       "label": "NeMo Framework",
-      "articles": 27
+      "articles": 28
     },
     {
       "id": "tensorrt-llm",

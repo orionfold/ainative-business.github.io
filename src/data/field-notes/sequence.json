@@ -46,6 +46,8 @@
     "becoming-a-medical-curator-on-spark",
     "patent-strategist-v1-baseline-on-spark",
     "fine-tune-data-prep-decisions-on-spark",
-    "unsloth-on-spark-feasibility"
+    "unsloth-on-spark-feasibility",
+    "synthetic-corpus-frameworks-on-spark",
+    "patent-strategist-bakeoff-unsloth-vs-nemo-framework"
   ]
 }

@@ -115,7 +115,9 @@ def copy_if_different(src: Path, dst: Path) -> bool:
     if dst.exists() and file_hash(src) == file_hash(dst):
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(src, dst)
+    # copyfile (content only) avoids chflags PermissionError on NFS-mounted sources;
+    # diffing uses content hashes, so preserving src mtime/flags is unnecessary.
+    shutil.copyfile(src, dst)
     return True
 
 

@@ -1,0 +1,37 @@
+slug: patent-strategist-v3-nemo
+kind: quant
+class: bf16
+base_model: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+hf_repo: Orionfold/patent-strategist-v3-nemo
+variants:
+  - BF16
+recommended_variant: BF16
+license:
+  tier: free
+  model: apache-2.0
+article: articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/
+published_at: "2026-05-22T01:29:41Z"
+stack_origin: nemo
+positioning:
+  headline: Offline patent-prosecution reasoning on Spark-class hardware
+  problem: >-
+    Patent prosecution work — claim construction, MPEP-grounded office-action
+    responses, Markush analysis, doctrine-of-equivalents reasoning — happens
+    inside firms that can't ship privileged client text to a hosted frontier
+    API. This release distills DeepSeek-R1's chain-of-thought reasoning onto
+    a 5,000-row synthetic patent-reasoning corpus so a single Spark-class box
+    can run the workflow offline, with full IRAC-shaped reasoning chains.
+  use_cases:
+    - Claim construction (Markush groups, doctrine of equivalents)
+    - MPEP-grounded office-action argument drafting
+    - Prior-art relevance + non-obviousness reasoning chains
+    - Patent-licensing scenario analysis (most-favored-licensee, FTO)
+  audience: >-
+    Patent attorneys, prosecution-team engineers, and IP-strategy teams running
+    privileged workflows offline on Spark-class hardware (GB10, 128 GB unified
+    memory) or comparable edge devices.
+known_drift:
+  - item: '"metes-and-times" terminology'
+    bound: Two known terminology drifts inherited from the v3 synthetic corpus; balance of probe answers (~99%) cite real MPEP sections.
+  - item: Fabricated MPEP §2163.05(s) citation
+    bound: Same scope as above — corpus-generator artifact, not a model-wide hallucination pattern. Real §2163.05 has subsections (a)–(f) on written-description support.
