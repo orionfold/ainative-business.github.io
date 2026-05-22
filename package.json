@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-http-header-size=32768' astro dev",
-    "build": "astro build && node scripts/generate-slashless-duplicates.mjs && npm run build:og",
+    "build": "astro build && node scripts/generate-slashless-duplicates.mjs && npm run build:og && node scripts/verify_artifact_rendering.mjs",
     "build:og": "tsx scripts/generate-og-images.ts",
     "preview": "astro preview",
     "astro": "astro"

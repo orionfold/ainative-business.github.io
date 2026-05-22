@@ -175,6 +175,36 @@ const artifacts = defineCollection({
       .optional(),
     how_to_load: z.string().optional(),
     citation: z.string().optional(),
+    // Engagement-pull narrative fields (fieldkit v0.5.x, May 2026). All optional
+    // so older manifests still validate. Render templates degrade gracefully
+    // when absent. See /NARRATIVE-CONTRACT.md in the source repo.
+    positioning: z
+      .object({
+        headline: z.string(),
+        problem: z.string(),
+        use_cases: z.array(z.string()).default([]),
+        audience: z.string().optional(),
+      })
+      .optional(),
+    stack_origin: z.enum(['unsloth', 'nemo', 'axolotl', 'verl', 'peft']).optional(),
+    lane_summary: z.string().optional(),
+    known_drift: z
+      .array(
+        z.object({
+          item: z.string(),
+          bound: z.string(),
+        }),
+      )
+      .optional(),
+    siblings: z
+      .array(
+        z.object({
+          slug: z.string(),
+          hf_repo: z.string().optional(),
+          hook: z.string(),
+        }),
+      )
+      .optional(),
   }),
 });
 

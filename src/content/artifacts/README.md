@@ -7,9 +7,10 @@ manifest is a single YAML file at `<slug>.yaml` (no subdirectories).
 
 **URL convention:** plural-by-kind. A manifest with `kind: quant` and
 `slug: finance-chat-gguf` is rendered at `/artifacts/quants/finance-chat-gguf/`.
-The plural segments are: `quants`, `loras`, `adapters`, `embeds`, `rerankers`,
-`datasets`, `spaces`, `benches`. Driven by `kindToSegment()` in
-`src/lib/artifacts.ts`.
+The plural segments are: `quants`, `loras`, `adapters`, `datasets`, `benches`.
+Driven by `kindToSegment()` in `src/lib/artifacts.ts`. (The 2026-05-22
+reduction dropped `embed`/`reranker`/`space` from `ARTIFACT_KINDS` — those
+kinds are not pursued.)
 
 **Schema source of truth:** `src/content.config.ts`. The list below is a
 human-readable summary; if the two ever drift, the Zod schema wins.
@@ -21,7 +22,15 @@ human-readable summary; if the two ever drift, the Zod schema wins.
 | Field | Required | Type | Notes |
 |---|---|---|---|
 | `slug` | ✓ | string | URL slug; should match the filename without `.yaml` |
-| `kind` | ✓ | enum | One of `quant`, `lora`, `adapter`, `embed`, `reranker`, `dataset`, `space`, `bench` |
+| `kind` | ✓ | enum | One of `quant`, `lora`, `adapter`, `dataset`, `bench` |
+| `positioning.headline` |  | string | One-line elevator (added v0.5.x; required by [NARRATIVE-CONTRACT.md](/Volumes/home/ai-field-notes/NARRATIVE-CONTRACT.md)) |
+| `positioning.problem` |  | string | Customer-problem framing — sets "What this model does" body |
+| `positioning.use_cases` |  | string[] | Use-case bullets |
+| `positioning.audience` |  | string | Who picks this artifact |
+| `stack_origin` |  | enum | `unsloth` \| `nemo` \| `axolotl` \| `verl` \| `peft` — drives lane badge color |
+| `lane_summary` |  | string | "Choosing this lane" block copy (when multi-stack siblings exist) |
+| `known_drift[]` |  | array of `{ item, bound }` | Bounded limitations — every entry must include a `bound` |
+| `siblings[]` |  | array of `{ slug, hook, hf_repo? }` | Cross-link family — required from card #2 onward |
 | `class` | ✓ | string | Editorial subdomain — surfaced in card meta strip and `<h1>` chip |
 | `base_model` | ✓ | string | The model the artifact derives from; `"n/a"` for benches and datasets |
 | `hf_repo` | ✓ | string | `org/repo` — drives HF link CTA and `/datasets/` URL prefix for benches/datasets |
@@ -96,14 +105,41 @@ Worked example: `patent-strategist-bench-v0.1.yaml`.
 
 ---
 
-## Other kinds (forthcoming)
+## `kind: lora`
 
-`lora`, `adapter`, `embed`, `reranker`, `dataset`, `space` are declared in
-`ARTIFACT_KINDS` but don't yet have manifests. When their first manifest
-lands, document the kind here following the bench/quant pattern: required
-+ optional fields, which component surfaces them, link to a worked example.
-Per `feedback_keep_scorer_local_until_reuse`: hold off on inventing component
-abstractions until at least two manifests in a kind validate the pattern.
+LoRA fine-tunes — the trained adapter weights (typically BF16/FP16) that
+sit above a base model. Rendered by `LoRACard.astro` (catalog) and
+`src/pages/artifacts/loras/[slug]/index.astro` (detail). Shipped 2026-05-22
+with the patent-strategist v3 bakeoff (`patent-strategist-v3-nemo`,
+`patent-strategist-v3-unsloth`).
+
+Required fields beyond the common set: `positioning.{headline,problem}`,
+`stack_origin`, `known_drift[]`. The corresponding GGUF re-pack (when one
+exists) lives as a separate `kind: quant` manifest with `-gguf` suffix.
+
+The detail page renders the full narrative arc: hero LoRA signature SVG →
+"What this model does" → "Evaluated on Spark" (vertical_eval heatmap) →
+"Choosing this lane" (when stack_origin + sibling lanes share base_model)
+→ "How to use" (PEFT snippet) → "Methods" (article wire-back) → "Known
+drift" (bounded entries) → "Other Orionfold variants" (siblings).
+
+Worked example: `patent-strategist-v3-nemo.yaml`, `patent-strategist-v3-unsloth.yaml`.
+
+## `kind: adapter`
+
+Prefix, prompt, and IA³ adapters for specialized inference. Render path
+exists at `src/pages/artifacts/adapters/[slug]/index.astro` but no
+manifests have shipped yet. Schema mirrors `kind: lora` — use the same
+positioning / stack_origin / known_drift fields.
+
+## `kind: dataset`
+
+Curated and synthesized training/eval datasets. Render path exists at
+`src/pages/artifacts/datasets/[slug]/index.astro` but no manifests have
+shipped yet. Reuses the `shapes`, `samples`, `sources`, `how_to_load`,
+`citation` fields from the bench schema for shape composition and load
+snippets. `kind: bench` and `kind: dataset` differ in intent: a bench has
+scored results; a dataset is data without scores.
 
 ---
 

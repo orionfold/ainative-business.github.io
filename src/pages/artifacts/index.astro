@@ -9,9 +9,29 @@ import {
   kindToPluralDisplayName,
   type ArtifactKind,
 } from '../../lib/artifacts';
+import LoRASignature from '../../components/artifacts/LoRASignature.astro';
+import AdapterSignature from '../../components/artifacts/AdapterSignature.astro';
+import DatasetSignature from '../../components/artifacts/DatasetSignature.astro';
 import { SITE, PUBLISHER } from '../../data/seo';
 
 const all = await getCollection('artifacts');
+
+// Pick a featured artifact per kind for the tile preview signature.
+// Sorted by recency so the freshest artifact represents the kind.
+function pickFeatured(kind: ArtifactKind) {
+  const sorted = all
+    .filter((a) => a.data.kind === kind)
+    .sort((a, b) => {
+      const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+      const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+      return bt - at;
+    });
+  return sorted[0] ?? null;
+}
+
+const featuredByKind: Record<ArtifactKind, ReturnType<typeof pickFeatured>> = Object.fromEntries(
+  ARTIFACT_KINDS.map((k) => [k, pickFeatured(k)]),
+) as Record<ArtifactKind, ReturnType<typeof pickFeatured>>;
 
 const countsByKind: Record<ArtifactKind, number> = Object.fromEntries(
   ARTIFACT_KINDS.map((k) => [k, 0]),
@@ -22,12 +42,9 @@ for (const a of all) {
 
 const KIND_BLURBS: Record<ArtifactKind, string> = {
   quant: 'Quantized base models, Spark-measured across perplexity, throughput, vertical eval, and thermal envelope.',
-  lora: 'LoRA adapters with training receipts and inference deltas.',
+  lora: 'LoRA fine-tunes with training receipts, evaluation deltas, and bounded drift disclosures.',
   adapter: 'Prefix, prompt, and IA³ adapters for specialized inference.',
-  embed: 'Embedding models with retrieval-quality measurements.',
-  reranker: 'Cross-encoder rerankers with retrieval-stack receipts.',
   dataset: 'Curated and synthesized training/eval datasets.',
-  space: 'Hosted demo spaces and interactive artifacts.',
   bench: 'Open benchmarks and eval harnesses with publishable scores.',
 };
 
@@ -81,6 +98,7 @@ const jsonLd = [
         const isActive = count > 0;
         const href = `/artifacts/${kindToSegment(kind)}/`;
         const TileTag = isActive ? 'a' : 'div';
+        const featured = featuredByKind[kind];
         return (
           <TileTag
             class={`hub__tile ${isActive ? 'hub__tile--active' : 'hub__tile--inactive'}`}
@@ -88,6 +106,42 @@ const jsonLd = [
             data-animate
             aria-disabled={isActive ? undefined : 'true'}
           >
+            <div class="hub__tile-visual" aria-hidden="true">
+              {kind === 'lora' && featured && (
+                <LoRASignature
+                  slug={featured.data.slug}
+                  stack_origin={featured.data.stack_origin}
+                  base_model={featured.data.base_model}
+                  vertical_eval={featured.data.vertical_eval}
+                  vertical_eval_name={featured.data.vertical_eval_name}
+                  variant="compact"
+                />
+              )}
+              {kind === 'adapter' && (
+                <AdapterSignature
+                  slug={featured?.data.slug ?? `placeholder-${kind}`}
+                  base_model={featured?.data.base_model}
+                  variant="compact"
+                />
+              )}
+              {kind === 'dataset' && (
+                <DatasetSignature
+                  slug={featured?.data.slug ?? `placeholder-${kind}`}
+                  total_rows={featured?.data.shapes?.reduce((s, x) => s + x.count, 0)}
+                  shapes={featured?.data.shapes?.map((s) => ({ code: s.code, count: s.count, label: s.label }))}
+                  license_tier={featured?.data.license.tier}
+                  variant="compact"
+                />
+              )}
+              {kind === 'lora' && !featured && (
+                <LoRASignature slug={`placeholder-${kind}`} variant="compact" />
+              )}
+              {(kind === 'quant' || kind === 'bench') && (
+                <div class={`hub__tile-monogram hub__tile-monogram--${kind}`} aria-hidden="true">
+                  {kind === 'quant' ? 'Q' : 'B'}
+                </div>
+              )}
+            </div>
             <div class="hub__tile-head">
               <span class="hub__tile-kind">{kindToPluralDisplayName(kind)}</span>
               {isActive ? (
@@ -191,6 +245,27 @@ const jsonLd = [
   .hub__tile--active:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 3px;
+  }
+
+  .hub__tile-visual {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 5.5rem;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-border) 60%, transparent);
+  }
+  .hub__tile-monogram {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3rem;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: color-mix(in oklch, var(--color-primary) 75%, transparent);
+  }
+  .hub__tile-monogram--bench {
+    color: color-mix(in oklch, var(--color-accent) 75%, transparent);
   }
 
   .hub__tile-head {

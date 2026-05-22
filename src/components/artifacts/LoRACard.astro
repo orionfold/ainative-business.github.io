@@ -1,0 +1,208 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import LoRASignature from './LoRASignature.astro';
+import LicenseChip from './LicenseChip.astro';
+
+interface Props {
+  artifact: CollectionEntry<'artifacts'>;
+}
+
+const { artifact } = Astro.props;
+const {
+  slug,
+  class: artifactClass,
+  base_model,
+  vertical_eval,
+  vertical_eval_name,
+  license,
+  published_at,
+  positioning,
+  stack_origin,
+} = artifact.data;
+
+const href = `/artifacts/loras/${slug}/`;
+const publishedDate = published_at
+  ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(
+      new Date(published_at),
+    )
+  : null;
+
+const headline = positioning?.headline ?? `LoRA fine-tune of ${base_model.split('/').pop()}`;
+// Take the first sentence-ish of the problem statement for the card preview.
+const problemPreview = positioning?.problem
+  ? positioning.problem.split('. ').slice(0, 2).join('. ').replace(/[.\s]+$/, '') + '.'
+  : null;
+---
+<a class="lora-card" href={href} aria-label={`LoRA fine-tune: ${slug}`}>
+  <span class="lora-card__watermark" aria-hidden="true">L</span>
+  <div class="lora-card__body">
+    <div class="lora-card__meta">
+      <span class="lora-card__kind">LoRA fine-tune</span>
+      {stack_origin && <span class="lora-card__stack">trained with {stack_origin}</span>}
+      <span>{artifactClass.toUpperCase()}</span>
+      {publishedDate && <time datetime={published_at}>{publishedDate}</time>}
+    </div>
+    <h2 class="lora-card__title">{slug}</h2>
+    <p class="lora-card__headline">{headline}</p>
+    {problemPreview && <p class="lora-card__summary">{problemPreview}</p>}
+    <div class="lora-card__chips">
+      <LicenseChip tier={license.tier} model={license.model} />
+      {base_model && (
+        <span class="lora-card__base-chip">
+          base: <span>{base_model.split('/').pop()}</span>
+        </span>
+      )}
+    </div>
+  </div>
+  <aside class="lora-card__signature" aria-hidden="true">
+    <div class="lora-card__signature-frame">
+      <LoRASignature
+        slug={slug}
+        stack_origin={stack_origin}
+        base_model={base_model}
+        vertical_eval={vertical_eval}
+        vertical_eval_name={vertical_eval_name}
+        variant="hero"
+      />
+    </div>
+  </aside>
+</a>
+
+<style>
+  .lora-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(14rem, 22vw, 19rem);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 4rem);
+    padding: 3.75rem 0 3.5rem;
+    border-bottom: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    isolation: isolate;
+    transition: background 0.2s;
+  }
+  .lora-card + .lora-card { padding-top: 4.5rem; }
+  .lora-card:hover { background: color-mix(in oklch, var(--color-primary) 4%, transparent); }
+  .lora-card:hover .lora-card__title { color: var(--color-primary); }
+  .lora-card:hover .lora-card__signature-frame {
+    border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
+    box-shadow: 0 8px 24px -16px color-mix(in oklch, var(--color-primary) 30%, transparent);
+  }
+  .lora-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+
+  .lora-card__watermark {
+    position: absolute;
+    top: -0.15em;
+    left: -0.05em;
+    z-index: -1;
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(7rem, 16vw, 12rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: color-mix(in oklch, var(--color-text) 5%, transparent);
+  }
+
+  .lora-card__body { min-width: 0; position: relative; z-index: 1; }
+
+  .lora-card__meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+  }
+  .lora-card__meta > *:not(:last-child)::after {
+    content: "·";
+    margin-left: 1.1rem;
+    color: var(--color-text-dim);
+  }
+  .lora-card__kind { color: var(--color-primary); }
+  .lora-card__stack { color: var(--color-accent); font-weight: 600; }
+
+  .lora-card__title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    line-height: 1.2;
+    letter-spacing: -0.005em;
+    color: var(--color-text);
+    margin: 0 0 0.6rem;
+    transition: color 0.15s;
+    word-break: break-word;
+  }
+  .lora-card__headline {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+    line-height: 1.35;
+    color: var(--color-text);
+    margin: 0 0 0.7rem;
+    max-width: 50ch;
+  }
+  .lora-card__summary {
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .lora-card__chips {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .lora-card__base-chip {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+  }
+  .lora-card__base-chip span { color: var(--color-text); }
+
+  .lora-card__signature {
+    width: 100%;
+    max-width: 16rem;
+    justify-self: center;
+    align-self: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .lora-card:hover .lora-card__signature { transform: translateY(-2px); }
+  .lora-card__signature-frame {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    padding: 1.4rem 1rem 1.1rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  @media (max-width: 900px) {
+    .lora-card {
+      grid-template-columns: 1fr;
+      padding: 3rem 0 2.5rem;
+    }
+    .lora-card + .lora-card { padding-top: 3.5rem; }
+    .lora-card__signature {
+      max-width: 18rem;
+      justify-self: start;
+    }
+    .lora-card__watermark { font-size: clamp(5rem, 18vw, 8rem); }
+  }
+</style>

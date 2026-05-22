@@ -13,81 +13,105 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-22 (first production `/sync-field-notes` cycle against NFS-mounted source). Ran the rewritten skill end-to-end with real changes pending: 26 source commits since 2026-05-19 covering fieldkit v0.5.0, the patent-strategist Phase 6.5 bakeoff, and 1820 backfilled evidence images. Diff produced 2 new articles (`patent-strategist-bakeoff-unsloth-vs-nemo-framework` published + `synthetic-corpus-frameworks-on-spark` upcoming), 1819 evidence images across two articles (clawgym + t2po), the new `training.md` fieldkit doc, fieldkit version bump 0.4.3→0.5.0, the `PatentStrategistBakeoff.astro` signature SVG, and project-stats refresh (41→42 articles, 137,670→142,033 words, 25,508→30,958 LOC). Step 4 surfaced 4 new artifact manifests (`patent-strategist-v3-{nemo,nemo-gguf,unsloth,unsloth-gguf}.yaml`) required for the bakeoff article's catalog footers — copied manually. Fixed two NFS bugs that surfaced during execution: (1) first diff stalled in process state `U` on a hash read — killed and retried per the SKILL's documented recovery; (2) sync hit `PermissionError: chflags` because `shutil.copy2` on NFS rejects the `st_flags` copy — patched the skill to use `shutil.copyfile` (content-only is sufficient since the script diffs by content hash, not mtime). Build clean, smoke test passed on `/`, `/field-notes/`, both new articles, and `/fieldkit/`. Committed `0c5c9c5` (1834 files, +1227 lines, includes the skill patch + 4 manifests + auto-flow surfaces), pushed to `origin/main`. Step 6 source-side writes were NOT exercised this cycle (source had unrelated uncommitted changes in evidence JSONs / probes, so the skill correctly blocked source writes per its safety rule).
-**Last destination commit:** `0c5c9c5` pushed to `origin/main` (first production sync of the new flow). Prior pushes: `f9da57a` (HANDOFF reconcile), `d825ce2` (sync-skill rewrite), `ae81a3f` (SEO indexing-gap sweep). GitHub Pages redeploy expected within ~2 min.
-**Push status:** clean — working tree empty, branch in sync with origin/main.
+**Last session:** 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract). Built the full LoRA / Adapter / Dataset render path on the destination so the patent-strategist BF16 fine-tunes stop masquerading as quant cards. Reduced `ARTIFACT_KINDS` from 8 to 5 (dropped `embed`/`reranker`/`space`) on both destination and source. Created `NARRATIVE-CONTRACT.md` at source repo root as the canonical content rubric for HF + site surfaces; pointed `card-polish.md` at it. Shipped per-kind programmatic signature SVGs (`LoRASignature` color-coded by `stack_origin`, `AdapterSignature` concentric arcs, `DatasetSignature` stacked bar) following the existing `QuantSignature` / `BenchSignature` pattern — no editorial stock imagery, all data-driven. Extended quant detail pages with positioning/lane/siblings/drift sections (graceful-fallback for older quants without positioning). Wrote `scripts/verify_artifact_rendering.mjs` enforcing first-h2-positioning, drift-bounded, no-forward-looking-language, signature-visual-present — wired into `npm run build` post-build chain. All 9 detail pages pass the contract. Sync skill updated: new `references/site-rendering-rubric.md`, render-path sanity check in Step 5, `chrome_footers.py` blurbs for lora/adapter/dataset, dropped chrome mappings for removed kinds. Patent-strategist BF16 manifests flipped from `kind: quant` to `kind: lora` (mirrors on both source and destination). Source-side edits made via NFS-mount file writes; NOT committed because source has pre-existing uncommitted evidence JSON drift — see Open item #1 below.
+**Last destination commit:** `eeea77e` (prior session). This session's changes are LOCAL ONLY — not committed yet; user gate before commit (see Open item #1).
+**Push status:** destination working tree has many uncommitted changes (this session); source working tree has 7 of my edits + ~17 pre-existing pending evidence/probe files.
 
 ## Open items (replace each session)
 
-### 1. NEXT — Decide what the bakeoff article's catalog footer should point to
+### 1. NEXT — Commit + push the LoRA render path session (destination), then source-side bundle
 
-`chrome_footers.collect_gated_articles()` keys its dict by article-slug, so when **N manifests bind to the same article, last-write-wins** (sorted alphabetically). The bakeoff article has 4 manifests bound to it (`patent-strategist-v3-{nemo,nemo-gguf,unsloth,unsloth-gguf}`) — `patent-strategist-v3-unsloth` is alphabetically last among the four, so it wins. The article currently renders **`Catalog page: /artifacts/quants/patent-strategist-v3-unsloth/`** as its trailing chrome — which is the *losing* lane in a bakeoff titled "NeMo Beats Unsloth by 26%." Three options:
+This session's destination changes are still uncommitted because the user hadn't yet given an explicit commit signal at the time of the verification. The destination diff covers: `src/lib/artifacts.ts` (kinds reduced to 5), `src/content.config.ts` (schema extended with positioning/stack_origin/known_drift/siblings), `src/pages/artifacts/index.astro` (hub reconciled + signature previews), `src/pages/artifacts/{loras,adapters,datasets}/{index,[slug]/index}.astro` (6 new pages), `src/pages/artifacts/quants/[slug]/index.astro` (extended with positioning/lane/siblings/drift sections + hero signature), `src/components/artifacts/{LoRACard,AdapterCard,DatasetCard,LoRASignature,AdapterSignature,DatasetSignature}.astro` (6 new components), `src/components/artifacts/QuantCard.astro` (positioning headline extension), `src/content/artifacts/patent-strategist-v3-{nemo,unsloth}.yaml` (kind flips), `src/content/artifacts/README.md` (per-kind docs + kind reduction note), `scripts/verify_artifact_rendering.mjs` (new), `package.json` (post-build verifier hook), `.claude/skills/sync-field-notes/scripts/chrome_footers.py` (kind blurbs aligned to 5 kinds), `.claude/skills/sync-field-notes/references/site-rendering-rubric.md` (new), `.claude/skills/sync-field-notes/SKILL.md` (render-path sanity check added to Step 5).
 
-- **(a) Code fix in `chrome_footers.py`.** When multiple manifests bind to the same article, prefer the one whose `slug` matches a hint in the manifest (e.g., a `featured_for_article: true` flag), or prefer the variant whose article body mentions it last/first. Adds schema surface but keeps the auto-flow design.
-- **(b) Hand-curate Mac-side chrome.** Replace the auto-generated single footer with a Mac-authored block listing all four catalog links. Same shape as the in-article HF table, but at the bottom-of-page chrome layer. No script changes.
-- **(c) Accept current state.** The article's "Closing" section already has a complete artifact table with all four HF URLs — the footer is somewhat redundant. Pointing to one of the variants is harmless (just suboptimal). Lowest-effort.
+Source-side bundle (also uncommitted; gated by pre-existing source-side evidence drift, never commit on top of someone else's uncommitted work): `NARRATIVE-CONTRACT.md` (new — canonical rubric at source root), `.claude/skills/hf-publisher/references/card-polish.md` (one-line pointer to NARRATIVE-CONTRACT.md added at top), `src/content/artifacts/patent-strategist-v3-nemo.yaml` + `src/content/artifacts/patent-strategist-v3-unsloth.yaml` (kind: quant → lora), `src/content.config.ts` (ARTIFACT_KINDS reduced to 5), `fieldkit/src/fieldkit/publish/__init__.py` (ARTIFACT_KINDS tuple reduced to 5), `fieldkit/tests/test_publish.py` (test name + assertion updated for 5 kinds).
 
-Recommend **(c) for now + (a) when the next multi-binding case lands** so we have a 2-case design.
+Recommended sequence:
+- Commit the destination work first as a single coherent commit (it builds clean, verifier passes, 9 detail pages contract-compliant).
+- For source: user commits their evidence-drift batch separately on Spark or grants explicit auth here for me to commit only my 7 files via targeted `git add` (per the skill's safety rule, never `git add -A` on a dirty tree).
 
-### 2. NEXT — Sweep the deferred Step 4 items if they're still drifting on the next sync
+### 2. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
 
-Today's Step 4 found 6 files DIFFERING between source and destination but deferred them (not part of auto-flow surfaces, no obvious port signal). They are: `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and `src/components/sections/fieldkit/{FieldkitCTAFooter,FieldkitModules,FieldkitProblem,FieldkitVerified}.astro` (4 of the 7 fieldkit section files; the other 3 match). On the next sync, if these are still drifting, do a targeted `diff` per file to determine if any are port-worthy. The fieldkit section components are the most interesting — they exist on both sides but with different content; possibly a partial refactor that source did and destination didn't yet absorb. The auto-flow's `src/pages/fieldkit/index.astro` Install/Quickstart/CLI sync reported no landing-page drift this cycle, so destination's fieldkit page is functional, just possibly out-of-step with source's section breakdown.
+The 4 patent-strategist manifests don't carry a `siblings[]` field. The destination's "Other Orionfold variants" section is gated on this field, so it doesn't render on any of the 4 detail pages today. To activate the cross-link block — a `NARRATIVE-CONTRACT.md` Rule 4 requirement from card #2 onward — the 4 manifests need entries pointing at each other (3 siblings per artifact). The data is easy: each manifest's siblings list is the other 3 in the family. This is source-side authoring work; can either happen at next fieldkit publish or as a manual edit during the next `/sync-field-notes` cycle. Once added, no code change needed on destination — the templates already render `siblings[]` when present.
 
-### 3. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md` from source root
+### 3. NEXT — Lane summary copy for patent-strategist bakeoff
 
-Still pending from last cycle. `/Volumes/home/ai-field-notes/SYNC-WORKFLOW.md` (6 KB) was authored but is untracked on source. The user needs to invoke Claude Code on Spark, ask it to read the file and commit to memory, then commit + push it on the source side. Until then, Spark CC still operates under the older SYNC-HANDOFF.md/SHIPPED-flip mental model. Symptom this cycle: source HEAD commit `851fa05` is the rewrite-related commit; Spark CC hasn't yet stopped maintaining the old machinery (uncommitted `SYNC-WORKFLOW.md` edits sit in source's git status alongside unrelated evidence JSON drift, suggesting Spark hasn't yet promoted the new workflow doc to first-class).
+The patent-strategist family is exactly the case "Choosing this lane" was designed for — Unsloth vs NeMo, GGUF vs BF16. Today the "Choosing this lane" section renders only when `lane_summary` is set OR (automatic fallback) when sibling artifacts share `base_model`. The automatic fallback works because all 4 share `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`, but the auto-copy is generic. Editorial `lane_summary` would be stronger:
+- Nemo (BF16 LoRA): "Pick this lane for the canonical NeMo Framework fine-tune — beat Unsloth by 26% on the patent-strategist bench."
+- Unsloth (BF16 LoRA): "Pick this lane for the Unsloth-trained sibling — strong baseline, faster training cycle, slightly lower vertical eval than NeMo."
+- Nemo GGUF: "Pick this lane for offline inference of the NeMo-trained model on llama.cpp / Ollama."
+- Unsloth GGUF: "Pick this lane for offline inference of the Unsloth-trained model on llama.cpp / Ollama."
 
-### 4. Carry-forward — Decide on `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
+Source-side authoring; ~5 min total. Pairs naturally with #2.
 
-Both files still exist at `/Volumes/home/ai-field-notes/` and source-side authoring may continue writing them. Mac no longer reads them. Defer until #3 is resolved — once Spark CC has the new workflow internalized, the cleanup is a one-line source-side commit. Options: leave both (informational only), stop source-side authoring (explicit), or delete from source `main` (strongest signal).
+### 4. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
 
-### 5. NEXT — Re-run `/seo-monitor` in 7-14 days to measure the indexing-gap response
+4 older quants render with the new "At a glance" fallback section (auto-generated from variants + base_model) because their manifests predate the v0.5.x positioning fields:
+- `finance-chat-gguf`
+- `ii-medical-8b-gguf`
+- `saul-7b-instruct-v1-gguf`
+- `securityllm-gguf`
 
-Code-level fixes shipped 2026-05-19 in `ae81a3f` change Google's signal mix. Watch for: (a) `notIndexed.byReason.crawled_not_indexed` count drop or stay flat, (b) sitemap "Discovered" count drop from 339 toward ~137, (c) Home mobile LCP move from 16.1s toward <2.5s. Expected reaction window: 7-14 days from 2026-05-19, so the window opens 2026-05-26 and closes 2026-06-02.
+The site is functional and the verifier passes (their signature SVG renders, drift section absent so no bound check needed, no forward-looking phrases). But the catalog cards show no positioning headline, and the detail pages don't carry the research story. Source-side hf-publisher session should backfill `positioning.{headline,problem,use_cases,audience}`, `stack_origin`, and `known_drift[]` for each. Once added, sync to destination via normal `/sync-field-notes` flow — no code change needed.
 
-### 6. Carry-forward — Merge Mac PR #11 in source
+### 5. Carry-forward — Bakeoff article's catalog footer (descope from prior session #1)
 
-[ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open and waiting for merge from the 2026-05-19 patent-strategist bench v0.1 release. Two-purpose PR: (a) SHIPPED-flip for the bench release citing destination commit `7b1b62e`; (b) bundled `mirrors/destination-overrides.md` path-name fix so source-side mirror matches destination's `kindToSegment` code. Unblocked unless source's new NFS-mount workflow makes the SHIPPED-flip ceremony obsolete (which it may — see #4).
+Prior session flagged: `chrome_footers.collect_gated_articles()` keys by article-slug, so when 4 manifests bind to the same article, last-write-wins (alphabetically). The bakeoff article's footer points to `patent-strategist-v3-unsloth` (the losing lane). This is now slightly worse because that path is now `/artifacts/loras/patent-strategist-v3-unsloth/` (not the GGUF lane it would have been routed to before the kind flip), but the underlying design issue is unchanged: one footer per article, four manifests. Options remain as in prior session — recommend option (a) when the next multi-binding case lands.
 
-### 7. Carry-forward — Generalize the schema-driven artifact pattern to other kinds
+### 6. Carry-forward — Deferred Step 4 items from prior sync
 
-The four-layer pattern shipped 2026-05-19 (schema fields → reusable components → README contract → scaffolding script) is bench-specific today. When the next non-quant kind ships (likely `dataset` or `lora` per source roadmap), repeat: extend `src/content.config.ts` → build `<Kind>Card` + supporting components → document per-kind section in `src/content/artifacts/README.md` → optionally generalize `scaffold_bench_manifest.py` into `scaffold_<kind>_manifest.py`.
+Still drifting between source and destination: `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and 4 of 7 `src/components/sections/fieldkit/*.astro`. Next `/sync-field-notes` cycle should do a targeted `diff` per file.
 
-### 8. Carry-forward — Article wire-back propagation (handled by sync script, cleanest fix still pending)
+### 7. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md`
 
-Three quant articles + one bench article carry the `Catalog page: …` footer. `restore_gated_footers()` in the sync skill auto-restores them after sweeps; per-kind footer blurbs added in `chrome_footers.py` last session. Cleanest long-term fix is still a source-side PR replicating the four wire-back lines so the destination restore step becomes a no-op.
+Still pending. Until Spark CC ingests + commits the workflow doc, source-side authoring continues under the older mental model.
 
-### 9. Carry-forward — `recommended_variant` override in `securityllm-gguf.yaml`
+### 8. Carry-forward — `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
 
-`recommended_variant: Q4_K_M` field exists in `src/content/artifacts/securityllm-gguf.yaml` to override the picker's rank-avg pick. Source's manifest doesn't have this field. Schema is forward-compatible.
+Defer until #7 resolves.
 
-### 10. Carry-forward — Patent-strategist W3 fine-tune kickoff (source-side, ETA ~2 weeks)
+### 9. NEXT — Re-run `/seo-monitor` (window opens 2026-05-26)
 
-Per the 2026-05-19 source handoff "Next cycle expectations": the patent-strategist arc resumes on a new foundation — NVIDIA-family base model (Llama-3.1-Nemotron-8B-Instruct primary candidate; Mistral-NeMo-Minitron + Nemotron-Nano-9B-v2 alternates pending llama.cpp + Unsloth compat) plus Unsloth as training framework. Next source release will either be `articles/unsloth-on-spark-feasibility/` or `ideas/unsloth-feasibility-decision.md`. Not actionable on Mac side until next SYNC-HANDOFF rotation.
+Code-level SEO fixes from `ae81a3f` ship 7–14 days ago. Watch for indexing-gap response.
 
-### 11. Carry-forward — `noindex` prop type extended; treat as a load-bearing public contract
+### 10. Carry-forward — Merge Mac PR #11 in source
 
-`src/layouts/Layout.astro` `noindex` prop now accepts `boolean | 'follow'`:
-- `noindex={true}` → emits `<meta name="robots" content="noindex, nofollow">` (existing semantics, used by `confirmed.astro` transactional page)
-- `noindex="follow"` → emits `<meta name="robots" content="noindex, follow">` (new, used by orphan hub pages: tags/stages/series templates — keeps them as PageRank conduits without competing for indexing)
-- omitted → no robots meta
+[ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open.
 
-`FieldNotesLayout.astro` passes this through. Any new layout that wraps `Layout` and needs to expose noindex semantics must include the prop in its own signature + pass through.
+### 11. Carry-forward — Article wire-back propagation
 
-### 12. Carry-forward — PSI authenticated key still missing
+`restore_gated_footers()` still auto-applies; cleanest fix is source-side PR.
 
-PSI public REST API hit 429 on three consecutive runs (2026-05-15, 2026-05-16, 2026-05-19) — shared "no-API-key" Google project quota exhausted. The `/seo-monitor` skill now also knows how to scrape PSI via the pagespeed.web.dev UI (uses `_/PagespeedUi/data/batchexecute` RPC, separate quota bucket) — verified working in the 2026-05-19 run, took ~110s for home/mobile. UI scrape is a workable fallback but slow; a personal Google Cloud API key would still be cleaner for production use.
+### 12. Carry-forward — Patent-strategist W3 fine-tune kickoff
 
-### 13. Carry-forward — SEO local audit clean; remaining levers are external (GSC + PSI + link signals)
+Source-side, ETA ~2 weeks. Will likely ship more LoRA manifests — the render path built this session is ready.
 
-The local `audit_site.mjs` shows 1 issue (a title-length false positive from the audit counting HTML-entity-encoded characters as 5 chars instead of decoding `&#39;` to 1 — see `issue-history.md` row for 2026-05-19). The audit script would benefit from a one-line patch to decode HTML entities before measuring `<title>` length.
+### 13. Carry-forward — `noindex` prop type extended
 
-Remaining external SEO levers (per 2026-05-19 Google-docs research):
-- **Backlinks are the only real demand lever.** Per Google's official guidance: "the vast majority of new pages Google finds every day are through links." Cross-linking from existing properties (HuggingFace org, GitHub READMEs, PyPI descriptions, Civitai cards) using **deep links to specific articles** would compound. A single HN front-page or Substack feature moves the entire crawl budget for weeks.
-- **PSI authenticated key** (see #8 above).
-- **`/docs/api/settings/` + `/docs/projects/` content thinness** — Request Indexing was submitted this session, but Google may still pass on indexing if content is too thin. Worth a future session: pad these pages with real prose if they're meant to be canonical destinations.
+Public layout contract; informational.
+
+### 14. Carry-forward — PSI authenticated key still missing
+
+Per prior session.
+
+### 15. Carry-forward — SEO local audit clean
+
+Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract)
+- **Trigger.** User: "patent-strategies nemo and unsloth models were fine tunes with LoRA adapters + GGUF quants landing on HF. I see the fine tunes land in Quant cards instead of LoRA adapters in the Artifacts. ... fine tunes are our crown jewels taking lot of pain and research and invention. None of that is covered in the artifact cards or detail pages." Plus three follow-ups: reconcile "Coming soon" tiles, remove embed/reranker/space, ensure visuals on all cards/detail pages.
+- **Where to fix.** Mostly destination Mac CC; source needed only 3 small edits (NARRATIVE-CONTRACT.md, manifest kind flips, kind reduction). No fieldkit publish-pipeline changes — v0.5.x already emits every field the new templates consume. /tech-writer skill in source is article-focused, not card-focused; closer analog is `.claude/skills/hf-publisher/references/card-polish.md` — which now references the new canonical contract instead of duplicating its rules.
+- **The diagnosis.** Two issues compounding: (1) source manifests carried `kind: quant` for the two BF16 LoRA fine-tunes that should have been `kind: lora`, and (2) destination had no LoRA card component, no `/artifacts/loras/` route, no `[slug]/index.astro` template — only quant rendering existed. So even after the kind flip, the manifests would have rendered nowhere. The schema also lacked `positioning`, `stack_origin`, `known_drift`, `siblings` fields entirely — Zod was silently stripping them from the parsed `entry.data`, so destination templates couldn't read them even though source manifests carried them. Added them to the Zod schema as a precondition.
+- **Phase A foundation: ARTIFACT_KINDS 8 → 5.** Reduced on both destination (`src/lib/artifacts.ts`, all 3 name maps) and source (`src/content.config.ts` + `fieldkit/src/fieldkit/publish/__init__.py` + `fieldkit/tests/test_publish.py` assertion). Dropped `embed`, `reranker`, `space` — not on roadmap. TypeScript caught all stale references in one build pass. The catalog hub now renders exactly 5 tiles; removed-kind paths return 404 cleanly.
+- **Phase B/C/D: per-kind signatures + cards + pages.** Built `LoRASignature.astro` (seeded radial glyph, color-coded by `stack_origin` so Unsloth = accent, NeMo = primary — visually distinguishable at a glance), `AdapterSignature.astro` (concentric arcs seeded by slug), `DatasetSignature.astro` (stacked bar by shape or grid fallback). All carry `compact` + `hero` variants matching the existing `QuantSignature` / `BenchSignature` pattern. Then `LoRACard.astro`, `AdapterCard.astro`, `DatasetCard.astro` (each surfaces positioning.headline as a prominent line above the card summary). Then `/artifacts/{loras,adapters,datasets}/index.astro` + `[slug]/index.astro` pages. The LoRA detail template is the crown-jewel template — sections in `NARRATIVE-CONTRACT.md` order: kicker → title → elevator → hero signature + meta strip → What this model does → Evaluated on Spark (vertical_eval grid) → Choosing this lane (auto when siblings share base_model) → How to use (PEFT load snippet) → Methods (article wire-back) → Known drift (`<dl>` with `<dt>` items + `<dd>` bounds) → Other Orionfold variants (sibling cards) → Lineage badge.
+- **Phase D quant backfill.** Extended `src/pages/artifacts/quants/[slug]/index.astro` with positioning / lane / siblings / drift sections that gracefully no-op for older manifests without those fields. Always renders a hero `QuantSignature` at the top now — moved it out of the positioning conditional so older quants without positioning still satisfy the visual contract. `QuantCard.astro` now shows `positioning.headline` when present, falls back to slug+variants when absent. Added an "At a glance" fallback section for quants without positioning (auto-generated from variants + base_model + vertical_eval_name) so the H2 still leads with something positioning-shaped, not drift.
+- **Phase E hub reconciliation.** Each tile on `/artifacts/` now carries a signature SVG preview above the blurb. Lora tiles preview the freshest LoRA's signature (patent-strategist-v3-nemo or unsloth — they alternate by publish date). Adapter and Dataset tiles preview placeholder seeded signatures. Quant + Bench tiles use display-font monograms. Final hub state: 5 tiles total — Quantizations (5), LoRA adapters (2 after kind flip), Adapters (0, coming soon), Datasets (0, coming soon), Benchmarks (1).
+- **Phase F site verifier.** New `scripts/verify_artifact_rendering.mjs` parses every artifact detail page in `dist/` post-build and enforces: (1) first H2 not "Known drift"; (2) every drift `<dd>` carries a bound annotation (number / fraction / count / "same scope" / "subsections (a)–(f)" / etc.); (3) no forward-looking phrases ("coming soon", "will fix", "on the roadmap", "fix eta", "next version will"); (4) signature SVG present (regex against `class="*-sig"` / `class="bs"` / `class="*Signature"`). Wired into `npm run build` as the 4th post-build step. All 9 artifact detail pages pass.
+- **Phase G + B sync-skill updates.** Added `chrome_footers.py` blurbs for lora/adapter/dataset, dropped mappings for removed kinds. New `references/site-rendering-rubric.md` (Astro-component slot mapping + a11y / mobile / light-theme guidance). Added a "Render-path sanity check" paragraph to Step 5 of SKILL.md that ensures any synced manifest's kind has a corresponding `/artifacts/<segment>/[slug]/index.astro` template; defers to `verify_artifact_rendering.mjs` for content contract enforcement.
+- **Source-side bundle (NOT committed — gated on user).** Made the 7 source-side file edits via NFS-mount writes: `NARRATIVE-CONTRACT.md` (new), `card-polish.md` (pointer added), 2 manifest kind flips, `src/content.config.ts` + `fieldkit/src/fieldkit/publish/__init__.py` ARTIFACT_KINDS reductions, `fieldkit/tests/test_publish.py` assertion update. Source had pre-existing uncommitted evidence/probe JSON drift, so per the skill's safety rule (never commit on top of someone else's uncommitted work) I did NOT run `git commit` on source. User-gated — see Open item #1.
+- **What "/tech-writer in source vs destination" question resolved to.** Neither — both. The narrative rules belong in one canonical file at source root (`NARRATIVE-CONTRACT.md`) because the same artifact has two render surfaces (HF model card + Astro detail page). Both surfaces now reference this file instead of duplicating its rules; per-surface verification scripts (source's `verify_stage.sh` + destination's new `verify_artifact_rendering.mjs`) enforce against the same contract. This avoids drift that would have happened if I'd put a parallel rubric in each repo. Future surfaces (PDF datasheet, deck slide) join by referencing the contract, never by duplicating it.
+- **What's NOT done that the user may want next.** (a) Patent-strategist sibling cross-link fields — manifests don't carry `siblings[]` yet; templates already render the section when present. (b) `lane_summary` editorial copy for the 4 patent-strategist artifacts. (c) Older quant positioning backfill (finance-chat, ii-medical-8b, saul-7b, securityllm). All three are source-side authoring tasks; see Open items #2, #3, #4.
 
 ### 2026-05-22 (first production `/sync-field-notes` cycle against NFS-mounted source, evening)
 - **Trigger.** First real cycle through the rewritten skill since `d825ce2` landed earlier the same day. 26 source commits since the 2026-05-19 baseline (`902410f` on destination), covering fieldkit v0.5.0, patent-strategist Phase 6.5 bakeoff, Phase 7 synth-corpus framework prep, and broad evidence backfills.

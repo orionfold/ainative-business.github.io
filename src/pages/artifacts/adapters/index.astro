@@ -1,0 +1,126 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import AdapterCard from '../../../components/artifacts/AdapterCard.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'adapter');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Adapters — Artifacts — ainative';
+const pageDescription = `Prefix, prompt, and IA³ adapters for specialized inference. ${sorted.length} published.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Adapters',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/adapters/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Adapters', item: `${SITE.url}/artifacts/adapters/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="adp-index">
+    <header class="adp-index__masthead">
+      <div class="adp-index__strip" aria-hidden="true">
+        <a class="adp-index__back" href="/artifacts/">← Artifacts</a>
+        <span class="adp-index__rule"></span>
+        <span>/adapters/</span>
+        <span class="adp-index__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="adp-index__title">Adapters.</h1>
+      <p class="adp-index__tagline">
+        Prefix, prompt, and IA³ adapters for specialized inference. <span class="adp-index__count">{countPadded} published.</span>
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <p class="adp-index__empty">
+        No adapter artifacts published yet. <br/>
+        Browse the <a href="/artifacts/loras/">LoRA fine-tunes</a> or <a href="/artifacts/quants/">quantizations</a> in the meantime.
+      </p>
+    ) : (
+      <section class="adp-index__list">
+        {sorted.map((artifact) => (
+          <AdapterCard artifact={artifact} />
+        ))}
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .adp-index {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .adp-index__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .adp-index__strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .adp-index__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .adp-index__back:hover { color: var(--color-primary); }
+  .adp-index__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .adp-index__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+  .adp-index__tagline {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 56ch;
+    margin: 0;
+  }
+  .adp-index__count { color: var(--color-primary); font-family: var(--font-mono); font-size: 0.95em; margin-left: 0.25rem; }
+  .adp-index__empty {
+    margin-top: 3rem;
+    padding: 3rem 2rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+  .adp-index__empty a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+</style>

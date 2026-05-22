@@ -21,6 +21,8 @@ const {
   vertical_eval_name,
   license,
   published_at,
+  positioning,
+  stack_origin,
 } = artifact.data;
 
 const href = `/artifacts/quants/${slug}/`;
@@ -46,11 +48,15 @@ const publishedDate = published_at
   <div class="qa-card__body">
     <div class="qa-card__meta">
       <span class="qa-card__kind">Quant</span>
+      {stack_origin && <span class="qa-card__stack">trained with {stack_origin}</span>}
       <span>{artifactClass.toUpperCase()}</span>
       <span>{variants.length} variants</span>
       {publishedDate && <time datetime={published_at}>{publishedDate}</time>}
     </div>
     <h2 class="qa-card__title">{slug}</h2>
+    {positioning?.headline && (
+      <p class="qa-card__headline">{positioning.headline}</p>
+    )}
     <p class="qa-card__summary">
       Quantization of <span class="qa-card__base">{base_model}</span>.
       {sweetSpot && vertical_eval_name && sweetScore && (
@@ -141,6 +147,20 @@ const publishedDate = published_at
   }
   .qa-card__kind {
     color: var(--color-primary);
+  }
+  .qa-card__stack {
+    color: var(--color-accent);
+    font-weight: 600;
+  }
+
+  .qa-card__headline {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.05rem, 1.4vw, 1.2rem);
+    line-height: 1.35;
+    color: var(--color-text);
+    margin: 0 0 0.7rem;
+    max-width: 50ch;
   }
 
   .qa-card__title {

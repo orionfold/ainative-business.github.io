@@ -131,6 +131,8 @@ The source repo deliberately doesn't carry this block. Both diff and sync script
 
 After `sync_articles.py` runs, separately walk any per-file Step 4 items the user approved: Read source file → Edit/Write target.
 
+**Render-path sanity check (artifact manifests).** When `src/content/artifacts/*.yaml` files were copied in this sync, confirm each synced manifest's `kind:` has a corresponding render path under `src/pages/artifacts/<segment>/[slug]/index.astro`. The current valid kinds are: `quant` → `/quants/`, `lora` → `/loras/`, `adapter` → `/adapters/`, `dataset` → `/datasets/`, `bench` → `/benches/`. Mismatches (e.g. a `kind: lora` manifest before the `/loras/` route exists) will silently produce 404s on the catalog footer's link — surface to the user, never auto-fix. The narrative/visual contract a synced manifest must satisfy is documented at `.claude/skills/sync-field-notes/references/site-rendering-rubric.md` (which references source's `NARRATIVE-CONTRACT.md` as the canonical content rubric). After sync, run `npm run build` — the post-build verifier at `scripts/verify_artifact_rendering.mjs` enforces the contract and fails the build on violation.
+
 ### Step 6: Source-side nit fixes (optional, user-driven)
 
 When the user spots a source-side issue during Step 3/4 review (e.g. "article X is missing its catalog footer", "frontmatter typo in Y", "image filename is wrong", "footer in Z links to the wrong artifact"), Claude can fix it directly on source. For each fix:

@@ -1,0 +1,132 @@
+---
+interface Props {
+  slug: string;
+  base_model?: string;
+  variant?: 'compact' | 'hero';
+}
+
+const { slug, base_model, variant = 'compact' } = Astro.props;
+
+// Concentric arc signature — three nested arcs, lengths seeded by slug.
+// Visually distinct from LoRA (radial) and Quant (curve) so the catalog
+// reads three different artifact shapes at a glance.
+function seededArcs(s: string): { start: number; end: number; weight: number }[] {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
+  const arcs = [];
+  for (let i = 0; i < 3; i++) {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    const start = (hash % 360);
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    const len = 120 + (hash % 200);
+    arcs.push({ start, end: start + len, weight: 0.4 + i * 0.3 });
+  }
+  return arcs;
+}
+
+const VIEW = 100;
+const CX = 50;
+const CY = 50;
+const arcs = seededArcs(slug);
+
+function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: number): string {
+  const s = (startDeg * Math.PI) / 180;
+  const e = (endDeg * Math.PI) / 180;
+  const sx = cx + Math.cos(s) * r;
+  const sy = cy + Math.sin(s) * r;
+  const ex = cx + Math.cos(e) * r;
+  const ey = cy + Math.sin(e) * r;
+  const large = endDeg - startDeg > 180 ? 1 : 0;
+  return `M ${sx.toFixed(2)} ${sy.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+}
+
+const radii = [18, 28, 38];
+const ariaLabel = `Adapter ${slug}`;
+---
+{variant === 'compact' && (
+  <figure class="adapter-sig adapter-sig--compact" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW} ${VIEW}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      {radii.map((r) => (
+        <circle cx={CX} cy={CY} r={r} class="adapter-sig__guide" />
+      ))}
+      {arcs.map((a, i) => (
+        <path
+          d={arcPath(CX, CY, radii[i], a.start, a.end)}
+          class={`adapter-sig__arc adapter-sig__arc--${i}`}
+          fill="none"
+        />
+      ))}
+    </svg>
+  </figure>
+)}
+
+{variant === 'hero' && (
+  <figure class="adapter-sig adapter-sig--hero" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW} ${VIEW}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      {radii.map((r) => (
+        <circle cx={CX} cy={CY} r={r} class="adapter-sig__guide" />
+      ))}
+      {arcs.map((a, i) => (
+        <path
+          d={arcPath(CX, CY, radii[i], a.start, a.end)}
+          class={`adapter-sig__arc adapter-sig__arc--${i} adapter-sig__arc--hero`}
+          fill="none"
+        />
+      ))}
+    </svg>
+    <figcaption class="adapter-sig__caption">
+      {base_model && (
+        <span class="adapter-sig__base">on {base_model.split('/').pop()}</span>
+      )}
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .adapter-sig {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .adapter-sig svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .adapter-sig--compact { width: 64px; }
+  .adapter-sig--hero { width: 100%; max-width: 280px; }
+
+  .adapter-sig__guide {
+    fill: none;
+    stroke: var(--color-border);
+    stroke-width: 0.4;
+    stroke-dasharray: 1 1.5;
+  }
+  .adapter-sig__arc {
+    stroke-linecap: round;
+    stroke-width: 2;
+  }
+  .adapter-sig__arc--0 {
+    stroke: color-mix(in oklch, var(--color-primary) 80%, transparent);
+  }
+  .adapter-sig__arc--1 {
+    stroke: color-mix(in oklch, var(--color-accent) 70%, transparent);
+  }
+  .adapter-sig__arc--2 {
+    stroke: color-mix(in oklch, var(--color-text-muted) 60%, transparent);
+  }
+  .adapter-sig__arc--hero { stroke-width: 2.4; }
+
+  .adapter-sig__caption {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+</style>

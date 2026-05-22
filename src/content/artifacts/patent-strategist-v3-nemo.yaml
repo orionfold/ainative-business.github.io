@@ -1,5 +1,5 @@
 slug: patent-strategist-v3-nemo
-kind: quant
+kind: lora
 class: bf16
 base_model: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
 hf_repo: Orionfold/patent-strategist-v3-nemo

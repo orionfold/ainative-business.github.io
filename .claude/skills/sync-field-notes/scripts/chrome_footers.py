@@ -45,10 +45,7 @@ _KIND_TO_URL_FAMILY: dict[str, str] = {
     "quant": "quants",
     "lora": "loras",
     "adapter": "adapters",
-    "embed": "embeds",
-    "reranker": "rerankers",
     "dataset": "datasets",
-    "space": "spaces",
     "bench": "benches",
 }
 
@@ -64,6 +61,18 @@ _BLURB_BY_KIND: dict[str, str] = {
     "bench": (
         "three-mode bracket results, shape composition, sample rows per "
         "shape, and source provenance — the full bench card."
+    ),
+    "lora": (
+        "positioning narrative, training-stack badge, evaluation deltas, "
+        "lane comparison, and bounded drift — the full LoRA fine-tune card."
+    ),
+    "adapter": (
+        "positioning, base-model lineage, how-to-load snippet, and bounded "
+        "drift disclosures for this adapter."
+    ),
+    "dataset": (
+        "shape composition with row counts per scorer tier, baseline numbers, "
+        "and source provenance — the full dataset card."
     ),
 }
 

@@ -1,0 +1,159 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import LoRACard from '../../../components/artifacts/LoRACard.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'lora');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'LoRA fine-tunes — Artifacts — ainative';
+const pageDescription = `${sorted.length} LoRA fine-tune artifacts trained on DGX Spark — each carries positioning, training stack, bounded drift, and a wire-back to the field note.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'LoRA fine-tunes',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/loras/`,
+    publisher: PUBLISHER,
+    hasPart: sorted.map((a) => ({
+      '@type': 'Dataset',
+      name: a.data.slug,
+      description: a.data.positioning?.headline ?? `LoRA fine-tune of ${a.data.base_model}`,
+      url: `${SITE.url}/artifacts/loras/${a.data.slug}/`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'LoRA fine-tunes', item: `${SITE.url}/artifacts/loras/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="lora-index">
+    <header class="lora-index__masthead">
+      <div class="lora-index__strip" aria-hidden="true">
+        <a class="lora-index__back" href="/artifacts/">← Artifacts</a>
+        <span class="lora-index__rule"></span>
+        <span>/loras/</span>
+        <span class="lora-index__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="lora-index__title">LoRA fine-tunes.</h1>
+      <p class="lora-index__tagline">
+        Vertical fine-tunes shipped with the research story attached — what the model does,
+        who picks this training lane, how it was evaluated on Spark, and what drifts you
+        should expect bounded by count. <span class="lora-index__count">{countPadded} published.</span>
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <p class="lora-index__empty">No LoRA fine-tunes published yet.</p>
+    ) : (
+      <section class="lora-index__list">
+        {sorted.map((artifact) => (
+          <LoRACard artifact={artifact} />
+        ))}
+        <div class="lora-index__closer">
+          <span class="lora-index__closer-glyph">※</span>
+          <span>More fine-tunes in preparation</span>
+          <span class="lora-index__closer-rule"></span>
+          <span>End of {volLabel}</span>
+        </div>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .lora-index {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .lora-index__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .lora-index__strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .lora-index__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .lora-index__back:hover { color: var(--color-primary); }
+  .lora-index__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .lora-index__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+  .lora-index__tagline {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 56ch;
+    margin: 0;
+  }
+  .lora-index__count {
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    margin-left: 0.25rem;
+  }
+  .lora-index__list { margin-top: 1.5rem; }
+  .lora-index__list > :global(.lora-card):first-of-type {
+    padding-top: 3rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .lora-index__list > :global(.lora-card):last-of-type { border-bottom: none; }
+  .lora-index__empty {
+    margin-top: 3rem;
+    padding: 3rem 2rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+  }
+  .lora-index__closer {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 3rem;
+    padding: 2rem 0 0;
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .lora-index__closer-glyph { color: var(--color-primary); }
+  .lora-index__closer-rule { flex: 1; height: 1px; background: var(--color-border); }
+</style>

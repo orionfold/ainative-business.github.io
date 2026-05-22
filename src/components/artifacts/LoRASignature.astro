@@ -1,0 +1,215 @@
+---
+type StackOrigin = 'unsloth' | 'nemo' | 'axolotl' | 'verl' | 'peft';
+
+interface Props {
+  slug: string;
+  stack_origin?: StackOrigin;
+  base_model?: string;
+  vertical_eval?: Record<string, number>;
+  vertical_eval_name?: string;
+  variant?: 'compact' | 'hero';
+}
+
+const {
+  slug,
+  stack_origin,
+  base_model,
+  vertical_eval,
+  vertical_eval_name,
+  variant = 'compact',
+} = Astro.props;
+
+// Color token per training stack. Lets two siblings (e.g. patent-strategist
+// nemo vs unsloth) render visually distinct cards at a glance.
+const STACK_TOKEN: Record<StackOrigin, string> = {
+  unsloth: '--color-accent',
+  nemo: '--color-primary',
+  axolotl: '--color-text-muted',
+  verl: '--color-text-muted',
+  peft: '--color-text-muted',
+};
+const stackColor = stack_origin ? `var(${STACK_TOKEN[stack_origin]})` : 'var(--color-text-muted)';
+
+// Build a seeded radial signature from the slug — same slug always produces
+// the same shape, but two siblings with different slugs look distinct. Six
+// rays whose lengths derive from the slug's character codes. If vertical_eval
+// is populated we overlay actual scores; otherwise the rays render alone as
+// an aesthetic identity glyph.
+function seededRays(s: string, n: number): number[] {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
+  const rays: number[] = [];
+  for (let i = 0; i < n; i++) {
+    hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+    rays.push(0.45 + ((hash % 1000) / 1000) * 0.5);
+  }
+  return rays;
+}
+
+const RAY_COUNT = 7;
+const rays = seededRays(slug, RAY_COUNT);
+const evalEntries = vertical_eval ? Object.entries(vertical_eval) : [];
+const hasEval = evalEntries.length >= 2;
+
+const VIEW = 100;
+const CX = VIEW / 2;
+const CY = VIEW / 2;
+const R_MAX = 38;
+
+const rayPoints = rays.map((mag, i) => {
+  const angle = (i / RAY_COUNT) * Math.PI * 2 - Math.PI / 2;
+  const r = R_MAX * mag;
+  return {
+    x: CX + Math.cos(angle) * r,
+    y: CY + Math.sin(angle) * r,
+  };
+});
+const rayPath = rayPoints
+  .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`)
+  .join(' ') + ' Z';
+
+const ariaLabel = `LoRA fine-tune ${slug}${stack_origin ? `, trained with ${stack_origin}` : ''}`;
+---
+{variant === 'compact' && (
+  <figure class="lora-sig lora-sig--compact" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW} ${VIEW}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      <circle cx={CX} cy={CY} r={R_MAX} class="lora-sig__ring" />
+      <circle cx={CX} cy={CY} r={R_MAX * 0.66} class="lora-sig__ring lora-sig__ring--inner" />
+      <path
+        d={rayPath}
+        class="lora-sig__shape"
+        style={`--stack-color: ${stackColor}`}
+      />
+      <circle cx={CX} cy={CY} r="2" class="lora-sig__core" style={`fill: ${stackColor}`} />
+    </svg>
+  </figure>
+)}
+
+{variant === 'hero' && (
+  <figure class="lora-sig lora-sig--hero" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW} ${VIEW}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      <circle cx={CX} cy={CY} r={R_MAX} class="lora-sig__ring" />
+      <circle cx={CX} cy={CY} r={R_MAX * 0.66} class="lora-sig__ring lora-sig__ring--inner" />
+      <circle cx={CX} cy={CY} r={R_MAX * 0.33} class="lora-sig__ring lora-sig__ring--inner" />
+      <path
+        d={rayPath}
+        class="lora-sig__shape lora-sig__shape--hero"
+        style={`--stack-color: ${stackColor}`}
+      />
+      {rayPoints.map((p) => (
+        <circle cx={p.x} cy={p.y} r="1.6" class="lora-sig__vertex" style={`fill: ${stackColor}`} />
+      ))}
+      <circle cx={CX} cy={CY} r="3" class="lora-sig__core" style={`fill: ${stackColor}`} />
+    </svg>
+    <figcaption class="lora-sig__caption">
+      {stack_origin && (
+        <span class="lora-sig__stack" style={`color: ${stackColor}`}>{stack_origin}</span>
+      )}
+      {base_model && (
+        <span class="lora-sig__base">on {base_model.split('/').pop()}</span>
+      )}
+      {hasEval && vertical_eval_name && (
+        <span class="lora-sig__eval">{vertical_eval_name}: {evalEntries.length} scores</span>
+      )}
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .lora-sig {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .lora-sig svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .lora-sig--compact {
+    width: 64px;
+  }
+  .lora-sig--hero {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .lora-sig__ring {
+    fill: none;
+    stroke: var(--color-border);
+    stroke-width: 0.6;
+  }
+  .lora-sig__ring--inner {
+    stroke: color-mix(in oklch, var(--color-border) 65%, transparent);
+    stroke-dasharray: 1.5 2;
+  }
+
+  .lora-sig__shape {
+    fill: color-mix(in oklch, var(--stack-color) 18%, transparent);
+    stroke: var(--stack-color);
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    stroke-dasharray: 260;
+    stroke-dashoffset: 260;
+    animation: lora-sig-draw 1100ms cubic-bezier(0.16, 1, 0.3, 1) 200ms forwards;
+  }
+  .lora-sig__shape--hero {
+    fill: color-mix(in oklch, var(--stack-color) 14%, transparent);
+    stroke-width: 1.8;
+  }
+
+  .lora-sig__vertex {
+    opacity: 0;
+    animation: lora-sig-vertex-in 600ms ease-out 1200ms forwards;
+  }
+  .lora-sig__core {
+    opacity: 0;
+    animation: lora-sig-vertex-in 500ms ease-out 1400ms forwards;
+  }
+
+  .lora-sig__caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+  .lora-sig__stack {
+    font-weight: 600;
+    letter-spacing: 0.18em;
+  }
+  .lora-sig__base {
+    color: var(--color-text-dim);
+  }
+  .lora-sig__eval {
+    color: var(--color-text);
+  }
+
+  @keyframes lora-sig-draw {
+    to { stroke-dashoffset: 0; }
+  }
+  @keyframes lora-sig-vertex-in {
+    to { opacity: 1; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lora-sig__shape,
+    .lora-sig__vertex,
+    .lora-sig__core {
+      animation: none;
+      stroke-dashoffset: 0;
+      opacity: 1;
+    }
+  }
+</style>

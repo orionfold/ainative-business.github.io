@@ -2,10 +2,7 @@ export const ARTIFACT_KINDS = [
   'quant',
   'lora',
   'adapter',
-  'embed',
-  'reranker',
   'dataset',
-  'space',
   'bench',
 ] as const;
 
@@ -15,10 +12,7 @@ const SEGMENT_BY_KIND: Record<ArtifactKind, string> = {
   quant: 'quants',
   lora: 'loras',
   adapter: 'adapters',
-  embed: 'embeds',
-  reranker: 'rerankers',
   dataset: 'datasets',
-  space: 'spaces',
   bench: 'benches',
 };
 
@@ -26,10 +20,7 @@ const DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   quant: 'Quantization',
   lora: 'LoRA adapter',
   adapter: 'Adapter',
-  embed: 'Embedding model',
-  reranker: 'Reranker',
   dataset: 'Dataset',
-  space: 'Space',
   bench: 'Benchmark',
 };
 
@@ -37,10 +28,7 @@ const PLURAL_DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   quant: 'Quantizations',
   lora: 'LoRA adapters',
   adapter: 'Adapters',
-  embed: 'Embedding models',
-  reranker: 'Rerankers',
   dataset: 'Datasets',
-  space: 'Spaces',
   bench: 'Benchmarks',
 };
 

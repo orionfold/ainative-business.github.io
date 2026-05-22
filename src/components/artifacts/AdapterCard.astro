@@ -1,0 +1,182 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import AdapterSignature from './AdapterSignature.astro';
+import LicenseChip from './LicenseChip.astro';
+
+interface Props {
+  artifact: CollectionEntry<'artifacts'>;
+}
+
+const { artifact } = Astro.props;
+const {
+  slug,
+  class: artifactClass,
+  base_model,
+  license,
+  published_at,
+  positioning,
+} = artifact.data;
+
+const href = `/artifacts/adapters/${slug}/`;
+const publishedDate = published_at
+  ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(
+      new Date(published_at),
+    )
+  : null;
+
+const headline = positioning?.headline ?? `Adapter for ${base_model.split('/').pop()}`;
+const problemPreview = positioning?.problem
+  ? positioning.problem.split('. ').slice(0, 2).join('. ').replace(/[.\s]+$/, '') + '.'
+  : null;
+---
+<a class="adp-card" href={href} aria-label={`Adapter: ${slug}`}>
+  <span class="adp-card__watermark" aria-hidden="true">A</span>
+  <div class="adp-card__body">
+    <div class="adp-card__meta">
+      <span class="adp-card__kind">Adapter</span>
+      <span>{artifactClass.toUpperCase()}</span>
+      {publishedDate && <time datetime={published_at}>{publishedDate}</time>}
+    </div>
+    <h2 class="adp-card__title">{slug}</h2>
+    <p class="adp-card__headline">{headline}</p>
+    {problemPreview && <p class="adp-card__summary">{problemPreview}</p>}
+    <div class="adp-card__chips">
+      <LicenseChip tier={license.tier} model={license.model} />
+      {base_model && (
+        <span class="adp-card__base-chip">
+          base: <span>{base_model.split('/').pop()}</span>
+        </span>
+      )}
+    </div>
+  </div>
+  <aside class="adp-card__signature" aria-hidden="true">
+    <div class="adp-card__signature-frame">
+      <AdapterSignature slug={slug} base_model={base_model} variant="hero" />
+    </div>
+  </aside>
+</a>
+
+<style>
+  .adp-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(14rem, 22vw, 19rem);
+    align-items: center;
+    gap: clamp(2rem, 4vw, 4rem);
+    padding: 3.75rem 0 3.5rem;
+    border-bottom: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    overflow: hidden;
+    isolation: isolate;
+    transition: background 0.2s;
+  }
+  .adp-card + .adp-card { padding-top: 4.5rem; }
+  .adp-card:hover { background: color-mix(in oklch, var(--color-primary) 4%, transparent); }
+  .adp-card:hover .adp-card__title { color: var(--color-primary); }
+  .adp-card:hover .adp-card__signature-frame {
+    border-color: color-mix(in oklch, var(--color-primary) 35%, var(--color-border));
+    box-shadow: 0 8px 24px -16px color-mix(in oklch, var(--color-primary) 30%, transparent);
+  }
+  .adp-card:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+
+  .adp-card__watermark {
+    position: absolute;
+    top: -0.15em;
+    left: -0.05em;
+    z-index: -1;
+    pointer-events: none;
+    user-select: none;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(7rem, 16vw, 12rem);
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: color-mix(in oklch, var(--color-text) 5%, transparent);
+  }
+
+  .adp-card__body { min-width: 0; position: relative; z-index: 1; }
+
+  .adp-card__meta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.9rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+  }
+  .adp-card__meta > *:not(:last-child)::after {
+    content: "·";
+    margin-left: 1.1rem;
+    color: var(--color-text-dim);
+  }
+  .adp-card__kind { color: var(--color-primary); }
+
+  .adp-card__title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.3rem, 2vw, 1.7rem);
+    line-height: 1.2;
+    color: var(--color-text);
+    margin: 0 0 0.6rem;
+    transition: color 0.15s;
+    word-break: break-word;
+  }
+  .adp-card__headline {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+    line-height: 1.35;
+    color: var(--color-text);
+    margin: 0 0 0.7rem;
+    max-width: 50ch;
+  }
+  .adp-card__summary {
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .adp-card__chips { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+  .adp-card__base-chip {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    padding: 0.25rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-border);
+  }
+  .adp-card__base-chip span { color: var(--color-text); }
+
+  .adp-card__signature {
+    width: 100%;
+    max-width: 16rem;
+    justify-self: center;
+    align-self: center;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .adp-card:hover .adp-card__signature { transform: translateY(-2px); }
+  .adp-card__signature-frame {
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    padding: 1.4rem 1rem 1.1rem;
+    transition: border-color 0.25s, box-shadow 0.25s;
+  }
+
+  @media (max-width: 900px) {
+    .adp-card { grid-template-columns: 1fr; padding: 3rem 0 2.5rem; }
+    .adp-card + .adp-card { padding-top: 3.5rem; }
+    .adp-card__signature { max-width: 18rem; justify-self: start; }
+    .adp-card__watermark { font-size: clamp(5rem, 18vw, 8rem); }
+  }
+</style>

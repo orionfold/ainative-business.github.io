@@ -1,0 +1,126 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import DatasetCard from '../../../components/artifacts/DatasetCard.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'dataset');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Datasets — Artifacts — ainative';
+const pageDescription = `Curated and synthesized training/eval datasets. ${sorted.length} published.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Datasets',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/datasets/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Datasets', item: `${SITE.url}/artifacts/datasets/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="ds-index">
+    <header class="ds-index__masthead">
+      <div class="ds-index__strip" aria-hidden="true">
+        <a class="ds-index__back" href="/artifacts/">← Artifacts</a>
+        <span class="ds-index__rule"></span>
+        <span>/datasets/</span>
+        <span class="ds-index__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="ds-index__title">Datasets.</h1>
+      <p class="ds-index__tagline">
+        Curated and synthesized training and eval datasets — each one bound to its source corpus, shape-counted, and license-tagged. <span class="ds-index__count">{countPadded} published.</span>
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <p class="ds-index__empty">
+        No standalone dataset artifacts yet. <br/>
+        The <a href="/artifacts/benches/">benchmarks</a> double as eval datasets — see the per-bench detail pages for shape, samples, and how-to-load.
+      </p>
+    ) : (
+      <section class="ds-index__list">
+        {sorted.map((artifact) => (
+          <DatasetCard artifact={artifact} />
+        ))}
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .ds-index {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .ds-index__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .ds-index__strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .ds-index__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .ds-index__back:hover { color: var(--color-primary); }
+  .ds-index__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .ds-index__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+  .ds-index__tagline {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 56ch;
+    margin: 0;
+  }
+  .ds-index__count { color: var(--color-primary); font-family: var(--font-mono); font-size: 0.95em; margin-left: 0.25rem; }
+  .ds-index__empty {
+    margin-top: 3rem;
+    padding: 3rem 2rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-muted);
+    line-height: 1.7;
+  }
+  .ds-index__empty a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+</style>

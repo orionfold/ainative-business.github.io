@@ -1,0 +1,214 @@
+---
+interface Props {
+  slug: string;
+  total_rows?: number;
+  shapes?: { code: string; count: number; label?: string }[];
+  license_tier?: string;
+  variant?: 'compact' | 'hero';
+}
+
+const { slug, total_rows, shapes, license_tier, variant = 'compact' } = Astro.props;
+
+const computedTotal = total_rows ?? (shapes?.reduce((s, x) => s + x.count, 0) ?? 0);
+
+// If shapes are populated, render a stacked composition bar (like BenchSignature).
+// Otherwise fall back to a seeded grid that conveys "tabular data" visually.
+const hasShapes = !!shapes && shapes.length > 0;
+
+let segments: { code: string; widthPct: number; x: number; count: number; label?: string }[] = [];
+if (hasShapes) {
+  const total = shapes!.reduce((s, x) => s + x.count, 0) || 1;
+  let cursor = 0;
+  segments = shapes!.map((s) => {
+    const widthPct = (s.count / total) * 100;
+    const x = cursor;
+    cursor += widthPct;
+    return { code: s.code, count: s.count, widthPct, x, label: s.label };
+  });
+}
+
+// Seeded grid fallback — 6x4 cells, some filled based on slug hash
+function seededGrid(s: string, rows: number, cols: number): boolean[][] {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) hash = ((hash << 5) - hash + s.charCodeAt(i)) | 0;
+  const grid: boolean[][] = [];
+  for (let r = 0; r < rows; r++) {
+    const row: boolean[] = [];
+    for (let c = 0; c < cols; c++) {
+      hash = (hash * 1103515245 + 12345) & 0x7fffffff;
+      row.push((hash % 100) < 55);
+    }
+    grid.push(row);
+  }
+  return grid;
+}
+const grid = !hasShapes ? seededGrid(slug, 4, 6) : null;
+
+const segColors = ['--color-primary', '--color-accent', '--color-text-muted'];
+
+const ariaLabel = hasShapes
+  ? `Dataset ${slug}: ${computedTotal} rows across ${segments.length} shapes`
+  : `Dataset ${slug}${computedTotal ? `, ${computedTotal} rows` : ''}`;
+---
+{variant === 'compact' && (
+  <figure class="ds-sig ds-sig--compact" aria-label={ariaLabel}>
+    {hasShapes ? (
+      <svg viewBox="0 0 100 16" preserveAspectRatio="none" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>{ariaLabel}</title>
+        {segments.map((s, i) => (
+          <rect
+            x={s.x}
+            y="0"
+            width={s.widthPct}
+            height="16"
+            style={`fill: var(${segColors[i % segColors.length]})`}
+            opacity="0.85"
+          >
+            <title>{s.code}: {s.count} rows</title>
+          </rect>
+        ))}
+      </svg>
+    ) : (
+      <svg viewBox="0 0 60 40" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>{ariaLabel}</title>
+        {grid!.map((row, ri) =>
+          row.map((filled, ci) => (
+            <rect
+              x={ci * 10 + 1}
+              y={ri * 10 + 1}
+              width="8"
+              height="8"
+              rx="1"
+              class={filled ? 'ds-sig__cell ds-sig__cell--on' : 'ds-sig__cell'}
+            />
+          )),
+        )}
+      </svg>
+    )}
+  </figure>
+)}
+
+{variant === 'hero' && (
+  <figure class="ds-sig ds-sig--hero" aria-label={ariaLabel}>
+    {hasShapes ? (
+      <>
+        <svg viewBox="0 0 100 18" preserveAspectRatio="none" class="ds-sig__bar" aria-hidden="true">
+          {segments.map((s, i) => (
+            <rect
+              x={s.x}
+              y="0"
+              width={s.widthPct}
+              height="18"
+              style={`fill: var(${segColors[i % segColors.length]})`}
+            />
+          ))}
+        </svg>
+        <ul class="ds-sig__pills" role="list">
+          {segments.map((s, i) => (
+            <li class="ds-sig__pill">
+              <span class="ds-sig__dot" style={`background: var(${segColors[i % segColors.length]})`}></span>
+              <span class="ds-sig__code">{s.code}</span>
+              <span class="ds-sig__count">{s.count.toLocaleString()}</span>
+            </li>
+          ))}
+        </ul>
+      </>
+    ) : (
+      <svg viewBox="0 0 60 40" class="ds-sig__hero-grid" role="img" xmlns="http://www.w3.org/2000/svg">
+        <title>{ariaLabel}</title>
+        {grid!.map((row, ri) =>
+          row.map((filled, ci) => (
+            <rect
+              x={ci * 10 + 1}
+              y={ri * 10 + 1}
+              width="8"
+              height="8"
+              rx="1"
+              class={filled ? 'ds-sig__cell ds-sig__cell--on' : 'ds-sig__cell'}
+            />
+          )),
+        )}
+      </svg>
+    )}
+    <figcaption class="ds-sig__caption">
+      {computedTotal > 0 && (
+        <span class="ds-sig__total">{computedTotal.toLocaleString()} rows</span>
+      )}
+      {license_tier && (
+        <span class="ds-sig__license">{license_tier}</span>
+      )}
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .ds-sig { margin: 0; display: flex; flex-direction: column; gap: 0.5rem; align-items: center; }
+  .ds-sig svg { width: 100%; height: auto; display: block; }
+  .ds-sig--compact { width: 80px; }
+  .ds-sig--compact svg { border-radius: 3px; overflow: hidden; }
+  .ds-sig--hero { width: 100%; max-width: 320px; }
+
+  .ds-sig__bar {
+    height: 28px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: color-mix(in oklch, var(--color-border) 30%, transparent);
+  }
+  .ds-sig__hero-grid { max-height: 160px; }
+
+  .ds-sig__cell {
+    fill: color-mix(in oklch, var(--color-border) 50%, transparent);
+  }
+  .ds-sig__cell--on {
+    fill: color-mix(in oklch, var(--color-primary) 70%, transparent);
+  }
+
+  .ds-sig__pills {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.6rem;
+    justify-content: center;
+  }
+  .ds-sig__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    line-height: 1;
+    color: var(--color-text-muted);
+  }
+  .ds-sig__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+  }
+  .ds-sig__code {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+  .ds-sig__count {
+    color: var(--color-primary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ds-sig__caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    margin-top: 0.4rem;
+  }
+  .ds-sig__total { color: var(--color-text); font-weight: 600; }
+</style>
