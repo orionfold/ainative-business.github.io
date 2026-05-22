@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Sync new and changed field-notes articles + images from the local
-ai-field-notes drafting repo into this website's articles/ tree.
+Sync new and changed field-notes articles + images from the directly-mounted
+source at /Volumes/home/ai-field-notes into this website's articles/ tree.
 
 Idempotent — files are overwritten only when their content actually changed.
 Never deletes anything, never touches the two reframed papers
@@ -22,12 +22,11 @@ import sys
 import textwrap
 from pathlib import Path
 
-# `chrome_footers` is a sibling module; add this script's dir to sys.path
-# the same way contract_sweep.py does it.
+# `chrome_footers` is a sibling module; add this script's dir to sys.path.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chrome_footers  # noqa: E402
 
-SOURCE_REPO = Path("/Users/manavsehgal/Developer/ai-field-notes")
+SOURCE_REPO = Path("/Volumes/home/ai-field-notes")
 SOURCE_ROOT = SOURCE_REPO / "articles"
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
 
@@ -40,16 +39,16 @@ SEQUENCE_MANIFEST = Path(
     "/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/sequence.json"
 )
 
-FIELDKIT_DOCS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldkit/docs/api")
+FIELDKIT_DOCS_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/docs/api")
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
-FIELDKIT_VERSION_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/fieldkit/src/fieldkit/_version.py")
+FIELDKIT_VERSION_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/src/fieldkit/_version.py")
 FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/_version.py")
 
 # Fieldkit landing page — see diff_articles.py for the full rationale. Both
 # repos render /fieldkit/ from a Nav-wrapped Astro page with the same
 # section-block structure but different layout wrappers, so we sync only the
 # inner bodies of <section class="fk-section"> blocks keyed by <h2> title.
-LANDING_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/pages/fieldkit/index.astro")
+LANDING_SOURCE = Path("/Volumes/home/ai-field-notes/src/pages/fieldkit/index.astro")
 LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
 LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
@@ -59,7 +58,7 @@ LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 # target paths differ (the website nests under field-notes/) but basenames
 # match. One-way flow: source→target. Never delete target-only signatures —
 # the website may have signatures the source doesn't (reframed papers).
-SIGNATURE_SVG_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/components/svg")
+SIGNATURE_SVG_SOURCE = Path("/Volumes/home/ai-field-notes/src/components/svg")
 SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
 
 # Project-stats JSON. Drives the "At a glance" KPI block on /field-notes/ and
@@ -67,7 +66,7 @@ SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.gith
 # field-notes/ dir) than target. The website applies one hand-curated override
 # (see _apply_recall_at_5_override below); we re-apply it on every sync so it
 # survives source regenerations.
-PROJECT_STATS_SOURCE = Path("/Users/manavsehgal/Developer/ai-field-notes/src/data/project-stats.json")
+PROJECT_STATS_SOURCE = Path("/Volumes/home/ai-field-notes/src/data/project-stats.json")
 PROJECT_STATS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/project-stats.json")
 
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}

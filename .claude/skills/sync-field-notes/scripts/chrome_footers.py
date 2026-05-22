@@ -31,7 +31,7 @@ from pathlib import Path
 
 try:
     import yaml  # type: ignore[import-not-found]
-except ImportError:  # pragma: no cover — yaml is a hard dep of contract.py too
+except ImportError:  # pragma: no cover — yaml is a hard dep of the sync scripts
     yaml = None  # type: ignore[assignment]
 
 REPO_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io")
