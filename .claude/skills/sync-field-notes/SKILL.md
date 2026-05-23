@@ -48,17 +48,28 @@ Mirrors field-notes content (articles + supporting surfaces) from the directly-m
 
 Follow these steps in order. Steps 3 and 5 are the load-bearing ones; the rest are guardrails and narrative.
 
-### Step 1: Verify the mount is healthy
+### Step 1: Verify the mount is healthy and no peer writer is active
 
-Run two quick checks:
+Run three checks:
 
 ```bash
 ls /Volumes/home/ai-field-notes/.git >/dev/null && echo "mount OK"
 git -C /Volumes/home/ai-field-notes status --short
 git -C /Volumes/home/ai-field-notes log --oneline -1
+python3 .claude/skills/sync-field-notes/scripts/peer_lock.py acquire sync-field-notes
 ```
 
-If the mount is unavailable (`ls` fails), stop and surface to the user — NFS may be down, or Spark may be off. If `git status` reports uncommitted changes, warn but don't block (Spark may be mid-edit; the user can decide whether to proceed). Print source's HEAD commit for context.
+If the mount is unavailable (`ls` fails), stop and surface to the user — SMB may be down, or Spark may be off. If `git status` reports uncommitted changes, warn but don't block (Spark may be mid-edit; the user can decide whether to proceed). Print source's HEAD commit for context.
+
+**Peer-writer heartbeat.** `peer_lock.py acquire` claims `/Volumes/home/ai-field-notes/.sync-active` (a JSON heartbeat with our PID, tool name, and start time). If it exits non-zero, another Mac process — almost always the source-side `notebook-author` / `notebook-snapshot` pipeline — is currently doing a bulk write to the shared tree. Stop and surface the contending PID/tool to the user; do not proceed. Concurrent bulk writes over `smbfs` corrupted 5 notebook `.py` files on 2026-05-23 (see RECONCILE-SPARK-MAC.md) — the heartbeat is the agreed Mac↔Spark convention to prevent a recurrence. After the peer finishes, re-run Step 1.
+
+A heartbeat older than 300 seconds is treated as leaked and overwritten automatically — a normal `/sync-field-notes` run takes seconds, so 5+ minutes of staleness almost certainly means a crashed writer.
+
+**Release on exit.** Every code path that follows must clear the heartbeat:
+```bash
+python3 .claude/skills/sync-field-notes/scripts/peer_lock.py release
+```
+Run this at the end of Step 9 (or earlier if the workflow aborts). If you forget, the next /sync-field-notes session will wait up to 5 minutes before auto-clearing the stale lock.
 
 ### Step 2: Show what's new since last destination sync (narrative)
 
@@ -137,8 +148,40 @@ After `sync_articles.py` runs, separately walk any per-file Step 4 items the use
 
 When the user spots a source-side issue during Step 3/4 review (e.g. "article X is missing its catalog footer", "frontmatter typo in Y", "image filename is wrong", "footer in Z links to the wrong artifact"), Claude can fix it directly on source. For each fix:
 
-1. **Read** the source file at `/Volumes/home/ai-field-notes/<path>`.
-2. **Edit** the fix in place.
+1. **Read** the source file at `/Volumes/home/ai-field-notes/<path>` — reads are safe (no torn-write risk).
+2. **Atomic-write the fix** — do NOT use the `Edit` or `Write` tool directly on the SMB path. The mount is `smbfs` over WiFi; a Mac sleep or WiFi blip mid-write will leave a NUL-padded half-file on Spark (this is exactly what corrupted 5 notebook `.py` files on 2026-05-23 — see RECONCILE-SPARK-MAC.md). Instead, use `Bash` with the atomic-write pattern:
+
+   ```bash
+   python3 - <<'PY'
+   import os, pathlib
+   p = pathlib.Path("/Volumes/home/ai-field-notes/articles/<slug>/article.md")
+   text = p.read_text(encoding="utf8")
+   # Apply edits in memory — exact string replacements only, mirror what Edit would do.
+   new = text.replace("<OLD_EXACT_STRING>", "<NEW_EXACT_STRING>")
+   assert new != text, "replacement did not match — abort, don't write"
+   # Atomic rename: write to sibling temp, then os.replace.
+   tmp = p.with_suffix(p.suffix + ".tmp")
+   tmp.write_text(new, encoding="utf8")
+   os.replace(tmp, p)
+   PY
+   ```
+   The sibling `.tmp` lives on the same SMB share, so `os.replace` is a directory-level rename — atomic from the consumer's perspective. A torn flush leaves a `.tmp` orphan but never a half-`article.md`.
+
+   **Verify after every source-side write:**
+   ```bash
+   python3 - <<'PY'
+   import pathlib
+   p = pathlib.Path("/Volumes/home/ai-field-notes/articles/<slug>/article.md")
+   b = p.read_bytes()
+   nul = b.count(b"\x00")
+   assert b, "empty file"
+   assert nul == 0, f"NUL bytes detected ({nul}) — write torn, restore from git"
+   assert b.endswith(b"\n"), "missing trailing newline"
+   print(f"ok: {len(b)} bytes, {b.count(chr(10).encode())} lines")
+   PY
+   ```
+   If verification fails: `git -C /Volumes/home/ai-field-notes checkout -- <path>` to restore from HEAD, surface to the user, do not retry without diagnosing.
+
 3. Confirm with the user before committing.
 4. After the user approves the batch:
    - `git -C /Volumes/home/ai-field-notes pull --rebase --autostash origin main` — fast-forward to catch concurrent Spark commits. If the rebase reports conflicts, abort, surface to the user, and don't push.
@@ -148,6 +191,12 @@ When the user spots a source-side issue during Step 3/4 review (e.g. "article X 
 5. After the source-side commit lands, re-run Step 3 + Step 5 to pull the fix through to destination (some fixes — like footer restoration — will only show as a destination diff once the source is fixed).
 
 The push step is gated by user approval. Never auto-push without confirmation. If the source repo has unrelated uncommitted changes (Spark mid-edit), abort and surface — don't try to stash someone else's work.
+
+**Alternative for large/complex edits: prefer `ssh spark`.** When the edit is too tangled for a single `str.replace`, ssh into Spark and edit on local disk (avoiding SMB entirely):
+```bash
+ssh nvidia@nvidia.local 'cat > /home/nvidia/ai-field-notes/articles/<slug>/article.md' < /tmp/new-article.md
+```
+This is the same pattern spark-mac used to restore the corrupted notebook .py files via `git checkout` on Spark — bytes never traverse SMB, so the torn-write window doesn't apply.
 
 ### Step 7: Build verification
 
@@ -176,6 +225,12 @@ Don't commit automatically. Show the user a `git status` summary and ask whether
 - Mixed — `chore(field-notes): sync <N> articles from ai-field-notes`
 - UX feature release — `feat(field-notes): add <feature-name> + sync <N> articles`
 - UX-only release (no article diff) — `feat(field-notes): apply <feature-name> from ai-field-notes`
+
+**Always release the peer-writer heartbeat at the end of Step 9** (or earlier if the workflow aborts):
+```bash
+python3 .claude/skills/sync-field-notes/scripts/peer_lock.py release
+```
+If you forget, the lock auto-expires after 5 minutes — but the next /sync-field-notes session will block until then unless someone clears it manually.
 
 ## Preserve the reframed research papers
 

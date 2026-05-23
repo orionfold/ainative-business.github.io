@@ -19,6 +19,30 @@
 
 ## Open items (replace each session)
 
+### 1a. DONE 2026-05-23 — Step 6 atomic source-side writes (from RECONCILE-SPARK-MAC.md TODO #3)
+
+Hardened `.claude/skills/sync-field-notes/SKILL.md` Step 6 to use an atomic-write pattern (`<path>.tmp` + `os.replace`) via a `Bash` Python heredoc instead of direct `Edit`/`Write` against `/Volumes/home/...` paths. Added a mandatory post-write verify block (size > 0, no NUL bytes, trailing newline; falls back to `git checkout -- <path>` on failure). Added an "Alternative for large/complex edits" call-out pointing at the `ssh nvidia@nvidia.local 'cat > ...'` pattern that spark-mac used during the 2026-05-23 reconciliation (bytes never traverse SMB). No code change to `sync_articles.py` — those writes are destination-local and not at SMB-tear risk.
+
+**Open coordination item:** the source-side `notebook-author` / `notebook-snapshot` pipelines should adopt the same atomic-write pattern. Not owned by this repo; flag to Spark CC next session.
+
+### 1b. DONE 2026-05-23 — Peer-writer heartbeat for `/sync-field-notes` (from RECONCILE TODO #4)
+
+Added `.claude/skills/sync-field-notes/scripts/peer_lock.py` — a CLI helper that drops a JSON heartbeat at `/Volumes/home/ai-field-notes/.sync-active` (PID + tool + ISO timestamp + hostname). Smoke-tested end-to-end on the live mount (`acquire` → `check` returns peer → `release` clears). Stale-heartbeat threshold is 300s.
+
+Wired into `SKILL.md`:
+- **Step 1** now runs `peer_lock.py acquire sync-field-notes` after the mount/git checks. Non-zero exit aborts the workflow with the contending PID/tool surfaced.
+- **Step 9** now mandates `peer_lock.py release` at end of every run (or on abort).
+
+**Open coordination item:** the source-side notebook pipeline maintainer (Spark CC) needs to call the same helper from `notebook-author` / `notebook-snapshot` invocations for the heartbeat to be bilaterally meaningful. The script is portable Python with no dependencies — they can either invoke our copy via the mount or vendor it source-side. Flag to Spark CC next session; coordinate at `/Volumes/home/ai-field-notes/SYNC-WORKFLOW.md`.
+
+### 1c. INFO — `notebooks/patent-strategist/` verified clean (RECONCILE 2026-05-23)
+
+When the patent-strategist notebooks-as-artifacts manifest lands (HANDOFF item #4 WATCH), the first `/sync-field-notes` to pull it can proceed without re-verifying the `.py` files — committed-clean at HEAD with mtime 2026-05-23 09:43, outside the 11:59:36 corruption window. The corruption that hit cyber/finance/legal/medical builder+user was remediated by spark-mac via `git checkout` on the Spark side; the .ipynb were never touched. **Per spark-mac's correction, `.py` is the canonical source-of-truth and `.ipynb` is generated** (`sync_notebook.py` is one-way `.py` → `.ipynb`) — clean .py + clean .ipynb means the pair is in sync.
+
+### 1d. INFO — SMB (not NFS) transport correction propagates here
+
+Reference memory `reference_sync_workflow_nfs_mount` is misnamed/described — the actual transport is `smbfs` over TCP 445 / WiFi (per `mount-spark.sh` + live `mount` table). Memory body and slug should be updated next session (low-priority renaming pass).
+
 ### 1. NEXT — Commit + push today's Mac scaffold (uncommitted on `main`)
 
 Today's scaffold work for notebooks-as-artifacts v1 is unstaged on destination `main`. User-gated commit.
