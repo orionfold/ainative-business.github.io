@@ -12,6 +12,7 @@ import {
 import LoRASignature from '../../components/artifacts/LoRASignature.astro';
 import AdapterSignature from '../../components/artifacts/AdapterSignature.astro';
 import DatasetSignature from '../../components/artifacts/DatasetSignature.astro';
+import NotebookSignature from '../../components/artifacts/NotebookSignature.astro';
 import { SITE, PUBLISHER } from '../../data/seo';
 
 const all = await getCollection('artifacts');
@@ -46,6 +47,7 @@ const KIND_BLURBS: Record<ArtifactKind, string> = {
   adapter: 'Prefix, prompt, and IA³ adapters for specialized inference.',
   dataset: 'Curated and synthesized training/eval datasets.',
   bench: 'Open benchmarks and eval harnesses with publishable scores.',
+  notebook: 'Builder + user Jupyter notebooks, one-click Colab/Kaggle on-ramps for every vertical release.',
 };
 
 const totalCount = all.length;
@@ -135,6 +137,14 @@ const jsonLd = [
               )}
               {kind === 'lora' && !featured && (
                 <LoRASignature slug={`placeholder-${kind}`} variant="compact" />
+              )}
+              {kind === 'notebook' && (
+                <NotebookSignature
+                  slug={featured?.data.slug ?? `placeholder-${kind}`}
+                  variants={featured?.data.variants}
+                  base_model={featured?.data.base_model}
+                  variant="compact"
+                />
               )}
               {(kind === 'quant' || kind === 'bench') && (
                 <div class={`hub__tile-monogram hub__tile-monogram--${kind}`} aria-hidden="true">

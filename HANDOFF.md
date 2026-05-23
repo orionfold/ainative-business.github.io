@@ -13,17 +13,71 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract). Built the full LoRA / Adapter / Dataset render path on the destination so the patent-strategist BF16 fine-tunes stop masquerading as quant cards. Reduced `ARTIFACT_KINDS` from 8 to 5 (dropped `embed`/`reranker`/`space`) on both destination and source. Created `NARRATIVE-CONTRACT.md` at source repo root as the canonical content rubric for HF + site surfaces; pointed `card-polish.md` at it. Shipped per-kind programmatic signature SVGs (`LoRASignature` color-coded by `stack_origin`, `AdapterSignature` concentric arcs, `DatasetSignature` stacked bar) following the existing `QuantSignature` / `BenchSignature` pattern — no editorial stock imagery, all data-driven. Extended quant detail pages with positioning/lane/siblings/drift sections (graceful-fallback for older quants without positioning). Wrote `scripts/verify_artifact_rendering.mjs` enforcing first-h2-positioning, drift-bounded, no-forward-looking-language, signature-visual-present — wired into `npm run build` post-build chain. All 9 detail pages pass the contract. Sync skill updated: new `references/site-rendering-rubric.md`, render-path sanity check in Step 5, `chrome_footers.py` blurbs for lora/adapter/dataset, dropped chrome mappings for removed kinds. Patent-strategist BF16 manifests flipped from `kind: quant` to `kind: lora` (mirrors on both source and destination). Destination committed as `be7c219` and pushed to `origin/main`. Source-side edits made via NFS-mount file writes; NOT committed (user went offline before the source push; NFS mount is now unavailable). End-of-session: ran `astro sync` to refresh editor type stubs after an editor diagnostic surfaced on `content.config.ts` (transient, build was always clean).
-**Last destination commit:** `be7c219` pushed to `origin/main` (LoRA/Adapter/Dataset render path + shared narrative contract). Prior pushes: `eeea77e` (HANDOFF for the first NFS sync), `0c5c9c5` (first production NFS sync), `f9da57a` (HANDOFF reconcile), `d825ce2` (sync-skill rewrite). GitHub Pages redeploy expected within ~2 min of `be7c219`.
-**Push status:** destination clean — working tree empty, branch in sync with `origin/main`. Source side: 7 of Claude's edits + ~17 pre-existing pending evidence/probe files sit uncommitted on the NFS mount, and the mount itself is currently unreachable (user moved to outside wifi 2026-05-22 evening). Source push deferred to next session when the mount comes back.
+**Last session:** 2026-05-23 (notebooks-as-artifacts v1 Mac scaffold). Spark CC published `/Volumes/home/ai-field-notes/specs/notebooks-as-artifacts-v1.md` (status: locked, v1.0) introducing a 6th artifact kind `notebook` and a cross-cutting `notebooks: { colab, kaggle }` manifest field that surfaces as an above-the-fold runnable on-ramp on every artifact card. Replaced the prior playground/leaderboard direction (v1 design at `spec/2026-05-22-model-playground-and-eval-surface-design.md` — kept as historical reference, do not implement). Wrote a section-faithful destination mirror at `spec/notebooks-as-artifacts-v1-mac.md` plus a mirror-discipline memory (`feedback_spec_mirror_discipline.md`) so future sessions keep the two specs in sync. Shipped the scaffold ahead of the patent-strategist pilot manifest's arrival: extended `ARTIFACT_KINDS` (5 → 6) in `src/lib/artifacts.ts`, added optional `notebooks` zod block to `src/content.config.ts`, vendored Colab + Kaggle badge SVGs at `public/badges/`, built `NotebookBadges.astro` (block + inline layouts, WCAG-AA aria-labels, graceful no-op when field absent), injected it above-the-fold into all 5 existing detail templates (quants/loras/adapters/datasets/benches), built `NotebookSignature.astro` (stacked-cells motif with seeded code-vs-markdown mix + "▶" run indicators — visually reads "notebook" at a glance) + `NotebookCard.astro`, built `src/pages/artifacts/notebooks/index.astro` (empty-state friendly) + `[slug]/index.astro` (detail with builder/user variants block + bidirectional sibling resolution via siblings[] or hf_repo match), added 6th tile to the catalog hub. Extended `scripts/verify_artifact_rendering.mjs` with a new rule (badge row above-the-fold when `notebooks` field present) and added `notebooks` to its kind-walk. `npm run build` exits 0; verifier passes 9 detail pages across 3 kinds; chrome browser smoke confirmed `/artifacts/` (3 OF 6 KINDS ACTIVE), `/artifacts/notebooks/` (empty-state copy renders), existing detail pages render with NotebookBadges no-op (no manifests carry the field yet). End-of-session: dev server stopped, no commit (user-gated).
+**Last destination commit:** `be7c219` pushed to `origin/main` (LoRA/Adapter/Dataset render path). Today's scaffold work is **uncommitted** on `main`. Prior pushes: `232e023` (handoff post-be7c219), `eeea77e` (handoff for first NFS sync), `0c5c9c5` (first production NFS sync).
+**Push status:** destination main has uncommitted scaffold work — see Open item #1 below. Source side: 7 of Claude's 2026-05-22 edits + pre-existing evidence/probe drift still uncommitted on `/Volumes/home/ai-field-notes/`. The NFS mount is **reachable again** as of this session — both the prior 2026-05-22 source push (was Open item #1 in last HANDOFF) and the new source-side kind-mirror items (Open item #2 below) are now unblocked.
 
 ## Open items (replace each session)
 
-### 1. NEXT — Commit + push the source-side bundle (when Spark/NFS mount comes back)
+### 1. NEXT — Commit + push today's Mac scaffold (uncommitted on `main`)
 
-Destination is shipped (`be7c219` pushed). Source-side bundle is still uncommitted on `/Volumes/home/ai-field-notes/`, and the NFS mount is currently unreachable (user moved to outside wifi). When the mount comes back:
+Today's scaffold work for notebooks-as-artifacts v1 is unstaged on destination `main`. User-gated commit.
 
-**Files to commit (Claude's 7 edits only — do NOT `git add -A`; source has pre-existing uncommitted evidence/probe drift to preserve):**
+**Files in this scaffold:**
+- `spec/notebooks-as-artifacts-v1-mac.md` — new (Spark spec mirror)
+- `src/lib/artifacts.ts` — `ARTIFACT_KINDS` extended 5 → 6
+- `src/content.config.ts` — new optional `notebooks: {colab?, kaggle?}` zod block
+- `public/badges/colab-badge.svg`, `public/badges/open-in-kaggle.svg` — vendored badges
+- `src/components/artifacts/NotebookBadges.astro` — new (with graceful no-op)
+- `src/components/artifacts/NotebookSignature.astro` — new (stacked-cells motif)
+- `src/components/artifacts/NotebookCard.astro` — new (catalog tile)
+- `src/pages/artifacts/notebooks/index.astro` — new (listing, empty-state friendly)
+- `src/pages/artifacts/notebooks/[slug]/index.astro` — new (detail with sibling resolution)
+- `src/pages/artifacts/quants/[slug]/index.astro` — NotebookBadges import + slot
+- `src/pages/artifacts/loras/[slug]/index.astro` — same
+- `src/pages/artifacts/adapters/[slug]/index.astro` — same
+- `src/pages/artifacts/datasets/[slug]/index.astro` — same
+- `src/pages/artifacts/benches/[slug]/index.astro` — same
+- `src/pages/artifacts/index.astro` — added 6th `Notebooks` hub tile + signature preview + blurb
+- `scripts/verify_artifact_rendering.mjs` — added `notebooks` to kind-walk + badge-above-fold rule
+- `HANDOFF.md` — this file
+
+**Suggested commit message:**
+```
+feat(artifacts): notebooks-as-artifacts v1 Mac scaffold
+
+Add 6th artifact kind `notebook` + cross-cutting `notebooks: { colab, kaggle }`
+manifest field that surfaces as an above-the-fold badge row on every artifact
+detail page. Mirrors Spark spec at /Volumes/home/ai-field-notes/specs/
+notebooks-as-artifacts-v1.md (status: locked, v1.0). Local destination mirror
+at spec/notebooks-as-artifacts-v1-mac.md.
+
+Build clean, verifier passes 9 detail pages across 3 kinds, hub renders 6
+tiles (3 OF 6 KINDS ACTIVE), browser smoke green. NotebookBadges is a
+graceful no-op until manifests carry the field — scaffold lands ahead of
+Spark's patent-strategist pilot manifest so the build doesn't break on
+arrival.
+
+Supersedes spec/2026-05-22-model-playground-and-eval-surface-design.md
+(playground/leaderboard direction, kept as historical reference).
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+```
+
+### 2. NEXT — Source-side kind mirror (Spark CC)
+
+Mac scaffold's `'notebook'` addition to `ARTIFACT_KINDS` must be mirrored source-side or future fieldkit publishes won't accept the new kind. Three files:
+
+1. `fieldkit/src/fieldkit/publish/__init__.py` — add `"notebook"` to the `ARTIFACT_KINDS` tuple (currently 5 entries: `quant, lora, adapter, dataset, bench`)
+2. `fieldkit/tests/test_publish.py` — rename `test_artifact_kinds_are_the_canonical_five` → `…_canonical_six`; bump assertion
+3. `src/content.config.ts` — add `"notebook"` to the const array feeding the artifacts zod enum + mirror the new optional `notebooks: { colab?, kaggle?, }` zod block (Mac shape is canonical — see `src/content.config.ts` here for the byte-faithful copy)
+
+Spark CC owns this. Combine with the 2026-05-22 bundle (item #3 below) if Spark hasn't pushed yet.
+
+### 3. NEXT — Commit + push prior 2026-05-22 source-side bundle (now unblocked)
+
+Source-side bundle from the 2026-05-22 NARRATIVE-CONTRACT session is still uncommitted on `/Volumes/home/ai-field-notes/`. The NFS mount is reachable again. **Files to commit** (Claude's 7 edits only — do NOT `git add -A`; source has pre-existing uncommitted evidence/probe drift to preserve):
+
 1. `NARRATIVE-CONTRACT.md` — new file at source root, canonical content rubric for HF + site surfaces
 2. `.claude/skills/hf-publisher/references/card-polish.md` — one-line pointer added at top: "Narrative rules live in `/NARRATIVE-CONTRACT.md`. This file covers HF-surface specifics only…"
 3. `src/content/artifacts/patent-strategist-v3-nemo.yaml` — `kind: quant` → `kind: lora`
@@ -32,54 +86,25 @@ Destination is shipped (`be7c219` pushed). Source-side bundle is still uncommitt
 6. `fieldkit/src/fieldkit/publish/__init__.py` — same tuple reduction
 7. `fieldkit/tests/test_publish.py` — `test_artifact_kinds_are_the_canonical_eight` renamed to `test_artifact_kinds_are_the_canonical_five`, assertion updated
 
-**Mount check first:**
-```
-ls /Volumes/home/ai-field-notes/ 2>/dev/null && echo "mounted" || echo "NFS UNREACHABLE — abort"
-```
+If item #2 (notebook kind mirror) is added before this push, the assertion in `test_publish.py` should be updated again to `_canonical_six` and ARTIFACT_KINDS extended — combine into one source push.
 
-**Verify nothing drifted while wifi was off:**
-```
-git -C /Volumes/home/ai-field-notes status --short  # confirm Claude's 7 files still show as modified
-git -C /Volumes/home/ai-field-notes diff src/content/artifacts/patent-strategist-v3-nemo.yaml  # spot-check the kind flip persisted
-```
+### 4. WATCH — Patent-strategist notebook pilot arrival
 
-**Stage + commit + push:**
-```
-git -C /Volumes/home/ai-field-notes pull --rebase --autostash origin main  # catch any concurrent Spark commits
-git -C /Volumes/home/ai-field-notes add \
-  NARRATIVE-CONTRACT.md \
-  .claude/skills/hf-publisher/references/card-polish.md \
-  src/content/artifacts/patent-strategist-v3-nemo.yaml \
-  src/content/artifacts/patent-strategist-v3-unsloth.yaml \
-  src/content.config.ts \
-  fieldkit/src/fieldkit/publish/__init__.py \
-  fieldkit/tests/test_publish.py
-git -C /Volumes/home/ai-field-notes commit -m "..."  # see message below
-git -C /Volumes/home/ai-field-notes push origin main
-```
+Spark spec §10 describes the patent-strategist pilot: 1 builder notebook + 1 user notebook bound to the existing patent-strategist family (lora-nemo, lora-unsloth, gguf-nemo, gguf-unsloth manifests). When Spark publishes the manifest at `src/content/artifacts/patent-strategist-v3-notebook.yaml` (or similar) and `/sync-field-notes` pulls it over:
 
-**Suggested commit message (single coherent change):**
-```
-chore(narrative): canonical NARRATIVE-CONTRACT.md + ARTIFACT_KINDS 8 → 5 + patent-strategist kind:lora flip
+- The notebook detail page should render at `/artifacts/notebooks/<slug>/` with the signature, builder/user variants block, and sibling cross-links resolving to the 4 patent-strategist model artifacts.
+- The 4 sibling model manifests should gain a `notebooks: { colab, kaggle }` field; the new NotebookBadges block should appear above-the-fold on all 4 detail pages.
+- The catalog hub Notebooks tile flips from "Coming soon" to `01`.
 
-Add /NARRATIVE-CONTRACT.md at repo root as the surface-agnostic content
-rubric (positioning-first, drift-bounded, no forward-looking language,
-sibling cross-links required, data-driven visuals). Card-polish.md now
-references this contract instead of duplicating its rules. Reduce
-ARTIFACT_KINDS from 8 to 5 in both Astro Zod schema and fieldkit publish
-module (drop embed/reranker/space — not on roadmap). Flip patent-
-strategist-v3-{nemo,unsloth} from kind:quant to kind:lora to match
-their actual artifact shape (merged BF16 fine-tunes, not quants).
+Browser-verify all of the above the first sync after pilot arrival. Lighthouse + WCAG AA contrast pass on the new notebook detail page (per `feedback_pagespeed_techniques.md`).
 
-Mirrored on destination as be7c219 — new render paths for LoRA / Adapter
-/ Dataset, signature SVGs, verifier script, 5-tile catalog hub.
+### 5. WATCH — Spark spec evolves → sync mirror
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-```
+Per the new `feedback_spec_mirror_discipline.md` memory: every `/sync-field-notes` cycle should `ls /Volumes/home/ai-field-notes/specs/` and diff any updated specs against their `spec/*-mac.md` mirrors. If `notebooks-as-artifacts-v1.md` mtime advances or version bumps, re-read it cover-to-cover and update `spec/notebooks-as-artifacts-v1-mac.md` section-for-section in the same session — including any code-change deltas added as a top item in this HANDOFF.
 
-**fieldkit test run:** After the push, the next CI on source should run `pytest fieldkit/tests/test_publish.py::test_artifact_kinds_are_the_canonical_five`. Verify it passes (it's the only test that referenced the removed kinds; should be green).
+## Carry-forward (items from prior sessions, still active)
 
-### 2. NEXT — Audit the LoRA detail page's "How to use" snippet
+### 6. NEXT — Audit the LoRA detail page's "How to use" snippet
 
 I defaulted the LoRA detail-page code snippet to PEFT loading:
 ```python
@@ -102,7 +127,7 @@ Two fix paths to evaluate:
 
 Recommend (a) — `how_to_load` already exists in the Zod schema and is used by dataset detail pages. Make LoRA detail page check it first, then fall back to direct AutoModelForCausalLM load (NOT PEFT). The misleading PEFT snippet is live on `/artifacts/loras/patent-strategist-v3-{nemo,unsloth}/` right now; should be a 5-minute follow-up on destination only. Lives at `src/pages/artifacts/loras/[slug]/index.astro` lines ~167–179.
 
-### 3. Carry-forward — Browser-verify the new LoRA/Adapter/Dataset pages
+### 7. Carry-forward — Browser-verify the new LoRA/Adapter/Dataset pages
 
 This session did not run a live browser preview of the new pages. The verifier confirms the contract holds at the HTML level (first H2, drift bounds, signature present, no forward-looking language), but a human-eye check is worth doing:
 - `/artifacts/` — confirm 5 tiles render with their signature previews, no broken layouts
@@ -114,11 +139,11 @@ This session did not run a live browser preview of the new pages. The verifier c
 
 `npm run dev` + Chrome browser via `claude-in-chrome` MCP can do this. Lighthouse + WCAG AA contrast check on the LoRA detail page is also worth doing (per the existing `feedback_pagespeed_techniques.md`).
 
-### 4. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
+### 8. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
 
 The 4 patent-strategist manifests don't carry a `siblings[]` field. The destination's "Other Orionfold variants" section is gated on this field, so it doesn't render on any of the 4 detail pages today. To activate the cross-link block — a `NARRATIVE-CONTRACT.md` Rule 4 requirement from card #2 onward — the 4 manifests need entries pointing at each other (3 siblings per artifact). The data is easy: each manifest's siblings list is the other 3 in the family. This is source-side authoring work; can either happen at next fieldkit publish or as a manual edit during the next `/sync-field-notes` cycle. Once added, no code change needed on destination — the templates already render `siblings[]` when present.
 
-### 5. NEXT — Lane summary copy for patent-strategist bakeoff
+### 9. NEXT — Lane summary copy for patent-strategist bakeoff
 
 The patent-strategist family is exactly the case "Choosing this lane" was designed for — Unsloth vs NeMo, GGUF vs BF16. Today the "Choosing this lane" section renders only when `lane_summary` is set OR (automatic fallback) when sibling artifacts share `base_model`. The automatic fallback works because all 4 share `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`, but the auto-copy is generic. Editorial `lane_summary` would be stronger:
 - Nemo (BF16 LoRA): "Pick this lane for the canonical NeMo Framework fine-tune — beat Unsloth by 26% on the patent-strategist bench."
@@ -128,7 +153,7 @@ The patent-strategist family is exactly the case "Choosing this lane" was design
 
 Source-side authoring; ~5 min total. Pairs naturally with #2.
 
-### 6. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
+### 10. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
 
 4 older quants render with the new "At a glance" fallback section (auto-generated from variants + base_model) because their manifests predate the v0.5.x positioning fields:
 - `finance-chat-gguf`
@@ -138,51 +163,72 @@ Source-side authoring; ~5 min total. Pairs naturally with #2.
 
 The site is functional and the verifier passes (their signature SVG renders, drift section absent so no bound check needed, no forward-looking phrases). But the catalog cards show no positioning headline, and the detail pages don't carry the research story. Source-side hf-publisher session should backfill `positioning.{headline,problem,use_cases,audience}`, `stack_origin`, and `known_drift[]` for each. Once added, sync to destination via normal `/sync-field-notes` flow — no code change needed.
 
-### 7. Carry-forward — Bakeoff article's catalog footer (descope from prior session)
+### 11. Carry-forward — Bakeoff article's catalog footer (descope from prior session)
 
 Prior session flagged: `chrome_footers.collect_gated_articles()` keys by article-slug, so when 4 manifests bind to the same article, last-write-wins (alphabetically). The bakeoff article's footer points to `patent-strategist-v3-unsloth` (the losing lane). This is now slightly worse because that path is now `/artifacts/loras/patent-strategist-v3-unsloth/` (not the GGUF lane it would have been routed to before the kind flip), but the underlying design issue is unchanged: one footer per article, four manifests. Options remain as in prior session — recommend option (a) when the next multi-binding case lands.
 
-### 8. Carry-forward — Deferred Step 4 items from prior sync
+### 12. Carry-forward — Deferred Step 4 items from prior sync
 
 Still drifting between source and destination: `package.json`, `astro.config.mjs`, `tsconfig.json`, `src/styles/global.css`, `src/data/seo.ts`, and 4 of 7 `src/components/sections/fieldkit/*.astro`. Next `/sync-field-notes` cycle should do a targeted `diff` per file.
 
-### 9. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md`
+### 13. Carry-forward — Spark CC needs to ingest `SYNC-WORKFLOW.md`
 
 Still pending. Until Spark CC ingests + commits the workflow doc, source-side authoring continues under the older mental model.
 
-### 10. Carry-forward — `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
+### 14. Carry-forward — `SYNC-HANDOFF.md` / `SYNC-RENAMES.log` cleanup on source
 
-Defer until #7 resolves.
+Defer until #11 resolves.
 
-### 11. NEXT — Re-run `/seo-monitor` (window opens 2026-05-26)
+### 15. NEXT — Re-run `/seo-monitor` (window opens 2026-05-26)
 
 Code-level SEO fixes from `ae81a3f` ship 7–14 days ago. Watch for indexing-gap response.
 
-### 12. Carry-forward — Merge Mac PR #11 in source
+### 16. Carry-forward — Merge Mac PR #11 in source
 
 [ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open.
 
-### 13. Carry-forward — Article wire-back propagation
+### 17. Carry-forward — Article wire-back propagation
 
 `restore_gated_footers()` still auto-applies; cleanest fix is source-side PR.
 
-### 14. Carry-forward — Patent-strategist W3 fine-tune kickoff
+### 18. Carry-forward — Patent-strategist W3 fine-tune kickoff
 
-Source-side, ETA ~2 weeks. Will likely ship more LoRA manifests — the render path built this session is ready.
+Source-side, ETA ~2 weeks. Will likely ship more LoRA manifests — the render path built this session is ready. The notebooks-as-artifacts scaffold (#1) means any new manifests can immediately carry `notebooks: { colab, kaggle }` without further Mac work.
 
-### 15. Carry-forward — `noindex` prop type extended
+### 19. Carry-forward — `noindex` prop type extended
 
 Public layout contract; informational.
 
-### 16. Carry-forward — PSI authenticated key still missing
+### 20. Carry-forward — PSI authenticated key still missing
 
 Per prior session.
 
-### 17. Carry-forward — SEO local audit clean
+### 21. Carry-forward — SEO local audit clean
 
 Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-23 (notebooks-as-artifacts v1 Mac scaffold + spec mirror discipline established)
+
+- **Trigger.** User pivoted away from the v1 playground/leaderboard design (`spec/2026-05-22-model-playground-and-eval-surface-design.md` — based on free-tier HF Space + lm-eval-harness research) toward a Spark-authored alternative: notebooks-as-a-6th-artifact-kind, with one-click Colab/Kaggle on-ramps surfaced as badges on every artifact card. Spark CC published the locked spec at `/Volumes/home/ai-field-notes/specs/notebooks-as-artifacts-v1.md` (v1.0, status: locked). User: "ignore existing spec. read the latest pivot here: …" then "1. mirror and stay in sync as spark side spec evolves, 2. yes" (yes = land Mac-side schema + render path now as scaffold before pilot manifest arrives).
+
+- **The mirror-discipline play.** Spark spec is authoritative for the cross-repo design; Mac translates it section-for-section. Wrote `spec/notebooks-as-artifacts-v1-mac.md` mirroring the Spark spec's section structure with "Mac scope:" per section (informational vs concrete work). Saved `feedback_spec_mirror_discipline.md` so future sessions know to re-read Spark's spec cover-to-cover on every sync cycle and update the mirror symmetrically. The discipline is the structural answer to the "design here, sync there" instinct: when two repos co-design a feature, one is authoritative and the other is a faithful translator — never invent net-new sections that Spark hasn't published; push upstream first.
+
+- **What Mac shipped (scaffold-only, ahead of pilot manifest).**
+  - **Schema mirror (2 files).** `src/lib/artifacts.ts`: `ARTIFACT_KINDS` extended 5 → 6 with `'notebook'`; all three name maps gain entries. `src/content.config.ts`: optional `notebooks: { colab?, kaggle? }` zod block added (graceful no-op when absent — every existing manifest still validates).
+  - **NotebookBadges component.** New cross-cutting component at `src/components/artifacts/NotebookBadges.astro` with block + inline layouts, WCAG-AA aria-labels per badge, hover/focus states, prefers-reduced-motion. Vendored standard Colab + Kaggle badge SVGs at `public/badges/`. Component renders nothing when `notebooks` field is absent — graceful no-op confirmed on a quant detail page browser smoke.
+  - **NotebookSignature + NotebookCard.** New programmatic data-driven signature (`src/components/artifacts/NotebookSignature.astro`) using a stacked-cells motif — seeded layout from slug, alternating code/markdown cells, "▶" run indicators on code cells. Visually reads "notebook" at a glance, distinct from LoRA radial/Adapter arcs/Dataset bars/Quant heatmap. Compact + hero variants. Card mirrors `LoRACard.astro` shape with the inline ▶ Colab affordance per spec §8.3.
+  - **Render path for `kind: notebook`.** New `src/pages/artifacts/notebooks/index.astro` (listing with empty-state copy pointing to the patent-strategist pilot as first arrival), and `[slug]/index.astro` (detail with `builder`/`user` variants block + bidirectional sibling resolution: prefer explicit `siblings[]`, fall back to `hf_repo` match across all artifacts since the notebook targets the sibling model and they share the same hf_repo per Spark spec §3).
+  - **Slot injection across all 5 existing detail templates.** quants, loras, adapters, datasets, benches all import NotebookBadges and inject it above the first `<h2>` — graceful no-op until manifests carry the field. Bench template uses `a.notebooks` (the existing `entry.data` alias).
+  - **6th catalog hub tile.** `src/pages/artifacts/index.astro` adds Notebooks tile with NotebookSignature preview (placeholder seed when no featured notebook exists), KIND_BLURBS entry, "Coming soon" pill until pilot arrives.
+  - **Verifier extension.** `scripts/verify_artifact_rendering.mjs` gains `notebooks` in its kind-walk and a new rule: when `data-component="notebook-badges"` is present in the body, it must appear before the first `<h2>` (above-the-fold per Spark §8.3 + NARRATIVE-CONTRACT). The badge-row regex check is conservative — only fires when the element actually renders, so the rule is a no-op for today's graceful-fallback state.
+
+- **What's NOT done.** Source-side kind mirror (Spark CC owns: `fieldkit/src/fieldkit/publish/__init__.py` ARTIFACT_KINDS extension + `test_publish.py` assertion bump + source `src/content.config.ts` mirror). Open item #2 carries it forward; combine with the still-uncommitted 2026-05-22 source bundle (item #3) when Spark CC has a session. The v1 playground spec is **kept as historical reference** per user request ("keep this spec around") — `spec/2026-05-22-model-playground-and-eval-surface-design.md` remains untouched; do not implement.
+
+- **Verification result.** `npm run build` exits 0; verifier passes 9 detail pages across 3 kinds (loras, quants, benches — adapters/datasets/notebooks have no entries to verify); chrome browser smoke green: hub renders "3 OF 6 KINDS ACTIVE" with 6 tiles, notebooks listing shows empty-state, quant detail page renders without badge row (graceful no-op working).
+
+- **Astro type-stub diagnostic on `content.config.ts`** surfaced briefly during the schema edit — same pre-existing transient noted in the prior session's HANDOFF. `npx astro sync` cleared it; build was always clean.
 
 ### 2026-05-22 (crown-jewel artifact quality — LoRA render path + quant backfill + shared narrative contract)
 - **Trigger.** User: "patent-strategies nemo and unsloth models were fine tunes with LoRA adapters + GGUF quants landing on HF. I see the fine tunes land in Quant cards instead of LoRA adapters in the Artifacts. ... fine tunes are our crown jewels taking lot of pain and research and invention. None of that is covered in the artifact cards or detail pages." Plus three follow-ups: reconcile "Coming soon" tiles, remove embed/reranker/space, ensure visuals on all cards/detail pages.

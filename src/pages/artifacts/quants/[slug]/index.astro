@@ -6,6 +6,7 @@ import Footer from '../../../../components/Footer.astro';
 import QuantSpecTable from '../../../../components/artifacts/QuantSpecTable.astro';
 import QuantSignature from '../../../../components/artifacts/QuantSignature.astro';
 import LicenseChip from '../../../../components/artifacts/LicenseChip.astro';
+import NotebookBadges from '../../../../components/artifacts/NotebookBadges.astro';
 import { pickSweetSpot, type ArtifactDataShape } from '../../../../lib/artifacts';
 import { SITE, PUBLISHER } from '../../../../data/seo';
 
@@ -47,6 +48,7 @@ const {
   lane_summary,
   known_drift,
   siblings,
+  notebooks,
 } = artifact.data;
 
 // Resolve sibling cross-link entries to live artifact pages where possible.
@@ -175,6 +177,8 @@ const jsonLd = [
         )}
       </div>
     </header>
+
+    <NotebookBadges notebooks={notebooks} contextLabel={slug} />
 
     <section class="qa-detail__positioning">
       <div class="qa-detail__positioning-body">

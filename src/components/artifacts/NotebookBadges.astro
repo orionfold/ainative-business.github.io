@@ -1,0 +1,122 @@
+---
+interface Props {
+  notebooks?: {
+    colab?: string;
+    kaggle?: string;
+  };
+  // Used for the aria-label so each anchor is screen-reader-distinct on pages
+  // that may carry multiple badge rows (e.g. a notebook detail page rendering
+  // its own badges PLUS a sibling-artifact section in the future).
+  contextLabel?: string;
+  // 'inline' renders a tight horizontal row (catalog tile tail); 'block' renders
+  // a full above-the-fold row with breathing room (detail-page slot).
+  layout?: 'inline' | 'block';
+}
+
+const { notebooks, contextLabel, layout = 'block' } = Astro.props;
+
+if (!notebooks || (!notebooks.colab && !notebooks.kaggle)) {
+  // Graceful no-op — manifests without the field render no badge row.
+  // Wrap in a fragment so callers can drop the component unconditionally.
+}
+
+const colabLabel = contextLabel
+  ? `Open ${contextLabel} in Google Colab`
+  : 'Open this notebook in Google Colab';
+const kaggleLabel = contextLabel
+  ? `Open ${contextLabel} in Kaggle`
+  : 'Open this notebook in Kaggle';
+---
+{notebooks && (notebooks.colab || notebooks.kaggle) && (
+  <div class={`notebook-badges notebook-badges--${layout}`} data-component="notebook-badges">
+    {notebooks.colab && (
+      <a
+        class="notebook-badges__link"
+        href={notebooks.colab}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={colabLabel}
+      >
+        <img
+          src="/badges/colab-badge.svg"
+          alt=""
+          width="148"
+          height="28"
+          loading="lazy"
+          decoding="async"
+        />
+      </a>
+    )}
+    {notebooks.kaggle && (
+      <a
+        class="notebook-badges__link"
+        href={notebooks.kaggle}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={kaggleLabel}
+      >
+        <img
+          src="/badges/open-in-kaggle.svg"
+          alt=""
+          width="148"
+          height="28"
+          loading="lazy"
+          decoding="async"
+        />
+      </a>
+    )}
+  </div>
+)}
+
+<style>
+  .notebook-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .notebook-badges--block {
+    margin: 1.5rem 0 2rem;
+    padding: 0.9rem 1.05rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 40%, transparent);
+  }
+  .notebook-badges--inline {
+    margin: 0.6rem 0 0;
+    gap: 0.4rem;
+  }
+
+  .notebook-badges__link {
+    display: inline-flex;
+    align-items: center;
+    transition: transform 0.15s ease-out, filter 0.15s ease-out;
+    line-height: 0;
+    border-radius: 6px;
+  }
+  .notebook-badges__link:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.05);
+  }
+  .notebook-badges__link:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 3px;
+  }
+  .notebook-badges__link img {
+    height: 28px;
+    width: auto;
+    display: block;
+  }
+  .notebook-badges--inline .notebook-badges__link img {
+    height: 22px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notebook-badges__link {
+      transition: none;
+    }
+    .notebook-badges__link:hover {
+      transform: none;
+    }
+  }
+</style>

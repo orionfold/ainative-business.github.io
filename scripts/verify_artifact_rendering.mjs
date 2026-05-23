@@ -1,6 +1,6 @@
 /**
  * Post-build verifier: enforces the narrative + visual contract on every
- * artifact detail page. Walks dist/artifacts/{loras,adapters,datasets,quants,benches}/
+ * artifact detail page. Walks dist/artifacts/{loras,adapters,datasets,quants,benches,notebooks}/
  * and checks each rendered HTML against the rules codified in source's
  * NARRATIVE-CONTRACT.md.
  *
@@ -12,7 +12,11 @@
  *      Catalog hub "Coming soon" pills are exempt (they're chrome on the index).
  *   4. Every artifact detail page must include at least one signature SVG
  *      (LoRASignature / AdapterSignature / DatasetSignature / QuantSignature /
- *      BenchSignature) — the visual contract.
+ *      BenchSignature / NotebookSignature) — the visual contract.
+ *   5. When the page carries the NotebookBadges block (data-component="notebook-badges"),
+ *      it must render BEFORE the first <h2> on the page — the runnable on-ramp
+ *      is a navigation aid that lives above-the-fold per the Spark spec §8.3 +
+ *      NARRATIVE-CONTRACT updates.
  *
  * Exit code = number of failed checks. Non-zero blocks the build.
  */
@@ -22,7 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const distDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
-const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches'];
+const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches', 'notebooks'];
 
 const FORWARD_LOOKING_PATTERNS = [
   /\bcoming soon\b/i,
@@ -105,10 +109,26 @@ async function checkPage(file, kindSegment) {
   }
 
   const hasSignature =
-    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig)\b/.test(body) ||
+    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig|nb-sig)\b/.test(body) ||
     /class="[^"]*Signature/.test(body);
   if (!hasSignature) {
     recordFailure(file, 'visual-required', `No signature SVG found on page. Every detail page must carry a data-driven visual.`);
+  }
+
+  // Rule 5 — when NotebookBadges renders, it must appear before the first <h2>.
+  // Detection key: data-component="notebook-badges" attribute set by the
+  // component. Pages without the field render nothing, so this rule simply
+  // no-ops on the (today, all) graceful-fallback cases.
+  const badgesIdx = body.search(/data-component="notebook-badges"/);
+  if (badgesIdx !== -1) {
+    const firstH2Idx = body.search(/<h2\b/i);
+    if (firstH2Idx !== -1 && badgesIdx > firstH2Idx) {
+      recordFailure(
+        file,
+        'badges-above-fold',
+        `NotebookBadges block renders below the first <h2>; the runnable on-ramp must appear above-the-fold per the narrative contract.`,
+      );
+    }
   }
 }
 

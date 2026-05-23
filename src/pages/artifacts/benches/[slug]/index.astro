@@ -7,6 +7,7 @@ import BenchSignature from '../../../../components/artifacts/BenchSignature.astr
 import BenchBracketTable from '../../../../components/artifacts/BenchBracketTable.astro';
 import BenchSampleRow from '../../../../components/artifacts/BenchSampleRow.astro';
 import BenchSources from '../../../../components/artifacts/BenchSources.astro';
+import NotebookBadges from '../../../../components/artifacts/NotebookBadges.astro';
 import { SITE, PUBLISHER } from '../../../../data/seo';
 import type { BenchScorerTier } from '../../../../lib/artifacts';
 
@@ -108,6 +109,8 @@ const jsonLd = [
         {sourceCount > 0 && <span class="bd__chip">{sourceCount} sources</span>}
       </div>
     </header>
+
+    <NotebookBadges notebooks={a.notebooks} contextLabel={a.slug} />
 
     {a.shapes && a.shapes.length > 0 && (
       <section class="bd__section">

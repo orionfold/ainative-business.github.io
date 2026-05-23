@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="148" height="28" viewBox="0 0 148 28" role="img" aria-label="Open in Kaggle">
+  <title>Open in Kaggle</title>
+  <clipPath id="kg-r"><rect width="148" height="28" rx="6"/></clipPath>
+  <g clip-path="url(#kg-r)">
+    <rect width="44" height="28" fill="#222"/>
+    <rect x="44" width="104" height="28" fill="#20BEFF"/>
+  </g>
+  <g transform="translate(13,6)" fill="#fff">
+    <path d="M0 0 H3 V8.5 L11 0 H15 L8 7.5 L15.5 16 H11.4 L5 8.6 L3 10.4 V16 H0 Z"/>
+  </g>
+  <text x="96" y="18" fill="#fff" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="12.5" font-weight="600" text-anchor="middle" letter-spacing="0.01em">Open in Kaggle</text>
+</svg>

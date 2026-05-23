@@ -5,6 +5,7 @@ import Nav from '../../../../components/Nav.astro';
 import Footer from '../../../../components/Footer.astro';
 import DatasetSignature from '../../../../components/artifacts/DatasetSignature.astro';
 import LicenseChip from '../../../../components/artifacts/LicenseChip.astro';
+import NotebookBadges from '../../../../components/artifacts/NotebookBadges.astro';
 import { SITE, PUBLISHER } from '../../../../data/seo';
 
 export async function getStaticPaths() {
@@ -24,7 +25,7 @@ interface PageProps {
 const { artifact, fieldNotes } = Astro.props as PageProps;
 const {
   slug, class: artifactClass, hf_repo, license, article, published_at,
-  positioning, shapes, samples, how_to_load, citation, sources,
+  positioning, shapes, samples, how_to_load, citation, sources, notebooks,
 } = artifact.data;
 
 const hfUrl = hf_repo.includes('://') ? hf_repo : `https://huggingface.co/datasets/${hf_repo}`;
@@ -69,6 +70,8 @@ const jsonLd = [
         {publishedDate && <div class="ds-detail__meta-item"><span class="ds-detail__meta-label">Published</span><time datetime={published_at}>{publishedDate}</time></div>}
       </div>
     </div>
+
+    <NotebookBadges notebooks={notebooks} contextLabel={slug} />
 
     {positioning?.problem && (
       <section class="ds-detail__section">

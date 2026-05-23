@@ -205,6 +205,17 @@ const artifacts = defineCollection({
         }),
       )
       .optional(),
+    // Runnable on-ramp links surfaced as a badge row above-the-fold on every
+    // artifact detail page (and as a small inline ▶ Colab affordance on catalog
+    // tiles). Spark publishes the notebooks; Mac renders the badges. Both keys
+    // optional so a manifest can carry just Colab (Kaggle deferred per source
+    // spec §14). Field absent → badge row gracefully no-ops.
+    notebooks: z
+      .object({
+        colab: z.string().url().optional(),
+        kaggle: z.string().url().optional(),
+      })
+      .optional(),
   }),
 });
 

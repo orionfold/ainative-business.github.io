@@ -5,6 +5,7 @@ import Nav from '../../../../components/Nav.astro';
 import Footer from '../../../../components/Footer.astro';
 import LoRASignature from '../../../../components/artifacts/LoRASignature.astro';
 import LicenseChip from '../../../../components/artifacts/LicenseChip.astro';
+import NotebookBadges from '../../../../components/artifacts/NotebookBadges.astro';
 import { SITE, PUBLISHER } from '../../../../data/seo';
 
 export async function getStaticPaths() {
@@ -40,6 +41,7 @@ const {
   lane_summary,
   known_drift,
   siblings,
+  notebooks,
 } = artifact.data;
 
 const hfUrl = hf_repo.includes('://') ? hf_repo : `https://huggingface.co/${hf_repo}`;
@@ -157,6 +159,8 @@ const jsonLd = [
         </div>
       </div>
     </header>
+
+    <NotebookBadges notebooks={notebooks} contextLabel={slug} />
 
     {positioning?.problem && (
       <section class="lora-detail__section">

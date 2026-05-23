@@ -1,0 +1,194 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import NotebookCard from '../../../components/artifacts/NotebookCard.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'notebook');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Notebooks — Artifacts — ainative';
+const pageDescription = sorted.length > 0
+  ? `${sorted.length} runnable notebook artifacts — builder + user variants per vertical, paired with the model release and one-click Colab/Kaggle on-ramps.`
+  : `Runnable notebook artifacts — builder + user variants per vertical, paired with the model release and one-click Colab/Kaggle on-ramps. First releases land alongside the patent-strategist pilot.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Notebooks',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/notebooks/`,
+    publisher: PUBLISHER,
+    hasPart: sorted.map((a) => ({
+      '@type': 'Dataset',
+      name: a.data.slug,
+      description: a.data.positioning?.headline ?? `Runnable notebook for ${a.data.base_model}`,
+      url: `${SITE.url}/artifacts/notebooks/${a.data.slug}/`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Notebooks', item: `${SITE.url}/artifacts/notebooks/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="nb-index">
+    <header class="nb-index__masthead">
+      <div class="nb-index__strip" aria-hidden="true">
+        <a class="nb-index__back" href="/artifacts/">← Artifacts</a>
+        <span class="nb-index__rule"></span>
+        <span>/notebooks/</span>
+        <span class="nb-index__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="nb-index__title">Runnable notebooks.</h1>
+      <p class="nb-index__tagline">
+        Each vertical ships with two notebooks — a builder walking the Spark training journey
+        as <code>fieldkit</code> API calls, and a user demonstrating real domain tasks against
+        the published model. One click opens either in Colab or Kaggle on a free GPU.
+        {sorted.length > 0 && <span class="nb-index__count">{countPadded} published.</span>}
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <section class="nb-index__empty" aria-label="No notebooks published yet">
+        <p class="nb-index__empty-headline">No notebooks published yet.</p>
+        <p class="nb-index__empty-blurb">
+          The patent-strategist pilot lands here first, with finance, legal, cybersecurity,
+          and medical variants templated off it. Each notebook is paired with a model release
+          on the <a href="/artifacts/quants/">Quantizations</a> or <a href="/artifacts/loras/">LoRA fine-tunes</a> page.
+        </p>
+      </section>
+    ) : (
+      <section class="nb-index__list">
+        {sorted.map((artifact) => (
+          <NotebookCard artifact={artifact} />
+        ))}
+        <div class="nb-index__closer">
+          <span class="nb-index__closer-glyph">※</span>
+          <span>More notebooks in preparation</span>
+          <span class="nb-index__closer-rule"></span>
+          <span>End of {volLabel}</span>
+        </div>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .nb-index {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .nb-index__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .nb-index__strip {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .nb-index__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .nb-index__back:hover { color: var(--color-primary); }
+  .nb-index__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .nb-index__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.2rem, 5vw, 3.8rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+  .nb-index__tagline {
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    max-width: 60ch;
+    margin: 0;
+  }
+  .nb-index__tagline code {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+    padding: 0.05rem 0.35rem;
+    border-radius: 4px;
+  }
+  .nb-index__count {
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+    font-size: 0.95em;
+    margin-left: 0.25rem;
+  }
+  .nb-index__list { margin-top: 1.5rem; }
+  .nb-index__list > :global(.nb-card):first-of-type {
+    padding-top: 3rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .nb-index__list > :global(.nb-card):last-of-type { border-bottom: none; }
+  .nb-index__empty {
+    margin-top: 3rem;
+    padding: 3rem 2rem;
+    border: 1px dashed var(--color-border);
+    border-radius: 10px;
+    text-align: center;
+    color: var(--color-text-muted);
+  }
+  .nb-index__empty-headline {
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--color-text);
+    margin: 0 0 0.85rem;
+  }
+  .nb-index__empty-blurb {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    max-width: 50ch;
+    margin: 0 auto;
+  }
+  .nb-index__empty-blurb a {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  .nb-index__empty-blurb a:hover { border-bottom-color: var(--color-primary); }
+  .nb-index__closer {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-top: 3rem;
+    padding: 2rem 0 0;
+    border-top: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .nb-index__closer-glyph { color: var(--color-primary); }
+  .nb-index__closer-rule { flex: 1; height: 1px; background: var(--color-border); }
+</style>

@@ -1,0 +1,561 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Layout from '../../../../layouts/Layout.astro';
+import Nav from '../../../../components/Nav.astro';
+import Footer from '../../../../components/Footer.astro';
+import NotebookSignature from '../../../../components/artifacts/NotebookSignature.astro';
+import NotebookBadges from '../../../../components/artifacts/NotebookBadges.astro';
+import LicenseChip from '../../../../components/artifacts/LicenseChip.astro';
+import { kindToSegment, kindToDisplayName, type ArtifactKind } from '../../../../lib/artifacts';
+import { SITE, PUBLISHER } from '../../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts', ({ data }) => data.kind === 'notebook');
+  const fieldNotes = await getCollection('field-notes');
+  const allArtifacts = await getCollection('artifacts');
+  return all.map((artifact) => ({
+    params: { slug: artifact.data.slug },
+    props: { artifact, fieldNotes, allArtifacts },
+  }));
+}
+
+interface PageProps {
+  artifact: CollectionEntry<'artifacts'>;
+  fieldNotes: CollectionEntry<'field-notes'>[];
+  allArtifacts: CollectionEntry<'artifacts'>[];
+}
+
+const { artifact, fieldNotes, allArtifacts } = Astro.props as PageProps;
+const {
+  slug,
+  class: artifactClass,
+  base_model,
+  hf_repo,
+  variants,
+  license,
+  article,
+  published_at,
+  positioning,
+  stack_origin,
+  known_drift,
+  siblings,
+  notebooks,
+} = artifact.data;
+
+const hfUrl = hf_repo.includes('://') ? hf_repo : `https://huggingface.co/${hf_repo}`;
+const baseModelHref =
+  /^[^/\s]+\/[^/\s]+$/.test(base_model) ? `https://huggingface.co/${base_model}` : null;
+const publishedDate = published_at
+  ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(published_at))
+  : null;
+
+let linkedArticle: CollectionEntry<'field-notes'> | null = null;
+if (article) {
+  const articleSlug = article.replace(/^articles\//, '').replace(/\/$/, '');
+  linkedArticle = fieldNotes.find((a) => a.id === articleSlug) ?? null;
+}
+
+// Sibling resolution: prefer the explicit siblings[] list, fall back to
+// hf_repo match across all artifacts (the notebook targets the sibling
+// model — they share the same hf_repo per Spark spec §3).
+type ResolvedSibling = { slug: string; hook: string; href: string | null; kind?: ArtifactKind };
+const explicitSiblings: ResolvedSibling[] = (siblings ?? []).map((s) => {
+  const found = allArtifacts.find((a) => a.data.slug === s.slug);
+  if (found) {
+    return {
+      slug: s.slug,
+      hook: s.hook,
+      href: `/artifacts/${kindToSegment(found.data.kind)}/${s.slug}/`,
+      kind: found.data.kind,
+    };
+  }
+  return {
+    slug: s.slug,
+    hook: s.hook,
+    href: s.hf_repo ? (s.hf_repo.includes('://') ? s.hf_repo : `https://huggingface.co/${s.hf_repo}`) : null,
+  };
+});
+
+// Fallback siblings: same hf_repo, different artifact (the model this
+// notebook targets). Only used when explicit siblings[] is empty.
+const fallbackSiblings: ResolvedSibling[] = explicitSiblings.length > 0
+  ? []
+  : allArtifacts
+      .filter((a) => a.data.slug !== slug && a.data.hf_repo === hf_repo)
+      .map((a) => ({
+        slug: a.data.slug,
+        hook: `Target model — ${kindToDisplayName(a.data.kind).toLowerCase()}`,
+        href: `/artifacts/${kindToSegment(a.data.kind)}/${a.data.slug}/`,
+        kind: a.data.kind,
+      }));
+
+const resolvedSiblings = explicitSiblings.length > 0 ? explicitSiblings : fallbackSiblings;
+
+const pageTitle = `${slug} — Notebook — ainative`;
+const positioningHeadline = positioning?.headline ?? `Runnable notebook for ${base_model}`;
+const pageDescription = positioning?.problem
+  ? positioning.problem.replace(/\s+/g, ' ').slice(0, 280)
+  : `Builder + user notebook for ${base_model}. Runs on Spark or on free Colab/Kaggle GPU.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Dataset',
+    name: slug,
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/notebooks/${slug}/`,
+    publisher: PUBLISHER,
+    license: license.tier === 'free' ? 'open' : license.tier,
+    keywords: ['notebook', 'jupyter', 'colab', 'kaggle', base_model],
+    datePublished: published_at,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Notebooks', item: `${SITE.url}/artifacts/notebooks/` },
+      { '@type': 'ListItem', position: 4, name: slug, item: `${SITE.url}/artifacts/notebooks/${slug}/` },
+    ],
+  },
+];
+
+// Friendly copy for the variants (Spark spec §4.1 + §4.2 split).
+const variantBlurb: Record<string, string> = {
+  builder: 'Walks the build journey on Spark — fieldkit API calls replacing ad-hoc scripts; surfaces speed, feasibility, and viability.',
+  user: 'Demonstrates the published model on realistic domain tasks — runtime-detected, runs on Spark or on a free Colab/Kaggle GPU.',
+};
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="nb-detail">
+    <header class="nb-detail__header">
+      <a class="nb-detail__back" href="/artifacts/notebooks/">← Notebooks</a>
+      <div class="nb-detail__kicker">
+        <span class="nb-detail__kicker-kind">Notebook</span>
+        <span>·</span>
+        <span>{artifactClass.toUpperCase()}</span>
+        {variants && variants.length > 0 && (
+          <><span>·</span><span class="nb-detail__kicker-variants">{variants.join(' · ')}</span></>
+        )}
+      </div>
+      <h1 class="nb-detail__title">{slug}</h1>
+      <p class="nb-detail__elevator">{positioningHeadline}</p>
+
+      <div class="nb-detail__hero">
+        <div class="nb-detail__hero-visual">
+          <NotebookSignature
+            slug={slug}
+            variants={variants}
+            base_model={base_model}
+            variant="hero"
+          />
+        </div>
+        <div class="nb-detail__meta">
+          <a class="nb-detail__meta-item" href={hfUrl} target="_blank" rel="noopener noreferrer">
+            <span class="nb-detail__meta-label">HF (target model)</span>
+            <span class="nb-detail__meta-value">{hf_repo}</span>
+          </a>
+          <div class="nb-detail__meta-item">
+            <span class="nb-detail__meta-label">Base</span>
+            {baseModelHref ? (
+              <a href={baseModelHref} target="_blank" rel="noopener noreferrer" class="nb-detail__meta-value nb-detail__meta-value--link">{base_model}</a>
+            ) : (
+              <span class="nb-detail__meta-value">{base_model}</span>
+            )}
+          </div>
+          <div class="nb-detail__meta-item">
+            <span class="nb-detail__meta-label">License</span>
+            <LicenseChip tier={license.tier} model={license.model} />
+          </div>
+          {publishedDate && (
+            <div class="nb-detail__meta-item">
+              <span class="nb-detail__meta-label">Published</span>
+              <time class="nb-detail__meta-value" datetime={published_at}>{publishedDate}</time>
+            </div>
+          )}
+        </div>
+      </div>
+    </header>
+
+    <NotebookBadges notebooks={notebooks} contextLabel={slug} />
+
+    {positioning?.problem && (
+      <section class="nb-detail__section">
+        <h2 class="nb-detail__h2">What this notebook does</h2>
+        <p class="nb-detail__problem">{positioning.problem}</p>
+        {positioning.use_cases && positioning.use_cases.length > 0 && (
+          <>
+            <h3 class="nb-detail__h3">Use cases</h3>
+            <ul class="nb-detail__uses">
+              {positioning.use_cases.map((uc) => <li>{uc}</li>)}
+            </ul>
+          </>
+        )}
+        {positioning.audience && (
+          <p class="nb-detail__audience">
+            <span class="nb-detail__audience-label">Audience —</span> {positioning.audience}
+          </p>
+        )}
+      </section>
+    )}
+
+    {variants && variants.length > 1 && (
+      <section class="nb-detail__section">
+        <h2 class="nb-detail__h2">Choosing the variant</h2>
+        <p class="nb-detail__h2-blurb">
+          Two facets of the same notebook — pick by your goal.
+        </p>
+        <dl class="nb-detail__variants">
+          {variants.map((v) => (
+            <div class="nb-detail__variant-row">
+              <dt class="nb-detail__variant-name">{v}</dt>
+              <dd class="nb-detail__variant-blurb">{variantBlurb[v] ?? 'See notebook for details.'}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {linkedArticle && (
+      <section class="nb-detail__section">
+        <h2 class="nb-detail__h2">Methods</h2>
+        <a class="nb-detail__followup-card" href={`/field-notes/${linkedArticle.id}/`}>
+          <span class="nb-detail__followup-kicker">Read the field note</span>
+          <span class="nb-detail__followup-title">{linkedArticle.data.title}</span>
+          {linkedArticle.data.summary && (
+            <span class="nb-detail__followup-summary">{linkedArticle.data.summary}</span>
+          )}
+          <span class="nb-detail__followup-cta">Open article <span aria-hidden="true">→</span></span>
+        </a>
+      </section>
+    )}
+
+    {known_drift && known_drift.length > 0 && (
+      <section class="nb-detail__section">
+        <h2 class="nb-detail__h2">Known drift</h2>
+        <p class="nb-detail__h2-blurb">
+          Bounded limitations — Colab/Kaggle runs use the published quant; reasoning quality
+          may differ from the BF16 weights on Spark. Each entry carries an explicit bound.
+        </p>
+        <dl class="nb-detail__drift">
+          {known_drift.map((d) => (
+            <div class="nb-detail__drift-row">
+              <dt class="nb-detail__drift-item">{d.item}</dt>
+              <dd class="nb-detail__drift-bound">{d.bound}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {resolvedSiblings.length > 0 && (
+      <section class="nb-detail__section">
+        <h2 class="nb-detail__h2">Sibling artifacts</h2>
+        <p class="nb-detail__h2-blurb">
+          The model this notebook targets, plus other variants in the same family.
+        </p>
+        <ul class="nb-detail__siblings" role="list">
+          {resolvedSiblings.map((s) => (
+            <li class="nb-detail__sibling">
+              {s.href ? (
+                <a class="nb-detail__sibling-link" href={s.href} {...(s.href.startsWith('http') ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
+                  <span class="nb-detail__sibling-slug">{s.slug}</span>
+                  <span class="nb-detail__sibling-hook">{s.hook}</span>
+                </a>
+              ) : (
+                <div class="nb-detail__sibling-static">
+                  <span class="nb-detail__sibling-slug">{s.slug}</span>
+                  <span class="nb-detail__sibling-hook">{s.hook}</span>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .nb-detail {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .nb-detail__back {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    margin-bottom: 2rem;
+    transition: color 0.2s;
+  }
+  .nb-detail__back:hover { color: var(--color-primary); }
+
+  .nb-detail__header { margin-bottom: clamp(3rem, 5vw, 4.5rem); }
+  .nb-detail__kicker {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .nb-detail__kicker-kind { color: var(--color-primary); }
+  .nb-detail__kicker-variants { color: var(--color-accent); font-weight: 600; }
+
+  .nb-detail__title {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+    line-height: 1.15;
+    color: var(--color-text);
+    margin: 0 0 0.85rem;
+    word-break: break-word;
+  }
+  .nb-detail__elevator {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.2rem, 2vw, 1.55rem);
+    line-height: 1.4;
+    color: var(--color-text);
+    margin: 0 0 2rem;
+    max-width: 50ch;
+  }
+
+  .nb-detail__hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(14rem, 22vw, 18rem);
+    gap: 2.5rem;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .nb-detail__hero-visual {
+    order: 2;
+    justify-self: center;
+    width: 100%;
+    max-width: 18rem;
+  }
+  .nb-detail__meta {
+    order: 1;
+    display: grid;
+    gap: 0.6rem 1.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
+  }
+  .nb-detail__meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--color-text);
+    text-decoration: none;
+  }
+  a.nb-detail__meta-item { transition: color 0.2s; }
+  a.nb-detail__meta-item:hover { color: var(--color-primary); }
+  .nb-detail__meta-label {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--color-text-dim);
+  }
+  .nb-detail__meta-value { color: var(--color-text); word-break: break-word; }
+  a.nb-detail__meta-value--link {
+    color: var(--color-text);
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+  }
+  a.nb-detail__meta-value--link:hover { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+  @media (max-width: 840px) {
+    .nb-detail__hero { grid-template-columns: 1fr; gap: 1.5rem; }
+    .nb-detail__hero-visual { order: 1; max-width: 14rem; }
+    .nb-detail__meta { order: 2; }
+  }
+
+  .nb-detail__section {
+    margin: clamp(2.5rem, 4.5vw, 3.5rem) 0;
+    max-width: 60rem;
+  }
+  .nb-detail__h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 2.5vw, 1.8rem);
+    margin: 0 0 0.5rem;
+    color: var(--color-text);
+  }
+  .nb-detail__h2-blurb {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+    margin: 0 0 1.25rem;
+  }
+  .nb-detail__h3 {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin: 1.5rem 0 0.7rem;
+  }
+  .nb-detail__problem {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    margin: 0;
+    max-width: 65ch;
+  }
+  .nb-detail__uses {
+    margin: 0;
+    padding-left: 1.25rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    max-width: 65ch;
+  }
+  .nb-detail__uses li { margin-bottom: 0.35rem; }
+  .nb-detail__audience {
+    margin: 1.5rem 0 0;
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+    padding: 0.85rem 1rem;
+    border-left: 2px solid color-mix(in oklch, var(--color-primary) 50%, transparent);
+    background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent);
+    border-radius: 0 6px 6px 0;
+    max-width: 65ch;
+  }
+  .nb-detail__audience-label {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-primary);
+    margin-right: 0.35rem;
+  }
+
+  .nb-detail__variants, .nb-detail__drift {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0;
+  }
+  .nb-detail__variant-row, .nb-detail__drift-row {
+    display: grid;
+    grid-template-columns: minmax(min(100%, 10rem), 1fr) 3fr;
+    gap: 1rem;
+    padding: 0.95rem 1.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent);
+  }
+  .nb-detail__variant-name, .nb-detail__drift-item {
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    color: var(--color-accent);
+    font-weight: 600;
+    margin: 0;
+  }
+  .nb-detail__variant-blurb, .nb-detail__drift-bound {
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+  @media (max-width: 700px) {
+    .nb-detail__variant-row, .nb-detail__drift-row {
+      grid-template-columns: 1fr;
+      gap: 0.45rem;
+    }
+  }
+
+  .nb-detail__followup-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 1.5rem 1.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s;
+    max-width: 48rem;
+  }
+  .nb-detail__followup-card:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface-raised));
+    transform: translateY(-2px);
+  }
+  .nb-detail__followup-kicker {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-primary);
+  }
+  .nb-detail__followup-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.2rem;
+    line-height: 1.3;
+    color: var(--color-text);
+  }
+  .nb-detail__followup-summary {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+  .nb-detail__followup-cta {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+  }
+
+  .nb-detail__siblings {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .nb-detail__sibling-link, .nb-detail__sibling-static {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .nb-detail__sibling-link:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-raised));
+  }
+  .nb-detail__sibling-slug {
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: var(--color-text);
+    font-weight: 500;
+  }
+  .nb-detail__sibling-hook {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--color-text-muted);
+  }
+</style>

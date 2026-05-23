@@ -1,0 +1,175 @@
+---
+interface Props {
+  slug: string;
+  // 'builder' or 'user' or both, drives the variant chip count overlaid on hero.
+  variants?: string[];
+  base_model?: string;
+  // 'compact' for catalog tiles / hub previews; 'hero' for detail-page hero.
+  variant?: 'compact' | 'hero';
+}
+
+const { slug, variants, base_model, variant = 'compact' } = Astro.props;
+
+// Seeded cell layout — same slug always produces the same notebook silhouette,
+// distinct slugs render visually distinct. Each cell row is either a "code"
+// cell (primary color, monospace bar) or a "markdown" cell (muted, prose bar).
+function seedHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return h & 0x7fffffff;
+}
+
+function lcg(state: number): number {
+  return (state * 1103515245 + 12345) & 0x7fffffff;
+}
+
+const CELL_COUNT = 5;
+let h = seedHash(slug);
+const cells: { kind: 'code' | 'markdown'; width: number; }[] = [];
+for (let i = 0; i < CELL_COUNT; i++) {
+  h = lcg(h);
+  const isCode = (h % 100) < 60;
+  h = lcg(h);
+  const width = 0.55 + ((h % 1000) / 1000) * 0.4;
+  cells.push({ kind: isCode ? 'code' : 'markdown', width });
+}
+
+// Force the first cell to be markdown (the title cell on every Jupyter
+// notebook) and the last cell to be code (the execution cell). Anchors the
+// visual identity so it always reads as "notebook" not "abstract bars."
+cells[0] = { kind: 'markdown', width: 0.9 };
+cells[cells.length - 1] = { kind: 'code', width: 0.7 };
+
+const VIEW_W = 100;
+const VIEW_H = 100;
+const PAD = 8;
+const GUTTER = 16; // space for the left "▶" run indicators on code cells
+const CELL_AREA_W = VIEW_W - PAD * 2 - GUTTER;
+const CELL_H = (VIEW_H - PAD * 2 - (CELL_COUNT - 1) * 3) / CELL_COUNT;
+const ROW_GAP = 3;
+
+const variantLabel = variants && variants.length > 0
+  ? variants.join(' · ')
+  : null;
+
+const ariaLabel = `Notebook ${slug}${variantLabel ? ` — ${variantLabel}` : ''}`;
+---
+{variant === 'compact' && (
+  <figure class="nb-sig nb-sig--compact" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      <rect x="2" y="2" width={VIEW_W - 4} height={VIEW_H - 4} rx="4" class="nb-sig__page" />
+      {cells.map((c, i) => {
+        const y = PAD + i * (CELL_H + ROW_GAP);
+        const w = CELL_AREA_W * c.width;
+        return (
+          <g class={`nb-sig__cell nb-sig__cell--${c.kind}`} style={`animation-delay: ${120 * i}ms`}>
+            {c.kind === 'code' && (
+              <polygon points={`${PAD},${y + CELL_H * 0.25} ${PAD},${y + CELL_H * 0.75} ${PAD + 4},${y + CELL_H * 0.5}`} class="nb-sig__run" />
+            )}
+            <rect x={PAD + GUTTER} y={y + CELL_H * 0.3} width={w} height={CELL_H * 0.4} rx="0.8" />
+          </g>
+        );
+      })}
+    </svg>
+  </figure>
+)}
+
+{variant === 'hero' && (
+  <figure class="nb-sig nb-sig--hero" aria-label={ariaLabel}>
+    <svg viewBox={`0 0 ${VIEW_W} ${VIEW_H}`} role="img" xmlns="http://www.w3.org/2000/svg">
+      <title>{ariaLabel}</title>
+      <rect x="2" y="2" width={VIEW_W - 4} height={VIEW_H - 4} rx="5" class="nb-sig__page" />
+      {cells.map((c, i) => {
+        const y = PAD + i * (CELL_H + ROW_GAP);
+        const w = CELL_AREA_W * c.width;
+        return (
+          <g class={`nb-sig__cell nb-sig__cell--${c.kind} nb-sig__cell--hero`} style={`animation-delay: ${140 * i}ms`}>
+            {c.kind === 'code' && (
+              <>
+                <rect x="4.5" y={y} width="3" height={CELL_H} class="nb-sig__gutter-rail" />
+                <polygon points={`${PAD},${y + CELL_H * 0.25} ${PAD},${y + CELL_H * 0.75} ${PAD + 4.6},${y + CELL_H * 0.5}`} class="nb-sig__run" />
+              </>
+            )}
+            <rect x={PAD + GUTTER} y={y + CELL_H * 0.22} width={w * 0.65} height={CELL_H * 0.18} rx="0.6" class="nb-sig__line" />
+            <rect x={PAD + GUTTER} y={y + CELL_H * 0.48} width={w} height={CELL_H * 0.18} rx="0.6" class="nb-sig__line" />
+            <rect x={PAD + GUTTER} y={y + CELL_H * 0.74} width={w * 0.4} height={CELL_H * 0.14} rx="0.6" class="nb-sig__line nb-sig__line--short" />
+          </g>
+        );
+      })}
+    </svg>
+    <figcaption class="nb-sig__caption">
+      <span class="nb-sig__kind-label">Notebook</span>
+      {variantLabel && <span class="nb-sig__variants">{variantLabel}</span>}
+      {base_model && <span class="nb-sig__base">on {base_model.split('/').pop()}</span>}
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .nb-sig {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .nb-sig svg {
+    width: 100%;
+    height: auto;
+    display: block;
+    overflow: visible;
+  }
+  .nb-sig--compact { width: 64px; }
+  .nb-sig--hero { width: 100%; max-width: 280px; }
+
+  .nb-sig__page {
+    fill: color-mix(in oklch, var(--color-surface-raised) 70%, transparent);
+    stroke: var(--color-border);
+    stroke-width: 0.5;
+  }
+
+  .nb-sig__cell { opacity: 0; animation: nb-sig-cell-in 600ms ease-out forwards; }
+  .nb-sig__cell--code rect:not(.nb-sig__gutter-rail) {
+    fill: color-mix(in oklch, var(--color-primary) 28%, transparent);
+  }
+  .nb-sig__cell--markdown rect:not(.nb-sig__gutter-rail) {
+    fill: color-mix(in oklch, var(--color-text-muted) 40%, transparent);
+  }
+  .nb-sig__cell--hero .nb-sig__line--short {
+    fill: color-mix(in oklch, var(--color-text-muted) 25%, transparent);
+  }
+
+  .nb-sig__run { fill: var(--color-primary); }
+  .nb-sig__gutter-rail {
+    fill: color-mix(in oklch, var(--color-primary) 22%, transparent);
+    rx: 1;
+  }
+
+  .nb-sig__caption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.4rem 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    text-align: center;
+  }
+  .nb-sig__kind-label {
+    color: var(--color-primary);
+    font-weight: 600;
+    letter-spacing: 0.18em;
+  }
+  .nb-sig__variants { color: var(--color-text); }
+  .nb-sig__base { color: var(--color-text-dim); }
+
+  @keyframes nb-sig-cell-in {
+    to { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .nb-sig__cell { animation: none; opacity: 1; }
+  }
+</style>
