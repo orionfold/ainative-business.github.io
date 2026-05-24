@@ -1,90 +1,114 @@
 ---
+interface NotebookEntry {
+  label?: string;
+  colab?: string;
+  kaggle?: string;
+}
+
 interface Props {
-  notebooks?: {
-    colab?: string;
-    kaggle?: string;
-  };
-  // Used for the aria-label so each anchor is screen-reader-distinct on pages
-  // that may carry multiple badge rows (e.g. a notebook detail page rendering
-  // its own badges PLUS a sibling-artifact section in the future).
+  notebooks?: NotebookEntry[];
   contextLabel?: string;
-  // 'inline' renders a tight horizontal row (catalog tile tail); 'block' renders
-  // a full above-the-fold row with breathing room (detail-page slot).
   layout?: 'inline' | 'block';
 }
 
 const { notebooks, contextLabel, layout = 'block' } = Astro.props;
 
-if (!notebooks || (!notebooks.colab && !notebooks.kaggle)) {
-  // Graceful no-op — manifests without the field render no badge row.
-  // Wrap in a fragment so callers can drop the component unconditionally.
-}
+const entries = (notebooks ?? []).filter((n) => n && (n.colab || n.kaggle));
+const showLabels = entries.some((n) => !!n.label) && entries.length > 1;
 
-const colabLabel = contextLabel
-  ? `Open ${contextLabel} in Google Colab`
-  : 'Open this notebook in Google Colab';
-const kaggleLabel = contextLabel
-  ? `Open ${contextLabel} in Kaggle`
-  : 'Open this notebook in Kaggle';
+const linkLabel = (entry: NotebookEntry, host: 'Google Colab' | 'Kaggle'): string => {
+  const ctx = entry.label
+    ? (contextLabel ? `${contextLabel} — ${entry.label}` : entry.label)
+    : contextLabel;
+  return ctx ? `Open ${ctx} in ${host}` : `Open this notebook in ${host}`;
+};
 ---
-{notebooks && (notebooks.colab || notebooks.kaggle) && (
-  <div class={`notebook-badges notebook-badges--${layout}`} data-component="notebook-badges">
-    {notebooks.colab && (
-      <a
-        class="notebook-badges__link"
-        href={notebooks.colab}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={colabLabel}
-      >
-        <img
-          src="/badges/colab-badge.svg"
-          alt=""
-          width="148"
-          height="28"
-          loading="lazy"
-          decoding="async"
-        />
-      </a>
-    )}
-    {notebooks.kaggle && (
-      <a
-        class="notebook-badges__link"
-        href={notebooks.kaggle}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label={kaggleLabel}
-      >
-        <img
-          src="/badges/open-in-kaggle.svg"
-          alt=""
-          width="148"
-          height="28"
-          loading="lazy"
-          decoding="async"
-        />
-      </a>
-    )}
+{entries.length > 0 && (
+  <div class={`notebook-badges-group notebook-badges-group--${layout}`} data-component="notebook-badges">
+    {entries.map((entry) => (
+      <div class="notebook-badges-row">
+        {showLabels && entry.label && (
+          <span class="notebook-badges-row__label">{entry.label}</span>
+        )}
+        <div class="notebook-badges">
+          {entry.colab && (
+            <a
+              class="notebook-badges__link"
+              href={entry.colab}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={linkLabel(entry, 'Google Colab')}
+            >
+              <img
+                src="/badges/colab-badge.svg"
+                alt=""
+                width="148"
+                height="28"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          )}
+          {entry.kaggle && (
+            <a
+              class="notebook-badges__link"
+              href={entry.kaggle}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={linkLabel(entry, 'Kaggle')}
+            >
+              <img
+                src="/badges/open-in-kaggle.svg"
+                alt=""
+                width="148"
+                height="28"
+                loading="lazy"
+                decoding="async"
+              />
+            </a>
+          )}
+        </div>
+      </div>
+    ))}
   </div>
 )}
 
 <style>
-  .notebook-badges {
+  .notebook-badges-group {
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.6rem;
+    flex-direction: column;
+    gap: 0.75rem;
   }
-  .notebook-badges--block {
+  .notebook-badges-group--block {
     margin: 1.5rem 0 2rem;
     padding: 0.9rem 1.05rem;
     border: 1px solid var(--color-border);
     border-radius: 10px;
     background: color-mix(in oklch, var(--color-surface-raised) 40%, transparent);
   }
-  .notebook-badges--inline {
+  .notebook-badges-group--inline {
     margin: 0.6rem 0 0;
     gap: 0.4rem;
+  }
+  .notebook-badges-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+  }
+  .notebook-badges-row__label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    min-width: 4.5rem;
+  }
+  .notebook-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
   }
 
   .notebook-badges__link {
@@ -107,7 +131,7 @@ const kaggleLabel = contextLabel
     width: auto;
     display: block;
   }
-  .notebook-badges--inline .notebook-badges__link img {
+  .notebook-badges-group--inline .notebook-badges__link img {
     height: 22px;
   }
 

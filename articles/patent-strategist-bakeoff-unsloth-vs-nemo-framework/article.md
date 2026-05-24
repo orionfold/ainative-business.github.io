@@ -321,4 +321,4 @@ The gap holds steady at ~0.9 perplexity points across the four quant levels — 
 
 ---
 
-**Catalog page:** [`/artifacts/quants/patent-strategist-v3-unsloth/`](/artifacts/quants/patent-strategist-v3-unsloth/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
+**Catalog page:** [`/artifacts/loras/patent-strategist-v3-unsloth/`](/artifacts/loras/patent-strategist-v3-unsloth/) — positioning narrative, training-stack badge, evaluation deltas, lane comparison, and bounded drift — the full LoRA fine-tune card.

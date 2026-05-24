@@ -31,7 +31,9 @@ const problemPreview = positioning?.problem
   ? positioning.problem.split('. ').slice(0, 2).join('. ').replace(/[.\s]+$/, '') + '.'
   : null;
 
-const hasOnRamp = !!(notebooks && (notebooks.colab || notebooks.kaggle));
+const hasColab = !!(notebooks && notebooks.some((n) => n.colab));
+const hasKaggle = !!(notebooks && notebooks.some((n) => n.kaggle));
+const hasOnRamp = hasColab || hasKaggle;
 ---
 <a class="nb-card" href={href} aria-label={`Notebook: ${slug}`}>
   <span class="nb-card__watermark" aria-hidden="true">N</span>
@@ -57,8 +59,8 @@ const hasOnRamp = !!(notebooks && (notebooks.colab || notebooks.kaggle));
       {hasOnRamp && (
         <span class="nb-card__on-ramp" aria-hidden="true">
           <span class="nb-card__on-ramp-glyph">▶</span>
-          {notebooks?.colab && <span>Colab</span>}
-          {notebooks?.kaggle && <span>Kaggle</span>}
+          {hasColab && <span>Colab</span>}
+          {hasKaggle && <span>Kaggle</span>}
         </span>
       )}
     </div>

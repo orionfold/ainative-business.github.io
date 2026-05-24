@@ -290,4 +290,4 @@ Receipts for this release live at `articles/becoming-a-gguf-publisher-on-spark/e
 
 ---
 
-**Catalog page:** [`/artifacts/quants/finance-chat-gguf/`](/artifacts/quants/finance-chat-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
+**Catalog page:** [`/artifacts/notebooks/finance-chat-notebooks/`](/artifacts/notebooks/finance-chat-notebooks/) — the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user variants, target-model lineage, and bounded drift between Spark and cloud quants — the full notebook card.

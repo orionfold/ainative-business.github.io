@@ -263,4 +263,4 @@ What this means for a personal AI power user on one Spark: a fourth domain-speci
 
 ---
 
-**Catalog page:** [`/artifacts/quants/ii-medical-8b-gguf/`](/artifacts/quants/ii-medical-8b-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
+**Catalog page:** [`/artifacts/notebooks/ii-medical-8b-notebooks/`](/artifacts/notebooks/ii-medical-8b-notebooks/) — the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user variants, target-model lineage, and bounded drift between Spark and cloud quants — the full notebook card.

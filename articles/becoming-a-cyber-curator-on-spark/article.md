@@ -217,4 +217,4 @@ The cyber card is up. Three verticals down, one machine.
 
 ---
 
-**Catalog page:** [`/artifacts/quants/securityllm-gguf/`](/artifacts/quants/securityllm-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
+**Catalog page:** [`/artifacts/notebooks/securityllm-notebooks/`](/artifacts/notebooks/securityllm-notebooks/) — the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user variants, target-model lineage, and bounded drift between Spark and cloud quants — the full notebook card.

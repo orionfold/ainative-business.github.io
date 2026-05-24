@@ -47,6 +47,7 @@ _KIND_TO_URL_FAMILY: dict[str, str] = {
     "adapter": "adapters",
     "dataset": "datasets",
     "bench": "benches",
+    "notebook": "notebooks",
 }
 
 # Per-kind footer template. Defaults to the quant text (four-axis card +
@@ -73,6 +74,11 @@ _BLURB_BY_KIND: dict[str, str] = {
     "dataset": (
         "shape composition with row counts per scorer tier, baseline numbers, "
         "and source provenance — the full dataset card."
+    ),
+    "notebook": (
+        "the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user "
+        "variants, target-model lineage, and bounded drift between Spark and "
+        "cloud quants — the full notebook card."
     ),
 }
 

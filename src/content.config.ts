@@ -45,7 +45,7 @@ export const SERIES_BY_SLUG: Record<string, (typeof SERIES)[number]> =
     Object.entries(SERIES_SLUGS).map(([name, slug]) => [slug, name as (typeof SERIES)[number]]),
   );
 
-const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli'] as const;
+const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook'] as const;
 export const FIELDKIT_MODULES = fieldkitModules;
 
 // Articles live at ./articles/<slug>/article.{md,mdx} so the local clone
@@ -207,15 +207,14 @@ const artifacts = defineCollection({
       .optional(),
     // Runnable on-ramp links surfaced as a badge row above-the-fold on every
     // artifact detail page (and as a small inline ▶ Colab affordance on catalog
-    // tiles). Spark publishes the notebooks; Mac renders the badges. Both keys
-    // optional so a manifest can carry just Colab (Kaggle deferred per source
-    // spec §14). Field absent → badge row gracefully no-ops.
-    notebooks: z
-      .object({
-        colab: z.string().url().optional(),
-        kaggle: z.string().url().optional(),
-      })
-      .optional(),
+    // tiles). Spark publishes the notebooks; Mac renders the badges. Each entry
+    // carries an optional label (e.g. "Build it" / "Use it" for kind:notebook
+    // pairs) and either/both Colab/Kaggle URLs. Empty array → badge row no-ops.
+    notebooks: z.array(z.object({
+      label: z.string().optional(),
+      colab: z.string().optional(),
+      kaggle: z.string().optional(),
+    })).default([]),
   }),
 });
 

@@ -150,4 +150,4 @@ The Saul card is up. The next vertical is one model pick away.
 
 ---
 
-**Catalog page:** [`/artifacts/quants/saul-7b-instruct-v1-gguf/`](/artifacts/quants/saul-7b-instruct-v1-gguf/) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.
+**Catalog page:** [`/artifacts/notebooks/saul-7b-instruct-v1-notebooks/`](/artifacts/notebooks/saul-7b-instruct-v1-notebooks/) — the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user variants, target-model lineage, and bounded drift between Spark and cloud quants — the full notebook card.

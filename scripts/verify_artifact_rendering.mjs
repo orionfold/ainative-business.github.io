@@ -36,7 +36,7 @@ const FORWARD_LOOKING_PATTERNS = [
   /\bnext\s+version\s+(?:will|to)/i,
 ];
 
-const BOUND_PATTERN = /\b(\d+(?:[.,]\d+)?(?:\s*%|\/\d|x|\s+of\s+\d+|\s+entries?|\s+rows?|\s+cases?|\s+answers?)|<\s*\d|~\s*\d|less\s+than\s+\d|fewer\s+than\s+\d|approximately\s+\d|balance|all\s+other|every\s+other|rest\s+of|same\s+(?:scope|as|bound)|inherited\s+from|two\s+known|three\s+known|four\s+known|subsections?\s*\([a-z]|\([a-z]\)[-–]\([a-z]\))/i;
+const BOUND_PATTERN = /(\b\d+(?:[.,]\d+)?(?:\s*%|\/\d|x|\s+of\s+\d+)|\b\d+(?:[.,]\d+)?(?:\s+[\w-]+){0,3}\s+(?:entries?|rows?|cases?|answers?|cells?|points?)\b|<\s*\d|~\s*\d|\bless\s+than\s+\d|\bfewer\s+than\s+\d|\bapproximately\s+\d|\bbalance\b|\ball\s+other\b|\bevery\s+other\b|\brest\s+of\b|\bsame\s+(?:scope|as|bound)\b|\binherited\s+from\b|\btwo\s+known\b|\bthree\s+known\b|\bfour\s+known\b|\bsubsections?\s*\([a-z]|\([a-z]\)[-–]\([a-z]\))/i;
 
 const failures = [];
 const stats = { pagesChecked: 0, kindsCovered: new Set() };
