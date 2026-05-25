@@ -23,6 +23,7 @@ Heavy deps (`llama-cpp-python`, `huggingface_hub`, `jupytext`) are lazy + option
 from fieldkit.notebook import (
     detect_runtime, is_cloud, Runtime,           # runtime
     open_model, ChatClient, OpenAICompatClient, LlamaCppClient,  # inference
+    split_think, display_reply, stream_reply,    # reply rendering
     discover_local_server, local_server,         # local server (Spark)
     colab_url, kaggle_url, notebook_path, badge_markdown, GITHUB_REPO,  # links
     NotebookBuilder, NotebookNotAvailable,       # scaffold
@@ -50,6 +51,20 @@ reply = client.chat([{"role": "user", "content": "Is claim 1 anticipated by D1?"
 `ChatClient.chat(messages, *, temperature=0.0, max_tokens=2048, **kw)` returns the assistant reply text. Reasoning models emit a `<think>…</think>` prefix — the client returns it raw; split downstream. **`OpenAICompatClient` reconstructs the think block** when the server's `--reasoning-format` routes it into a separate `reasoning_content` field (which would otherwise leave `content` empty for a reasoning model) — so a reply is never silently blank regardless of how the server is configured. It uses `httpx` (and takes an `api_key`); `LlamaCppClient` wraps `llama_cpp.Llama` and lazy-imports it (raising `NotebookNotAvailable` with an install hint if absent).
 
 **Inference keyword arguments.** `open_model` (and `LlamaCppClient.from_pretrained`) forward the llama.cpp load knobs: `gguf_file` (explicit filename, overriding the variant glob), `n_ctx` (context length), `n_gpu_layers` (`-1` = offload all), `chat_format` (e.g. `chatml`), `verbose`, and `hf_token` for gated repos. `api_key` is the OpenAI-compatible-endpoint bearer token. **`chat_format` applies only to the in-process backend** — on a server path the server owns the chat template, so passing it to a server-backed `open_model` warns and is ignored (start the server with the matching `--chat-template` / `--jinja` instead).
+
+### `split_think(reply) -> (reasoning, answer)`, `display_reply(reply)`, `stream_reply(client, messages)`
+
+A reasoning model's reply is `<think>…</think>answer`. These render it for a notebook cell instead of dumping the raw tagged blob.
+
+- **`split_think(reply)`** — pure function returning `(reasoning, answer)`. Handles a closed block, an **unclosed** `<think>…` (the chain ran past `max_tokens` → all reasoning, empty answer), and no-think (`("", reply)`); picks the longest block when an R1-distill false-starts with an empty `<think></think>`.
+- **`display_reply(reply, *, reasoning_label="💭 Reasoning")`** — in a Jupyter kernel, renders the reasoning in an always-visible muted box (brand palette, NeMo-green rule) above the answer rendered as **Markdown**; outside a kernel it prints the raw reply. Returns `None` (a display side-effect, so a cell ending in `display_reply(r)` doesn't echo the raw string). This is the default the notebooks use (`display_reply(client.chat(...))`) — deterministic for re-runs and snapshots.
+
+```python
+from fieldkit.notebook import display_reply
+display_reply(client.chat(messages, max_tokens=3000))   # reasoning box + markdown answer
+```
+
+- **`stream_reply(client, messages, **kw)`** — opt-in live streaming: drives `client.chat_stream(...)`, filling the reasoning box token-by-token then the answer, and returns the full reply string (streams to stdout outside a kernel). Every `ChatClient` has **`chat_stream(messages, **kw) -> Iterator[str]`** yielding the reply in order; `OpenAICompatClient` parses SSE and reconstructs the `<think>…</think>` shape across both server reasoning-formats (tag-in-`content` vs. `reasoning_content` deltas), `LlamaCppClient` streams the in-process engine, and the base falls back to one chunk so any backend works.
 
 ### `local_server(hf_repo, *, variant="Q5_K_M", n_ctx=8192, chat_template="jinja", reasoning_format="none", ...)` and `discover_local_server(...)`
 
