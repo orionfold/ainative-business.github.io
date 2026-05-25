@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-23T21:15:51Z",
+  "generated_at": "2026-05-25T04:26:28Z",
   "articles": {
     "total": 42,
     "published": 42,
@@ -7,7 +7,7 @@
     "drafts": 0
   },
   "words": {
-    "total": 142033,
+    "total": 142037,
     "mean_per_article": 3381,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
@@ -17,11 +17,11 @@
   },
   "code": {
     "evidence_loc": 14207,
-    "fieldkit_loc": 18402,
+    "fieldkit_loc": 18632,
     "vendored_loc": 344724,
-    "total_loc": 32609,
+    "total_loc": 32839,
     "by_language": {
-      "python": 32581,
+      "python": 32811,
       "sql": 15,
       "shell": 13
     },

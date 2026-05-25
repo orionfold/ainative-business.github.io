@@ -281,14 +281,12 @@ This is the Looking Beyond Spark angle that makes the train-layer decision inter
 
 ## Artifacts
 
-Both merged BF16 models, plus their quantized siblings (Q4_K_M, Q5_K_M, Q6_K, Q8_0, F16), are published on HuggingFace under the `Orionfold` user handle. Cross-linked READMEs document the bakeoff on each card; the v3-corpus artifacts call-out sits at the top of every README.
+The NeMo lane is the bakeoff's shipped flagship: its merged BF16 model plus the quantized siblings (Q4_K_M, Q5_K_M, Q6_K, Q8_0) are published on HuggingFace under the `Orionfold` user handle. The Unsloth lane was the comparison baseline measured throughout this article — every Unsloth number above is real — but it is not published as a separately downloadable artifact.
 
 | Artifact | HuggingFace URL |
 |---|---|
-| Unsloth-trained, merged BF16 | [Orionfold/patent-strategist-v3-unsloth](https://huggingface.co/Orionfold/patent-strategist-v3-unsloth) |
-| Unsloth-trained, GGUF quant sweep | [Orionfold/patent-strategist-v3-unsloth-GGUF](https://huggingface.co/Orionfold/patent-strategist-v3-unsloth-GGUF) |
 | NeMo-trained, merged BF16 | [Orionfold/patent-strategist-v3-nemo](https://huggingface.co/Orionfold/patent-strategist-v3-nemo) |
-| NeMo-trained, GGUF quant sweep | [Orionfold/patent-strategist-v3-nemo-GGUF](https://huggingface.co/Orionfold/patent-strategist-v3-nemo-GGUF) | License: both bases inherit Apache-2.0-compatible terms from `DeepSeek-R1-0528-Qwen3-8B` (MIT R1 distill atop Qwen3 Apache-2.0); both READMEs attribute base and state the inherited terms.
+| NeMo-trained, GGUF quant sweep | [Orionfold/patent-strategist-v3-nemo-GGUF](https://huggingface.co/Orionfold/patent-strategist-v3-nemo-GGUF) | License: the base inherits Apache-2.0-compatible terms from `DeepSeek-R1-0528-Qwen3-8B` (MIT R1 distill atop Qwen3 Apache-2.0); the README attributes base and states the inherited terms.
 
 ## Closing
 
@@ -321,4 +319,4 @@ The gap holds steady at ~0.9 perplexity points across the four quant levels — 
 
 ---
 
-**Catalog page:** [`/artifacts/loras/patent-strategist-v3-unsloth/`](/artifacts/loras/patent-strategist-v3-unsloth/) — positioning narrative, training-stack badge, evaluation deltas, lane comparison, and bounded drift — the full LoRA fine-tune card.
+**Catalog page:** [`/artifacts/loras/patent-strategist-v3-nemo/`](/artifacts/loras/patent-strategist-v3-nemo/) — positioning narrative, training-stack badge, evaluation deltas, lane comparison, and bounded drift — the full LoRA fine-tune card.

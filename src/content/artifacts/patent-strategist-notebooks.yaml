@@ -5,7 +5,7 @@ base_model: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
 # The sibling MODEL repo these notebooks target — not a separate notebook repo.
 # Chart data (perplexity / tok-s) is sourced from that model manifest by slug;
 # this manifest carries no measurements of its own (spec §3).
-hf_repo: Orionfold/patent-strategist-v3-unsloth-GGUF
+hf_repo: Orionfold/patent-strategist-v3-nemo-GGUF
 variants:
   - builder
   - user
@@ -14,7 +14,7 @@ license:
   model: apache-2.0
 article: articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/
 published_at: "2026-05-23T16:45:00Z"
-stack_origin: unsloth
+stack_origin: nemo
 positioning:
   headline: Run the patent-strategist build — and use the model — on a Spark or a free cloud GPU
   problem: >-
@@ -36,8 +36,8 @@ positioning:
     developers who want to call the model — on Spark-class hardware (GB10,
     128 GB unified memory) or a free cloud GPU.
 known_drift:
-  - item: Cloud (Colab / Kaggle) path serves the Q4_K_M quant; the Spark path serves Q5_K_M
-    bound: One quant level apart — Q4_K_M wikitext perplexity 11.30 vs Q5_K_M 10.97 (~0.33 higher); both run the identical code path. See the sibling GGUF card.
+  - item: The user notebook pins the Q5_K_M quant on both the Spark and cloud paths
+    bound: Q5_K_M is the fast+accurate sweet spot — 10.04 wikitext perplexity at 35 tok/s on a GB10, within 0.8% of Q6_K's accuracy. Heavier/lighter variants are one keyword away; see the sibling GGUF card for the full matrix.
   - item: The builder notebook's heavy steps (baseline, corpus, train, probe, quantize) render the recorded Spark run, not a live re-execution
     bound: 5 recorded Spark-only cells; the remaining cells (feasibility envelope, backend decision, the four viz figures, publish dry-run) run live on any runtime.
 notebooks:
