@@ -13,118 +13,27 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-23 (notebooks-as-artifacts v1 Mac scaffold). Spark CC published `/Volumes/home/ai-field-notes/specs/notebooks-as-artifacts-v1.md` (status: locked, v1.0) introducing a 6th artifact kind `notebook` and a cross-cutting `notebooks: { colab, kaggle }` manifest field that surfaces as an above-the-fold runnable on-ramp on every artifact card. Replaced the prior playground/leaderboard direction (v1 design at `spec/2026-05-22-model-playground-and-eval-surface-design.md` — kept as historical reference, do not implement). Wrote a section-faithful destination mirror at `spec/notebooks-as-artifacts-v1-mac.md` plus a mirror-discipline memory (`feedback_spec_mirror_discipline.md`) so future sessions keep the two specs in sync. Shipped the scaffold ahead of the patent-strategist pilot manifest's arrival: extended `ARTIFACT_KINDS` (5 → 6) in `src/lib/artifacts.ts`, added optional `notebooks` zod block to `src/content.config.ts`, vendored Colab + Kaggle badge SVGs at `public/badges/`, built `NotebookBadges.astro` (block + inline layouts, WCAG-AA aria-labels, graceful no-op when field absent), injected it above-the-fold into all 5 existing detail templates (quants/loras/adapters/datasets/benches), built `NotebookSignature.astro` (stacked-cells motif with seeded code-vs-markdown mix + "▶" run indicators — visually reads "notebook" at a glance) + `NotebookCard.astro`, built `src/pages/artifacts/notebooks/index.astro` (empty-state friendly) + `[slug]/index.astro` (detail with builder/user variants block + bidirectional sibling resolution via siblings[] or hf_repo match), added 6th tile to the catalog hub. Extended `scripts/verify_artifact_rendering.mjs` with a new rule (badge row above-the-fold when `notebooks` field present) and added `notebooks` to its kind-walk. `npm run build` exits 0; verifier passes 9 detail pages across 3 kinds; chrome browser smoke confirmed `/artifacts/` (3 OF 6 KINDS ACTIVE), `/artifacts/notebooks/` (empty-state copy renders), existing detail pages render with NotebookBadges no-op (no manifests carry the field yet). End-of-session: dev server stopped, no commit (user-gated).
-**Last destination commit:** `be7c219` pushed to `origin/main` (LoRA/Adapter/Dataset render path). Today's scaffold work is **uncommitted** on `main`. Prior pushes: `232e023` (handoff post-be7c219), `eeea77e` (handoff for first NFS sync), `0c5c9c5` (first production NFS sync).
-**Push status:** destination main has uncommitted scaffold work — see Open item #1 below. Source side: 7 of Claude's 2026-05-22 edits + pre-existing evidence/probe drift still uncommitted on `/Volumes/home/ai-field-notes/`. The NFS mount is **reachable again** as of this session — both the prior 2026-05-22 source push (was Open item #1 in last HANDOFF) and the new source-side kind-mirror items (Open item #2 below) are now unblocked.
+**Last session:** 2026-05-24 (sync-field-notes migrated to GitHub-remote source + patent-strategist unsloth-unpublish / fieldkit v0.8.0 content sync). A `/sync-field-notes` run wedged when the SMB mount went stale (Spark slept mid-walk → uninterruptible `U`-state `diff_articles.py`, plus a torn `.git/index` on Spark from an interrupted Spark-side CC git op). User directed switching the source from the `/Volumes/home/ai-field-notes` mount to a local cache clone of `github.com/manavsehgal/ai-field-notes`. Refactored the skill (new `scripts/source_repo.py` single-source-of-truth + `ensure_fresh()`; `diff_articles.py`/`sync_articles.py` import paths from it; deleted `scripts/peer_lock.py`; rewrote SKILL.md), then ran the new flow end-to-end (clone + diff instant, no stall) to land the stuck content sync. Build green; `verify_artifact_rendering` passes 12 pages across 4 kinds.
+**Last destination commit:** `d603acf` (content sync) atop `d19aadf` (skill migration), both **local on `main`, unpushed**. Prior: `c30d490`, `1eec156` (notebooks-as-artifacts v1 + fieldkit v0.7.0), `be7c219`.
+**Push status:** destination `main` is **2 commits ahead of `origin/main`, unpushed** — user-gated (GitHub Pages deploys from `main`). Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `83fc260`); no Step 6 source-side writes this session. Spark's `.git/index` was reported corrupt during the wedged-mount diagnosis — flag Spark CC to rebuild (`git read-tree HEAD`); committed history unaffected.
 
 ## Open items (replace each session)
 
-### 1a. DONE 2026-05-23 — Step 6 atomic source-side writes (from RECONCILE-SPARK-MAC.md TODO #3)
+### 1. NEXT — Push the 2 local commits to `origin/main` (user-gated)
 
-Hardened `.claude/skills/sync-field-notes/SKILL.md` Step 6 to use an atomic-write pattern (`<path>.tmp` + `os.replace`) via a `Bash` Python heredoc instead of direct `Edit`/`Write` against `/Volumes/home/...` paths. Added a mandatory post-write verify block (size > 0, no NUL bytes, trailing newline; falls back to `git checkout -- <path>` on failure). Added an "Alternative for large/complex edits" call-out pointing at the `ssh nvidia@nvidia.local 'cat > ...'` pattern that spark-mac used during the 2026-05-23 reconciliation (bytes never traverse SMB). No code change to `sync_articles.py` — those writes are destination-local and not at SMB-tear risk.
+`d19aadf` (skill migration) + `d603acf` (content sync) are committed on `main` but unpushed. ainative.business deploys from `main` via GitHub Pages, so nothing is live until pushed.
 
-**Open coordination item:** the source-side `notebook-author` / `notebook-snapshot` pipelines should adopt the same atomic-write pattern. Not owned by this repo; flag to Spark CC next session.
+### 2. INFO — sync source is now the GitHub remote, not the SMB mount
 
-### 1b. DONE 2026-05-23 — Peer-writer heartbeat for `/sync-field-notes` (from RECONCILE TODO #4)
+`/sync-field-notes` reads a local cache clone at `~/.cache/ai-field-notes-src` (= `$AI_FIELD_NOTES_SRC`), refreshed to `origin/main` at the start of every run via `scripts/source_repo.py`. The SMB mount, `peer_lock.py` heartbeat, and Step 6 atomic-SMB-write machinery are **retired**. This obsoletes several prior carry-forward asks: the source-side atomic-write + heartbeat coordination (old Open items 1a/1b, Carry-forward #13 SYNC-WORKFLOW ingest) is **moot** — no shared SMB tree to coordinate — as is the "SMB not NFS transport" correction (old 1d). Source-side fixes now ride git (edit cache clone → commit → push).
 
-Added `.claude/skills/sync-field-notes/scripts/peer_lock.py` — a CLI helper that drops a JSON heartbeat at `/Volumes/home/ai-field-notes/.sync-active` (PID + tool + ISO timestamp + hostname). Smoke-tested end-to-end on the live mount (`acquire` → `check` returns peer → `release` clears). Stale-heartbeat threshold is 300s.
+### 3. WATCH — `src/content/artifacts/README.md` cites a deleted manifest as a naming example
 
-Wired into `SKILL.md`:
-- **Step 1** now runs `peer_lock.py acquire sync-field-notes` after the mount/git checks. Non-zero exit aborts the workflow with the contending PID/tool surfaced.
-- **Step 9** now mandates `peer_lock.py release` at end of every run (or on abort).
+Lines ~114/~126 use `patent-strategist-v3-unsloth` as a worked slug-naming example. The unsloth lane was unpublished this session, so the example is mildly stale (not a broken link — no catalog URL). Low priority; refresh to a nemo example next doc pass.
 
-**Open coordination item:** the source-side notebook pipeline maintainer (Spark CC) needs to call the same helper from `notebook-author` / `notebook-snapshot` invocations for the heartbeat to be bilaterally meaningful. The script is portable Python with no dependencies — they can either invoke our copy via the mount or vendor it source-side. Flag to Spark CC next session; coordinate at `/Volumes/home/ai-field-notes/SYNC-WORKFLOW.md`.
+### 4. INFO — Spark must push before a sync sees its work
 
-### 1c. INFO — `notebooks/patent-strategist/` verified clean (RECONCILE 2026-05-23)
-
-When the patent-strategist notebooks-as-artifacts manifest lands (HANDOFF item #4 WATCH), the first `/sync-field-notes` to pull it can proceed without re-verifying the `.py` files — committed-clean at HEAD with mtime 2026-05-23 09:43, outside the 11:59:36 corruption window. The corruption that hit cyber/finance/legal/medical builder+user was remediated by spark-mac via `git checkout` on the Spark side; the .ipynb were never touched. **Per spark-mac's correction, `.py` is the canonical source-of-truth and `.ipynb` is generated** (`sync_notebook.py` is one-way `.py` → `.ipynb`) — clean .py + clean .ipynb means the pair is in sync.
-
-### 1d. INFO — SMB (not NFS) transport correction propagates here
-
-Reference memory `reference_sync_workflow_nfs_mount` is misnamed/described — the actual transport is `smbfs` over TCP 445 / WiFi (per `mount-spark.sh` + live `mount` table). Memory body and slug should be updated next session (low-priority renaming pass).
-
-### 1. NEXT — Commit + push today's Mac scaffold (uncommitted on `main`)
-
-Today's scaffold work for notebooks-as-artifacts v1 is unstaged on destination `main`. User-gated commit.
-
-**Files in this scaffold:**
-- `spec/notebooks-as-artifacts-v1-mac.md` — new (Spark spec mirror)
-- `src/lib/artifacts.ts` — `ARTIFACT_KINDS` extended 5 → 6
-- `src/content.config.ts` — new optional `notebooks: {colab?, kaggle?}` zod block
-- `public/badges/colab-badge.svg`, `public/badges/open-in-kaggle.svg` — vendored badges
-- `src/components/artifacts/NotebookBadges.astro` — new (with graceful no-op)
-- `src/components/artifacts/NotebookSignature.astro` — new (stacked-cells motif)
-- `src/components/artifacts/NotebookCard.astro` — new (catalog tile)
-- `src/pages/artifacts/notebooks/index.astro` — new (listing, empty-state friendly)
-- `src/pages/artifacts/notebooks/[slug]/index.astro` — new (detail with sibling resolution)
-- `src/pages/artifacts/quants/[slug]/index.astro` — NotebookBadges import + slot
-- `src/pages/artifacts/loras/[slug]/index.astro` — same
-- `src/pages/artifacts/adapters/[slug]/index.astro` — same
-- `src/pages/artifacts/datasets/[slug]/index.astro` — same
-- `src/pages/artifacts/benches/[slug]/index.astro` — same
-- `src/pages/artifacts/index.astro` — added 6th `Notebooks` hub tile + signature preview + blurb
-- `scripts/verify_artifact_rendering.mjs` — added `notebooks` to kind-walk + badge-above-fold rule
-- `HANDOFF.md` — this file
-
-**Suggested commit message:**
-```
-feat(artifacts): notebooks-as-artifacts v1 Mac scaffold
-
-Add 6th artifact kind `notebook` + cross-cutting `notebooks: { colab, kaggle }`
-manifest field that surfaces as an above-the-fold badge row on every artifact
-detail page. Mirrors Spark spec at /Volumes/home/ai-field-notes/specs/
-notebooks-as-artifacts-v1.md (status: locked, v1.0). Local destination mirror
-at spec/notebooks-as-artifacts-v1-mac.md.
-
-Build clean, verifier passes 9 detail pages across 3 kinds, hub renders 6
-tiles (3 OF 6 KINDS ACTIVE), browser smoke green. NotebookBadges is a
-graceful no-op until manifests carry the field — scaffold lands ahead of
-Spark's patent-strategist pilot manifest so the build doesn't break on
-arrival.
-
-Supersedes spec/2026-05-22-model-playground-and-eval-surface-design.md
-(playground/leaderboard direction, kept as historical reference).
-
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
-```
-
-### 2. NEXT — Source-side kind mirror (Spark CC)
-
-Mac scaffold's `'notebook'` addition to `ARTIFACT_KINDS` must be mirrored source-side or future fieldkit publishes won't accept the new kind. Three files:
-
-1. `fieldkit/src/fieldkit/publish/__init__.py` — add `"notebook"` to the `ARTIFACT_KINDS` tuple (currently 5 entries: `quant, lora, adapter, dataset, bench`)
-2. `fieldkit/tests/test_publish.py` — rename `test_artifact_kinds_are_the_canonical_five` → `…_canonical_six`; bump assertion
-3. `src/content.config.ts` — add `"notebook"` to the const array feeding the artifacts zod enum + mirror the new optional `notebooks: { colab?, kaggle?, }` zod block (Mac shape is canonical — see `src/content.config.ts` here for the byte-faithful copy)
-
-Spark CC owns this. Combine with the 2026-05-22 bundle (item #3 below) if Spark hasn't pushed yet.
-
-### 3. NEXT — Commit + push prior 2026-05-22 source-side bundle (now unblocked)
-
-Source-side bundle from the 2026-05-22 NARRATIVE-CONTRACT session is still uncommitted on `/Volumes/home/ai-field-notes/`. The NFS mount is reachable again. **Files to commit** (Claude's 7 edits only — do NOT `git add -A`; source has pre-existing uncommitted evidence/probe drift to preserve):
-
-1. `NARRATIVE-CONTRACT.md` — new file at source root, canonical content rubric for HF + site surfaces
-2. `.claude/skills/hf-publisher/references/card-polish.md` — one-line pointer added at top: "Narrative rules live in `/NARRATIVE-CONTRACT.md`. This file covers HF-surface specifics only…"
-3. `src/content/artifacts/patent-strategist-v3-nemo.yaml` — `kind: quant` → `kind: lora`
-4. `src/content/artifacts/patent-strategist-v3-unsloth.yaml` — `kind: quant` → `kind: lora`
-5. `src/content.config.ts` — `ARTIFACT_KINDS` reduced from 8 to 5 (drop embed/reranker/space)
-6. `fieldkit/src/fieldkit/publish/__init__.py` — same tuple reduction
-7. `fieldkit/tests/test_publish.py` — `test_artifact_kinds_are_the_canonical_eight` renamed to `test_artifact_kinds_are_the_canonical_five`, assertion updated
-
-If item #2 (notebook kind mirror) is added before this push, the assertion in `test_publish.py` should be updated again to `_canonical_six` and ARTIFACT_KINDS extended — combine into one source push.
-
-### 4. WATCH — Patent-strategist notebook pilot arrival
-
-Spark spec §10 describes the patent-strategist pilot: 1 builder notebook + 1 user notebook bound to the existing patent-strategist family (lora-nemo, lora-unsloth, gguf-nemo, gguf-unsloth manifests). When Spark publishes the manifest at `src/content/artifacts/patent-strategist-v3-notebook.yaml` (or similar) and `/sync-field-notes` pulls it over:
-
-- The notebook detail page should render at `/artifacts/notebooks/<slug>/` with the signature, builder/user variants block, and sibling cross-links resolving to the 4 patent-strategist model artifacts.
-- The 4 sibling model manifests should gain a `notebooks: { colab, kaggle }` field; the new NotebookBadges block should appear above-the-fold on all 4 detail pages.
-- The catalog hub Notebooks tile flips from "Coming soon" to `01`.
-
-Browser-verify all of the above the first sync after pilot arrival. Lighthouse + WCAG AA contrast pass on the new notebook detail page (per `feedback_pagespeed_techniques.md`).
-
-### 5. WATCH — Spark spec evolves → sync mirror
-
-Per the new `feedback_spec_mirror_discipline.md` memory: every `/sync-field-notes` cycle should `ls /Volumes/home/ai-field-notes/specs/` and diff any updated specs against their `spec/*-mac.md` mirrors. If `notebooks-as-artifacts-v1.md` mtime advances or version bumps, re-read it cover-to-cover and update `spec/notebooks-as-artifacts-v1-mac.md` section-for-section in the same session — including any code-change deltas added as a top item in this HANDOFF.
+The remote model syncs committed+pushed state only. If the user changes something on Spark and the diff doesn't show it, the commit hasn't reached `origin/main` — `ssh spark 'cd ~/ai-field-notes && git push'`, then re-run Step 1.
 
 ## Carry-forward (items from prior sessions, still active)
 
@@ -232,6 +141,16 @@ Per prior session.
 Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-24 (sync-field-notes: GitHub-remote source migration + unsloth-unpublish / fieldkit v0.8.0 sync)
+
+- **Trigger.** A `/sync-field-notes` run wedged: the SMB mount went stale when Spark slept mid-walk — `diff_articles.py` pinned in uninterruptible `U`-state I/O wait (unkillable without force, force-unmount denied by the permission classifier), individual reads worked but the full-tree hash walk never completed, and `git status` on the mount reported `index file corrupt` (torn `.git/index` from an interrupted Spark-side CC git op). Reconnecting NVIDIA Sync + waking Spark fixed single reads but not the walk. User proposed sourcing from the GitHub remote instead; confirmed `origin/main` (`83fc260`) was identical to the mount HEAD and carried every needed commit.
+
+- **The migration (skill refactor, commit `d19aadf`).** Source of truth moved from the `/Volumes/home/ai-field-notes` SMB mount to a per-machine cache clone of `github.com/manavsehgal/ai-field-notes` at `~/.cache/ai-field-notes-src`, refreshed (`git fetch && git reset --hard origin/main`) at the start of every run. New `scripts/source_repo.py` centralizes cache path / remote / branch / every mirrored sub-path / `ensure_fresh()`; `diff_articles.py` + `sync_articles.py` import their source names from it (zero logic change; `_compute_source_sequence()`'s git call now reads the clone). Deleted `scripts/peer_lock.py` — its `.sync-active` heartbeat serialized concurrent SMB writers; a private cache clone has no shared tree. Rewrote SKILL.md: Step 1 = cache refresh (no mount-health/peer-lock), Step 6 = edit-clone→commit→push (no smbfs atomic-write dance, no `ssh spark`), edge cases swapped to remote-failure modes. Design forks (persistent cache + fetch; remove mount entirely; Step 6 via git push) decided with the user via brainstorming. **Behavior change:** syncs committed+pushed state only.
+
+- **The content sync (commit `d603acf`), validating the new flow end-to-end (clone + diff instant, no stall).** From ai-field-notes `83fc260`: patent-strategist bakeoff article drops the two Unsloth HF artifact rows (Unsloth stays the measured baseline, not a downloadable artifact — spaceless-`<think>` defect diagnosed Unsloth-lane-only); `patent-strategist-notebooks.yaml` repointed to the nemo Q5_K_M lane; the two unsloth catalog manifests (`v3-unsloth`, `v3-unsloth-gguf`) deleted; the bakeoff article's gated catalog footer auto-repointed `…/loras/patent-strategist-v3-unsloth/` → `…/loras/patent-strategist-v3-nemo/` (alphabetically-last surviving lora manifest — manifests deleted *before* `sync_articles.py` so `restore_gated_footers()` saw the right state); `fieldkit/_version.py` 0.7.0 → 0.8.0 + `fieldkit/docs/api/notebook.md` refresh; project-stats refreshed (recall@5 override re-applied). Closes prior Carry-forward #11 (bakeoff footer). Regenerated `notebooks/.../exports/*.png` are out of scope (GitHub notebook-display assets).
+
+- **Verification.** `npm run build` green; `verify_artifact_rendering` passes 12 detail pages across 4 kinds (loras/quants/benches/notebooks), confirming the repointed footer target renders. Deleted-slug pages absent from `dist/`; only stale references are two naming examples in `src/content/artifacts/README.md` (Open item #3).
 
 ### 2026-05-23 (notebooks-as-artifacts v1 Mac scaffold + spec mirror discipline established)
 
