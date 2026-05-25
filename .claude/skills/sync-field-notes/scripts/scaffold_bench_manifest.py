@@ -16,7 +16,7 @@ Usage:
         --article articles/foo-bench-on-spark/ \\
         --slug foo-bench-v0.1 \\
         --class foo-domain-reasoning \\
-        [--source-cards-path /Volumes/home/ai-field-notes/dataset-cards/]
+        [--source-cards-path ~/.cache/ai-field-notes-src/dataset-cards/]
 
 Pipe to a new file in the destination repo:
     python3 scaffold_bench_manifest.py ... \\

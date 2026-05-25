@@ -1,7 +1,8 @@
 # Site rendering rubric — artifact cards & detail pages
 
-This file is the Astro-side companion to `/Volumes/home/ai-field-notes/NARRATIVE-CONTRACT.md`
-(source's canonical content rubric for both HuggingFace and the marketing site).
+This file is the Astro-side companion to the source repo's `NARRATIVE-CONTRACT.md`
+(canonical content rubric for both HuggingFace and the marketing site; read it at
+`~/.cache/ai-field-notes-src/NARRATIVE-CONTRACT.md` after a Step 1 refresh, or on GitHub).
 
 **The content rules live in `NARRATIVE-CONTRACT.md`.** This file covers
 site-surface specifics only: which manifest field maps to which Astro

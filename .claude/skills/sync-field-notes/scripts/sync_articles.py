@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Sync new and changed field-notes articles + images from the directly-mounted
-source at /Volumes/home/ai-field-notes into this website's articles/ tree.
+Sync new and changed field-notes articles + images from the ai-field-notes
+cache clone (see source_repo.py) into this website's articles/ tree.
 
 Idempotent — files are overwritten only when their content actually changed.
 Never deletes anything, never touches the two reframed papers
@@ -26,8 +26,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chrome_footers  # noqa: E402
 
-SOURCE_REPO = Path("/Volumes/home/ai-field-notes")
-SOURCE_ROOT = SOURCE_REPO / "articles"
+# Source-side paths come from the shared `source_repo` module, which resolves
+# them under a local cache clone of github.com/manavsehgal/ai-field-notes
+# (refreshed in SKILL.md Step 1). SOURCE_REPO is also the cwd for the git call
+# in _compute_source_sequence(), so the sequence manifest tracks origin/main.
+from source_repo import (  # noqa: E402
+    SOURCE_REPO,
+    SOURCE_ROOT,
+    FIELDKIT_DOCS_SOURCE,
+    FIELDKIT_VERSION_SOURCE,
+    LANDING_SOURCE,
+    SIGNATURE_SVG_SOURCE,
+    PROJECT_STATS_SOURCE,
+)
+
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
 
 # Sequence manifest — captures the source repo's authoritative article order
@@ -39,16 +51,13 @@ SEQUENCE_MANIFEST = Path(
     "/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/sequence.json"
 )
 
-FIELDKIT_DOCS_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/docs/api")
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
-FIELDKIT_VERSION_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/src/fieldkit/_version.py")
 FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/_version.py")
 
 # Fieldkit landing page — see diff_articles.py for the full rationale. Both
 # repos render /fieldkit/ from a Nav-wrapped Astro page with the same
 # section-block structure but different layout wrappers, so we sync only the
 # inner bodies of <section class="fk-section"> blocks keyed by <h2> title.
-LANDING_SOURCE = Path("/Volumes/home/ai-field-notes/src/pages/fieldkit/index.astro")
 LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
 LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
@@ -58,7 +67,6 @@ LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 # target paths differ (the website nests under field-notes/) but basenames
 # match. One-way flow: source→target. Never delete target-only signatures —
 # the website may have signatures the source doesn't (reframed papers).
-SIGNATURE_SVG_SOURCE = Path("/Volumes/home/ai-field-notes/src/components/svg")
 SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
 
 # Project-stats JSON. Drives the "At a glance" KPI block on /field-notes/ and
@@ -66,7 +74,6 @@ SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.gith
 # field-notes/ dir) than target. The website applies one hand-curated override
 # (see _apply_recall_at_5_override below); we re-apply it on every sync so it
 # survives source regenerations.
-PROJECT_STATS_SOURCE = Path("/Volumes/home/ai-field-notes/src/data/project-stats.json")
 PROJECT_STATS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/project-stats.json")
 
 TARGET_ONLY_SLUGS = {"ai-transformation", "solo-builder-case-study"}
@@ -115,8 +122,8 @@ def copy_if_different(src: Path, dst: Path) -> bool:
     if dst.exists() and file_hash(src) == file_hash(dst):
         return False
     dst.parent.mkdir(parents=True, exist_ok=True)
-    # copyfile (content only) avoids chflags PermissionError on NFS-mounted sources;
-    # diffing uses content hashes, so preserving src mtime/flags is unnecessary.
+    # copyfile copies content only (not mode/flags); diffing uses content
+    # hashes, so preserving src mtime/flags is unnecessary.
     shutil.copyfile(src, dst)
     return True
 
@@ -520,6 +527,8 @@ def write_sequence_manifest() -> dict:
 def main() -> int:
     if not SOURCE_ROOT.is_dir():
         print(f"ERROR: source path not found: {SOURCE_ROOT}", file=sys.stderr)
+        print(f"  Run the Step 1 bootstrap first to clone/refresh the cache:", file=sys.stderr)
+        print(f"    python3 {Path(__file__).with_name('source_repo.py')}", file=sys.stderr)
         return 2
     TARGET_ROOT.mkdir(parents=True, exist_ok=True)
 
