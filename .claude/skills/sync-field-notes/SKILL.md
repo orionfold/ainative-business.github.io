@@ -1,29 +1,35 @@
 ---
 name: sync-field-notes
-description: Sync field-notes articles AND apply UX feature changes from the directly-mounted ai-field-notes source at /Volumes/home/ai-field-notes into this website. Uses source's git log as the change narrative; runs the diff scripts to copy article markdown, screenshots, evidence images, signature SVGs, fieldkit landing sections, and project-stats; verifies the build. Supports bidirectional writes — when source-side nits are spotted during review (missing footer, frontmatter typo, broken link), the skill edits the source file, commits on source's main, and pushes to origin. Use when the user says "sync field notes", "update field notes", "check what's new from spark", "spark commit", "new article in ai-field-notes", "ai-field-notes has new content", "ship reader UX from ai-field-notes", "fix the source-side <issue>", "refresh field notes from source", or any request to surface changes from the mounted source repo into the website. Also trigger when the user mentions a specific article slug they just published on spark (e.g., "I just shipped the kv-cache piece — sync it over") or a feature shipped in source (e.g., "ship the explainers feature over").
+description: Sync field-notes articles AND apply UX feature changes from the ai-field-notes source repo (github.com/manavsehgal/ai-field-notes, cache-cloned locally) into this website. Uses the source's git log as the change narrative; runs the diff scripts to copy article markdown, screenshots, evidence images, signature SVGs, fieldkit landing sections, and project-stats; verifies the build. Supports bidirectional writes — when source-side nits are spotted during review (missing footer, frontmatter typo, broken link), the skill edits the file in the cache clone, commits on main, and pushes to origin. Use when the user says "sync field notes", "update field notes", "check what's new from spark", "spark commit", "new article in ai-field-notes", "ai-field-notes has new content", "ship reader UX from ai-field-notes", "fix the source-side <issue>", "refresh field notes from source", or any request to surface changes from the source repo into the website. Also trigger when the user mentions a specific article slug they just published on spark (e.g., "I just shipped the kv-cache piece — sync it over") or a feature shipped in source (e.g., "ship the explainers feature over").
 ---
 
 # Sync Field Notes Skill
 
-Mirrors field-notes content (articles + supporting surfaces) from the directly-mounted source repo at `/Volumes/home/ai-field-notes/` (Spark over NFS) into this website at `/Users/manavsehgal/Developer/ainative-business.github.io/`. The website's `/field-notes/` section is an Astro content collection that loads from `articles/<slug>/article.{md,mdx}` at the project root, mirroring the layout in the source repo so a copy is the entire integration.
+Mirrors field-notes content (articles + supporting surfaces) from the **ai-field-notes source repo** at `https://github.com/manavsehgal/ai-field-notes` into this website at `/Users/manavsehgal/Developer/ainative-business.github.io/`. The website's `/field-notes/` section is an Astro content collection that loads from `articles/<slug>/article.{md,mdx}` at the project root, mirroring the layout in the source repo so a copy is the entire integration.
 
-**Source is live, not a clone.** No `git pull` needed — the mount IS the source. **Git is the change narrative.** `git -C /Volumes/home/ai-field-notes log` answers "what changed on source since last destination sync?" deterministically; this replaces the old SYNC-HANDOFF.md narrative document. **Writes flow both ways.** When Claude spots a source-side issue during review (missing catalog footer, frontmatter typo, etc.), it edits the file at `/Volumes/home/ai-field-notes/<path>`, commits on source's `main`, and pushes to origin — all without leaving this skill.
+**Source is the GitHub remote, read via a local cache clone.** The skill keeps a disposable clone at `~/.cache/ai-field-notes-src` (override with `AI_FIELD_NOTES_SRC`) and refreshes it to `origin/main` at the start of every run — `git fetch && git reset --hard origin/main`. This replaced the old SMB mount at `/Volumes/home/ai-field-notes`: pulling over `https` instead of reading Spark's working tree over `smbfs` removes every stale-handle / torn-write / peer-lock failure mode the mount had. Spark keeps the remote current by pushing to `origin/main`. **The skill syncs committed + pushed state, never a live working tree** — only intentional, pushed work flows.
+
+**Git is the change narrative.** `git -C ~/.cache/ai-field-notes-src log` (after the Step 1 refresh) answers "what changed on source since last destination sync?" deterministically. **Writes flow both ways.** When Claude spots a source-side issue during review (missing catalog footer, frontmatter typo, etc.), it edits the file in the cache clone, commits on `main`, and pushes to `origin` — git is the transport, so there is no torn-write window.
+
+The source-path resolution (cache location, remote URL, branch, and every mirrored sub-path) lives in one module: `.claude/skills/sync-field-notes/scripts/source_repo.py`. Both diff and sync scripts import their source paths from it.
 
 ## Source and target paths
 
-| Content | Source (read+write, NFS mount) | Target |
+The "Source" column is relative to the cache clone root `~/.cache/ai-field-notes-src/` (= `$AI_FIELD_NOTES_SRC`), which mirrors `origin/main`.
+
+| Content | Source (cache clone of origin/main) | Target |
 |---|---|---|
-| Article markdown | `/Volumes/home/ai-field-notes/articles/<slug>/article.md` | `articles/<slug>/article.md` |
-| Article MDX (research papers) | `/Volumes/home/ai-field-notes/articles/<slug>/article.mdx` | `articles/<slug>/article.mdx` |
-| Upcoming-only seed (no article.md yet) | `/Volumes/home/ai-field-notes/articles/<slug>/seed.md` | `articles/<slug>/article.md` (renamed) |
-| Screenshots | `/Volumes/home/ai-field-notes/articles/<slug>/screenshots/` | `articles/<slug>/screenshots/` |
-| Evidence images | `/Volumes/home/ai-field-notes/articles/<slug>/evidence/*.{png,jpg,jpeg,svg,gif,webp}` | `articles/<slug>/evidence/` |
-| Fieldkit module reference | `/Volumes/home/ai-field-notes/fieldkit/docs/api/*.md` | `fieldkit/docs/api/*.md` |
-| Fieldkit version pin | `/Volumes/home/ai-field-notes/fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
-| Fieldkit landing page sections (Install / Quickstart / CLI) | `/Volumes/home/ai-field-notes/src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
-| Signature SVG components | `/Volumes/home/ai-field-notes/src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
-| Article-sequence manifest | (derived from source's `git log`, no on-disk source) | `src/data/field-notes/sequence.json` |
-| Project-stats JSON ("At a glance" KPIs) | `/Volumes/home/ai-field-notes/src/data/project-stats.json` | `src/data/field-notes/project-stats.json` (with one hand-curated override re-applied) |
+| Article markdown | `articles/<slug>/article.md` | `articles/<slug>/article.md` |
+| Article MDX (research papers) | `articles/<slug>/article.mdx` | `articles/<slug>/article.mdx` |
+| Upcoming-only seed (no article.md yet) | `articles/<slug>/seed.md` | `articles/<slug>/article.md` (renamed) |
+| Screenshots | `articles/<slug>/screenshots/` | `articles/<slug>/screenshots/` |
+| Evidence images | `articles/<slug>/evidence/*.{png,jpg,jpeg,svg,gif,webp}` | `articles/<slug>/evidence/` |
+| Fieldkit module reference | `fieldkit/docs/api/*.md` | `fieldkit/docs/api/*.md` |
+| Fieldkit version pin | `fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
+| Fieldkit landing page sections (Install / Quickstart / CLI) | `src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
+| Signature SVG components | `src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
+| Article-sequence manifest | (derived from the cache clone's `git log`, no on-disk source) | `src/data/field-notes/sequence.json` |
+| Project-stats JSON ("At a glance" KPIs) | `src/data/project-stats.json` | `src/data/field-notes/project-stats.json` (with one hand-curated override re-applied) |
 
 ## What to copy and what to skip
 
@@ -35,41 +41,31 @@ Mirrors field-notes content (articles + supporting surfaces) from the directly-m
 - Signature SVG components (`*.astro` from source's `src/components/svg/` → target's `src/components/field-notes/svg/`). One-way flow only — the website may have signatures the source doesn't (e.g., for the two reframed papers), and those are never deleted.
 
 **Generate (not a file copy):**
-- `src/data/field-notes/sequence.json` — derived from the source repo's `git log` output for `articles/*/article.md`, captures the canonical authoring order so the website's №01..№N ordinals track source order across syncs.
+- `src/data/field-notes/sequence.json` — derived from the cache clone's `git log` output for `articles/*/article.md`, captures the canonical authoring order so the website's №01..№N ordinals track source order across syncs.
 
 **Skip:**
 - `transcript.md` (authoring-time artifact, never published)
 - `seed.md` IF a real `article.md` already exists alongside it
 - All non-image files inside `evidence/` directories (Python source code, ~30k lines — link out to GitHub if articles need to reference raw evidence)
 - The `_drafts/` folder at the root of the source `articles/` directory
+- `notebooks/` (notebook `.ipynb`/`.py` + their rendered `exports/*.png` live on GitHub and render in Colab/Kaggle — the website references them via `kind: notebook` manifest links, it doesn't host them)
 - Landing page sections **other than** Install / Quickstart / CLI (rest is site-specific brand framing)
 
 ## Workflow
 
 Follow these steps in order. Steps 3 and 5 are the load-bearing ones; the rest are guardrails and narrative.
 
-### Step 1: Verify the mount is healthy and no peer writer is active
-
-Run three checks:
+### Step 1: Refresh the source cache clone
 
 ```bash
-ls /Volumes/home/ai-field-notes/.git >/dev/null && echo "mount OK"
-git -C /Volumes/home/ai-field-notes status --short
-git -C /Volumes/home/ai-field-notes log --oneline -1
-python3 .claude/skills/sync-field-notes/scripts/peer_lock.py acquire sync-field-notes
+python3 .claude/skills/sync-field-notes/scripts/source_repo.py
 ```
 
-If the mount is unavailable (`ls` fails), stop and surface to the user — SMB may be down, or Spark may be off. If `git status` reports uncommitted changes, warn but don't block (Spark may be mid-edit; the user can decide whether to proceed). Print source's HEAD commit for context.
+This clones `github.com/manavsehgal/ai-field-notes` into `~/.cache/ai-field-notes-src` on first run, and on every subsequent run does `git fetch --prune origin main && git reset --hard origin/main`. It prints the resulting `HEAD <sha> <subject>` for context.
 
-**Peer-writer heartbeat.** `peer_lock.py acquire` claims `/Volumes/home/ai-field-notes/.sync-active` (a JSON heartbeat with our PID, tool name, and start time). If it exits non-zero, another Mac process — almost always the source-side `notebook-author` / `notebook-snapshot` pipeline — is currently doing a bulk write to the shared tree. Stop and surface the contending PID/tool to the user; do not proceed. Concurrent bulk writes over `smbfs` corrupted 5 notebook `.py` files on 2026-05-23 (see RECONCILE-SPARK-MAC.md) — the heartbeat is the agreed Mac↔Spark convention to prevent a recurrence. After the peer finishes, re-run Step 1.
+If it exits non-zero, the remote is unreachable (no network, GitHub down, or auth failure on a private fork) or the cache path is occupied by a non-git directory. Surface the error to the user and stop — don't proceed against a stale or partial cache.
 
-A heartbeat older than 300 seconds is treated as leaked and overwritten automatically — a normal `/sync-field-notes` run takes seconds, so 5+ minutes of staleness almost certainly means a crashed writer.
-
-**Release on exit.** Every code path that follows must clear the heartbeat:
-```bash
-python3 .claude/skills/sync-field-notes/scripts/peer_lock.py release
-```
-Run this at the end of Step 9 (or earlier if the workflow aborts). If you forget, the next /sync-field-notes session will wait up to 5 minutes before auto-clearing the stale lock.
+There is **no mount health check and no peer-writer lock** anymore. The cache clone is per-machine and private to this skill, so there is no shared tree to coordinate; the old `peer_lock.py` heartbeat was retired with the mount.
 
 ### Step 2: Show what's new since last destination sync (narrative)
 
@@ -79,13 +75,13 @@ Find the destination's most recent commit touching synced paths:
 git log --oneline -1 -- articles/ src/components/field-notes/svg/ src/data/field-notes/ src/pages/fieldkit/index.astro fieldkit/
 ```
 
-Take that commit's committer date (`git log -1 --format=%cI <sha>`), then enumerate source commits since:
+Take that commit's committer date (`git log -1 --format=%cI <sha>`), then enumerate source commits since (against the freshly-refreshed cache clone):
 
 ```bash
-git -C /Volumes/home/ai-field-notes log --since=<date> --oneline
+git -C ~/.cache/ai-field-notes-src log --since=<date> --oneline
 ```
 
-Print the list with one line of context per commit (subject + a hint at files touched via `--stat=80,40` if you want detail). This is decoration — it tells the user *why* the upcoming diff exists. If destination has no prior sync commit, fall back to `--oneline -20` on source.
+Print the list with one line of context per commit (subject + a hint at files touched via `--stat=80,40` if you want detail). This is decoration — it tells the user *why* the upcoming diff exists. If destination has no prior sync commit, fall back to `--oneline -20` on the cache clone.
 
 ### Step 3: Compute the content diff
 
@@ -93,12 +89,13 @@ Print the list with one line of context per commit (subject + a hint at files to
 python3 .claude/skills/sync-field-notes/scripts/diff_articles.py
 ```
 
-The script prints structured findings:
+The script reads the cache clone (via `source_repo.py`) and prints structured findings:
 - **New articles** (folders present in source but not target)
 - **Updated articles** (article.md / article.mdx hash differs, with link-rewrite + gated-footer-strip applied before comparing)
 - **New or changed images** (screenshots and evidence images)
 - **Signature SVG drift** (new or changed `*.astro` files under source's `src/components/svg/`)
 - **Fieldkit landing drift** (Install/Quickstart/CLI section bodies differ)
+- **Fieldkit version + module-reference doc drift**
 - **Project-stats drift** (KPI deltas after recall@5 override re-applied)
 - **Articles only in target** (orphans — usually a renamed slug; flag for human review, do not auto-delete)
 
@@ -109,9 +106,9 @@ Show the diff to the user before copying anything. If the diff is empty AND Step
 From the commits-since-last-sync window in Step 2, find files modified that are OUTSIDE the auto-flow surfaces (which Step 3 already covers):
 
 ```bash
-git -C /Volumes/home/ai-field-notes log --since=<date> --name-only --pretty=format: \
+git -C ~/.cache/ai-field-notes-src log --since=<date> --name-only --pretty=format: \
   | sort -u \
-  | grep -vE '^(articles/|src/components/svg/|src/data/project-stats\.json|src/pages/fieldkit/index\.astro|fieldkit/(docs/api/|src/fieldkit/_version\.py)|SYNC-|mirrors/|ideas/|papers/|specs/|scripts/|probes/|dataset-cards/|share/|evidence/|README\.md|HANDOFF\.md|COMMANDS\.md|package-lock\.json|node_modules/|unsloth_compiled_cache/|dist/)'
+  | grep -vE '^(articles/|notebooks/|src/components/svg/|src/data/project-stats\.json|src/pages/fieldkit/index\.astro|fieldkit/(docs/api/|src/fieldkit/_version\.py)|SYNC-|mirrors/|ideas/|papers/|specs/|plans/|scripts/|probes/|dataset-cards/|share/|evidence/|README\.md|HANDOFF\.md|COMMANDS\.md|CHANGELOG\.md|package-lock\.json|node_modules/|unsloth_compiled_cache/|dist/)'
 ```
 
 Anything left is a candidate UX/config change: new file under `src/components/` (excluding `svg/`), edited `src/styles/global.css`, edited `astro.config.mjs`, modified `package.json`, etc. Present the list and, for each, ask the user one of: **inspect** (Read source + brainstorm an edit on destination), **skip** (not porting in this sync), **defer** (re-surface on next sync). Empty list → skip this step silently.
@@ -122,6 +119,8 @@ If a candidate file is `package.json`, run `diff` between source and destination
 
 **Existing artifact-manifest "drift" is usually a false positive — do NOT propose a re-copy by default.** When a candidate file is an existing `src/content/artifacts/<slug>.yaml`, source's manifest carries only the bare frontmatter that `fieldkit.publish` writes (slug/kind/class/base_model/hf_repo/license/article/published_at), while destination's version is destination-extended with the measurement data that drives rendering (bench `shapes`/`modes`/`results`, quant `perplexity`/`spark_tokens_per_sec`/`vertical_eval`, lora deltas, etc.). Re-copying clobbers the rendering data and breaks `visual-required` in the post-build verifier. The cheap pre-flight check is line count: `wc -l <source> <destination>` — if source is dramatically smaller, treat the drift as destination-authoritative and skip. Only propose the copy when the user explicitly asks to absorb a source-side editorial change (new `positioning`, expanded `known_drift`, new `notebooks` block) AND a line-count diff confirms source isn't truncated relative to destination. **New** `*-notebooks.yaml` manifests (or any new artifact-kind manifest) ARE editorial-only on source, so those flow normally — this rule applies only to existing manifests with destination measurement data.
 
+Note: `src/content/artifacts/*.yaml` is not in the auto-flow surfaces, so manifests appear here as Step 4 judgement items. When source **deletes** a manifest (e.g. an unpublished model lane), the corresponding destination `.yaml` becomes an orphan whose catalog footer may 404 — surface the deletion and repoint/remove on the destination by hand (see the gated-footer + render-path notes in Step 5).
+
 ### Step 5: Apply the diff
 
 If the user approves Step 3's content diff:
@@ -130,9 +129,9 @@ If the user approves Step 3's content diff:
 python3 .claude/skills/sync-field-notes/scripts/sync_articles.py
 ```
 
-The script applies the same rules as Step 3 in copy mode — articles, screenshots, evidence images, signature SVGs, fieldkit landing sections (only Install/Quickstart/CLI bodies), project-stats (with recall@5 override re-applied), and the sequence manifest. It also handles the seed-only edge case: when a folder has only `seed.md`, the seed is copied as `article.md` so the content collection picks it up as upcoming. Idempotent — running it twice is the same as running it once.
+The script applies the same rules as Step 3 in copy mode — articles, screenshots, evidence images, signature SVGs, fieldkit landing sections (only Install/Quickstart/CLI bodies), fieldkit docs + version pin, project-stats (with recall@5 override re-applied), and the sequence manifest. It also handles the seed-only edge case: when a folder has only `seed.md`, the seed is copied as `article.md` so the content collection picks it up as upcoming. Idempotent — running it twice is the same as running it once.
 
-**Article-sequence manifest.** Derived from source's `git log --diff-filter=A` for `articles/*/article.md` — captures the canonical authoring order. Rewritten only when slug ordering actually changes.
+**Article-sequence manifest.** Derived from the cache clone's `git log --diff-filter=A` for `articles/*/article.md` — captures the canonical authoring order. Rewritten only when slug ordering actually changes.
 
 **Landing-page section sync.** Replaces only the inner bodies of three named `<section class="fk-section">` blocks (Install / Quickstart / CLI). The wrapping layout, Modules section, and Verified-in section stay untouched.
 
@@ -140,65 +139,30 @@ The script applies the same rules as Step 3 in copy mode — articles, screensho
 
 > `**Catalog page:** [/artifacts/<kind>/<artifact-slug>/](...) — the same four-axis card rendered on this site, with the sweet-spot variant highlighted on a heatmap row.`
 
-The source repo deliberately doesn't carry this block. Both diff and sync scripts strip the footer from target before comparing, then `restore_gated_footers()` re-appends the canonical footer after sync. The binding is data-driven — drop a new `src/content/artifacts/<slug>.yaml` with `article: articles/<slug>/` and the matching article picks up its footer on the next sync.
+The source repo deliberately doesn't carry this block. Both diff and sync scripts strip the footer from target before comparing, then `restore_gated_footers()` re-appends the canonical footer after sync. The binding is data-driven — drop a new `src/content/artifacts/<slug>.yaml` with `article: articles/<slug>/` and the matching article picks up its footer on the next sync. When an article binds to **multiple** manifests, deleting one manifest causes the next sync's footer restore to repoint at a surviving manifest — verify the resulting footer URL after a manifest deletion.
 
 After `sync_articles.py` runs, separately walk any per-file Step 4 items the user approved: Read source file → Edit/Write target.
 
-**Render-path sanity check (artifact manifests).** When `src/content/artifacts/*.yaml` files were copied in this sync, confirm each synced manifest's `kind:` has a corresponding render path under `src/pages/artifacts/<segment>/[slug]/index.astro`. The current valid kinds are: `quant` → `/quants/`, `lora` → `/loras/`, `adapter` → `/adapters/`, `dataset` → `/datasets/`, `bench` → `/benches/`. Mismatches (e.g. a `kind: lora` manifest before the `/loras/` route exists) will silently produce 404s on the catalog footer's link — surface to the user, never auto-fix. The narrative/visual contract a synced manifest must satisfy is documented at `.claude/skills/sync-field-notes/references/site-rendering-rubric.md` (which references source's `NARRATIVE-CONTRACT.md` as the canonical content rubric). After sync, run `npm run build` — the post-build verifier at `scripts/verify_artifact_rendering.mjs` enforces the contract and fails the build on violation.
+**Render-path sanity check (artifact manifests).** When `src/content/artifacts/*.yaml` files were copied or removed in this sync, confirm each live manifest's `kind:` has a corresponding render path under `src/pages/artifacts/<segment>/[slug]/index.astro`. The current valid kinds are: `quant` → `/quants/`, `lora` → `/loras/`, `adapter` → `/adapters/`, `dataset` → `/datasets/`, `bench` → `/benches/`, `notebook` → (rendered via the bound model manifest, no standalone route). Mismatches (e.g. a `kind: lora` manifest before the `/loras/` route exists, or a footer pointing at a just-deleted manifest) will silently produce 404s on the catalog footer's link — surface to the user, never auto-fix. The narrative/visual contract a synced manifest must satisfy is documented at `.claude/skills/sync-field-notes/references/site-rendering-rubric.md`. After sync, run `npm run build` — the post-build verifier at `scripts/verify_artifact_rendering.mjs` enforces the contract and fails the build on violation.
 
 ### Step 6: Source-side nit fixes (optional, user-driven)
 
-When the user spots a source-side issue during Step 3/4 review (e.g. "article X is missing its catalog footer", "frontmatter typo in Y", "image filename is wrong", "footer in Z links to the wrong artifact"), Claude can fix it directly on source. For each fix:
+When the user spots a source-side issue during Step 3/4 review (e.g. "article X is missing its catalog footer", "frontmatter typo in Y", "image filename is wrong", "footer in Z links to the wrong artifact"), Claude can fix it directly in the cache clone and push to `origin`. Because git is the transport, there is no torn-write risk — just normal `Edit`/`Write` on local files, then commit + push.
 
-1. **Read** the source file at `/Volumes/home/ai-field-notes/<path>` — reads are safe (no torn-write risk).
-2. **Atomic-write the fix** — do NOT use the `Edit` or `Write` tool directly on the SMB path. The mount is `smbfs` over WiFi; a Mac sleep or WiFi blip mid-write will leave a NUL-padded half-file on Spark (this is exactly what corrupted 5 notebook `.py` files on 2026-05-23 — see RECONCILE-SPARK-MAC.md). Instead, use `Bash` with the atomic-write pattern:
+For each fix:
 
-   ```bash
-   python3 - <<'PY'
-   import os, pathlib
-   p = pathlib.Path("/Volumes/home/ai-field-notes/articles/<slug>/article.md")
-   text = p.read_text(encoding="utf8")
-   # Apply edits in memory — exact string replacements only, mirror what Edit would do.
-   new = text.replace("<OLD_EXACT_STRING>", "<NEW_EXACT_STRING>")
-   assert new != text, "replacement did not match — abort, don't write"
-   # Atomic rename: write to sibling temp, then os.replace.
-   tmp = p.with_suffix(p.suffix + ".tmp")
-   tmp.write_text(new, encoding="utf8")
-   os.replace(tmp, p)
-   PY
-   ```
-   The sibling `.tmp` lives on the same SMB share, so `os.replace` is a directory-level rename — atomic from the consumer's perspective. A torn flush leaves a `.tmp` orphan but never a half-`article.md`.
+1. **Read + Edit the file in the cache clone** at `~/.cache/ai-field-notes-src/<path>` using the normal `Read` and `Edit`/`Write` tools. (These are ordinary local-disk files — none of the old `smbfs` atomic-write dance applies.)
+2. Confirm with the user before committing.
+3. After the user approves the batch:
+   - `git -C ~/.cache/ai-field-notes-src pull --rebase origin main` — catch any Spark push that landed since Step 1. If the rebase reports conflicts, abort (`git -C ~/.cache/ai-field-notes-src rebase --abort`), surface to the user, and don't push.
+   - `git -C ~/.cache/ai-field-notes-src add -- <paths>` — stage only the files Claude edited (never `add -A`).
+   - `git -C ~/.cache/ai-field-notes-src commit -m "<conventional message>"` — generated subject like `chore(field-notes): restore catalog footer on <slug>` or `fix(field-notes): correct frontmatter typo in <slug>`. Include `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
+   - `git -C ~/.cache/ai-field-notes-src push origin main`.
+4. After the source-side commit lands on `origin`, re-run Step 3 + Step 5 to pull the fix through to destination (some fixes — like footer restoration — only show as a destination diff once the source is fixed).
 
-   **Verify after every source-side write:**
-   ```bash
-   python3 - <<'PY'
-   import pathlib
-   p = pathlib.Path("/Volumes/home/ai-field-notes/articles/<slug>/article.md")
-   b = p.read_bytes()
-   nul = b.count(b"\x00")
-   assert b, "empty file"
-   assert nul == 0, f"NUL bytes detected ({nul}) — write torn, restore from git"
-   assert b.endswith(b"\n"), "missing trailing newline"
-   print(f"ok: {len(b)} bytes, {b.count(chr(10).encode())} lines")
-   PY
-   ```
-   If verification fails: `git -C /Volumes/home/ai-field-notes checkout -- <path>` to restore from HEAD, surface to the user, do not retry without diagnosing.
+**Push before the next Step 1.** The cache clone is `reset --hard origin/main` at the start of every run, so an *unpushed* local commit would be silently discarded on the next refresh. Always push Step 6 commits in the same session; never leave a local-only commit in the cache clone. The push step is gated by user approval — never auto-push without confirmation.
 
-3. Confirm with the user before committing.
-4. After the user approves the batch:
-   - `git -C /Volumes/home/ai-field-notes pull --rebase --autostash origin main` — fast-forward to catch concurrent Spark commits. If the rebase reports conflicts, abort, surface to the user, and don't push.
-   - `git -C /Volumes/home/ai-field-notes add -- <paths>` — stage only the files Claude edited (never `add -A`).
-   - `git -C /Volumes/home/ai-field-notes commit -m "<conventional message>"` — generated subject like `chore(field-notes): restore catalog footer on <slug>` or `fix(field-notes): correct frontmatter typo in <slug>`. Include `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
-   - `git -C /Volumes/home/ai-field-notes push origin main`.
-5. After the source-side commit lands, re-run Step 3 + Step 5 to pull the fix through to destination (some fixes — like footer restoration — will only show as a destination diff once the source is fixed).
-
-The push step is gated by user approval. Never auto-push without confirmation. If the source repo has unrelated uncommitted changes (Spark mid-edit), abort and surface — don't try to stash someone else's work.
-
-**Alternative for large/complex edits: prefer `ssh spark`.** When the edit is too tangled for a single `str.replace`, ssh into Spark and edit on local disk (avoiding SMB entirely):
-```bash
-ssh nvidia@nvidia.local 'cat > /home/nvidia/ai-field-notes/articles/<slug>/article.md' < /tmp/new-article.md
-```
-This is the same pattern spark-mac used to restore the corrupted notebook .py files via `git checkout` on Spark — bytes never traverse SMB, so the torn-write window doesn't apply.
+Spark picks the fix up on its next `git pull`. There is no longer any need to write to Spark's disk directly (no `ssh spark`, no SMB) — origin/main is the rendezvous.
 
 ### Step 7: Build verification
 
@@ -228,11 +192,7 @@ Don't commit automatically. Show the user a `git status` summary and ask whether
 - UX feature release — `feat(field-notes): add <feature-name> + sync <N> articles`
 - UX-only release (no article diff) — `feat(field-notes): apply <feature-name> from ai-field-notes`
 
-**Always release the peer-writer heartbeat at the end of Step 9** (or earlier if the workflow aborts):
-```bash
-python3 .claude/skills/sync-field-notes/scripts/peer_lock.py release
-```
-If you forget, the lock auto-expires after 5 minutes — but the next /sync-field-notes session will block until then unless someone clears it manually.
+(No peer-writer heartbeat to release — that machinery was retired with the mount.)
 
 ## Preserve the reframed research papers
 
@@ -255,13 +215,15 @@ The override is matched by `(article_slug, value)` rather than by index so it su
 
 ## Edge cases
 
-**NFS mount unavailable.** `ls /Volumes/home/ai-field-notes/.git` fails. Stop immediately and surface — the user needs to bring Spark up or remount before any sync can proceed. Don't proceed with partial data.
+**Remote unreachable.** `source_repo.py` exits non-zero on `git clone`/`git fetch` failure (no network, GitHub down, auth failure on a private fork). Stop and surface — don't proceed against a stale cache. If the user knows the network is fine and just wants to re-use the existing cache, they can re-run later; the cache is not deleted on a failed fetch.
 
-**NFS read stall (process state `U`).** The diff and sync scripts hash every article and evidence image. On a flaky or warming NFS connection, individual hash reads can stall in uninterruptible I/O wait (process state `U`), making the script appear hung. If `diff_articles.py` hasn't produced any output for several minutes and `ps -p <pid> -o state` shows `U`, the script is waiting on a stuck NFS read. Recovery: `kill -9 <pid>`, then re-run. A second run usually completes normally because the kernel re-resolves the NFS handles. If it stalls repeatedly on the same file, that file's directory may have a stale handle on Spark — check the path manually and consider remounting.
+**Cache path occupied by a non-git directory.** `ensure_fresh()` raises if `~/.cache/ai-field-notes-src` exists but has no `.git`. Remove the directory (or point `AI_FIELD_NOTES_SRC` at a clean path) and re-run Step 1.
 
-**Source has uncommitted changes.** `git status --short` is non-empty. Warn but don't block content sync (Spark may be mid-edit and the on-disk state is what the user wants synced). DO block Step 6 source-side writes — never commit on top of someone else's uncommitted work.
+**Spark committed but hasn't pushed.** The remote model only sees `origin/main`. If the user says "I just changed X on Spark" but the diff doesn't show it, the commit hasn't reached `origin` — ask them to `git push` from Spark (or `ssh spark 'cd ~/ai-field-notes && git push'`), then re-run Step 1. This is the deliberate trade-off of syncing pushed state rather than a live working tree.
 
-**Source push rejected (non-fast-forward).** Step 6's `pull --rebase --autostash` should fast-forward, but if the rebase reports conflicts, abort the push, leave the local commit in place, and surface to the user. They'll resolve from Spark.
+**Unpushed Step 6 commit in the cache clone.** The next Step 1 `reset --hard origin/main` discards it. Always push Step 6 commits in the same session (see Step 6). If a commit was lost this way, it can be recovered from the clone's reflog (`git -C ~/.cache/ai-field-notes-src reflog`) until gc runs.
+
+**Source push rejected (non-fast-forward) in Step 6.** A Spark push landed between your Step 1 refresh and your Step 6 push. `pull --rebase origin main` should fast-forward; if the rebase conflicts, abort it, surface to the user, and don't push.
 
 **A new stage value or tag.** The schema in `src/content.config.ts` enumerates stages and series; new tags are free-form (`z.array(z.string())`). New stages require updating the enum + `STAGE_COPY` map in `src/pages/field-notes/stages/[stage].astro` + (optionally) `STAGE_LABELS` order in `src/components/field-notes/StageFilter.astro`. Series are similarly closed.
 
@@ -271,13 +233,13 @@ The override is matched by `(article_slug, value)` rather than by index so it su
 
 **Uncommitted local changes in the website's `articles/` directory.** Ask before overwriting. Show which files are dirty. The sync script does not stash — that's git's job.
 
-**Source repo's `git log` is unavailable** (e.g., a shallow clone with truncated history). `_compute_source_sequence()` returns `None` and the sync script silently skips the manifest write. The website's `publishOrdinals()` falls back to deriving order from this repo's own git log. Order may not perfectly mirror source but the build succeeds.
+**Source repo's `git log` is unavailable** (e.g., a shallow clone with truncated history — `git clone` here is a full clone, so this is unlikely). `_compute_source_sequence()` returns `None` and the sync script silently skips the manifest write. The website's `publishOrdinals()` falls back to deriving order from this repo's own git log. Order may not perfectly mirror source but the build succeeds.
 
 **An article moves from `status: upcoming` to published in source.** The manifest already lists the slug (it has had an `article.md` from the moment source committed the upcoming placeholder), so no manifest rewrite. The website's ordinal walk now slots it into its reserved position.
 
 **A new artifact manifest lands but the matching article has no catalog footer.** Run `sync_articles.py` — `restore_gated_footers()` appends the footer automatically once the manifest exists at `src/content/artifacts/<slug>.yaml` with a valid `article: articles/<slug>/` field.
 
-**Stale catalog footer on an article whose manifest moved or was deleted.** The restore step strips any trailing catalog footer before re-appending. If a manifest is removed, the footer is also removed on next sync. If a manifest's `slug:` changes, the footer is rewritten to point at the new URL.
+**Stale catalog footer on an article whose manifest moved or was deleted.** The restore step strips any trailing catalog footer before re-appending. If a manifest is removed, the footer is also removed on next sync. If a manifest's `slug:` changes, the footer is rewritten to point at the new URL. When an article binds to several manifests and one is deleted, the footer repoints to a surviving manifest — verify the new URL resolves.
 
 **Artifact `kind:` is unmapped in `chrome_footers._KIND_TO_URL_FAMILY`.** The footer is silently skipped (defensive — better to skip than emit a broken URL). Add the new kind to the map when fieldkit ships a new publisher module.
 
@@ -285,13 +247,14 @@ The override is matched by `(article_slug, value)` rather than by index so it su
 
 **Manifest with `kind:` whose render path under `src/pages/artifacts/<segment>/[slug]/index.astro` is missing.** Build will succeed but the catalog-footer URL is a 404. Pre-flight check: the destination's `src/lib/artifacts.ts` (`SEGMENT_BY_KIND`) and the file system (`ls src/pages/artifacts/`) must both have the segment before a new-kind manifest goes live. If the render path file exists but the kind isn't in `chrome_footers._KIND_TO_URL_FAMILY`, the footer is silently skipped — see the entry above.
 
-**Build warns "X published article(s) not in sequence manifest — appended alphabetically."** A new article exists in the website's `articles/` tree but isn't in `src/data/field-notes/sequence.json`. Most common cause: the user added an article folder by hand, or pulled the source mount but ran `npm run build` without first running `sync_articles.py`. Re-run sync to regenerate the manifest. Non-fatal.
+**Build warns "X published article(s) not in sequence manifest — appended alphabetically."** A new article exists in the website's `articles/` tree but isn't in `src/data/field-notes/sequence.json`. Most common cause: the user added an article folder by hand, or ran `npm run build` without first running `sync_articles.py`. Re-run sync to regenerate the manifest. Non-fatal.
 
 ## Why this design
 
-- **Git is the narrative.** With a live mount, `git -C /Volumes/home/ai-field-notes log` answers "what changed on source since last sync?" deterministically. The old SYNC-HANDOFF.md document was a workaround for the airlock between machines; the airlock is gone, so the workaround can go. The diff script remains the authoritative "what to copy" — git is just the human-readable receipt.
-- **Bidirectional writes close a loop that used to span machines.** Spotting "this article is missing its footer" used to require a destination-side observation, a Spark-side fix, a push, a Mac pull, and a re-sync. Now it's one skill invocation: observe, edit, commit, push, re-sync.
-- **Scripts do mechanical, Claude does judgement.** The Python scripts auto-flow the well-known surfaces (articles, screenshots, evidence images, signature SVGs, fieldkit landing sections, project-stats, gated footers). Anything outside those surfaces is surfaced as a per-file judgement loop in Step 4 — Claude reads, brainstorms, and Edit/Writes. This split keeps each layer simple.
-- **No git operations on source other than Step 6.** The mount is the user's authoring environment; the skill doesn't pull, doesn't fetch, doesn't stash. Step 6's commit + push is the one exception, and it's user-gated per batch.
+- **Remote, not mount.** Reading `origin/main` over `https` via a disposable cache clone is immune to the failure modes the `smbfs` mount had — stale handles when Spark slept, torn writes on WiFi blips, and the peer-writer contention that the heartbeat lock existed to mitigate. The trade-off is that only committed + pushed work syncs; that is a feature, not a limitation (no half-edited working tree ever leaks to the website).
+- **One module owns source paths.** `source_repo.py` is the single definition of where the cache lives and every sub-path the skill mirrors. Both diff and sync scripts import from it, so re-homing the source again is a one-file change. Cache location, remote, and branch are all env-overridable.
+- **Git is the narrative.** `git -C ~/.cache/ai-field-notes-src log` (after Step 1's refresh) answers "what changed on source since last sync?" deterministically. The diff script remains the authoritative "what to copy" — git is just the human-readable receipt.
+- **Bidirectional writes ride git.** Source-side fixes are edited in the cache clone, committed, and pushed to `origin/main` — Spark pulls them on its next sync. No SMB, no torn-write window, no machine-spanning airlock.
+- **Scripts do mechanical, Claude does judgement.** The Python scripts auto-flow the well-known surfaces (articles, screenshots, evidence images, signature SVGs, fieldkit landing sections + docs + version, project-stats, gated footers). Anything outside those surfaces is surfaced as a per-file judgement loop in Step 4 — Claude reads, brainstorms, and Edit/Writes. This split keeps each layer simple.
 - **Gated chrome blocks are data-driven, not allowlisted.** The trailing catalog footer is owned by Mac. The script discovers which articles get the footer by reading `src/content/artifacts/*.yaml` for `article: articles/<slug>/` bindings — no skill-side allowlist to maintain. Drop a new manifest, the matching article picks up its footer on next sync.
 - **Sequence manifest, not per-article frontmatter.** The website needs source's authoring order to render matching №01..№N labels, but encoding that into each article's frontmatter would smear ordering metadata across 30+ files. A single manifest file is the cheaper representation: one diff, one place to look, one git audit trail.

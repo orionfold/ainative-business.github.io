@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Diff source articles/ at /Volumes/home/ai-field-notes/ against this website's
-articles/ tree.
+Diff source articles/ (from the ai-field-notes cache clone, see source_repo.py)
+against this website's articles/ tree.
 
 Reports new articles, updated articles, new/changed images, and orphan
 folders that exist only on the website side. Read-only — never copies.
@@ -22,15 +22,25 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import chrome_footers  # noqa: E402
 
-SOURCE_ROOT = Path("/Volumes/home/ai-field-notes/articles")
+# Source-side paths come from the shared `source_repo` module, which resolves
+# them under a local cache clone of github.com/manavsehgal/ai-field-notes
+# (refreshed in SKILL.md Step 1). Target-side paths are this website repo.
+from source_repo import (  # noqa: E402
+    SOURCE_REPO,
+    SOURCE_ROOT,
+    FIELDKIT_DOCS_SOURCE,
+    FIELDKIT_VERSION_SOURCE,
+    LANDING_SOURCE,
+    SIGNATURE_SVG_SOURCE,
+    PROJECT_STATS_SOURCE,
+)
+
 TARGET_ROOT = Path("/Users/manavsehgal/Developer/ainative-business.github.io/articles")
 
 # Fieldkit module reference docs and the version file the homepage reads at
 # build time. Mirrored separately from articles because they live under a
 # different top-level path in both repos.
-FIELDKIT_DOCS_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/docs/api")
 FIELDKIT_DOCS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/docs/api")
-FIELDKIT_VERSION_SOURCE = Path("/Volumes/home/ai-field-notes/fieldkit/src/fieldkit/_version.py")
 FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/fieldkit/_version.py")
 
 # Fieldkit landing page — both repos render /fieldkit/ from a Nav-wrapped Astro
@@ -40,7 +50,6 @@ FIELDKIT_VERSION_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.g
 # specific <section class="fk-section"> blocks keyed by their <h2> title.
 # Section list is intentionally narrow: these are pure copy/code blocks that
 # don't reference site-local URL helpers (articleHref) or content collections.
-LANDING_SOURCE = Path("/Volumes/home/ai-field-notes/src/pages/fieldkit/index.astro")
 LANDING_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/fieldkit/index.astro")
 LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 
@@ -51,7 +60,6 @@ LANDING_SECTIONS_TO_SYNC = ("Install", "Quickstart", "CLI")
 # The website may legitimately have signatures the source doesn't (e.g., for
 # the two reframed research papers), so we only flow source→target — never
 # report orphans, never delete.
-SIGNATURE_SVG_SOURCE = Path("/Volumes/home/ai-field-notes/src/components/svg")
 SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/components/field-notes/svg")
 
 # Project-stats JSON — drives the "At a glance" KPI block on /field-notes/ and
@@ -59,7 +67,6 @@ SIGNATURE_SVG_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.gith
 # The website applies one hand-curated override (recall@5 = 1.0 pinned to
 # index 0 of metrics.accuracy[] with a cleaned label); we re-apply that
 # override before comparing so a no-op sync reports no drift.
-PROJECT_STATS_SOURCE = Path("/Volumes/home/ai-field-notes/src/data/project-stats.json")
 PROJECT_STATS_TARGET = Path("/Users/manavsehgal/Developer/ainative-business.github.io/src/data/field-notes/project-stats.json")
 
 # Articles authored only on the website (the two reframed research papers).
@@ -505,7 +512,8 @@ def print_diff(diff: dict) -> int:
 def main() -> int:
     if not SOURCE_ROOT.is_dir():
         print(f"ERROR: source path not found: {SOURCE_ROOT}", file=sys.stderr)
-        print("  Make sure the Spark mount at /Volumes/home/ai-field-notes is available (NFS may be down).", file=sys.stderr)
+        print(f"  Run the Step 1 bootstrap first to clone/refresh the cache:", file=sys.stderr)
+        print(f"    python3 {Path(__file__).with_name('source_repo.py')}", file=sys.stderr)
         return 2
     if not TARGET_ROOT.is_dir():
         print(f"ERROR: target path not found: {TARGET_ROOT}", file=sys.stderr)
