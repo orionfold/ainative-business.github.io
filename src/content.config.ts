@@ -26,6 +26,7 @@ export const SERIES = [
   'Second Brain',
   'LLM Wiki',
   'Machine that Builds Machines',
+  'Harnesses',
   'Looking Beyond Spark',
   'Frontier Scout',
 ] as const;
@@ -36,6 +37,7 @@ export const SERIES_SLUGS: Record<(typeof SERIES)[number], string> = {
   'Second Brain': 'second-brain',
   'LLM Wiki': 'llm-wiki',
   'Machine that Builds Machines': 'machine-that-builds-machines',
+  'Harnesses': 'harnesses',
   'Looking Beyond Spark': 'looking-beyond-spark',
   'Frontier Scout': 'frontier-scout',
 };
@@ -45,7 +47,7 @@ export const SERIES_BY_SLUG: Record<string, (typeof SERIES)[number]> =
     Object.entries(SERIES_SLUGS).map(([name, slug]) => [slug, name as (typeof SERIES)[number]]),
   );
 
-const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook'] as const;
+const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness'] as const;
 export const FIELDKIT_MODULES = fieldkitModules;
 
 // Articles live at ./articles/<slug>/article.{md,mdx} so the local clone

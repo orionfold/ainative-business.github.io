@@ -13,15 +13,19 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-24 (sync-field-notes migrated to GitHub-remote source + patent-strategist unsloth-unpublish / fieldkit v0.8.0 content sync). A `/sync-field-notes` run wedged when the SMB mount went stale (Spark slept mid-walk → uninterruptible `U`-state `diff_articles.py`, plus a torn `.git/index` on Spark from an interrupted Spark-side CC git op). User directed switching the source from the `/Volumes/home/ai-field-notes` mount to a local cache clone of `github.com/manavsehgal/ai-field-notes`. Refactored the skill (new `scripts/source_repo.py` single-source-of-truth + `ensure_fresh()`; `diff_articles.py`/`sync_articles.py` import paths from it; deleted `scripts/peer_lock.py`; rewrote SKILL.md), then ran the new flow end-to-end (clone + diff instant, no stall) to land the stuck content sync. Build green; `verify_artifact_rendering` passes 12 pages across 4 kinds.
-**Last destination commit:** `d603acf` (content sync) atop `d19aadf` (skill migration), both **local on `main`, unpushed**. Prior: `c30d490`, `1eec156` (notebooks-as-artifacts v1 + fieldkit v0.7.0), `be7c219`.
-**Push status:** destination `main` is **2 commits ahead of `origin/main`, unpushed** — user-gated (GitHub Pages deploys from `main`). Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `83fc260`); no Step 6 source-side writes this session. Spark's `.git/index` was reported corrupt during the wedged-mount diagnosis — flag Spark CC to rebuild (`git read-tree HEAD`); committed history unaffected.
+**Last session:** 2026-05-26 (`/sync-field-notes`: Harnesses series scaffold + first article). Synced `the-hermes-harness-on-spark` (Harnesses H1) from ai-field-notes `origin/main` HEAD `0458304` (3 source commits: S1 series/schema scaffold → H1 fieldkit.harness fleshing → H1 article). The new series needed **build-blocking** destination ports beyond the auto-flow surfaces: added `'Harnesses'` to `SERIES` + `SERIES_SLUGS` and `'harness'` to `fieldkitModules` in `src/content.config.ts` (Zod enums reject the article otherwise), added a `SERIES_COPY['Harnesses']` blurb in `src/pages/field-notes/series/[series].astro` (the route reads `copy.blurb` with no null guard → crashes static-path gen without it), and added a `harness` tagline in `FieldkitModules.astro` (user-approved landing card). Auto-flow flowed the article, the `HermesCockpit` signature SVG, the `harness.md` module doc, project-stats (42→43 articles), and the sequence manifest. fieldkit `_version.py` unchanged (still 0.8.0). Build green; `verify_artifact_rendering` passes 12 pages across 4 kinds; `/fieldkit/` now reads "in twelve imports". No Step 6 source-side writes; no orphans.
+**Last destination commit:** `<this session's Harnesses sync commit>` atop pushed tip `c30695a` (cover images). Prior content sync: `d603acf` (unsloth-unpublish / fieldkit v0.8.0).
+**Push status:** after this commit, destination `main` is **1 commit ahead of `origin/main`, unpushed** — user-gated (GitHub Pages deploys from `main`). Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `0458304`); no Step 6 source-side writes this session.
 
 ## Open items (replace each session)
 
-### 1. NEXT — Push the 2 local commits to `origin/main` (user-gated)
+### 1. NEXT — Push this session's commit to `origin/main` (user-gated)
 
-`d19aadf` (skill migration) + `d603acf` (content sync) are committed on `main` but unpushed. ainative.business deploys from `main` via GitHub Pages, so nothing is live until pushed.
+The Harnesses sync commit is on `main` but unpushed. ainative.business deploys from `main` via GitHub Pages, so the new article + series page are not live until pushed. (The prior session's `d19aadf`/`d603acf` + cover-image commits are all already on `origin/main`.)
+
+### 1a. INFO — new fieldkit-module landing taglines are hand-curated, not synced
+
+`FieldkitModules.astro` is data-driven off the `fieldkit_docs` collection, so a new module's **card** appears automatically once its `.md` doc syncs + the module is in the `fieldkitModules` enum. But the short card **tagline** lives in a hardcoded `taglines` map in that component — a synced module with no entry falls back to its raw doc title. `harness` got `'Install, serve & harden an agent harness'` this session; the next new fieldkit module will need its tagline added by hand. `NUMBER_WORDS` in that file currently tops out at 12 (now exact) — extend it before module #13 lands.
 
 ### 2. INFO — sync source is now the GitHub remote, not the SMB mount
 
@@ -141,6 +145,14 @@ Per prior session.
 Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-26 (sync-field-notes: Harnesses series scaffold + first article — `the-hermes-harness-on-spark`)
+
+- **What landed.** First article of a new **Harnesses** content line (the "cockpit" arc — what you *drive the Spark from*, vs the artifact arc's *what you run*). Source HEAD `0458304`, 3 commits since last sync: `87689c0` (S1: series + harness/skill kinds + fieldkit.harness stub), `e568382` (H1: flesh fieldkit.harness — install/doctor/configure + NIM/llama-server lanes), `0458304` (H1 article). Auto-flow surfaces (article, `HermesCockpit` signature SVG, `harness.md` doc, project-stats, sequence manifest) flowed via `sync_articles.py`.
+- **Build-blocking ports (the load-bearing judgement this session).** The two repos' `src/content.config.ts` are structurally divergent (source `articles` collection vs destination `field-notes` collection with extended artifact schema) — **never a file copy**. The new article declares `series: Harnesses` + `fieldkit_modules: […, harness]`, both rejected by destination Zod enums. Ported by hand: `'Harnesses'` → `SERIES` (placed after "Machine that Builds Machines" as a peer application arc) + `SERIES_SLUGS`; `'harness'` → `fieldkitModules`. Separately, `series/[series].astro` reads `copy.blurb` **unguarded**, so an enum value with no `SERIES_COPY` entry trades a Zod error for a runtime `undefined.blurb` crash — added a `SERIES_COPY['Harnesses']` blurb. `SERIES_BY_SLUG` + `SeriesFilter` chips derive automatically.
+- **User-approved extra.** Added a `harness` tagline to `FieldkitModules.astro`'s `taglines` map (the card itself is data-driven and auto-rendered; only the tagline is hand-curated — see Open item 1a).
+- **Skipped (correctly).** `fieldkit/CHANGELOG.md` (not a hosted surface), `fieldkit/src/.../harness/__init__.py` + `tests/test_harness.py` (destination hosts docs + version pin only, not fieldkit source/tests), `.claude/skills/*` (source-repo internal tooling). fieldkit `_version.py` identical (0.8.0) — no version drift.
+- **Verification.** `rm -rf .astro node_modules/.astro` before build (content.config.ts touched). Build green; `/field-notes/the-hermes-harness-on-spark/`, `/field-notes/series/harnesses/`, `/fieldkit/api/harness/` all generate; `/fieldkit/` reads "in twelve imports" with the harness card + tagline; signature SVG renders; no catalog footer (no artifact manifest binds this article — correct); `verify_artifact_rendering` passes 12 pages / 4 kinds. No orphans, no Step 6 source-side writes.
 
 ### 2026-05-24 (sync-field-notes: GitHub-remote source migration + unsloth-unpublish / fieldkit v0.8.0 sync)
 
