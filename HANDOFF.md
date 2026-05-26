@@ -15,13 +15,13 @@
 
 **Last session:** 2026-05-26 (`/sync-field-notes`: Harnesses series scaffold + first article). Synced `the-hermes-harness-on-spark` (Harnesses H1) from ai-field-notes `origin/main` HEAD `0458304` (3 source commits: S1 series/schema scaffold → H1 fieldkit.harness fleshing → H1 article). The new series needed **build-blocking** destination ports beyond the auto-flow surfaces: added `'Harnesses'` to `SERIES` + `SERIES_SLUGS` and `'harness'` to `fieldkitModules` in `src/content.config.ts` (Zod enums reject the article otherwise), added a `SERIES_COPY['Harnesses']` blurb in `src/pages/field-notes/series/[series].astro` (the route reads `copy.blurb` with no null guard → crashes static-path gen without it), and added a `harness` tagline in `FieldkitModules.astro` (user-approved landing card). Auto-flow flowed the article, the `HermesCockpit` signature SVG, the `harness.md` module doc, project-stats (42→43 articles), and the sequence manifest. fieldkit `_version.py` unchanged (still 0.8.0). Build green; `verify_artifact_rendering` passes 12 pages across 4 kinds; `/fieldkit/` now reads "in twelve imports". No Step 6 source-side writes; no orphans.
 **Last destination commit:** `<this session's Harnesses sync commit>` atop pushed tip `c30695a` (cover images). Prior content sync: `d603acf` (unsloth-unpublish / fieldkit v0.8.0).
-**Push status:** after this commit, destination `main` is **1 commit ahead of `origin/main`, unpushed** — user-gated (GitHub Pages deploys from `main`). Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `0458304`); no Step 6 source-side writes this session.
+**Push status:** commit `02c3663` **pushed to `origin/main`** (`c30695a..02c3663`) — `main` level with origin; GitHub Pages deploying. Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `0458304`); no Step 6 source-side writes this session.
 
 ## Open items (replace each session)
 
-### 1. NEXT — Push this session's commit to `origin/main` (user-gated)
+### 1. DONE — Harnesses sync commit pushed to `origin/main`
 
-The Harnesses sync commit is on `main` but unpushed. ainative.business deploys from `main` via GitHub Pages, so the new article + series page are not live until pushed. (The prior session's `d19aadf`/`d603acf` + cover-image commits are all already on `origin/main`.)
+`02c3663` pushed (`c30695a..02c3663`); GitHub Pages is deploying the new article + Harnesses series page. Nothing pending here.
 
 ### 1a. INFO — new fieldkit-module landing taglines are hand-curated, not synced
 
