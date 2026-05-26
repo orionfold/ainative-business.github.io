@@ -13,15 +13,15 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-26 (`/sync-field-notes`: Harnesses series scaffold + first article). Synced `the-hermes-harness-on-spark` (Harnesses H1) from ai-field-notes `origin/main` HEAD `0458304` (3 source commits: S1 series/schema scaffold → H1 fieldkit.harness fleshing → H1 article). The new series needed **build-blocking** destination ports beyond the auto-flow surfaces: added `'Harnesses'` to `SERIES` + `SERIES_SLUGS` and `'harness'` to `fieldkitModules` in `src/content.config.ts` (Zod enums reject the article otherwise), added a `SERIES_COPY['Harnesses']` blurb in `src/pages/field-notes/series/[series].astro` (the route reads `copy.blurb` with no null guard → crashes static-path gen without it), and added a `harness` tagline in `FieldkitModules.astro` (user-approved landing card). Auto-flow flowed the article, the `HermesCockpit` signature SVG, the `harness.md` module doc, project-stats (42→43 articles), and the sequence manifest. fieldkit `_version.py` unchanged (still 0.8.0). Build green; `verify_artifact_rendering` passes 12 pages across 4 kinds; `/fieldkit/` now reads "in twelve imports". No Step 6 source-side writes; no orphans.
-**Last destination commit:** `<this session's Harnesses sync commit>` atop pushed tip `c30695a` (cover images). Prior content sync: `d603acf` (unsloth-unpublish / fieldkit v0.8.0).
-**Push status:** commit `02c3663` **pushed to `origin/main`** (`c30695a..02c3663`) — `main` level with origin; GitHub Pages deploying. Source side: content pulled read-only from ai-field-notes `origin/main` (HEAD `0458304`); no Step 6 source-side writes this session.
+**Last session:** 2026-05-26 (explainer float fix + field-notes rendering guardrail, follows the Harnesses sync earlier same day). On the published `the-hermes-harness-on-spark`, the `:::why[NIM-first]` explainer orphaned in the right gutter with whitespace beside it — a *rendering* bug, not authoring (markup was correct). Root cause in `src/styles/explainers.css`: wide-viewport explainer asides float into the gutter; the existing un-float exceptions covered only the trailing pair (`:nth-last-of-type(-n+2)`) and before-figure, but NIM-first was the 7th of 9 explainers, abutting the `:::deeper`/`:::hardware` trailing pair with no prose to wrap the float. Fix generalises the before-figure precedent: `rehype-explainer-figure.mjs` now also tags `explain--before-explainer` when an explainer abuts another explainer, and `explainers.css` un-floats it. Fixed Hermes **+ 37 other latent cases** (build-wide). Added `scripts/verify_field_notes_rendering.mjs` (build-blocking; 354 explainers / 55 pages clean) wired into `npm run build`; negative-tested (strip the class → exit 1). Verified in-browser at 1512px: NIM-first `float:none`, full prose width, while a normal mid-article explainer still floats left. Contract documented in the skill rubric + SKILL.md Step 7/8. No `article.md` change.
+**Last destination commit:** `613777a` (explainer fix + guardrail) + this HANDOFF commit, atop `02c3663` (Harnesses sync) → `a25573d` → pushed tip `c30695a`.
+**Push status:** `613777a` + HANDOFF commit **pushed to `origin/main`** this session — `main` level with origin; GitHub Pages deploying (the Hermes page renders the fix once Pages rebuilds). Source side: no Step 6 source-side writes; rendering pipeline (`remark-explainers.mjs` → `rehype-explainer-figure.mjs` → `explainers.css`) is destination-owned, never synced from ai-field-notes.
 
 ## Open items (replace each session)
 
-### 1. DONE — Harnesses sync commit pushed to `origin/main`
+### 1. DONE — Harnesses sync + explainer fix pushed to `origin/main`
 
-`02c3663` pushed (`c30695a..02c3663`); GitHub Pages is deploying the new article + Harnesses series page. Nothing pending here.
+`02c3663` (Harnesses sync) and `613777a` (explainer float fix + field-notes rendering guardrail) are both on `origin/main`; GitHub Pages is deploying. Nothing pending here.
 
 ### 1a. INFO — new fieldkit-module landing taglines are hand-curated, not synced
 
@@ -145,6 +145,15 @@ Per prior session.
 Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-26 (explainer float fix + field-notes rendering guardrail — `613777a`)
+
+- **Symptom.** On the just-published `the-hermes-harness-on-spark`, the `:::why[NIM-first is the defensible angle]` explainer rendered alone in the right gutter with a whitespace band beside it.
+- **Root cause (rendering, not authoring).** Wide-viewport (≥64rem) explainer asides float into the gutter (odd→right, even→left); a float needs following prose to wrap it. Existing un-float exceptions in `explainers.css` covered the trailing pair (`:nth-last-of-type(-n+2)`) and `explain--before-figure` only. NIM-first was the **7th of 9** explainers, abutting the `:::deeper`/`:::hardware` trailing pair with **zero prose between** (`…</aside> <aside …explain--deeper>`), so it floated while the next aside cleared it → orphaned. `article.md` markup was correct and unchanged.
+- **Fix (generalise the precedent, not a one-off).** `rehype-explainer-figure.mjs` already tags `explain--before-figure` via sibling lookahead; added the parallel `abutsFollowingExplainer` predicate → tags `explain--before-explainer`. `explainers.css` un-floats that class (same declarations as the trailing-pair rule). Article-agnostic: fixed Hermes **+ 37 other latent cases** corpus-wide. Verified in-browser at 1512px (`float:none`, 810/864px full width; control mid-article explainer still floats left).
+- **Guardrail (user asked for automated, not just docs).** New `scripts/verify_field_notes_rendering.mjs` walks `dist/field-notes/*/index.html` and fails the build if any explainer whose next significant sibling is another explainer (or a `<figure>`) lacks its un-float class. Wired into `npm run build` after `verify_artifact_rendering.mjs`; 354 explainers / 55 pages clean; negative-tested (strip the class → exit 1 with precise diagnostic, restore → exit 0). The figure half asserts only on an immediately-following `<figure>` (zero-false-positive subset), deliberately not re-deriving the plugin's fuzzy image-only-`<p>` lookahead.
+- **Doc.** New "Article-body explainer rendering" section in `references/site-rendering-rubric.md` + SKILL.md Step 7/8 pointers. Emphasis: the pipeline is **destination-owned**, so a verifier failure is always a plugin/CSS regression here, never an article-authoring fix.
+- **Hook note.** The `Write` of the verifier first tripped the repo's security-reminder hook, which pattern-matches the child-process exec token and false-positived on a regex `.exec` call; rewrote it using `String.matchAll()` — cleaner anyway. Watch for this on future `.mjs` scripts that iterate matches with `RegExp.prototype` exec.
 
 ### 2026-05-26 (sync-field-notes: Harnesses series scaffold + first article — `the-hermes-harness-on-spark`)
 
