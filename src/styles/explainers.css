@@ -141,6 +141,20 @@
     margin-right: 0;
     shape-outside: none;
   }
+  /* An explainer immediately followed by another explainer (no prose between)
+     has nothing for a float to wrap, so floating it orphans it in the gutter
+     with empty prose beside it — the abutting aside clears the float and drops
+     below. Generalises the trailing-pair rule above to mid-cluster explainers
+     (e.g. :::why directly before :::deeper). The .explain--before-explainer
+     class is tagged in rehype-explainer-figure.mjs; the invariant is enforced
+     post-build by scripts/verify_field_notes_rendering.mjs. */
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .fn-prose .explain.explain--before-explainer {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 2.5rem 0 0;
+    shape-outside: none;
+  }
 }
 
 @media (min-width: 80rem) {

@@ -172,15 +172,20 @@ npm run build
 
 **Astro 5 cache caveat.** If Step 4 touched the content config, a remark plugin, or `astro.config.mjs`, run `rm -rf .astro node_modules/.astro` before the first build.
 
+`npm run build` runs two build-blocking post-build verifiers (non-zero exit fails the build):
+- `scripts/verify_artifact_rendering.mjs` — artifact card/detail narrative + visual contract.
+- `scripts/verify_field_notes_rendering.mjs` — article-body **explainer float contract**: every explainer aside whose next significant sibling is another explainer (or a `<figure>`) must carry the `explain--before-explainer` (or `explain--before-figure`) un-float class. This catches orphaned gutter floats from clustered explainers on any synced article. The contract + pipeline (`remark-explainers.mjs` → `rehype-explainer-figure.mjs` → `src/styles/explainers.css`, all destination-owned) is documented in `references/site-rendering-rubric.md` → "Article-body explainer rendering". A failure here is a plugin/CSS regression in this repo, never an article-authoring problem — do not edit the synced `article.md` to work around it.
+
 Common failures:
 
 - **`ImageNotFound: <path>`** — an article references an image that wasn't copied. Check whether it's a missed screenshot (re-run sync), an evidence file with a non-image extension (article body needs to point elsewhere or use a GitHub link), or a typo.
 - **Schema validation error on a frontmatter field** — source article uses a field this site's schema doesn't accept, or an enum value not in `STAGES`/`SERIES`. Check `src/content.config.ts`. Usually it's a new tag or stage that should be allowed — extend the schema (and the matching copy in `src/pages/field-notes/stages/[stage].astro` `STAGE_COPY` for stages).
 - **Series enum mismatch** — "AI Native Platform" is exclusive to the website (used by the two reframed papers). If source ever uses it, accept it.
+- **`verify_field_notes_rendering` violation** — an explainer is missing its un-float class. The fix is in `rehype-explainer-figure.mjs` (tagging) / `explainers.css` (un-float rule), not the article. See the rubric section above.
 
 ### Step 8: Run the dev server briefly
 
-Start `npm run dev`, visit `/field-notes/` to confirm new articles appear in the index, then click into 2–3 to verify their bodies render. Confirm signatures and gated catalog footers are present where expected.
+Start `npm run dev`, visit `/field-notes/` to confirm new articles appear in the index, then click into 2–3 to verify their bodies render. Confirm signatures and gated catalog footers are present where expected. At a wide window (≥64rem), spot-check any article with clustered or trailing explainers (`:::why`/`:::deeper`/`:::hardware` back-to-back): they should stack as full-width inline callouts, not float orphaned in the right gutter with whitespace beside them. (The Step 7 verifier already enforces this structurally; this is the visual confirmation.)
 
 ### Step 9: Commit on destination (only when explicitly requested)
 

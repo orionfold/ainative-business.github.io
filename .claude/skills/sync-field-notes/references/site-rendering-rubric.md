@@ -82,6 +82,43 @@ Every internal link to an artifact detail page MUST use trailing slashes
 (`scripts/generate-slashless-duplicates.mjs`) handles GitHub Pages 301
 avoidance for crawler discovery.
 
+## Article-body explainer rendering (float contract)
+
+Article markdown uses container directives — `:::define / :why / :deeper /
+:pitfall / :math / :hardware` — that `remark-explainers.mjs` compiles to
+`<aside class="explain explain--<kind>">`. On wide viewports (≥64rem) the asides
+**float into the gutter** between `.fn-prose` (48rem) and `.article` (92rem):
+odd-position asides float right, even (`:nth-of-type(2n)`) float left.
+
+A float needs following content to wrap it. An explainer whose next significant
+sibling can't wrap a float gets **orphaned in the gutter with empty prose beside
+it**. There are three un-float exceptions, all forcing the aside inline at full
+prose width:
+
+| Condition | Mechanism |
+|---|---|
+| The **trailing pair** of explainers on the page | CSS `:nth-last-of-type(-n+2)` |
+| Explainer **immediately precedes a wide figure** | `explain--before-figure` class, tagged by `rehype-explainer-figure.mjs` |
+| Explainer **immediately abuts another explainer** (no prose between) | `explain--before-explainer` class, tagged by `rehype-explainer-figure.mjs` |
+
+The third was added 2026-05-26 after `the-hermes-harness-on-spark`'s
+`:::why[NIM-first]` (a third-from-last explainer abutting the `:::deeper` /
+`:::hardware` trailing pair) orphaned in the gutter. The invariant — *every
+explainer whose next significant sibling is another explainer carries
+`explain--before-explainer`; every one abutting a `<figure>` carries
+`explain--before-figure`* — is enforced post-build by
+`scripts/verify_field_notes_rendering.mjs` (runs in `npm run build`; non-zero
+exit blocks the build).
+
+**This pipeline is destination-owned and never synced from source.**
+`remark-explainers.mjs` → `rehype-explainer-figure.mjs` → `src/styles/explainers.css`
+all live only in this repo. Source-side authoring never has to account for
+explainer placement or clustering — the rendering layer handles any arrangement,
+and the verifier proves it on every build. So a synced article with awkwardly
+clustered explainers needs **no** Mac-side or source-side fix; if the build's
+field-notes verifier ever fails, the regression is in the plugin/CSS here, not
+in the article.
+
 ## Backfill TODO (quant manifests without positioning)
 
 These older quants currently render via graceful-fallback ("At a glance"
