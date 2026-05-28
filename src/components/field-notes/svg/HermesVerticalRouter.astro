@@ -1,0 +1,98 @@
+---
+// Signature figure for "The Hermes Vertical Router on a DGX Spark".
+// Six lanes scored on TWO axes — per-vertical answer-quality pass-rate
+// (5 prompts each) and warm-time to first token (cold start of the
+// llama-server lane). The default brain is the accent — always-warm on
+// :8080 at 0s warm, the resident lane that catches everything no
+// vertical claims.
+const lanes = [
+  { id: 'pat', label: 'patent',  pass: 0.80, warm: 6.1, passLabel: '4/5', warmLabel: '6.1s' },
+  { id: 'leg', label: 'legal',   pass: 0.80, warm: 4.0, passLabel: '4/5', warmLabel: '4.0s' },
+  { id: 'fin', label: 'finance', pass: 1.00, warm: 4.0, passLabel: '5/5', warmLabel: '4.0s' },
+  { id: 'cyb', label: 'cyber',   pass: 1.00, warm: 4.0, passLabel: '5/5', warmLabel: '4.0s' },
+  { id: 'med', label: 'medical', pass: 1.00, warm: 4.0, passLabel: '5/5', warmLabel: '4.0s' },
+  { id: 'brn', label: 'brain',   pass: 0.80, warm: 0.0, passLabel: '4/5', warmLabel: 'warm', accent: true },
+];
+const plotLeft = 32;
+const plotRight = 286;
+const plotTop = 34;
+const plotMid = 110;
+const plotBottom = 156;
+const warmMax = 8.0;  // 6.1s is the max measured; 8.0 gives headroom
+const slot = (plotRight - plotLeft) / lanes.length;
+const barW = 26;
+const xAt = (i: number) => plotLeft + i * slot + (slot - barW) / 2;
+const passBarH = (p: number) => (plotMid - plotTop) * p;
+// Inverted warm-bar: 0s warm (brain) reads as the tallest bar — "already warm"
+// is visually rewarded. A vertical's bar shrinks as its cold-start grows.
+const warmBarH = (w: number) =>
+  (plotBottom - plotMid - 4) * (1 - Math.min(w, warmMax) / warmMax);
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Six Hermes lanes ranked on per-vertical answer quality and warm-time to first token. Finance, cyber, medical pass 5 of 5; patent, legal, brain pass 4 of 5. The default brain is the accent lane — always warm on port 8080, catching everything no vertical claims; the five verticals cold-start in 4 to 6 seconds." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hvr-quality-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hvr-warm-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hvr-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <!-- Two-band backdrop: quality on top, warm-time on bottom -->
+  <rect x={plotLeft} y={plotTop} width={plotRight - plotLeft} height={plotMid - plotTop}
+        fill="var(--svg-bg-inner)" fill-opacity="0.4" stroke="none"/>
+  <rect x={plotLeft} y={plotMid} width={plotRight - plotLeft} height={plotBottom - plotMid}
+        fill="var(--svg-bg-inner)" fill-opacity="0.2" stroke="none"/>
+  <!-- Mid-line separating the two bands -->
+  <line x1={plotLeft} y1={plotMid} x2={plotRight} y2={plotMid}
+        stroke="var(--svg-stroke)" stroke-width="0.5" opacity="0.6"/>
+  <!-- 100% pass-rate ceiling line (the 5/5 mark) -->
+  <line x1={plotLeft} y1={plotTop} x2={plotRight} y2={plotTop}
+        stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.5"/>
+  <!-- Axis labels -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x={plotLeft - 2} y={plotTop - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">vertical pass-rate</text>
+    <text x={plotLeft - 2} y={plotMid - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">warm-headroom</text>
+  </g>
+  {lanes.map((l, i) => {
+    const x = xAt(i);
+    const pH = passBarH(l.pass);
+    const pY = plotMid - pH;
+    const wH = warmBarH(l.warm);
+    const wY = plotBottom - wH;
+    const stroke = l.accent ? 'var(--color-primary)' : 'var(--svg-stroke)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${Math.min(8, 2 + i)}`}>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotMid}px`}>
+          <rect x={x} y={pY} width={barW} height={pH} rx="3"
+                fill={l.accent ? 'url(#hvr-accent-grad)' : 'url(#hvr-quality-grad)'}
+                stroke={stroke} stroke-width={l.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={pY - 4} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="10" font-weight="700">{l.passLabel}</text>
+        </g>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotBottom}px`}>
+          <rect x={x} y={wY} width={barW} height={wH} rx="3"
+                fill={l.accent ? 'url(#hvr-accent-grad)' : 'url(#hvr-warm-grad)'}
+                stroke={stroke} stroke-width={l.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={wY - 3} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="8" font-weight="600">{l.warmLabel}</text>
+        </g>
+      </g>
+    );
+  })}
+  <g class="svg-reveal svg-reveal-d8">
+    {lanes.map((l, i) => (
+      <text x={xAt(i) + barW / 2} y={plotBottom + 14} text-anchor="middle"
+            fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="8">{l.label}</text>
+    ))}
+    <text x={150} y={194} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-sans)" font-size="9" font-style="italic">One brain always warm. Five specialists summoned on demand.</text>
+  </g>
+</svg>

@@ -1,0 +1,30 @@
+slug: spark-hermes-cost-router
+kind: harness
+class: agent-harness
+base_model: Hermes Agent v0.14.0
+hf_repo: Orionfold/spark-hermes-cost-router
+variants:
+  - Local Spark — Qwen3-30B-A3B MoE Q4_K_M
+  - OpenRouter cheap-tier — gpt-4o-mini
+  - OpenRouter frontier — claude-opus-4.1
+license:
+  tier: free
+  model: mit
+article: articles/hermes-cost-routing-local-and-openrouter/
+positioning:
+  headline: "When does local stop being enough? Measure first, then route."
+  problem: "A Spark holds one strong model warm at a time and pays no per-token cost for it. A frontier model on OpenRouter is the per-token-billed ceiling. The interesting decision is *when to escalate* — and the only honest answer is the measured leak rate, not the public-docs 60-80% cost-savings pitch. This router ships the predicates that decide, plus the snapshot prices that let you reproduce the dollar curve."
+  use_cases:
+    - Route a Hermes agent prompt to the cheapest tier whose predicate clears (local Spark / OpenRouter cheap / OpenRouter frontier).
+    - "Embed a deterministic, auditable cost router into a Hermes config (no LLM-classifier overhead)."
+    - Reproduce the H6 leak-rate measurement on a custom workload by re-grading the same 12-prompt shape.
+  audience: "DGX Spark power users running a local-first agent harness who want to escalate to frontier only when local can't reliably answer — and to *know* what that fraction is."
+known_drift:
+  - item: Suite size
+    bound: 12 prompts × N=3 attempts per strategy (108 calls per full run). Not a large-N guarantee; production workloads will exhibit their own leak rates.
+  - item: OpenRouter snapshot prices
+    bound: "Captured 2026-05-28T14:32:06.836115+00:00. openai/gpt-4o-mini = $0.15 per 1M input + $0.60 per 1M output; anthropic/claude-opus-4.1 = $15.00 per 1M input + $75.00 per 1M output. Prices change; re-snapshot before reproduction."
+  - item: Leak rate
+    bound: "33.3% measured leak rate. Tuned to this 12-prompt suite's synthetic-but-graded difficulty distribution."
+  - item: Token threshold
+    bound: "complex-tier `min_input_tokens=3000` (= 3000 tokens) was tuned to this suite. A workload with a different long-to-short ratio should re-tune this single integer."

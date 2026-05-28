@@ -1,7 +1,7 @@
 ---
 module: harness
 title: fieldkit.harness
-summary: Deterministic Python spine for the Harnesses content line — install / configure / serve / harden / route / eval / profile an agent harness (Hermes Agent first) on the DGX Spark. H1 ships install + doctor + configure + the NIM / llama-server lanes + the serve_lane guard; H2 adds the vLLM / Ollama lanes, the Hermes-trace tool-call-reliability eval, and the HarnessProfile artifact. Harden / route land across H3–H6. See specs/hermes-harness-v1.md.
+summary: Deterministic Python spine for the Harnesses content line — install / configure / serve / harden / route / eval / profile an agent harness (Hermes Agent first) on the DGX Spark. H1 ships install + doctor + configure + the NIM / llama-server lanes + the serve_lane guard; H2 adds the vLLM / Ollama lanes, the Hermes-trace tool-call-reliability eval, and the HarnessProfile artifact; H3 adds Harden (hostile-tool-call-survivable config posture); H4 adds the fieldkit-as-MCP server; H5 adds the vertical router (VerticalRoute / RouterConfig / build_vertical_router) over the 5 Orionfold GGUFs. H6 (cost router) lands separately. See specs/hermes-harness-v1.md.
 order: 12
 ---
 
@@ -11,7 +11,7 @@ The artifact arc taught the project to publish a *thing you download and run*. A
 
 Per `feedback_llm_skill_pattern` the module is **deterministic Python only**: it renders configs, sizes serving lanes against the unified-memory envelope, and reduces eval JSONL — all the LLM generation (skill bodies, agent task runs, prose) stays in session-driven skills. The full design is in `specs/hermes-harness-v1.md`.
 
-> **Status: H1 + H2 shipped.** H1: install + doctor + configure + the NIM / llama-server lanes + the `serve_lane` guard, verified on the Spark (Hermes v0.14.0 driving the cached `nemotron-nano-9b-v2-dgx-spark` NIM with reliable tool calls, no API key). H2: the `VLLMLane` (high-throughput MoE lane, with the EngineCore orphan-sweep teardown) + `OllamaLane`; the Hermes session-trace tool-call-reliability eval; and `HarnessProfile` / `publish_harness` (the first `harness` artifact). Harden / route land across H3–H6.
+> **Status: H1 + H2 + H3 + H4 + brain evaluator (Step 3) + H5 vertical router shipped.** H5 adds `VerticalRoute` / `RouterConfig` / `build_vertical_router` / `lane_spec_for_vertical` — a deterministic keyword-classifier router over the 5 Orionfold vertical GGUFs (patent / legal / finance / cyber / medical) with a fallback default brain (the Step-2 pinned Qwen3-30B-A3B MoE). One-at-a-time serving per the unified-memory envelope; no LLM classifier (spec §4.6 discipline). H6 (`build_cost_router` + `RouteTier`) lands separately.
 
 ## Public API (today)
 
@@ -19,7 +19,7 @@ Per `feedback_llm_skill_pattern` the module is **deterministic Python only**: it
 from fieldkit.harness import (
     # errors
     HarnessError, ServingLaneError, UnifiedMemoryExceeded,
-    HermesNotInstalled, DoctorFailed, HardeningError,
+    HermesNotInstalled, DoctorFailed, HardeningError, RoutingError,
     # serve
     LaneSpec, ServingLane, NIMLane, LlamaServerLane, VLLMLane, OllamaLane,
     resolve_lane, serve_lane, SERVING_LANES,
@@ -29,6 +29,8 @@ from fieldkit.harness import (
     HermesConfig, EnvFile, configure_hermes,
     # harden (H3)
     HardeningPolicy, DEFAULT_HARDENING, harden_config, LOCAL_PROVIDERS,
+    # route (H5; H6 adds RouteTier + build_cost_router)
+    VerticalRoute, RouterConfig, build_vertical_router, lane_spec_for_vertical,
     # eval (H2)
     export_hermes_sessions, agent_runs_from_hermes_sessions,
     tool_call_reliability, HarnessEvalResult,
@@ -47,6 +49,7 @@ from fieldkit.harness import (
 | `HermesNotInstalled` | `hermes_doctor` can't find the `hermes` CLI on PATH (or at the given binary path). |
 | `DoctorFailed` | Raise this yourself when you want hard-fail semantics on a failing required `hermes doctor` check (`hermes_doctor` itself never raises it — inspect `report.ok`). |
 | `HardeningError` | `harden_config` refused to produce a hardened config from this input — a cloud provider under `local_first`, an `approvals.mode` of `off`/`--yolo`, or a secret in the config body. Subclass of `HarnessError`; the function errs toward refusing. |
+| `RoutingError` | `build_vertical_router` refused to construct a `RouterConfig` — duplicate route names, empty `routes`, a route with no keywords (can never be picked), or a `default` route that also appears in `routes`. Subclass of `HarnessError`; the function errs toward refusing. |
 
 ### Serving lanes
 
@@ -119,6 +122,66 @@ A pure function turns a permissive local `HermesConfig` into a desk-grade one. H
 - **`harden_config(config, policy=DEFAULT_HARDENING)`** — returns a **new** frozen `HermesConfig` with the hardened sections folded into `.sections` (the input is unchanged). Raises `HardeningError` rather than emit a falsely-hardened config when: `local_first` and the provider isn't in `LOCAL_PROVIDERS`; `approval_mode == "off"` (that's `--yolo`); or a secret-looking key sits in `extra`/`sections` under `secrets_from_env_only` (secrets belong in `~/.hermes/.env` — Hermes' own `config set` routes `*_API_KEY`/`*_TOKEN` there).
 - **`LOCAL_PROVIDERS`** — `("custom", "ollama", "vllm", "llamacpp", "local")`, the providers Hermes serves locally. The native `nvidia` provider is *cloud* Nemotron and is deliberately excluded.
 
+### Route — vertical router (H5)
+
+Route an inbound prompt to one of N already-published verticals — the 5 Orionfold GGUFs (patent / legal / finance / cyber / medical) — served one-at-a-time under the 128 GB unified-memory envelope; fall through to a strong general default brain when no vertical's keywords fire. This is pure config + a **deterministic predicate** (spec §4.6 discipline — no runtime LLM classifier, no embedder). Two reasons: zero memory cost (a 1.5B Tier-0 classifier would compete with the brain for the envelope), and auditability (you can read the keyword list and see why a prompt was misrouted — a black-box classifier's misroutes are not). The vertical router decides *which expert* answers; H6's cost router (below) decides *which tier* answers — same deterministic-predicate discipline, different routing dimension.
+
+- **`VerticalRoute(name, hf_repo, variant="Q5_K_M", keywords=(), description="", base_model="", params_b=8.0, dtype="int4", weight=1.0, article=None)`** — one vertical lane. `keywords` is the deterministic signal (lowercased substring matches against the prompt). `weight` defaults to 1.0; bump it to bias toward a more specific vertical when keyword sets overlap (e.g., medical > cyber on the word `"security"`). `params_b` / `dtype` flow into `LlamaServerLane.weight_bytes()` for the `serve_lane` guard.
+- **`RouterConfig`** — a frozen `(routes, default, escalation=None)` triple. `default` is the fallback served when no vertical's keyword score is positive — typically a strong general brain (the Step-2 pinned MoE) so generic prompts don't get mis-routed. `escalation` is reserved for the H6 cost router (e.g. OpenRouter overflow). Methods: `.classify(prompt) -> VerticalRoute` (the pure predicate; ties break listed-first; zero matches → default), `.route_for(prompt)` (alias), `.render_yaml() -> str` (deterministic, diff-stable; for embedding in `HarnessProfile.router_yaml`), and `.serve_for(prompt, *, guard=True, headroom_gb=8.0, warm_timeout=180.0, host="127.0.0.1", port=8080, lane_factory=None) -> Iterator[(VerticalRoute, ServingLane)]` (the OOM-safe convenience: classify + `serve_lane` the picked vertical one-at-a-time).
+- **`build_vertical_router(routes, *, default, escalation=None) -> RouterConfig`** — the factory. Lightweight validation (raises `RoutingError`): `routes` non-empty; route names unique + non-empty; every route has at least one keyword; the `default` route name is not also in `routes`.
+- **`lane_spec_for_vertical(route, *, host="127.0.0.1", port=8080, n_ctx=None, reasoning_format=None) -> LaneSpec`** — the default `LlamaServerLane`-bound `LaneSpec` builder. Pure function. Override `RouterConfig.serve_for`'s `lane_factory` to use a different lane type (e.g., NIM, vLLM).
+
+```python
+routes = [
+    VerticalRoute("patent", "Orionfold/patent-strategist-v3-nemo-GGUF", "Q5_K_M",
+                  keywords=("patent", "claim", "prior art", "uspto", "mpep")),
+    VerticalRoute("legal", "Orionfold/Saul-7B-Instruct-v1-GGUF", "Q5_K_M",
+                  keywords=("lawsuit", "contract", "tort", "statute")),
+    # ... finance / cyber / medical
+]
+default = VerticalRoute("brain", "Qwen/Qwen3-30B-A3B-Q4_K_M", "Q4_K_M",
+                        keywords=("__default__",), params_b=30.0)
+router = build_vertical_router(routes, default=default)
+with router.serve_for("draft a patent claim for a method of X") as (picked, lane):
+    # picked.name == "patent"; lane is the live llama-server endpoint
+    ...
+```
+
+### Route — cost-tier router (H6)
+
+Route an inbound prompt to one of N tiers ordered by cost — typically a 3-tier shape: local Spark ($0) → OpenRouter cheap → OpenRouter frontier. Same deterministic-predicate discipline as the H5 vertical router (no runtime LLM classifier, no embedder; auditable keyword sets + token-budget thresholds). Editorially the cost-savings pitch barely applies on a $0 local lane — the genuinely interesting question is *when does the local MoE actually fail and we need to call OpenRouter*. The classifier is the leak-rate measurement instrument; the $/100-task dollar curve is the secondary view (H6 article).
+
+- **`RouteTier(name, endpoint, model, complexity_keywords=(), min_input_tokens=None, price_per_m_input_usd=0.0, price_per_m_output_usd=0.0, api_key_env=None, notes="")`** — one tier. The first tier in a `CostRouterConfig.tiers` tuple is the **floor**: it catches everything no higher tier claims, and its triggers are ignored (a tier can't escalate to itself). Escalation tiers must carry at least one trigger (a non-empty `complexity_keywords` or a `min_input_tokens` threshold). `endpoint` is OpenAI-compatible; `model` is the lane-native model id. The `price_per_m_*_usd` fields are informational — they feed `estimated_cost_usd` for the per-prompt $ accounting.
+- **`CostRouterConfig`** — a frozen `(tiers,)` wrapper. Methods: `.classify(prompt, *, est_input_tokens=None) -> RouteTier` (walks tiers high → low; first trigger that fires wins; falls through to the floor — `tiers[0]`), `.route_for(prompt, **kw)` (alias), `.tier_by_name(name) -> RouteTier`, `.render_yaml() -> str` (diff-stable; embeds snapshot prices per R7), and the static `.estimated_cost_usd(prompt_tokens, completion_tokens, tier) -> float` for the H6 dollar curve.
+- **`build_cost_router(tiers) -> CostRouterConfig`** — the factory. Validation (raises `RoutingError`): `tiers` non-empty; tier names unique + non-empty; prices monotonically non-decreasing across the sequence (a tier later in the list shouldn't cost less than an earlier one — that's almost certainly a config bug); every escalation tier (index >= 1) has at least one trigger.
+- **`estimate_tokens(text) -> int`** — 4-chars-per-token heuristic used by `classify` when the caller doesn't pass `est_input_tokens`. Avoids taking a tokenizer dependency for a single int (a routing decision tolerates a 10% over/undercount).
+
+```python
+simple = RouteTier(
+    name="simple", endpoint="http://127.0.0.1:8080/v1",
+    model="Qwen3-30B-A3B-Q4_K_M.gguf",
+)
+standard = RouteTier(
+    name="standard", endpoint="https://openrouter.ai/api/v1",
+    model="openai/gpt-4o-mini",
+    complexity_keywords=("summarize", "compare"),
+    min_input_tokens=800,
+    price_per_m_input_usd=0.15, price_per_m_output_usd=0.60,
+    api_key_env="OPENROUTER_API_KEY",
+)
+complex_ = RouteTier(
+    name="complex", endpoint="https://openrouter.ai/api/v1",
+    model="anthropic/claude-opus-4.1",
+    complexity_keywords=("prove", "derive", "multi-step"),
+    min_input_tokens=4000,
+    price_per_m_input_usd=15.0, price_per_m_output_usd=75.0,
+    api_key_env="OPENROUTER_API_KEY",
+)
+router = build_cost_router([simple, standard, complex_])
+tier = router.classify("please summarize this 800-token brief")
+# tier.name == "standard"
+```
+
 ### Eval — tool-call reliability (H2)
 
 The agent-critical feasibility number (spec F3): a lane that can't emit well-formed tool calls is useless regardless of speed. Hermes persists every agent run in its SQLite session store (`~/.hermes/state.db`); the eval reads that trace and reduces it — ~90% reuse of `fieldkit.eval`.
@@ -130,7 +193,8 @@ The agent-critical feasibility number (spec F3): a lane that can't emit well-for
 
 ### Profile / publish — the `harness` artifact (H2)
 
-- **`HarnessProfile`** — a frozen dataclass, the harness analog of `publish.ModelCard`: `title`, `one_liner`, `harness` / `harness_version`, `license`, `positioning`, `lanes` (per-lane rows: `name`, `provider`, `model`, `tokens_per_sec`, `sustained_load_minutes`, `format_error_rate`, `clean_run_rate`, `footprint_gb`, `recommended`), `hermes_config`, `env_example`, `router_yaml`, `doctor_checklist`, `known_drift`, `tags`, `article_slug` / `article_title`, `hf_repo`. `.render()` emits the README (positioning → serving-lanes table → embedded config → doctor checklist → Methods backlink → Known drift → footer); `.files()` returns the `(rel_path, text)` pairs to stage (`README.md` + `hermes.yaml` + `.env.example` + optional `router.yaml`); `.to_manifest(slug, hf_repo)` builds the `ArtifactManifest(kind="harness")` the Astro catalog renders. Deterministic and diff-stable.
+- **`HarnessProfile`** — a frozen dataclass, the harness analog of `publish.ModelCard`: `title`, `one_liner`, `harness` / `harness_version`, `license`, `positioning`, `lanes` (per-lane rows: `name`, `provider`, `model`, `tokens_per_sec`, `sustained_load_minutes`, plus the two columns selected by `lane_metrics` — `format_error_rate` / `clean_run_rate` by default, swappable for cost/quality columns), `lane_metrics` (a `LaneMetricColumns` override for the last-two-columns of the table; see below), `hermes_config`, `env_example`, `router_yaml`, `doctor_checklist`, `known_drift`, `tags` (deduped against the four built-ins — `agent-harness`, `hermes`, `dgx-spark`, `orionfold`), `article_slug` / `article_title` (`to_manifest` renders the latter as the path-shape `articles/<slug>/` directly), `hf_repo`. `.render()` emits the README (positioning → serving-lanes table → embedded config → doctor checklist → Methods backlink → Known drift → footer); `.files()` returns the `(rel_path, text)` pairs to stage (`README.md` + `hermes.yaml` + `.env.example` + optional `router.yaml`); `.to_manifest(slug, hf_repo)` builds the `ArtifactManifest(kind="harness")` the Astro catalog renders. Deterministic and diff-stable.
+- **`LaneMetricColumns(label_a, label_b, key_a, key_b, format_a="percent", format_b="percent", caption="")`** — overrides the last two columns + caption of the serving-lanes table. The default (`HarnessProfile.lane_metrics=None`) keeps the H2/H4 tool-call shape (`Format-error` / `Clean-run` as `format_error_rate` / `clean_run_rate`). Set this for a different metric pair: H5's pass-rate + warm-time, H6's `$/M input` + `$/M output` (`format_*="money"` for the `$V/M` formatter). `caption` replaces the default agent-critical caption — leave empty to suppress it entirely.
 - **`publish_harness(profile, repo_name, staging_dir, slug=None, artifacts_dir=None, dry_run=True, token=None, org=None, commit_message=...)`** — the orchestrator (thinner than `publish_quant`): stages `profile.files()`, optionally writes the manifest to `artifacts_dir`, and pushes the folder via the existing `publish.HFHubAdapter` (dry-run by default). Returns a `publish.PublishResult`.
 
 ### fieldkit-as-MCP — the keystone (H4)
@@ -162,12 +226,6 @@ The H2 lane bakeoff measured throughput + tool-call FORMAT reliability and found
 - **`point_hermes_at_endpoint(base_url, model, *, context_length=64000, hermes_bin="hermes", timeout=60.0)`** — the light-touch swap. Issues five `hermes config set` calls (`model.provider=custom`, `model.base_url`, `model.default`, `model.context_length`, `auxiliary.compression.context_length` — Hermes reuses the served model as its compression model, so the auxiliary context floor has to match). For a clean first-time setup use `configure_hermes`.
 - **`Telemetry(interval=2.0)`** — background GPU%/unified-memory/temp sampler. `start()` / `stop()`; `stop()` returns a rollup with `gpu_util_mean/max`, `gpu_mem_used_mib_max`, `unified_used_gb_max`, `gpu_temp_c_max`. GB10-aware: `nvidia-smi memory.used` is `[N/A]` on unified memory, so each field is parsed independently and real memory comes from `/proc/meminfo` (`MemTotal − MemAvailable`).
 - **`measure_throughput(base_url, model, *, samples=3, prompt=None, max_tokens=256)`** — dedicated decode-throughput probe. Hits `/v1/chat/completions` at temperature 0 with a fixed 150-word prompt and returns `{"tok_s": <median>, "samples": [...]}`. Returns `{"tok_s": None, "samples": []}` on any failure — best-effort, never raises.
-
-## Coming across the arc
-
-| Surface | Article | Reuse |
-|---|---|---|
-| `VerticalRoute` / `build_vertical_router`, `RouterConfig` / `build_cost_router` | H5–H6 | the 5 Orionfold GGUFs; OpenRouter overflow. |
 
 ## Notes
 

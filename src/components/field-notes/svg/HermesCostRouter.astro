@@ -1,0 +1,103 @@
+---
+// Signature figure for "Cost-Routing the Hermes Harness — When Local Stops
+// Being Enough on a DGX Spark" (H6). Three dispatch strategies measured on
+// the same 12-prompt suite at N=3. TWO axes:
+//   Top band — per-strategy majority-pass rate across the 12 prompts
+//              (deterministic rubric, N=3 attempts each).
+//   Bottom band — $/100 tasks, inverted: $0 (local) reads as the tallest bar
+//              so cheaper-is-better is visually rewarded. A strategy's
+//              dollar bar shrinks as its per-task cost grows toward the
+//              frontier ceiling.
+// The cost-routed strategy is the editorial accent — it should land near
+// the frontier pass-rate without paying the frontier price.
+// Values resolved post-bakeoff from `evidence/cost_router_results.json`.
+const strategies = [
+  { id: 'loc', label: 'local',    pass: 0.6667, dollar: 0.00, passLabel: '8/12',  dollarLabel: '$0.00' },
+  { id: 'rtd', label: 'routed',   pass: 0.9167, dollar: 2.19, passLabel: '11/12', dollarLabel: '$2.19', accent: true },
+  { id: 'fro', label: 'frontier', pass: 1.0000, dollar: 2.94, passLabel: '12/12', dollarLabel: '$2.94' },
+];
+const plotLeft = 40;
+const plotRight = 270;
+const plotTop = 38;
+const plotMid = 112;
+const plotBottom = 162;
+// dollarMax controls the inverted-cost bar height; $8.00 fits the frontier
+// ceiling while leaving the local lane visually full-height at $0.
+const dollarMax = 8.0;
+const slot = (plotRight - plotLeft) / strategies.length;
+const barW = 44;
+const xAt = (i: number) => plotLeft + i * slot + (slot - barW) / 2;
+const passBarH = (p: number) => (plotMid - plotTop) * p;
+// Inverted dollar bar: $0 reads as the tallest bar — "free" is visually
+// rewarded. The frontier's bar shrinks as its per-task cost climbs.
+const dollarBarH = (d: number) =>
+  (plotBottom - plotMid - 4) * (1 - Math.min(d, dollarMax) / dollarMax);
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Three Hermes cost-routing strategies ranked on per-strategy majority-pass rate and per-hundred-task dollar cost. Local pays nothing but leaks the hardest prompts. Frontier pays the most but catches them. The cost-routed strategy is the editorial accent — it lands near the frontier pass-rate without paying the frontier price." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hcr-quality-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hcr-dollar-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hcr-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <!-- Two-band backdrop: quality on top, dollar (inverted) on bottom -->
+  <rect x={plotLeft} y={plotTop} width={plotRight - plotLeft} height={plotMid - plotTop}
+        fill="var(--svg-bg-inner)" fill-opacity="0.4" stroke="none"/>
+  <rect x={plotLeft} y={plotMid} width={plotRight - plotLeft} height={plotBottom - plotMid}
+        fill="var(--svg-bg-inner)" fill-opacity="0.2" stroke="none"/>
+  <!-- Mid-line separating the two bands -->
+  <line x1={plotLeft} y1={plotMid} x2={plotRight} y2={plotMid}
+        stroke="var(--svg-stroke)" stroke-width="0.5" opacity="0.6"/>
+  <!-- 100% pass-rate ceiling line (the 12/12 mark) -->
+  <line x1={plotLeft} y1={plotTop} x2={plotRight} y2={plotTop}
+        stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.5"/>
+  <!-- Axis labels -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x={plotLeft - 2} y={plotTop - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">majority-pass rate</text>
+    <text x={plotLeft - 2} y={plotMid - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">$/100 tasks (inverted)</text>
+  </g>
+  {strategies.map((s, i) => {
+    const x = xAt(i);
+    const pH = passBarH(s.pass);
+    const pY = plotMid - pH;
+    const dH = dollarBarH(s.dollar);
+    const dY = plotBottom - dH;
+    const stroke = s.accent ? 'var(--color-primary)' : 'var(--svg-stroke)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${Math.min(8, 2 + i * 2)}`}>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotMid}px`}>
+          <rect x={x} y={pY} width={barW} height={pH} rx="3"
+                fill={s.accent ? 'url(#hcr-accent-grad)' : 'url(#hcr-quality-grad)'}
+                stroke={stroke} stroke-width={s.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={pY - 4} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="11" font-weight="700">{s.passLabel}</text>
+        </g>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotBottom}px`}>
+          <rect x={x} y={dY} width={barW} height={dH} rx="3"
+                fill={s.accent ? 'url(#hcr-accent-grad)' : 'url(#hcr-dollar-grad)'}
+                stroke={stroke} stroke-width={s.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={dY - 3} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="9" font-weight="600">{s.dollarLabel}</text>
+        </g>
+      </g>
+    );
+  })}
+  <g class="svg-reveal svg-reveal-d8">
+    {strategies.map((s, i) => (
+      <text x={xAt(i) + barW / 2} y={plotBottom + 14} text-anchor="middle"
+            fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="9">{s.label}</text>
+    ))}
+    <text x={150} y={194} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-sans)" font-size="9" font-style="italic">Local for what local can do. Frontier for what local can't.</text>
+  </g>
+</svg>
