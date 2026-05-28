@@ -78,6 +78,24 @@ function nextSignificantElement(html, fromIdx) {
   return { kind: 'other', openTag };
 }
 
+// Mirrors the rehype plugin's short-wrap heuristic: if the next explainer is
+// reachable through ≤1 prose-like sibling and ≤1200 chars of plain text (and
+// no figure/pre/img between), the wrapping prose is too short to absorb the
+// float's height. Assert `explain--before-explainer` in that case too.
+function checkShortWrap(htmlAfterClose) {
+  const MAX_PROSE_CHARS = 1200;
+  const MAX_INTERVENING = 1;
+  const nextAsideMatch = htmlAfterClose.match(/<aside\b[^>]*class="[^"]*\bexplain\b/i);
+  if (!nextAsideMatch) return false;
+  const between = htmlAfterClose.slice(0, nextAsideMatch.index);
+  if (/<(figure|pre|img)\b/i.test(between)) return false;
+  const plainText = between.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (plainText.length > MAX_PROSE_CHARS) return false;
+  const closeCount = (between.match(/<\/(p|ul|ol|blockquote|h[1-6]|div)>/gi) || []).length;
+  if (closeCount > MAX_INTERVENING) return false;
+  return true;
+}
+
 function checkPage(file, html) {
   stats.pagesChecked += 1;
   for (const m of html.matchAll(/<aside\b[^>]*>/gi)) {
@@ -111,6 +129,22 @@ function checkPage(file, html) {
         `Explainer #${id} is immediately followed by a <figure> but is missing ` +
           `\`explain--before-figure\`; on wide viewports it floats into the gutter beside the figure. ` +
           `Tagging is rehype-explainer-figure.mjs's job — check the plugin.`,
+      );
+    }
+
+    if (
+      next.kind !== 'explainer' &&
+      next.kind !== 'figure' &&
+      !cls.includes('explain--before-explainer') &&
+      checkShortWrap(html.slice(afterClose))
+    ) {
+      recordFailure(
+        file,
+        'orphaned-float-short-wrap',
+        `Explainer #${id} is followed by ≤1 prose element (≤1200 chars) and then another explainer; ` +
+          `missing \`explain--before-explainer\`. A float here orphans because the wrapping prose is ` +
+          `too short for the float's height and the next inline explainer has to clear it, leaving a ` +
+          `visible whitespace gap. rehype-explainer-figure.mjs's job — check the plugin.`,
       );
     }
   }

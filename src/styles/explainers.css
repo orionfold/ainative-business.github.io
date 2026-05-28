@@ -29,6 +29,13 @@
   line-height: 1.55;
   color: var(--color-text-muted);
   break-inside: avoid;
+  /* Floated explainers run 13–17rem wide; dotted identifiers
+     (`fieldkit.harness.evaluate_brain`, `auxiliary.compression.context_length`)
+     have no natural break points and otherwise overflow the gutter,
+     visibly overlapping adjacent prose. `overflow-wrap: anywhere` only
+     breaks when the content would otherwise overflow, so prose words stay
+     intact and only the overflowing tokens get character-level breaks. */
+  overflow-wrap: anywhere;
 }
 
 .fn-prose .explain > .explain__title {
