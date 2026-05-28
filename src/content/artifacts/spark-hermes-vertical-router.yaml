@@ -1,0 +1,34 @@
+slug: spark-hermes-vertical-router
+kind: harness
+class: agent-harness
+base_model: Hermes Agent v0.14.0
+hf_repo: Orionfold/spark-hermes-vertical-router
+variants:
+  - Patent prosecution
+  - Legal reasoning
+  - Financial analysis
+  - Defensive cyber
+  - Clinical reasoning
+  - Default brain (MoE)
+recommended_variant: Default brain (MoE)
+license:
+  tier: free
+  model: mit
+article: articles/hermes-vertical-router-on-spark/
+positioning:
+  headline: "One always-on brain, five specialists, zero LLM-classifier overhead."
+  problem: "A Spark holds one strong model warm at a time. The pinned MoE is excellent at general agentic work but is not your domain expert. The five Orionfold vertical GGUFs are domain experts but compete for the same 128 GB envelope. A router picks per prompt: keyword-matched prompts get the right specialist (warm on demand, ~5–10 s), everything else stays with the brain."
+  use_cases:
+    - Route a Hermes agent prompt to a vertical specialist by keyword
+    - Reproduce the 30-prompt router-accuracy + per-vertical quality bench
+    - "Embed a deterministic, auditable router into a Hermes config"
+  audience: "DGX Spark power users running a local, no-API-key agent harness across multiple domains."
+known_drift:
+  - item: Router-accuracy sample size
+    bound: router classification measured over 30 prompts (5 per vertical + 5 default-brain) — not a large-N guarantee.
+  - item: Keyword-set tuning
+    bound: vertical keywords were tuned against the 30 bench prompts (5 per vertical); out-of-distribution prompts may misroute.
+  - item: Per-vertical pass-rate basis
+    bound: "5 prompts per vertical; deterministic substring/regex rubrics — open-ended answers (haiku, drafted claims) marked vibe."
+  - item: One-at-a-time vertical serving
+    bound: "verticals are served on demand on :8090 (~5–10s warm); the default brain stays warm on :8080 (always-on, ~32 GB)."

@@ -364,7 +364,7 @@ These compose with the new `fieldkit.harness.evaluate_brain` / `evaluate_brains`
 
 Five `kind`s exercised by the bakeoff (every kind in `CHECK_KINDS` has a dispatch branch):
 
-- **`substring`** — `any` is searched (case-insensitive). Pass on first hit; the reason names the matched token.
+- **`substring`** — `all` is the AND-clause (every term must appear, case-insensitive); `any` is the OR-clause (at least one term must appear). Both may be set together (e.g. require a specific anchor term plus one of several plausible supporting terms — the H5/H6 prompt shape); both empty is an explicit config-error failure (was a silent-pass landmine pre-v0.13.0, fixed via the H6 t07 numeric prompt). Reason names the matched term, the missing required term, or the unmatched OR-clause.
 - **`json_keys`** — `keys` are looked up in the LAST parseable JSON object found in the answer (`extract_last_json` walks `\{[^{}]*\}` matches in reverse). All keys must be present.
 - **`regex`** — every pattern in `all` must `re.search` the answer.
 - **`honesty`** — true if any phrase in `HEDGE_PHRASES` (or the caller-supplied `hedges=...` argument to `score_answer`) appears (case-insensitive). Distinct from `REFUSAL_PATTERNS` — those are RAG-refusal regexes; these grade whether a model that *can't* fetch the answer declined to confabulate.

@@ -54,6 +54,8 @@
     "hardening-the-hermes-harness-on-spark",
     "hermes-drives-the-spark-via-fieldkit-mcp",
     "field-fixing-the-hermes-harness-on-spark",
-    "picking-the-hermes-brain-on-spark"
+    "picking-the-hermes-brain-on-spark",
+    "hermes-vertical-router-on-spark",
+    "hermes-cost-routing-local-and-openrouter"
   ]
 }
