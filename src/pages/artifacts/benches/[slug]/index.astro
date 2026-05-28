@@ -112,10 +112,23 @@ const jsonLd = [
 
     <NotebookBadges notebooks={a.notebooks} contextLabel={a.slug} />
 
-    {a.shapes && a.shapes.length > 0 && (
+    {a.shapes && a.shapes.length > 0 ? (
       <section class="bd__section">
         <h2 class="bd__section-title">Shape composition</h2>
         <BenchSignature shapes={a.shapes} variant="hero" />
+      </section>
+    ) : (
+      <section class="bd__section">
+        <h2 class="bd__section-title">Bench scaffold</h2>
+        <svg class="bs bs--scaffold" viewBox="0 0 100 8" preserveAspectRatio="none" role="img" aria-label={`${a.slug}: scaffold-only bench, no shape composition yet`}>
+          <rect x="0" y="0" width="100" height="8" fill="var(--color-border)" opacity="0.45" />
+          <rect x="0" y="0" width="100" height="8" fill="none" stroke="var(--color-border)" stroke-width="0.5" stroke-dasharray="2 2" />
+        </svg>
+        <p class="bd__section-blurb">
+          The repository is published as the canonical home for this bench's
+          rows; shape composition, modes, and results land on this page once
+          the companion field note exercises the bench end-to-end.
+        </p>
       </section>
     )}
 

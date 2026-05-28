@@ -354,6 +354,73 @@ with NIMClient(base_url="http://localhost:8000/v1", model="...") as c:
 
 The two `RUBRIC_PATENT_CLAIM_VALIDITY` and `RUBRIC_OFFICE_ACTION_ARGUMENT` module constants are populated at import time from markdown files shipped under `fieldkit/eval/rubrics/`. Pass `load_rubric("patent_claim_validity")` to re-read the file (or your own rubric named `my_rubric.md` if you ship a fork). The `[tool.hatch.build.targets.wheel].include` glob ships `*.md` under that subtree, so the rubrics travel with the wheel.
 
+### Graded-rubric primitives *(v0.11)*
+
+Promoted from `articles/field-fixing-the-hermes-harness-on-spark/evidence/hermes_brain_eval.py` after the Step-2 Hermes brain-quality bakeoff scored the SAME rubric across three serving lanes. Surface is intentionally small: a deterministic check, a one-step composition (`Rubric` future-proofs AND-of-checks without growing the call sites today), a suite loader that resolves `{{placeholder}}` against the seeded ground truth at load time, and `score_answer(answer, spec)`.
+
+These compose with the new `fieldkit.harness.evaluate_brain` / `evaluate_brains` to drive Hermes head-to-head across serving lanes — see [`docs/api/harness.md`](./harness.md#brain-evaluator-step-3).
+
+#### `CheckSpec(kind, any=(), all=(), keys=(), value=None, tolerance=0.0)`
+
+Five `kind`s exercised by the bakeoff (every kind in `CHECK_KINDS` has a dispatch branch):
+
+- **`substring`** — `any` is searched (case-insensitive). Pass on first hit; the reason names the matched token.
+- **`json_keys`** — `keys` are looked up in the LAST parseable JSON object found in the answer (`extract_last_json` walks `\{[^{}]*\}` matches in reverse). All keys must be present.
+- **`regex`** — every pattern in `all` must `re.search` the answer.
+- **`honesty`** — true if any phrase in `HEDGE_PHRASES` (or the caller-supplied `hedges=...` argument to `score_answer`) appears (case-insensitive). Distinct from `REFUSAL_PATTERNS` — those are RAG-refusal regexes; these grade whether a model that *can't* fetch the answer declined to confabulate.
+- **`numeric`** — extracts the first signed/comma-bearing number from the answer; passes if `|got - value| <= tolerance`.
+
+`CheckSpec.from_dict(d)` parses the on-disk JSON shape (lists → tuples). `CheckSpec.with_substitutions({"codename": "ORION-7", ...})` returns a new frozen spec with `{{name}}` tokens resolved inside `any` / `all` / `keys`. Idempotent on already-resolved values.
+
+#### `Rubric` and `Rubric.single(spec)`
+
+Holds `tuple[CheckSpec, ...]` (length 1 today). Multi-check passes only when EVERY check passes; reasons are `" + "`-joined. `Rubric.with_substitutions(subst)` propagates to every wrapped spec.
+
+#### `CheckResult(passed, why)`
+
+Frozen `(bool, str)` pair. `why` is meant for terminal logs and the review-queue markdown — short strings like `"matched 'ORION-7'"`, `"missing keys ['unified_memory_gb']"`, `"asserted an answer without hedging (review)"`.
+
+#### `score_answer(answer, spec, *, hedges=HEDGE_PHRASES) -> CheckResult`
+
+Accepts a bare `CheckSpec` (the common case) or a `Rubric`. The `hedges` keyword lets callers swap in domain-specific uncertainty vocabularies (e.g. legal-domain "without prejudice / cannot confirm" idioms) without forking the function.
+
+#### `GradedPrompt` and `GradedPromptSuite`
+
+`GradedPrompt` is the frozen per-prompt record: `(id, prompt, category, core, vibe, conditional, expect_tool_any, check, note)`. `GradedPromptSuite` is `(name, prompts, notes)` — the loaded suite.
+
+#### `GradedPromptSuite.load(path, substitutions=None)`
+
+Loads the on-disk JSON shape:
+
+```json
+{
+  "suite": "hermes-brain-quality-v1",
+  "notes": "...",
+  "prompts": [
+    {
+      "id": "p1_read_grounding",
+      "prompt": "Read the file facts.txt ...",
+      "category": "single tool call + grounding",
+      "core": true,
+      "expect_tool_any": ["read", "open", "cat"],
+      "check": {"kind": "substring", "any": ["{{codename}}"]}
+    }
+  ]
+}
+```
+
+`substitutions` are applied to each prompt's `check` at load time, so the seeded test fixture and the expected values share one source of truth (the seed step writes `ORION-7` to `facts.txt`; the suite expects `{{codename}}` → `ORION-7`). `GradedPromptSuite.select(*, core_only=False, available_conditions=())` returns the subset that should run — drops non-core when `core_only=True`, drops any `conditional: "<key>"` prompt whose key isn't in `available_conditions`. `GradedPromptSuite.by_id(prompt_id)` looks up a prompt or returns `None`.
+
+Raises `ValueError` on a missing `prompts` list, a prompt entry without `id` / `prompt`, or a `check.kind` outside `CHECK_KINDS`.
+
+#### `extract_last_json(text) -> dict | None`
+
+Public because it's useful outside the rubric — a model asked for "strict JSON, no prose" often slips a markdown fence or leading sentence in anyway; the last bare `{...}` is almost always the intended payload. Walks matches in reverse and returns the first one that parses to a `dict`.
+
+#### `HEDGE_PHRASES`
+
+The 33-entry uncertainty vocabulary used by the `honesty` kind. Exported as a `tuple[str, ...]` so callers can extend it (`hedges=tuple(HEDGE_PHRASES) + ("not enough info",)`) without monkey-patching the constant.
+
 ## Samples
 
 - [`samples/bench-rag.py`](https://github.com/manavsehgal/ai-field-notes/blob/main/fieldkit/samples/bench-rag.py) — offline `Bench` + `Judge.parse` walkthrough.

@@ -1,0 +1,311 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../../layouts/Layout.astro';
+import Nav from '../../../../components/Nav.astro';
+import Footer from '../../../../components/Footer.astro';
+import HarnessSignature from '../../../../components/artifacts/HarnessSignature.astro';
+import { SITE, PUBLISHER } from '../../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts', ({ data }) => data.kind === 'harness');
+  return all.map((entry) => ({
+    params: { slug: entry.data.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const a = entry.data;
+
+const hfUrl = `https://huggingface.co/${a.hf_repo}`;
+const articleSlug = a.article ? a.article.replace(/^articles\//, '').replace(/\/$/, '') : null;
+const articleHref = articleSlug ? `/field-notes/${articleSlug}/` : null;
+
+const formatPublished = (iso?: string) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+};
+const pubLabel = formatPublished(a.published_at);
+
+const lanes = a.variants ?? [];
+const rates = a.spark_tokens_per_sec ?? null;
+const peakRate = rates ? Math.max(...Object.values(rates)) : null;
+
+const pageTitle = `${a.slug} — Harnesses — ainative`;
+const headline = a.positioning?.headline ?? `${a.class} harness profile measured on a DGX Spark.`;
+const pageDescription = (a.positioning?.problem ?? headline).slice(0, 158);
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: a.slug,
+    description: headline,
+    codeRepository: hfUrl,
+    license: a.license.model ? `https://spdx.org/licenses/${a.license.model.toUpperCase()}` : undefined,
+    url: `${SITE.url}/artifacts/harnesses/${a.slug}/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Harnesses', item: `${SITE.url}/artifacts/harnesses/` },
+      { '@type': 'ListItem', position: 4, name: a.slug, item: `${SITE.url}/artifacts/harnesses/${a.slug}/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="hd">
+    <header class="hd__masthead">
+      <div class="hd__strip" aria-hidden="true">
+        <a class="hd__back" href="/artifacts/harnesses/">← Harnesses</a>
+        <span class="hd__rule"></span>
+        <span>/artifacts/harnesses/</span>
+        <span class="hd__rule"></span>
+        <span class="hd__class">{a.class}</span>
+      </div>
+      <h1 class="hd__title">{a.slug}</h1>
+      <p class="hd__tagline">{headline}</p>
+      <div class="hd__chips">
+        <span class="hd__chip">
+          {a.license.tier}{a.license.model ? ` · ${a.license.model}` : ''}
+        </span>
+        {pubLabel && <span class="hd__chip">{pubLabel}</span>}
+        {lanes.length > 0 && <span class="hd__chip">{lanes.length} lanes</span>}
+        {peakRate !== null && <span class="hd__chip">{Math.round(peakRate)} tok/s peak</span>}
+        {a.sustained_load_minutes !== undefined && (
+          <span class="hd__chip">{a.sustained_load_minutes.toFixed(1)} min sustained</span>
+        )}
+      </div>
+    </header>
+
+    {a.positioning && (
+      <section class="hd__section">
+        <h2 class="hd__section-title">Positioning</h2>
+        <p class="hd__problem">{a.positioning.problem}</p>
+        {a.positioning.use_cases && a.positioning.use_cases.length > 0 && (
+          <ul class="hd__use-cases" role="list">
+            {a.positioning.use_cases.map((uc) => <li>{uc}</li>)}
+          </ul>
+        )}
+        {a.positioning.audience && (
+          <p class="hd__audience"><strong>Audience.</strong> {a.positioning.audience}</p>
+        )}
+      </section>
+    )}
+
+    {lanes.length > 0 && (
+      <section class="hd__section">
+        <h2 class="hd__section-title">Lane variants</h2>
+        <p class="hd__section-blurb">
+          The harness profile records every serving lane that was driven through
+          the same Hermes agent on the same DGX Spark. Throughput is recorded as
+          measured tokens-per-second on the box.
+        </p>
+        <HarnessSignature
+          slug={a.slug}
+          variants={a.variants}
+          spark_tokens_per_sec={a.spark_tokens_per_sec}
+          recommended_variant={a.recommended_variant}
+          variant="hero"
+        />
+        {a.recommended_variant && (
+          <p class="hd__rec">
+            <strong>Recommended lane.</strong> <code>{a.recommended_variant}</code> — the lane the harness profile points at for an always-on Spark agent.
+          </p>
+        )}
+      </section>
+    )}
+
+    <section class="hd__section">
+      <h2 class="hd__section-title">How to load</h2>
+      <p class="hd__section-blurb">
+        License: <strong>{a.license.tier}</strong>
+        {a.license.model && <> · {a.license.model}</>}.
+        Published to HuggingFace as a harness profile bundle (config files,
+        lane recipe, doctor checklist).
+      </p>
+      <pre class="hd__code"><code>{`from huggingface_hub import snapshot_download\n\nlocal = snapshot_download("${a.hf_repo}")\nprint(local)  # local path to the harness bundle`}</code></pre>
+    </section>
+
+    {a.known_drift && a.known_drift.length > 0 && (
+      <section class="hd__section">
+        <h2 class="hd__section-title">Known drift</h2>
+        <p class="hd__section-blurb">
+          Every measurement has a measurement window. These are the bounds the
+          harness profile is honest about.
+        </p>
+        <dl class="hd__drift">
+          {a.known_drift.map((d) => (
+            <>
+              <dt>{d.item}</dt>
+              <dd>{d.bound}</dd>
+            </>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {articleHref && (
+      <section class="hd__section hd__section--companion">
+        <h2 class="hd__section-title">Companion field note</h2>
+        <p class="hd__companion-blurb">
+          The harness profile pairs with the field note{' '}
+          <a href={articleHref}>{articleSlug}</a> — read the article for the
+          lane-bakeoff narrative, the unified-memory math, and the tool-call
+          reliability gate that decided the recommended lane.
+        </p>
+        <a class="hd__companion-cta" href={articleHref}>
+          Read the field note <span aria-hidden="true">→</span>
+        </a>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .hd {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem);
+  }
+  .hd__masthead {
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .hd__strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--color-text-muted);
+    margin-bottom: 1.25rem;
+  }
+  .hd__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .hd__back:hover { color: var(--color-primary); }
+  .hd__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .hd__class { color: var(--color-primary); }
+  .hd__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.75rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+    word-break: break-word;
+  }
+  .hd__tagline { margin: 0 0 1.25rem; font-size: 1.05rem; line-height: 1.65; color: var(--color-text-muted); max-width: 56ch; }
+  .hd__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .hd__chip {
+    display: inline-block;
+    padding: 0.3rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-surface-raised) 30%, transparent);
+  }
+
+  .hd__section { margin: 2.5rem 0; }
+  .hd__section-title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+  }
+  .hd__section-blurb { color: var(--color-text-muted); line-height: 1.65; margin: 0 0 1rem; }
+  .hd__problem { color: var(--color-text); line-height: 1.6; margin: 0 0 1rem; }
+  .hd__use-cases {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .hd__use-cases li {
+    padding-left: 1.25rem;
+    position: relative;
+    color: var(--color-text);
+    line-height: 1.55;
+  }
+  .hd__use-cases li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--color-primary);
+    font-family: var(--font-mono);
+  }
+  .hd__audience { color: var(--color-text-muted); font-size: 0.92rem; line-height: 1.5; }
+  .hd__rec { margin-top: 1rem; padding: 0.85rem 1rem; border-left: 3px solid var(--color-primary); background: color-mix(in oklch, var(--color-primary) 6%, transparent); color: var(--color-text); }
+  .hd__rec code { font-family: var(--font-mono); }
+
+  .hd__code {
+    background: color-mix(in oklch, var(--color-border) 18%, transparent);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .hd__drift {
+    display: grid;
+    grid-template-columns: minmax(10rem, 1fr) 2fr;
+    gap: 0.5rem 1.25rem;
+    margin: 0;
+  }
+  .hd__drift dt {
+    font-family: var(--font-mono);
+    color: var(--color-text);
+    font-size: 0.92rem;
+  }
+  .hd__drift dd {
+    margin: 0;
+    color: var(--color-text-muted);
+    line-height: 1.55;
+  }
+
+  .hd__section--companion {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .hd__companion-blurb { color: var(--color-text); line-height: 1.65; margin: 0 0 1rem; }
+  .hd__companion-cta {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-primary);
+    text-decoration: none;
+    padding: 0.6rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    border-radius: 999px;
+  }
+  .hd__companion-cta:hover { background: color-mix(in oklch, var(--color-primary) 8%, transparent); }
+
+  @media (max-width: 36rem) {
+    .hd__drift { grid-template-columns: 1fr; gap: 0.25rem 0; }
+    .hd__drift dt { margin-top: 0.6rem; }
+  }
+</style>

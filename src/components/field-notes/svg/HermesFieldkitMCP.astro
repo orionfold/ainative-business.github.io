@@ -1,0 +1,89 @@
+---
+// Signature figure for "Hermes Drives the Spark via fieldkit-as-MCP".
+// Three-node flow: hermes -z -> fieldkit·MCP (accent, the curated tool surface
+// the agent drives the box through) -> the box. "7 CURATED TOOLS" callout sits
+// above the accent. The keystone: the agent operates its own machine, no key.
+const stages = [
+  { label: 'hermes',   sub: '-z' },
+  { label: 'fieldkit', sub: 'mcp' },
+  { label: 'the box',  sub: '128 GB' },
+];
+const n = stages.length;
+const plotLeft = 46;
+const plotRight = 254;
+const step = (plotRight - plotLeft) / (n - 1);
+const nodeW = 56;
+const cy = 100;
+const accent = 1; // the fieldkit MCP surface — what the agent drives the box through
+const ax = plotLeft + accent * step;
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Hermes agent turn flowing through the curated fieldkit MCP surface to operate the DGX Spark — seven curated tools, no API key" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hf-acc-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hf-band-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="hf-acc-halo-grad" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- atmospheric band under the flow + halo around the MCP surface node -->
+  <rect x="10" y={cy - 18} width="280" height="36" rx="3"
+        fill="url(#hf-band-grad)" stroke="none"/>
+  <rect x={ax - 44} y={cy - 50} width="88" height="100"
+        fill="url(#hf-acc-halo-grad)" stroke="none"/>
+
+  <!-- flow line -->
+  <g class="svg-reveal svg-reveal-d1">
+    <line x1={plotLeft + nodeW / 2} y1={cy} x2={plotRight - nodeW / 2} y2={cy}
+          stroke="var(--svg-connector)" stroke-width="1" stroke-linecap="round"/>
+    <path class="line-draw svg-reveal-d2"
+          d={`M ${plotLeft + nodeW / 2} ${cy} L ${plotRight - nodeW / 2} ${cy}`}
+          fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+  </g>
+
+  <!-- stage nodes -->
+  {stages.map((s, i) => {
+    const x = plotLeft + i * step;
+    const isAcc = i === accent;
+    const fill = isAcc ? 'url(#hf-acc-grad)' : 'var(--svg-bg-inner)';
+    const stroke = isAcc ? 'var(--svg-accent-blue)' : 'var(--svg-bg-inner-stroke)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${Math.min(8, i + 2)}`}>
+        <rect
+          x={x - nodeW / 2} y={cy - 22} width={nodeW} height="44" rx="6"
+          fill={fill} stroke={stroke} stroke-width={isAcc ? 1.5 : 1}
+        />
+        <text x={x} y={cy - 3} text-anchor="middle"
+              fill={isAcc ? 'var(--svg-text-bright)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)" font-size="10"
+              font-weight={isAcc ? 600 : 500}>{s.label}</text>
+        <text x={x} y={cy + 13} text-anchor="middle"
+              fill="var(--svg-text-faint)"
+              font-family="var(--font-mono)" font-size="8">{s.sub}</text>
+      </g>
+    );
+  })}
+
+  <!-- "7 CURATED TOOLS" callout over the MCP surface -->
+  <g class="svg-reveal svg-reveal-d8">
+    <text x={ax} y={cy - 35} text-anchor="middle"
+          fill="var(--svg-accent-blue)"
+          font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.2em" font-weight="600">7 CURATED TOOLS</text>
+  </g>
+
+  <!-- bottom eyebrow -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x={plotLeft + (plotRight - plotLeft) / 2} y={cy + 52} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.15em">THE AGENT OPERATES THE BOX · NO API KEY</text>
+  </g>
+</svg>

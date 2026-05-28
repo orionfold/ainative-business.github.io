@@ -1,0 +1,119 @@
+---
+interface Props {
+  slug: string;
+  variants?: string[];
+  recommended_variant?: string;
+  variant?: 'compact' | 'hero';
+}
+
+const { slug, variants = [], recommended_variant, variant = 'compact' } = Astro.props;
+
+const items = variants.map((v) => ({ name: v, isRecommended: recommended_variant === v }));
+
+const ariaLabel = `Skill bundle ${slug}: ${variants.length} variants${recommended_variant ? `, recommended ${recommended_variant}` : ''}`;
+---
+
+{variant === 'compact' && (
+  <svg
+    class="skill-sig skill-sig--compact"
+    viewBox="0 0 80 32"
+    preserveAspectRatio="xMidYMid meet"
+    role="img"
+    aria-label={ariaLabel}
+  >
+    {items.slice(0, 4).map((it, i) => {
+      const offset = i * 5;
+      const y = 5 + offset;
+      return (
+        <rect
+          x={6 + offset}
+          y={y}
+          width={56}
+          height={14}
+          rx="3"
+          fill={it.isRecommended ? 'var(--color-primary)' : 'var(--color-text-muted)'}
+          opacity={it.isRecommended ? '0.85' : '0.3'}
+          stroke="var(--color-border)"
+          stroke-width="0.5"
+        />
+      );
+    })}
+  </svg>
+)}
+
+{variant === 'hero' && (
+  <figure class="skill-sig skill-sig--hero" aria-label={ariaLabel}>
+    <ul class="skill-sig__stack" role="list">
+      {items.map((it) => (
+        <li class={`skill-sig__card ${it.isRecommended ? 'skill-sig__card--rec' : ''}`}>
+          <span class="skill-sig__card-name">{it.name}</span>
+          {it.isRecommended && <span class="skill-sig__card-pin">recommended</span>}
+        </li>
+      ))}
+    </ul>
+    <figcaption class="skill-sig__caption">
+      {items.length} SKILL.md bundle{items.length === 1 ? '' : 's'} · agentskills.io format
+    </figcaption>
+  </figure>
+)}
+
+<style>
+  .skill-sig--compact {
+    width: 80px;
+    height: 32px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  .skill-sig--hero {
+    margin: 0;
+    padding: 1.5rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent);
+  }
+  .skill-sig__stack {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .skill-sig__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--color-border) 15%, transparent);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: var(--color-text);
+  }
+  .skill-sig__card--rec {
+    border-color: color-mix(in oklch, var(--color-primary) 45%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+  }
+  .skill-sig__card-pin {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-primary);
+    padding: 0.1rem 0.4rem;
+    border: 1px solid color-mix(in oklch, var(--color-primary) 35%, transparent);
+    border-radius: 999px;
+  }
+  .skill-sig__caption {
+    margin-top: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    text-align: right;
+  }
+</style>
