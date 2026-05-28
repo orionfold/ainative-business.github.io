@@ -26,7 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const distDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
-const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches', 'notebooks'];
+const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches', 'notebooks', 'harnesses', 'skills'];
 
 const FORWARD_LOOKING_PATTERNS = [
   /\bcoming soon\b/i,
@@ -36,7 +36,7 @@ const FORWARD_LOOKING_PATTERNS = [
   /\bnext\s+version\s+(?:will|to)/i,
 ];
 
-const BOUND_PATTERN = /(\b\d+(?:[.,]\d+)?(?:\s*%|\/\d|x|\s+of\s+\d+)|\b\d+(?:[.,]\d+)?(?:\s+[\w-]+){0,3}\s+(?:entries?|rows?|cases?|answers?|cells?|points?)\b|<\s*\d|~\s*\d|\bless\s+than\s+\d|\bfewer\s+than\s+\d|\bapproximately\s+\d|\bbalance\b|\ball\s+other\b|\bevery\s+other\b|\brest\s+of\b|\bsame\s+(?:scope|as|bound)\b|\binherited\s+from\b|\btwo\s+known\b|\bthree\s+known\b|\bfour\s+known\b|\bsubsections?\s*\([a-z]|\([a-z]\)[-–]\([a-z]\))/i;
+const BOUND_PATTERN = /(\b\d+(?:[.,]\d+)?(?:\s*%|\/\d|x|\s+of\s+\d+)|\b\d+(?:[.,]\d+)?(?:\s+[\w-]+){0,3}\s+(?:entries?|rows?|cases?|answers?|cells?|points?|tasks?|tokens?|skills?|lanes?|variants?|samples?|hours?|minutes?|days?|requests?|prompts?|trials?|runs?)\b|\b\d+(?:[.,]\d+)?\s*(?:[KMG]B?|GB?|MB?|kB?)\b|<\s*\d|~\s*\d|\bless\s+than\s+\d|\bfewer\s+than\s+\d|\bapproximately\s+\d|\bbalance\b|\ball\s+other\b|\bevery\s+other\b|\brest\s+of\b|\bsame\s+(?:scope|as|bound)\b|\binherited\s+from\b|\btwo\s+known\b|\bthree\s+known\b|\bfour\s+known\b|\bsubsections?\s*\([a-z]|\([a-z]\)[-–]\([a-z]\))/i;
 
 const failures = [];
 const stats = { pagesChecked: 0, kindsCovered: new Set() };
@@ -109,7 +109,7 @@ async function checkPage(file, kindSegment) {
   }
 
   const hasSignature =
-    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig|nb-sig)\b/.test(body) ||
+    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig|nb-sig|harness-sig|skill-sig)\b/.test(body) ||
     /class="[^"]*Signature/.test(body);
   if (!hasSignature) {
     recordFailure(file, 'visual-required', `No signature SVG found on page. Every detail page must carry a data-driven visual.`);

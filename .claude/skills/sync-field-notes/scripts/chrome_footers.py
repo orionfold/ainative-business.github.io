@@ -48,6 +48,8 @@ _KIND_TO_URL_FAMILY: dict[str, str] = {
     "dataset": "datasets",
     "bench": "benches",
     "notebook": "notebooks",
+    "harness": "harnesses",
+    "skill": "skills",
 }
 
 # Per-kind footer template. Defaults to the quant text (four-axis card +
@@ -79,6 +81,14 @@ _BLURB_BY_KIND: dict[str, str] = {
         "the dual-path Open in Colab / Open in Kaggle on-ramp, builder + user "
         "variants, target-model lineage, and bounded drift between Spark and "
         "cloud quants — the full notebook card."
+    ),
+    "harness": (
+        "positioning, lane variants with measured throughput, the recommended "
+        "lane, and bounded drift — the full Spark-agent harness profile."
+    ),
+    "skill": (
+        "positioning, the agentskills.io-format skill variants, the "
+        "recommended variant, and bounded drift — the full skill bundle."
     ),
 }
 

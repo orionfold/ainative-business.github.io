@@ -1,0 +1,232 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../../layouts/Layout.astro';
+import Nav from '../../../../components/Nav.astro';
+import Footer from '../../../../components/Footer.astro';
+import SkillSignature from '../../../../components/artifacts/SkillSignature.astro';
+import { SITE, PUBLISHER } from '../../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts', ({ data }) => data.kind === 'skill');
+  return all.map((entry) => ({
+    params: { slug: entry.data.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const a = entry.data;
+
+const hfUrl = `https://github.com/${a.hf_repo}`;
+const articleSlug = a.article ? a.article.replace(/^articles\//, '').replace(/\/$/, '') : null;
+const articleHref = articleSlug ? `/field-notes/${articleSlug}/` : null;
+
+const formatPublished = (iso?: string) => {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(d);
+};
+const pubLabel = formatPublished(a.published_at);
+
+const variants = a.variants ?? [];
+
+const pageTitle = `${a.slug} — Skills — ainative`;
+const headline = a.positioning?.headline ?? `${a.class} bundle in agentskills.io format.`;
+const pageDescription = (a.positioning?.problem ?? headline).slice(0, 158);
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: a.slug,
+    description: headline,
+    codeRepository: hfUrl,
+    license: a.license.model ? `https://spdx.org/licenses/${a.license.model.toUpperCase()}` : undefined,
+    url: `${SITE.url}/artifacts/skills/${a.slug}/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Skills', item: `${SITE.url}/artifacts/skills/` },
+      { '@type': 'ListItem', position: 4, name: a.slug, item: `${SITE.url}/artifacts/skills/${a.slug}/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="sd">
+    <header class="sd__masthead">
+      <div class="sd__strip" aria-hidden="true">
+        <a class="sd__back" href="/artifacts/skills/">← Skills</a>
+        <span class="sd__rule"></span>
+        <span>/artifacts/skills/</span>
+        <span class="sd__rule"></span>
+        <span class="sd__class">{a.class}</span>
+      </div>
+      <h1 class="sd__title">{a.slug}</h1>
+      <p class="sd__tagline">{headline}</p>
+      <div class="sd__chips">
+        <span class="sd__chip">
+          {a.license.tier}{a.license.model ? ` · ${a.license.model}` : ''}
+        </span>
+        {pubLabel && <span class="sd__chip">{pubLabel}</span>}
+        {variants.length > 0 && <span class="sd__chip">{variants.length} variants</span>}
+        <span class="sd__chip">agentskills.io</span>
+      </div>
+    </header>
+
+    {a.positioning && (
+      <section class="sd__section">
+        <h2 class="sd__section-title">Positioning</h2>
+        <p class="sd__problem">{a.positioning.problem}</p>
+        {a.positioning.use_cases && a.positioning.use_cases.length > 0 && (
+          <ul class="sd__use-cases" role="list">
+            {a.positioning.use_cases.map((uc) => <li>{uc}</li>)}
+          </ul>
+        )}
+        {a.positioning.audience && (
+          <p class="sd__audience"><strong>Audience.</strong> {a.positioning.audience}</p>
+        )}
+      </section>
+    )}
+
+    {variants.length > 0 && (
+      <section class="sd__section">
+        <h2 class="sd__section-title">Variants</h2>
+        <p class="sd__section-blurb">
+          Each variant is a single <code>SKILL.md</code> file in agentskills.io
+          frontmatter — the same format Claude Code reads. Drop one into
+          <code>.claude/skills/</code> and any agentskills.io-compatible runtime
+          loads it unchanged.
+        </p>
+        <SkillSignature
+          slug={a.slug}
+          variants={a.variants}
+          recommended_variant={a.recommended_variant}
+          variant="hero"
+        />
+        {a.recommended_variant && (
+          <p class="sd__rec">
+            <strong>Start here.</strong> <code>{a.recommended_variant}</code> — the variant the bundle leads with.
+          </p>
+        )}
+      </section>
+    )}
+
+    <section class="sd__section">
+      <h2 class="sd__section-title">How to install</h2>
+      <p class="sd__section-blurb">
+        License: <strong>{a.license.tier}</strong>
+        {a.license.model && <> · {a.license.model}</>}.
+        The repository hosts one folder per variant; each folder is a
+        self-contained <code>SKILL.md</code> bundle.
+      </p>
+      <pre class="sd__code"><code>{`git clone https://github.com/${a.hf_repo}.git\n# drop the variant folder you want into .claude/skills/`}</code></pre>
+    </section>
+
+    {a.known_drift && a.known_drift.length > 0 && (
+      <section class="sd__section">
+        <h2 class="sd__section-title">Known drift</h2>
+        <p class="sd__section-blurb">
+          The bounds the skill bundle is honest about.
+        </p>
+        <dl class="sd__drift">
+          {a.known_drift.map((d) => (
+            <>
+              <dt>{d.item}</dt>
+              <dd>{d.bound}</dd>
+            </>
+          ))}
+        </dl>
+      </section>
+    )}
+
+    {articleHref && (
+      <section class="sd__section sd__section--companion">
+        <h2 class="sd__section-title">Companion field note</h2>
+        <p class="sd__companion-blurb">
+          The skill bundle pairs with the field note{' '}
+          <a href={articleHref}>{articleSlug}</a> — the article walks through how
+          a Claude Code skill ports unchanged into a Hermes agent over the
+          fieldkit-MCP surface.
+        </p>
+        <a class="sd__companion-cta" href={articleHref}>
+          Read the field note <span aria-hidden="true">→</span>
+        </a>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .sd { max-width: 60rem; margin: 0 auto; padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem); }
+  .sd__masthead { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--color-border); }
+  .sd__strip {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 1rem;
+    font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--color-text-muted); margin-bottom: 1.25rem;
+  }
+  .sd__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .sd__back:hover { color: var(--color-primary); }
+  .sd__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .sd__class { color: var(--color-primary); }
+  .sd__title { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.75rem, 4vw, 2.6rem); line-height: 1.1; letter-spacing: -0.02em; color: var(--color-text); margin: 0 0 1rem; word-break: break-word; }
+  .sd__tagline { margin: 0 0 1.25rem; font-size: 1.05rem; line-height: 1.65; color: var(--color-text-muted); max-width: 56ch; }
+  .sd__chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .sd__chip {
+    display: inline-block; padding: 0.3rem 0.7rem;
+    border: 1px solid var(--color-border); border-radius: 999px;
+    font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    background: color-mix(in oklch, var(--color-surface-raised) 30%, transparent);
+  }
+
+  .sd__section { margin: 2.5rem 0; }
+  .sd__section-title { font-family: var(--font-display); font-size: 1.35rem; color: var(--color-text); margin: 0 0 1rem; }
+  .sd__section-blurb { color: var(--color-text-muted); line-height: 1.65; margin: 0 0 1rem; }
+  .sd__section-blurb code { font-family: var(--font-mono); }
+  .sd__problem { color: var(--color-text); line-height: 1.6; margin: 0 0 1rem; }
+  .sd__use-cases { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: 0.5rem; }
+  .sd__use-cases li { padding-left: 1.25rem; position: relative; color: var(--color-text); line-height: 1.55; }
+  .sd__use-cases li::before { content: '→'; position: absolute; left: 0; color: var(--color-primary); font-family: var(--font-mono); }
+  .sd__audience { color: var(--color-text-muted); font-size: 0.92rem; line-height: 1.5; }
+  .sd__rec { margin-top: 1rem; padding: 0.85rem 1rem; border-left: 3px solid var(--color-primary); background: color-mix(in oklch, var(--color-primary) 6%, transparent); color: var(--color-text); }
+  .sd__rec code { font-family: var(--font-mono); }
+
+  .sd__code {
+    background: color-mix(in oklch, var(--color-border) 18%, transparent);
+    border-radius: 8px; padding: 1rem 1.25rem; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 0.82rem;
+    color: var(--color-text); margin: 0;
+  }
+
+  .sd__drift { display: grid; grid-template-columns: minmax(10rem, 1fr) 2fr; gap: 0.5rem 1.25rem; margin: 0; }
+  .sd__drift dt { font-family: var(--font-mono); color: var(--color-text); font-size: 0.92rem; }
+  .sd__drift dd { margin: 0; color: var(--color-text-muted); line-height: 1.55; }
+
+  .sd__section--companion { margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--color-border); }
+  .sd__companion-blurb { color: var(--color-text); line-height: 1.65; margin: 0 0 1rem; }
+  .sd__companion-cta {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.78rem;
+    text-transform: uppercase; letter-spacing: 0.14em;
+    color: var(--color-primary); text-decoration: none;
+    padding: 0.6rem 1rem;
+    border: 1px solid color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    border-radius: 999px;
+  }
+  .sd__companion-cta:hover { background: color-mix(in oklch, var(--color-primary) 8%, transparent); }
+
+  @media (max-width: 36rem) {
+    .sd__drift { grid-template-columns: 1fr; gap: 0.25rem 0; }
+    .sd__drift dt { margin-top: 0.6rem; }
+  }
+</style>

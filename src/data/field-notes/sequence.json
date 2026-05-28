@@ -49,6 +49,11 @@
     "unsloth-on-spark-feasibility",
     "synthetic-corpus-frameworks-on-spark",
     "patent-strategist-bakeoff-unsloth-vs-nemo-framework",
-    "the-hermes-harness-on-spark"
+    "the-hermes-harness-on-spark",
+    "hermes-serving-lane-on-spark",
+    "hardening-the-hermes-harness-on-spark",
+    "hermes-drives-the-spark-via-fieldkit-mcp",
+    "field-fixing-the-hermes-harness-on-spark",
+    "picking-the-hermes-brain-on-spark"
   ]
 }

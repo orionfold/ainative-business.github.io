@@ -5,6 +5,8 @@ export const ARTIFACT_KINDS = [
   'dataset',
   'bench',
   'notebook',
+  'harness',
+  'skill',
 ] as const;
 
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
@@ -16,6 +18,8 @@ const SEGMENT_BY_KIND: Record<ArtifactKind, string> = {
   dataset: 'datasets',
   bench: 'benches',
   notebook: 'notebooks',
+  harness: 'harnesses',
+  skill: 'skills',
 };
 
 const DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
@@ -25,6 +29,8 @@ const DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   dataset: 'Dataset',
   bench: 'Benchmark',
   notebook: 'Notebook',
+  harness: 'Harness',
+  skill: 'Skill',
 };
 
 const PLURAL_DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
@@ -34,6 +40,8 @@ const PLURAL_DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   dataset: 'Datasets',
   bench: 'Benchmarks',
   notebook: 'Notebooks',
+  harness: 'Harnesses',
+  skill: 'Skills',
 };
 
 export function kindToSegment(kind: ArtifactKind): string {

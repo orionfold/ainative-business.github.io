@@ -1,0 +1,11 @@
+slug: hermes-brain-bench-v0.1
+kind: bench
+class: agent-brain-quality
+base_model: n/a
+hf_repo: Orionfold/hermes-brain-bench-v0.1
+variants: []
+license:
+  tier: free
+  model: cc-by-4.0
+article: articles/picking-the-hermes-brain-on-spark/
+published_at: "2026-05-28T05:15:10Z"

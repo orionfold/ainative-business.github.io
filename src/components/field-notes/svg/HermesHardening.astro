@@ -1,0 +1,84 @@
+---
+// Signature figure for "Hardening the Hermes Harness on a DGX Spark".
+// Containment thesis: a hostile tool call lands in the hardened sandbox (accent,
+// bounded) and the egress path to the internet is severed (dashed + X). The box
+// contains the call regardless of the model's intent.
+const cy = 100;
+// hostile call (left) -> sandbox (center, accent) -X-> internet (top-right)
+const hostileX = 52;
+const sandX = 150;
+const netX = 250;
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="A hostile tool call lands in a hardened sandbox whose egress to the internet is severed — the box contains the call regardless of the model's intent" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hh-acc-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="hh-acc-halo-grad" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- isolation-zone boundary + halo around the sandbox node -->
+  <rect x={sandX - 46} y={cy - 44} width="92" height="88" rx="10"
+        fill="url(#hh-acc-halo-grad)" stroke="none"/>
+  <rect x={sandX - 46} y={cy - 44} width="92" height="88" rx="10"
+        fill="none" stroke="var(--svg-bg-inner-stroke)" stroke-width="1" stroke-dasharray="3 3"/>
+
+  <!-- hostile call -> sandbox (lands) -->
+  <g class="svg-reveal svg-reveal-d1">
+    <path class="line-draw svg-reveal-d2"
+          d={`M ${hostileX + 22} ${cy} L ${sandX - 30} ${cy}`}
+          fill="none" stroke="var(--svg-accent-red)" stroke-width="1.5"/>
+  </g>
+
+  <!-- sandbox -X-> internet (severed egress) -->
+  <g class="svg-reveal svg-reveal-d4">
+    <path class="line-draw svg-reveal-d5"
+          d={`M ${sandX + 30} ${cy - 18} L ${netX - 22} ${cy - 40}`}
+          fill="none" stroke="var(--svg-connector)" stroke-width="1"
+          stroke-dasharray="4 3"/>
+    <g stroke="var(--svg-accent-red)" stroke-width="1.5" stroke-linecap="round">
+      <line x1={(sandX + netX) / 2 - 5} y1={cy - 34} x2={(sandX + netX) / 2 + 5} y2={cy - 24}/>
+      <line x1={(sandX + netX) / 2 + 5} y1={cy - 34} x2={(sandX + netX) / 2 - 5} y2={cy - 24}/>
+    </g>
+  </g>
+
+  <!-- hostile call chip -->
+  <g class="svg-reveal svg-reveal-d1">
+    <rect x={hostileX - 22} y={cy - 18} width="44" height="36" rx="6"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-red)" stroke-width="1"/>
+    <text x={hostileX} y={cy - 1} text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="9" font-weight="500">hostile</text>
+    <text x={hostileX} y={cy + 12} text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="8">call</text>
+  </g>
+
+  <!-- sandbox (accent, contained) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x={sandX - 30} y={cy - 26} width="60" height="52" rx="7"
+          fill="url(#hh-acc-grad)" stroke="var(--svg-accent-blue)" stroke-width="1.5"/>
+    <text x={sandX} y={cy - 5} text-anchor="middle" fill="var(--svg-text-bright)"
+          font-family="var(--font-mono)" font-size="9" font-weight="600">sandbox</text>
+    <text x={sandX} y={cy + 9} text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="8">--net=none</text>
+  </g>
+
+  <!-- internet chip (unreachable) -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x={netX - 22} y={cy - 56} width="44" height="32" rx="6"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"
+          stroke-dasharray="3 3"/>
+    <text x={netX} y={cy - 36} text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="9">egress</text>
+  </g>
+
+  <!-- bottom eyebrow -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y={cy + 56} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="8"
+          letter-spacing="0.15em">HOSTILE TOOL CALL · CONTAINED</text>
+  </g>
+</svg>

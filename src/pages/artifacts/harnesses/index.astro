@@ -1,0 +1,150 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import HarnessSignature from '../../../components/artifacts/HarnessSignature.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'harness');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Harnesses — Artifacts — ainative';
+const pageDescription = `${sorted.length} reproducible Spark-agent harness profile${sorted.length === 1 ? '' : 's'}, each paired with a methodology field note.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Harnesses',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/harnesses/`,
+    publisher: PUBLISHER,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Harnesses', item: `${SITE.url}/artifacts/harnesses/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="hi">
+    <header class="hi__masthead">
+      <div class="hi__strip" aria-hidden="true">
+        <a class="hi__back" href="/artifacts/">← Artifacts</a>
+        <span class="hi__rule"></span>
+        <span>/harnesses/</span>
+        <span class="hi__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="hi__title">Harnesses.</h1>
+      <p class="hi__tagline">
+        Reproducible Spark-agent harness profiles — provider config, serving-lane
+        recipe, measured throughput, and tool-call reliability on a single DGX
+        Spark. <span class="hi__count">{countPadded} published.</span>
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <p class="hi__empty">No harnesses published yet.</p>
+    ) : (
+      <section class="hi__list">
+        {sorted.map((artifact) => {
+          const a = artifact.data;
+          const peakRate = a.spark_tokens_per_sec ? Math.max(...Object.values(a.spark_tokens_per_sec)) : null;
+          return (
+            <a class="hi__row" href={`/artifacts/harnesses/${a.slug}/`}>
+              <div class="hi__row-visual" aria-hidden="true">
+                <HarnessSignature
+                  slug={a.slug}
+                  variants={a.variants}
+                  spark_tokens_per_sec={a.spark_tokens_per_sec}
+                  recommended_variant={a.recommended_variant}
+                  variant="compact"
+                />
+              </div>
+              <div class="hi__row-meta">
+                <div class="hi__row-head">
+                  <h2 class="hi__row-title">{a.slug}</h2>
+                  <span class="hi__row-class">{a.class}</span>
+                </div>
+                {a.positioning?.headline && <p class="hi__row-blurb">{a.positioning.headline}</p>}
+                <div class="hi__row-chips">
+                  {a.variants && a.variants.length > 0 && <span class="hi__row-chip">{a.variants.length} lanes</span>}
+                  {peakRate !== null && <span class="hi__row-chip">{Math.round(peakRate)} tok/s peak</span>}
+                  <span class="hi__row-chip">{a.license.tier}</span>
+                </div>
+              </div>
+              <span class="hi__row-arrow" aria-hidden="true">→</span>
+            </a>
+          );
+        })}
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .hi { max-width: 72rem; margin: 0 auto; padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem); }
+  .hi__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .hi__strip {
+    display: flex; align-items: center; gap: 1rem;
+    font-family: var(--font-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.18em;
+    color: var(--color-text-muted); margin-bottom: 1.25rem;
+  }
+  .hi__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .hi__back:hover { color: var(--color-primary); }
+  .hi__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .hi__title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.2rem, 5vw, 3.8rem); line-height: 1.05; letter-spacing: -0.02em; color: var(--color-text); margin: 0 0 1rem; }
+  .hi__tagline { font-size: 1.05rem; line-height: 1.65; color: var(--color-text-muted); max-width: 56ch; margin: 0; }
+  .hi__count { color: var(--color-primary); font-family: var(--font-mono); font-size: 0.95em; margin-left: 0.25rem; }
+
+  .hi__list { margin-top: 1.5rem; border-top: 1px solid var(--color-border); display: grid; gap: 0; }
+  .hi__row {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid var(--color-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.15s;
+  }
+  .hi__row:hover { background: color-mix(in oklch, var(--color-primary) 4%, transparent); }
+  .hi__row-visual { display: flex; align-items: center; }
+  .hi__row-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.45rem; }
+  .hi__row-title { font-family: var(--font-display); font-size: 1.2rem; color: var(--color-text); margin: 0; line-height: 1.2; }
+  .hi__row-class { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--color-primary); }
+  .hi__row-blurb { margin: 0 0 0.65rem; color: var(--color-text-muted); font-size: 0.95rem; line-height: 1.55; }
+  .hi__row-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .hi__row-chip { font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--color-text-muted); padding: 0.18rem 0.55rem; border: 1px solid var(--color-border); border-radius: 999px; }
+  .hi__row-arrow { font-family: var(--font-mono); color: var(--color-text-muted); font-size: 1.2rem; }
+  .hi__row:hover .hi__row-arrow { color: var(--color-primary); }
+
+  .hi__empty {
+    margin-top: 3rem; padding: 3rem 2rem;
+    border: 1px dashed var(--color-border); border-radius: 10px;
+    text-align: center; color: var(--color-text-muted); font-family: var(--font-mono);
+  }
+
+  @media (max-width: 36rem) {
+    .hi__row { grid-template-columns: 1fr; gap: 0.65rem; }
+    .hi__row-arrow { display: none; }
+  }
+</style>

@@ -13,6 +13,8 @@ import LoRASignature from '../../components/artifacts/LoRASignature.astro';
 import AdapterSignature from '../../components/artifacts/AdapterSignature.astro';
 import DatasetSignature from '../../components/artifacts/DatasetSignature.astro';
 import NotebookSignature from '../../components/artifacts/NotebookSignature.astro';
+import HarnessSignature from '../../components/artifacts/HarnessSignature.astro';
+import SkillSignature from '../../components/artifacts/SkillSignature.astro';
 import { SITE, PUBLISHER } from '../../data/seo';
 
 const all = await getCollection('artifacts');
@@ -48,6 +50,8 @@ const KIND_BLURBS: Record<ArtifactKind, string> = {
   dataset: 'Curated and synthesized training/eval datasets.',
   bench: 'Open benchmarks and eval harnesses with publishable scores.',
   notebook: 'Builder + user Jupyter notebooks, one-click Colab/Kaggle on-ramps for every vertical release.',
+  harness: 'Reproducible Spark-agent harness profiles — serving lane, throughput, tool-call reliability.',
+  skill: 'Agentskills.io-format skill bundles — portable across Claude Code, Hermes, and the rest.',
 };
 
 const totalCount = all.length;
@@ -143,6 +147,23 @@ const jsonLd = [
                   slug={featured?.data.slug ?? `placeholder-${kind}`}
                   variants={featured?.data.variants}
                   base_model={featured?.data.base_model}
+                  variant="compact"
+                />
+              )}
+              {kind === 'harness' && (
+                <HarnessSignature
+                  slug={featured?.data.slug ?? `placeholder-${kind}`}
+                  variants={featured?.data.variants}
+                  spark_tokens_per_sec={featured?.data.spark_tokens_per_sec}
+                  recommended_variant={featured?.data.recommended_variant}
+                  variant="compact"
+                />
+              )}
+              {kind === 'skill' && (
+                <SkillSignature
+                  slug={featured?.data.slug ?? `placeholder-${kind}`}
+                  variants={featured?.data.variants}
+                  recommended_variant={featured?.data.recommended_variant}
                   variant="compact"
                 />
               )}

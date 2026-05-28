@@ -1,0 +1,26 @@
+slug: spark-hermes-skills
+kind: skill
+class: agent-skill
+base_model: "agentskills.io SKILL.md (Hermes / Claude Code compatible)"
+hf_repo: manavsehgal/spark-skills
+variants:
+  - spark-serve
+  - vertical-route
+recommended_variant: spark-serve
+license:
+  tier: free
+  model: mit
+article: articles/hermes-drives-the-spark-via-fieldkit-mcp/
+positioning:
+  headline: The skills you write for Claude Code load into Hermes unchanged.
+  problem: "agentskills.io is the same SKILL.md + YAML-frontmatter standard Claude Code uses, so a skill is portable across harnesses. These two distil the fieldkit.harness serving + routing surface into skills any agentskills.io-compatible agent can install."
+  use_cases:
+    - Give a Hermes (or Claude Code) agent a DGX Spark serving + routing playbook
+    - Bring up one local serving lane inside the 128 GB envelope and tear it down cleanly (spark-serve)
+    - Route a request to the right Orionfold domain-expert GGUF, one expert at a time (vertical-route)
+  audience: "DGX Spark power users wiring an agent harness to the box."
+known_drift:
+  - item: Registry indexing latency
+    bound: "published to GitHub (manavsehgal/spark-skills); skills.sh re-crawls the repo within ~24 hours of push."
+  - item: Scope
+    bound: "2 skills at launch (spark-serve, vertical-route); the curated existing .claude/skills/ subset is portable but not yet republished."
