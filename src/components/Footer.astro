@@ -1,9 +1,11 @@
 ---
+import ThemeToggle from './ThemeToggle.astro';
 ---
 <footer class="border-t border-border py-6 px-6">
   <div class="max-w-6xl mx-auto">
-    <p class="max-w-2xl mx-auto mb-6 pb-6 border-b border-border text-xs italic text-text-dim text-balance text-center">
-      A personal research project by Manav Sehgal. Built on personal time and personal resources. Opinions expressed are the author's own, not those of any employer.
+    <p class="max-w-2xl mx-auto mb-6 pb-6 border-b border-border text-xs text-text-dim text-balance text-center">
+      ainative.business is an <strong class="text-text-muted font-medium">Orionfold</strong> project — the AI studio folding the frontier down to one desk. Open software, custom models, and playbooks that run privately on your own machine.
+      <a href="https://orionfold.com" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline whitespace-nowrap">Explore Orionfold&nbsp;→</a>
     </p>
     <div class="text-text-muted text-xs font-mono">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-8 text-center sm:text-left">
@@ -12,14 +14,7 @@
           <a href="/docs/" class="hover:text-primary transition-colors">Platform</a>
           <a href="/docs/api/" class="hover:text-primary transition-colors">API</a>
           <a href="/fieldkit/" class="hover:text-primary transition-colors">Fieldkit</a>
-          <a
-            href="https://github.com/manavsehgal/ainative"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hover:text-primary transition-colors"
-          >
-            GitHub
-          </a>
+          <a href="/arena/" class="hover:text-primary transition-colors">Arena</a>
         </div>
         <div class="flex flex-col gap-2">
           <span class="text-[0.65rem] uppercase tracking-[0.12em] text-text-dim">Reading</span>
@@ -36,8 +31,22 @@
           <a href="/privacy/" class="hover:text-primary transition-colors">Privacy</a>
         </div>
       </div>
-      <div class="text-center sm:text-left">
-        <span>&copy; 2026 Manav Sehgal. Apache 2.0.</span>
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-border">
+        <span class="text-center sm:text-left">&copy; 2026 Orionfold LLC. Apache 2.0.</span>
+        <div class="flex items-center gap-4">
+          <a
+            href="https://github.com/manavsehgal/ainative"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-text-muted hover:text-primary transition-colors"
+            aria-label="GitHub"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+          </a>
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   </div>

@@ -2,11 +2,11 @@ export const SITE = {
   name: 'ainative',
   url: 'https://ainative.business',
   description:
-    'AI Native Business — the book and companion software. A personal research project by Manav Sehgal on building AI-native businesses, local-first.',
+    'AI Native Business — the book and companion software from Orionfold, an AI studio building open software, custom models, and local-first playbooks that run privately on your own machine.',
   logo: 'https://ainative.business/ainative-s-128.png',
   ogImage: 'https://ainative.business/og-image.png',
   ogImageAlt:
-    'AI Native Business — book and companion software by Manav Sehgal. Open source, local-first, free.',
+    'AI Native Business — book and companion software from Orionfold. Open source, local-first, free.',
   themeColor: '#0f172a',
   themeColorLight: '#ffffff',
   license: 'Apache-2.0',
@@ -21,9 +21,9 @@ export const PERSON = {
   name: 'Manav Sehgal',
   url: `${SITE.url}/about/`,
   image: SITE.logo,
-  jobTitle: 'Solutions Leader, AWS Frontier AI',
+  jobTitle: 'Founder, Orionfold',
   description:
-    'Author of AI Native Business. Solutions Leader at AWS Frontier AI. 25-year arc across Xerox PARC, HCL, Daily Mail, Amazon AGI, and AWS.',
+    'Founder of Orionfold, an AI studio folding the frontier down to one desk. Author of AI Native Business. 25-year arc across Xerox PARC, HCL, Daily Mail, Amazon AGI, and AWS.',
   knowsAbout: [
     'AI-native businesses',
     'Autonomous business systems',
@@ -42,6 +42,7 @@ export const PERSON = {
     { '@type': 'EducationalOrganization', name: 'UC Berkeley Haas School of Business' },
   ],
   sameAs: [
+    'https://orionfold.com',
     'https://github.com/manavsehgal',
     'https://x.com/manavsehgal',
     'https://www.linkedin.com/in/manavsehgal/',
@@ -51,22 +52,26 @@ export const PERSON = {
 
 export const ORGANIZATION = {
   '@type': 'Organization',
-  name: 'ainative',
-  url: SITE.url,
+  name: 'Orionfold',
+  legalName: 'Orionfold LLC',
+  url: 'https://orionfold.com',
   logo: SITE.logo,
-  description: SITE.description,
+  description:
+    'Orionfold is an AI studio folding the frontier down to one desk — open software, custom models, and playbooks that run privately on your own machine.',
   founder: PERSON,
   foundingDate: '2026',
   sameAs: [
-    'https://github.com/manavsehgal/ainative',
+    'https://orionfold.com',
+    'https://github.com/manavsehgal',
     'https://x.com/manavsehgal',
   ],
 };
 
 export const PUBLISHER = {
   '@type': 'Organization',
-  name: SITE.name,
-  url: SITE.url,
+  name: 'Orionfold',
+  legalName: 'Orionfold LLC',
+  url: 'https://orionfold.com',
   logo: {
     '@type': 'ImageObject',
     url: SITE.logo,

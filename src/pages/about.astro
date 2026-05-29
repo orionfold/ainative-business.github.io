@@ -4,11 +4,28 @@ import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import SectionLabel from '../components/ui/SectionLabel.astro';
 import WaitlistForm from '../components/ui/WaitlistForm.astro';
-import { SITE, PERSON, PUBLISHER } from '../data/seo';
+import { SITE, PERSON, PUBLISHER, ORGANIZATION } from '../data/seo';
 
 // Email CTA is hidden until ainative.business is verified in Resend.
 // Flip to true to re-enable the subscribe block in the Links section.
 const showEmailCTA = true;
+
+const ORIONFOLD = 'https://orionfold.com';
+
+const beliefs = [
+  {
+    title: 'Local & private first',
+    body: 'AI should run on your computer, not a corporate cloud. Your data, prompts, and models stay on the machine under your desk.',
+  },
+  {
+    title: 'Efficiency over scale',
+    body: 'One skilled person with the right AI tools can do what used to take a team. The studio is built around that leverage.',
+  },
+  {
+    title: 'Open over proprietary',
+    body: 'Open-source software and openly published models, not locked systems — so what you build keeps working on your terms.',
+  },
+];
 
 const credentials = [
   { title: 'Harvard', body: 'Disruptive Strategy' },
@@ -24,26 +41,25 @@ const previouslyPublished = [
 const jsonLd = [
   {
     '@context': 'https://schema.org',
+    ...ORGANIZATION,
+  },
+  {
+    '@context': 'https://schema.org',
     ...PERSON,
     worksFor: {
       '@type': 'Organization',
-      name: 'AWS',
-      url: 'https://aws.amazon.com',
-    },
-    affiliation: {
-      '@type': 'Organization',
-      name: 'ainative',
-      url: SITE.url,
+      name: 'Orionfold',
+      url: ORIONFOLD,
     },
   },
   {
     '@context': 'https://schema.org',
     '@type': 'AboutPage',
-    name: 'About — Manav Sehgal',
+    name: 'About — Orionfold',
     url: `${SITE.url}/about/`,
-    mainEntity: { '@id': `${SITE.url}/about/#person` },
     publisher: PUBLISHER,
-    description: 'About Manav Sehgal — author of AI Native Business and the ainative companion software. Solutions Leader at AWS Frontier AI.',
+    description:
+      'Orionfold is an AI studio folding the frontier down to one desk — open software, custom models, and local-first playbooks. ainative.business is its knowledge surface: the book, field notes, and artifacts.',
   },
   {
     '@context': 'https://schema.org',
@@ -56,8 +72,8 @@ const jsonLd = [
 ];
 ---
 <Layout
-  title="About — Manav Sehgal — ainative"
-  description="Manav Sehgal — Solutions Leader at AWS Frontier AI; author of the AI Native Business book and creator of ainative-business, local-first companion software."
+  title="About — Orionfold — ainative"
+  description="ainative.business is the knowledge surface of Orionfold, an AI studio folding the frontier down to one desk — open software, custom models, and local-first playbooks that run privately on your own machine."
   jsonLd={jsonLd}
 >
   <Nav />
@@ -75,41 +91,46 @@ const jsonLd = [
         <div class="mt-5 grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_18rem] lg:items-end">
           <div>
             <h1 data-animate class="font-display text-[clamp(2.2rem,6vw,4.5rem)] leading-[1.02]" style="transition-delay: 80ms">
-              Manav Sehgal
+              Orionfold
             </h1>
-            <p data-animate class="mt-5 max-w-3xl text-lg leading-relaxed text-text-muted" style="transition-delay: 160ms">
-              Solutions Leader, AWS Frontier AI.
+            <p data-animate class="mt-5 max-w-3xl text-xl leading-relaxed text-text" style="transition-delay: 140ms">
+              I fold the frontier down to one desk.
             </p>
-            <p data-animate class="mt-2 max-w-3xl text-lg leading-relaxed text-text-muted" style="transition-delay: 200ms">
-              Author, AI Native Business open book. 2M+ Kaggle views. Ex Amazon AGI.
+            <p data-animate class="mt-4 max-w-3xl text-lg leading-relaxed text-text-muted" style="transition-delay: 200ms">
+              Orionfold is an AI studio that brings enterprise-grade AI to individual builders and small teams — open software, custom models, and practical playbooks, all designed to run locally and privately on personal machines.
             </p>
           </div>
 
           <div data-animate class="rounded-2xl border border-border bg-surface-raised/80 p-5 shadow-[0_20px_80px_-40px_rgba(0,0,0,0.75)]" style="transition-delay: 220ms">
-            <p class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim">A personal research project</p>
+            <p class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim">This site</p>
             <div class="mt-3 flex flex-wrap items-baseline gap-x-3">
-              <p class="text-xl text-text">AI Native Business</p>
+              <p class="text-xl text-text">ainative.business</p>
               <p class="text-sm text-text-muted">Free and open source</p>
             </div>
             <p class="mt-4 text-sm leading-relaxed text-text-muted">
-              Building AI Native over weekends.
+              The knowledge surface of the Orionfold studio — the AI Native Business book, the field notes, and the artifacts you can run.
             </p>
-            <p class="mt-1 text-sm leading-relaxed text-text-muted">
-              Using personal laptop and capped AI plans.
-            </p>
+            <a
+              href={`${ORIONFOLD}/about/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="mt-4 inline-flex items-center gap-1 font-mono text-[0.7rem] tracking-wider uppercase text-primary hover:underline"
+            >
+              Orionfold about&nbsp;↗
+            </a>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="border-y border-border bg-surface-raised px-6 py-10">
+    <section class="border-y border-border bg-surface-raised px-6 py-12">
       <div class="mx-auto max-w-6xl">
-        <p data-animate class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim mb-6">Executive Credentials</p>
+        <p data-animate class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim mb-6">What the studio believes</p>
         <div class="grid gap-4 md:grid-cols-3" data-animate-stagger>
-          {credentials.map((card) => (
-            <article data-animate class="rounded-2xl border border-border/70 bg-surface/80 p-5">
-              <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-primary">{card.title}</p>
-              <p class="mt-4 text-sm leading-relaxed text-text-muted">{card.body}</p>
+          {beliefs.map((card) => (
+            <article data-animate class="rounded-2xl border border-border/70 bg-surface/80 p-6">
+              <p class="text-base text-text font-medium">{card.title}</p>
+              <p class="mt-3 text-sm leading-relaxed text-text-muted">{card.body}</p>
             </article>
           ))}
         </div>
@@ -121,30 +142,42 @@ const jsonLd = [
         <aside data-animate class="lg:sticky lg:top-28 h-fit rounded-2xl border border-border bg-surface-raised/70 p-5">
           <p class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim">Short version</p>
           <p class="mt-4 text-sm leading-relaxed text-text-muted">
-            <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative-business</code> is a personal research project exploring what it takes to build AI-native on a shoestring budget over weekends. The AI Native Business open book is the 14-chapter playbook expanding in this research.
+            <a href={ORIONFOLD} target="_blank" rel="noopener noreferrer" class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded hover:underline">Orionfold</a> is an AI studio for local-first frontier AI. <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative.business</code> is its open knowledge surface — the book, field notes, and runnable artifacts.
           </p>
         </aside>
 
         <div class="space-y-5" data-animate-stagger>
           <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
-            <h2 class="text-2xl">Bio</h2>
+            <h2 class="text-2xl">What Orionfold builds</h2>
             <p class="mt-4 text-base leading-relaxed text-text-muted">
-              Manav is a solutions leader at AWS Frontier AI, collaborating with Anthropic, NVIDIA, and Disney on production AI and agentic systems. His 25-year arc spans Xerox PARC (1996), HCL's digital practice, Daily Mail, Amazon AGI, and AWS, where he has delivered scale AI programs for Amazon Retail and Alexa. He led AWS pandemic response which was honored by President of India award for the customer. He holds credentials from Harvard, MIT Sloan, Berkeley Haas. He has studied Computer Engineering and Lean Management.
+              The studio ships three things that fit together: <span class="text-text">open AI software</span> you can read and run, <span class="text-text">custom and fine-tuned models</span> sized for hardware you actually own, and <span class="text-text">educational playbooks</span> — books and field notes — that explain how to put it to work. The throughline is a philosophical shift: powerful AI should be private, affordable, and under your control, not dependent on expensive corporate clouds.
             </p>
           </section>
 
           <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
-            <h2 class="text-2xl">Why <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative-business</code></h2>
+            <h2 class="text-2xl">Where <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative.business</code> fits</h2>
             <p class="mt-4 text-base leading-relaxed text-text-muted">
-              <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative-business</code> is a personal research project exploring what an AI-native operating system looks like. The AI Native Business book is its 14-chapter playbook for building autonomous business systems with AI agents.
+              This site is the knowledge surface of the studio. The <a href="/book/" class="text-primary hover:underline">AI Native Business book</a> is a 14-chapter playbook for building autonomous business systems with AI agents; the <a href="/field-notes/" class="text-primary hover:underline">field notes</a> document the research as it happens; and the <a href="/artifacts/" class="text-primary hover:underline">artifacts</a> — models, quants, benches, and the Arena cockpit — are what you can download and run on your own machine.
             </p>
           </section>
 
-          <section data-animate class="rounded-2xl border border-primary/30 bg-primary/[0.03] p-6 sm:p-8">
-            <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-primary">Attribution</p>
+          <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
+            <h2 class="text-2xl">Founder</h2>
             <p class="mt-4 text-base leading-relaxed text-text-muted">
-              <code class="font-mono text-[0.92em] text-primary bg-primary/10 px-1.5 py-0.5 rounded">ainative-business</code> and AI Native Business are personal works of Manav Sehgal created in own personal time and resources. While they may refer to AWS technologies which enable the AI Native promise, the opinions expressed in the website are author's personal opinions and not that of the employer.
+              Orionfold was founded by Manav Sehgal. His 25-year arc spans Xerox PARC (1996), HCL's digital practice, Daily Mail, Amazon AGI, and AWS, where he delivered scale AI programs for Amazon Retail and Alexa and led an AWS pandemic response honored by a President of India award for the customer. He holds credentials from Harvard, MIT Sloan, and Berkeley Haas, and has studied Computer Engineering and Lean Management.
             </p>
+          </section>
+
+          <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
+            <p class="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-text-dim mb-5">Credentials</p>
+            <div class="grid gap-4 sm:grid-cols-3">
+              {credentials.map((card) => (
+                <article class="rounded-xl border border-border/70 bg-surface/80 p-4">
+                  <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-primary">{card.title}</p>
+                  <p class="mt-3 text-sm leading-relaxed text-text-muted">{card.body}</p>
+                </article>
+              ))}
+            </div>
           </section>
 
           <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
@@ -159,9 +192,42 @@ const jsonLd = [
             </ul>
           </section>
 
+          <section data-animate class="rounded-2xl border border-primary/30 bg-primary/[0.03] p-6 sm:p-8">
+            <h2 class="text-2xl">Read more from Orionfold</h2>
+            <p class="mt-4 text-base leading-relaxed text-text-muted">
+              The studio writes in public — building in public, why most teams get nothing from AI, and the story behind folding the frontier down to one desk.
+            </p>
+            <div class="mt-6 flex flex-wrap gap-3">
+              <a
+                href={`${ORIONFOLD}/story/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-6 py-3 hover:border-text-muted hover:text-primary transition-colors rounded-md"
+              >
+                Orionfold stories ↗
+              </a>
+              <a
+                href={`${ORIONFOLD}/about/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-6 py-3 hover:border-text-muted hover:text-primary transition-colors rounded-md"
+              >
+                Full about page ↗
+              </a>
+            </div>
+          </section>
+
           <section data-animate class="rounded-2xl border border-border bg-surface-raised/70 p-6 sm:p-8">
             <h2 class="text-2xl">Links</h2>
             <div class="mt-5 flex flex-wrap gap-3">
+              <a
+                href={ORIONFOLD}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-6 py-3 hover:border-text-muted hover:text-primary transition-colors rounded-md"
+              >
+                Orionfold ↗
+              </a>
               <a
                 href="https://github.com/manavsehgal/ainative"
                 target="_blank"
