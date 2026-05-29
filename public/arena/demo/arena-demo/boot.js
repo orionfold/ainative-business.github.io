@@ -191,7 +191,8 @@
     var el = document.createElement('div');
     el.id = 'arena-demo-ribbon'; el.setAttribute('role', 'note');
     el.innerHTML = '<strong>DEMO</strong> recorded on a DGX Spark — chat &amp; compare replay real sessions. ' +
-      'Run it live: <code>pip install fieldkit[arena]</code>';
+      'Run it live: <code>pip install fieldkit[arena]</code>' +
+      ' &nbsp;·&nbsp; <a href="https://orionfold.com" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">Sponsor this project on Orionfold</a>';
     document.head.appendChild(s);
     (document.body || document.documentElement).appendChild(el);
   }
