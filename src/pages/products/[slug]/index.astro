@@ -17,7 +17,7 @@ const d = entry.data;
 
 const dateIso = d.date.toISOString().slice(0, 10);
 const productUrl = `${SITE.url}/products/${entry.id}/`;
-const ogImage = `/og/products/${entry.id}.png`;
+const ogImage = SITE.ogImage; // TODO: per-product OG image (see HANDOFF carry-forward)
 const ogImageAlt = `${d.product_name} — ${d.tagline}`;
 
 const SUFFIX = ' — ainative';
