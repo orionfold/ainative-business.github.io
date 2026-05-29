@@ -52,6 +52,7 @@ const KIND_BLURBS: Record<ArtifactKind, string> = {
   notebook: 'Builder + user Jupyter notebooks, one-click Colab/Kaggle on-ramps for every vertical release.',
   harness: 'Reproducible Spark-agent harness profiles — serving lane, throughput, tool-call reliability.',
   skill: 'Agentskills.io-format skill bundles — portable across Claude Code, Hermes, and the rest.',
+  arena_run: 'Operator apps that run on your own DGX Spark — local-first cockpits over the models, datasets, benches, and harnesses you\'ve produced.',
 };
 
 const totalCount = all.length;
@@ -167,9 +168,9 @@ const jsonLd = [
                   variant="compact"
                 />
               )}
-              {(kind === 'quant' || kind === 'bench') && (
+              {(kind === 'quant' || kind === 'bench' || kind === 'arena_run') && (
                 <div class={`hub__tile-monogram hub__tile-monogram--${kind}`} aria-hidden="true">
-                  {kind === 'quant' ? 'Q' : 'B'}
+                  {kind === 'quant' ? 'Q' : kind === 'bench' ? 'B' : 'A'}
                 </div>
               )}
             </div>

@@ -13,42 +13,46 @@
 
 # HANDOFF — ainative-business.github.io
 
-**Last session:** 2026-05-28 evening (Harnesses H5/H6 sync — vertical router + cost-routing — `cb69f6f`). 4 source commits since the morning's `498c63c`: `eb085bb` (fieldkit v0.12.0 Route surface), `49690ad` (H5 article), `28edc0d` (fieldkit v0.13.0 Cost-Route + graded scorer fix), `898317b` (H6 article). Destination picked up: 2 article folders (`hermes-vertical-router-on-spark`, `hermes-cost-routing-local-and-openrouter`), 2 signature SVGs (`HermesVerticalRouter.astro`, `HermesCostRouter.astro`), 2 new `kind: harness` manifests (`spark-hermes-vertical-router.yaml`, `spark-hermes-cost-router.yaml`) — these flowed through `kind: harness` scaffolding from the morning's `498c63c` with zero Mac-side route/code work — fieldkit `_version.py` 0.11.0→0.13.0, `fieldkit/docs/api/{eval,harness}.md` refreshed, project-stats 47→49 articles / 156,135→163,116 words / 38,633→41,043 LOC, sequence manifest re-ordered. Gated catalog footers auto-applied to both new articles. **Step 6 source-side fix pushed** (`91594f2 chore(artifacts): bound-annotate H5/H6 router drift entries`) — three drift entries on the H5/H6 manifests landed with unmeasurably-phrased bounds (`$0.15/M`, bare `3000`, "tuned against the bench prompts") that failed destination's `drift-bounded` verifier; rewrote in cache clone to add the numeric anchor each clause needs (`per 1M`, `= 3000 tokens`, `30 bench prompts (5 per vertical)`) without changing meaning. Verifiers green: 17 artifact detail pages across 6 kinds + 404 explainers across 62 field-notes pages. Smoke-tested 5 live routes (200×5).
+**Last session:** 2026-05-29 (Arena landing page + demo relocation — committed on branch `spark-cutover-2026-05-29`, NOT pushed). Built `/arena/` as a marketing hub (sibling to `/fieldkit/` + `/book/`) reading the `products` collection; relocated the live demo bundle `/arena/` → `/arena/demo/` (in-repo path rewrite of 55 files); fixed a pre-existing double-base bug in the demo bundle (`/arena/arena/chat/` → `/arena/chat/`, latent on model/listing pages — **fix upstream in ai-field-notes arena build too**); moved the homepage Arena teaser to directly below the Book section; `.mcp.json` gitignored. Updated demo-URL refs (ArenaTeaser, apps `livePreviewHref`, `product_url`, prose). Build green (483 pages); both verifiers pass; full nav→landing→demo→model→chat click-path browser-smoked on the prod-equivalent dist server (`:8080`) with 0 console errors. **Prior session:** 2026-05-28 evening (Harnesses H5/H6 sync — `cb69f6f`). 4 source commits since the morning's `498c63c`: `eb085bb` (fieldkit v0.12.0 Route surface), `49690ad` (H5 article), `28edc0d` (fieldkit v0.13.0 Cost-Route + graded scorer fix), `898317b` (H6 article). Destination picked up: 2 article folders (`hermes-vertical-router-on-spark`, `hermes-cost-routing-local-and-openrouter`), 2 signature SVGs (`HermesVerticalRouter.astro`, `HermesCostRouter.astro`), 2 new `kind: harness` manifests (`spark-hermes-vertical-router.yaml`, `spark-hermes-cost-router.yaml`) — these flowed through `kind: harness` scaffolding from the morning's `498c63c` with zero Mac-side route/code work — fieldkit `_version.py` 0.11.0→0.13.0, `fieldkit/docs/api/{eval,harness}.md` refreshed, project-stats 47→49 articles / 156,135→163,116 words / 38,633→41,043 LOC, sequence manifest re-ordered. Gated catalog footers auto-applied to both new articles. **Step 6 source-side fix pushed** (`91594f2 chore(artifacts): bound-annotate H5/H6 router drift entries`) — three drift entries on the H5/H6 manifests landed with unmeasurably-phrased bounds (`$0.15/M`, bare `3000`, "tuned against the bench prompts") that failed destination's `drift-bounded` verifier; rewrote in cache clone to add the numeric anchor each clause needs (`per 1M`, `= 3000 tokens`, `30 bench prompts (5 per vertical)`) without changing meaning. Verifiers green: 17 artifact detail pages across 6 kinds + 404 explainers across 62 field-notes pages. Smoke-tested 5 live routes (200×5).
 **Last destination commit:** `cb69f6f` (H5/H6 sync) atop `b2d3718` (explainer fix) atop `498c63c` (Harnesses sync) atop `8fd6cd5` → `613777a`.
 **Push status:** `cb69f6f` is on `origin/main` (deployed). Source side: `91594f2` on `github.com/manavsehgal/ai-field-notes@main`.
 
-**Cutover (2026-05-29):** Website production is consolidating onto **Spark** — Spark will clone and operate this repo's remote directly; this Mac folder will then be archived. See **`MAC-TO-SPARK-TRANSITION.md`** (repo root) for the full ownership split, Mac-local dependencies, and the cutover runbook.
+**Cutover (2026-05-29): ✅ EXECUTED on Spark.** This repo is now cloned + operated from the Spark at `/home/nvidia/ainative-business.github.io`; the `sync-field-notes` model is retired. The Orionfold Arena launch surfaces are built and the local build is green — see the banner + **Open items §1–3** below for current state and the stop-before-deploy gate. Full ownership split + runbook: **`MAC-TO-SPARK-TRANSITION.md`**; strategic plan: `~/.claude/plans/mellow-snuggling-tide.md`.
 
 ## Open items (replace each session)
 
-### 1. DONE — Harnesses H5/H6 synced (`cb69f6f`)
+> ## 🛑 SPARK CUTOVER IS LIVE — you are now operating this repo from Spark
+>
+> This repo was **cloned onto the Spark at `/home/nvidia/ainative-business.github.io`** on
+> 2026-05-29 and is now the **single Spark-owned monorepo** (the old two-repo `ai-field-notes`→Mac
+> sync model is retired). The `sync-field-notes` skill is **no longer the path** — author directly
+> here. `ai-field-notes` stays on the Spark as the **fieldkit/Arena/model BUILD workspace** (referenced
+> by absolute path) until a deliberate post-launch code-merge; do not archive it yet.
+>
+> **CC workspace:** memory is symlinked so this namespace shares the same 91 memories as the old one.
+> The 3 authoring skills (`tech-writer`, `product-writer`, `nvidia-learn-stats`) are present + repointed
+> to this folder; the 8 dev/model skills stay in `ai-field-notes`. `.mcp.json` (second-brain) +
+> `settings.local.json` seeded. Strategic plan: `~/.claude/plans/mellow-snuggling-tide.md`.
 
-Both new articles, their signature SVGs, their `kind: harness` manifests with auto-restored catalog footers, the fieldkit v0.13.0 doc/version updates, and refreshed project-stats are bundled in `cb69f6f`. No `[slug]` route work needed because the `kind: harness` segment was scaffolded in this morning's `498c63c` — the new manifests just landed in `src/content/artifacts/`, their `/artifacts/harnesses/<slug>/` URLs resolved, and `chrome_footers` emitted the correct catalog-footer text per kind. Build verifier `verify_artifact_rendering.mjs` enforces drift-bounded; `verify_field_notes_rendering.mjs` enforces explainer floats; both clean.
+### 1. ✅ DONE — Orionfold-first surfaces built + local build green (Phase C)
 
-### 2. NEXT — Push destination `cb69f6f` when ready
+The **Orionfold Arena launch** is wired end-to-end and builds clean (`node node_modules/astro/astro.js build` → 482 pages; slashless + `verify_artifact_rendering` (18 pages/7 kinds incl. `apps`) + `verify_field_notes_rendering` all ✓). Browser-smoked: product page + Arena demo render, 0 console errors, demo tabs route, gallery screenshots resolve. Shipped this session (uncommitted, in the working tree):
+- **Config:** `+Cockpit` series, `+arena` fieldkit module, `products` collection, `+arena_run`/`apps` artifact kind (`src/content.config.ts`, `src/lib/artifacts.ts`).
+- **Content imported:** `products/orionfold-arena/` (+ 11 screenshots, also `public/products/...`), `src/content/artifacts/orionfold-arena.yaml`, demo bundle → `public/arena/` (5.6 MB, sidecar-less).
+- **Products surfaces:** `/products/` index + `[slug]`, `ProductLayout`, `BuildMetricsInfographic`, `FeatureGallery`, `ProductCard`, `src/styles/products.css`.
+- **Apps artifact:** `/artifacts/apps/` index + detail (positioning + live-demo CTA + drift, no quant chrome), `AppCard`, `AppSignature` (`app-sig`), catalog `A` tile.
+- **Discovery:** top-level **Arena** nav peer (desktop+mobile), homepage `ArenaTeaser`, Cockpit series copy + product interleave on the series page.
+- **Verifier:** `verify_artifact_rendering.mjs` extended for `apps`/`app-sig`. Demo bundle + content competitor-scan = 0 hits (launch-clean).
 
-User chose "commit and stop" — destination commit lives locally only. GitHub Pages won't pick it up until pushed. No verification blockers; both build verifiers passed and 5 smoke-tested routes returned 200. `git push origin main` whenever ready.
+### 2. 🛑 NEXT — Phase D deploy (DO NOT push to `main` without operator review)
 
-### 3. DONE — Source-side bound-annotation fix pushed (`91594f2`)
+The plan is **stop-before-deploy**. To ship: branch `spark-cutover-2026-05-29`, `git commit` the working tree, push the branch, **review the diff** (should touch only the surfaces in item 1 + the demo bundle), then `--ff-only` merge to `main` → GH Pages auto-deploys to `ainative.business`. A `pre-spark-cutover` tag is on `origin/main` for rollback. `build:og` (OG images) is **CI-only** — needs Chrome; CI generates on push. Confirm `https://ainative.business/products/orionfold-arena/`, `/artifacts/apps/orionfold-arena/`, `/arena/`, and the Cockpit series render after deploy.
 
-Three drift entries on the freshly-shipped H5/H6 manifests landed without measurable bounds (vague phrasings like "vertical keywords were tuned against the bench prompts" with no count), which failed destination's `drift-bounded` contract on the first build. Per Step 6 workflow: edited in cache clone → committed → pushed to `github.com/manavsehgal/ai-field-notes@main`. Three narrow rewrites preserved meaning:
-- `spark-hermes-cost-router.yaml` — "OpenRouter snapshot prices": `$0.15/M input` → `$0.15 per 1M input` (and same for the 3 other price points). `1M` matches the size-unit regex.
-- `spark-hermes-cost-router.yaml` — "Token threshold": appended `(= 3000 tokens)` after the `min_input_tokens=3000` reference. `3000 tokens` matches the unit-count regex.
-- `spark-hermes-vertical-router.yaml` — "Keyword-set tuning": added explicit count `the 30 bench prompts (5 per vertical)`. `30 bench prompts` matches.
+### 3. ⚠️ Decisions for the deploying session
 
-Spark picks up on next `git pull`. The next time `fieldkit.publish_harness` writes a manifest, the bound vocabulary should be on the author's mind — but the verifier remains the durable enforcement layer.
-
-### 4. INFO — `kind: harness` now has 3 live manifests (was 1)
-
-Catalog hub `/artifacts/harnesses/` now lists 3 cards: `spark-hermes-profile` (the original lane bakeoff from earlier in the day), `spark-hermes-vertical-router` (H5), `spark-hermes-cost-router` (H6). No code change — the listing template iterates `getCollection('artifacts')` filtered by kind. Each card's signature SVG matches the article's signature SVG, preserving visual continuity between field-note and catalog page.
-
-### 5. INFO — fieldkit `_version.py` bumped 0.11.0 → 0.13.0
-
-Two minor bumps in source (v0.12.0 Route surface, v0.13.0 Cost-Route + graded scorer fix). Destination only mirrors the version pin + the two changed docs (`fieldkit/docs/api/{eval,harness}.md`); the rest of the fieldkit Python source lives only on source. Fieldkit landing-page Install/Quickstart/CLI section bodies in source matched destination unchanged — no landing drift.
-
-### 6. INFO — Step 6 first content-quality round-trip cycle
-
-This is the first session where a Step 6 source-side fix was driven by a *content quality* gate (destination's `drift-bounded` verifier rejecting source's phrasing), not a code/path issue. The skill is built for this round-trip but it had never been exercised. The cycle worked: cache-clone edit → commit → push to `origin/main` → re-copy manifests to destination → second build → verifiers pass. One small skill-narrative improvement worth noting: `git pull --rebase origin main` fails with "cannot pull with rebase: unstaged changes" if you try to rebase before staging+committing the edits — the right order is stage+commit *first*, then rebase the new commit onto origin (a fast-forward no-op if origin is current). The SKILL.md Step 6 narrative currently says "pull --rebase first" but the operational order needs to be commit-then-rebase. Small docs update for a future skill polish pass.
+- `.mcp.json` is **not gitignored** here → it'd be committed unless you ignore it (holds only the local `second-brain` server). Decide before commit.
+- **Deferred (non-blocking):** a dedicated `verify_product_rendering.mjs` + wiring an automated `dist/arena` competitor-clean check into the `build` script. Manual scan was clean; these are hardening.
+- The **Mac backlog below (Carry-forward §6–21)** is still valid destination work — not superseded by the cutover.
 
 ## Carry-forward (items from prior sessions, still active)
 
@@ -156,6 +160,21 @@ Per prior session.
 Per prior session.
 
 ## Recent decisions (running log — append, don't replace)
+
+### 2026-05-29 (Arena landing page + demo relocation to /arena/demo/ — committed on branch, not pushed)
+
+- **Trigger.** Operator drove an interactive end-to-end test of the launch surfaces (Playwright + a prod-equivalent `python3 -m http.server` over `dist/` on `:8080`, because the Astro dev server `:4321` can't resolve `public/arena/` directory indexes — `/arena/` 404s in dev but is 200 on GH Pages). First finding: the top-nav "Arena" link dropped users straight into the raw demo app. Operator asked for a proper **Arena landing page** "just like fieldkit and book" with sections to launch the demo and read the product article.
+- **IA decision (operator-approved).** `/arena/` becomes the marketing hub (sibling to `/fieldkit/`, `/book/`); the live demo relocates to `/arena/demo/`. Chose **in-repo path rewrite** over a source rebuild (operator picked it): moved the 55-file `public/arena/` bundle into `public/arena/demo/` and rewrote every absolute `/arena/` → `/arena/demo/`.
+- **Pre-existing bug found + fixed.** The demo bundle's model/listing pages linked to `/arena/arena/chat/` (double base) while the cockpit correctly used `/arena/chat/` — broken on any host. The rewrite surfaced it as `/arena/demo/arena/chat/`; collapsed the stray segment across 20 files. **Carry-forward: fix this in the ai-field-notes arena vite build so it doesn't return on the next bundle import.**
+- **Landing page.** `src/pages/arena/index.astro` (single cohesive page, reuses site tokens + the `ArenaTeaser`/fieldkit visual language; no new generic aesthetics). Sections: hero (gradient title, honest mined build-metric chips, dual CTAs) → what-it-is + capability pills → 11-card feature grid → "Drive the cockpit yourself" live-preview block → "How it came together" → CTA footer with `pip install fieldkit[arena]`. JSON-LD `SoftwareApplication`.
+- **Reference updates.** Demo-URL `/arena/` → `/arena/demo/` in: `ArenaTeaser` CTAs + image link, `apps/[slug]` `livePreviewHref` + comment, `product.md` `product_url` + prose link, `orionfold-arena.yaml` comment. Nav "Arena" stays `/arena/` (now the hub).
+- **Homepage reorder.** Moved `<ArenaTeaser />` to directly below `<Book />` (was between Proof and FieldNotesRail). New order: Hero · Book · Arena · FieldNotes · Problem · Solution · Proof · FromTheField · ThoughtLeadership · CTA.
+- **Verification.** `node node_modules/astro/astro.js build` → 483 pages (was 482, +1 landing); `verify_artifact_rendering` (18 pages/7 kinds) + `verify_field_notes_rendering` (404 explainers/62 pages) both ✓. Browser-smoked the whole path on `:8080`: nav Arena → `/arena/` landing → Launch demo → `/arena/demo/` cockpit → MODELS → model detail → chat deep-link, all 200, 0 console errors. Demo deep-links confirmed `/arena/demo/chat/?prompt=…` (no double-arena).
+- **Commit.** Bundled the whole uncommitted launch tree (cutover surfaces + this session's landing/relocation/reorder) into one commit on branch `spark-cutover-2026-05-29`. `.mcp.json` gitignored (Spark-local `second-brain` launcher). **NOT pushed** — stop-before-deploy gate held per Open item §2; operator reviews the branch diff then ff-merges to `main` to deploy.
+
+### 2026-05-29 (Spark cutover executed + Orionfold Arena launch surfaces built — uncommitted)
+
+Spark cloned this repo to `/home/nvidia/ainative-business.github.io` (HTTPS; no SSH key on Spark), set local identity `Manav Sehgal <3954692+manavsehgal@users.noreply.github.com>`, `core.fileMode false`, pushed rollback tag `pre-spark-cutover`. CC workspace migrated: new project namespace `~/.claude/projects/-home-nvidia-ainative-business-github-io` with `memory/` **symlinked** to the `ai-field-notes` namespace (single source of truth, 91 memories shared); 3 authoring skills copied + repointed to this folder (only tech-writer's `fieldkit/src/fieldkit/` package-source pointer left on `ai-field-notes`); `.mcp.json` + `settings.local.json` brought over. Built all Orionfold-first surfaces (products collection + routes + layout/components, `arena_run`/`apps` artifact pages, Arena nav peer, homepage teaser, Cockpit series). Imported the committed Arena product + manifest + the 5.6 MB sidecar-less demo bundle. Local build green; both verifiers pass; demo + product page browser-smoked clean (0 console errors). **Held at stop-before-deploy per the plan** — nothing committed/pushed yet. Scope decision (locked with operator): authoring moves here now; the fieldkit/Arena/model code stays in `ai-field-notes` until a post-launch code-merge, after which `ai-field-notes` is renamed-archived + the GitHub repo flagged read-only.
 
 ### 2026-05-29 (Mac→Spark cutover handoff — `MAC-TO-SPARK-TRANSITION.md`)
 

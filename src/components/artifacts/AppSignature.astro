@@ -1,0 +1,56 @@
+---
+// AppSignature — the signature figure for `arena_run` / class:app artifacts.
+// A cockpit motif: a telemetry gauge sweep over a stacked-surface base, in the
+// theme primary. Carries the `app-sig` class the artifact-rendering verifier
+// looks for (one signature class per kind). Self-contained SVG, theme-tokened.
+
+interface Props {
+  slug: string;
+  variant?: 'full' | 'compact';
+}
+const { slug, variant = 'full' } = Astro.props;
+const uid = `app-${slug.replace(/[^a-z0-9]+/gi, '-')}`;
+---
+<svg
+  class={`app-sig app-sig--${variant}`}
+  viewBox="0 0 160 120"
+  role="img"
+  aria-label="App cockpit signature"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <linearGradient id={`${uid}-sweep`} x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+  <!-- stacked surfaces (the artifacts the cockpit drives) -->
+  <g stroke="var(--color-border)" stroke-width="1.5" fill="none">
+    <rect x="20" y="86" width="120" height="14" rx="3" />
+    <rect x="28" y="70" width="104" height="14" rx="3" opacity="0.7" />
+    <rect x="36" y="54" width="88" height="14" rx="3" opacity="0.45" />
+  </g>
+  <!-- telemetry gauge sweep -->
+  <path
+    d="M40 50 A40 40 0 0 1 120 50"
+    fill="none"
+    stroke="var(--color-border)"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+  <path
+    d="M40 50 A40 40 0 0 1 104 26"
+    fill="none"
+    stroke={`url(#${uid}-sweep)`}
+    stroke-width="3.5"
+    stroke-linecap="round"
+  />
+  <!-- needle -->
+  <line x1="80" y1="50" x2="104" y2="26" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" />
+  <circle cx="80" cy="50" r="4" fill="var(--color-primary)" />
+</svg>
+
+<style>
+  .app-sig { width: 100%; height: auto; display: block; }
+  .app-sig--compact { max-height: 5rem; }
+</style>

@@ -27,6 +27,7 @@ export const SERIES = [
   'LLM Wiki',
   'Machine that Builds Machines',
   'Harnesses',
+  'Cockpit',
   'Looking Beyond Spark',
   'Frontier Scout',
 ] as const;
@@ -38,6 +39,7 @@ export const SERIES_SLUGS: Record<(typeof SERIES)[number], string> = {
   'LLM Wiki': 'llm-wiki',
   'Machine that Builds Machines': 'machine-that-builds-machines',
   'Harnesses': 'harnesses',
+  'Cockpit': 'cockpit',
   'Looking Beyond Spark': 'looking-beyond-spark',
   'Frontier Scout': 'frontier-scout',
 };
@@ -47,7 +49,7 @@ export const SERIES_BY_SLUG: Record<string, (typeof SERIES)[number]> =
     Object.entries(SERIES_SLUGS).map(([name, slug]) => [slug, name as (typeof SERIES)[number]]),
   );
 
-const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness'] as const;
+const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena'] as const;
 export const FIELDKIT_MODULES = fieldkitModules;
 
 // Articles live at ./articles/<slug>/article.{md,mdx} so the local clone
@@ -220,4 +222,56 @@ const artifacts = defineCollection({
   }),
 });
 
-export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs, artifacts };
+// Product-launch articles at ./products/<slug>/product.md — a distinct genre
+// from field-notes deep-dives (introduces a shippable product, with a mined
+// build-metrics infographic + a feature-tour gallery). Mirrors the field-notes
+// glob-loader so URLs collapse to /products/<slug>/. Contract: /PRODUCT-ARTICLES.md
+// in the source repo. `build` + `features` are what make it a product article;
+// every build figure is mined (scripts/mine_build_metrics.py), never estimated.
+const products = defineCollection({
+  loader: glob({
+    pattern: '*/product.md',
+    base: './products',
+    generateId: ({ entry }) => entry.split('/')[0],
+  }),
+  schema: z.object({
+    title: z.string(),
+    date: z.coerce.date(),
+    author: z.string().default('Manav Sehgal'),
+    product_name: z.string(),
+    tagline: z.string().max(120),
+    summary: z.string().max(300),
+    hardware: z.string().default('NVIDIA DGX Spark'),
+    status: z.enum(['published', 'upcoming']).default('published'),
+    series: z.enum(SERIES).optional(),
+    tags: z.array(z.string()),
+    signature: z.string().optional(),
+    product_url: z.string().optional(),
+    repo_url: z.string().optional(),
+    fieldkit_modules: z.array(z.enum(fieldkitModules)).default([]),
+
+    build: z.object({
+      window: z.string(),
+      wall_clock_hours: z.number(),
+      sessions: z.number().int(),
+      assistant_turns: z.number().int(),
+      tokens_processed: z.number().int(),
+      tokens_generated: z.number().int(),
+      cache_read_tokens: z.number().int(),
+      lines_of_code: z.number().int(),
+      test_cases: z.number().int(),
+      feature_count: z.number().int(),
+      models: z.array(z.string()),
+      daily_driver: z.string().optional(),
+      harness: z.string().default('Claude Code'),
+    }),
+
+    features: z.array(z.object({
+      name: z.string(),
+      benefit: z.string(),
+      screenshot: z.string(),
+    })).default([]),
+  }),
+});
+
+export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs, artifacts, products };

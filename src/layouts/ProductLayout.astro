@@ -1,0 +1,77 @@
+---
+import Layout from './Layout.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import BuildMetricsInfographic from '../components/products/BuildMetricsInfographic.astro';
+import FeatureGallery from '../components/products/FeatureGallery.astro';
+import { SERIES_SLUGS } from '../content.config.ts';
+import '../styles/field-notes.css';
+import '../styles/products.css';
+
+// ProductLayout — the launch-article chrome (distinct from the field-notes
+// reading layout). Renders hero → build-metrics infographic → feature gallery
+// → prose body slot. The page passes the resolved collection entry + SEO; the
+// rendered <Content /> is slotted into the prose body.
+
+interface Props {
+  entry: import('astro:content').CollectionEntry<'products'>;
+  title: string;
+  description?: string;
+  ogImage?: string;
+  ogImageAlt?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+}
+
+const { entry, title, description, ogImage, ogImageAlt, jsonLd } = Astro.props;
+const d = entry.data;
+const dateIso = d.date.toISOString().slice(0, 10);
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(d.date);
+const seriesHref = d.series ? `/field-notes/series/${SERIES_SLUGS[d.series]}/` : null;
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(d.date);
+---
+<Layout
+  title={title}
+  description={description}
+  ogType="article"
+  ogImage={ogImage}
+  ogImageAlt={ogImageAlt}
+  article={{ datePublished: dateIso, dateModified: dateIso, author: d.author, section: 'Products', tags: d.tags }}
+  jsonLd={jsonLd}
+>
+  <Nav />
+  <main>
+    <article class="product">
+      <header class="product-hero">
+        <div class="product-hero__strip">
+          <a class="product-hero__breadcrumb" href="/products/">← Products</a>
+          <span class="product-hero__rule"></span>
+          <span>{volLabel}</span>
+        </div>
+        <h1 class="product-hero__title">{d.product_name}</h1>
+        <p class="product-hero__tagline">{d.tagline}</p>
+        <div class="product-hero__ctas">
+          {d.product_url && (
+            <a class="product-cta product-cta--primary" href={d.product_url}>Try the live preview →</a>
+          )}
+          {d.repo_url && (
+            <a class="product-cta product-cta--ghost" href={d.repo_url} rel="noopener">View source</a>
+          )}
+        </div>
+        <div class="product-hero__meta">
+          {d.series && <a class="product-hero__series" href={seriesHref!}>{d.series}</a>}
+          <span>{d.hardware}</span>
+          <time datetime={dateIso}>{dateFmt}</time>
+          <span>{d.author}</span>
+        </div>
+      </header>
+
+      <BuildMetricsInfographic build={d.build} />
+      <FeatureGallery features={d.features} slug={entry.id} />
+
+      <div class="product-body fn-prose">
+        <slot />
+      </div>
+    </article>
+  </main>
+  <Footer />
+</Layout>

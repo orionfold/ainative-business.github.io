@@ -1,0 +1,44 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+// ProductCard — the /products/ index tile. Leads with product_name + tagline,
+// shows the headline build proof (time · LOC · tests), and uses the product's
+// first feature screenshot as the thumbnail (every product article ships one).
+
+interface Props {
+  product: CollectionEntry<'products'>;
+}
+
+const { product } = Astro.props;
+const { product_name, tagline, status, build, features, series } = product.data;
+const href = `/products/${product.id}/`;
+const isUpcoming = status === 'upcoming';
+
+const hours = build.wall_clock_hours;
+const hoursLabel = Number.isInteger(hours) ? `${hours}` : hours.toFixed(1);
+const thumb = features[0]?.screenshot
+  ? `/products/${product.id}/${features[0].screenshot.replace(/^\/+/, '')}`
+  : null;
+---
+<a class="product-card" href={href} aria-label={`${product_name}: ${tagline}`}>
+  <div class="product-card__body">
+    <div class="product-card__meta">
+      <span class="product-card__kind">{isUpcoming ? 'Upcoming' : 'Product'}</span>
+      {series && <span>{series}</span>}
+    </div>
+    <h2 class="product-card__name">{product_name}</h2>
+    <p class="product-card__tagline">{tagline}</p>
+    {!isUpcoming && build.feature_count > 0 && (
+      <div class="product-card__metrics">
+        <span><b>{hoursLabel}h</b> to build</span>
+        <span><b>{new Intl.NumberFormat('en-US').format(build.lines_of_code)}</b> LOC</span>
+        <span><b>{build.test_cases}</b> tests</span>
+      </div>
+    )}
+  </div>
+  {thumb && (
+    <aside class="product-card__shot" aria-hidden="true">
+      <img src={thumb} alt="" loading="lazy" decoding="async" width="1280" height="800" />
+    </aside>
+  )}
+</a>

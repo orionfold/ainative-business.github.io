@@ -1,0 +1,41 @@
+---
+// FeatureGallery — renders a product's `features:` array as a numbered
+// screenshot-with-benefit sequence (the scannable operator view; the prose
+// body walks the same features in narrative). Screenshot paths are stored
+// relative to the product folder (e.g. "screenshots/01-cockpit.png") and the
+// matching files are copied to public/products/<slug>/screenshots/ at import,
+// so the runtime URL is /products/<slug>/<screenshot>.
+
+interface Feature {
+  name: string;
+  benefit: string;
+  screenshot: string;
+}
+
+interface Props {
+  features: Feature[];
+  slug: string;
+}
+
+const { features, slug } = Astro.props;
+const srcFor = (s: string) => `/products/${slug}/${s.replace(/^\/+/, '')}`;
+---
+{features.length > 0 && (
+  <section class="feature-gallery" aria-labelledby="feature-gallery-heading">
+    <h2 id="feature-gallery-heading" class="feature-gallery__title">The feature tour</h2>
+    <div class="feature-gallery__list">
+      {features.map((f, i) => (
+        <article class="feature" data-animate>
+          <div class="feature__shot">
+            <img src={srcFor(f.screenshot)} alt={`${f.name} — ${f.benefit}`} loading="lazy" decoding="async" width="1280" height="800" />
+          </div>
+          <div class="feature__text">
+            <span class="feature__num">{String(i + 1).padStart(2, '0')}</span>
+            <h3 class="feature__name">{f.name}</h3>
+            <p class="feature__benefit">{f.benefit}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+)}

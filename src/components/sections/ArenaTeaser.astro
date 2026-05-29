@@ -1,0 +1,64 @@
+---
+import { getCollection } from 'astro:content';
+import SectionLabel from '../ui/SectionLabel.astro';
+
+// Homepage launch teaser for the flagship product (Orionfold Arena). Reads the
+// product collection so the headline metrics stay honest (mined, never hand-
+// typed here). Renders nothing if the product isn't present.
+const products = await getCollection('products');
+const arena = products.find((p) => p.id === 'orionfold-arena') ?? null;
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const b = arena?.data.build;
+const hoursLabel = b ? (Number.isInteger(b.wall_clock_hours) ? `${b.wall_clock_hours}` : b.wall_clock_hours.toFixed(1)) : '';
+const shot = arena ? `/products/${arena.id}/${arena.data.features[0]?.screenshot?.replace(/^\/+/, '') ?? 'screenshots/01-cockpit.png'}` : '';
+---
+{arena && (
+  <section class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <SectionLabel text="Now shipping" />
+          <h2 data-animate class="mt-4 mb-3">{arena.data.product_name}</h2>
+          <p data-animate class="text-text-muted text-lg leading-relaxed mb-6" style="transition-delay: 80ms">
+            {arena.data.tagline}
+          </p>
+          {b && (
+            <div data-animate class="flex flex-wrap gap-6 mb-7" style="transition-delay: 120ms">
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{hoursLabel}h</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">to build</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{fmt(b.lines_of_code)}</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">lines of code</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{b.test_cases}</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">tests</div>
+              </div>
+            </div>
+          )}
+          <div data-animate class="flex flex-wrap gap-3" style="transition-delay: 160ms">
+            <a
+              href="/arena/demo/"
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-6 py-2.5 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+            >
+              Try the live preview
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a
+              href={`/products/${arena.id}/`}
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-primary border border-primary/30 px-6 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+            >
+              Read the launch
+            </a>
+          </div>
+        </div>
+        <a href="/arena/demo/" data-animate class="block rounded-xl border border-border overflow-hidden bg-surface-overlay" style="transition-delay: 120ms" aria-label={`${arena.data.product_name} — live preview`}>
+          <img src={shot} alt={`${arena.data.product_name} cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+        </a>
+      </div>
+    </div>
+  </section>
+)}

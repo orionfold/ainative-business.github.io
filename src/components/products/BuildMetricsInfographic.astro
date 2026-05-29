@@ -1,0 +1,91 @@
+---
+// BuildMetricsInfographic — renders a product's `build:` frontmatter block,
+// the launch-article analogue of the home "At a glance" infographic. Every
+// figure traces to the frontmatter (mined by scripts/mine_build_metrics.py);
+// this component only presents, it never computes a metric the data doesn't
+// carry. The one derived value is the cache ratio (cache_read / processed),
+// which is a presentation of two mined figures, not an invented number.
+
+interface Build {
+  window: string;
+  wall_clock_hours: number;
+  sessions: number;
+  assistant_turns: number;
+  tokens_processed: number;
+  tokens_generated: number;
+  cache_read_tokens: number;
+  lines_of_code: number;
+  test_cases: number;
+  feature_count: number;
+  models: string[];
+  daily_driver?: string;
+  harness: string;
+}
+
+interface Props {
+  build: Build;
+}
+
+const { build } = Astro.props;
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const kfmt = (n: number) =>
+  n >= 1_000_000 ? `${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+  : n >= 1000 ? `${Math.round(n / 1000)}k`
+  : String(n);
+
+const hours = build.wall_clock_hours;
+const hoursLabel = Number.isInteger(hours) ? `${hours}` : hours.toFixed(1);
+const cacheRatio = build.tokens_processed > 0
+  ? Math.round((build.cache_read_tokens / build.tokens_processed) * 100)
+  : 0;
+---
+<section class="build-metrics" aria-labelledby="build-metrics-heading" data-animate>
+  <div class="build-metrics__inner">
+    <h2 id="build-metrics-heading" class="build-metrics__title">What it took to build</h2>
+
+    <div class="build-metrics__headline">
+      <div class="bm-stat">
+        <div class="bm-stat__value">{hoursLabel}<sup>h</sup></div>
+        <div class="bm-stat__label">Wall-clock</div>
+        <div class="bm-stat__sub">{build.window}</div>
+      </div>
+      <div class="bm-stat">
+        <div class="bm-stat__value">{fmt(build.lines_of_code)}</div>
+        <div class="bm-stat__label">Lines of code</div>
+        <div class="bm-stat__sub">authored, bundles excluded</div>
+      </div>
+      <div class="bm-stat">
+        <div class="bm-stat__value">{build.test_cases}</div>
+        <div class="bm-stat__label">Tests</div>
+        <div class="bm-stat__sub">{build.feature_count} surfaces shipped</div>
+      </div>
+    </div>
+
+    <div class="build-metrics__row">
+      <div class="bm-mini">
+        <div class="bm-mini__value">{build.sessions}</div>
+        <div class="bm-mini__label">Sessions</div>
+      </div>
+      <div class="bm-mini">
+        <div class="bm-mini__value">{fmt(build.assistant_turns)}</div>
+        <div class="bm-mini__label">Agent turns</div>
+      </div>
+      <div class="bm-mini">
+        <div class="bm-mini__value">{kfmt(build.tokens_generated)}</div>
+        <div class="bm-mini__label">Tokens generated</div>
+      </div>
+      <div class="bm-mini" title={`${fmt(build.cache_read_tokens)} cache reads of ${fmt(build.tokens_processed)} processed`}>
+        <div class="bm-mini__value">{cacheRatio}%</div>
+        <div class="bm-mini__label">Cache hits</div>
+      </div>
+    </div>
+
+    <div class="build-metrics__credits">
+      <span class="build-metrics__credits-label">Built with</span>
+      {build.models.map((m) => <span class="bm-chip">{m}</span>)}
+      {build.daily_driver && <span class="bm-chip bm-chip--driver">now: {build.daily_driver}</span>}
+      <span class="bm-chip">{build.harness}</span>
+    </div>
+  </div>
+</section>

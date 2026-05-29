@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import ProductCard from '../../components/products/ProductCard.astro';
+import { SITE, PUBLISHER } from '../../data/seo';
+import '../../styles/products.css';
+
+const all = await getCollection('products');
+const published = all.filter((p) => p.data.status !== 'upcoming');
+const upcoming = all.filter((p) => p.data.status === 'upcoming');
+const publishedDesc = [...published].sort((a, b) => b.data.date.getTime() - a.data.date.getTime());
+const upcomingAsc = [...upcoming].sort((a, b) => a.data.date.getTime() - b.data.date.getTime());
+
+const pageTitle = 'Products — built and shipped on a DGX Spark';
+const pageDescription = `Products built on one NVIDIA DGX Spark — launch articles with mined build metrics and a feature tour. ${published.length} shipped.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Products',
+    description: pageDescription,
+    url: `${SITE.url}/products/`,
+    publisher: PUBLISHER,
+    hasPart: publishedDesc.map((p) => ({
+      '@type': 'SoftwareApplication',
+      name: p.data.product_name,
+      applicationCategory: 'DeveloperApplication',
+      url: `${SITE.url}/products/${p.id}/`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Products', item: `${SITE.url}/products/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main>
+    <header class="product-index__masthead">
+      <div class="product-hero__strip" aria-hidden="true">
+        <span>Products</span>
+        <span class="product-hero__rule"></span>
+        <span>Built on a DGX Spark</span>
+      </div>
+      <h1 class="product-index__title">Tools we <em>shipped</em> on the Spark.</h1>
+      <p class="product-index__tagline">
+        Each product is a real, runnable tool built on one NVIDIA DGX Spark — with
+        a build-metrics infographic mined from the session transcripts and git
+        log, and a feature tour you can read in a scroll.
+      </p>
+    </header>
+
+    <section class="product-list">
+      {publishedDesc.length === 0 && upcomingAsc.length === 0 ? (
+        <p class="research-list__empty">No products yet.</p>
+      ) : (
+        <>
+          {publishedDesc.map((product) => <ProductCard product={product} />)}
+          {upcomingAsc.map((product) => <ProductCard product={product} />)}
+        </>
+      )}
+    </section>
+  </main>
+  <Footer />
+</Layout>

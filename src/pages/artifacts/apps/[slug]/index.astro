@@ -1,0 +1,223 @@
+---
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Layout from '../../../../layouts/Layout.astro';
+import Nav from '../../../../components/Nav.astro';
+import Footer from '../../../../components/Footer.astro';
+import AppSignature from '../../../../components/artifacts/AppSignature.astro';
+import LicenseChip from '../../../../components/artifacts/LicenseChip.astro';
+import { SITE, PUBLISHER } from '../../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts', ({ data }) => data.kind === 'arena_run');
+  const products = await getCollection('products');
+  return all.map((artifact) => ({
+    params: { slug: artifact.data.slug },
+    props: { artifact, products },
+  }));
+}
+
+interface PageProps {
+  artifact: CollectionEntry<'artifacts'>;
+  products: CollectionEntry<'products'>[];
+}
+
+const { artifact, products } = Astro.props as PageProps;
+const { slug, class: artifactClass, base_model, hf_repo, license, published_at, positioning, known_drift } = artifact.data;
+
+// The reachable live preview for an arena_run app is always the static Arena
+// bundle at /arena/demo/ (sidecar-less). The HF Space named by hf_repo may not be
+// uploaded yet, so it is shown as text, never hard-linked (per the manifest).
+const livePreviewHref = '/arena/demo/';
+const launch = products.find((p) => p.id === slug) ?? null;
+const launchHref = launch ? `/products/${launch.id}/` : null;
+
+const publishedDate = published_at
+  ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(published_at))
+  : null;
+
+const pageTitle = `${slug} — App — ainative`;
+const pageDescription = positioning?.headline
+  ? `${positioning.headline} — ${base_model}.`
+  : `${artifactClass.toUpperCase()} app that runs on a DGX Spark: ${base_model}.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: slug,
+    description: pageDescription,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'NVIDIA DGX Spark',
+    url: `${SITE.url}/artifacts/apps/${slug}/`,
+    publisher: PUBLISHER,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    datePublished: published_at,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Apps', item: `${SITE.url}/artifacts/apps/` },
+      { '@type': 'ListItem', position: 4, name: slug, item: `${SITE.url}/artifacts/apps/${slug}/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="qa-detail">
+    <header class="qa-detail__header">
+      <a class="qa-detail__back" href="/artifacts/apps/">← Apps</a>
+      <div class="qa-detail__kicker">
+        <span class="qa-detail__kicker-kind">App</span>
+        <span>·</span>
+        <span>{artifactClass.toUpperCase()}</span>
+        <span>·</span>
+        <span>runs on a DGX Spark</span>
+      </div>
+      <h1 class="qa-detail__title">{slug}</h1>
+      {positioning?.headline && <p class="qa-detail__subtitle">{positioning.headline}</p>}
+      <div class="qa-detail__meta">
+        <span class="qa-detail__meta-item">
+          <span class="qa-detail__meta-label">Built on</span>
+          <span class="qa-detail__meta-value">{base_model}</span>
+        </span>
+        <span class="qa-detail__meta-divider" aria-hidden="true"></span>
+        <span class="qa-detail__meta-item">
+          <span class="qa-detail__meta-label">License</span>
+          <LicenseChip tier={license.tier} model={license.model} />
+        </span>
+        {hf_repo && (
+          <>
+            <span class="qa-detail__meta-divider" aria-hidden="true"></span>
+            <span class="qa-detail__meta-item">
+              <span class="qa-detail__meta-label">HF Space (planned)</span>
+              <span class="qa-detail__meta-value">{hf_repo}</span>
+            </span>
+          </>
+        )}
+        {publishedDate && (
+          <>
+            <span class="qa-detail__meta-divider" aria-hidden="true"></span>
+            <span class="qa-detail__meta-item">
+              <span class="qa-detail__meta-label">Published</span>
+              <time class="qa-detail__meta-value" datetime={published_at}>{publishedDate}</time>
+            </span>
+          </>
+        )}
+      </div>
+    </header>
+
+    <section class="qa-detail__positioning">
+      <div class="qa-detail__positioning-body">
+        {positioning?.problem ? (
+          <>
+            <h2 class="qa-detail__h2">What this app does</h2>
+            <p class="qa-detail__problem">{positioning.problem}</p>
+            {positioning.use_cases && positioning.use_cases.length > 0 && (
+              <>
+                <h3 class="qa-detail__h3">What you can do with it</h3>
+                <ul class="qa-detail__uses">
+                  {positioning.use_cases.map((uc) => <li>{uc}</li>)}
+                </ul>
+              </>
+            )}
+            {positioning.audience && (
+              <p class="qa-detail__audience">
+                <span class="qa-detail__audience-label">Audience —</span> {positioning.audience}
+              </p>
+            )}
+          </>
+        ) : (
+          <>
+            <h2 class="qa-detail__h2">At a glance</h2>
+            <p class="qa-detail__problem">An operator app built on <strong>{base_model}</strong>, running locally on a DGX Spark.</p>
+          </>
+        )}
+      </div>
+      <aside class="qa-detail__hero-visual" aria-hidden="true">
+        <AppSignature slug={slug} />
+      </aside>
+    </section>
+
+    <section class="qa-detail__cta-section">
+      <a class="qa-detail__cta qa-detail__cta--primary" href={livePreviewHref}>
+        <span class="qa-detail__cta-kicker">Interactive preview</span>
+        <span class="qa-detail__cta-title">Open the live demo →</span>
+        <span class="qa-detail__cta-note">Recorded on a DGX Spark, replayed in your browser — no sidecar needed.</span>
+      </a>
+      {launchHref && (
+        <a class="qa-detail__cta qa-detail__cta--ghost" href={launchHref}>
+          <span class="qa-detail__cta-kicker">The story</span>
+          <span class="qa-detail__cta-title">Read the launch →</span>
+          <span class="qa-detail__cta-note">What it took to build, with mined metrics and a full feature tour.</span>
+        </a>
+      )}
+    </section>
+
+    {known_drift && known_drift.length > 0 && (
+      <section class="qa-detail__drift-section">
+        <h2 class="qa-detail__h2">Known drift</h2>
+        <p class="qa-detail__h2-blurb">Disclosed limitations with explicit bounds — the scope is named, not implied.</p>
+        <dl class="qa-detail__drift">
+          {known_drift.map((d) => (
+            <div class="qa-detail__drift-row">
+              <dt class="qa-detail__drift-item">{d.item}</dt>
+              <dd class="qa-detail__drift-bound">{d.bound}</dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .qa-detail { max-width: 72rem; margin: 0 auto; padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem); }
+  .qa-detail__back { display: inline-block; font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text-muted); text-decoration: none; margin-bottom: 2rem; transition: color 0.2s; }
+  .qa-detail__back:hover { color: var(--color-primary); }
+  .qa-detail__header { margin-bottom: clamp(3rem, 5vw, 4.5rem); max-width: 60rem; }
+  .qa-detail__kicker { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text-muted); margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+  .qa-detail__kicker-kind { color: var(--color-primary); }
+  .qa-detail__title { font-family: var(--font-mono); font-weight: 500; font-size: clamp(1.6rem, 3.5vw, 2.5rem); line-height: 1.15; color: var(--color-text); margin: 0 0 1rem; word-break: break-word; }
+  .qa-detail__subtitle { font-size: 1.1rem; line-height: 1.6; color: var(--color-text-muted); margin: 0 0 1.75rem; max-width: 60ch; }
+  .qa-detail__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.25rem; padding: 1.25rem 0; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); }
+  .qa-detail__meta-item { display: inline-flex; align-items: center; gap: 0.55rem; font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-text); }
+  .qa-detail__meta-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.16em; color: var(--color-text-dim); }
+  .qa-detail__meta-value { color: var(--color-text); }
+  .qa-detail__meta-divider { width: 1px; height: 1rem; background: var(--color-border); }
+
+  .qa-detail__positioning { display: grid; grid-template-columns: minmax(0, 1fr) clamp(12rem, 20vw, 16rem); gap: 2.5rem; align-items: start; margin-bottom: clamp(2.5rem, 4.5vw, 3.5rem); }
+  .qa-detail__positioning-body { min-width: 0; }
+  .qa-detail__hero-visual { width: 100%; padding: 1.2rem 1rem; border: 1px solid var(--color-border); border-radius: 12px; background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent); }
+  @media (max-width: 840px) { .qa-detail__positioning { grid-template-columns: 1fr; } .qa-detail__hero-visual { max-width: 14rem; justify-self: start; } }
+
+  .qa-detail__h2 { font-family: var(--font-display); font-weight: 700; font-size: clamp(1.4rem, 2.5vw, 1.8rem); margin: 0 0 0.5rem; color: var(--color-text); }
+  .qa-detail__h3 { font-family: var(--font-mono); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text-muted); margin: 1.5rem 0 0.7rem; }
+  .qa-detail__problem { font-size: 1.05rem; line-height: 1.7; color: var(--color-text); margin: 0; max-width: 65ch; }
+  .qa-detail__uses { margin: 0; padding-left: 1.25rem; line-height: 1.7; color: var(--color-text); max-width: 65ch; }
+  .qa-detail__uses li { margin-bottom: 0.35rem; }
+  .qa-detail__audience { margin: 1.5rem 0 0; font-size: 0.95rem; line-height: 1.65; color: var(--color-text-muted); padding: 0.85rem 1rem; border-left: 2px solid color-mix(in oklch, var(--color-primary) 50%, transparent); background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent); border-radius: 0 6px 6px 0; max-width: 65ch; }
+  .qa-detail__audience-label { font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--color-primary); margin-right: 0.35rem; }
+
+  .qa-detail__cta-section { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 0 0 clamp(2.5rem, 4.5vw, 3.5rem); max-width: 60rem; }
+  @media (max-width: 700px) { .qa-detail__cta-section { grid-template-columns: 1fr; } }
+  .qa-detail__cta { display: flex; flex-direction: column; gap: 0.4rem; padding: 1.5rem; border: 1px solid var(--color-border); border-radius: 12px; text-decoration: none; color: inherit; transition: border-color 0.2s, background 0.2s, transform 0.2s; }
+  .qa-detail__cta:hover { transform: translateY(-2px); border-color: color-mix(in oklch, var(--color-primary) 50%, var(--color-border)); }
+  .qa-detail__cta--primary { background: color-mix(in oklch, var(--color-primary) 8%, var(--color-surface-raised)); }
+  .qa-detail__cta--ghost { background: color-mix(in oklch, var(--color-surface-raised) 50%, transparent); }
+  .qa-detail__cta-kicker { font-family: var(--font-mono); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-primary); }
+  .qa-detail__cta-title { font-family: var(--font-display); font-weight: 700; font-size: 1.2rem; color: var(--color-text); }
+  .qa-detail__cta-note { font-size: 0.85rem; line-height: 1.5; color: var(--color-text-muted); }
+
+  .qa-detail__drift-section { margin: clamp(2.5rem, 4.5vw, 3.5rem) 0; max-width: 60rem; }
+  .qa-detail__h2-blurb { font-size: 0.95rem; line-height: 1.6; color: var(--color-text-muted); margin: 0 0 1.25rem; }
+  .qa-detail__drift { display: grid; gap: 0.85rem; margin: 0; }
+  .qa-detail__drift-row { display: grid; grid-template-columns: minmax(min(100%, 14rem), 1fr) 2fr; gap: 1rem; padding: 0.95rem 1.1rem; border: 1px solid var(--color-border); border-radius: 8px; background: color-mix(in oklch, var(--color-surface-raised) 35%, transparent); }
+  .qa-detail__drift-item { font-family: var(--font-mono); font-size: 0.88rem; color: var(--color-text); font-weight: 500; margin: 0; }
+  .qa-detail__drift-bound { font-size: 0.92rem; line-height: 1.55; color: var(--color-text-muted); margin: 0; }
+  @media (max-width: 700px) { .qa-detail__drift-row { grid-template-columns: 1fr; gap: 0.45rem; } }
+</style>

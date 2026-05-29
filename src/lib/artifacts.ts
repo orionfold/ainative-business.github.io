@@ -7,6 +7,7 @@ export const ARTIFACT_KINDS = [
   'notebook',
   'harness',
   'skill',
+  'arena_run',
 ] as const;
 
 export type ArtifactKind = (typeof ARTIFACT_KINDS)[number];
@@ -20,6 +21,7 @@ const SEGMENT_BY_KIND: Record<ArtifactKind, string> = {
   notebook: 'notebooks',
   harness: 'harnesses',
   skill: 'skills',
+  arena_run: 'apps',
 };
 
 const DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
@@ -31,6 +33,7 @@ const DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   notebook: 'Notebook',
   harness: 'Harness',
   skill: 'Skill',
+  arena_run: 'App',
 };
 
 const PLURAL_DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
@@ -42,6 +45,7 @@ const PLURAL_DISPLAY_NAME_BY_KIND: Record<ArtifactKind, string> = {
   notebook: 'Notebooks',
   harness: 'Harnesses',
   skill: 'Skills',
+  arena_run: 'Apps',
 };
 
 export function kindToSegment(kind: ArtifactKind): string {

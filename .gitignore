@@ -8,6 +8,7 @@ __pycache__/
 supabase/.temp/
 .agents/
 .playwright-mcp/
+.mcp.json
 output/
 /deck/
 .claude/settings.local.json

@@ -1,0 +1,103 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../../layouts/Layout.astro';
+import Nav from '../../../components/Nav.astro';
+import Footer from '../../../components/Footer.astro';
+import AppCard from '../../../components/artifacts/AppCard.astro';
+import { SITE, PUBLISHER } from '../../../data/seo';
+
+const all = await getCollection('artifacts', ({ data }) => data.kind === 'arena_run');
+const sorted = [...all].sort((a, b) => {
+  const at = a.data.published_at ? Date.parse(a.data.published_at) : 0;
+  const bt = b.data.published_at ? Date.parse(b.data.published_at) : 0;
+  return bt - at;
+});
+
+const countPadded = String(sorted.length).padStart(2, '0');
+const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
+
+const pageTitle = 'Apps — Artifacts — ainative';
+const pageDescription = `${sorted.length} operator apps that run on a DGX Spark — local-first cockpits over your own models, datasets, benches, and harnesses.`;
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Apps',
+    description: pageDescription,
+    url: `${SITE.url}/artifacts/apps/`,
+    publisher: PUBLISHER,
+    hasPart: sorted.map((a) => ({
+      '@type': 'SoftwareApplication',
+      name: a.data.slug,
+      applicationCategory: 'DeveloperApplication',
+      url: `${SITE.url}/artifacts/apps/${a.data.slug}/`,
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Artifacts', item: `${SITE.url}/artifacts/` },
+      { '@type': 'ListItem', position: 3, name: 'Apps', item: `${SITE.url}/artifacts/apps/` },
+    ],
+  },
+];
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main class="qa-index">
+    <header class="qa-index__masthead">
+      <div class="qa-index__strip" aria-hidden="true">
+        <a class="qa-index__back" href="/artifacts/">← Artifacts</a>
+        <span class="qa-index__rule"></span>
+        <span>/apps/</span>
+        <span class="qa-index__rule"></span>
+        <span>{volLabel}</span>
+      </div>
+      <h1 class="qa-index__title">Apps.</h1>
+      <p class="qa-index__tagline">
+        Operator apps that run on your own DGX Spark — local-first cockpits over
+        the models, datasets, benches, and harnesses you've already produced. No
+        hosted SaaS, no data egress. <span class="qa-index__count">{countPadded} published.</span>
+      </p>
+    </header>
+
+    {sorted.length === 0 ? (
+      <p class="qa-index__empty">No apps published yet.</p>
+    ) : (
+      <section class="qa-index__list">
+        {sorted.map((artifact) => (
+          <AppCard artifact={artifact} />
+        ))}
+        <div class="qa-index__closer">
+          <span class="qa-index__closer-glyph">※</span>
+          <span>More artifacts in preparation</span>
+          <span class="qa-index__closer-rule"></span>
+          <span>End of {volLabel}</span>
+        </div>
+      </section>
+    )}
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .qa-index { max-width: 72rem; margin: 0 auto; padding: clamp(3rem, 6vw, 5rem) clamp(1.25rem, 4vw, 2.5rem) clamp(4rem, 6vw, 6rem); }
+  .qa-index__masthead { margin-bottom: 2rem; max-width: 60rem; }
+  .qa-index__strip { display: flex; align-items: center; gap: 1rem; font-family: var(--font-mono); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--color-text-muted); margin-bottom: 1.25rem; }
+  .qa-index__back { color: var(--color-text-muted); text-decoration: none; transition: color 0.2s; }
+  .qa-index__back:hover { color: var(--color-primary); }
+  .qa-index__rule { flex: 0 0 2rem; height: 1px; background: var(--color-border); }
+  .qa-index__title { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.2rem, 5vw, 3.8rem); line-height: 1.05; letter-spacing: -0.02em; color: var(--color-text); margin: 0 0 1rem; }
+  .qa-index__tagline { font-size: 1.05rem; line-height: 1.65; color: var(--color-text-muted); max-width: 56ch; margin: 0; }
+  .qa-index__count { color: var(--color-primary); font-family: var(--font-mono); font-size: 0.95em; margin-left: 0.25rem; }
+  .qa-index__list { margin-top: 1.5rem; }
+  .qa-index__list > :global(.qa-card):first-of-type { padding-top: 3rem; border-top: 1px solid var(--color-border); }
+  .qa-index__list > :global(.qa-card):last-of-type { border-bottom: none; }
+  .qa-index__empty { margin-top: 3rem; padding: 3rem 2rem; border: 1px dashed var(--color-border); border-radius: 10px; text-align: center; color: var(--color-text-muted); font-family: var(--font-mono); }
+  .qa-index__closer { display: flex; align-items: center; gap: 1.25rem; margin-top: 3rem; padding: 2rem 0 0; border-top: 1px solid var(--color-border); font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--color-text-muted); }
+  .qa-index__closer-glyph { color: var(--color-primary); }
+  .qa-index__closer-rule { flex: 1; height: 1px; background: var(--color-border); }
+</style>

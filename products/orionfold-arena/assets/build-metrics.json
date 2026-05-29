@@ -1,0 +1,67 @@
+{
+  "build_window": {
+    "since": "2026-05-28T09:00:00+00:00",
+    "until": "2026-05-29T01:00:00+00:00"
+  },
+  "tokens": {
+    "by_model": {
+      "claude-opus-4-7": {
+        "input_tokens": 13694,
+        "output_tokens": 972393,
+        "cache_creation_input_tokens": 4100010,
+        "cache_read_input_tokens": 228083141,
+        "turns": 1130
+      }
+    },
+    "totals": {
+      "input_tokens": 13694,
+      "output_tokens": 972393,
+      "cache_creation_input_tokens": 4100010,
+      "cache_read_input_tokens": 228083141,
+      "total_all": 233169238,
+      "fresh_in_out": 986087
+    },
+    "assistant_turns": 1130,
+    "sessions_touched": 12
+  },
+  "loc": {
+    "by_ext": {
+      ".py": {
+        "files": 12,
+        "lines": 6999
+      },
+      ".astro": {
+        "files": 9,
+        "lines": 1576
+      },
+      ".jsx": {
+        "files": 12,
+        "lines": 3768
+      },
+      ".mjs": {
+        "files": 5,
+        "lines": 390
+      }
+    },
+    "total_lines": 12733,
+    "total_files": 38
+  },
+  "tests": {
+    "test_files": 7,
+    "test_cases": 125
+  },
+  "wall_clock": {
+    "first_commit": {
+      "hash": "f210c313c",
+      "time": "2026-05-28T09:31:07-07:00",
+      "subject": "spec(arena): lock spark-arena-v1.md \u2014 v1.0 Cockpit arc"
+    },
+    "last_commit": {
+      "hash": "61cb16b31",
+      "time": "2026-05-29T00:54:28-07:00",
+      "subject": "arena: fix empty tok/s + TTFT telemetry cells (sticky last-generation speeds)"
+    },
+    "commit_count": 13,
+    "elapsed_hours": 15.39
+  }
+}

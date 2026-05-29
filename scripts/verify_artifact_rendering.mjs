@@ -26,7 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const distDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
-const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches', 'notebooks', 'harnesses', 'skills'];
+const ARTIFACT_KINDS = ['loras', 'adapters', 'datasets', 'quants', 'benches', 'notebooks', 'harnesses', 'skills', 'apps'];
 
 const FORWARD_LOOKING_PATTERNS = [
   /\bcoming soon\b/i,
@@ -109,7 +109,7 @@ async function checkPage(file, kindSegment) {
   }
 
   const hasSignature =
-    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig|nb-sig|harness-sig|skill-sig)\b/.test(body) ||
+    /class="[^"]*\b(?:quant-sig|bs|lora-sig|adapter-sig|ds-sig|nb-sig|harness-sig|skill-sig|app-sig)\b/.test(body) ||
     /class="[^"]*Signature/.test(body);
   if (!hasSignature) {
     recordFailure(file, 'visual-required', `No signature SVG found on page. Every detail page must carry a data-driven visual.`);

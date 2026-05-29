@@ -1,0 +1,70 @@
+---
+import { getCollection, render } from 'astro:content';
+import ProductLayout from '../../../layouts/ProductLayout.astro';
+import { SITE } from '../../../data/seo';
+
+export async function getStaticPaths() {
+  const all = await getCollection('products');
+  return all.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+const dateIso = d.date.toISOString().slice(0, 10);
+const productUrl = `${SITE.url}/products/${entry.id}/`;
+const ogImage = `/og/products/${entry.id}.png`;
+const ogImageAlt = `${d.product_name} — ${d.tagline}`;
+
+const SUFFIX = ' — ainative';
+const pageTitle = (d.product_name.length + SUFFIX.length) <= 65
+  ? `${d.product_name}${SUFFIX}` : d.product_name;
+
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
+const metaDescription = truncateForMeta(d.summary);
+
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: d.product_name,
+    description: d.summary,
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: d.hardware,
+    datePublished: dateIso,
+    author: { '@type': 'Person', name: d.author, url: `${SITE.url}/about/` },
+    url: productUrl,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    ...(d.repo_url ? { codeRepository: d.repo_url } : {}),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Products', item: `${SITE.url}/products/` },
+      { '@type': 'ListItem', position: 3, name: d.product_name, item: productUrl },
+    ],
+  },
+];
+---
+<ProductLayout
+  entry={entry}
+  title={pageTitle}
+  description={metaDescription}
+  ogImage={ogImage}
+  ogImageAlt={ogImageAlt}
+  jsonLd={jsonLd}
+>
+  <Content />
+</ProductLayout>
