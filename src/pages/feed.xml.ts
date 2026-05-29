@@ -46,7 +46,7 @@ export async function GET(context: APIContext) {
   return rss({
     title: 'AI Native Field Notes',
     description:
-      'Field notes, deep-dive papers, and book chapters from ainative — a personal research project by Manav Sehgal on building AI-native businesses with governed agent orchestration.',
+      'Field notes, deep-dive papers, and book chapters from ainative — an Orionfold project on building AI-native businesses with open software, custom models, and governed agent orchestration that runs on your own machine.',
     site: context.site ?? SITE.url,
     items,
     customData: '<language>en-us</language>',
