@@ -4,9 +4,12 @@
  *
  * Renders bezel cells (GPU% / TEMP / UNIFIED MEM / THROUGHPUT+TTFT / LANE /
  * OPENROUTER). Each continuously-sampled metric (GPU%, temp, unified-mem,
- * throughput) carries its own rolling 60s mini-sparkline directly under the
- * readout; the unified-mem spark sits under the UNIFIED cell (with the 8 GB
- * guard band) rather than as a separate wide chart. Subscribes to the same
+ * throughput) carries its own fixed-window peak bar chart directly under the
+ * readout: each bar is the PEAK value over one bucket window (not an
+ * instantaneous sample), the chart fills left→right and only once full does
+ * the oldest bar FIFO off the left edge. The unified-mem chart sits under the
+ * UNIFIED cell (with the 8 GB guard band) rather than as a separate wide
+ * chart. Subscribes to the same
  * SSE source as the M3 <TelemetryGauge> island (GET /api/telemetry/stream on
  * the FastAPI sidecar at 127.0.0.1:7866).
  *
@@ -143,42 +146,67 @@
       tok:     railEl.querySelector('[data-spark="tok"]'),
     };
 
-    // Rolling 60s of every continuously-sampled signal, on a shared time axis.
-    const WINDOW_S = 60;
-    const series = { t: [], gpu: [], temp: [], used: [], tok: [] };
+    // Fixed-window PEAK bar charts. Each metric keeps a FIFO ring of finalized
+    // bars; every bar is the PEAK value seen over one BUCKET_S window (not an
+    // instantaneous sample). The chart fills left→right; only once SLOTS bars
+    // exist does each new bar displace the oldest off the left edge (FIFO).
+    // At 0.5 s telemetry ticks, BUCKET_S=2 folds 4 ticks/bar → SLOTS×2 = 60 s
+    // of history across a full chart (matches the old sliding-window span).
+    const SLOTS = 30;     // bars across the chart when full
+    const BUCKET_S = 2;   // seconds of telemetry folded into each bar
+    const METRICS = ['gpu', 'temp', 'used', 'tok'];
+    const bars = { gpu: [], temp: [], used: [], tok: [] }; // finalized peaks, ≤ SLOTS, oldest first
+    const cur = { gpu: null, temp: null, used: null, tok: null }; // running peak, current bucket
+    let bucketStart = null;
 
-    // Generic mini-sparkline. opts: {color, fill, max, band} — band draws a
-    // guard ribbon at the top (unified-mem). null values are gaps (tok/s idle).
-    function drawMini(canvas, vals, opts) {
+    // Fold one tick's value into the current bucket's running peak (null = gap).
+    function foldPeak(metric, v) {
+      if (v == null) return;
+      cur[metric] = cur[metric] == null ? v : Math.max(cur[metric], v);
+    }
+    // Seal the current bucket into a bar on every series + advance the FIFO ring.
+    function sealBucket() {
+      for (const m of METRICS) {
+        bars[m].push(cur[m]);
+        if (bars[m].length > SLOTS) bars[m].shift();
+        cur[m] = null;
+      }
+    }
+
+    // Render a metric as fixed-width peak bars, left-aligned so the chart fills
+    // L→R. The in-progress bucket is drawn (dimmed) as the rightmost forming
+    // bar so the chart stays live between seals. opts: {color, max, band} —
+    // band draws a guard ribbon at the top (unified-mem); null bars are gaps.
+    function drawBars(canvas, finalized, current, opts) {
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
       const W = canvas.width, H = canvas.height;
       ctx.clearRect(0, 0, W, H);
-      const ts = series.t;
-      if (opts.band != null && opts.max) {
-        const gy = (opts.band / opts.max) * H;
+      let max = opts.max;
+      if (max != null && opts.band != null) {
+        const gy = (opts.band / max) * H;
         ctx.fillStyle = 'oklch(0.83 0.16 78 / 0.10)';
         ctx.fillRect(0, 0, W, gy);
       }
-      const pts = [];
-      for (let i = 0; i < ts.length; i++) if (vals[i] != null) pts.push([ts[i], vals[i]]);
-      if (pts.length < 2) return;
-      const t0 = pts[0][0], tN = pts[pts.length - 1][0], dt = Math.max(tN - t0, 1);
-      let max = opts.max;
-      if (max == null) { max = 1e-9; for (const p of pts) max = Math.max(max, p[1]); }
-      const x = (t) => ((t - t0) / dt) * W;
-      const y = (v) => H - (Math.min(v, max) / max) * (H - 3) - 1.5;
-      ctx.beginPath();
-      pts.forEach((p, i) => (i ? ctx.lineTo(x(p[0]), y(p[1])) : ctx.moveTo(x(p[0]), y(p[1]))));
-      ctx.strokeStyle = opts.color;
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
-      ctx.lineTo(x(pts[pts.length - 1][0]), H);
-      ctx.lineTo(x(pts[0][0]), H);
-      ctx.closePath();
-      ctx.fillStyle = opts.fill || 'rgba(127,127,127,0.10)';
-      ctx.fill();
+      let vals = finalized.slice();
+      if (current != null) vals.push(current);
+      if (vals.length > SLOTS) vals = vals.slice(vals.length - SLOTS);
+      if (!vals.length) return;
+      if (max == null) { max = 1e-9; for (const v of vals) if (v != null) max = Math.max(max, v); }
+      const slotW = W / SLOTS;
+      const gap = slotW > 3 ? 1 : 0;
+      const barW = Math.max(slotW - gap, 1);
+      ctx.fillStyle = opts.color;
+      for (let i = 0; i < vals.length; i++) {
+        const v = vals[i];
+        if (v == null) continue;
+        const h = Math.max((Math.min(v, max) / max) * (H - 1.5), 1);
+        const isForming = current != null && i === vals.length - 1;
+        ctx.globalAlpha = isForming ? 0.5 : 1;
+        ctx.fillRect(i * slotW, H - h, barW, h);
+      }
+      ctx.globalAlpha = 1;
     }
 
     function classForGpu(v) {
@@ -292,19 +320,18 @@
           if (cells.laneHint) cells.laneHint.textContent = 'no warm brain';
         }
 
-        // Append to the shared rolling series + redraw every mini-spark.
-        series.t.push(now);
-        series.gpu.push(t.gpu_util != null ? t.gpu_util : null);
-        series.temp.push(t.gpu_temp_c != null ? t.gpu_temp_c : null);
-        series.used.push(used != null ? used : null);
-        series.tok.push(t.tok_per_s != null ? t.tok_per_s : null);
-        while (series.t.length && series.t[0] < now - WINDOW_S) {
-          for (const k of ['t', 'gpu', 'temp', 'used', 'tok']) series[k].shift();
-        }
-        drawMini(sparks.gpu, series.gpu, { color: 'oklch(0.74 0.16 165)', fill: 'oklch(0.74 0.16 165 / 0.14)', max: 100 });
-        drawMini(sparks.temp, series.temp, { color: 'oklch(0.83 0.16 78)', fill: 'oklch(0.83 0.16 78 / 0.14)', max: 100 });
-        drawMini(sparks.unified, series.used, { color: 'oklch(0.72 0.18 250)', fill: 'oklch(0.72 0.18 250 / 0.18)', max: Math.max(total || 128, 64), band: 8 });
-        drawMini(sparks.tok, series.tok, { color: 'oklch(0.74 0.16 165)', fill: 'oklch(0.74 0.16 165 / 0.14)' });
+        // Fold this tick into the running peak; seal + advance the FIFO ring on
+        // the bucket boundary, then redraw all four fixed-window bar charts.
+        if (bucketStart == null) bucketStart = now;
+        foldPeak('gpu', t.gpu_util);
+        foldPeak('temp', t.gpu_temp_c);
+        foldPeak('used', used);
+        foldPeak('tok', t.tok_per_s);
+        if (now - bucketStart >= BUCKET_S) { sealBucket(); bucketStart = now; }
+        drawBars(sparks.gpu, bars.gpu, cur.gpu, { color: 'oklch(0.74 0.16 165)', max: 100 });
+        drawBars(sparks.temp, bars.temp, cur.temp, { color: 'oklch(0.83 0.16 78)', max: 100 });
+        drawBars(sparks.unified, bars.used, cur.used, { color: 'oklch(0.72 0.18 250)', max: Math.max(total || 128, 64), band: 8 });
+        drawBars(sparks.tok, bars.tok, cur.tok, { color: 'oklch(0.74 0.16 165)' });
       } catch {}
     }
     window.__arenaTelemetry.subscribe({
