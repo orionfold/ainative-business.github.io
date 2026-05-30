@@ -697,9 +697,11 @@ def test_chat_event_stream_pings_report_inflight(
     # First call: inflight=True with the resident lane id.
     assert seen[0]["inflight"] is True
     assert seen[0]["lane_id"] == "test-lane"
-    # Final call: inflight=False (lane_id cleared in the finally guard).
+    # Final call: inflight=False, with lane_id OMITTED — the finally guard keeps
+    # the lane label + final speeds sticky so the rail keeps labelling the model
+    # you just ran (with its completion-final tok/s) at idle.
     assert seen[-1]["inflight"] is False
-    assert seen[-1]["lane_id"] is None
+    assert "lane_id" not in seen[-1]
 
 
 def test_chat_stream_route_is_registered_with_pydantic_body(

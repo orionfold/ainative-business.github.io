@@ -612,6 +612,28 @@ class ArenaStore:
             )
         )
 
+    def leaderboard_live(self, *, include_chat: bool = True) -> list[dict[str, Any]]:
+        """Live cockpit leaderboard rows, computed on-the-fly (no rebuild).
+
+        Mirrors :meth:`eval_leaderboard`'s "read the live tables directly"
+        contract, but for the cockpit family: aggregates publishable compare
+        runs (and, by default, chat turns) into the ``leaderboard_rows`` shape
+        via the same core the CLI rebuild uses, so the two never diverge. Rows
+        sort by ``mean_score`` desc (``None`` — throughput-only chat — last),
+        then ``median_tok_per_s`` desc. Column-allowlisted by construction —
+        the aggregation SELECTs only metric/id/timestamp columns."""
+        from fieldkit.arena.mirror import _aggregate_cockpit_rows
+
+        rows = _aggregate_cockpit_rows(self.connect(), include_chat=include_chat)
+        rows.sort(
+            key=lambda r: (
+                r["mean_score"] if r["mean_score"] is not None else -1.0,
+                r["median_tok_per_s"] or 0.0,
+            ),
+            reverse=True,
+        )
+        return rows
+
     def eval_scores_for_source(self, source: str, source_id: str) -> list[sqlite3.Row]:
         """All eval-score rows for a chat turn / compare run, oldest first."""
         return list(
