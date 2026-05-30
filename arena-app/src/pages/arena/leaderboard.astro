@@ -16,6 +16,9 @@ import { getCollection } from 'astro:content';
 import FrontierScatter from '../../components/arena/FrontierScatter.jsx';
 import LiveLeaderboard from '../../components/arena/LiveLeaderboard.jsx';
 import { recommendedVariant } from '../../lib/arena/model-prompts.mjs';
+// Lane label comes from the shared formatter so the SSR bench table and the
+// live island split the quant suffix (Q4_K_M, F16) + strip `local:` identically.
+import { laneLabel } from '../../lib/arena/leaderboard-format.mjs';
 
 const title = 'Orionfold Arena — Leaderboard';
 const description =
@@ -95,11 +98,6 @@ const pct = (s: number) => (s * 100).toFixed(1);
 const fmtTok = (n: number | null) => n == null ? '—' : n.toFixed(1);
 const fmtTtft = (n: number | null) => n == null ? '—' : `${n.toFixed(0)} ms`;
 const fmtPref = (n: number | null) => n == null ? '—' : `${(n * 100).toFixed(0)}%`;
-const laneLabel = (lane_id: string) => lane_id.replace(/::[a-z0-9-]+$/, '');
-const laneSuffix = (lane_id: string) => {
-  const m = lane_id.match(/::([a-z0-9-]+)$/);
-  return m ? m[1] : '';
-};
 const benchLabel = (bench_id: string) => bench_id.replace(/^cockpit:/, '');
 const benchMetric = (bench_id: string) => {
   // Pulled from the M2 importer's bench_id convention: <slug>:<metric_or_check>.

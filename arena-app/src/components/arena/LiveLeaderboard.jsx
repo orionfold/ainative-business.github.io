@@ -18,12 +18,28 @@ import {
   fmtTok,
   fmtTtft,
   fmtPref,
-  laneLabel,
+  laneModel,
   laneSuffix,
+  laneSource,
   benchLabel,
   scoreColor,
   sortLiveRows,
 } from '../../lib/arena/leaderboard-format.mjs';
+
+// Source pill — Spark-green for local, OpenRouter-blue for cloud. Same colours
+// as the compare side-card badges (CompareDuel) so the cockpit reads as one app.
+function SourceBadge({ source }) {
+  const isOR = source === 'openrouter';
+  const c = isOR ? '#5b9cff' : '#76b900';
+  return (
+    <span
+      title={isOR ? 'Runs in the cloud via OpenRouter' : 'Runs locally on the DGX Spark'}
+      style={`flex:none; font-family: var(--arena-mono); font-size:0.55rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:1px 7px; border-radius:999px; color:${c}; background:${c}1f; border:1px solid ${c}66;`}
+    >
+      {isOR ? 'OpenRouter' : 'Spark GPU'}
+    </span>
+  );
+}
 
 const H2_STYLE =
   'font-family: var(--arena-mono); font-size: 0.7rem; letter-spacing: 0.22em; ' +
@@ -147,7 +163,7 @@ export default function LiveLeaderboard({ seedRows = [] }) {
             <thead>
               <tr>
                 <th class="rankcol-rank">Rank</th>
-                <th class="rankcol-lane">Rubric · Lane</th>
+                <th class="rankcol-lane">Model · rubric</th>
                 <th class="rankcol-score">Quality</th>
                 <th class="rankcol-tok">Throughput</th>
                 <th class="rankcol-tok">TTFT</th>
@@ -169,10 +185,17 @@ export default function LiveLeaderboard({ seedRows = [] }) {
                     </td>
                     <td class="rankcol-lane">
                       <div class="lane-cell">
-                        <span class="lane-cell__id">{benchLabel(r.bench_id)}</span>
+                        {/* Model leads + source badge; the rubric (or "chat"
+                            for the unscored fold) rides as the secondary line. */}
+                        <span style="display:inline-flex; align-items:center; gap:7px; min-width:0;">
+                          <span class="lane-cell__id">
+                            {laneModel(r.lane_id)}
+                            {laneSuffix(r.lane_id) && ` (${laneSuffix(r.lane_id)})`}
+                          </span>
+                          <SourceBadge source={laneSource(r.lane_id)} />
+                        </span>
                         <span class="lane-cell__slug">
-                          vs · {laneLabel(r.lane_id)}
-                          {laneSuffix(r.lane_id) && ` (${laneSuffix(r.lane_id)})`}
+                          {r.bench_id === 'cockpit:chat' ? 'chat' : benchLabel(r.bench_id)}
                         </span>
                       </div>
                     </td>
