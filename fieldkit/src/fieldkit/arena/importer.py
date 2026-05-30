@@ -504,11 +504,16 @@ def _extract_bench_rows(data: Any) -> list[dict[str, Any]]:
                 "wall_mean_s": (
                     vert_warm.get(label) if isinstance(vert_warm, dict) else None
                 ),
+                "tok_per_sec": None,
             }
             if isinstance(payload, dict):
                 row.setdefault(
                     "core_pass_rate",
                     payload.get("pass_rate") or payload.get("accuracy"),
+                )
+                # Throughput if the evidence recorded it (matches shape 1).
+                row["tok_per_sec"] = (
+                    payload.get("tok_per_sec") or payload.get("tokens_per_sec")
                 )
             rows.append(row)
         if rows:
@@ -525,6 +530,8 @@ def _extract_bench_rows(data: Any) -> list[dict[str, Any]]:
                     "variant_label": str(label),
                     "core_pass_rate": payload.get("pass_rate"),
                     "wall_mean_s": payload.get("warm_time_s"),
+                    "tok_per_sec": payload.get("tok_per_sec")
+                    or payload.get("tokens_per_sec"),
                 }
             )
         if rows:

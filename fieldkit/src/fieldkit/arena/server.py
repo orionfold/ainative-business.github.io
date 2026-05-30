@@ -209,6 +209,11 @@ class TelemetryHub:
         # add per-run cost via :meth:`add_openrouter_cost`; the rail renders it.
         self._openrouter_cost_usd: float = 0.0
         self._openrouter_calls: int = 0
+        # Monotonic "the live leaderboard changed" revision. Bumped on compare /
+        # chat completion + chat scoring; surfaced on every telemetry tick as
+        # ``leaderboard_rev`` so the LiveLeaderboard island refetches
+        # ``/api/leaderboard/live`` only when it actually moved (not every tick).
+        self._leaderboard_rev: int = 0
         # Optional callable returning the configured resident lane dict, so the
         # "Active Lane" cell can show the warm brain at idle (not "no warm
         # brain"). Set by create_app; cached ~5s to avoid re-reading per tick.
@@ -300,6 +305,22 @@ class TelemetryHub:
         if inc > 0:
             self._openrouter_cost_usd += inc
             self._openrouter_calls += 1
+
+    @property
+    def leaderboard_rev(self) -> int:
+        with self._lock:
+            return self._leaderboard_rev
+
+    def bump_leaderboard(self) -> None:
+        """Signal that a run completed and the live leaderboard moved.
+
+        Surfaces as ``leaderboard_rev`` on the next telemetry tick (≤ the pump
+        interval) so the LiveLeaderboard island refetches. Called from the
+        event-loop thread after the relevant DB commit, so a refetch triggered
+        by the bump always sees committed data. Guarded by ``self._lock`` (also
+        held by the pump thread's payload read) for a consistent value."""
+        with self._lock:
+            self._leaderboard_rev += 1
 
     # -- internal: sampler + pump -----------------------------------------
 
@@ -427,6 +448,8 @@ class TelemetryHub:
             "resident_lane": self._resident_model(),
             "openrouter_cost_usd": round(self._openrouter_cost_usd, 6),
             "openrouter_calls": self._openrouter_calls,
+            # Change signal for the live leaderboard (see bump_leaderboard).
+            "leaderboard_rev": self.leaderboard_rev,
         }
         return payload
 
@@ -909,6 +932,45 @@ def create_app(
                     )
         return {"rows": rows, "include_cross_vertical": include_cross_vertical}
 
+    @app.get("/api/leaderboard/live")
+    async def api_leaderboard_live(include_chat: bool = True) -> dict[str, Any]:
+        """Live cockpit leaderboard — aggregated on-the-fly from the compare +
+        chat tables, no rebuild, no mirror. **Spark-local only**: the public
+        mirror serves the curated static ``leaderboard.json`` via
+        ``/api/leaderboard``; this endpoint surfaces the operator's live runs.
+
+        Column-allowlisted by construction — the response dict copies only
+        numeric metrics + ids + timestamps, so no prompt/content/reasoning ever
+        leaves the box (same defense as ``/api/activity``). ``rev`` echoes the
+        current telemetry ``leaderboard_rev`` so the client can dedupe."""
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(db_path).expanduser()
+        rows: list[dict[str, Any]] = []
+        if db_file.is_file():
+            store = ArenaStore(db_file)
+            with store:
+                store.initialize()  # cold-DB safe — reads cleanly pre-first-run
+                for r in store.leaderboard_live(include_chat=include_chat):
+                    rows.append(
+                        {
+                            "bench_id": r["bench_id"],
+                            "lane_id": r["lane_id"],
+                            "manifest_slug": r.get("manifest_slug"),
+                            "n_runs": r["n_runs"],
+                            "mean_score": (
+                                round(float(r["mean_score"]), 4)
+                                if r["mean_score"] is not None
+                                else None
+                            ),
+                            "median_tok_per_s": r.get("median_tok_per_s"),
+                            "mean_ttft_ms": r.get("mean_ttft_ms"),
+                            "human_pref_winrate": r.get("human_pref_winrate"),
+                            "last_run_at": r["last_run_at"],
+                        }
+                    )
+        return {"rows": rows, "rev": hub.leaderboard_rev, "now": _utc_now_iso()}
+
     @app.post("/api/chat/score")
     async def api_chat_score(body: ChatScoreRequest) -> dict[str, Any]:
         """Score a completed chat turn against a bench gold (or judge a free
@@ -976,6 +1038,9 @@ def create_app(
                         "scored_at": _utc_now_iso(),
                     }
                 )
+                # A quality grade landed for a chat turn → nudge the live
+                # boards to refetch on the next telemetry tick.
+                hub.bump_leaderboard()
             result["turn_id"] = body.turn_id
             return result
         finally:
@@ -1990,6 +2055,10 @@ async def chat_event_stream(
             ttft_ms=ttft_ms,
             lane_id=lane_id,
         )
+        # Chat turn persisted (with tok/s + TTFT) → the live leaderboard moved;
+        # signal the LiveLeaderboard island to refetch (throughput-only row
+        # even before any quality score lands).
+        hub.bump_leaderboard()
         # Meter OpenRouter spend (local lanes cost nothing).
         cost_usd = 0.0
         if lane["kind"] == "openrouter":
@@ -3286,6 +3355,8 @@ async def compare_event_stream(
             ttft_ms=rest.get("ttft_ms"),
             lane_id=rest_id,
         )
+        # Both sides scored + persisted → the live leaderboard moved.
+        hub.bump_leaderboard()
 
         yield {"event": "score", "data": json.dumps(score_event)}
     finally:

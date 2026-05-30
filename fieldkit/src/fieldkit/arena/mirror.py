@@ -347,59 +347,116 @@ def _rebuild_bench_anchored(conn: sqlite3.Connection, *, fetched_at: str) -> int
     return written
 
 
-def _rebuild_cockpit_runs(conn: sqlite3.Connection, *, fetched_at: str) -> int:
-    """Promote publishable compare runs into ``leaderboard_rows``.
+def _aggregate_cockpit_rows(
+    conn: sqlite3.Connection, *, include_chat: bool = False
+) -> list[dict[str, Any]]:
+    """Per-``(bench_id, lane_id)`` live-cockpit leaderboard aggregates.
 
-    One row per ``(rubric_id, lane_id, side)`` aggregate across all
-    publishable runs. ``side`` is folded into the lane id so an A-lane
-    showing up on both A and B across runs (rare but legal under the
-    swap UX) is one row, not two.
+    **Pure read** — computes the ``leaderboard_rows`` shape from the live
+    ``compare_*`` (and, when ``include_chat``, ``chat_*``) tables WITHOUT
+    writing anything. Shared by the CLI rebuild (:func:`_rebuild_cockpit_runs`,
+    compare-only so the public mirror snapshot stays byte-stable) and the live
+    API query (``store.leaderboard_live``). SELECTs only metric/id/timestamp
+    columns — never ``prompt`` / ``content`` / ``reasoning`` / ``note``.
+
+    ``bench_id`` is ``f"cockpit:{rubric_id}"`` for scored compare/chat rows and
+    ``"cockpit:chat"`` for unscored chat turns (throughput-only — ``mean_score``
+    is ``None``). ``side`` is folded into the lane id so an A-lane that shows up
+    on both sides across runs is one row, not two. ``last_run_at`` is the max
+    run/score timestamp in each bucket.
     """
-    written = 0
-    # Inner query: for each compare_run, what lane sat at each side.
+    by_pair: dict[tuple[str, str], list[dict[str, Any]]] = {}
+
+    def _push(bench_id, lane_id, *, score, tok, ttft, wins, n_prefs, ts):
+        by_pair.setdefault((bench_id, lane_id), []).append(
+            {
+                "score": score,
+                "tok_per_s": tok,
+                "ttft_ms": ttft,
+                "wins": wins,
+                "n_prefs": n_prefs,
+                "ts": ts,
+            }
+        )
+
+    # --- compare runs: one entry per publishable run × side that has a score.
     runs = conn.execute(
-        "SELECT id, rubric_id, lane_a_id, lane_b_id "
+        "SELECT id, rubric_id, lane_a_id, lane_b_id, created_at "
         "FROM compare_runs WHERE publishable=1"
     ).fetchall()
-    by_pair: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for run in runs:
-        lane_map = {"A": run["lane_a_id"], "B": run["lane_b_id"]}
-        for side, lane_id in lane_map.items():
+        for side, lane_id in (("A", run["lane_a_id"]), ("B", run["lane_b_id"])):
             score_row = conn.execute(
-                "SELECT total FROM rubric_scores "
+                "SELECT total, scored_at FROM rubric_scores "
                 "WHERE compare_run_id=? AND side=? AND rubric_id=?",
                 (run["id"], side, run["rubric_id"]),
             ).fetchone()
             if score_row is None:
-                # Mid-flight or canned compare without scored output;
-                # skip in the rebuild — the row reappears on the next
-                # rebuild after the score lands.
+                # Mid-flight or canned compare without scored output; skip —
+                # the row appears once its score lands.
                 continue
             resp_row = conn.execute(
                 "SELECT tok_per_s, ttft_ms FROM compare_responses "
                 "WHERE compare_run_id=? AND side=?",
                 (run["id"], side),
             ).fetchone()
-            pref_winner_row = conn.execute(
+            prefs = conn.execute(
                 "SELECT winner FROM human_prefs WHERE compare_run_id=?",
                 (run["id"],),
             ).fetchall()
             wins = sum(
-                1.0 if pr["winner"] == side else (0.5 if pr["winner"] == "tie" else 0.0)
-                for pr in pref_winner_row
+                1.0 if p["winner"] == side else (0.5 if p["winner"] == "tie" else 0.0)
+                for p in prefs
             )
-            n_prefs = len(pref_winner_row)
-            entry = {
-                "score": float(score_row["total"]),
-                "tok_per_s": float(resp_row["tok_per_s"]) if resp_row and resp_row["tok_per_s"] is not None else None,
-                "ttft_ms": float(resp_row["ttft_ms"]) if resp_row and resp_row["ttft_ms"] is not None else None,
-                "wins": wins,
-                "n_prefs": n_prefs,
-            }
-            by_pair.setdefault((run["rubric_id"], lane_id), []).append(entry)
+            _push(
+                f"cockpit:{run['rubric_id']}",
+                lane_id,
+                score=float(score_row["total"]),
+                tok=float(resp_row["tok_per_s"]) if resp_row and resp_row["tok_per_s"] is not None else None,
+                ttft=float(resp_row["ttft_ms"]) if resp_row and resp_row["ttft_ms"] is not None else None,
+                wins=wins,
+                n_prefs=len(prefs),
+                ts=max([t for t in (run["created_at"], score_row["scored_at"]) if t] or [run["created_at"]]),
+            )
 
-    for (rubric_id, lane_id), entries in by_pair.items():
-        scores = [e["score"] for e in entries]
+    # --- chat turns (live-only): every assistant turn is a throughput sample
+    #     for its lane; quality folds in when a rubric score is attached.
+    if include_chat:
+        turns = conn.execute(
+            "SELECT t.id AS turn_id, t.tok_per_s AS tok_per_s, "
+            "       t.ttft_ms AS ttft_ms, t.created_at AS created_at, "
+            "       s.lane_id AS lane_id "
+            "FROM chat_turns t JOIN chat_sessions s ON s.id = t.session_id "
+            "WHERE t.role='assistant'"
+        ).fetchall()
+        for t in turns:
+            score_row = conn.execute(
+                "SELECT total, rubric_id, scored_at FROM rubric_scores "
+                "WHERE chat_turn_id=? ORDER BY scored_at DESC LIMIT 1",
+                (t["turn_id"],),
+            ).fetchone()
+            if score_row is not None:
+                bench_id = f"cockpit:{score_row['rubric_id']}"
+                score: float | None = float(score_row["total"])
+                ts = max([x for x in (t["created_at"], score_row["scored_at"]) if x] or [t["created_at"]])
+            else:
+                bench_id = "cockpit:chat"  # throughput-only bucket
+                score = None
+                ts = t["created_at"]
+            _push(
+                bench_id,
+                t["lane_id"],
+                score=score,
+                tok=float(t["tok_per_s"]) if t["tok_per_s"] is not None else None,
+                ttft=float(t["ttft_ms"]) if t["ttft_ms"] is not None else None,
+                wins=0.0,
+                n_prefs=0,
+                ts=ts,
+            )
+
+    rows: list[dict[str, Any]] = []
+    for (bench_id, lane_id), entries in by_pair.items():
+        scores = [e["score"] for e in entries if e["score"] is not None]
         tokps = [e["tok_per_s"] for e in entries if e["tok_per_s"] is not None]
         ttfts = [e["ttft_ms"] for e in entries if e["ttft_ms"] is not None]
         total_prefs = sum(e["n_prefs"] for e in entries)
@@ -407,26 +464,51 @@ def _rebuild_cockpit_runs(conn: sqlite3.Connection, *, fetched_at: str) -> int:
         winrate: float | None = None
         if total_prefs >= 5:  # spec §4.4 — render only after ≥5 prefs
             winrate = total_wins / total_prefs
-        bench_id = f"cockpit:{rubric_id}"
+        ts_vals = [e["ts"] for e in entries if e["ts"]]
+        rows.append(
+            {
+                "bench_id": bench_id,
+                "lane_id": lane_id,
+                "manifest_slug": None,
+                "n_runs": len(entries),
+                "mean_score": (sum(scores) / len(scores)) if scores else None,
+                "median_tok_per_s": _median(tokps) if tokps else None,
+                "mean_ttft_ms": (sum(ttfts) / len(ttfts)) if ttfts else None,
+                "human_pref_winrate": winrate,
+                "last_run_at": max(ts_vals) if ts_vals else None,
+            }
+        )
+    return rows
+
+
+def _rebuild_cockpit_runs(conn: sqlite3.Connection, *, fetched_at: str) -> int:
+    """Promote publishable compare runs into ``leaderboard_rows``.
+
+    Thin wrapper over :func:`_aggregate_cockpit_rows` (compare-only — chat is
+    live-API-only and never enters the public mirror snapshot). Writes
+    ``fetched_at`` for ``last_run_at`` to preserve the existing byte-stable CLI
+    output; the live query keeps the data-derived ``last_run_at`` instead.
+    """
+    rows = _aggregate_cockpit_rows(conn, include_chat=False)
+    for r in rows:
         conn.execute(
             "INSERT OR REPLACE INTO leaderboard_rows "
             "(bench_id, lane_id, manifest_slug, n_runs, mean_score, "
             " median_tok_per_s, mean_ttft_ms, human_pref_winrate, last_run_at) "
             "VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)",
             (
-                bench_id,
-                lane_id,
-                len(entries),
-                sum(scores) / len(scores),
-                _median(tokps) if tokps else None,
-                (sum(ttfts) / len(ttfts)) if ttfts else None,
-                winrate,
+                r["bench_id"],
+                r["lane_id"],
+                r["n_runs"],
+                r["mean_score"],
+                r["median_tok_per_s"],
+                r["mean_ttft_ms"],
+                r["human_pref_winrate"],
                 fetched_at,
             ),
         )
-        written += 1
     conn.commit()
-    return written
+    return len(rows)
 
 
 # ---------------------------------------------------------------------------
