@@ -63,5 +63,21 @@
     },
     "commit_count": 13,
     "elapsed_hours": 15.39
+  },
+  "post_launch": {
+    "note": "The block above is the launch snapshot and drives the rendered infographic (unchanged). This records the post-launch evolution measured 2026-05-30: same source roots, same counting method (mine_build_metrics.py). Token/wall-clock for this arc are NOT cited in prose because the post-launch transcript window mixes non-arena work and cannot be cleanly attributed; only LOC, tests, and the feature commits are quoted.",
+    "build_model": "claude-opus-4-8",
+    "lines_of_code_current": 17515,
+    "loc_files_current": 43,
+    "test_cases_current": 135,
+    "test_files_current": 8,
+    "feature_commits": [
+      {"hash": "611dcac", "subject": "source-aware telemetry rail + compact head-to-head"},
+      {"hash": "c6aea4d", "subject": "live, comprehensive cockpit leaderboard from chat + compare runs"},
+      {"hash": "ef67f13", "subject": "model-leads live-leaderboard rows with Spark/OpenRouter source badges"},
+      {"hash": "7156775", "subject": "footer chrome + shared telemetry bus (no SSE leak on tab switch)"},
+      {"hash": "07ea9ef", "subject": "rail sparklines to fixed-window peak bar charts"},
+      {"hash": "4d8e89b", "subject": "above-the-fold cockpit redesign + compare metric-card sparklines"}
+    ]
   }
 }

@@ -31,10 +31,10 @@ features:
     benefit: "One screen to see every artifact, bench, and the warm model's live telemetry — the operator's home base."
     screenshot: "screenshots/01-cockpit.png"
   - name: "Live telemetry rail"
-    benefit: "Always-on GPU, temperature, and unified-memory readouts so you watch the Spark's envelope while a model runs."
+    benefit: "Always-on GPU, temperature, unified-memory, and throughput readouts — each with a fixed-window peak-bar chart — so you watch the Spark's envelope while a model runs."
     screenshot: "screenshots/11-telemetry-rail.png"
   - name: "Leaderboard"
-    benefit: "Bench-anchored rankings over your own models, served from a leak-proof public mirror — never your prompts or completions."
+    benefit: "Live bench-anchored rankings that fold in every chat and compare run, with Spark/OpenRouter source badges — served from a leak-proof public mirror, never your prompts or completions."
     screenshot: "screenshots/02-leaderboard.png"
   - name: "Efficiency frontier"
     benefit: "Quality versus throughput on one chart with the Pareto skyline in gold — where you decide which quant is worth shipping."
@@ -52,7 +52,7 @@ features:
     benefit: "Pull the exact bench a model was measured on, autofill the composer, and auto-score the answer against gold without leaving chat."
     screenshot: "screenshots/08-eval-drawer.png"
   - name: "Compare — any vs. any"
-    benefit: "Duel two lanes side by side with a deterministic rubric score and a head-to-head delta strip — local-vs-local, local-vs-hosted, your call."
+    benefit: "Duel two lanes side by side with a deterministic rubric score and telemetry-style metric cards — quality, tok/s, TTFT, tokens, cost — each over a session sparkline. Local-vs-local, local-vs-hosted, your call."
     screenshot: "screenshots/07-compare.png"
   - name: "Command palette"
     benefit: "Hit ⌘K and jump anywhere — fuzzy-search every model, article, and lane, or fire a chat or compare without touching the mouse."
@@ -145,6 +145,20 @@ day" claim, and the honest version is more interesting than a round one.
 *The build-metrics infographic is rendered by the site from the mined `build:`
 block; every figure traces back to `assets/build-metrics.json`.*
 
+Then it kept evolving. The infographic above is the launch snapshot — but the
+cockpit you see in the tour below is several sessions further on, every one of
+them driven by Claude Opus 4.8. Six more surfaces and refinements landed in the
+days after launch: a *source-aware telemetry rail* whose cells became
+fixed-window peak-bar charts; a *live leaderboard* that folds every chat and
+compare run into the rankings, each row badged Spark or OpenRouter;
+*telemetry-style metric cards* with per-session sparklines on the compare duel; a
+*shared telemetry bus* that closed a connection-leak on tab-switching; and an
+*above-the-fold cockpit redesign* with a breadcrumb top bar and a denser
+single-screen layout. Measured the same way, the arena source tree is **17,515
+lines and 135 tests** now — the same day-after-day leverage, applied to a tool
+that was already shipping. The post-launch block of `build-metrics.json` records
+that second arc.
+
 ## The feature tour
 
 The tour starts where the operator lands — the cockpit — and walks outward to
@@ -154,41 +168,53 @@ the surfaces reached from it.
 
 ![The Orionfold Arena cockpit: telemetry rail, an at-a-glance strip, top scored runs, the active lane, and a recent-activity feed](screenshots/01-cockpit.png)
 
-*One screen: the live telemetry rail up top, an "at a glance" of what you've
-built, the top scored runs, the active lane, and a recent-activity feed.*
+*One screen: a breadcrumb top bar, the live telemetry rail, an "at a glance" of
+what you've built, the top scored runs, the active lane, and a recent-activity
+feed.*
 
-The cockpit is the single screen you keep open. The instrument rail across the
+The cockpit is the single screen you keep open, and the above-the-fold redesign
+earns its name — a breadcrumb top bar replaces the old oversized hero so the
+working panels start near the top of the viewport. The instrument rail across the
 top reads the Spark's live state; the "at a glance" strip counts what you've
-built (here: 18 artifact manifests, 55 articles, 3 benches, 16 scored runs, the
-128 GB envelope); the top-runs ticker ranks your best results; and the activity
-feed shows what's happened recently — all without a private prompt or completion
-ever appearing, because the feed reads only redacted metadata.
+built — artifact manifests, articles, benches, scored runs, and the 128 GB
+unified-memory envelope; the top-runs ticker ranks your best results; and the
+activity feed shows what's happened recently — all without a private prompt or
+completion ever appearing, because the feed reads only redacted metadata.
 
 ### Watch the envelope — the telemetry rail
 
 ![The live telemetry rail: GPU utilization, temperature, unified memory, throughput, TTFT, active lane, and OpenRouter spend](screenshots/11-telemetry-rail.png)
 
 *GPU utilization, die temperature, unified memory, throughput, time-to-first-
-token, the active lane, and OpenRouter spend — a live instrument cluster across
-the top of every page.*
+token, the active lane, and OpenRouter spend — a live instrument cluster, each
+metric over a fixed-window peak-bar chart, across the top of every page.*
 
 On a Spark, GPU and system memory share the same 128 GB pool, so watching the
-unified-memory cell (here 44.8 / 122 GB, with 76.9 GB of headroom) is how you
-avoid an out-of-memory hang before it happens. The rail streams real counters
-the instant a sidecar is live; throughput and TTFT sit dimmed at idle and light
-up the moment a generation starts, so the panel always tells the truth about what
-the machine is doing right now.
+unified-memory cell (here 32.0 / 122 GB, with ~90 GB of headroom) is how you
+avoid an out-of-memory hang before it happens. Each cell now carries a
+**fixed-window peak-bar chart** — discrete vertical bars, one per time bucket,
+that fill left-to-right and then FIFO off the edge — so a glance shows not just
+the current value but the recent peak history of GPU load, temperature, memory,
+and throughput. The rail streams real counters the instant a sidecar is live;
+throughput and TTFT sit dimmed at idle and light up the moment a generation
+starts, naming the model and whether it ran on the Spark GPU or a hosted lane, so
+the panel always tells the truth about what the machine is doing right now.
 
 ### Know which model wins — the leaderboard
 
 ![The Arena leaderboard: bench-anchored rankings with rank medals and traffic-light score bars](screenshots/02-leaderboard.png)
 
 *Bench-anchored rankings grouped by bench, with rank medals, traffic-light score
-bars, and throughput — built from a leak-proof public mirror.*
+bars, and throughput — plus a live cockpit section that folds in every chat and
+compare run, built from a leak-proof public mirror.*
 
 The leaderboard is the Arena's memory. It promotes the bench evidence your models
 were measured on into ranked tables — one group per bench, medals on the top
-three, score bars colored by how good the number is. Crucially it is built from a
+three, score bars colored by how good the number is. Below the bench tables a
+**live cockpit leaderboard** folds in the runs you generate as you use the Arena:
+every scored chat and compare lands as a row, model-leads, badged **Spark GPU**
+or **OpenRouter** so you always know where a number came from, and it refreshes
+without a reload as new runs complete. Crucially the whole thing is built from a
 *publishable slice*: a hardcoded allowlist exports only scores and aggregates,
 never a prompt, a completion, or a reasoning trace. The board is something you can
 publish; the data behind it stays yours.
@@ -249,7 +275,7 @@ default, but the lane selector lets you point it at any on-demand local GGUF
 (booted for you, with the previous on-demand model torn down first to respect the
 memory envelope) or a hosted lane. Answers render with full markdown and syntax
 highlighting, reasoning traces collapse out of the way, and the throughput reads
-live — the answer above streamed back at **100 tok/s with a 107 ms time-to-first-
+live — the answer above streamed back at **116 tok/s with a 202 ms time-to-first-
 token** off the resident 30B.
 
 ### Score against gold — the eval drawer
@@ -271,15 +297,20 @@ hosted one. Evaluation stops being a separate pipeline and becomes a button.
 
 ![The compare surface: a head-to-head delta strip and deterministic rubric scores for two lanes](screenshots/07-compare.png)
 
-*Any lane versus any lane, with a head-to-head delta strip across quality,
-throughput, latency, and length, plus a deterministic rubric score for each side.*
+*Any lane versus any lane, with telemetry-style metric cards — quality,
+throughput, latency, tokens, and cost — each over a session sparkline, plus a
+deterministic rubric score for each side.*
 
 Compare is the duel. Pick any two lanes — two of your local models, a local model
 against a hosted one, whichever question you're actually asking — and watch them
-answer the same prompt. A head-to-head strip lays the deltas side by side (in the
-run above: quality 100% vs 100%, **90.0 vs 44.5 tok/s**, 114 ms vs 67 ms TTFT),
-and a deterministic rubric scores both. A thumbs-up records your own preference as
-a *separate* signal — it never silently mutates the rubric score. When a hosted
+answer the same prompt. Where the launch build showed a single delta strip, the
+duel now lays out **telemetry-style metric cards** — quality, tok/s,
+time-to-first-token, tokens, and cost — each marking the winner and drawing a
+**peak-bar sparkline of that metric across this session's runs**, so a pattern
+emerges as you fire more comparisons. The run above is local-vs-local — the
+resident **Qwen3-30B** against **finance-chat-gguf**, both free on the Spark —
+scored by a deterministic rubric. A thumbs-up records your own preference as a
+*separate* signal — it never silently mutates the rubric score. When a hosted
 lane is involved, a cost meter tracks what the comparison spent.
 
 ### Move at the speed of thought — the command palette
@@ -348,16 +379,16 @@ The mined numbers are the receipts. The speed didn't come from cutting corners �
 package that already did the hard parts, a year of measured data to render, and a
 harness whose ~98% cache-hit rate meant the model could hold the whole growing
 codebase in context and spend fresh tokens only on what was new. The honest
-framing of the model story is itself the point: 4.7 built every line; 4.8 drives
-the work now. The tool is the artifact, but the workflow is the thing worth taking
-with you — point it at your own shelf of models and your own Spark, and the same
-loop applies.
+framing of the model story is itself the point: Opus 4.7 built every line of the
+launch; Opus 4.8 built the six-surface evolution that followed. The tool is the
+artifact, but the workflow is the thing worth taking with you — point it at your
+own shelf of models and your own Spark, and the same loop applies.
 
 ## Run it
 
 Orionfold Arena ships inside the `fieldkit` package: start the sidecar and open
 the cockpit with a single command, point it at your own artifacts and benches, and
 it's a local control room over the models on your machine. A live web preview runs
-at [`/arena/demo/`](/arena/demo/). It's at v0.3 today; next on the Lab board are
+at [`/arena/demo/`](/arena/demo/). It's at v0.2 today; next on the Lab board are
 lane-swapping from the cockpit, deeper compare regeneration, and a richer eval
 surface. Bring your own models — the cockpit is waiting for them.
