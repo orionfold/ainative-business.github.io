@@ -43,6 +43,23 @@ interface Props {
 
 const { title, description, active = 'cockpit', hideRail = false } = Astro.props;
 
+// Breadcrumb echo of the active tab, shown next to the wordmark so each page
+// can drop its own oversized <h1> title block (the tab + this crumb already say
+// "you are here"). Keep in sync with the tab list below.
+const ACTIVE_LABELS: Record<string, string> = {
+  cockpit: 'Cockpit',
+  models: 'Models',
+  leaderboard: 'Leaderboard',
+  chat: 'Chat',
+  compare: 'Compare',
+  lab: 'Lab',
+};
+const activeLabel = ACTIVE_LABELS[active] ?? '';
+
+// Chat + Compare are working panes — let them fill the viewport (full-bleed)
+// rather than the 96rem reading cap that suits the leaderboard tables / model grid.
+const wideCanvas = active === 'chat' || active === 'compare';
+
 const desc = description ??
   'Orionfold Arena — the operator cockpit for the DGX Spark. Local-first chat, side-by-side rubric-scored compare, and a private leaderboard for every artifact your Spark has produced.';
 
@@ -174,6 +191,7 @@ try {
       Sticky across scroll; backdrop-blurred when the canvas scrolls under.
     -->
     <header class="arena-app__bar" role="banner">
+      <div class="arena-app__lead">
       <a class="arena-app__brand" href={href('arena/')} aria-label="Spark Arena home">
         <svg class="arena-app__mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
           <!-- Three lit-up cells of a 4×4 instrument grid — the cockpit monogram. -->
@@ -193,6 +211,12 @@ try {
         </span>
         <span class="arena-app__version" aria-label="version">v0.2</span>
       </a>
+        {activeLabel && (
+          <span class="arena-app__crumb" aria-hidden="true">
+            <span class="arena-app__crumb-sep">›</span>{activeLabel}
+          </span>
+        )}
+      </div>
 
       <nav class="arena-app__tabs" aria-label="Arena sections">
         <a href={href('arena/')}            class:list={["arena-app__tab", active === 'cockpit'     && 'is-active']}>Cockpit</a>
@@ -216,7 +240,7 @@ try {
       </div>
     )}
 
-    <main class="arena-app__canvas">
+    <main class:list={["arena-app__canvas", wideCanvas && "arena-app__canvas--wide"]}>
       <slot />
     </main>
 
@@ -420,6 +444,31 @@ try {
         padding-left: 0.7rem;
         border-left: 1px solid var(--arena-line);
       }
+      .arena-app__lead {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.7rem;
+        min-width: 0;
+      }
+      .arena-app__crumb {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        font-family: var(--arena-mono);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--arena-text);
+        white-space: nowrap;
+      }
+      .arena-app__crumb-sep {
+        color: var(--arena-text-dim);
+        font-weight: 400;
+      }
+      @media (max-width: 780px) {
+        .arena-app__crumb { display: none; }
+      }
 
       .arena-app__tabs {
         display: inline-flex;
@@ -524,7 +573,12 @@ try {
         width: 100%;
         max-width: 96rem;
         margin: 0 auto;
-        padding: 2rem clamp(1rem, 2vw, 2rem) 4rem;
+        padding: 1.25rem clamp(1rem, 2vw, 2rem) 4rem;
+      }
+      /* Working panes (chat / compare) fill the viewport — the side-by-side
+         duel and the chat stream want the width; reading-heavy pages keep the cap. */
+      .arena-app__canvas--wide {
+        max-width: none;
       }
 
       /* --------------- Chrome footer ------------------------------------ */
@@ -2457,13 +2511,13 @@ try {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.45rem;
-        padding: 1.8rem 1rem 1rem;
+        gap: 0.35rem;
+        padding: 1rem 1rem 0.75rem;
         text-align: center;
       }
       .arena-app .chat-empty__title {
         font-family: var(--arena-font);
-        font-size: 1.05rem;
+        font-size: 0.98rem;
         font-weight: 500;
         color: var(--arena-text);
         margin: 0;
@@ -2479,14 +2533,18 @@ try {
 
       .arena-app .chat-prompt-chips {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.7rem;
-        margin: 1.4rem 0 0.5rem;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin: 0.85rem 0 0.3rem;
+        width: 100%;
       }
-      @media (max-width: 1000px) {
+      @media (max-width: 1100px) {
+        .arena-app .chat-prompt-chips { grid-template-columns: repeat(3, 1fr); }
+      }
+      @media (max-width: 760px) {
         .arena-app .chat-prompt-chips { grid-template-columns: repeat(2, 1fr); }
       }
-      @media (max-width: 600px) {
+      @media (max-width: 520px) {
         .arena-app .chat-prompt-chips { grid-template-columns: 1fr; }
       }
       .arena-app .chat-prompt-chip {
@@ -2494,13 +2552,13 @@ try {
         background: var(--arena-bg-deep);
         border: 1px solid var(--arena-line);
         border-radius: 8px;
-        padding: 0.85rem 0.9rem;
-        min-height: 88px;
+        padding: 0.55rem 0.7rem;
+        min-height: 52px;
         cursor: pointer;
         transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
         display: flex;
         flex-direction: column;
-        gap: 0.4rem;
+        gap: 0.28rem;
       }
       .arena-app .chat-prompt-chip:hover {
         border-color: var(--arena-accent-dim);
@@ -2509,16 +2567,20 @@ try {
       }
       .arena-app .chat-prompt-chip__kind {
         font-family: var(--arena-mono);
-        font-size: 0.58rem;
-        letter-spacing: 0.22em;
+        font-size: 0.56rem;
+        letter-spacing: 0.2em;
         text-transform: uppercase;
         color: var(--arena-accent);
       }
       .arena-app .chat-prompt-chip__body {
         font-family: var(--arena-font);
-        font-size: 0.82rem;
-        line-height: 1.4;
+        font-size: 0.74rem;
+        line-height: 1.35;
         color: var(--arena-text-mute);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
       /* Per-turn action row (Copy / Regenerate) — hover-revealed. */
@@ -2894,6 +2956,16 @@ try {
         background: var(--arena-text-dim); box-shadow: none;
       }
       .arena-app .cockpit-hero__now b { color: var(--arena-text); font-weight: 600; }
+
+      /* Thin live-now strip that replaced the cockpit hero title block. */
+      .arena-app .cockpit-now {
+        display: flex;
+        align-items: center;
+        padding-bottom: 0.65rem;
+        margin-bottom: 0.9rem;
+        border-bottom: 1px solid var(--arena-line);
+      }
+      .arena-app .cockpit-now .cockpit-hero__now { margin-top: 0; font-size: 0.66rem; }
 
       /* =====================================================================
        *  P5 — Telemetry ↔ article-evidence bridge (cockpit)
@@ -3336,57 +3408,86 @@ try {
       .arena-app .compare-winner__text { font-size: 0.95rem; color: var(--arena-text-mute); }
       .arena-app .compare-winner__text b { color: var(--win-accent); }
 
-      .arena-app .compare-delta {
-        display: grid;
-        gap: 0.4rem;
-        margin: 0.5rem 0 0.6rem;
-        padding: 0.8rem 1rem;
+      /* Head-to-head metric cards — telemetry-rail vocabulary (label · value ·
+         peak-bar sparkline of the session's runs). Replaces the old DeltaStrip. */
+      .arena-app .compare-metrics {
+        margin: 0.6rem 0 0.7rem;
         border: 1px solid var(--arena-line);
-        border-radius: 8px;
-        background: color-mix(in oklch, var(--arena-bg-deep) 50%, transparent);
+        border-radius: 10px;
+        background: color-mix(in oklch, var(--arena-bg-deep) 55%, transparent);
+        overflow: hidden;
       }
-      .arena-app .compare-delta__head {
+      .arena-app .compare-metrics__legend {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.5rem 0.85rem;
+        border-bottom: 1px solid var(--arena-line);
+      }
+      .arena-app .compare-metrics__head {
         font-family: var(--arena-mono);
         font-size: 0.58rem;
         letter-spacing: 0.18em;
         text-transform: uppercase;
         color: var(--arena-text-dim);
-        margin-bottom: 0.2rem;
       }
-      .arena-app .compare-delta__row {
-        display: grid;
-        grid-template-columns: 4.5rem 9rem 1fr;
+      .arena-app .compare-metrics__key {
+        display: inline-flex;
         align-items: center;
-        gap: 0.7rem;
-      }
-      .arena-app .compare-delta__label {
+        gap: 0.4rem;
         font-family: var(--arena-mono);
-        font-size: 0.66rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-        color: var(--arena-text-mute);
+        font-size: 0.6rem;
       }
-      .arena-app .compare-delta__vals { font-family: var(--arena-mono); font-size: 0.74rem; font-variant-numeric: tabular-nums; }
-      .arena-app .compare-delta__track {
-        position: relative;
-        height: 10px;
-        border-radius: 5px;
+      .arena-app .compare-metrics__keytext { color: var(--arena-text-dim); letter-spacing: 0.03em; }
+      .arena-app .compare-metrics__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        gap: 1px;
+        background: var(--arena-line);
+      }
+      .arena-app .compare-metric {
+        display: flex;
+        flex-direction: column;
+        gap: 0.32rem;
+        padding: 0.6rem 0.8rem 0.65rem;
         background: var(--arena-bg-deep);
-        border: 1px solid var(--arena-line);
+        min-width: 0;
+      }
+      .arena-app .compare-metric__label {
+        font-family: var(--arena-mono);
+        font-size: 0.57rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--arena-text-dim);
+      }
+      .arena-app .compare-metric__vals {
+        display: flex;
+        align-items: baseline;
+        gap: 0.38rem;
+        font-family: var(--arena-mono);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
         overflow: hidden;
+        text-overflow: ellipsis;
       }
-      .arena-app .compare-delta__center {
-        position: absolute;
-        left: 50%; top: 0; bottom: 0;
-        width: 1px;
-        background: var(--arena-text-dim);
-        opacity: 0.5;
+      .arena-app .compare-metric__vs {
+        font-size: 0.56rem;
+        color: var(--arena-text-dim);
+        letter-spacing: 0.04em;
       }
-      .arena-app .compare-delta__bar {
-        position: absolute;
-        top: 1px; bottom: 1px;
-        border-radius: 3px;
-        opacity: 0.85;
+      .arena-app .compare-metric__spark {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        margin-top: 0.12rem;
+      }
+      .arena-app .compare-metric__canvas {
+        width: 100%;
+        height: 9px;
+        display: block;
+        opacity: 0.92;
       }
 
       /* =====================================================================

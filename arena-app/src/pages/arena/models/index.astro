@@ -62,22 +62,6 @@ const fmtTok = (v) => (v == null ? null : `${v.toFixed(0)} tok/s`);
 const kindLabel = (k) => k.replace('_', ' ');
 ---
 <ArenaAppLayout title={title} description={description} active="models">
-  <header class="pageheader">
-    <div>
-      <p class="pageheader__eyebrow">Capabilities · {cards.length} artifacts</p>
-      <h1 class="pageheader__title">Models</h1>
-      <p class="pageheader__blurb">
-        Every quant, notebook, bench, and harness the Spark has shipped — each a card
-        you can open to see its positioning, quant economics, and bounded drift, then
-        drive straight into chat or a compare.
-      </p>
-    </div>
-    <div class="pageheader__actions">
-      <a href={href('arena/leaderboard/')} class="arena-btn arena-btn--primary">Efficiency frontier ↗</a>
-      <a href={href('arena/compare/')} class="arena-btn">Run a compare</a>
-    </div>
-  </header>
-
   <div class="kpi-strip kpi-strip--compact">
     <div class="kpi-strip__cell"><span class="kpi-strip__label">Models</span><span class="kpi-strip__value">{counts.models}</span><span class="kpi-strip__hint">quant · lora · adapter</span></div>
     <div class="kpi-strip__cell"><span class="kpi-strip__label">Benches</span><span class="kpi-strip__value">{counts.benches}</span><span class="kpi-strip__hint">eval datasets</span></div>

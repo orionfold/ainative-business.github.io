@@ -68,6 +68,18 @@ const p = (await b.pages())[0];
 await p.goto('http://127.0.0.1:7866/arena/leaderboard/', { waitUntil: 'load' });
 ```
 
+**Always attach with `defaultViewport: null`** (as above) — and NEVER pass a
+fixed `defaultViewport: {width, height}`. Puppeteer turns that into a CDP
+`Emulation.setDeviceMetricsOverride` that pins the renderer to that CSS size and
+**outlives your `disconnect()`** (it even survives a clear+reload). The user then
+sees the app boxed in the old size with whitespace on the right/bottom + a
+scrollbar when their window is actually maximized. If you need a specific size
+for a deterministic screenshot, resize the *real* window instead:
+`const {windowId} = await client.send('Browser.getWindowForTarget'); await
+client.send('Browser.setWindowBounds', {windowId, bounds:{width, height}})` (or
+`{windowState:'maximized'}`). **Recovery for an already-boxed window:**
+`arena_lifecycle.sh restart --browser` (a fresh process has no override).
+
 Screenshots go to `/tmp/aifn-smoke/` and should be cleaned up at end of turn.
 Note: a click that triggers navigation can race `p.evaluate` ("execution context
 destroyed") — prefer `p.goto` with human-spaced pauses when scripting a

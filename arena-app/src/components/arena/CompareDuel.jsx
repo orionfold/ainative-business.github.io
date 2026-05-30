@@ -28,6 +28,7 @@ import {
   isPublicMirrorHost,
 } from '../../lib/arena/sidecar.mjs';
 import { renderMarkdown } from '../../lib/arena/markdown.mjs';
+import { drawBars, SLOTS } from '../../lib/arena/peakbars.mjs';
 import {
   fetchBenches,
   benchForLane,
@@ -122,6 +123,10 @@ export default function CompareDuel() {
   const [resolvedRubricId, setResolvedRubricId] = useState(null);
   const [a, setA] = useState(makeEmptySide());
   const [b, setB] = useState(makeEmptySide());
+  // Per-metric session history — one record per completed compare, fed to the
+  // metric-card sparklines (peak-bar style, reusing the telemetry renderer).
+  // Each record: { a: {quality,tok_per_s,ttft_ms,tokens_out,cost_usd}, b: {…} }.
+  const [history, setHistory] = useState([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState(null);
   const [offline, setOffline] = useState(false);
@@ -300,6 +305,9 @@ export default function CompareDuel() {
 
     let aAcc = { content: '', reasoning: '' };
     let bAcc = { content: '', reasoning: '' };
+    // Accumulate this run's final per-side metrics; pushed to `history` (the
+    // sparkline store) once in `finally` so each completed compare = one bar.
+    const runMetrics = { a: {}, b: {} };
     try {
       for await (const ev of readSse(resp)) {
         const payload = (() => {
@@ -340,6 +348,12 @@ export default function CompareDuel() {
             reasoning: aAcc.reasoning,
           }));
         } else if (ev.event === 'done_a') {
+          runMetrics.a = {
+            tok_per_s: payload.tok_per_s ?? null,
+            ttft_ms: payload.ttft_ms ?? null,
+            tokens_out: payload.tokens_out ?? null,
+            cost_usd: payload.cost_usd ?? null,
+          };
           setA((prev) => ({
             ...prev,
             state: 'done',
@@ -368,6 +382,12 @@ export default function CompareDuel() {
             reasoning: bAcc.reasoning,
           }));
         } else if (ev.event === 'done_b') {
+          runMetrics.b = {
+            tok_per_s: payload.tok_per_s ?? null,
+            ttft_ms: payload.ttft_ms ?? null,
+            tokens_out: payload.tokens_out ?? null,
+            cost_usd: payload.cost_usd ?? null,
+          };
           setB((prev) => ({
             ...prev,
             state: 'done',
@@ -381,6 +401,10 @@ export default function CompareDuel() {
           setResolvedRubricId(payload.rubric_id);
           setA((prev) => ({ ...prev, score: payload.a }));
           setB((prev) => ({ ...prev, score: payload.b }));
+          // Quality for the sparkline: gold-match normalized in eval mode, else
+          // the deterministic rubric total.
+          runMetrics.a.quality = (payload.eval ? payload.eval.a?.normalized : payload.a?.total) ?? null;
+          runMetrics.b.quality = (payload.eval ? payload.eval.b?.normalized : payload.b?.total) ?? null;
           // v0.3 — reference-based eval block (present only in eval mode).
           if (payload.eval) {
             setEvalRef(payload.eval.reference || null);
@@ -404,6 +428,15 @@ export default function CompareDuel() {
       setError(`Stream broke: ${String(err.message || err)}`);
     } finally {
       setStreaming(false);
+      // Land this run as one history record (one sparkline bar) if either side
+      // produced a measurement. Keep at most SLOTS so the chart FIFOs like the
+      // telemetry rail.
+      const produced =
+        runMetrics.a.tok_per_s != null || runMetrics.b.tok_per_s != null ||
+        runMetrics.a.quality != null || runMetrics.b.quality != null;
+      if (produced) {
+        setHistory((h) => [...h, runMetrics].slice(-SLOTS));
+      }
       composerRef.current?.focus();
     }
   };
@@ -660,10 +693,9 @@ export default function CompareDuel() {
         a.score && b.score && <WinnerBanner a={a} b={b} />
       )}
 
-      {(a.score || b.score || a.evalScore || b.evalScore) &&
-        (a.state === 'done' || b.state === 'done') && (
-          <DeltaStrip a={a} b={b} evalMode={!!evalMode} />
-        )}
+      {(history.length > 0 || a.state === 'done' || b.state === 'done') && (
+        <MetricCards a={a} b={b} evalMode={!!evalMode} history={history} />
+      )}
 
       {evalMode && (a.evalScore || b.evalScore) ? (
         <div class="compare-duel__verdict">
@@ -926,57 +958,73 @@ function WinnerBanner({ a, b, evalMode }) {
 const DELTA_A = '#76b900';
 const DELTA_B = '#5b9cff';
 
-function DeltaStrip({ a, b, evalMode }) {
+// One small canvas of peak bars across the session's runs, reusing the exact
+// telemetry-rail renderer. `series` is this metric's value per run (oldest
+// first); `max` is shared across the A and B canvas so the two read on one scale.
+function CanvasSpark({ series, color, max }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current) drawBars(ref.current, series, null, { color, max });
+  }, [series, color, max]);
+  return <canvas ref={ref} width="120" height="9" class="compare-metric__canvas" />;
+}
+
+// MetricCards — the head-to-head metrics as telemetry-style horizontal cards.
+// Each card: metric label · current-run A-vs-B values (winner emphasised) · a
+// two-row peak-bar sparkline (A over B) of that metric across this session's
+// compare runs. Replaces the old paired-bar DeltaStrip.
+function MetricCards({ a, b, evalMode, history }) {
   const qualityA = evalMode ? a.evalScore?.normalized : a.score?.total;
   const qualityB = evalMode ? b.evalScore?.normalized : b.score?.total;
-  const rows = [
-    { label: evalMode ? 'Gold match' : 'Quality', av: qualityA, bv: qualityB, lowerBetter: false, fmt: (v) => `${(v * 100).toFixed(0)}%` },
-    { label: 'tok/s', av: a.tok_per_s, bv: b.tok_per_s, lowerBetter: false, fmt: (v) => v.toFixed(1) },
-    { label: 'TTFT', av: a.ttft_ms, bv: b.ttft_ms, lowerBetter: true, fmt: (v) => `${v.toFixed(0)}ms` },
-    { label: 'Tokens', av: a.tokens_out, bv: b.tokens_out, lowerBetter: false, fmt: (v) => v.toLocaleString() },
-  ].filter((r) => typeof r.av === 'number' && typeof r.bv === 'number');
-
-  // One tight row per metric: label · two thin stacked bars (A over B, each
-  // sized to the real value vs the row max) · both values with the winner
-  // bolded + ✓. Four metrics fit in ~80px — far denser than a bar-per-line.
-  const thin = (val, color, wins, tie, max) => {
-    const w = Math.max((Math.abs(val) / max) * 100, 3);
-    return (
-      <span style="display:block; height:5px; border-radius:3px; background:rgba(127,127,127,0.16); overflow:hidden;">
-        <span style={`display:block; height:100%; width:${w}%; background:${color}; opacity:${wins || tie ? 1 : 0.5}; border-radius:3px;`} />
-      </span>
-    );
-  };
+  const num = (v) => typeof v === 'number' && !Number.isNaN(v);
+  const specs = [
+    { key: 'quality', label: evalMode ? 'Gold match' : 'Quality', lowerBetter: false, av: qualityA, bv: qualityB, fmt: (v) => `${(v * 100).toFixed(0)}%` },
+    { key: 'tok_per_s', label: 'tok/s', lowerBetter: false, av: a.tok_per_s, bv: b.tok_per_s, fmt: (v) => v.toFixed(1) },
+    { key: 'ttft_ms', label: 'TTFT', lowerBetter: true, av: a.ttft_ms, bv: b.ttft_ms, fmt: (v) => `${v.toFixed(0)} ms` },
+    { key: 'tokens_out', label: 'Tokens', lowerBetter: false, av: a.tokens_out, bv: b.tokens_out, fmt: (v) => v.toLocaleString() },
+    { key: 'cost_usd', label: 'Cost', lowerBetter: true, av: a.cost_usd, bv: b.cost_usd, fmt: (v) => `$${v.toFixed(4)}` },
+  ].filter((s) => num(s.av) || num(s.bv) || history.some((h) => num(h.a?.[s.key]) || num(h.b?.[s.key])));
 
   return (
-    <div class="compare-delta">
-      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
-        <span class="compare-delta__head">Head to head</span>
-        <span style="font-size:0.62rem; opacity:0.6; white-space:nowrap;">
-          <span style={`color:${DELTA_A};font-weight:700`}>A</span>{' '}
-          <span style={`color:${DELTA_B};font-weight:700`}>B</span> · bar = value · ✓ winner
+    <div class="compare-metrics" aria-label="Head-to-head metrics">
+      <div class="compare-metrics__legend">
+        <span class="compare-metrics__head">Head to head</span>
+        <span class="compare-metrics__key">
+          <span style={`color:${DELTA_A};font-weight:700`}>A</span>
+          <span style={`color:${DELTA_B};font-weight:700`}>B</span>
+          <span class="compare-metrics__keytext">· bars = this session's runs · ✓ winner</span>
         </span>
       </div>
-      {rows.map((r) => {
-        const max = Math.max(Math.abs(r.av), Math.abs(r.bv), 1e-9);
-        const tie = r.av === r.bv;
-        const aWins = !tie && (r.lowerBetter ? r.av < r.bv : r.av > r.bv);
-        const bWins = !tie && !aWins;
-        return (
-          <div style="display:grid; grid-template-columns:52px 1fr auto; gap:9px; align-items:center; padding:2.5px 0;">
-            <span style="font-size:0.66rem; opacity:0.72; text-transform:uppercase; letter-spacing:0.03em;" title={r.lowerBetter ? 'lower is better' : 'higher is better'}>{r.label}</span>
-            <span style="display:flex; flex-direction:column; gap:2px; min-width:0;">
-              {thin(r.av, DELTA_A, aWins, tie, max)}
-              {thin(r.bv, DELTA_B, bWins, tie, max)}
-            </span>
-            <span style="font-variant-numeric:tabular-nums; font-size:0.72rem; white-space:nowrap;">
-              <span style={`color:${DELTA_A}; font-weight:${aWins ? 700 : 400}`}>{r.fmt(r.av)}{aWins ? '✓' : ''}</span>
-              <span style="opacity:0.4"> · </span>
-              <span style={`color:${DELTA_B}; font-weight:${bWins ? 700 : 400}`}>{r.fmt(r.bv)}{bWins ? '✓' : ''}</span>
-            </span>
-          </div>
-        );
-      })}
+      <div class="compare-metrics__grid">
+        {specs.map((s) => {
+          const both = num(s.av) && num(s.bv);
+          const tie = both && s.av === s.bv;
+          const aWins = both && !tie && (s.lowerBetter ? s.av < s.bv : s.av > s.bv);
+          const bWins = both && !tie && !aWins;
+          const aSeries = history.map((h) => (num(h.a?.[s.key]) ? h.a[s.key] : null));
+          const bSeries = history.map((h) => (num(h.b?.[s.key]) ? h.b[s.key] : null));
+          let max = 1e-9;
+          for (const v of [...aSeries, ...bSeries]) if (v != null) max = Math.max(max, v);
+          return (
+            <div class="compare-metric" key={s.key}>
+              <span class="compare-metric__label" title={s.lowerBetter ? 'lower is better' : 'higher is better'}>{s.label}</span>
+              <span class="compare-metric__vals">
+                <span class="compare-metric__a" style={`color:${DELTA_A};font-weight:${aWins ? 700 : 500}`}>
+                  {num(s.av) ? s.fmt(s.av) : '—'}{aWins ? ' ✓' : ''}
+                </span>
+                <span class="compare-metric__vs">vs</span>
+                <span class="compare-metric__b" style={`color:${DELTA_B};font-weight:${bWins ? 700 : 500}`}>
+                  {num(s.bv) ? s.fmt(s.bv) : '—'}{bWins ? ' ✓' : ''}
+                </span>
+              </span>
+              <div class="compare-metric__spark">
+                <CanvasSpark series={aSeries} color={DELTA_A} max={max} />
+                <CanvasSpark series={bSeries} color={DELTA_B} max={max} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -13,20 +13,6 @@ const description =
 ---
 <ArenaAppLayout title={title} description={description} active="compare">
 
-  <header class="pageheader">
-    <div>
-      <p class="pageheader__eyebrow">M5 · A vs B · deterministic rubric</p>
-      <h1 class="pageheader__title">Compare</h1>
-      <p class="pageheader__blurb">
-        Streams <code>POST /api/compare/stream</code>. Lane A is the resident
-        brain; lane B defaults to OpenRouter via the H6 cost router. The rubric
-        scorer is deterministic <code>fieldkit.eval.score_answer</code>; thumbs-up
-        writes a <code>human_prefs</code> row but never mutates
-        <code>rubric_scores.total</code> (spec §4.3 separate-signal contract).
-      </p>
-    </div>
-  </header>
-
   <div class="arena-pane">
     <header class="arena-pane__head">
       <span class="arena-pane__head-title">Duel — A vs B</span>

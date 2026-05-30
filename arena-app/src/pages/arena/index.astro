@@ -79,28 +79,16 @@ const fmtTok = (v: number | null) =>
 ---
 <ArenaAppLayout title={title} description={description} active="cockpit">
 
-  <!-- ============ Hero — prompt input is the arena move ============ -->
-  <header class="cockpit-hero">
-    <div class="cockpit-hero__head">
-      <p class="cockpit-hero__eyebrow">Orionfold Arena · v0.2</p>
-      <h1 class="cockpit-hero__title">Cockpit</h1>
-      <p class="cockpit-hero__now cockpit-hero__now--offline" id="cockpit-hero-now" aria-live="polite">
-        <span class="cockpit-hero__now-dot"></span>
-        <span id="cockpit-hero-now-text">resident brain idle · waiting for the sidecar</span>
-      </p>
-    </div>
-    <div class="cockpit-hero__cta">
-      <a href="/arena/chat/" class="arena-btn arena-btn--primary cockpit-hero__chatbtn">▶ Open Chat</a>
-      <p class="cockpit-hero__hint">
-        Chat with any model — the resident brain, an on-demand local fine-tune,
-        or an OpenRouter frontier — and pick it right in the chat tab.
-      </p>
-    </div>
-    <div class="cockpit-hero__actions">
-      <a href="/arena/compare/" class="arena-btn">＋ Compare</a>
-      <a href="/arena/leaderboard/" class="arena-btn">Leaderboard ↗</a>
-    </div>
-  </header>
+  <!-- ============ Thin live-now strip ("what the Spark is doing now") ======
+       The oversized hero title block was dropped (the top-bar breadcrumb +
+       active tab already say "Cockpit"); only the SSE-wired live status line is
+       kept — ids/classes preserved so the script + CSS below still bind. -->
+  <div class="cockpit-now">
+    <p class="cockpit-hero__now cockpit-hero__now--offline" id="cockpit-hero-now" aria-live="polite">
+      <span class="cockpit-hero__now-dot"></span>
+      <span id="cockpit-hero-now-text">resident brain idle · waiting for the sidecar</span>
+    </p>
+  </div>
 
   <!--
     Live "what the Spark is doing now" status line under the hero title.

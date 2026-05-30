@@ -81,23 +81,6 @@ const lanes: { key: string; label: string; tag: string; cards: Card[] }[] = [
 const timeline = (changelog.entries ?? []).slice(0, 12);
 ---
 <ArenaAppLayout title={title} description={description} active="lab">
-  <header class="pageheader">
-    <div>
-      <p class="pageheader__eyebrow">Co-iteration · built in tandem</p>
-      <h1 class="pageheader__title">Lab</h1>
-      <p class="pageheader__blurb">
-        Orionfold Arena is built <em>by</em> the operator and Claude, in the open. This is
-        the workbench: what we’re shipping <strong>now</strong>, what’s queued
-        <strong>next</strong>, and what we’re still <strong>exploring</strong> — plus a
-        timeline of every commit the loop has produced.
-      </p>
-    </div>
-    <div class="pageheader__actions">
-      <a href={href('arena/models/')} class="arena-btn">Browse models</a>
-      <a href={href('arena/leaderboard/')} class="arena-btn arena-btn--primary">Leaderboard ↗</a>
-    </div>
-  </header>
-
   <section class="lab-board" aria-label="Co-iteration board">
     {lanes.map((lane) => (
       <div class={`lab-lane lab-lane--${lane.key}`}>

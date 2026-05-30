@@ -126,22 +126,6 @@ const fmtTime = (iso: string) => {
 };
 ---
 <ArenaAppLayout title={title} description={description} active="leaderboard">
-  <header class="pageheader">
-    <div>
-      <p class="pageheader__eyebrow">M6 · leak-proof public mirror</p>
-      <h1 class="pageheader__title">Leaderboard</h1>
-      <p class="pageheader__blurb">
-        Bench-anchored evidence plus live cockpit runs against the resident brain —
-        ranked on quality, tok/s, and (when ≥5 prefs land) human preference. Built
-        from the M6 mirror exporter's allowlist slice of <code>~/.fieldkit/arena.db</code>.
-      </p>
-    </div>
-    <div class="pageheader__actions">
-      <a href="/arena/compare/" class="arena-btn arena-btn--primary">＋ Run a compare</a>
-      <a href="/arena/chat/" class="arena-btn">Chat against brain</a>
-    </div>
-  </header>
-
   <div class="kpi-strip">
     <div class="kpi-strip__cell">
       <span class="kpi-strip__label">Benches</span>
