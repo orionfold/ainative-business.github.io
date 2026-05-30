@@ -1,0 +1,186 @@
+# Product articles — a new content type
+
+> **Audience: the destination (Mac) repo that renders `ai-field-notes` to
+> `ainative.business`.** This document is the source-side contract introducing a
+> new content type — the **product-launch article** — and specifying the
+> rendering the destination owns. It follows the same source/destination split
+> as everything else in this repo (see `mirrors/destination-overrides.md`):
+> Spark authors the content, the schema, and this spec; the Mac repo owns the
+> layouts, components, and URL family that render it.
+>
+> Authored on the Spark side, 2026-05-29. First product article: **Orionfold
+> Arena** (`products/orionfold-arena/`).
+
+## Why a separate type
+
+The blog has, until now, had one editorial form: the **deep-dive essay**
+(`articles/<slug>/article.md`, authored by the `tech-writer` skill). A deep-dive
+*teaches a concept* and uses the work as evidence.
+
+A **product-launch article** is a different genre with a different job: it
+*introduces a shippable product* the reader can run, shows what it took to build
+(a build-metrics infographic mined from primary sources), tours its features
+(one screenshot + one benefit per surface), and makes the case for the
+agentic-coding workflow that produced it. It reads for two audiences at once —
+an AI-research reader (what the product unlocks) and a Spark operator (what each
+feature does).
+
+Because the form, the layout, and the reader intent differ, product articles
+get their **own content collection** rather than overloading `articles/` with a
+`kind` flag. Keeping them separate means the destination can give them a launch
+layout (hero + infographic + feature gallery) without conditionals smeared
+through the article reading layout, and they get their own `/products/` URL
+family and index.
+
+These are authored by the **`product-writer`** skill (sibling to `tech-writer`),
+which lives in `.claude/skills/product-writer/` on the Spark source side.
+
+## Content location (Spark-authoritative)
+
+```
+products/
+└── <slug>/
+    ├── product.md        # frontmatter + launch body (the essay)
+    ├── screenshots/      # NN-feature.png — the feature tour, numbered in tour order
+    └── assets/           # build-metrics.json (mined), diagrams, snippets
+```
+
+Slugs are kebab-case, the product's short name (e.g. `orionfold-arena`). Spark
+owns everything under `products/**` as editorial content, exactly as it owns
+`articles/**`.
+
+## Proposed `products` collection (for `src/content.config.ts`)
+
+The destination should add a second collection alongside `articles`. Suggested
+definition (mirrors the `articles` glob-loader pattern so URLs collapse to
+`/products/<slug>/`):
+
+```ts
+const products = defineCollection({
+  loader: glob({
+    pattern: '*/product.md',
+    base: './products',
+    generateId: ({ entry }) => entry.split('/')[0],
+  }),
+  schema: z.object({
+    title: z.string(),
+    date: z.coerce.date(),
+    author: z.string().default('Manav Sehgal'),
+    product_name: z.string(),
+    tagline: z.string().max(120),
+    summary: z.string().max(300),
+    hardware: z.string().default('NVIDIA DGX Spark'),
+    status: z.enum(['published', 'upcoming']).default('published'),
+    series: z.enum(SERIES).optional(),          // reuse the existing SERIES enum (e.g. 'Cockpit')
+    tags: z.array(z.string()),
+    signature: z.string().optional(),           // card-thumbnail SVG under src/components/svg/
+    product_url: z.string().optional(),
+    repo_url: z.string().optional(),
+    fieldkit_modules: z.array(z.enum(FIELDKIT_MODULES)).default([]),
+
+    // The build-metrics block — the infographic's data source. Every figure
+    // here is mined by scripts/mine_build_metrics.py from primary sources
+    // (session transcripts, git, source tree), never estimated.
+    build: z.object({
+      window: z.string(),                       // human phrasing, e.g. "one day (~15 hours)"
+      wall_clock_hours: z.number(),
+      sessions: z.number().int(),
+      assistant_turns: z.number().int(),
+      tokens_processed: z.number().int(),       // all API-processed tokens (incl. cache reads)
+      tokens_generated: z.number().int(),       // output tokens
+      cache_read_tokens: z.number().int(),
+      lines_of_code: z.number().int(),          // authored source only (bundles excluded)
+      test_cases: z.number().int(),
+      feature_count: z.number().int(),
+      models: z.array(z.string()),              // build models, honest mix
+      daily_driver: z.string().optional(),      // current model, if newer than the build model
+      harness: z.string().default('Claude Code'),
+    }),
+
+    // The feature tour — one entry per surface, drives the operator gallery.
+    features: z.array(z.object({
+      name: z.string(),
+      benefit: z.string(),
+      screenshot: z.string(),                   // path relative to the product folder
+    })).default([]),
+  }),
+});
+```
+
+`build` and `features` are what make this a product article rather than a
+deep-dive. For a `status: published` product article both should be populated;
+`upcoming` placeholders may leave `features` empty and the `build` numbers at
+zero.
+
+## Rendering the destination owns
+
+Per the chrome boundary in `mirrors/destination-overrides.md`, layouts,
+components, styles, and top-level URL families are Mac-authoritative. The
+destination owns the following for this type:
+
+1. **`/products/` URL family** — an index page at `/products/` and detail pages
+   at `/products/<slug>/`. Same precedent as the forthcoming `/artifacts/**`
+   catalog family: Spark provides the data, Mac owns the page chrome.
+
+2. **A launch layout** (e.g. `ProductLayout.astro`) distinct from
+   `FieldNotesLayout`. The reading-layout chrome (TOC, arc nav, reader settings)
+   is wrong for a launch piece; a product page wants a hero (product_name +
+   tagline), the infographic, the feature gallery, then the body prose.
+
+3. **The build-metrics infographic component** — renders the `build:` block.
+   This is the analogue of the home-page "At a glance" infographic and should
+   live in the same component family. At a glance it should surface:
+   - the headline trio **time · lines of code · tests** (the "production tool,
+     one day" proof);
+   - the agentic-effort row **sessions · turns · tokens generated · cache
+     ratio** (cache_read_tokens / tokens_processed — for Arena, 98%);
+   - the credits row **built-with models + harness**, and `daily_driver` if set.
+   Every number traces to the frontmatter; the component should not compute or
+   invent figures, only present them.
+
+4. **The feature-tour gallery** — renders the `features:` array as a
+   screenshot-with-benefit-caption sequence. The same array is also walked in
+   prose in the body; the gallery is the scannable operator view.
+
+5. **A product card** for the `/products/` index (and any cross-surface
+   placement), using `product_name` + `tagline` + `signature` thumbnail. May
+   reuse/extend `ArticleCard` or be its own component — Mac's call.
+
+6. **Series cross-linking.** Product articles may set `series` (e.g. `Cockpit`).
+   If a product belongs to a series that also has deep-dive articles, the series
+   page should be able to list both forms. How that's surfaced is the
+   destination's design decision; the data supports it via the shared `SERIES`
+   enum.
+
+## Relationship to existing surfaces
+
+- **`articles/` deep-dives** stay exactly as they are. A product may have *both*
+  a launch article here and a deep-dive in `articles/` (e.g. a "how the cockpit
+  works under the hood" piece); they cross-link, they don't merge.
+- **The Cockpit series** already exists in the `SERIES` enum (added 2026-05-28
+  for `spark-arena-v1`). Orionfold Arena's launch article is the natural first
+  `products/` entry and would carry `series: Cockpit`.
+- **Artifacts** (`src/content/artifacts/<slug>.yaml`) are model/dataset
+  manifests — a different thing again. A product article describes an
+  *application*; an artifact manifest describes a *published model*. No overlap.
+
+## Stats and indices
+
+If the home "At a glance" infographic or the README article index should also
+count product articles, that's a destination-side decision — the
+`nvidia-learn-stats` pipeline and `refresh_readme.py` currently scan
+`articles/**` only. The `product-writer` skill's `publish` mode checks whether
+`src/data/project-stats.json` has a products bucket and defers to this document
+rather than assuming one. If the destination wants products folded into the
+totals, extend the stats scanner on the Mac side and note it here on the next
+reverse-sync.
+
+## Sync
+
+Product articles flow Spark → Mac through the normal content sync (the same
+mechanism that carries `articles/**`). No special handling is needed beyond
+wiring the `products` collection + layout once. When the destination implements
+the rendering, please reverse-sync an update to this file (or to
+`mirrors/destination-overrides.md`) recording that `/products/**` is now
+Mac-rendered, so the Spark side knows the local-Astro-dev gap is expected and
+not a regression.

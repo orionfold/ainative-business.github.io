@@ -1,0 +1,18 @@
+{
+  "run_id": "20260517-102017-retrieval-retonly-4da81a",
+  "started_at": "2026-05-17T17:20:17Z",
+  "mode": "retrieval",
+  "retrieval_only": true,
+  "shapes": [
+    "D-mcq"
+  ],
+  "reviewed_only": false,
+  "limit": 3,
+  "top_k": 8,
+  "max_context_chars": null,
+  "embed_model": "BAAI/bge-small-en-v1.5",
+  "embed_device": "cpu",
+  "generator": null,
+  "bench_hash": "d6bf676cafe169e8",
+  "questions_planned": 3
+}

@@ -193,7 +193,7 @@ Run **after** an article publishes. Goal: identify code in the article's `eviden
 
 2. **Read the frontmatter and `evidence/` of the article.** Build a list of every Python (and shell, if relevant) file under `articles/<slug>/evidence/`. For each, note its public-looking shape — top-level functions, classes, CLI entrypoints — and the patterns it implements (NIM client wrapper? KV-cache math? RAG ingest loop? Eval harness? LLM-as-judge? Trajectory analysis? Telemetry collector?).
 
-3. **Map each candidate against fieldkit's surface.** Cross-check using `references/fieldkit-imports.md` (current `__all__` + canonical imports) and the package source at `/home/nvidia/ai-field-notes/fieldkit/src/fieldkit/`. For each candidate, decide one of:
+3. **Map each candidate against fieldkit's surface.** Cross-check using `references/fieldkit-imports.md` (current `__all__` + canonical imports) and the package source at `/home/nvidia/ainative-business.github.io/fieldkit/src/fieldkit/`. For each candidate, decide one of:
    - **Already-in-fieldkit** — the article should switch to the import. Note this in the report; do not edit the article (that's a follow-up `polish` if the user wants it).
    - **Extends an existing module** — propose a patch under `fieldkit/src/fieldkit/<module>/` adding the new symbol. Include a one-line diff sketch (function signature + one-paragraph behavior note), not a full implementation.
    - **Proposes a new module** — name the module, sketch its v0.x scope, suggest the version it should land in (default v0.2 unless the user is mid-cut). Use the deferred-modules table in `ideas/fieldkit.md` first; only invent a brand-new module name if no existing slot fits.

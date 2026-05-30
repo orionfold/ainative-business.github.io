@@ -1,0 +1,149 @@
+---
+/**
+ * ArticleArcNav — bottom prev/next navigation within an editorial arc,
+ * mirroring the destination /book/ "Chapter 1 of 14 → Next: Ch. 2: …"
+ * footer pattern. Uses existing `series` frontmatter + `publishOrdinals`
+ * to find sibling articles inside the same series.
+ *
+ * If the article isn't in a series, the component renders nothing.
+ */
+import { getCollection } from 'astro:content';
+import { publishOrdinals } from '../lib/article-order.mjs';
+import { SERIES_SLUGS } from '../content.config.ts';
+
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+
+const all = await getCollection('articles');
+const ordinalById = publishOrdinals(all, process.cwd());
+
+const current = all.find((a) => a.id === slug);
+const series = current?.data.series;
+
+let prev: typeof current | null = null;
+let next: typeof current | null = null;
+let positionInArc = 0;
+let arcLength = 0;
+let seriesHref = '';
+
+if (series && current) {
+  const seriesArticles = all
+    .filter((a) => a.data.series === series && a.data.status !== 'upcoming')
+    .map((a) => ({ a, ord: ordinalById.get(a.id) ?? 0 }))
+    .sort((x, y) => x.ord - y.ord);
+
+  const idx = seriesArticles.findIndex(({ a }) => a.id === slug);
+  if (idx >= 0) {
+    positionInArc = idx + 1;
+    arcLength = seriesArticles.length;
+    prev = idx > 0 ? seriesArticles[idx - 1].a : null;
+    next = idx < seriesArticles.length - 1 ? seriesArticles[idx + 1].a : null;
+  }
+
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+  seriesHref = `${base}series/${SERIES_SLUGS[series]}/`.replace(/\/+/g, '/');
+}
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const articleHref = (id: string) => `${base}articles/${id}/`.replace(/\/+/g, '/');
+---
+{series && arcLength > 1 && (
+  <nav class="arc-nav" aria-label={`Article navigation in ${series}`}>
+    <p class="arc-nav__eyebrow">
+      Article {positionInArc} of {arcLength} in
+      <a class="arc-nav__series-link" href={seriesHref}>{series}</a>
+    </p>
+    <div class="arc-nav__pair">
+      {prev ? (
+        <a class="arc-nav__card arc-nav__card--prev" href={articleHref(prev.id)} rel="prev">
+          <span class="arc-nav__direction">← Previous</span>
+          <span class="arc-nav__title">{prev.data.title}</span>
+        </a>
+      ) : <span class="arc-nav__card arc-nav__card--empty" aria-hidden="true"></span>}
+      {next ? (
+        <a class="arc-nav__card arc-nav__card--next" href={articleHref(next.id)} rel="next">
+          <span class="arc-nav__direction">Next →</span>
+          <span class="arc-nav__title">{next.data.title}</span>
+        </a>
+      ) : <span class="arc-nav__card arc-nav__card--empty" aria-hidden="true"></span>}
+    </div>
+  </nav>
+)}
+
+<style>
+  .arc-nav {
+    max-width: var(--measure);
+    margin: 4rem auto 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .arc-nav__eyebrow {
+    margin: 0 0 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .arc-nav__series-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--color-primary-dim);
+    margin-left: 0.4em;
+  }
+  .arc-nav__series-link:hover { border-bottom-color: var(--color-primary); }
+
+  .arc-nav__pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .arc-nav__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  }
+  .arc-nav__card:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-raised));
+  }
+  .arc-nav__card--next { text-align: right; }
+  .arc-nav__card--empty {
+    border-style: dashed;
+    border-color: color-mix(in oklch, var(--color-border) 70%, transparent);
+    background: transparent;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .arc-nav__direction {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .arc-nav__card:hover .arc-nav__direction { color: var(--color-primary); }
+  .arc-nav__title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-text);
+  }
+
+  @media (max-width: 640px) {
+    .arc-nav__pair {
+      grid-template-columns: 1fr;
+    }
+    .arc-nav__card--next { text-align: left; }
+  }
+</style>

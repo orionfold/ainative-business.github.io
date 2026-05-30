@@ -1,0 +1,264 @@
+---
+// Cockpit landing — /arena/
+//
+// v0.1.1 redesign — restages above-the-fold as a single-screen instrument
+// cluster. The hero prompt input (the familiar model-arena move) funnels
+// straight into /arena/chat/?prompt=..., which `ChatLane` reads on mount
+// and auto-sends. KPI strip is compact; the cockpit grid is three columns
+// (top runs · active lane · activity feed) instead of two. The §1.3
+// thesis essay drops into a collapsed <details> at the bottom.
+//
+// Persistent telemetry rail is rendered by ArenaAppLayout — this page
+// owns the slot underneath it.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import CurrentLane from '../../components/arena/CurrentLane.jsx';
+import ActivityFeed from '../../components/arena/ActivityFeed.jsx';
+import EvidenceBand from '../../components/arena/EvidenceBand.astro';
+import LiveVsBaseline from '../../components/arena/LiveVsBaseline.jsx';
+
+import leaderboard from '../../data/arena-mirror/leaderboard.json';
+import stats from '../../data/project-stats.json';
+import { getCollection } from 'astro:content';
+
+const title = 'Orionfold Arena — Cockpit';
+const description =
+  'The operator cockpit for the DGX Spark — drive every quant, LoRA, bench, harness, and skill your Spark has produced from one local-first surface.';
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const href = (p: string) => `${base}${p}`.replace(/\/+/g, '/');
+
+// Published throughput baseline for the LiveVsBaseline island — the resident
+// brain's measured tok/s from the article that set the bar (offline-safe prop).
+const tputs = ((stats as any).metrics?.throughput ?? []) as { value: string; article_slug: string }[];
+const baseline = tputs[0] ?? { value: '100 tok/s', article_slug: 'picking-the-hermes-brain-on-spark' };
+const baselineTok = parseFloat(String(baseline.value)) || 100;
+
+type Row = {
+  bench_id: string;
+  lane_id: string;
+  manifest_slug: string | null;
+  n_runs: number;
+  mean_score: number;
+  median_tok_per_s: number | null;
+  mean_ttft_ms: number | null;
+  human_pref_winrate: number | null;
+  last_run_at: string;
+};
+// v0.1.1 — bumped slice from 6 → 8. The denser ticker row fits the extra
+// two without growing the grid column.
+const rows = ((leaderboard.bench_rows as Row[]) ?? (leaderboard.rows as Row[]) ?? [])
+  .slice()
+  .sort((a, b) => b.mean_score - a.mean_score)
+  .slice(0, 8);
+
+// Artifact + article counts for the hero KPI strip.
+let artifactCount = 0, articleCount = 0;
+try {
+  artifactCount = (await getCollection('artifacts')).length;
+} catch {}
+try {
+  articleCount = (await getCollection('articles')).length;
+} catch {}
+
+const benchCount = new Set(
+  ((leaderboard.bench_rows as Row[]) ?? []).map((r) => r.bench_id)
+).size;
+const totalRuns = ((leaderboard.bench_rows as Row[]) ?? []).reduce((s, r) => s + r.n_runs, 0) +
+                  ((leaderboard.live_rows  as Row[]) ?? []).reduce((s, r) => s + r.n_runs, 0);
+
+const laneLabel = (lane_id: string) => lane_id.replace(/::[a-z0-9-]+$/, '');
+const pct = (s: number) => (s * 100).toFixed(1);
+const scoreCls = (s: number) =>
+  s >= 0.90 ? '' : (s >= 0.75 ? 'ticker__score--mid' : 'ticker__score--low');
+const scoreColor = (s: number) =>
+  s >= 0.90 ? 'var(--arena-ok)'
+  : s >= 0.75 ? 'var(--arena-accent-glow)'
+  : 'var(--arena-warn)';
+const fmtTok = (v: number | null) =>
+  v == null ? '—' : `${v.toFixed(0)}t/s`;
+---
+<ArenaAppLayout title={title} description={description} active="cockpit">
+
+  <!-- ============ Hero — prompt input is the arena move ============ -->
+  <header class="cockpit-hero">
+    <div class="cockpit-hero__head">
+      <p class="cockpit-hero__eyebrow">Orionfold Arena · v0.2</p>
+      <h1 class="cockpit-hero__title">Cockpit</h1>
+      <p class="cockpit-hero__now cockpit-hero__now--offline" id="cockpit-hero-now" aria-live="polite">
+        <span class="cockpit-hero__now-dot"></span>
+        <span id="cockpit-hero-now-text">resident brain idle · waiting for the sidecar</span>
+      </p>
+    </div>
+    <div class="cockpit-hero__cta">
+      <a href="/arena/chat/" class="arena-btn arena-btn--primary cockpit-hero__chatbtn">▶ Open Chat</a>
+      <p class="cockpit-hero__hint">
+        Chat with any model — the resident brain, an on-demand local fine-tune,
+        or an OpenRouter frontier — and pick it right in the chat tab.
+      </p>
+    </div>
+    <div class="cockpit-hero__actions">
+      <a href="/arena/compare/" class="arena-btn">＋ Compare</a>
+      <a href="/arena/leaderboard/" class="arena-btn">Leaderboard ↗</a>
+    </div>
+  </header>
+
+  <!--
+    Live "what the Spark is doing now" status line under the hero title.
+    Classic IIFE (NOT a module — Vite dev-transform throws "Illegal return
+    statement" on module page-scripts; see HANDOFF gotchas). Opens its own SSE
+    to the telemetry sidecar; degrades to the static offline copy when the host
+    is the public mirror or the sidecar is down.
+  -->
+  <script is:inline>
+    (function () {
+      var el = document.getElementById('cockpit-hero-now');
+      var txt = document.getElementById('cockpit-hero-now-text');
+      if (!el || !txt) return;
+      var h = window.location.hostname || '';
+      var loopback = h === '127.0.0.1' || h === 'localhost' || /^10\.0\.0\.\d+$/.test(h);
+      if (!loopback) return; // public mirror — keep the static offline line
+      var url = window.location.protocol + '//' + h + ':7866/api/telemetry/stream';
+      var es;
+      try { es = new EventSource(url); } catch (e) { return; }
+      es.addEventListener('telemetry', function (ev) {
+        var t;
+        try { t = JSON.parse(ev.data); } catch (e) { return; }
+        el.classList.remove('cockpit-hero__now--offline');
+        var lane = t.lane_id || 'resident brain';
+        if (t.inflight && typeof t.tok_per_s === 'number') {
+          txt.innerHTML = '<b>' + lane + '</b> streaming · ' + t.tok_per_s.toFixed(1) + ' tok/s · ' +
+            (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB' : '—');
+        } else {
+          txt.innerHTML = '<b>' + lane + '</b> resident · idle · ' +
+            (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB used' : 'warm');
+        }
+      });
+      es.onerror = function () {
+        el.classList.add('cockpit-hero__now--offline');
+        txt.textContent = 'resident brain idle · waiting for the sidecar';
+      };
+    })();
+  </script>
+
+  <!-- ============ Compact KPI strip ============ -->
+  <div class="kpi-strip kpi-strip--compact">
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Artifacts</span>
+      <span class="kpi-strip__value">{artifactCount}</span>
+      <span class="kpi-strip__hint">manifests in roster</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Articles</span>
+      <span class="kpi-strip__value">{articleCount}</span>
+      <span class="kpi-strip__hint">published deep-dives</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Benches</span>
+      <span class="kpi-strip__value">{benchCount}</span>
+      <span class="kpi-strip__hint">cached evidence sources</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Runs scored</span>
+      <span class="kpi-strip__value">{totalRuns}</span>
+      <span class="kpi-strip__hint">bench&nbsp;+&nbsp;live</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Envelope</span>
+      <span class="kpi-strip__value">128&nbsp;GB</span>
+      <span class="kpi-strip__hint kpi-strip__hint--ok">unified · 8 GB guard</span>
+    </div>
+  </div>
+
+  <!-- ============ Dense 3-col cockpit grid ============ -->
+  <div class="cockpit-grid cockpit-grid--dense">
+    <!-- Top runs ticker — 8 rows, inline scorebar + tok/s -->
+    <article class="bezel cockpit-grid__runs">
+      <header class="bezel__head">
+        <span class="bezel__head-title">Top runs · last cut</span>
+        <span class="bezel__head-tag bezel__head-tag--live">M6 mirror</span>
+      </header>
+      <div class="bezel__body bezel__body--flush">
+        {rows.length > 0 ? (
+          <div class="ticker ticker--dense">
+            {rows.map((r, i) => (
+              <div class="ticker__row">
+                <span class="ticker__rank">#{i + 1}</span>
+                <div style="min-width: 0;">
+                  <span class="ticker__lane">{laneLabel(r.lane_id)}</span>
+                  <span class="ticker__lane-suffix">· {r.bench_id} · {r.n_runs} run{r.n_runs === 1 ? '' : 's'}</span>
+                </div>
+                <div class="ticker__bar" style={`--ticker-color: ${scoreColor(r.mean_score)};`}>
+                  <div class="ticker__bar-track">
+                    <div class="ticker__bar-fill" style={`width: ${Math.max(2, Math.min(100, r.mean_score * 100)).toFixed(1)}%;`}></div>
+                  </div>
+                </div>
+                <span class={`ticker__score ${scoreCls(r.mean_score)}`}>{pct(r.mean_score)}%</span>
+                <span class="ticker__tok">{fmtTok(r.median_tok_per_s)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div class="empty" style="margin: 0; border: 0; border-radius: 0; background: transparent;">
+            <p>Mirror is empty — run <code>fieldkit arena import</code> on your Spark.</p>
+          </div>
+        )}
+      </div>
+      <footer style="padding: 0.55rem 1rem; border-top: 1px solid var(--arena-line); font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--arena-text-dim);">
+        <a href="/arena/leaderboard/" style="color: var(--arena-accent);">Open the full leaderboard →</a>
+      </footer>
+    </article>
+
+    <!-- Active lane card (compact mode) -->
+    <article class="bezel bezel--lit cockpit-grid__lane">
+      <header class="bezel__head">
+        <span class="bezel__head-title">Active lane</span>
+        <span class="bezel__head-tag bezel__head-tag--live">resident</span>
+      </header>
+      <div class="bezel__body">
+        <CurrentLane client:only="preact" compact />
+      </div>
+    </article>
+
+    <!-- Activity feed (NEW — operator-private, redacted by /api/activity) -->
+    <ActivityFeed client:only="preact" limit={8} />
+  </div>
+
+  <!-- ============ Telemetry ↔ evidence bridge (P5) ============ -->
+  <section class="cockpit-bridge">
+    <article class="bezel cockpit-bridge__live">
+      <header class="bezel__head">
+        <span class="bezel__head-title">This run vs the bar</span>
+        <span class="bezel__head-tag bezel__head-tag--live">live</span>
+      </header>
+      <div class="bezel__body">
+        <LiveVsBaseline
+          client:only="preact"
+          baselineTokPerS={baselineTok}
+          baselineLabel="resident brain"
+          baselineHref={href(`articles/${baseline.article_slug}/`)}
+        />
+      </div>
+    </article>
+    <div class="cockpit-bridge__evidence">
+      <EvidenceBand />
+    </div>
+  </section>
+
+  <!-- ============ §1.3 essay — collapsed <details> at bottom ============ -->
+  <details class="cockpit-about">
+    <summary>What is Spark Arena?</summary>
+    <div class="cockpit-about__body">
+      <p>
+        Spark Arena is the operator-driven alternative to public cloud model
+        arenas: <strong>private eval
+        leaderboards</strong>, <strong>efficiency-as-metric</strong>
+        (quality <em>and</em> tok/s, unified-mem peak, TTFT, $/M),
+        <strong>closed-loop eval → fine-tune → re-rank</strong>,
+        <strong>tool-call replay</strong>, <strong>custom rubrics</strong>,
+        and a <strong>cost-per-quality Pareto frontier</strong> anchored to the
+        hardware the votes ran on — here the operator <em>is</em> the hardware.
+      </p>
+    </div>
+  </details>
+
+</ArenaAppLayout>

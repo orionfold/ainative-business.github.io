@@ -1,0 +1,126 @@
+---
+import SectionLabel from '../../ui/SectionLabel.astro';
+
+const code = `from fieldkit.capabilities import kv_cache_bytes, weight_bytes
+from fieldkit.nim import NIMClient
+from fieldkit.rag import Document, Pipeline
+from fieldkit.eval import Bench, Judge, is_refusal
+
+# 70B Llama 3.1 KV cache at 32-user × 16K ctx, FP16:
+kv_cache_bytes(hidden=8 * 128, n_layers=80, ctx=16384, batch=32, dtype="fp16")
+# → 171_798_691_840  (≈ 171.8 GB)
+
+# Naive RAG end-to-end:
+with NIMClient(base_url="http://localhost:8000/v1",
+               model="meta/llama-3.1-8b-instruct") as gen, \\
+     Pipeline(embed_url="http://localhost:8001/v1",
+              pgvector_dsn="postgresql://spark:spark@localhost:5432/vectors",
+              generator=gen) as pipe:
+    pipe.ensure_schema()
+    pipe.ingest([Document(id=1, text="...", label="spark")])
+    print(pipe.ask("How much memory does the Spark have?")["answer"])`;
+
+const benefits = [
+  {
+    title: 'Retries baked in',
+    body: 'NIMClient handles cold-starts, exponential backoff (0.5 s → 8 s), and connect timeouts so your pipeline doesn\'t fail under co-resident memory pressure.',
+  },
+  {
+    title: 'Preflight context check',
+    body: '8192-token preflight runs before every request — context overflow surfaces as a Python exception, not a NIM 400.',
+  },
+  {
+    title: 'Schema you can trust',
+    body: 'Pipeline.ensure_schema() creates pgvector tables, indexes, and the right embedding dimension. Run it once and forget it.',
+  },
+  {
+    title: 'Strict-context prompting',
+    body: 'The RAG prompt is verbatim from naive-rag-on-spark. Refusals are detected; trajectories are inspectable.',
+  },
+];
+---
+<section class="py-24 px-6 relative overflow-hidden">
+  <!-- Ambient glow on the left this time so the page rhythm reads
+       Modules (centered) → Quickstart (left glow) → Verified (right glow). -->
+  <div class="absolute inset-0 -z-10 pointer-events-none">
+    <div class="absolute top-1/2 left-[18%] -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] rounded-full bg-primary/[0.07] blur-[140px]"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto grid lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-14 items-center">
+
+    <!-- LEFT: Code pane with copy button -->
+    <div data-animate class="min-w-0">
+      <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
+          <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">quickstart.py</span>
+          <button
+            id="fk-quickstart-copy-btn"
+            class="p-1 rounded text-text-muted/50 hover:text-text-muted transition-colors"
+            aria-label="Copy quickstart to clipboard"
+          >
+            <svg id="fk-quickstart-copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg id="fk-quickstart-check-icon" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-surface-raised px-5 py-4 overflow-x-auto">
+          <pre class="font-mono text-[13px] leading-[1.65] text-text"><code id="fk-quickstart-code">{code}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Narrative -->
+    <div class="text-center lg:text-left">
+      <SectionLabel text="Quickstart" />
+      <h2 data-animate class="mt-4 mb-4 font-display font-bold tracking-tight"
+          style="font-size: clamp(1.75rem, 3.4vw, 2.5rem); line-height: 1.1;">
+        Four imports. <span class="text-primary italic">One pipeline.</span>
+      </h2>
+      <p data-animate class="text-text-muted leading-relaxed mb-8 max-w-[58ch] mx-auto lg:mx-0" style="transition-delay: 80ms">
+        These four imports replace ~250 lines of glue from across the field
+        notes — embed setup, retry policy, preflight checks, schema
+        bootstrap, and strict-context prompting. Drop them into a fresh
+        Python file and you have a working RAG.
+      </p>
+
+      <ul data-animate-stagger class="space-y-4 max-w-[58ch] mx-auto lg:mx-0 text-left">
+        {benefits.map(({ title, body }) => (
+          <li data-animate class="flex items-start gap-3">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary shrink-0 mt-0.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <div>
+              <div class="font-semibold text-sm mb-0.5">{title}</div>
+              <p class="text-sm text-text-muted leading-relaxed">{body}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+  </div>
+</section>
+
+<script>
+  function initFkQuickstartCopy() {
+    document.getElementById('fk-quickstart-copy-btn')?.addEventListener('click', async () => {
+      const code = document.getElementById('fk-quickstart-code')?.textContent ?? '';
+      await navigator.clipboard.writeText(code);
+      const copyIcon = document.getElementById('fk-quickstart-copy-icon');
+      const checkIcon = document.getElementById('fk-quickstart-check-icon');
+      copyIcon?.classList.add('hidden');
+      checkIcon?.classList.remove('hidden');
+      setTimeout(() => {
+        copyIcon?.classList.remove('hidden');
+        checkIcon?.classList.add('hidden');
+      }, 2000);
+    });
+  }
+
+  initFkQuickstartCopy();
+  document.addEventListener('astro:after-swap', initFkQuickstartCopy);
+</script>

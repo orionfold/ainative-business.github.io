@@ -1,0 +1,163 @@
+{
+  "$schema": "spark-capabilities-v1",
+  "version": "2026.05.01",
+  "hardware": {
+    "name": "NVIDIA DGX Spark (GB10 Grace Blackwell)",
+    "unified_memory_gb": 128,
+    "memory_topology": "unified — same 128 GB pool serves CPU and GPU; allocations from one shrink the budget of the other; OOM hangs the whole box (see HANDOFF.md 2026-04-22 incident)",
+    "compute_arch": "Blackwell SM_100",
+    "supported_dtypes": ["bf16", "fp16", "fp8", "int8", "int4 (via NIM/TRT-LLM)"],
+    "interconnect_to_other_gpus": "none — single-node only; multi-GPU requires the cloud envelope (see Looking Beyond Spark series)"
+  },
+  "memory_budget_rules_of_thumb": {
+    "param_bytes": { "fp32": 4, "bf16": 2, "fp16": 2, "fp8": 1, "int8": 1, "int4": 0.5 },
+    "training_overhead_multiplier": "~4× params for full fine-tune (params + grads + optimizer state + activations); ~1.5× for LoRA",
+    "kv_cache_per_token_per_layer": "2 × hidden_size × bytes_per_dtype (one for K, one for V); see kv-cache-arithmetic-at-inference article for the canonical walkthrough",
+    "practical_inference_envelope": {
+      "8B params bf16": "fits with room — ~16 GB weights + KV; 24.8 tok/s measured on NIM",
+      "70B params bf16": "marginal — 140 GB weights alone exceeds the unified pool; requires fp8/int4 quant or offload",
+      "70B params fp8": "~70 GB weights; leaves ~50 GB for KV + activations + system; tight but possible",
+      "70B params int4": "~35 GB weights; comfortable",
+      "405B+ params": "out of envelope at any common quant; belongs in Looking Beyond Spark"
+    },
+    "practical_finetune_envelope": {
+      "LoRA on 8B": "trivially fits; demonstrated across multiple Foundations + Fine-tuning articles",
+      "LoRA on 70B fp8": "borderline; requires careful batch + grad_accum tuning",
+      "Full fine-tune on 8B": "fits with bf16 + grad checkpointing + small batch",
+      "Full fine-tune on 70B": "out of envelope; needs cloud"
+    }
+  },
+  "stack": {
+    "nim": {
+      "id": "nim",
+      "label": "NVIDIA NIM (NVIDIA Inference Microservices)",
+      "purpose": "Containerized inference microservices for popular open weights with TensorRT-LLM optimization built in",
+      "supported_models_at_spark_scale": ["llama-3.1-8b-instruct", "llama-3.3-70b-instruct (fp8/int4)", "nemotron-super-49b", "qwen-2.5-7b-instruct", "nemotron-embed-1b-v2", "nemotron-reranker-1b"],
+      "verified_in_articles": ["nim-first-inference-dgx-spark", "naive-rag-on-spark", "trtllm-and-triton-on-spark"],
+      "known_limits": [
+        "8192-token context window default; chunking math must respect it (see project-spark-nim-context-window memory)",
+        "NIM_GPU_MEM_FRACTION caps the KV reservation; 0.5 default leaves headroom for the OS",
+        "Cold start can take minutes when pulling weights"
+      ],
+      "fits_paper_shapes": ["serving open-weight LLMs", "RAG generators", "reranker pipelines", "embedding endpoints"]
+    },
+    "nemo": {
+      "id": "nemo",
+      "label": "NVIDIA NeMo Framework",
+      "purpose": "Training, fine-tuning, distillation, curation across LLM/multimodal/speech",
+      "verified_in_articles": ["distilling-the-architect", "lora-on-spark", "fine-tune-memory-math"],
+      "known_limits": [
+        "/opt/venv pip trap on NeMo containers — installs go to /usr/local/lib unless you use /opt/venv/bin/python3 -m pip (see feedback memory)",
+        "Multi-node distributed training APIs assume a cluster; on Spark you're capped at single-node configs"
+      ],
+      "fits_paper_shapes": ["LoRA / PEFT", "instruction tuning", "knowledge distillation", "data curation pipelines"]
+    },
+    "tensorrt_llm": {
+      "id": "tensorrt-llm",
+      "label": "NVIDIA TensorRT-LLM",
+      "purpose": "Compiled inference engines with paged KV cache, fp8/int4 kernels, in-flight batching",
+      "verified_in_articles": ["trtllm-and-triton-on-spark", "kv-cache-arithmetic-at-inference"],
+      "known_limits": [
+        "Engine builds are model + dtype + max-context-length specific; rebuilding for new shapes is slow",
+        "fp8 quant requires Hopper+ (Blackwell on Spark satisfies)",
+        "Use `--use_paged_context_fmha` and `--use_fp8_context_fmha` for KV efficiency on Spark"
+      ],
+      "fits_paper_shapes": ["latency-critical inference", "long-context generation", "high-concurrency serving"]
+    },
+    "triton": {
+      "id": "triton",
+      "label": "NVIDIA Triton Inference Server",
+      "purpose": "Multi-model serving with batching, ensembles, custom backends",
+      "verified_in_articles": ["trtllm-and-triton-on-spark"],
+      "known_limits": ["Setup complexity higher than NIM for single-model use cases"],
+      "fits_paper_shapes": ["multi-model pipelines", "ensemble inference", "custom backends"]
+    },
+    "nemo_retriever": {
+      "id": "nemo-retriever",
+      "label": "NVIDIA NeMo Retriever (NIM-served embed + rerank)",
+      "purpose": "Embedding + reranker microservices tuned for retrieval pipelines",
+      "verified_in_articles": ["pgvector-on-spark", "rerank-fusion-retrieval-on-spark", "naive-rag-on-spark"],
+      "known_limits": [
+        "1B reranker is the practical default on Spark; larger rerankers cut into LLM headroom",
+        "pgvector retrieval ~70 ms top-5; reranker ~40 ms per call (measured)"
+      ],
+      "fits_paper_shapes": ["RAG", "dense retrieval", "rerank fusion", "hybrid search"]
+    },
+    "pgvector": {
+      "id": "pgvector",
+      "label": "pgvector (Postgres extension)",
+      "purpose": "Vector search inside Postgres; the project's default RAG store",
+      "verified_in_articles": ["pgvector-on-spark", "naive-rag-on-spark"],
+      "known_limits": ["IVFFlat / HNSW tradeoffs documented; HNSW preferred for low-latency"],
+      "fits_paper_shapes": ["RAG ingestion", "vector search", "hybrid SQL+vector queries"]
+    },
+    "nemoclaw": {
+      "id": "nemoclaw",
+      "label": "NVIDIA NemoClaw (OpenClaw-in-OpenShell sandboxed agents)",
+      "purpose": "Local sandboxed agent stack with Nemotron backing for tool-using agents",
+      "verified_in_articles": ["nemoclaw-vs-openclaw-dgx-spark", "autoresearch-agent-loop"],
+      "known_limits": [
+        "Pinned to Nemotron at ~22 tok/s baseline",
+        "k3s/CoreDNS quirks on Ubuntu 24.04 cgroup v2 (see nemoclaw-guru skill)"
+      ],
+      "fits_paper_shapes": ["tool-using agents", "code-execution agents", "multi-step workflows", "agentic experimentation harnesses"]
+    },
+    "nemo_guardrails": {
+      "id": "nemo-guardrails",
+      "label": "NVIDIA NeMo Guardrails",
+      "purpose": "Programmable safety + topical rails around LLM responses",
+      "verified_in_articles": ["guardrails-on-spark"],
+      "known_limits": [],
+      "fits_paper_shapes": ["safety filtering", "topical refusal", "input/output rails", "jailbreak defense studies"]
+    },
+    "openclaw": {
+      "id": "openclaw",
+      "label": "OpenClaw CLI (Ollama-integrated)",
+      "purpose": "Ollama-backed agent CLI for lightweight tool use",
+      "verified_in_articles": ["nemoclaw-vs-openclaw-dgx-spark"],
+      "known_limits": ["Ollama models stack — second concurrent model can OOM the box"],
+      "fits_paper_shapes": ["lightweight agents", "rapid prototyping"]
+    },
+    "ollama": {
+      "id": "ollama",
+      "label": "Ollama",
+      "purpose": "Local LLM runner; useful for quick model swaps but not the production path",
+      "known_limits": ["Multi-model loading exceeds 128 GB unified pool — hard hang risk (see project-spark-unified-memory-oom memory)"]
+    }
+  },
+  "out_of_envelope_signals": [
+    "Pretraining anything ≥ 1B from scratch (need a cluster, see Looking Beyond Spark)",
+    "Multi-node distributed training of any size",
+    "Mixture-of-Experts at large total-param counts paired with long context",
+    "Anything requiring B200 / H200 / multiple H100s simultaneously",
+    "Training datasets that exceed local NVMe budget"
+  ],
+  "in_envelope_signals": [
+    "Fine-tuning open-weight LLMs ≤ 70B with LoRA / QLoRA",
+    "Inference-time techniques: speculative decoding, prompt caching, structured generation, constrained decoding",
+    "RAG pipelines: chunking, embedding, retrieval, reranking, fusion, hybrid search",
+    "Agentic systems: tool use, multi-step planning, sandboxed execution",
+    "Distillation from a frontier model into a small student",
+    "Quantization studies (fp8, int4, AWQ, GPTQ) on existing weights",
+    "Long-context inference economics (KV cache, paged attention, attention sinks)",
+    "Observability and instrumentation of inference and agent traces"
+  ],
+  "stage_routing_hints": {
+    "foundations": "papers about install / setup / hardware / drivers / day-one onboarding",
+    "training": "pretraining or continued pretraining studies; loss/loss-curve dynamics",
+    "fine-tuning": "LoRA, PEFT, instruction-tuning, distillation",
+    "inference": "serving, throughput, latency, KV cache, paged attention, quant",
+    "deployment": "containerization, services, graceful degradation, multi-tenant",
+    "agentic": "tool use, multi-agent, sandboxes, planning, code execution",
+    "observability": "tracing, profiling, eval pipelines, judge models, telemetry",
+    "dev-tools": "Nsight, CUDA tooling, IDE integrations, debug workflows"
+  },
+  "series_routing_hints": {
+    "Foundations": "shared install / setup substrate; cross-cutting onboarding",
+    "Second Brain": "RAG over the user's own corpus; query-time generation",
+    "LLM Wiki": "compile-time synthesis; LLM maintains a linted knowledge base",
+    "Autoresearch": "autonomous experimentation; agent runs overnight loops, edits, measures, decides",
+    "Looking Beyond Spark": "arithmetic that extrapolates beyond the 128 GB envelope to H100/H200/B200/SuperPOD",
+    "Frontier Scout": "the meta-series — papers + the system that found them"
+  }
+}

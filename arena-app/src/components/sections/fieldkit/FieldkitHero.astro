@@ -1,0 +1,136 @@
+---
+interface Props {
+  version: string;
+}
+
+const { version } = Astro.props;
+---
+<section class="relative flex items-center px-6 overflow-x-clip pt-32 pb-12">
+  <!-- Dual atmospheric glow -->
+  <div class="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
+    <div class="absolute w-[800px] h-[800px] rounded-full bg-primary/[0.10] blur-[180px]"></div>
+    <div class="absolute w-[400px] h-[400px] rounded-full bg-primary/[0.15] blur-[100px]"></div>
+  </div>
+
+  <!-- Bottom gradient fade into next section -->
+  <div class="absolute bottom-0 left-0 right-0 h-40 pointer-events-none" style="background: linear-gradient(to bottom, transparent, var(--color-surface-raised));"></div>
+
+  <!-- Two-column grid — content left, install CTA right -->
+  <div class="relative z-10 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center py-6 lg:py-4">
+
+    <!-- Left column: Content -->
+    <div class="text-center lg:text-left" data-animate-stagger>
+
+      <h1
+        class="fkh-gradient-text font-display text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.1] mb-3"
+      >
+        fieldkit
+      </h1>
+
+      <p
+        class="text-[clamp(0.85rem,1.8vw,1.05rem)] text-text-muted leading-relaxed mb-6 mx-auto lg:mx-0 max-w-xl"
+      >
+        Verified-on-Spark Python patterns, lifted from the AI Native Field Notes
+        into one importable package. Every module is the tested distillate of
+        the articles it appears under.
+      </p>
+
+      <!-- Version + license pills -->
+      <div class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap max-w-sm mx-auto lg:mx-0">
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">v{version}</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">Apache-2.0</span>
+        <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-2.5 py-1">Python 3.11+</span>
+      </div>
+
+    </div>
+
+    <!-- Right column: Install CTA + benefit pills -->
+    <div data-animate-stagger class="w-full max-w-md mx-auto lg:mx-0">
+
+      <!-- Terminal CTA — pip install fieldkit -->
+      <p data-animate class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mb-2 text-center lg:text-left">
+        Install the package
+      </p>
+      <div data-animate>
+        <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+          <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
+            <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Terminal</span>
+            <button
+              id="fk-hero-copy-btn"
+              class="p-1 rounded text-text-muted/50 hover:text-text-muted transition-colors"
+              aria-label="Copy to clipboard"
+            >
+              <svg id="fk-hero-copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+              </svg>
+              <svg id="fk-hero-check-icon" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="bg-surface-raised px-4 py-3">
+            <pre class="font-mono text-lg sm:text-xl leading-relaxed text-text-muted"><span class="text-primary">$</span> <code id="fk-hero-code">pip install fieldkit</code><span class="fkh-cursor">▌</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Benefit pills — below the CTA -->
+      <div
+        data-animate
+        class="flex items-center justify-center lg:justify-start gap-1.5 flex-wrap mt-5"
+      >
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">KV-cache math</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">NIM client</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Naive-RAG</span>
+        <span class="font-mono text-[10px] tracking-wider text-text-muted border border-border rounded-full px-2.5 py-1">Eval harness</span>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+
+<style>
+  /* ── Gradient text ── */
+  .fkh-gradient-text {
+    background: linear-gradient(135deg, oklch(0.78 0.12 230), var(--color-primary), oklch(0.58 0.18 280));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Blinking cursor ── */
+  .fkh-cursor {
+    animation: fkh-blink 1s step-end infinite;
+    color: var(--color-primary);
+  }
+  @keyframes fkh-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fkh-cursor { animation: none; }
+  }
+</style>
+
+<script>
+  function initFkHeroCopy() {
+    document.getElementById('fk-hero-copy-btn')?.addEventListener('click', async () => {
+      const code = document.getElementById('fk-hero-code')?.textContent ?? '';
+      await navigator.clipboard.writeText(code);
+      const copyIcon = document.getElementById('fk-hero-copy-icon');
+      const checkIcon = document.getElementById('fk-hero-check-icon');
+      copyIcon?.classList.add('hidden');
+      checkIcon?.classList.remove('hidden');
+      setTimeout(() => {
+        copyIcon?.classList.remove('hidden');
+        checkIcon?.classList.add('hidden');
+      }, 2000);
+    });
+  }
+
+  initFkHeroCopy();
+  document.addEventListener('astro:after-swap', initFkHeroCopy);
+</script>

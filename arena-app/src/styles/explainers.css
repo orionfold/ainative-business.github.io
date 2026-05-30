@@ -1,0 +1,307 @@
+/* ---------- Explainer asides ----------------------------------------------
+   Sourced from `:::define / :why / :deeper / :pitfall / :math / :hardware`
+   container directives. Plugin emits:
+     <aside class="explain explain--<kind>" data-explain="<kind>"
+            data-term="..." id="explain-<kind>-<slug>">
+       <p class="explain__title">…</p>
+       <p>…body…</p>
+     </aside>
+   Eyebrow label injected here via CSS ::before; six kinds → six accents.
+   On wide viewports the aside floats into the existing 14–15rem right gutter
+   that already lives between .prose (48rem) and .article (80rem).
+   On narrow viewports it falls back to an inline block.
+   The explainer-mode attribute on <html> (set by ReaderSettings) toggles
+   hide / margin / inline modes. Sepia theme overrides surface tokens only
+   within .article so the global Nav theme is unaffected.
+---------------------------------------------------------------------------- */
+
+/* Contain explainer floats so the last one in an article doesn't bleed
+   into FieldkitCTA / ArticleArcNav siblings. .prose now establishes a
+   block formatting context, which makes it size around floats. */
+.prose { display: flow-root; }
+
+/* ── Base aside ── */
+.prose .explain {
+  position: relative;
+  margin: 1.5rem 0;
+  padding: 0.85rem 1rem 0.95rem 1.1rem;
+  background: color-mix(in oklch, var(--color-surface-raised) 70%, transparent);
+  border: 1px solid var(--color-border);
+  border-left-width: 3px;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text-muted);
+  break-inside: avoid;
+}
+
+.prose .explain > .explain__title {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.98rem;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+.prose .explain > p,
+.prose .explain > ul,
+.prose .explain > ol {
+  margin: 0.4rem 0 0;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+.prose .explain > p:first-of-type:not(.explain__title),
+.prose .explain > ul:first-of-type,
+.prose .explain > ol:first-of-type {
+  margin-top: 0;
+}
+.prose .explain ul,
+.prose .explain ol {
+  padding-left: 1.15rem;
+}
+.prose .explain a {
+  color: var(--color-primary);
+  text-decoration-color: var(--color-primary-dim);
+  text-underline-offset: 2px;
+}
+.prose .explain code {
+  font-size: 0.85em;
+}
+
+/* ── Eyebrow label, injected by class kind ── */
+.prose .explain::before {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-dim);
+}
+.prose .explain--define::before    { content: "Define"; color: oklch(0.72 0.08 220); }
+.prose .explain--why::before       { content: "Why this matters"; color: oklch(0.75 0.13 80); }
+.prose .explain--deeper::before    { content: "Go deeper"; color: oklch(0.72 0.13 290); }
+.prose .explain--pitfall::before   { content: "Pitfall"; color: oklch(0.68 0.15 20); }
+.prose .explain--math::before      { content: "In plain words"; color: oklch(0.72 0.13 150); }
+.prose .explain--hardware::before  { content: "Beyond Spark"; color: oklch(0.78 0.12 95); }
+
+/* ── Per-kind accent colour for the left border ── */
+.prose .explain--define   { border-left-color: oklch(0.72 0.10 220); }
+.prose .explain--why      { border-left-color: oklch(0.75 0.15 80); }
+.prose .explain--deeper   { border-left-color: oklch(0.72 0.13 290); }
+.prose .explain--pitfall  { border-left-color: oklch(0.68 0.15 20); }
+.prose .explain--math     { border-left-color: oklch(0.72 0.13 150); }
+.prose .explain--hardware { border-left-color: oklch(0.78 0.12 95); }
+
+/* ── Wide viewport: float into the right gutter ─────────────────────────────
+   .prose lives at max-width 48rem inside .article (max-width 92rem) — that
+   leaves up to 22rem of gutter on each side. Width is tokenised via custom
+   properties so the three-band media-query cascade below scales the float
+   with available gutter (13rem at ≥64rem, 15rem at ≥80rem, 17rem at ≥92rem).
+   Negative margin pulls the aside out of the prose column without disturbing
+   text reflow; shape-outside keeps prose hugging the float edge naturally.   */
+.prose {
+  --explainer-width: 13rem;
+  --explainer-claim: 14rem;
+  --explainer-gap: 1.25rem;
+}
+
+@media (min-width: 64rem) {
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .prose .explain {
+    float: right;
+    clear: right;
+    width: var(--explainer-width);
+    margin-right: calc(var(--explainer-claim) * -1);
+    margin-left: var(--explainer-gap);
+    margin-top: 0.25rem;
+    margin-bottom: 1rem;
+    shape-outside: margin-box;
+    shape-margin: 0.5rem;
+  }
+  /* Alternating side: every other explainer drops to the left gutter so a
+     long sequence doesn't pile up in a single column. */
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .prose .explain:nth-of-type(2n) {
+    float: left;
+    clear: left;
+    margin-left: calc(var(--explainer-claim) * -1);
+    margin-right: var(--explainer-gap);
+  }
+  /* Closing pair (typically :::deeper or :::pitfall followed by :::hardware)
+     renders inline at full prose width. Floating the penultimate into the
+     gutter while only the last sibling dropped back inline created visible
+     whitespace before the closing callout: the float extended below the
+     prose between them, and `clear: both` on the last pushed it past the
+     float's tail. Inlining the trailing pair makes them stack as a clean
+     pair of full-width callouts. MUST come AFTER the :nth-of-type(2n) rule
+     (same specificity, source order wins). shape-outside is reset because
+     the property persists across float removal in some engines. */
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .prose .explain:nth-last-of-type(-n+2) {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 2.5rem 0 0;
+    shape-outside: none;
+  }
+
+  /* Explainer that precedes (within ~3 siblings) a wide figure-block also
+     drops its float and renders inline. Wide figures (.fn-diagram,
+     .figure--bleed, .figure--wide, breakout images) and gutter-floated
+     explainers compete for the same horizontal space — overlap or
+     clear:both both look bad. Inline-rendering the explainer above the
+     figure avoids both: the explainer reads as a full-prose-width callout,
+     then the figure flows freely below. The .explain--before-figure class
+     is added at the hast stage by rehype-explainer-figure.mjs when a
+     figure or bare image follows the explainer within 3 sibling positions.
+     `.explain.explain--before-figure` matches the `:nth-of-type(2n)` /
+     `:last-of-type` rule specificity above; source order is what wins. */
+  html:not([data-explain-mode="inline"]):not([data-explain-mode="hide"]) .prose .explain.explain--before-figure {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 1.5rem 0;
+    margin-left: 0;
+    margin-right: 0;
+    shape-outside: none;
+  }
+}
+
+/* Three-band viewport sizing — explainer grows with available gutter */
+@media (min-width: 80rem) {
+  .prose {
+    --explainer-width: 15rem;
+    --explainer-claim: 16.25rem;
+  }
+}
+@media (min-width: 92rem) {
+  .prose {
+    --explainer-width: 17rem;
+    --explainer-claim: 18.25rem;
+  }
+}
+
+/* Print: explainers inline so the gutter doesn't break across pages */
+@media print {
+  .prose .explain {
+    float: none !important;
+    clear: both !important;
+    width: auto !important;
+    margin: 1rem 0 !important;
+    shape-outside: none !important;
+  }
+}
+
+/* ── Explainer mode: hide ── */
+html[data-explain-mode="hide"] .prose .explain { display: none; }
+
+/* ── Explainer mode: inline (force inline-block flow even on wide) ── */
+html[data-explain-mode="inline"] .prose .explain {
+  float: none;
+  width: auto;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* ── Reading controls — variable knobs ───────────────────────────────────── */
+html[data-font-scale="S"] .prose      { font-size: 0.95rem; }
+html[data-font-scale="M"] .prose,
+html:not([data-font-scale]) .prose    { font-size: 1.0625rem; } /* default */
+html[data-font-scale="L"] .prose      { font-size: 1.18rem; }
+
+html[data-line-height="compact"] .prose  { line-height: 1.55; }
+html[data-line-height="default"] .prose,
+html:not([data-line-height]) .prose      { line-height: var(--rhythm); } /* 1.85 */
+html[data-line-height="relaxed"] .prose  { line-height: 2.05; }
+
+/* ── Reader theme: sepia ─────────────────────────────────────────────────────
+   Scoped to the article shell so the global nav, footer, and home page
+   remain on the user's preferred light/dark theme. Tones drawn from the
+   destination /book/ sepia palette: warm cream surface, warm ink text. */
+html[data-reader-theme="sepia"] .article {
+  --color-surface:         oklch(0.95 0.04 80);
+  --color-surface-raised:  oklch(0.92 0.05 78);
+  --color-surface-overlay: oklch(0.93 0.045 78);
+  --color-text:            oklch(0.30 0.05 60);
+  --color-text-muted:      oklch(0.42 0.04 60);
+  --color-text-dim:        oklch(0.55 0.03 60);
+  --color-border:          oklch(0.82 0.05 78);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-radius: 12px;
+}
+html[data-reader-theme="sepia"] .article .prose pre {
+  background: oklch(0.20 0.02 60) !important;
+  color: oklch(0.92 0.02 60) !important;
+}
+html[data-reader-theme="sepia"] .article .prose code:not(pre code) {
+  background: oklch(0.88 0.05 78);
+  color: oklch(0.36 0.06 30);
+}
+
+html[data-reader-theme="dark"] .article {
+  --color-surface:         oklch(0.12 0.01 250);
+  --color-surface-raised:  oklch(0.18 0.01 250);
+  --color-surface-overlay: oklch(0.16 0.01 250);
+  --color-text:            oklch(0.92 0.01 250);
+  --color-text-muted:      oklch(0.78 0.01 250);
+  --color-text-dim:        oklch(0.68 0.01 250);
+  --color-border:          oklch(0.22 0.01 250);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+html[data-reader-theme="light"] .article {
+  --color-surface:         oklch(0.98 0.002 250);
+  --color-surface-raised:  oklch(0.96 0.003 250);
+  --color-surface-overlay: oklch(0.94 0.003 250);
+  --color-text:            oklch(0.15 0.02 250);
+  --color-text-muted:      oklch(0.48 0.01 250);
+  --color-text-dim:        oklch(0.62 0.01 250);
+  --color-border:          oklch(0.90 0.005 250);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+/* ── Bookmark + position-restore banner ──────────────────────────────────── */
+.article__resume-banner {
+  display: none;
+  margin: 0 auto 1.5rem;
+  max-width: var(--measure);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface-raised));
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.article__resume-banner[hidden] { display: none !important; }
+.article__resume-banner button {
+  background: transparent;
+  border: 1px solid var(--color-primary-dim);
+  color: var(--color-primary);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.article__resume-banner button:hover {
+  background: color-mix(in oklch, var(--color-primary) 15%, transparent);
+  color: var(--color-text);
+  border-color: var(--color-primary);
+}
+.article__resume-banner button.is-dismiss {
+  border-color: var(--color-border);
+  color: var(--color-text-dim);
+}

@@ -1,0 +1,243 @@
+---
+/**
+ * Reading Settings dropdown — mirrors the destination /book/ reader controls.
+ *
+ * Four control groups, all 3-state radio rows for consistency with the
+ * cloned ThemeToggle design language:
+ *   • Font Size      S / M / L
+ *   • Line Height    Compact / Default / Relaxed
+ *   • Reader Theme   Light / Sepia / Dark   (article-scoped, independent of
+ *                                            global ThemeToggle)
+ *   • Explainers     Hide / Margin / Inline
+ *
+ * Each row writes a `data-*` attribute on <html> and persists to
+ * localStorage under `afn:*` keys. ReaderScript.astro re-applies on the
+ * next paint to avoid FOUC.
+ *
+ * Trigger button uses the destination's mono uppercase eyebrow idiom; panel
+ * uses the destination's pill-pattern (border-primary/20 + bg-primary/5).
+ */
+---
+<details class="reader-settings group">
+  <summary class="reader-settings__trigger">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 7h12"/><path d="M4 12h16"/><path d="M4 17h8"/>
+    </svg>
+    <span>Reading</span>
+    <svg class="reader-settings__chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </summary>
+
+  <div class="reader-settings__panel" role="dialog" aria-label="Reading settings">
+    <!-- Font size -->
+    <div class="reader-settings__row">
+      <p class="reader-settings__label">Font size</p>
+      <div class="reader-settings__group" role="radiogroup" aria-label="Font size" data-control="font-scale">
+        <button type="button" role="radio" data-value="S" aria-label="Small">S</button>
+        <button type="button" role="radio" data-value="M" aria-label="Medium" aria-checked="true">M</button>
+        <button type="button" role="radio" data-value="L" aria-label="Large">L</button>
+      </div>
+    </div>
+
+    <!-- Line height -->
+    <div class="reader-settings__row">
+      <p class="reader-settings__label">Line height</p>
+      <div class="reader-settings__group" role="radiogroup" aria-label="Line height" data-control="line-height">
+        <button type="button" role="radio" data-value="compact" aria-label="Compact">Compact</button>
+        <button type="button" role="radio" data-value="default" aria-label="Default" aria-checked="true">Default</button>
+        <button type="button" role="radio" data-value="relaxed" aria-label="Relaxed">Relaxed</button>
+      </div>
+    </div>
+
+    <!-- Reader theme -->
+    <div class="reader-settings__row">
+      <p class="reader-settings__label">Reader theme</p>
+      <div class="reader-settings__group" role="radiogroup" aria-label="Reader theme" data-control="reader-theme">
+        <button type="button" role="radio" data-value="light" aria-label="Light">Light</button>
+        <button type="button" role="radio" data-value="sepia" aria-label="Sepia">Sepia</button>
+        <button type="button" role="radio" data-value="dark" aria-label="Dark" aria-checked="true">Dark</button>
+      </div>
+    </div>
+
+    <!-- Explainer mode -->
+    <div class="reader-settings__row">
+      <p class="reader-settings__label">Explainers</p>
+      <div class="reader-settings__group" role="radiogroup" aria-label="Explainer mode" data-control="explain-mode">
+        <button type="button" role="radio" data-value="hide" aria-label="Hide explainers">Hide</button>
+        <button type="button" role="radio" data-value="margin" aria-label="Margin explainers" aria-checked="true">Margin</button>
+        <button type="button" role="radio" data-value="inline" aria-label="Inline explainers">Inline</button>
+      </div>
+    </div>
+
+    <p class="reader-settings__hint">Settings save to this browser only.</p>
+  </div>
+</details>
+
+<style>
+  .reader-settings { position: relative; display: inline-block; }
+  .reader-settings__trigger {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .reader-settings__trigger::-webkit-details-marker { display: none; }
+  .reader-settings__trigger:hover { color: var(--color-primary); border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-border)); }
+  .reader-settings[open] .reader-settings__trigger { color: var(--color-primary); border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border)); }
+  .reader-settings__chev { transition: transform 0.2s; opacity: 0.7; }
+  .reader-settings[open] .reader-settings__chev { transform: rotate(180deg); }
+
+  .reader-settings__panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 50;
+    min-width: 18rem;
+    padding: 1rem 1rem 0.85rem;
+    border: 1px solid color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+    border-radius: 12px;
+    background: color-mix(in oklch, var(--color-surface-raised) 92%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px -8px color-mix(in oklch, var(--color-primary) 12%, transparent), 0 4px 12px -4px rgba(0,0,0,0.25);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .reader-settings__row { display: flex; flex-direction: column; gap: 0.4rem; }
+  .reader-settings__label {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .reader-settings__group {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 2px;
+    background: color-mix(in oklch, var(--color-surface) 80%, transparent);
+  }
+  .reader-settings__group > button {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .reader-settings__group > button:hover { color: var(--color-text); }
+  .reader-settings__group > button[aria-checked="true"] {
+    background: color-mix(in oklch, var(--color-primary) 14%, var(--color-surface-overlay));
+    color: var(--color-primary);
+  }
+  .reader-settings__hint {
+    margin: 0.1rem 0 0;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-dim);
+    opacity: 0.75;
+  }
+
+  @media (max-width: 640px) {
+    .reader-settings__panel {
+      right: auto;
+      left: 0;
+      min-width: min(20rem, calc(100vw - 3rem));
+    }
+  }
+</style>
+
+<script>
+  function initReaderSettings() {
+    const root = document.documentElement;
+    const groups = document.querySelectorAll<HTMLElement>('.reader-settings__group');
+
+    const STORAGE_KEYS: Record<string, string> = {
+      'font-scale': 'afn:font-scale',
+      'line-height': 'afn:line-height',
+      'reader-theme': 'afn:reader-theme',
+      'explain-mode': 'afn:explain-mode',
+    };
+
+    const DATA_KEYS: Record<string, string> = {
+      'font-scale': 'fontScale',
+      'line-height': 'lineHeight',
+      'reader-theme': 'readerTheme',
+      'explain-mode': 'explainMode',
+    };
+
+    function syncFromStorage(group: HTMLElement) {
+      const control = group.dataset.control;
+      if (!control) return;
+      const stored = localStorage.getItem(STORAGE_KEYS[control]);
+      const buttons = group.querySelectorAll<HTMLButtonElement>('button[role="radio"]');
+      // Empty storage → leave the markup-default aria-checked alone so the
+      // visual matches the actual no-override state. Stored value → snap the
+      // matching button on, all others off.
+      if (stored == null) return;
+      buttons.forEach((btn) => {
+        btn.setAttribute('aria-checked', String(btn.dataset.value === stored));
+      });
+    }
+
+    function setValue(control: string, value: string) {
+      try {
+        localStorage.setItem(STORAGE_KEYS[control], value);
+      } catch {
+        /* no-op on quota */
+      }
+      const dataKey = DATA_KEYS[control];
+      if (dataKey) (root.dataset as any)[dataKey] = value;
+    }
+
+    groups.forEach((group) => {
+      syncFromStorage(group);
+      group.querySelectorAll<HTMLButtonElement>('button[role="radio"]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const control = group.dataset.control;
+          const value = btn.dataset.value;
+          if (!control || !value) return;
+          group.querySelectorAll<HTMLButtonElement>('button[role="radio"]').forEach((b) => {
+            b.setAttribute('aria-checked', String(b === btn));
+          });
+          setValue(control, value);
+        });
+      });
+    });
+
+    // Close the dropdown when clicking outside.
+    const detail = document.querySelector<HTMLDetailsElement>('.reader-settings');
+    if (detail) {
+      document.addEventListener('click', (e) => {
+        if (detail.open && !detail.contains(e.target as Node)) {
+          detail.open = false;
+        }
+      });
+    }
+  }
+
+  initReaderSettings();
+  document.addEventListener('astro:after-swap', initReaderSettings);
+</script>

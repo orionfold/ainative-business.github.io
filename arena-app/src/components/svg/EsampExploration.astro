@@ -1,0 +1,132 @@
+---
+// Signature figure for "test-time-distilling-for-exploration".
+// Two answer-space boxes side by side. Left: baseline vLLM sampling — n=8
+// candidates land as a tight cluster (lexical variation, semantic
+// repetition). Right: ESamp's distiller intervention — same n=8, same
+// wall-clock, samples spread across the latent answer space. The
+// punchline is the article's thesis compressed: same compute envelope,
+// different reach. The ratio (0.99×) sits as a small mono label
+// because the wall-clock is *not* the win — the spread is.
+
+// Hand-placed dots for both clouds. Coordinates are in the SVG's 300×200
+// space, picked so the baseline cluster reads as obviously tight and the
+// ESamp cloud reads as obviously dispersed (no overlap with the cluster's
+// region).
+
+const baselineCluster = [
+  { cx: 64,  cy: 96  },
+  { cx: 70,  cy: 102 },
+  { cx: 76,  cy: 92  },
+  { cx: 68,  cy: 110 },
+  { cx: 78,  cy: 104 },
+  { cx: 72,  cy: 98  },
+  { cx: 60,  cy: 104 },
+  { cx: 80,  cy: 98  },
+];
+
+const esampSpread = [
+  { cx: 178, cy: 70  },
+  { cx: 232, cy: 80  },
+  { cx: 196, cy: 110 },
+  { cx: 256, cy: 100 },
+  { cx: 170, cy: 120 },
+  { cx: 248, cy: 70  },
+  { cx: 220, cy: 130 },
+  { cx: 188, cy: 90  },
+];
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Two answer-space boxes side by side. Left box, labelled BASELINE vLLM, holds eight sample dots tightly clustered near the centre — lexical variation but semantic repetition. Right box, labelled ESamp distiller, holds eight sample dots spread across the full box — the distiller intervention reweights tokens by their novelty signal so the same n equals eight samples land at semantically distinct points. A small mono label at the bottom reads zero-point-nine-nine times tokens per second comma wider reach — the wall-clock cost is negligible, the spread is the win."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ese-baseline-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="ese-esamp-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.08"/>
+    </linearGradient>
+    <radialGradient id="ese-cluster-halo" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ese-spread-halo" cx="0.5" cy="0.5" r="0.65">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">SAME PROMPT · n=8 · SAME WALL CLOCK</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">lexical variation vs semantic exploration</text>
+  </g>
+
+  <!-- Left box: baseline -->
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="20" y="50" width="120" height="120" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <rect x="20" y="50" width="120" height="120" rx="6"
+          fill="url(#ese-baseline-grad)" stroke="none"/>
+    <!-- cluster halo bounded to the box -->
+    <rect x="20" y="50" width="120" height="120" rx="6"
+          fill="url(#ese-cluster-halo)" stroke="none"/>
+    <text x="80" y="44" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.10em">BASELINE vLLM</text>
+    <text x="80" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">tight cluster · lexical only</text>
+  </g>
+
+  <!-- Right box: ESamp accent -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="160" y="50" width="120" height="120" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--color-text-muted)" stroke-width="1"/>
+    <rect x="160" y="50" width="120" height="120" rx="6"
+          fill="url(#ese-esamp-grad)" stroke="none"/>
+    <rect x="160" y="50" width="120" height="120" rx="6"
+          fill="url(#ese-spread-halo)" stroke="none"/>
+    <text x="220" y="44" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" font-weight="700" letter-spacing="0.10em">ESamp · β=0.1</text>
+    <text x="220" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">spread · semantic reach</text>
+  </g>
+
+  <!-- Baseline dots: tight cluster -->
+  <g class="svg-reveal svg-reveal-d4">
+    {baselineCluster.map((p) => (
+      <g fill="var(--svg-accent-blue)">
+        <circle cx={p.cx} cy={p.cy} r="6" opacity="0.18"/>
+        <circle cx={p.cx} cy={p.cy} r="2.4"/>
+      </g>
+    ))}
+  </g>
+
+  <!-- ESamp dots: wider spread -->
+  <g class="svg-reveal svg-reveal-d5">
+    {esampSpread.map((p) => (
+      <g fill="var(--color-primary)">
+        <circle cx={p.cx} cy={p.cy} r="6" opacity="0.20"/>
+        <circle cx={p.cx} cy={p.cy} r="2.6"/>
+      </g>
+    ))}
+  </g>
+
+  <!-- Punchline -->
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="196" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">≈0.99× tok/s · wider reach</text>
+  </g>
+</svg>

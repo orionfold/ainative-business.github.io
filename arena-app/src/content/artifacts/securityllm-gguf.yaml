@@ -1,0 +1,36 @@
+slug: securityllm-gguf
+kind: quant
+class: gguf
+base_model: ZySec-AI/SecurityLLM
+hf_repo: Orionfold/SecurityLLM-GGUF
+variants:
+  - Q4_K_M
+  - Q5_K_M
+  - Q6_K
+  - Q8_0
+  - F16
+perplexity:
+  F16: 7.3009
+  Q4_K_M: 7.3998
+  Q5_K_M: 7.3142
+  Q6_K: 7.3132
+  Q8_0: 7.3068
+spark_tokens_per_sec:
+  Q4_K_M: 47.66
+  Q5_K_M: 39.95
+  Q6_K: 34.96
+  Q8_0: 30.34
+  F16: 17.45
+sustained_load_minutes: 4.520020089316676
+vertical_eval:
+  Q4_K_M: 0.4
+  Q5_K_M: 0.38
+  Q6_K: 0.36
+  Q8_0: 0.36
+  F16: 0.34
+vertical_eval_name: "CyberMetric (n=50, mcq_letter)"
+license:
+  tier: free
+  model: apache-2.0
+article: articles/becoming-a-cyber-curator-on-spark/
+published_at: "2026-05-15T16:30:12Z"

@@ -1,0 +1,80 @@
+---
+import SectionLabel from '../../ui/SectionLabel.astro';
+import type { CollectionEntry } from 'astro:content';
+
+type FieldNote = CollectionEntry<'articles'>;
+
+interface Props {
+  articles: FieldNote[];
+}
+
+const { articles } = Astro.props;
+
+const visible = articles.slice(0, 8);
+const hidden = Math.max(0, articles.length - visible.length);
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const moduleHref = (m: string) => `${base}fieldkit/api/${m}/`.replace(/\/+/g, '/');
+const articleHref = (slug: string) => `${base}articles/${slug}/`.replace(/\/+/g, '/');
+---
+<section class="py-24 px-6 relative overflow-hidden">
+  <!-- Ambient glow on the right (alternation flip from Quickstart) -->
+  <div class="absolute inset-0 -z-10 pointer-events-none">
+    <div class="absolute top-1/2 right-[15%] translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] rounded-full bg-primary/[0.07] blur-[140px]"></div>
+  </div>
+
+  <div class="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.2fr] gap-10 lg:gap-16 items-start">
+
+    <!-- LEFT: Editorial intro -->
+    <div>
+      <SectionLabel text="Verified-in" />
+      <h2 data-animate class="mt-4 mb-5 font-display font-bold tracking-tight"
+          style="font-size: clamp(1.75rem, 3.6vw, 2.6rem); line-height: 1.1;">
+        Every module ships from a <span class="text-primary italic">working article</span>.
+      </h2>
+      <p data-animate class="text-text-muted leading-relaxed max-w-[58ch]" style="transition-delay: 80ms">
+        These are the field notes that exercise one or more fieldkit modules
+        end-to-end on the Spark. The article runs the math, ships the
+        evidence, and the tested abstraction lives on as an importable class.
+      </p>
+      <div data-animate class="mt-7 flex flex-wrap items-center gap-4" style="transition-delay: 160ms">
+        <a
+          href={base}
+          class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.15em] uppercase text-primary border border-primary/40 px-5 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+        >
+          Browse field notes
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        {hidden > 0 && (
+          <span class="font-mono text-[11px] tracking-wider text-text-muted">+{hidden} more</span>
+        )}
+      </div>
+    </div>
+
+    <!-- RIGHT: Article list -->
+    <div data-animate class="rounded-xl border border-border bg-surface-raised overflow-hidden" style="transition-delay: 80ms">
+      <ul class="divide-y divide-border">
+        {visible.map((article) => (
+          <li class="px-5 py-4 flex flex-wrap items-baseline justify-between gap-3 hover:bg-primary/[0.03] transition-colors">
+            <a href={articleHref(article.id)} class="text-text font-medium leading-snug hover:text-primary transition-colors flex-1 min-w-[60%]">
+              {article.data.title}
+            </a>
+            <span class="inline-flex flex-wrap gap-1.5">
+              {(article.data.fieldkit_modules ?? []).map((m: string) => (
+                <a
+                  href={moduleHref(m)}
+                  class="font-mono text-[10px] lowercase tracking-wider text-primary border border-primary/40 bg-primary/10 rounded-full px-2 py-0.5 hover:bg-primary/20 transition-colors"
+                >
+                  fieldkit.{m}
+                </a>
+              ))}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+
+  </div>
+</section>

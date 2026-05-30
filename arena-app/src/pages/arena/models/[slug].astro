@@ -1,0 +1,214 @@
+---
+// Model detail — /arena/models/[slug]/
+//
+// getStaticPaths over getCollection('artifacts') (same shape as
+// articles/[slug].astro). Pure static → works on the public web preview. The
+// page leads with positioning (value before data), then the quant-economics
+// table with the recommended variant highlighted, the bounded-drift honesty
+// block, runnable links (HF / article / notebooks), and deep-links that drive
+// the model in chat (auto-send) or compare (pre-fill). The per-variant
+// efficiency curve is mounted in Phase 2 (FrontierScatter, single mode).
+import ArenaAppLayout from '../../../layouts/ArenaAppLayout.astro';
+import FrontierScatter from '../../../components/arena/FrontierScatter.jsx';
+import { getCollection } from 'astro:content';
+import {
+  recommendedVariant,
+  examplePromptFor,
+  verticalOf,
+} from '../../../lib/arena/model-prompts.mjs';
+
+export async function getStaticPaths() {
+  const all = await getCollection('artifacts');
+  return all.map((a) => ({ params: { slug: a.id }, props: { artifact: a } }));
+}
+
+const { artifact } = Astro.props;
+const d = artifact.data;
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const href = (p) => `${base}${p}`.replace(/\/+/g, '/');
+
+const title = `Orionfold Arena — ${d.positioning?.headline || d.slug}`;
+const description = d.positioning?.problem || `${d.slug} — ${d.base_model} (${d.kind}).`;
+
+const rec = recommendedVariant(d);
+const vertical = verticalOf(d);
+const prompt = examplePromptFor(d);
+
+// Row order = declared variants, then any extra measured keys not in the list.
+const measuredKeys = new Set([
+  ...Object.keys(d.perplexity || {}),
+  ...Object.keys(d.spark_tokens_per_sec || {}),
+  ...Object.keys(d.vertical_eval || {}),
+]);
+const variantRows = [
+  ...(d.variants || []),
+  ...[...measuredKeys].filter((k) => !(d.variants || []).includes(k)),
+];
+const hasPpl = !!d.perplexity && Object.keys(d.perplexity).length > 0;
+const hasTok = !!d.spark_tokens_per_sec && Object.keys(d.spark_tokens_per_sec).length > 0;
+const hasEval = !!d.vertical_eval && Object.keys(d.vertical_eval).length > 0;
+
+// Per-variant points for the single-model efficiency curve (Phase 2 island).
+const curvePoints = hasPpl && hasTok
+  ? variantRows
+      .filter((v) => typeof d.spark_tokens_per_sec[v] === 'number' && typeof d.perplexity[v] === 'number')
+      .map((v) => ({
+        label: v,
+        x: d.spark_tokens_per_sec[v],
+        ppl: d.perplexity[v],
+        evalScore: d.vertical_eval?.[v] ?? null,
+        group: d.slug,
+        recommended: v === rec,
+      }))
+  : [];
+
+// App artifacts (the Orionfold Arena cockpit itself) aren't HF models — they
+// ship in the fieldkit wheel + a public web preview. Swap the HF button for a
+// live-preview CTA so it never forward-links to a not-yet-uploaded Space.
+const isApp = d.kind === 'arena_run';
+const previewUrl = 'https://ainative.business/arena/';
+const hfUrl = !isApp && d.hf_repo ? `https://huggingface.co/${d.hf_repo}` : null;
+const fmt = (v, digits = 2) => (typeof v === 'number' ? v.toFixed(digits) : '—');
+const chatHref = `${href('arena/chat/')}?prompt=${encodeURIComponent(prompt)}`;
+const compareHref = `${href('arena/compare/')}?prompt=${encodeURIComponent(prompt)}`;
+---
+<ArenaAppLayout title={title} description={description} active="models">
+  <p class="model-detail__crumb">
+    <a href={href('arena/models/')}>← Models</a>
+  </p>
+
+  <header class="pageheader model-detail__header">
+    <div>
+      <p class="pageheader__eyebrow">
+        {d.kind}{vertical !== 'general' && <> · {vertical}</>}{d.stack_origin && <> · {d.stack_origin}</>}
+      </p>
+      <h1 class="pageheader__title">{d.positioning?.headline || d.slug}</h1>
+      {d.positioning?.problem && (
+        <p class="pageheader__blurb">{d.positioning.problem}</p>
+      )}
+      <p class="model-detail__meta">
+        <span class="mono"><span class="dim">base</span> {d.base_model}</span>
+        <span class="model-detail__meta-sep">·</span>
+        <span class="mono"><span class="dim">license</span> {d.license?.model || d.license?.tier || 'free'}</span>
+        {rec && <><span class="model-detail__meta-sep">·</span><span class="mono"><span class="dim">recommended</span> <b>{rec}</b></span></>}
+      </p>
+    </div>
+    <div class="pageheader__actions">
+      <a href={chatHref} class="arena-btn arena-btn--primary">▶ Try in chat</a>
+      <a href={compareHref} class="arena-btn">＋ Send to compare</a>
+    </div>
+  </header>
+
+  <div class="model-detail__grid">
+    <div class="model-detail__main">
+      {d.positioning?.use_cases?.length > 0 && (
+        <section class="bezel model-detail__panel">
+          <header class="bezel__head"><span class="bezel__head-title">What it's for</span></header>
+          <div class="bezel__body">
+            <ul class="model-detail__uses">
+              {d.positioning.use_cases.map((u) => <li>{u}</li>)}
+            </ul>
+            {d.positioning.audience && <p class="model-detail__audience"><span class="dim">Audience —</span> {d.positioning.audience}</p>}
+          </div>
+        </section>
+      )}
+
+      {variantRows.length > 0 && (
+        <section class="bezel model-detail__panel">
+          <header class="bezel__head">
+            <span class="bezel__head-title">Quant economics</span>
+            <span class="bezel__head-tag">quality × speed per build</span>
+          </header>
+          <div class="bezel__body bezel__body--flush">
+            <table class="ranktable model-detail__table">
+              <thead>
+                <tr>
+                  <th>Variant</th>
+                  {hasPpl && <th class="rankcol-num">Perplexity</th>}
+                  {hasTok && <th class="rankcol-num">tok/s</th>}
+                  {hasEval && <th class="rankcol-num">{d.vertical_eval_name || 'Eval'}</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {variantRows.map((v) => (
+                  <tr class={v === rec ? 'model-detail__row--rec' : ''}>
+                    <td>
+                      <span class="mono">{v}</span>
+                      {v === rec && <span class="model-detail__rec-badge">sweet spot</span>}
+                    </td>
+                    {hasPpl && <td class="rankcol-num mono">{fmt(d.perplexity[v], 3)}</td>}
+                    {hasTok && <td class="rankcol-num mono">{fmt(d.spark_tokens_per_sec[v], 1)}</td>}
+                    {hasEval && <td class="rankcol-num mono">{fmt(d.vertical_eval[v], 2)}</td>}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {hasPpl && <p class="model-detail__note">Perplexity lower = better; tok/s measured on the DGX Spark (GB10, 128 GB unified).</p>}
+          </div>
+        </section>
+      )}
+
+      {curvePoints.length > 1 && (
+        <section class="bezel model-detail__panel">
+          <header class="bezel__head">
+            <span class="bezel__head-title">Efficiency curve</span>
+            <span class="bezel__head-tag">quality index × tok/s</span>
+          </header>
+          <div class="bezel__body">
+            <FrontierScatter client:only="preact" points={curvePoints} mode="single" title={d.slug} />
+            <noscript>
+              <p class="model-detail__note">The per-variant frontier needs a JS-enabled browser — the table above carries the same numbers.</p>
+            </noscript>
+          </div>
+        </section>
+      )}
+
+      {d.known_drift?.length > 0 && (
+        <section class="bezel model-detail__panel">
+          <header class="bezel__head">
+            <span class="bezel__head-title">Known drift</span>
+            <span class="bezel__head-tag bezel__head-tag--warn">bounded · honest</span>
+          </header>
+          <div class="bezel__body">
+            <ul class="model-detail__drift">
+              {d.known_drift.map((k) => (
+                <li>
+                  <span class="model-detail__drift-item">{k.item}</span>
+                  <span class="model-detail__drift-bound">{k.bound}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      )}
+    </div>
+
+    <aside class="model-detail__side">
+      <section class="bezel bezel--lit model-detail__panel">
+        <header class="bezel__head"><span class="bezel__head-title">Get it</span></header>
+        <div class="bezel__body model-detail__links">
+          {isApp && <a class="arena-btn arena-btn--primary" href={previewUrl} target="_blank" rel="noopener">See the live preview ↗</a>}
+          {hfUrl && <a class="arena-btn arena-btn--primary" href={hfUrl} target="_blank" rel="noopener">Open on HuggingFace ↗</a>}
+          {d.article && <a class="arena-btn" href={href(d.article)}>Read the build article</a>}
+          {(d.notebooks || []).map((nb) => (
+            <>
+              {nb.colab && <a class="arena-btn arena-btn--ghost" href={nb.colab} target="_blank" rel="noopener">{nb.label ? `${nb.label} — Colab` : 'Open in Colab'} ↗</a>}
+              {nb.kaggle && <a class="arena-btn arena-btn--ghost" href={nb.kaggle} target="_blank" rel="noopener">{nb.label ? `${nb.label} — Kaggle` : 'Open in Kaggle'} ↗</a>}
+            </>
+          ))}
+        </div>
+      </section>
+
+      <section class="bezel model-detail__panel">
+        <header class="bezel__head"><span class="bezel__head-title">Run it local</span></header>
+        <div class="bezel__body">
+          <p class="model-detail__local">Yours, offline, on the Spark:</p>
+          <pre class="model-detail__cmd"><code>pip install fieldkit[arena]
+fieldkit arena up</code></pre>
+          <p class="model-detail__local dim">then drive this model from the cockpit — prompts and telemetry never leave the box.</p>
+        </div>
+      </section>
+    </aside>
+  </div>
+</ArenaAppLayout>

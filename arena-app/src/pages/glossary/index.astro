@@ -1,0 +1,216 @@
+---
+/**
+ * /glossary/ — site-wide alphabetized index of every :::define[term] block
+ * across all published articles. Built at SSG time via
+ * article-glossary.mjs which replays the remark + remark-directive +
+ * remark-explainers pipeline against each article's raw body.
+ *
+ * Layout idiom mirrors the destination's content-page pattern:
+ * mono uppercase eyebrow labels, surface-raised cards, AmberRule separator.
+ */
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AmberRule from '../../components/ui/AmberRule.astro';
+import { buildSiteGlossary } from '../../lib/article-glossary.mjs';
+
+const all = await getCollection('articles');
+const articles = all
+  .filter((a) => a.data.status !== 'upcoming')
+  .map((a) => ({ slug: a.id, title: a.data.title, body: a.body ?? '' }));
+
+const glossary = buildSiteGlossary(articles);
+
+// Group by first letter for an A–Z layout. Non-letter terms ("8B", "FP8")
+// fall under their leading character so the index doesn't drop them.
+const groups = new Map();
+for (const entry of glossary) {
+  const ch = (entry.term.trim()[0] || '#').toUpperCase();
+  const key = /[A-Z]/.test(ch) ? ch : '#';
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key).push(entry);
+}
+const groupKeys = Array.from(groups.keys()).sort((a, b) => {
+  if (a === '#') return 1;
+  if (b === '#') return -1;
+  return a.localeCompare(b);
+});
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const articleHref = (slug, anchor) =>
+  `${base}articles/${slug}/#${anchor}`.replace(/([^:])\/+/g, '$1/');
+
+const pageTitle = 'Glossary — ainative';
+const pageDescription = `Every defined term across the field notes — ${glossary.length} entries cross-referenced to first-use anchors in the deep-dives that introduce them.`;
+---
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <main class="glossary">
+    <header class="glossary__masthead">
+      <p class="glossary__eyebrow">A–Z reference</p>
+      <h1 class="glossary__title">Glossary</h1>
+      <p class="glossary__intro">
+        Every term defined inline across the field notes — {glossary.length} entries from {articles.length} articles. Each one links back to the spot it first appears, so you can read it in context after you skim the definition.
+      </p>
+    </header>
+
+    <AmberRule />
+
+    {glossary.length === 0 && (
+      <p class="glossary__empty">No defined terms yet. Add <code>:::define[term]…:::</code> blocks to articles and they'll show up here.</p>
+    )}
+
+    {glossary.length > 0 && (
+      <nav class="glossary__index" aria-label="Jump to letter">
+        {groupKeys.map((k) => <a href={`#sec-${k}`}>{k}</a>)}
+      </nav>
+    )}
+
+    <div class="glossary__sections">
+      {groupKeys.map((k) => (
+        <section class="glossary__section" id={`sec-${k}`}>
+          <h2 class="glossary__letter">{k}</h2>
+          <ul class="glossary__entries">
+            {groups.get(k).map((entry) => (
+              <li class="glossary__entry">
+                <p class="glossary__term">{entry.term}</p>
+                <p class="glossary__definition">{entry.canonical.definitionText}</p>
+                <p class="glossary__sources">
+                  <a href={articleHref(entry.canonical.slug, entry.canonical.anchor)}>{entry.canonical.title} ↗</a>
+                  {entry.alsoIn.length > 0 && (
+                    <span class="glossary__alsoin">
+                      <span class="glossary__alsoin-label">also in:</span>
+                      {entry.alsoIn.map((extra, i) => (
+                        <a href={articleHref(extra.slug, extra.anchor)}>{extra.title}{i < entry.alsoIn.length - 1 ? ',' : ''}</a>
+                      ))}
+                    </span>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </main>
+</BaseLayout>
+
+<style>
+  .glossary {
+    max-width: 64rem;
+    margin: 0 auto;
+    padding: 6rem 1.5rem 6rem;
+  }
+  .glossary__masthead {
+    max-width: 48rem;
+    margin: 0 0 2rem;
+  }
+  .glossary__eyebrow {
+    margin: 0 0 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .glossary__title {
+    margin: 0 0 1rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.4rem, 5vw, 3.6rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-text);
+  }
+  .glossary__intro {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    color: var(--color-text-muted);
+  }
+  .glossary__empty {
+    margin: 4rem 0;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+  }
+
+  .glossary__index {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 2rem 0 3rem;
+  }
+  .glossary__index a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .glossary__index a:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+  }
+
+  .glossary__sections { display: grid; gap: 3rem; }
+  .glossary__section { scroll-margin-top: 6rem; }
+  .glossary__letter {
+    margin: 0 0 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    color: var(--color-primary);
+    letter-spacing: 0.06em;
+  }
+
+  .glossary__entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.85rem;
+  }
+  .glossary__entry {
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+  }
+  .glossary__term {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--color-text);
+  }
+  .glossary__definition {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--color-text-muted);
+  }
+  .glossary__sources {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text-dim);
+  }
+  .glossary__sources a {
+    color: var(--color-primary);
+    text-decoration: none;
+    margin-right: 0.4rem;
+  }
+  .glossary__sources a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .glossary__alsoin { display: inline-block; margin-left: 0.7rem; opacity: 0.85; }
+  .glossary__alsoin-label { margin-right: 0.35rem; }
+</style>

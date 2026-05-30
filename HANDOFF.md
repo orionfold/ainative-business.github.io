@@ -25,7 +25,29 @@
 
 ## Open items (replace each session)
 
-### 0. ✅ This session (2026-05-30) — `/seo-monitor` + meta cleanup (committed + pushed to `main`)
+### 0. ⏳ This session (2026-05-30 late) — **ai-field-notes → monorepo consolidation** (UNCOMMITTED, in working tree)
+
+Goal: make this repo the single end-to-end workspace (build workspace *and* website) so `ai-field-notes` can be retired. **All changes are in the working tree, NOT committed** — review the diff before committing (stop-before-deploy). ~97 changeset entries (untracked dirs collapse to 1 each).
+
+**Migrated in (all git-tracked source from ai-field-notes, copied tracked-only so the 14G `evidence/runs/` scratch was excluded):**
+- **Skills:** 8 dev/model skills (`hf-model-scout`, `hf-publisher`, `fieldkit-curator`, `frontier-scout`, `notebook-author`, `notebook-snapshot`, `claude-corpus-synth`, `nemoclaw-guru`) + 2 from the old top-level `skills/` (`spark-serve`, `vertical-route`) → all in `.claude/skills/`. 24 skills total now.
+- **fieldkit/** full Python package (was a doc-only stub; now `src/` + `tests/` + `pyproject.toml` + `samples/` + `scripts/`, 106 files).
+- **scripts/** 61 build/train/eval scripts incl. `scripts/lib/`; **specs/** (4); **notebooks/** (80), **evidence/** (top-level, 18), **probes/**, **papers/**, **dataset-cards/**, **plans/**, **mirrors/**; working docs `NARRATIVE-CONTRACT.md`, `PRODUCT-ARTICLES.md`, `APP-MARKETING.md`, `APP-SYNC.md`, `SYNC-WORKFLOW.md`, `COMMANDS.md`.
+- **arena-app/** — the live Arena Astro app source (was ONLY in ai-field-notes; this repo had just the marketing hub + static demo). Self-contained sub-workspace: own arena-aware `astro.config.mjs` + `preact` integration, `articles`/`fieldkit`/`node_modules` symlinks to repo root, artifact manifests self-contained. Builds via `cd arena-app && ARENA_DEMO=1 node node_modules/astro/astro.js build` (or `fieldkit arena build --root arena-app --demo`). **Verified:** demo build green (117 pages, dist-arena-demo with all cockpit pages + demo shim); main marketing build still green (484 pages) — fully isolated.
+
+**Correctness fixes:** 35 files rewrote `/home/nvidia/ai-field-notes` → `/home/nvidia/ainative-business.github.io` (zero remaining); `product-writer` log-dir → new CC namespace; added preact-family devDeps (`@astrojs/preact@4.1.3` — NOT 5.x, that's Astro 6; `preact`, `uplot`, `marked`, `dompurify`, `highlight.js`); `.gitignore` hardened (**`.env.local`/secrets now ignored** — was a leak risk, + build scratch + `._*` AppleDouble + arena-app artifacts); swept 13 `._*` turds that `cp -a` dragged in.
+
+**NOT migrated (deliberate):** old `src/` field-notes implementation (this repo's `src/` is the evolved canonical site — e.g. signatures live at `src/components/field-notes/svg/`, not the old `src/components/svg/`); the ~92M / 2,740-file per-article research layer (`articles/*/evidence/` non-image + transcripts + per-article scripts) — **operator chose: keep in the ai-field-notes GitHub archive, don't bloat this Pages repo.**
+
+**🛑 RETIREMENT CHECKLIST — ai-field-notes can be deleted (local) once:**
+1. ⬜ **Review + commit + push this changeset** to `main` (operator review; stop-before-deploy). Until pushed it lives only in this Spark's working tree.
+2. ⬜ **Recreate `.env.local`** here with the tokens from `/home/nvidia/ai-field-notes/.env.local` (`PYPI_TOKEN`, `HF_TOKEN`, `OPENROUTER_API_KEY`) — gitignored, so it does NOT migrate via git. Without it, `fieldkit-curator` (PyPI) + `hf-publisher` (HF) can't auth.
+3. ⬜ **Archive `github.com/manavsehgal/ai-field-notes` read-only (do NOT delete the GitHub repo)** — preserves full git history + the 92M research-evidence layer the operator chose not to migrate.
+4. ⬜ THEN delete the local `/home/nvidia/ai-field-notes` working copy.
+
+**Non-blocking follow-ups (don't gate retirement):** `sync-field-notes` skill is now obsolete (two-repo model dead) — deprecate/remove when convenient; `MAC-TO-SPARK-TRANSITION.md` / `SYNC-WORKFLOW.md` / `mirrors/` describe the dead sync model — archive/remove; 9 stale `ai-field-notes` path entries in `.claude/settings.local.json` (gitignored, harmless — they just won't match); CC memory namespace is symlinked to the old `-home-nvidia-ai-field-notes` namespace (93 files, **safe from repo deletion** — points into `~/.claude/projects`, not the repo) — optionally relocate into this namespace for a fully clean cutover.
+
+### 0.prev ✅ (2026-05-30) — `/seo-monitor` + meta cleanup (committed + pushed to `main`)
 
 SEO monitor snapshot + code fixes shipped — full narrative in the post-launch note above and `seo-progress.md`. Local audit **257 → 1**. **Watch:** the GH Pages deploy from this push, then confirm the slimmed sitemap is live (`https://ainative.business/sitemap-0.xml` should drop to ~182 URLs, no `/field-notes/tags/` or `/stages/`). Over the following crawls, GSC *Discovered–not-indexed* (355) should bleed down. **No open manual TODO** — the GSC "unused verification token" was investigated and resolved as **HOLD** (it's the Workspace-owned TXT; removing it risks email — see post-launch note + `seo-progress.md`). Visible-browser-for-logged-in-sites recipe is now the default path (memory `reference_visible_browser_cdp_attach`); the Chromium on `:9222` was left running.
 

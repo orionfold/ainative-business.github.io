@@ -1,0 +1,88 @@
+---
+// Signature figure for "NemoClaw vs OpenClaw".
+// Wall-clock per turn — Ollama baseline, NemoClaw sandbox, host OpenClaw.
+// The OpenClaw series is dashed because turn 2 never completes.
+const series = [
+  { label: 'Ollama',      color: 'var(--svg-accent-green)',  turns: [10, 26] },
+  { label: 'NemoClaw',    color: 'var(--svg-accent-blue)',   turns: [140, 52] },
+  { label: 'OpenClaw',    color: 'var(--svg-accent-red)',    turns: [77, null] },
+];
+const yMax = 160;
+const plotLeft = 50;
+const plotRight = 290;
+const plotTop = 30;
+const plotBottom = 160;
+const xAt = (i: number) => plotLeft + (i * (plotRight - plotLeft) / 2) + (plotRight - plotLeft) / 4;
+const yAt = (v: number) => plotBottom - (v / yMax) * (plotBottom - plotTop);
+const barW = 24;
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Per-turn wall-clock comparison across three agent stacks" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nct-turn-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <!-- atmospheric columns behind each turn group -->
+  <rect x={xAt(0) - (barW * 1.5 + 4)} y={plotTop} width={barW * 3 + 8} height={plotBottom - plotTop}
+        fill="url(#nct-turn-grad)" stroke="none"/>
+  <rect x={xAt(1) - (barW * 1.5 + 4)} y={plotTop} width={barW * 3 + 8} height={plotBottom - plotTop}
+        fill="url(#nct-turn-grad)" stroke="none"/>
+  <!-- grid baseline -->
+  <g class="svg-reveal svg-reveal-d1">
+    <line x1={plotLeft} y1={plotBottom} x2={plotRight} y2={plotBottom} stroke="var(--svg-stroke)" stroke-width="0.5"/>
+    <text x={plotLeft - 6} y={plotBottom + 3} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="9">0s</text>
+    <line x1={plotLeft} y1={yAt(80)} x2={plotRight} y2={yAt(80)}
+          stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.6"/>
+    <text x={plotLeft - 6} y={yAt(80) + 3} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="9">80s</text>
+  </g>
+
+  <!-- bars (two turns per series, offset) -->
+  {series.map((s, si) => s.turns.map((v, ti) => {
+    if (v == null) {
+      const lostX = xAt(ti) + (si - 1) * (barW + 2);
+      return (
+        <g class={`svg-reveal svg-reveal-d${Math.min(8, 4 + si + ti * 2)}`}>
+          <line x1={lostX - 4} y1={yAt(0) - 24} x2={lostX + barW + 4} y2={yAt(0) - 48}
+                stroke="var(--svg-accent-red)" stroke-width="1" stroke-dasharray="3 3" opacity="0.85"/>
+          <circle cx={lostX + barW / 2} cy={yAt(0) - 52} r="3.5"
+                  fill="none" stroke="var(--svg-accent-red)" stroke-width="1.5"/>
+          <line x1={lostX + barW / 2} y1={yAt(0) - 54} x2={lostX + barW / 2} y2={yAt(0) - 50.5}
+                stroke="var(--svg-accent-red)" stroke-width="1.5"/>
+        </g>
+      );
+    }
+    const x = xAt(ti) + (si - 1) * (barW + 2);
+    const y = yAt(v);
+    const h = plotBottom - y;
+    return (
+      <g class={`bar-grow svg-reveal-d${Math.min(8, 2 + si + ti * 2)}`} style={`transform-origin: ${x + barW / 2}px ${plotBottom}px`}>
+        <rect x={x} y={y} width={barW} height={h} rx="3"
+              fill={s.color} fill-opacity={0.55 + ti * 0.25}/>
+        <text x={x + barW / 2} y={y - 4} text-anchor="middle"
+              fill={s.color} font-family="var(--font-mono)" font-size="9" font-weight="600">{v}s</text>
+      </g>
+    );
+  }))}
+
+  <!-- turn labels -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x={xAt(0)} y={plotBottom + 16} text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="9" letter-spacing="0.08em">TURN 1</text>
+    <text x={xAt(1)} y={plotBottom + 16} text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="9" letter-spacing="0.08em">TURN 2</text>
+  </g>
+
+  <!-- legend -->
+  <g class="svg-reveal svg-reveal-d8">
+    {series.map((s, i) => (
+      <g transform={`translate(${10 + i * 98} 182)`}>
+        <rect width="10" height="8" rx="2" fill={s.color}/>
+        <text x="14" y="7" fill="var(--svg-text-muted)"
+              font-family="var(--font-mono)" font-size="9">{s.label}</text>
+      </g>
+    ))}
+  </g>
+</svg>

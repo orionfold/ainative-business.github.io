@@ -1,0 +1,61 @@
+# Orionfold brand matplotlib style — notebooks-as-artifacts v1.
+#
+# Composes matplotlib's `dark_background` base with the ainative.business
+# dark-first OKLCH palette translated to sRGB hex (matplotlib has no OKLCH
+# input). Hue 250 (blue) primary, mirroring `--color-primary` in
+# src/styles/global.css. Apply via `fieldkit.viz.apply_style()` or
+# `with matplotlib.style.context(fieldkit.viz.STYLE_PATH): ...`.
+#
+# Per-stack accent colors (unsloth amber / nemo NVIDIA-green / etc.) are NOT
+# baked here — they are passed per-figure from `fieldkit.viz.STACK_COLORS`
+# so two siblings render visually distinct (NARRATIVE-CONTRACT Rule 7).
+
+# --- canvas ---------------------------------------------------------------
+figure.facecolor:   "#0E1116"
+axes.facecolor:     "#0E1116"
+savefig.facecolor:  "#0E1116"
+figure.edgecolor:   "#0E1116"
+savefig.edgecolor:  "#0E1116"
+figure.dpi:         110
+savefig.dpi:        220
+savefig.bbox:       tight
+savefig.pad_inches: 0.25
+
+# --- text -----------------------------------------------------------------
+text.color:         "#E6E9EE"
+axes.labelcolor:    "#C2C9D4"
+xtick.color:        "#9AA3AF"
+ytick.color:        "#9AA3AF"
+axes.titlecolor:    "#E6E9EE"
+font.family:        sans-serif
+font.sans-serif:    Geist, Inter, DejaVu Sans, Arial, sans-serif
+font.size:          11.0
+axes.titlesize:     14.0
+axes.titleweight:   bold
+axes.labelsize:     11.0
+axes.titlepad:      12.0
+
+# --- structure ------------------------------------------------------------
+axes.edgecolor:     "#2A2F3A"
+axes.linewidth:     0.8
+axes.grid:          True
+axes.grid.axis:     y
+grid.color:         "#222831"
+grid.linewidth:     0.7
+grid.alpha:         0.9
+axes.axisbelow:     True
+axes.spines.top:    False
+axes.spines.right:  False
+
+# --- lines / markers ------------------------------------------------------
+lines.linewidth:    2.2
+lines.markersize:   7.0
+lines.markeredgewidth: 0.0
+
+# --- legend ---------------------------------------------------------------
+legend.frameon:     False
+legend.fontsize:    10.0
+legend.labelcolor:  "#C2C9D4"
+
+# --- color cycle (brand blue first, then stack-distinct hues) -------------
+axes.prop_cycle: cycler('color', ['5B9CFF', '76B900', 'F2A93B', 'E255A1', '2DD4BF', 'A78BFA'])

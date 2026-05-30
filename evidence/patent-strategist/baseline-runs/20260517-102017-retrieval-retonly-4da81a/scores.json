@@ -1,0 +1,14 @@
+{
+  "per_shape": {},
+  "per_use_case": {},
+  "skipped_by_shape": {
+    "D-mcq": 3
+  },
+  "overall_mean": null,
+  "overall_n": 0,
+  "wall_seconds": 0.2,
+  "inference_calls": 0,
+  "inference_seconds": 0.0,
+  "error_count": 0,
+  "errors": []
+}

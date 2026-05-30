@@ -1,0 +1,104 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FieldkitCTA from '../../components/FieldkitCTA.astro';
+import TermsInThisPiece from '../../components/TermsInThisPiece.astro';
+import ReaderSettings from '../../components/ReaderSettings.astro';
+import BookmarkStar from '../../components/BookmarkStar.astro';
+import TocDrawer from '../../components/TocDrawer.astro';
+import ArticleArcNav from '../../components/ArticleArcNav.astro';
+import { publishOrdinals } from '../../lib/article-order.mjs';
+import { SERIES_SLUGS } from '../../content.config.ts';
+
+export async function getStaticPaths() {
+  const all = await getCollection('articles');
+  const ordinalById = publishOrdinals(all, process.cwd());
+
+  return all.map((article) => ({
+    params: { slug: article.id },
+    props: { article, ordinal: ordinalById.get(article.id)! },
+  }));
+}
+
+const { article, ordinal } = Astro.props;
+const { Content } = await render(article);
+const { title, date, author, product, stage, difficulty, time_required, hardware, summary, status, series } = article.data;
+
+const isUpcoming = status === 'upcoming';
+const ordinalLabel = isUpcoming ? 'Upcoming' : `№${String(ordinal).padStart(2, '0')}`;
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+
+const homeHref = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const seriesHref = series ? `${base}series/${SERIES_SLUGS[series]}/`.replace(/\/+/g, '/') : null;
+---
+<BaseLayout title={`${title} — ainative`} description={summary}>
+  <div class="progress-bar" id="progress-bar"></div>
+
+  <article class="article">
+    <header class="article__header">
+      <div class="article__header-row">
+        <a class="article__breadcrumb" href={homeHref}>← Field Notes</a>
+        <div class="article__reader-controls">
+          <BookmarkStar slug={article.id} />
+          <TocDrawer />
+          <ReaderSettings />
+        </div>
+      </div>
+      {isUpcoming && (
+        <p class="article__upcoming-banner">Upcoming — this is a proposed abstract, not a published piece.</p>
+      )}
+      <h1 class="article__title">{title}</h1>
+      <p class="article__summary">{summary}</p>
+      {series && (
+        <a class="article__series-badge" href={seriesHref} data-series={SERIES_SLUGS[series]}>
+          <span class="article__series-badge-label">Series</span>
+          <span class="article__series-badge-name">{series}</span>
+        </a>
+      )}
+      <div class="article__meta">
+        <span>{ordinalLabel}</span>
+        <span>{stage}</span>
+        <span>{product}</span>
+        <time datetime={date.toISOString().slice(0, 10)}>{isUpcoming ? `planned · ${dateFmt}` : dateFmt}</time>
+        <span>{time_required}</span>
+        <span>{difficulty}</span>
+        <span>{hardware}</span>
+        <span>{author}</span>
+      </div>
+    </header>
+
+    <div class="article__resume-banner" data-resume-slug={article.id} hidden>
+      <span>Pick up where you left off?</span>
+      <span class="article__resume-actions">
+        <button type="button" class="js-resume" data-action="resume">Resume</button>
+        <button type="button" class="js-dismiss is-dismiss" data-action="dismiss">Dismiss</button>
+      </span>
+    </div>
+
+    <TermsInThisPiece body={article.body ?? ''} />
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <FieldkitCTA slug={article.id} />
+    <ArticleArcNav slug={article.id} />
+  </article>
+
+  <script>
+    const bar = document.getElementById('progress-bar');
+    if (bar) {
+      const update = () => {
+        const doc = document.documentElement;
+        const scrolled = window.scrollY;
+        const total = doc.scrollHeight - window.innerHeight;
+        const pct = total > 0 ? Math.min(1, scrolled / total) : 0;
+        bar.style.transform = `scaleX(${pct})`;
+      };
+      update();
+      window.addEventListener('scroll', update, { passive: true });
+      window.addEventListener('resize', update);
+    }
+  </script>
+</BaseLayout>

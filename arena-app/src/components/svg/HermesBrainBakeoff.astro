@@ -1,0 +1,91 @@
+---
+// Signature figure for "Picking the Hermes Brain on a DGX Spark".
+// Three lanes scored on TWO axes — brain quality (core_pass_rate on the
+// graded rubric, N=5) and throughput (tok/s). Q4_K_M is the accent lane —
+// wins on both, at 1/3 the unified memory of the FP8 sibling.
+const lanes = [
+  { id: 'nim',   label: 'nim·9B',   quality: 0.78, tps: 23.9, qLabel: '6/8', tpsLabel: '24 tok/s' },
+  { id: 'vllm',  label: 'vLLM·MoE', quality: 0.88, tps: 55.0, qLabel: '8/8', tpsLabel: '55 tok/s' },
+  { id: 'llama', label: 'llama·MoE', quality: 0.90, tps: 83.5, qLabel: '8/8', tpsLabel: '84 tok/s', accent: true },
+];
+const plotLeft = 36;
+const plotRight = 286;
+const plotTop = 34;
+const plotMid = 110;
+const plotBottom = 156;
+const tpsMax = 96;
+const slot = (plotRight - plotLeft) / lanes.length;
+const barW = 36;
+const xAt = (i: number) => plotLeft + i * slot + (slot - barW) / 2;
+const qBarH = (q: number) => (plotMid - plotTop) * q;
+const tpsBarH = (t: number) => (plotBottom - plotMid - 4) * (t / tpsMax);
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Three Hermes serving lanes ranked on brain quality and throughput. NIM 9B scores 6 of 8 at 24 tokens per second; vLLM MoE FP8 scores 8 of 8 at 55; llama.cpp Q4_K_M scores 8 of 8 at 84 — the accent lane, top of both axes" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hbb-quality-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hbb-tps-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="hbb-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <!-- Two-band backdrop: quality on top, throughput on bottom -->
+  <rect x={plotLeft} y={plotTop} width={plotRight - plotLeft} height={plotMid - plotTop}
+        fill="var(--svg-bg-inner)" fill-opacity="0.4" stroke="none"/>
+  <rect x={plotLeft} y={plotMid} width={plotRight - plotLeft} height={plotBottom - plotMid}
+        fill="var(--svg-bg-inner)" fill-opacity="0.2" stroke="none"/>
+  <!-- Mid-line separating the two bands -->
+  <line x1={plotLeft} y1={plotMid} x2={plotRight} y2={plotMid}
+        stroke="var(--svg-stroke)" stroke-width="0.5" opacity="0.6"/>
+  <!-- Quality axis 100% line (the ceiling 8/8 hits) -->
+  <line x1={plotLeft} y1={plotTop} x2={plotRight} y2={plotTop}
+        stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.5"/>
+  <!-- Axis labels -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x={plotLeft - 2} y={plotTop - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">core pass-rate</text>
+    <text x={plotLeft - 2} y={plotMid - 4} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-sans)" font-size="10" font-weight="500">tok/s</text>
+  </g>
+  {lanes.map((l, i) => {
+    const x = xAt(i);
+    const qH = qBarH(l.quality);
+    const qY = plotMid - qH;
+    const tH = tpsBarH(l.tps);
+    const tY = plotBottom - tH;
+    const fill = l.accent ? 'url(#hbb-accent-grad)' : (i === 0 ? 'url(#hbb-quality-grad)' : 'url(#hbb-quality-grad)');
+    const stroke = l.accent ? 'var(--color-primary)' : 'var(--svg-stroke)';
+    return (
+      <g class={`svg-reveal svg-reveal-d${Math.min(8, 2 + i)}`}>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotMid}px`}>
+          <rect x={x} y={qY} width={barW} height={qH} rx="3"
+                fill={fill}
+                stroke={stroke} stroke-width={l.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={qY - 5} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="11" font-weight="700">{l.qLabel}</text>
+        </g>
+        <g class="bar-grow" style={`transform-origin: ${x + barW / 2}px ${plotBottom}px`}>
+          <rect x={x} y={tY} width={barW} height={tH} rx="3"
+                fill={l.accent ? 'url(#hbb-accent-grad)' : 'url(#hbb-tps-grad)'}
+                stroke={stroke} stroke-width={l.accent ? 1.5 : 1}/>
+          <text x={x + barW / 2} y={tY - 3} text-anchor="middle"
+                fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="9" font-weight="600">{l.tpsLabel}</text>
+        </g>
+      </g>
+    );
+  })}
+  <g class="svg-reveal svg-reveal-d8">
+    {lanes.map((l, i) => (
+      <text x={xAt(i) + barW / 2} y={plotBottom + 14} text-anchor="middle"
+            fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="8">{l.label}</text>
+    ))}
+    <text x={150} y={194} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-sans)" font-size="9" font-style="italic">Throughput rank ≡ quality rank — but only quality breaks the tie.</text>
+  </g>
+</svg>

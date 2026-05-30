@@ -1,0 +1,127 @@
+---
+// Signature figure for "autoresearchbench-on-spark".
+// Two rows, three questions each. Top row = NIM Llama 3.1 8B (8K ctx),
+// bottom row = NIM Nemotron-Nano-9B-v2 (128K ctx). Each cell shows turn
+// count and final status. Same three questions, same 0% Accuracy@1
+// from the upstream Deep evaluator — but the failure modes differ:
+// 8B's two of three crash on context overflow; 9B-v2 completes all
+// three and judges "no candidate matches" against the live web-search
+// results. The bottleneck is retrieval coverage, not model context.
+
+const q = [
+  // 8B row — turn count and outcome per question
+  { row: 0, q: 1, turns: 1, status: 'finished',     label: 'finished · 1 turn',        accent: 'cool' },
+  { row: 0, q: 2, turns: 5, status: 'ctx-exceeded', label: 'ctx-exceeded · 5 turns',   accent: 'red'  },
+  { row: 0, q: 3, turns: 6, status: 'ctx-exceeded', label: 'ctx-exceeded · 6 turns',   accent: 'red'  },
+  // 9B-v2 row
+  { row: 1, q: 1, turns: 3, status: 'finished',     label: 'finished · 3 turns',       accent: 'peak' },
+  { row: 1, q: 2, turns: 2, status: 'finished',     label: 'finished · 2 turns',       accent: 'peak' },
+  { row: 1, q: 3, turns: 2, status: 'finished',     label: 'finished · 2 turns',       accent: 'peak' },
+];
+
+const cellW = 60;
+const cellH = 36;
+const cellGap = 6;
+const plotLeft = 88;
+const plotTop = 56;
+const rowGap = 14;
+
+const fillFor = (a: string) =>
+  a === 'peak' ? 'var(--svg-accent-green)'
+  : a === 'red' ? 'var(--svg-accent-red)'
+  : 'var(--svg-accent-blue)';
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Two NIMs run AutoResearchBench's three Deep-Research example questions. Top row Llama-3.1-8B at 8K context: question 1 finished in 1 turn but produced no candidates, questions 2 and 3 crashed on context-length overflow at turn 5 and turn 6. Bottom row Nemotron-Nano-9B-v2 at 128K context: all three questions finished cleanly in 2 to 3 turns. Both models score 0 percent Accuracy at 1 — same destination, two failure modes."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="arbc-peak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.04"/>
+    </linearGradient>
+    <radialGradient id="arbc-halo" cx="0.5" cy="0.5" r="0.65">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">3 DEEP QUESTIONS · 2 NIMs · ACCURACY@1 = 0%</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">retrieval ceiling, not model ceiling</text>
+  </g>
+
+  <!-- column headers -->
+  <g class="svg-reveal svg-reveal-d2">
+    {[1, 2, 3].map((qi) => (
+      <text x={plotLeft + (qi - 1) * (cellW + cellGap) + cellW / 2}
+            y={plotTop - 6}
+            text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+            font-size="6" letter-spacing="0.10em">Q{qi}</text>
+    ))}
+  </g>
+
+  <!-- 9B-v2 row halo (it's the one that completes) -->
+  <rect x={plotLeft - 6} y={plotTop + cellH + rowGap - 2}
+        width={3 * cellW + 2 * cellGap + 12} height={cellH + 4}
+        fill="url(#arbc-halo)" stroke="none"/>
+
+  <!-- row labels + cells -->
+  {[0, 1].map((rowIdx) => {
+    const y = plotTop + rowIdx * (cellH + rowGap);
+    const isPeak = rowIdx === 1;
+    const rowLabel = rowIdx === 0 ? 'LLAMA 3.1 8B' : 'NEMOTRON-NANO-9B-v2';
+    const ctxLabel = rowIdx === 0 ? '8K ctx · vLLM-bf16' : '128K ctx · vLLM-nvfp4';
+    return (
+      <g class={`svg-reveal svg-reveal-d${3 + rowIdx}`}>
+        <text x={plotLeft - 8} y={y + cellH / 2 - 2} text-anchor="end"
+              fill={isPeak ? 'var(--svg-accent-green)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)"
+              font-size="7" font-weight={isPeak ? 700 : 600}>{rowLabel}</text>
+        <text x={plotLeft - 8} y={y + cellH / 2 + 6} text-anchor="end"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5">{ctxLabel}</text>
+        {q.filter((c) => c.row === rowIdx).map((cell) => {
+          const cx = plotLeft + (cell.q - 1) * (cellW + cellGap);
+          const fill = fillFor(cell.accent);
+          const turnTxt = `${cell.turns} ${cell.turns === 1 ? 'turn' : 'turns'}`;
+          const statusTxt = cell.status === 'finished' ? 'finished' : 'ctx ✕';
+          return (
+            <g>
+              <rect x={cx} y={y} width={cellW} height={cellH} rx="4"
+                    fill="var(--svg-bg-inner-fill)"
+                    stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+              <rect x={cx} y={y} width={cellW} height={cellH} rx="4"
+                    fill={fill}
+                    opacity={isPeak ? 0.9 : 0.55}
+                    stroke={fill} stroke-width="0.5"/>
+              <text x={cx + cellW / 2} y={y + cellH / 2 + 0.5}
+                    text-anchor="middle"
+                    fill="var(--svg-card-fill)"
+                    font-family="var(--font-mono)"
+                    font-size="9" font-weight="700">{turnTxt}</text>
+              <text x={cx + cellW / 2} y={y + cellH / 2 + 11}
+                    text-anchor="middle"
+                    fill="var(--svg-card-fill)"
+                    font-family="var(--font-mono)"
+                    font-size="6" letter-spacing="0.08em" opacity="0.85">{statusTxt}</text>
+            </g>
+          );
+        })}
+      </g>
+    );
+  })}
+
+  <!-- Punchline -->
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="180" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">SAME 3 QUESTIONS. SAME 0%. DIFFERENT FAILURES.</text>
+  </g>
+</svg>

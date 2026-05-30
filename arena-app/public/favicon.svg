@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="AI Field Notes">
+  <title>AI Field Notes</title>
+  <defs>
+    <radialGradient id="aifn-spark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#a3b8ff" />
+      <stop offset="55%"  stop-color="#7d99ff" />
+      <stop offset="100%" stop-color="#5e7df0" />
+    </radialGradient>
+  </defs>
+  <g fill="none" stroke="#7d99ff" stroke-width="2.6" stroke-linecap="round">
+    <line x1="9"  y1="14" x2="22" y2="14" />
+    <line x1="22" y1="14" x2="22" y2="24" />
+  </g>
+  <circle cx="22" cy="24" r="6.5" fill="#7d99ff" fill-opacity="0.22" />
+  <circle cx="9"  cy="14" r="2.7" fill="#7d99ff" />
+  <circle cx="22" cy="14" r="2.7" fill="#7d99ff" />
+  <circle cx="22" cy="24" r="3.4" fill="url(#aifn-spark)" />
+</svg>

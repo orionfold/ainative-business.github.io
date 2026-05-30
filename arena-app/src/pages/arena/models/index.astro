@@ -1,0 +1,171 @@
+---
+// Models / Capabilities browser — /arena/models/
+//
+// Fulfills the long-disabled "Models" nav stub. Pure static
+// (getCollection('artifacts')) so it renders identically on the Spark and on
+// the public web preview — no sidecar needed. Each card is a capability
+// pitch (positioning headline → base model → recommended build), filterable
+// by kind-group and license tier via the same DOM-only chip pattern the
+// leaderboard uses. Detail lives at /arena/models/[slug]/.
+import ArenaAppLayout from '../../../layouts/ArenaAppLayout.astro';
+import { getCollection } from 'astro:content';
+import { recommendedVariant, verticalOf } from '../../../lib/arena/model-prompts.mjs';
+
+const title = 'Orionfold Arena — Models';
+const description =
+  'Every artifact the Spark has produced — quantized vertical models, notebooks, benches, and harnesses — as a browsable capability catalog. Explore positioning, the quant economics, and known drift, then drive each one in chat or compare.';
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const href = (p) => `${base}${p}`.replace(/\/+/g, '/');
+
+const artifacts = (await getCollection('artifacts')).map((a) => a);
+
+// Friendly kind groups for the filter chips.
+const KIND_GROUP = {
+  quant: 'models', lora: 'models', adapter: 'models',
+  notebook: 'notebooks', bench: 'benches',
+  harness: 'tooling', skill: 'tooling', arena_run: 'tooling', dataset: 'benches',
+};
+const groupOf = (kind) => KIND_GROUP[kind] || 'tooling';
+
+// Sort: real models first, then by recency.
+const order = { models: 0, benches: 1, notebooks: 2, tooling: 3 };
+const cards = artifacts
+  .map((a) => {
+    const d = a.data;
+    const rec = recommendedVariant(d);
+    const recTok = rec && d.spark_tokens_per_sec ? d.spark_tokens_per_sec[rec] : null;
+    return {
+      id: a.id,
+      data: d,
+      group: groupOf(d.kind),
+      vertical: verticalOf(d),
+      rec,
+      recTok,
+      headline: d.positioning?.headline || d.slug,
+    };
+  })
+  .sort((a, b) =>
+    (order[a.group] - order[b.group]) ||
+    String(b.data.published_at || '').localeCompare(String(a.data.published_at || ''))
+  );
+
+const counts = {
+  models: cards.filter((c) => c.group === 'models').length,
+  notebooks: cards.filter((c) => c.group === 'notebooks').length,
+  benches: cards.filter((c) => c.group === 'benches').length,
+  tooling: cards.filter((c) => c.group === 'tooling').length,
+};
+const tiers = Array.from(new Set(cards.map((c) => c.data.license?.tier || 'free')));
+
+const fmtTok = (v) => (v == null ? null : `${v.toFixed(0)} tok/s`);
+const kindLabel = (k) => k.replace('_', ' ');
+---
+<ArenaAppLayout title={title} description={description} active="models">
+  <header class="pageheader">
+    <div>
+      <p class="pageheader__eyebrow">Capabilities · {cards.length} artifacts</p>
+      <h1 class="pageheader__title">Models</h1>
+      <p class="pageheader__blurb">
+        Every quant, notebook, bench, and harness the Spark has shipped — each a card
+        you can open to see its positioning, quant economics, and bounded drift, then
+        drive straight into chat or a compare.
+      </p>
+    </div>
+    <div class="pageheader__actions">
+      <a href={href('arena/leaderboard/')} class="arena-btn arena-btn--primary">Efficiency frontier ↗</a>
+      <a href={href('arena/compare/')} class="arena-btn">Run a compare</a>
+    </div>
+  </header>
+
+  <div class="kpi-strip kpi-strip--compact">
+    <div class="kpi-strip__cell"><span class="kpi-strip__label">Models</span><span class="kpi-strip__value">{counts.models}</span><span class="kpi-strip__hint">quant · lora · adapter</span></div>
+    <div class="kpi-strip__cell"><span class="kpi-strip__label">Benches</span><span class="kpi-strip__value">{counts.benches}</span><span class="kpi-strip__hint">eval datasets</span></div>
+    <div class="kpi-strip__cell"><span class="kpi-strip__label">Notebooks</span><span class="kpi-strip__value">{counts.notebooks}</span><span class="kpi-strip__hint">runnable on-ramps</span></div>
+    <div class="kpi-strip__cell"><span class="kpi-strip__label">Tooling</span><span class="kpi-strip__value">{counts.tooling}</span><span class="kpi-strip__hint">harnesses · skills</span></div>
+    <div class="kpi-strip__cell"><span class="kpi-strip__label">Free tier</span><span class="kpi-strip__value">{cards.filter((c) => (c.data.license?.tier || 'free') === 'free').length}</span><span class="kpi-strip__hint kpi-strip__hint--ok">run offline · yours</span></div>
+  </div>
+
+  <div class="filterbar" role="region" aria-label="Model filters">
+    <span class="filterbar__label">Kind</span>
+    <button class="filterbar__chip is-active" aria-pressed="true" data-group="all">All</button>
+    <button class="filterbar__chip" aria-pressed="false" data-group="models">Models</button>
+    <button class="filterbar__chip" aria-pressed="false" data-group="benches">Benches</button>
+    <button class="filterbar__chip" aria-pressed="false" data-group="notebooks">Notebooks</button>
+    <button class="filterbar__chip" aria-pressed="false" data-group="tooling">Tooling</button>
+    <span style="flex: 1"></span>
+    <span class="filterbar__label">License</span>
+    <button class="filterbar__chip is-active" aria-pressed="true" data-tier="all">All</button>
+    {tiers.map((t) => (
+      <button class="filterbar__chip" aria-pressed="false" data-tier={t}>{t}</button>
+    ))}
+  </div>
+
+  <div class="model-grid">
+    {cards.map((c) => (
+      <a
+        class="model-card bezel"
+        href={href(`arena/models/${c.id}/`)}
+        data-group={c.group}
+        data-tier={c.data.license?.tier || 'free'}
+      >
+        <div class="model-card__top">
+          <span class={`model-card__kind model-card__kind--${c.group}`}>{kindLabel(c.data.kind)}</span>
+          {c.vertical !== 'general' && <span class="model-card__vertical">{c.vertical}</span>}
+          <span class="model-card__tier">{c.data.license?.tier || 'free'}</span>
+        </div>
+        <h2 class="model-card__headline">{c.headline}</h2>
+        <p class="model-card__base"><span class="dim">base</span> {c.data.base_model}</p>
+        {c.data.stack_origin && <span class="model-card__stack">{c.data.stack_origin}</span>}
+        <div class="model-card__foot">
+          {c.rec ? (
+            <span class="model-card__rec">
+              <span class="dim">recommended</span> <b>{c.rec}</b>{c.recTok && <span class="model-card__rec-tok"> · {fmtTok(c.recTok)}</span>}
+            </span>
+          ) : (
+            <span class="model-card__rec dim">{c.data.variants?.length || 0} variants</span>
+          )}
+          <span class="model-card__go">Explore →</span>
+        </div>
+      </a>
+    ))}
+  </div>
+</ArenaAppLayout>
+
+<script is:inline>
+  // DOM-only filter — two independent chip groups (kind-group + license tier);
+  // a card shows only when it passes BOTH active filters. Classic is:inline
+  // script (not a module) so Astro ships it untouched and currentScript works.
+  (function () {
+    var bar = document.querySelector('.filterbar');
+    if (!bar) return;
+    var cards = Array.prototype.slice.call(document.querySelectorAll('.model-card'));
+    var groupSel = 'all';
+    var tierSel = 'all';
+
+    function apply() {
+      for (var i = 0; i < cards.length; i++) {
+        var card = cards[i];
+        var okG = groupSel === 'all' || card.dataset.group === groupSel;
+        var okT = tierSel === 'all' || card.dataset.tier === tierSel;
+        card.style.display = okG && okT ? '' : 'none';
+      }
+    }
+    function setActive(chip, attr) {
+      var sibs = bar.querySelectorAll('[data-' + attr + ']');
+      for (var i = 0; i < sibs.length; i++) {
+        sibs[i].classList.remove('is-active');
+        sibs[i].setAttribute('aria-pressed', 'false');
+      }
+      chip.classList.add('is-active');
+      chip.setAttribute('aria-pressed', 'true');
+    }
+    bar.addEventListener('click', function (e) {
+      var chip = e.target.closest('.filterbar__chip');
+      if (!chip) return;
+      if (chip.dataset.group) { groupSel = chip.dataset.group; setActive(chip, 'group'); }
+      else if (chip.dataset.tier) { tierSel = chip.dataset.tier; setActive(chip, 'tier'); }
+      apply();
+    });
+  })();
+</script>

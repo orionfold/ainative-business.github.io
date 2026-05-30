@@ -1,0 +1,88 @@
+---
+// Signature figure for "auto-research-loop-on-spark".
+// Paired bars: count of `keep` status trials across cxcscmu's two
+// 201-trial Parameter Golf ablations. Lineage on = 16 keeps (8.0%).
+// Lineage off = 3 keeps (1.5%). The 5.3× swing is the load-bearing
+// claim: same agent, same prompt template, same trial budget, same
+// 600s train + 600s eval cap on 8xH100 — only the rendered lineage
+// block differs. The bar heights are scaled to the 16-keep max so
+// the 3-keep bar at 19/100 of the height reads as the visible gap.
+// Mono captions under each bar carry the raw counts so a card reader
+// sees both the percentage and the absolute keep count.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Parameter Golf keep counts across cxcscmu's two 201-trial ablations: lineage on yields 16 keeps (8.0% keep rate), lineage off yields 3 keeps (1.5%). The 5.3× swing on the same agent and same trial budget identifies the rendered lineage prompt block as the load-bearing intervention."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lin5x-on-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.60"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="lin5x-off-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="lin5x-on-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">cxcscmu PARAMETER GOLF · KEEP COUNT</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">201-trial ablation · same agent · same budget</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="78" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">LINEAGE ON</text>
+    <rect x="58" y="60" width="40" height="92"
+          fill="url(#lin5x-on-halo)" stroke="none"/>
+    <rect x="58" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="58" y={60 + (92 - 80)} width="40" height="80" rx="4"
+          fill="url(#lin5x-on-grad)"
+          stroke="var(--svg-accent-green)" stroke-width="1.5"
+          style="transform-origin: 78px 152px;"/>
+    <text x="78" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">16</text>
+    <text x="78" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">8.0% · 16/201</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <text x="198" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">LINEAGE OFF</text>
+    <rect x="178" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <rect class="bar-grow" x="178" y={60 + (92 - 15)} width="40" height="15" rx="2"
+          fill="url(#lin5x-off-grad)"
+          stroke="var(--color-primary)" stroke-width="1"
+          style="transform-origin: 198px 152px;"/>
+    <text x="198" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">3</text>
+    <text x="198" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">1.5% · 3/201</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="100" y1="80" x2="176" y2="80"
+          class="line-draw"
+          stroke="var(--svg-accent-green)" stroke-width="1.5"/>
+    <text x="138" y="74" text-anchor="middle"
+          fill="var(--svg-accent-green)" font-family="var(--font-sans)"
+          font-size="13" font-weight="600">5.3×</text>
+    <text x="138" y="92" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.14em">MORE KEEPS</text>
+  </g>
+</svg>

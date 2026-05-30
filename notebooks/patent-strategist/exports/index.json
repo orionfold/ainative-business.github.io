@@ -1,0 +1,16 @@
+{
+  "builder": {
+    "builder-banner": "builder/builder-banner.png",
+    "builder-variants-table": "builder/builder-variants-table.png",
+    "perplexity-sweep": "builder/perplexity-sweep.png",
+    "spark-quad": "builder/spark-quad.png",
+    "throughput-bars": "builder/throughput-bars.png",
+    "train-wall": "builder/train-wall.png"
+  },
+  "user": {
+    "perplexity-sweep": "user/perplexity-sweep.png",
+    "spark-quad": "user/spark-quad.png",
+    "throughput-bars": "user/throughput-bars.png",
+    "user-banner": "user/user-banner.png"
+  }
+}

@@ -1,0 +1,99 @@
+---
+// Signature figure for "clawgym-on-spark".
+// Two paired bars: per-assertion pass-rate, baseline (Qwen 2.5 7B) vs adapter
+// (Qwen + clawgym LoRA r=16) on the same 158 held-out tasks. The right-side
+// "+15.0 pp" delta is the load-bearing claim — that's the lift the adapter
+// earned over its own base. The 248/780 vs 365/780 fractions sit under each
+// bar in mono so a reader stopped at the card knows the absolute counts too.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Per-assertion pass-rate on 158 held-out clawgym tasks: Qwen 2.5 7B base 248/780 = 31.8%, Qwen + clawgym LoRA adapter 365/780 = 46.8%. The adapter earns +15.0 pp on per-assertion against its own base."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="claw-base-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="claw-sft-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="claw-sft-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">CLAWGYM LoRA · 158 HELD-OUT TASKS</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">per-assertion pass-rate, matched-base</text>
+  </g>
+
+  <!-- baseline column -->
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="78" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">QWEN 2.5 7B BASE</text>
+    <!-- bar full height (track) -->
+    <rect x="58" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- bar fill (31.8% of 92 = 29.3) -->
+    <rect class="bar-grow" x="58" y={60 + (92 - 29.3)} width="40" height="29.3" rx="4"
+          fill="url(#claw-base-grad)"
+          stroke="var(--svg-accent-blue)" stroke-width="1"
+          style="transform-origin: 78px 152px;"/>
+    <!-- value -->
+    <text x="78" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">31.8%</text>
+    <text x="78" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">248 / 780</text>
+  </g>
+
+  <!-- adapter column -->
+  <g class="svg-reveal svg-reveal-d3">
+    <!-- accent halo behind the adapter bar -->
+    <rect x="178" y="60" width="40" height="92"
+          fill="url(#claw-sft-halo)" stroke="none"/>
+    <text x="198" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">+ CLAWGYM LoRA</text>
+    <!-- bar track -->
+    <rect x="178" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- bar fill (46.8% of 92 = 43.1) -->
+    <rect class="bar-grow" x="178" y={60 + (92 - 43.1)} width="40" height="43.1" rx="4"
+          fill="url(#claw-sft-grad)"
+          stroke="var(--color-primary)" stroke-width="1"
+          style="transform-origin: 198px 152px;"/>
+    <!-- value -->
+    <text x="198" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">46.8%</text>
+    <text x="198" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">365 / 780</text>
+  </g>
+
+  <!-- delta callout, right side -->
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="225" y1="108" x2="252" y2="108"
+          class="line-draw"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="270" y="103" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-sans)"
+          font-size="13" font-weight="600">+15.0</text>
+    <text x="270" y="116" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.14em">PP</text>
+  </g>
+</svg>

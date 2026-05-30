@@ -1,0 +1,86 @@
+{
+  "pulled_at": "2026-05-17T14:57:14+00:00",
+  "spec_ref": "specs/patent-strategist-v1.md \u00a76",
+  "sources": {
+    "bigpatent": {
+      "status": "pulled",
+      "hf_repo": "big_patent",
+      "commit_sha": "2a5336492ddc4e21cebd3865fd2a7e8b070bfede",
+      "license": "CC-BY-4.0",
+      "rows": 10000,
+      "files": [
+        "bigpatent-g-train.jsonl",
+        "bigpatent-h-train.jsonl"
+      ],
+      "notes": "configs g+h (physics+electricity); abstracts capped to 8k chars"
+    },
+    "patentmatch": {
+      "status": "pulled",
+      "hf_repo": null,
+      "commit_sha": null,
+      "license": "MIT (github.com/julian-risch/PatentMatch)",
+      "rows": 25340,
+      "files": [
+        "patentmatch-ultrabalanced.jsonl"
+      ],
+      "notes": "CANONICAL HPI-Naumann PatentMatch ultra-balanced (Risch et al. 2021). Pulled via HiDrive share rwfam92omy; splits: {'train': 20272, 'test': 5068}. One X and one A per claim \u2014 Family B primary corpus. Full 6.26M-row variant skipped for v1.0 (overkill vs 200-Q bench). Replaces session-19's BNNT/PatentMatch 500-row substitute (deleted from this dir on re-pull)."
+    },
+    "mpep": {
+      "status": "pulled",
+      "hf_repo": null,
+      "commit_sha": null,
+      "license": "public-domain (17 USC \u00a7105)",
+      "rows": 2047,
+      "files": [
+        "mpep-0100.jsonl",
+        "mpep-0200.jsonl",
+        "mpep-0300.jsonl",
+        "mpep-0400.jsonl",
+        "mpep-0500.jsonl",
+        "mpep-0600.jsonl",
+        "mpep-0700.jsonl",
+        "mpep-0800.jsonl",
+        "mpep-0900.jsonl",
+        "mpep-1000.jsonl",
+        "mpep-1100.jsonl",
+        "mpep-1200.jsonl",
+        "mpep-1300.jsonl",
+        "mpep-1400.jsonl",
+        "mpep-1500.jsonl",
+        "mpep-1600.jsonl",
+        "mpep-1700.jsonl",
+        "mpep-1800.jsonl",
+        "mpep-1900.jsonl",
+        "mpep-2000.jsonl",
+        "mpep-2100.jsonl",
+        "mpep-2200.jsonl",
+        "mpep-2300.jsonl",
+        "mpep-2400.jsonl",
+        "mpep-2500.jsonl",
+        "mpep-2600.jsonl",
+        "mpep-2700.jsonl",
+        "mpep-2800.jsonl",
+        "mpep-2900.jsonl"
+      ],
+      "notes": "USPTO static-HTML mirror at https://www.uspto.gov/web/offices/pac/mpep; chapters scraped per mpep-0XXX.html TOC + per-section h1.page-title boundaries. Skipped (404 or empty): none. Raw HTML cached under _raw/ for re-extraction without re-fetch."
+    },
+    "oa": {
+      "status": "blocked",
+      "hf_repo": null,
+      "commit_sha": null,
+      "license": "public-domain (17 USC \u00a7105)",
+      "rows": 0,
+      "files": [],
+      "notes": "USPTO Office Action Research Dataset (4.4M actions 2008-2017). Download via USPTO data portal (https://www.uspto.gov/ip-policy/economic-research/research-datasets/) \u2014 needs portal account + bulk file fetch (CSV/Stata, multi-GB). Wire in W1-late."
+    },
+    "gpat": {
+      "status": "blocked",
+      "hf_repo": null,
+      "commit_sha": null,
+      "license": "CC-BY-4.0",
+      "rows": 0,
+      "files": [],
+      "notes": "Google Patents Public Data BigQuery dataset (patents-public-data). Needs gcloud auth + google-cloud-bigquery + a US-only IPC-class filtered query (Family C landscape work). Wire in W2 alongside the RAG index build."
+    }
+  }
+}

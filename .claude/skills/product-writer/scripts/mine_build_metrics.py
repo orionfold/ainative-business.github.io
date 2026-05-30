@@ -21,7 +21,7 @@ Usage (Orionfold Arena example):
 
   python3 mine_build_metrics.py \
     --since 2026-05-28T09:00:00 --until 2026-05-29T01:00:00 \
-    --log-dir /home/nvidia/.claude/projects/-home-nvidia-ai-field-notes \
+    --log-dir /home/nvidia/.claude/projects/-home-nvidia-ainative-business-github-io \
     --repo /home/nvidia/ainative-business.github.io \
     --commit-grep '^arena:' \
     --loc fieldkit/src/fieldkit/arena \

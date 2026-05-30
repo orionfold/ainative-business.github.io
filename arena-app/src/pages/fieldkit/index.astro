@@ -1,0 +1,51 @@
+---
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import FieldkitHero from '../../components/sections/fieldkit/FieldkitHero.astro';
+import FieldkitProblem from '../../components/sections/fieldkit/FieldkitProblem.astro';
+import FieldkitModules from '../../components/sections/fieldkit/FieldkitModules.astro';
+import FieldkitQuickstart from '../../components/sections/fieldkit/FieldkitQuickstart.astro';
+import FieldkitVerified from '../../components/sections/fieldkit/FieldkitVerified.astro';
+import FieldkitCli from '../../components/sections/fieldkit/FieldkitCli.astro';
+import FieldkitCTAFooter from '../../components/sections/fieldkit/FieldkitCTAFooter.astro';
+import { publishOrdinals } from '../../lib/article-order.mjs';
+
+// Read fieldkit's version from the package single source of truth so the
+// landing tracks `fieldkit/src/fieldkit/_version.py` automatically.
+let fieldkitVersion = 'unreleased';
+try {
+  const versionFile = resolve(process.cwd(), 'fieldkit/src/fieldkit/_version.py');
+  const m = readFileSync(versionFile, 'utf8').match(/__version__\s*=\s*"([^"]+)"/);
+  if (m) fieldkitVersion = m[1];
+} catch {
+  // File not present in this checkout — keep the fallback.
+}
+
+type FieldkitDoc = CollectionEntry<'fieldkit_docs'>;
+type Article = CollectionEntry<'articles'>;
+
+const docs = (await getCollection('fieldkit_docs')).sort(
+  (a: FieldkitDoc, b: FieldkitDoc) => a.data.order - b.data.order,
+);
+
+const articles: Article[] = await getCollection('articles');
+const ordinalById = publishOrdinals(articles, process.cwd());
+const usingFieldkit = articles
+  .filter((a: Article) => (a.data.fieldkit_modules ?? []).length > 0)
+  .sort((a: Article, b: Article) => ordinalById.get(b.id)! - ordinalById.get(a.id)!);
+
+const pageTitle = 'Fieldkit — verified-on-Spark Python patterns — ainative';
+const pageDescription =
+  "Fieldkit is the open-source Python package the AI Native Field Notes are written against — KV-cache arithmetic, the NIM client with its 8192-token preflight, the strict-context RAG pipeline, and the eval harness. Every module is the tested distillate of the articles it appears under.";
+---
+<BaseLayout title={pageTitle} description={pageDescription}>
+  <FieldkitHero version={fieldkitVersion} />
+  <FieldkitProblem articleCount={usingFieldkit.length} />
+  <FieldkitModules docs={docs} />
+  <FieldkitQuickstart />
+  <FieldkitVerified articles={usingFieldkit} />
+  <FieldkitCli version={fieldkitVersion} />
+  <FieldkitCTAFooter version={fieldkitVersion} />
+</BaseLayout>

@@ -1,0 +1,136 @@
+---
+// Signature figure for "pgvector-on-spark".
+// Left: a tabular surface — the `chunks` table with id / text / embedding
+// columns. The embedding cells are stacked vertical micro-dots, hinting at
+// a 1024-d vector under each row. Right: the same dots reappear as a graph
+// of connected points in 2D space — an HNSW index. The thesis: one column,
+// two representations; the index is a lens on the column. A query dot on
+// the right anchors three halo'd top-K matches.
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="pgvector store — vectors live as a Postgres column and as an HNSW graph at the same time" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pgv-col-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="pgv-graph-grad" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pgv-match-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-teal)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <!-- atmospheric washes: embedding column on the left, graph halo on the right -->
+  <rect x="98" y="44" width="20" height="124" rx="2" fill="url(#pgv-col-grad)" stroke="none"/>
+  <rect x="180" y="38" width="112" height="136" rx="6" fill="url(#pgv-graph-grad)" stroke="none"/>
+
+  <!-- left: chunks table -->
+  <g class="svg-reveal svg-reveal-d1">
+    <rect x="14" y="44" width="120" height="124" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <!-- header -->
+    <rect x="14" y="44" width="120" height="18"
+          fill="var(--svg-bg-inner-stroke)" stroke="none"/>
+    <text x="28" y="56" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="7" letter-spacing="0.1em">id</text>
+    <text x="52" y="56" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="7" letter-spacing="0.1em">text</text>
+    <text x="104" y="56" fill="var(--svg-accent-teal)" font-family="var(--font-mono)" font-size="7" letter-spacing="0.1em" font-weight="600">vec</text>
+    <!-- column dividers -->
+    <line x1="46" y1="62" x2="46" y2="168" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <line x1="98" y1="62" x2="98" y2="168" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+  </g>
+
+  <!-- table rows -->
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1="14" y1="88"  x2="134" y2="88"  stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <line x1="14" y1="118" x2="134" y2="118" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <line x1="14" y1="148" x2="134" y2="148" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <!-- ids -->
+    <text x="22" y="80"  fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="7">492</text>
+    <text x="22" y="110" fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="7">493</text>
+    <text x="22" y="140" fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="7">494</text>
+    <text x="22" y="162" fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="7">…</text>
+    <!-- text shimmer lines -->
+    <line x1="52" y1="76"  x2="92" y2="76"  stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="52" y1="82"  x2="86" y2="82"  stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="52" y1="106" x2="92" y2="106" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="52" y1="112" x2="78" y2="112" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="52" y1="136" x2="92" y2="136" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="52" y1="142" x2="90" y2="142" stroke="var(--svg-text-faint)" stroke-width="1"/>
+  </g>
+
+  <!-- embedding column: vertical micro-dot rows. Each row's dots correspond to
+       one 1024-d vector, hinted at by the density. -->
+  <g class="svg-reveal svg-reveal-d3" fill="var(--svg-accent-teal)" opacity="0.75">
+    <circle cx="104" cy="74" r="1"/><circle cx="108" cy="74" r="1"/><circle cx="112" cy="74" r="1"/><circle cx="116" cy="74" r="1"/>
+    <circle cx="104" cy="80" r="1"/><circle cx="108" cy="80" r="1"/><circle cx="112" cy="80" r="1"/><circle cx="116" cy="80" r="1"/>
+    <circle cx="104" cy="104" r="1"/><circle cx="108" cy="104" r="1"/><circle cx="112" cy="104" r="1"/><circle cx="116" cy="104" r="1"/>
+    <circle cx="104" cy="110" r="1"/><circle cx="108" cy="110" r="1"/><circle cx="112" cy="110" r="1"/><circle cx="116" cy="110" r="1"/>
+    <circle cx="104" cy="134" r="1"/><circle cx="108" cy="134" r="1"/><circle cx="112" cy="134" r="1"/><circle cx="116" cy="134" r="1"/>
+    <circle cx="104" cy="140" r="1"/><circle cx="108" cy="140" r="1"/><circle cx="112" cy="140" r="1"/><circle cx="116" cy="140" r="1"/>
+  </g>
+
+  <!-- connector: "the column IS the graph" -->
+  <g class="svg-reveal svg-reveal-d4">
+    <path class="line-draw" d="M 134 105 C 152 105, 162 102, 180 100"
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1" stroke-linecap="round"/>
+  </g>
+
+  <!-- right: HNSW graph with query and top-K matches -->
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="180" y="38" width="112" height="136" rx="6"
+          fill="none" stroke="var(--svg-bg-inner-stroke)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="236" y="50" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.15em">HNSW  M=16</text>
+  </g>
+
+  <!-- HNSW edges between nodes -->
+  <g class="svg-reveal svg-reveal-d5"
+     fill="none" stroke="var(--svg-connector)" stroke-width="0.5" stroke-linecap="round">
+    <line x1="204" y1="78"  x2="222" y2="96"/>
+    <line x1="222" y1="96"  x2="244" y2="86"/>
+    <line x1="222" y1="96"  x2="248" y2="110"/>
+    <line x1="244" y1="86"  x2="270" y2="74"/>
+    <line x1="244" y1="86"  x2="268" y2="104"/>
+    <line x1="248" y1="110" x2="268" y2="104"/>
+    <line x1="248" y1="110" x2="228" y2="138"/>
+    <line x1="228" y1="138" x2="256" y2="148"/>
+    <line x1="256" y1="148" x2="276" y2="136"/>
+    <line x1="270" y1="74"  x2="282" y2="94"/>
+  </g>
+
+  <!-- background graph nodes -->
+  <g class="svg-reveal svg-reveal-d6" fill="var(--svg-text-faint)">
+    <circle cx="204" cy="78"  r="2"/>
+    <circle cx="222" cy="96"  r="2"/>
+    <circle cx="270" cy="74"  r="2"/>
+    <circle cx="282" cy="94"  r="2"/>
+    <circle cx="268" cy="104" r="2"/>
+    <circle cx="228" cy="138" r="2"/>
+    <circle cx="256" cy="148" r="2"/>
+    <circle cx="276" cy="136" r="2"/>
+  </g>
+
+  <!-- top-K accent matches (halo + core). These are the three rows from the
+       table on the left, rendered here as graph neighbours of the query. -->
+  <g class="svg-reveal svg-reveal-d7" fill="var(--svg-accent-teal)">
+    <circle cx="244" cy="86"  r="8" opacity="0.22"/>
+    <circle cx="244" cy="86"  r="3"/>
+    <circle cx="248" cy="110" r="8" opacity="0.22"/>
+    <circle cx="248" cy="110" r="3"/>
+    <circle cx="230" cy="80"  r="8" opacity="0.22"/>
+    <circle cx="230" cy="80"  r="3"/>
+  </g>
+
+  <!-- query marker: hollow dashed ring centered on the K-nearest neighbourhood -->
+  <g class="svg-reveal svg-reveal-d8">
+    <circle cx="241" cy="96" r="14" fill="none"
+            stroke="var(--svg-accent-teal)" stroke-width="0.5" stroke-dasharray="2 2"/>
+    <text x="236" y="168" text-anchor="middle"
+          fill="var(--svg-accent-teal)" font-family="var(--font-mono)"
+          font-size="8" letter-spacing="0.2em" font-weight="600">TOP-K</text>
+  </g>
+</svg>

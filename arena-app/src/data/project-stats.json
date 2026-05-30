@@ -1,0 +1,220 @@
+{
+  "generated_at": "2026-05-28T15:29:16Z",
+  "articles": {
+    "total": 49,
+    "published": 49,
+    "upcoming": 6,
+    "drafts": 0
+  },
+  "words": {
+    "total": 163116,
+    "mean_per_article": 3328,
+    "longest": {
+      "slug": "clawgym-on-spark-grpo",
+      "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
+      "words": 4704
+    }
+  },
+  "code": {
+    "evidence_loc": 16827,
+    "fieldkit_loc": 24216,
+    "vendored_loc": 344724,
+    "total_loc": 41043,
+    "by_language": {
+      "python": 40896,
+      "shell": 132,
+      "sql": 15
+    },
+    "data_lines": {
+      "json": 64424816,
+      "yaml": 3371
+    }
+  },
+  "stages": {
+    "foundations": 12,
+    "training": 12,
+    "fine-tuning": 12,
+    "inference": 19,
+    "deployment": 10,
+    "agentic": 20,
+    "observability": 12,
+    "dev-tools": 3
+  },
+  "stages_upcoming": {
+    "foundations": 0,
+    "training": 1,
+    "fine-tuning": 2,
+    "inference": 1,
+    "deployment": 0,
+    "agentic": 1,
+    "observability": 1,
+    "dev-tools": 1
+  },
+  "models": [
+    {
+      "id": "llama-3.1-8b-instruct",
+      "label": "Llama 3.1 8B Instruct",
+      "articles": 18
+    },
+    {
+      "id": "nemotron-nano-9b",
+      "label": "Nemotron Nano 9B v2",
+      "articles": 7
+    },
+    {
+      "id": "qwen-2.5-7b-instruct",
+      "label": "Qwen2.5 7B Instruct",
+      "articles": 7
+    },
+    {
+      "id": "nemotron-reranker-1b",
+      "label": "Nemotron Reranker 1B",
+      "articles": 6
+    },
+    {
+      "id": "nemotron-super-49b",
+      "label": "Nemotron Super 49B",
+      "articles": 5
+    },
+    {
+      "id": "qwen-2.5-3b-instruct",
+      "label": "Qwen2.5 3B Instruct",
+      "articles": 4
+    },
+    {
+      "id": "nemotron-embed-1b-v2",
+      "label": "Nemotron Embed 1B v2",
+      "articles": 4
+    },
+    {
+      "id": "llama-3.3-70b-instruct",
+      "label": "Llama 3.3 70B Instruct",
+      "articles": 3
+    }
+  ],
+  "products": [
+    {
+      "id": "dgx-spark",
+      "label": "DGX Spark",
+      "articles": 41
+    },
+    {
+      "id": "nim",
+      "label": "NVIDIA NIM",
+      "articles": 37
+    },
+    {
+      "id": "nemo",
+      "label": "NeMo Framework",
+      "articles": 30
+    },
+    {
+      "id": "tensorrt-llm",
+      "label": "TensorRT-LLM",
+      "articles": 16
+    },
+    {
+      "id": "pgvector",
+      "label": "pgvector",
+      "articles": 14
+    },
+    {
+      "id": "triton",
+      "label": "Triton Inference Server",
+      "articles": 13
+    },
+    {
+      "id": "ollama",
+      "label": "Ollama",
+      "articles": 10
+    },
+    {
+      "id": "nemo-retriever",
+      "label": "NeMo Retriever",
+      "articles": 10
+    },
+    {
+      "id": "nemoclaw",
+      "label": "NemoClaw",
+      "articles": 8
+    },
+    {
+      "id": "nemo-guardrails",
+      "label": "NeMo Guardrails",
+      "articles": 4
+    },
+    {
+      "id": "openclaw",
+      "label": "OpenClaw",
+      "articles": 4
+    }
+  ],
+  "metrics": {
+    "throughput": [
+      {
+        "label": "a brain that runs at",
+        "value": "100 tok/s",
+        "article_slug": "picking-the-hermes-brain-on-spark"
+      },
+      {
+        "label": "within sampling noise runs at",
+        "value": "20 tok/s",
+        "article_slug": "becoming-a-legal-curator-on-spark"
+      },
+      {
+        "label": "runs the same 7b at",
+        "value": "600 tok/s",
+        "article_slug": "runtime-frontier-six-patches-on-spark"
+      },
+      {
+        "label": "fp8 engine runs at roughly",
+        "value": "25 tok/s",
+        "article_slug": "naive-rag-on-spark"
+      }
+    ],
+    "accuracy": [
+      {
+        "label": "use to land the headline",
+        "value": "9% accuracy",
+        "article_slug": "autoresearchbench-on-spark"
+      },
+      {
+        "label": "the query the bench's headline",
+        "value": "9% accuracy",
+        "article_slug": "autoresearchbench-on-spark"
+      },
+      {
+        "label": "wiki text and still lose",
+        "value": "4% accuracy",
+        "article_slug": "becoming-a-gguf-publisher-on-spark"
+      },
+      {
+        "label": "queries where retrieval was perfect",
+        "value": "recall@5 = 1.0",
+        "article_slug": "bigger-generator-grounding-on-spark"
+      }
+    ],
+    "latency": [
+      {
+        "label": "streams the first token in",
+        "value": "80 ms",
+        "article_slug": "naive-rag-on-spark"
+      },
+      {
+        "label": "loop over distances finishes in",
+        "value": "2 ms",
+        "article_slug": "pgvector-on-spark"
+      },
+      {
+        "label": "the flashinfer autotuner runs in",
+        "value": "60 ms",
+        "article_slug": "test-time-distilling-for-exploration"
+      },
+      {
+        "label": "pgvector returns the top-5 in",
+        "value": "70 ms",
+        "article_slug": "naive-rag-on-spark"
+      }
+    ]
+  }
+}

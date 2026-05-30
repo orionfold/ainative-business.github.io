@@ -1,0 +1,36 @@
+slug: spark-hermes-profile
+kind: harness
+class: agent-harness
+base_model: Hermes Agent v0.14.0
+hf_repo: Orionfold/spark-hermes-profile
+variants:
+  - NIM · Nemotron-Nano-9B-v2
+  - "llama.cpp · Qwen3-30B-A3B (MoE, Q4_K_M)"
+  - "llama.cpp · Qwen3-32B (dense, Q4_K_M)"
+  - "vLLM · Qwen3-30B-A3B (MoE, FP8)"
+  - "vLLM · Qwen3-32B (dense, FP8)"
+spark_tokens_per_sec:
+  NIM · Nemotron-Nano-9B-v2: 27.7
+  llama.cpp · Qwen3-30B-A3B (MoE, Q4_K_M): 88.0
+  llama.cpp · Qwen3-32B (dense, Q4_K_M): 10.2
+  vLLM · Qwen3-30B-A3B (MoE, FP8): 55.9
+  vLLM · Qwen3-32B (dense, FP8): 6.6
+sustained_load_minutes: 3.4
+recommended_variant: "llama.cpp · Qwen3-30B-A3B (MoE, Q4_K_M)"
+license:
+  tier: free
+  model: mit
+article: articles/hermes-serving-lane-on-spark/
+positioning:
+  headline: Which local lane should drive your always-on Spark agent?
+  problem: "Hermes runs the same agent loop over any OpenAI-compatible backend, but the lanes are not interchangeable: a fast lane that can't emit well-formed tool calls is useless to an agent. This profile measures the trade-off."
+  use_cases:
+    - Pick a local serving lane for a Hermes agent on the Spark
+    - Size a MoE vs dense model against the 128 GB unified-memory envelope
+    - Reproduce the tool-call-reliability + tok/s + sustained-load numbers
+  audience: "DGX Spark power users running a local, no-API-key agent harness."
+known_drift:
+  - item: Tool-call reliability sample size
+    bound: format-error rate measured over 8 agentic tasks per lane; not a large-N guarantee.
+  - item: Qwen3 context vs Hermes minimum
+    bound: "Qwen3 lanes serve at native 40,960 tokens; Hermes's 64K floor is bypassed via model.context_length + auxiliary.compression.context_length overrides."

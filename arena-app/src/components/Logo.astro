@@ -1,0 +1,45 @@
+---
+// "Marked Field" logo — three emphasised nodes + two edges on an implied
+// 3×3 graph-paper grid, with the bottom-right node glowing as the "spark".
+//   size="hero" → full mark (faint grid + stub + animated reveal) + Mono wordmark
+//   size="nav"  → just the 3 nodes + 2 edges, static, scaled for nav bar
+//   size="mark" → bare SVG, no wordmark, static
+interface Props {
+  size?: 'hero' | 'nav' | 'mark';
+  class?: string;
+}
+const { size = 'mark', class: className } = Astro.props;
+---
+<span class:list={['logo', `logo--${size}`, className]} data-size={size}>
+  <svg
+    class="logo-mark"
+    viewBox="0 0 24 24"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="AI Field Notes"
+  >
+    {size === 'hero' && (
+      <g class="logo-mark__grid" aria-hidden="true">
+        <circle class="logo-mark__grid-dot" style="--i:0" cx="5"  cy="5"  r="0.7" />
+        <circle class="logo-mark__grid-dot" style="--i:1" cx="12" cy="5"  r="0.7" />
+        <circle class="logo-mark__grid-dot" style="--i:2" cx="19" cy="5"  r="0.7" />
+        <circle class="logo-mark__grid-dot" style="--i:3" cx="5"  cy="12" r="0.7" />
+        <circle class="logo-mark__grid-dot" style="--i:4" cx="5"  cy="19" r="0.7" />
+        <circle class="logo-mark__grid-dot" style="--i:5" cx="12" cy="19" r="0.7" />
+      </g>
+      <line class="logo-mark__stub" x1="12" y1="5.7" x2="12" y2="10.4" />
+    )}
+    <line class="logo-mark__edge logo-mark__edge--1" x1="12" y1="12" x2="19" y2="12" />
+    <line class="logo-mark__edge logo-mark__edge--2" x1="19" y1="12" x2="19" y2="19" />
+    <circle class="logo-mark__spark-halo" cx="19" cy="19" r="4.5" />
+    <circle class="logo-mark__node logo-mark__node--1" cx="12" cy="12" r="1.6" />
+    <circle class="logo-mark__node logo-mark__node--2" cx="19" cy="12" r="1.6" />
+    <circle class="logo-mark__spark" cx="19" cy="19" r="1.9" />
+  </svg>
+  {size === 'hero' && (
+    <span class="logo__wordmark" aria-hidden="true">
+      <span class="logo__wordmark-text">AI Field Notes</span>
+      <span class="logo__wordmark-rule"></span>
+    </span>
+  )}
+</span>

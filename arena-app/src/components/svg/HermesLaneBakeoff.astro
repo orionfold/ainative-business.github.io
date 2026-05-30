@@ -1,0 +1,65 @@
+---
+// Signature figure for "The Hermes serving lane on a DGX Spark".
+// Single-stream tok/s across the five benchmarked lanes. The two MoE lanes
+// (3B active) tower over the dense lanes; every bar cleared 0% tool-call
+// format-error, so speed — not reliability — is what separates them.
+const lanes = [
+  { label: 'llama·MoE',  tps: 88, color: 'var(--svg-accent-blue)',  accent: true },
+  { label: 'vLLM·MoE',   tps: 56, color: 'var(--svg-accent-blue)',  accent: false },
+  { label: 'NIM·9B',     tps: 28, color: 'var(--svg-accent-green)', accent: false },
+  { label: 'llama·dns',  tps: 10, color: 'var(--svg-accent-orange)', accent: false },
+  { label: 'vLLM·dns',   tps: 7,  color: 'var(--svg-accent-orange)', accent: false },
+];
+const yMax = 96;
+const plotLeft = 34;
+const plotRight = 292;
+const plotTop = 30;
+const plotBottom = 158;
+const slot = (plotRight - plotLeft) / lanes.length;
+const barW = 30;
+const xAt = (i: number) => plotLeft + i * slot + (slot - barW) / 2;
+const yAt = (v: number) => plotBottom - (v / yMax) * (plotBottom - plotTop);
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Single-stream tokens per second across five Hermes serving lanes — llama.cpp MoE 88, vLLM MoE 56, NIM 28, llama.cpp dense 10, vLLM dense 7" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hlb-plot-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <rect x={plotLeft} y={plotTop} width={plotRight - plotLeft} height={plotBottom - plotTop}
+        fill="url(#hlb-plot-grad)" stroke="none"/>
+  <g class="svg-reveal svg-reveal-d1">
+    <line x1={plotLeft} y1={plotBottom} x2={plotRight} y2={plotBottom} stroke="var(--svg-stroke)" stroke-width="0.5"/>
+    <text x={plotLeft - 5} y={plotBottom + 3} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="9">0</text>
+    <line x1={plotLeft} y1={yAt(50)} x2={plotRight} y2={yAt(50)}
+          stroke="var(--svg-stroke)" stroke-width="0.5" stroke-dasharray="2 3" opacity="0.6"/>
+    <text x={plotLeft - 5} y={yAt(50) + 3} text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="9">50</text>
+  </g>
+  {lanes.map((l, i) => {
+    const x = xAt(i);
+    const y = yAt(l.tps);
+    const h = plotBottom - y;
+    return (
+      <g class={`bar-grow svg-reveal-d${Math.min(8, 2 + i)}`} style={`transform-origin: ${x + barW / 2}px ${plotBottom}px`}>
+        <rect x={x} y={y} width={barW} height={h} rx="3"
+              fill={l.color} fill-opacity={l.accent ? 0.9 : 0.5}
+              stroke={l.accent ? 'var(--color-primary)' : 'none'} stroke-width={l.accent ? 1.5 : 0}/>
+        <text x={x + barW / 2} y={y - 4} text-anchor="middle"
+              fill={l.color} font-family="var(--font-mono)" font-size="10" font-weight="600">{l.tps}</text>
+      </g>
+    );
+  })}
+  <g class="svg-reveal svg-reveal-d8">
+    {lanes.map((l, i) => (
+      <text x={xAt(i) + barW / 2} y={plotBottom + 15} text-anchor="middle"
+            fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="8">{l.label}</text>
+    ))}
+    <text x={plotLeft} y={plotTop - 12} text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="9" letter-spacing="0.08em">TOK/S · SINGLE-STREAM</text>
+    <text x={plotRight} y={plotTop - 12} text-anchor="end"
+          fill="var(--svg-accent-green)" font-family="var(--font-mono)" font-size="9">all 0% fmt-err</text>
+  </g>
+</svg>

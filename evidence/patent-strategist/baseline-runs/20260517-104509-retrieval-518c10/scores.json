@@ -1,0 +1,26 @@
+{
+  "per_shape": {
+    "D-mcq": {
+      "mean": 1.0,
+      "n": 5
+    }
+  },
+  "per_use_case": {
+    "D-mcq/D1": {
+      "mean": 1.0,
+      "n": 3
+    },
+    "D-mcq/D3": {
+      "mean": 1.0,
+      "n": 2
+    }
+  },
+  "skipped_by_shape": {},
+  "overall_mean": 1.0,
+  "overall_n": 5,
+  "wall_seconds": 182.7,
+  "inference_calls": 5,
+  "inference_seconds": 182.4,
+  "error_count": 0,
+  "errors": []
+}

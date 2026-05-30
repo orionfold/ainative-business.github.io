@@ -1,0 +1,69 @@
+---
+// Signature figure for "DGX Spark — Day One Access First".
+// Hub-and-spoke: a central hexagonal "You" hub connects to five tool chips.
+// Compact 300x200 thumbnail variant of the in-article fn-diagram.
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Access layer — you at the hub, five tools on spokes" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="access-hub-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="access-hub-halo-grad" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- hub halo (background atmosphere around the YOU hexagon) -->
+  <rect x="80" y="30" width="140" height="140" fill="url(#access-hub-halo-grad)" stroke="none"/>
+
+  <!-- spokes (drawn first so nodes overlap them) -->
+  <g fill="none" stroke="var(--svg-connector)" stroke-width="1" stroke-linecap="round">
+    <path class="line-draw svg-reveal-d1" d="M 150 100 L 60  50"/>
+    <path class="line-draw svg-reveal-d2" d="M 150 100 L 240 50"/>
+    <path class="line-draw svg-reveal-d3" d="M 150 100 L 40  120"/>
+    <path class="line-draw svg-reveal-d4" d="M 150 100 L 260 120"/>
+    <path class="line-draw svg-reveal-d5" d="M 150 100 L 150 175"/>
+  </g>
+
+  <!-- central hub (hexagon) -->
+  <g class="svg-reveal svg-reveal-d1">
+    <polygon
+      points="150,65 178,82 178,118 150,135 122,118 122,82"
+      fill="url(#access-hub-grad)"
+      stroke="var(--svg-accent-blue)"
+      stroke-width="1.5"
+    />
+    <text x="150" y="105" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="11" font-weight="600" letter-spacing="0.1em">YOU</text>
+  </g>
+
+  <!-- spoke chips -->
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="18"  y="34" width="84" height="30" rx="6" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <text x="60"  y="53" text-anchor="middle" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="10">Moonlight</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="198" y="34" width="84" height="30" rx="6" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <text x="240" y="53" text-anchor="middle" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="10">Claude Code</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="0"   y="104" width="80" height="30" rx="6" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <text x="40"  y="123" text-anchor="middle" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="10">Playwright</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="220" y="104" width="80" height="30" rx="6" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <text x="260" y="123" text-anchor="middle" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="10">NemoClaw</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="110" y="160" width="80" height="30" rx="6" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <text x="150" y="179" text-anchor="middle" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="10">git + blog</text>
+  </g>
+
+  <!-- edge dots near hub -->
+  <g fill="var(--svg-accent-blue)">
+    <circle class="dot-pop svg-reveal-d6" cx="150" cy="100" r="2.5"/>
+  </g>
+</svg>

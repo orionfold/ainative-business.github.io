@@ -1,0 +1,36 @@
+---
+import { STAGES } from '../content.config.ts';
+
+interface Props {
+  current?: string | null;
+}
+
+const { current = null } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+
+const STAGE_LABELS: Record<string, string> = {
+  foundations: 'Foundations',
+  training: 'Training',
+  'fine-tuning': 'Fine-tuning',
+  inference: 'Inference',
+  deployment: 'Deployment',
+  agentic: 'Agentic',
+  observability: 'Observability',
+  'dev-tools': 'Dev-tools',
+};
+---
+<nav class="stage-filter" aria-label="Filter by topic">
+  <span class="stage-filter__label">Topics</span>
+  <a
+    class="stage-filter__chip"
+    href={base}
+    aria-current={current === null ? 'page' : undefined}
+  >All</a>
+  {STAGES.filter((stage) => stage !== 'foundations').map((stage) => (
+    <a
+      class="stage-filter__chip"
+      href={`${base}stage/${stage}/`}
+      aria-current={current === stage ? 'page' : undefined}
+    >{STAGE_LABELS[stage]}</a>
+  ))}
+</nav>

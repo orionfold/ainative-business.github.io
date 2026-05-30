@@ -1,0 +1,361 @@
+/* diagrams.css — SVG diagram system (ported from the old Field Notes pass
+ * to the new ainative-cloned OKLCH tokens). Class names preserved so
+ * existing article markdown (<figure class="fn-diagram">…</figure>) renders
+ * unchanged; only the token references changed.
+ *
+ * Authoring guide: ~/.claude/skills/tech-writer/references/visualizations.md
+ *
+ * Motion is still slow and deliberate (one ease curve, opacity/position only).
+ * No neon, no bounce, no rotation. All colour flows through --color-* tokens.
+ */
+
+:root {
+  --fn-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --fn-dur-short: 600ms;
+  --fn-dur-med: 900ms;
+  --fn-dur-long: 1400ms;
+  --fn-stagger: 120ms;
+}
+
+/* --- Figure wrapper — break out of the prose column. Caps at 88rem (4rem
+ * inset from the 92rem .article frame) so the diagram remains visually
+ * proportional in the wider article. When a floated explainer immediately
+ * precedes the diagram, the explainers stylesheet drops that explainer's
+ * float and renders it inline at prose width — so the diagram flows freely
+ * below it without overlap or side-gap.
+ * Selector uses .prose to win specificity against `.prose figure { margin: 2rem 0 }`
+ * in global.css, which would otherwise zero the left margin and shift the figure. */
+
+.prose .fn-diagram {
+  display: block;
+  width: min(calc(100vw - 3rem), calc(88rem - 3rem));
+  margin-left: 50%;
+  margin-right: 0;
+  margin-top: 3rem;
+  margin-bottom: 2.4rem;
+  transform: translateX(-50%);
+  padding: 0;
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  box-shadow: 0 2px 6px color-mix(in oklch, var(--color-surface) 40%, transparent);
+}
+
+@media (max-width: 640px) {
+  .prose .fn-diagram {
+    width: calc(100vw - 2.5rem);
+    margin-left: -1.25rem;
+    transform: none;
+    border-radius: 0;
+    border-inline: none;
+  }
+}
+
+.fn-diagram > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  padding: 1.6rem 1.4rem 1.2rem;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.fn-diagram > figcaption {
+  display: block;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--color-text-muted);
+  max-width: 60ch;
+  margin: 0 auto;
+  padding: 0 1rem 1.25rem;
+  line-height: 1.55;
+}
+
+/* --- SVG primitive classes ----------------------------------------------- */
+/*
+ * Motion contract: every animated element starts INVISIBLE (opacity: 0) and
+ * stays that way until an ancestor `.fn-diagram` gains the `.fn-diagram--visible`
+ * class. That class is added by BaseLayout.astro's IntersectionObserver when
+ * the figure scrolls into view — matching the behaviour of signature figures.
+ * Putting `animation: ...` only inside the `.fn-diagram--visible` branch means
+ * the whole diagram is silent until the reader actually reaches it.
+ */
+
+.fn-diagram__node {
+  fill: var(--color-surface-overlay);
+  stroke: var(--color-text-muted);
+  stroke-width: 1.25;
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__node {
+  animation: fn-fade-rise var(--fn-dur-med) var(--fn-ease) forwards;
+}
+
+.fn-diagram__node--accent {
+  fill: color-mix(in oklch, var(--color-primary) 22%, transparent);
+  stroke: var(--color-text-muted);
+  stroke-width: 1.25;
+}
+
+.fn-diagram__node--ink {
+  fill: var(--color-surface);
+  stroke: var(--color-text);
+}
+
+.fn-diagram__node--ghost {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-dasharray: 4 3;
+}
+
+/* Edges — use pathLength="100" on every <path> so timing is predictable */
+.fn-diagram__edge {
+  fill: none;
+  stroke: var(--color-text-muted);
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__edge {
+  animation: fn-stroke-draw var(--fn-dur-long) var(--fn-ease) forwards;
+}
+
+.fn-diagram__edge--accent {
+  stroke: var(--color-primary);
+  stroke-width: 1.5;
+}
+
+.fn-diagram__edge--dashed {
+  stroke-dasharray: 5 4;
+  stroke-dashoffset: 0;
+  opacity: 0;
+  animation: none;
+}
+.fn-diagram--visible .fn-diagram__edge--dashed {
+  animation: fn-fade-in var(--fn-dur-med) var(--fn-ease) forwards;
+}
+
+.fn-diagram__edge--ghost {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0;
+  animation: none;
+  stroke-dasharray: 0;
+  stroke-dashoffset: 0;
+}
+.fn-diagram--visible .fn-diagram__edge--ghost {
+  animation: fn-fade-in var(--fn-dur-med) var(--fn-ease) forwards;
+}
+
+/* Flow particle — circle with <animateMotion>. Appears after edges draw.
+ * The circle MUST NOT set cx/cy: animateMotion applies as an additional
+ * translate() on top of the element's intrinsic position, so any non-zero
+ * cx/cy compounds with the motion path and displaces the dot. */
+.fn-diagram__flow {
+  fill: var(--color-primary);
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__flow {
+  animation: fn-fade-in var(--fn-dur-short) var(--fn-ease) forwards;
+  animation-delay: var(--fn-dur-long);
+}
+
+/* Soft pulse for "active" nodes */
+.fn-diagram__pulse {
+  transform-origin: center;
+  transform-box: fill-box;
+}
+.fn-diagram--visible .fn-diagram__pulse {
+  animation: fn-fade-rise var(--fn-dur-med) var(--fn-ease) forwards;
+}
+
+/* Data-point dots */
+.fn-diagram__dot {
+  fill: var(--color-text-muted);
+  stroke: none;
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__dot {
+  animation: fn-fade-in var(--fn-dur-short) var(--fn-ease) forwards;
+  animation-delay: var(--fn-dur-long);
+}
+
+.fn-diagram__dot--accent { fill: var(--color-primary); }
+.fn-diagram__dot--ghost  { fill: var(--color-text-dim); }
+
+/* Icons */
+.fn-diagram__icon {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0;
+  pointer-events: none;
+}
+.fn-diagram--visible .fn-diagram__icon {
+  animation: fn-fade-in var(--fn-dur-med) var(--fn-ease) forwards;
+  animation-delay: var(--fn-dur-med);
+}
+
+.fn-diagram__icon--accent { stroke: var(--color-primary); }
+.fn-diagram__icon--muted  { stroke: var(--color-text-muted); }
+.fn-diagram__icon--ink    { stroke: var(--color-text); }
+
+/* Bar segments */
+.fn-diagram__bar {
+  transform-origin: left center;
+  transform-box: fill-box;
+  transform: scaleX(0);
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__bar {
+  animation: fn-bar-grow var(--fn-dur-long) var(--fn-ease) forwards;
+}
+
+/* --- Labels -------------------------------------------------------------- */
+
+.fn-diagram__label {
+  font-family: var(--font-body);
+  font-size: 14px;
+  fill: var(--color-text);
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__label {
+  animation: fn-fade-rise var(--fn-dur-med) var(--fn-ease) forwards;
+  animation-delay: var(--fn-dur-short);
+}
+
+.fn-diagram__label--mono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  fill: var(--color-text-muted);
+}
+
+.fn-diagram__label--display {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  fill: var(--color-text);
+}
+
+.fn-diagram__label--accent {
+  font-family: var(--font-mono);
+  fill: var(--color-primary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.fn-diagram__label--muted { fill: var(--color-text-dim); }
+
+.fn-diagram__annotation {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: var(--color-text-dim);
+  opacity: 0;
+}
+.fn-diagram--visible .fn-diagram__annotation {
+  animation: fn-fade-rise var(--fn-dur-med) var(--fn-ease) forwards;
+  animation-delay: var(--fn-dur-long);
+}
+
+/* --- Stagger ------------------------------------------------------------- */
+
+.fn-diagram__nodes > :nth-child(1),
+.fn-diagram__edges > :nth-child(1),
+.fn-diagram__labels > :nth-child(1),
+.fn-diagram__annotations > :nth-child(1) { animation-delay: calc(var(--fn-stagger) * 0); }
+
+.fn-diagram__nodes > :nth-child(2),
+.fn-diagram__edges > :nth-child(2),
+.fn-diagram__labels > :nth-child(2),
+.fn-diagram__annotations > :nth-child(2) { animation-delay: calc(var(--fn-stagger) * 1); }
+
+.fn-diagram__nodes > :nth-child(3),
+.fn-diagram__edges > :nth-child(3),
+.fn-diagram__labels > :nth-child(3),
+.fn-diagram__annotations > :nth-child(3) { animation-delay: calc(var(--fn-stagger) * 2); }
+
+.fn-diagram__nodes > :nth-child(4),
+.fn-diagram__edges > :nth-child(4),
+.fn-diagram__labels > :nth-child(4),
+.fn-diagram__annotations > :nth-child(4) { animation-delay: calc(var(--fn-stagger) * 3); }
+
+.fn-diagram__nodes > :nth-child(5),
+.fn-diagram__edges > :nth-child(5),
+.fn-diagram__labels > :nth-child(5),
+.fn-diagram__annotations > :nth-child(5) { animation-delay: calc(var(--fn-stagger) * 4); }
+
+.fn-diagram__nodes > :nth-child(6),
+.fn-diagram__edges > :nth-child(6),
+.fn-diagram__labels > :nth-child(6),
+.fn-diagram__annotations > :nth-child(6) { animation-delay: calc(var(--fn-stagger) * 5); }
+
+.fn-diagram__nodes > :nth-child(7),
+.fn-diagram__edges > :nth-child(7),
+.fn-diagram__labels > :nth-child(7),
+.fn-diagram__annotations > :nth-child(7) { animation-delay: calc(var(--fn-stagger) * 6); }
+
+.fn-diagram__nodes > :nth-child(8),
+.fn-diagram__edges > :nth-child(8),
+.fn-diagram__labels > :nth-child(8),
+.fn-diagram__annotations > :nth-child(8) { animation-delay: calc(var(--fn-stagger) * 7); }
+
+.fn-diagram__nodes > :nth-child(n+9),
+.fn-diagram__edges > :nth-child(n+9),
+.fn-diagram__labels > :nth-child(n+9),
+.fn-diagram__annotations > :nth-child(n+9) { animation-delay: calc(var(--fn-stagger) * 8); }
+
+.fn-diagram__bar:nth-of-type(1) { animation-delay: 0ms; }
+.fn-diagram__bar:nth-of-type(2) { animation-delay: calc(var(--fn-dur-long) * 0.35); }
+.fn-diagram__bar:nth-of-type(3) { animation-delay: calc(var(--fn-dur-long) * 0.55); }
+.fn-diagram__bar:nth-of-type(4) { animation-delay: calc(var(--fn-dur-long) * 0.70); }
+.fn-diagram__bar:nth-of-type(5) { animation-delay: calc(var(--fn-dur-long) * 0.82); }
+
+/* --- Keyframes ---------------------------------------------------------- */
+
+@keyframes fn-fade-rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fn-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fn-stroke-draw {
+  from { opacity: 0; stroke-dashoffset: 100; }
+  15%  { opacity: 1; }
+  to   { opacity: 1; stroke-dashoffset: 0; }
+}
+
+@keyframes fn-soft-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.04); }
+}
+
+@keyframes fn-bar-grow {
+  from { opacity: 0; transform: scaleX(0); }
+  to   { opacity: 1; transform: scaleX(1); }
+}
+
+/* --- Reduced motion ----------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .fn-diagram *,
+  .fn-diagram *::before,
+  .fn-diagram *::after {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

@@ -1,0 +1,81 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SeriesFilter from '../../components/SeriesFilter.astro';
+import StageFilter from '../../components/StageFilter.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { publishOrdinals } from '../../lib/article-order.mjs';
+import { SERIES, SERIES_SLUGS } from '../../content.config.ts';
+
+const SERIES_COPY: Record<string, { blurb: string }> = {
+  'Foundations': {
+    blurb: 'The shared install path — NIM through Guardrails — that sets up the substrate the three application arcs all build on. Plus the bridge piece that names the fork.',
+  },
+  'Second Brain': {
+    blurb: 'Query-time RAG over your own corpus. Cheap to ingest, paid per query — the standard answer to "what do I do with my files and a 128 GB GPU?"',
+  },
+  'LLM Wiki': {
+    blurb: 'Compile-time synthesis. The LLM maintains a linted markdown knowledge base at ingest — paid per source, ~free per query. Inverted RAG, after Karpathy.',
+  },
+  'Machine that Builds Machines': {
+    blurb: 'AI systems that build, train, supervise, or improve other AI artifacts on the Spark. Self-improvement loops on agent trajectories (GRPO, T²PO), synthetic-data pipelines, codegen and SDLC agents, alignment-engineering primitives — and the original karpathy autoresearch loop as one installment of the broader thesis. Tied to /book/ Ch10 "The Machine That Builds Machines."',
+  },
+  'Looking Beyond Spark': {
+    blurb: 'Arithmetic that the Spark teaches and frontier hardware finishes. H100, H200, B200, SuperPODs, DGX Cloud — what the math on your desk extrapolates to when the rig you need is in someone else\'s rack.',
+  },
+  'Frontier Scout': {
+    blurb: 'The upstream of the publication pipeline. An agent reads the global stream of new AI papers, scores each by popularity and code, and verdicts whether the core hypothesis is reproducible on the Spark — feeding the next deep-dive.',
+  },
+  'Harnesses': {
+    blurb: 'Optimized agent harnesses for the DGX Spark. Take a frontier open-source harness, tune its serving lane, harden it, and wire it to the box itself via fieldkit-as-MCP — the cockpit you drive Spark from. Hermes (Nous Research, MIT) is entry #1.',
+  },
+  'Cockpit': {
+    blurb: 'The operator cockpit for the DGX Spark — drive every quant, LoRA, bench, harness, and skill your Spark has produced from one local-first surface. Spark Arena (entry #1) is a hybrid Astro + FastAPI app at http://127.0.0.1:7866/arena/ that surfaces live telemetry, rubric-scored side-by-side compare, and a private leaderboard you can publish when you are ready. The cockpit complements the Harnesses arc: where Hermes is the agent harness, Arena is the operator harness.',
+  },
+};
+
+export async function getStaticPaths() {
+  const all = await getCollection('articles');
+  const ordinalById = publishOrdinals(all, process.cwd());
+
+  return SERIES.map((name) => {
+    const slug = SERIES_SLUGS[name];
+    const entries = all
+      .filter((a) => a.data.series === name)
+      .sort((a, b) => {
+        const aUp = a.data.status === 'upcoming' ? 1 : 0;
+        const bUp = b.data.status === 'upcoming' ? 1 : 0;
+        if (aUp !== bUp) return aUp - bUp;
+        return ordinalById.get(b.id)! - ordinalById.get(a.id)!;
+      })
+      .map((article) => ({ article, ordinal: ordinalById.get(article.id)! }));
+    return {
+      params: { series: slug },
+      props: { name, entries },
+    };
+  });
+}
+
+const { name, entries } = Astro.props;
+const copy = SERIES_COPY[name];
+---
+<BaseLayout title={`${name} — ainative`} description={copy.blurb}>
+  <header class="stage-header">
+    <p class="stage-header__label">Series</p>
+    <h1 class="stage-header__title">{name}</h1>
+    <p class="stage-header__blurb">{copy.blurb}</p>
+  </header>
+
+  <SeriesFilter current={name} />
+  <StageFilter current={null} />
+
+  <section class="research-list">
+    {entries.length === 0 ? (
+      <p class="research-list__empty">No entries yet — planned.</p>
+    ) : (
+      entries.map(({ article, ordinal }) => (
+        <ArticleCard article={article} ordinal={ordinal} />
+      ))
+    )}
+  </section>
+</BaseLayout>

@@ -1,0 +1,25 @@
+---
+import { SERIES, SERIES_SLUGS } from '../content.config.ts';
+
+interface Props {
+  current?: string | null;
+}
+
+const { current = null } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+---
+<nav class="series-filter" aria-label="Filter by series">
+  <span class="series-filter__label">Series</span>
+  <a
+    class="series-filter__chip"
+    href={base}
+    aria-current={current === null ? 'page' : undefined}
+  >All</a>
+  {SERIES.map((name) => (
+    <a
+      class="series-filter__chip"
+      href={`${base}series/${SERIES_SLUGS[name]}/`}
+      aria-current={current === name ? 'page' : undefined}
+    >{name}</a>
+  ))}
+</nav>

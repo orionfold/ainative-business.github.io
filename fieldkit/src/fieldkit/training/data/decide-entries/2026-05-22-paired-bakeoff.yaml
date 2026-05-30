@@ -1,0 +1,53 @@
+# First seed entry for fieldkit.training.decide.
+#
+# Encodes the patent-strategist v3 paired-bakeoff findings from the
+# articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/ session
+# (2026-05-21 → 2026-05-22). The "carry both Unsloth & NeMo in fieldkit
+# v0.5" verdict from [[project_nemo_pilot_verdict]] lands here so the
+# next session's `train_backend(...)` returns the article's findings
+# programmatically.
+#
+# Refresh cadence: re-verify when base model family, framework version,
+# or DGX Spark hardware envelope changes; flag stale after 180 days
+# (DEFAULT_FRESHNESS_DAYS).
+
+slug: 2026-05-22-paired-bakeoff
+lifecycle: active
+created: 2026-05-22
+question: train_backend
+context:
+  base_model_family: qwen3-r1-distill
+  base_model: deepseek-ai/DeepSeek-R1-0528-Qwen3-8B
+  hardware: dgx-spark-gb10
+  corpus_size_rows: 5000
+findings:
+  - optimize_for: patent_chain_length
+    pick: nemo
+    evidence: "NeMo lane +44% mean <think> chain length on patent-strategic category at same 0.80 think rate vs Unsloth, on identical 5k-row corpus"
+  - optimize_for: wall_clock
+    pick: nemo
+    evidence: "NeMo 5h 38m vs Unsloth 7h 34m (-26% wall, -26% per-step) on identical 5k-row corpus + same LoRA hyperparams"
+  - optimize_for: perplexity
+    pick: nemo
+    evidence: "NeMo lane perplexity ~1 unit lower across all 4 quants (Q4_K_M 11.30→10.24, Q5_K_M 10.97→10.04, Q6_K 10.87→9.96, Q8_0 10.85→9.93) on wikitext-2 — independent evidence of better-calibrated weights from the same recipe"
+  - optimize_for: dev_velocity
+    pick: unsloth
+    evidence: "Rebuild + smoke loop ~4× faster; 4-bit QLoRA support out-of-box; first-error-to-fix wall ~3 min vs ~12 min on NeMo. Pick Unsloth for the inner-loop iteration phase even when the final long-run trains on NeMo"
+  - optimize_for: qlora_4bit
+    pick: unsloth
+    evidence: "Unsloth supports 4-bit QLoRA on aarch64+CUDA-13; NeMo (Megatron-Bridge 0.4.0rc0) requires BF16 LoRA. If the unified-memory envelope demands 4-bit, Unsloth is the only working lane on the Spark today"
+sources:
+  - articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/
+  - probes/patent-strategist-v3-2026-05-21.json
+  - probes/patent-strategist-v3-nemo-2026-05-21.json
+  - https://huggingface.co/Orionfold/patent-strategist-v3-unsloth
+  - https://huggingface.co/Orionfold/patent-strategist-v3-nemo
+  - https://huggingface.co/Orionfold/patent-strategist-v3-unsloth-GGUF
+  - https://huggingface.co/Orionfold/patent-strategist-v3-nemo-GGUF
+supersedes: []
+notes: |
+  Probe-budget caveat: Unsloth ran at max_new_tokens=1536, NeMo at
+  2048. The patent_chain_length finding survives normalize_budget=True
+  rerun via ProbeReport.compare (only p-p-strat-01 at 1895 tok exceeded
+  the smaller cap; finding stays directional). The wall_clock + perplexity
+  findings are budget-independent.

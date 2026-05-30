@@ -1,0 +1,157 @@
+---
+// Signature figure for "derisk-cloud-pretraining-on-the-spark".
+// A horizontal funnel showing the recipe-search pipeline:
+// 100 candidate architectures → Spark filter → 10 promising → Spark
+// stress-test → 3 finalists → cloud commit → 1 trained model.
+//
+// The thesis-critical accent is the Spark filter (the indigo column),
+// because the Spark filter is what the article is selling. The cloud
+// final-training column is a flat surface — present but plain — to
+// make the visual say "the small thing we built keeps the big thing
+// honest."
+//
+// Cost callouts under each stage compress the article's headline
+// arithmetic into one glance: $1 of Spark electricity gates ~$3K of
+// cloud compute, with a ~3000× expected-savings ratio when the filter
+// prevents one wrong final-training booking.
+
+const stages = [
+  { x: 12,  w: 60, label: "100",  sub: "candidates",  cost: "—",       muted: true  },
+  { x: 78,  w: 60, label: "Spark",sub: "recipe lab",  cost: "$1",      accent: true },
+  { x: 144, w: 50, label: "10",   sub: "promising",   cost: "—",       muted: true  },
+  { x: 200, w: 60, label: "Spark",sub: "stress test", cost: "$0.40",   accent: true },
+  { x: 266, w: 30, label: "3",    sub: "finalists",   cost: "—",       muted: true  },
+];
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="A horizontal funnel showing the derisking pipeline: 100 candidate architectures filtered by a Spark recipe lab to 10 promising candidates, stress-tested by a second Spark pass to 3 finalists, then committed to a one-week 8×H100 cloud pretrain that produces 1 trained model. Spark filter cost: ~$1. Cloud final pretrain cost: ~$3,360. Expected savings vs blind cloud booking: ~$1,679 per campaign at a 50% wrong-pick rate."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ssc-spark-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="ssc-cloud-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.10"/>
+    </linearGradient>
+    <linearGradient id="ssc-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--color-primary)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+
+  <!-- atmospheric band behind the Spark stages -->
+  <rect x="74" y="50" width="220" height="90" fill="url(#ssc-band)" stroke="none"/>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="20" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" letter-spacing="0.18em">SPARK SANDBOX → CLOUD COMMIT</text>
+  </g>
+
+  <!-- five intermediate stages: 100 → Spark → 10 → Spark → 3 -->
+  <g class="svg-reveal svg-reveal-d2">
+    <!-- 100 candidates (muted) -->
+    <rect x="12" y="62" width="60" height="60" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="42" y="86" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="14" font-weight="700">100</text>
+    <text x="42" y="100" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5">candidates</text>
+    <text x="42" y="115" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">on paper</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d3">
+    <!-- Spark filter (accent) -->
+    <rect x="80" y="55" width="56" height="74" rx="5"
+          fill="url(#ssc-spark-grad)" stroke="var(--color-primary)" stroke-width="1"/>
+    <text x="108" y="78" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="9" font-weight="700">Spark</text>
+    <text x="108" y="92" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6.5">recipe lab</text>
+    <text x="108" y="108" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">100 iters · 2.4 hr</text>
+    <text x="108" y="120" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" font-weight="700">$1</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d4">
+    <!-- 10 promising (muted) -->
+    <rect x="144" y="68" width="44" height="48" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="166" y="89" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="12" font-weight="700">10</text>
+    <text x="166" y="103" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">promising</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d5">
+    <!-- Spark stress-test (accent, slightly slimmer) -->
+    <rect x="196" y="62" width="50" height="60" rx="5"
+          fill="url(#ssc-spark-grad)" stroke="var(--color-primary)" stroke-width="1"/>
+    <text x="221" y="82" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="8" font-weight="700">Spark</text>
+    <text x="221" y="93" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6">stress test</text>
+    <text x="221" y="106" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5">3 × 1k steps · 22 hr</text>
+    <text x="221" y="118" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" font-weight="700">$0.40</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d6">
+    <!-- 3 finalists (muted) -->
+    <rect x="254" y="74" width="34" height="36" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="271" y="92" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="11" font-weight="700">3</text>
+    <text x="271" y="103" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5">finalists</text>
+  </g>
+
+  <!-- divider -->
+  <g class="svg-reveal svg-reveal-d7">
+    <line x1="10" y1="148" x2="290" y2="148"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+          stroke-dasharray="2 3"/>
+    <text x="150" y="163" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.14em">CLOUD COMMIT</text>
+  </g>
+
+  <!-- cloud final pretrain bar -->
+  <g class="svg-reveal svg-reveal-d8">
+    <rect class="bar-grow-x" x="12" y="172" width="220" height="18" rx="3"
+          fill="url(#ssc-cloud-grad)"
+          stroke="var(--svg-accent-orange)" stroke-width="0.5"/>
+    <text x="20" y="184" text-anchor="start"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="7" font-weight="600">8× H100 · 1 week</text>
+    <rect x="240" y="172" width="48" height="18" rx="3"
+          fill="var(--svg-bg-inner)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="264" y="184" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="700">$3.4K</text>
+  </g>
+</svg>

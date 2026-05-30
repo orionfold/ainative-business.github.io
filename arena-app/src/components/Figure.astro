@@ -1,0 +1,16 @@
+---
+interface Props {
+  number?: string | number;
+  caption: string;
+  variant?: 'default' | 'bleed' | 'wide';
+}
+
+const { number, caption, variant = 'default' } = Astro.props;
+const cls = variant === 'default' ? 'figure' : `figure figure--${variant}`;
+---
+<figure class={cls}>
+  <slot />
+  <figcaption>
+    {number !== undefined && <span class="figure__number">Figure {number}.</span>} {caption}
+  </figcaption>
+</figure>

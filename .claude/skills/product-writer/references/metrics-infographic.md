@@ -14,7 +14,7 @@ source paths, the test globs, and the commit pattern. Example (Orionfold Arena):
 ```bash
 python3 ~/.claude/skills/product-writer/scripts/mine_build_metrics.py \
   --since 2026-05-28T09:00:00 --until 2026-05-29T01:00:00 \
-  --log-dir /home/nvidia/.claude/projects/-home-nvidia-ai-field-notes \
+  --log-dir /home/nvidia/.claude/projects/-home-nvidia-ainative-business-github-io \
   --repo /home/nvidia/ainative-business.github.io \
   --commit-grep '^(arena:|spec\(arena\))' \
   --loc fieldkit/src/fieldkit/arena --loc-exclude _webui \

@@ -1,0 +1,124 @@
+---
+// Signature figure for "runtime-frontier-six-patches-on-spark".
+// Six small patch markers stamped left-to-right across the card, each with
+// a halo, connected by a faint dashed baseline — the six drifts cleared in
+// order. On the right, an accent block carries the headline number: 97.4%
+// of baseline tok/s, with "Qwen 2.5 7B" in mono underneath. Top kicker:
+// TWO PATCHES BECAME SIX. The visual logic mirrors the article's arc:
+// the count went up; the empirical claim still landed.
+
+const driftMarkers = [
+  { cx: 22, cy: 116 },
+  { cx: 44, cy: 116 },
+  { cx: 66, cy: 116 },
+  { cx: 88, cy: 116 },
+  { cx: 110, cy: 116 },
+  { cx: 132, cy: 116 },
+];
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Two patches became six. Six small filled circles stamped left to right across the lower-left half of the card, each with a halo, connected by a dashed baseline — the six drifts cleared in order. On the right, an accent block carries the headline 97.4 percent — ESamp at 97.4 percent of baseline tok/s on patched Qwen 2.5 7 billion, three trials, within 1.4 percentage points of the paper's reference 4090 number."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sdon-accent-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="sdon-accent-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="sdon-trail-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.03"/>
+    </linearGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">TWO PATCHES BECAME SIX</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">vLLM 0.20.0 × tLLM × ESamp on Spark</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="50" width="140" height="120" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <rect x="14" y="50" width="140" height="120" rx="6"
+          fill="url(#sdon-trail-grad)" stroke="none"/>
+    <text x="84" y="44" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.10em">SIX DRIFTS CLEARED</text>
+    <text x="84" y="160" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">eight files · ~100 lines of patch</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d3">
+    <line x1="22" y1="116" x2="132" y2="116"
+          stroke="var(--svg-connector)" stroke-width="0.5"
+          stroke-dasharray="2 3" opacity="0.6"/>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d4">
+    {driftMarkers.map((p) => (
+      <g fill="var(--svg-accent-blue)">
+        <circle cx={p.cx} cy={p.cy} r="6" opacity="0.18"/>
+        <circle cx={p.cx} cy={p.cy} r="2.6"/>
+      </g>
+    ))}
+  </g>
+
+  <g class="svg-reveal svg-reveal-d5">
+    <text x="84" y="92" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">1·sig 2·sig 3·tuple 4·shape 5·id 6·tap</text>
+    <text x="22" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">1</text>
+    <text x="44" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">2</text>
+    <text x="66" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">3</text>
+    <text x="88" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">4</text>
+    <text x="110" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">5</text>
+    <text x="132" y="138" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">6</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="166" y="50" width="120" height="120" rx="6"
+          fill="var(--svg-bg-inner-fill)"
+          stroke="var(--color-text-muted)" stroke-width="1"/>
+    <rect x="166" y="50" width="120" height="120" rx="6"
+          fill="url(#sdon-accent-halo)" stroke="none"/>
+    <rect x="166" y="50" width="120" height="120" rx="6"
+          fill="url(#sdon-accent-grad)" stroke="none"/>
+    <text x="226" y="44" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" font-weight="700" letter-spacing="0.10em">ESAMP / BASELINE</text>
+    <text x="226" y="108" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-display)"
+          font-size="32" font-weight="700">97.4%</text>
+    <text x="226" y="128" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.08em">tok/s ratio · n=3 · sd 1.66</text>
+    <text x="226" y="146" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.08em">Qwen 2.5 7B Instruct · eager mode</text>
+    <text x="226" y="160" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.08em">paper ref: 0.9878× on 4090 + cudagraphs</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="190" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">two patches were six · the number held</text>
+  </g>
+</svg>

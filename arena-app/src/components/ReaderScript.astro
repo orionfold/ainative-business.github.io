@@ -1,0 +1,31 @@
+---
+// FOUC-free pre-paint script for the reader controls. Runs in <head>,
+// inline + blocking, mirroring ThemeScript's approach so the page never
+// flashes the wrong font scale, line height, reader theme, or explainer
+// mode.
+//
+// Source-of-truth attributes set on <html>:
+//   data-font-scale     S | M | L
+//   data-line-height    compact | default | relaxed
+//   data-reader-theme   light | sepia | dark   (independent of data-theme)
+//   data-explain-mode   hide | margin | inline
+//
+// localStorage keys are namespaced afn:* to coexist with the destination's
+// /book/ reader settings without conflict.
+---
+<script is:inline>
+  (function () {
+    try {
+      var fs = localStorage.getItem('afn:font-scale');
+      var lh = localStorage.getItem('afn:line-height');
+      var rt = localStorage.getItem('afn:reader-theme');
+      var em = localStorage.getItem('afn:explain-mode');
+      if (fs === 'S' || fs === 'M' || fs === 'L') document.documentElement.dataset.fontScale = fs;
+      if (lh === 'compact' || lh === 'default' || lh === 'relaxed') document.documentElement.dataset.lineHeight = lh;
+      if (rt === 'light' || rt === 'sepia' || rt === 'dark') document.documentElement.dataset.readerTheme = rt;
+      if (em === 'hide' || em === 'margin' || em === 'inline') document.documentElement.dataset.explainMode = em;
+    } catch (e) {
+      /* no-op — no localStorage or quota issue, defaults stand */
+    }
+  })();
+</script>

@@ -1,0 +1,38 @@
+# Orionfold Arena — the project's first App Artifact (P7 distribution).
+# The operator cockpit ships INSIDE the fieldkit wheel (`pip install
+# fieldkit[arena]` → `fieldkit arena up`) and as a public web preview at
+# ainative.business/arena/. hf_repo names the planned Orionfold HF Space (the
+# secondary discovery surface); the Spark detail page renders the live-preview
+# CTA for `arena_run` kind, so it never hard-links a not-yet-uploaded Space.
+slug: orionfold-arena
+kind: arena_run
+class: app
+base_model: fieldkit[arena] · Astro + FastAPI sidecar
+hf_repo: Orionfold/orionfold-arena
+license:
+  tier: free
+  model: apache-2.0
+published_at: "2026-05-28T00:00:00Z"
+positioning:
+  headline: An operator cockpit you run on your own DGX Spark
+  problem: >-
+    Public model arenas optimise for crowdsourced vote volume on cloud APIs and
+    never know what hardware their votes ran on. Orionfold Arena is the
+    operator-driven, local-first alternative: a one-process cockpit that drives every quant, LoRA,
+    bench, harness, and skill your Spark has produced — private eval
+    leaderboards, a cost-per-quality efficiency frontier, side-by-side
+    rubric-scored compare, live telemetry, and a co-iteration Lab. Your prompts,
+    telemetry, and eval data never leave the box.
+  use_cases:
+    - Chat against the resident brain with live tok/s + unified-memory telemetry
+    - Side-by-side rubric-scored compare (resident lane vs OpenRouter frontier)
+    - Private leaderboards + a cost/quality Pareto frontier anchored to real Spark hardware
+    - Browse the model/notebook/bench/harness catalog with quant economics
+    - A Lab board for the operator+AI build loop, with a private notes margin
+  audience: >-
+    DGX Spark operators (GB10, 128 GB unified memory) and edge-AI builders who
+    want a beautiful, local-first cockpit over their own artifacts — no hosted
+    SaaS, no data egress.
+known_drift:
+  - item: Live surfaces (chat, compare, telemetry, Lab notes) need the local sidecar
+    bound: On the public web preview the sidecar is offline by design; ~5 surfaces degrade to their static mirror data + an offline banner. The leaderboard, models browser, frontier, and Lab board render fully static.

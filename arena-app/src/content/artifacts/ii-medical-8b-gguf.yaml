@@ -1,0 +1,37 @@
+slug: ii-medical-8b-gguf
+kind: quant
+class: gguf
+base_model: Intelligent-Internet/II-Medical-8B
+hf_repo: Orionfold/II-Medical-8B-GGUF
+variants:
+  - Q4_K_M
+  - Q5_K_M
+  - Q6_K
+  - Q8_0
+  - F16
+perplexity:
+  F16: 16.2676
+  Q4_K_M: 16.55
+  Q5_K_M: 16.2418
+  Q6_K: 16.0139
+  Q8_0: 16.2957
+spark_tokens_per_sec:
+  Q4_K_M: 43.57
+  Q5_K_M: 36.36
+  Q6_K: 32.8
+  Q8_0: 28.42
+  F16: 15.94
+sustained_load_minutes: 18.08238853323334
+vertical_eval:
+  Q4_K_M: 0.42
+  Q5_K_M: 0.52
+  Q6_K: 0.46
+  Q8_0: 0.48
+  F16: 0.48
+vertical_eval_name: "MedMCQA (n=50, mcq_letter)"
+recommended_variant: Q5_K_M
+license:
+  tier: free
+  model: apache-2.0
+article: articles/becoming-a-medical-curator-on-spark/
+published_at: "2026-05-16T05:20:26Z"

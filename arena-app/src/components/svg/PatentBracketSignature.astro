@@ -1,0 +1,160 @@
+---
+// Signature figure for "patent-strategist-v1-baseline-on-spark".
+// The three-mode bracket distilled into one visual: D-mcq accuracy
+// across closed → retrieval → oracle on the same 40-row D-mcq slice
+// of the patent-strategist-v0.1 bench. Reasoning model is
+// DeepSeek-R1-0528-Qwen3-8B Q5_K_M on llama-server.
+//
+// The shape of the ladder is the article's headline argument:
+// closed-to-retrieval lift (+0.225) is more than double the
+// retrieval-to-oracle lift (+0.100). The BGE-small/FAISS index is
+// closing most of the available context-gap; the residual is where
+// the retriever lands on a related-but-wrong MPEP subsection.
+
+type Mode = { key: 'closed' | 'retrieval' | 'oracle'; label: string; score: number };
+
+const modes: Mode[] = [
+  { key: 'closed',    label: 'closed',    score: 0.625 },
+  { key: 'retrieval', label: 'retrieval', score: 0.850 },
+  { key: 'oracle',    label: 'oracle',    score: 0.950 },
+];
+
+// Random-guess baseline for 4-choice MCQ.
+const RANDOM_BASELINE = 0.25;
+
+// Layout
+const plotLeft = 38;
+const plotRight = 282;
+const plotTop = 56;
+const plotBot = 156;
+const plotW = plotRight - plotLeft;
+const plotH = plotBot - plotTop;
+
+const yToPlot = (v: number) => plotBot - v * plotH; // 0..1 → bottom..top
+const xCenter = (i: number) =>
+  plotLeft + ((i + 0.5) / modes.length) * plotW;
+
+const barW = 44;
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Three-mode bracket signature. D-mcq accuracy on the 40-row patent-strategist v0.1 multiple-choice slice climbs from 0.625 closed-book to 0.85 with BGE-small/FAISS retrieval to 0.95 with oracle context. Reasoning model: DeepSeek-R1-0528-Qwen3-8B Q5_K_M on llama-server. Random-guess baseline for 4-choice MCQ is 0.25."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="pbs-bar-closed" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-indigo)" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="var(--svg-accent-indigo)" stop-opacity="0.30"/>
+    </linearGradient>
+    <linearGradient id="pbs-bar-retrieval" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.90"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.30"/>
+    </linearGradient>
+    <linearGradient id="pbs-bar-oracle" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.30"/>
+    </linearGradient>
+    <radialGradient id="pbs-peakhalo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  {/* Title */}
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">PATENT-STRATEGIST V0.1 · D-MCQ · THREE-MODE BRACKET</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">R1-0528-Qwen3-8B Q5_K_M · 40 rows · 0.25 random baseline</text>
+  </g>
+
+  {/* Plot frame (faint) */}
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1={plotLeft} x2={plotRight}
+          y1={plotBot} y2={plotBot}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <line x1={plotLeft} x2={plotLeft}
+          y1={plotTop} y2={plotBot}
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    {/* gridlines at 0.25 / 0.50 / 0.75 / 1.00 */}
+    {[0.25, 0.50, 0.75, 1.00].map((y) => (
+      <g>
+        <line x1={plotLeft} x2={plotRight}
+              y1={yToPlot(y)} y2={yToPlot(y)}
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+              stroke-dasharray={y === RANDOM_BASELINE ? "2 2" : "1 3"}
+              opacity={y === RANDOM_BASELINE ? "0.9" : "0.55"}/>
+        <text x={plotLeft - 4} y={yToPlot(y) + 2}
+              text-anchor="end"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5">{y.toFixed(2)}</text>
+      </g>
+    ))}
+    {/* random-baseline label */}
+    <text x={plotRight - 2} y={yToPlot(RANDOM_BASELINE) - 2}
+          text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="4.8" letter-spacing="0.06em">random 4-choice</text>
+  </g>
+
+  {/* Bars */}
+  {modes.map((m, i) => {
+    const cx = xCenter(i);
+    const top = yToPlot(m.score);
+    const h = plotBot - top;
+    const grad = `url(#pbs-bar-${m.key})`;
+    return (
+      <g class={`svg-reveal svg-reveal-d${3 + i}`}>
+        {/* peak halo behind the oracle bar */}
+        {m.key === 'oracle' && (
+          <circle cx={cx} cy={top + 4} r="22" fill="url(#pbs-peakhalo)"/>
+        )}
+        {/* bar */}
+        <rect x={cx - barW / 2} y={top} width={barW} height={h}
+              fill={grad} stroke="none" rx="2"/>
+        {/* score callout */}
+        <text x={cx} y={top - 6}
+              text-anchor="middle"
+              fill={m.key === 'oracle' ? 'var(--color-primary)' : 'var(--svg-text-default)'}
+              font-family="var(--font-mono)"
+              font-size="11" font-weight={700}>{m.score.toFixed(2)}</text>
+        {/* mode label */}
+        <text x={cx} y={plotBot + 10}
+              text-anchor="middle"
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="6.5" letter-spacing="0.10em">{m.label}</text>
+      </g>
+    );
+  })}
+
+  {/* Lift annotations: +0.225 closed→retrieval, +0.100 retrieval→oracle */}
+  <g class="svg-reveal svg-reveal-d6">
+    {/* closed → retrieval */}
+    <path d={`M ${xCenter(0) + barW/2 + 2} ${yToPlot(modes[0].score)} L ${xCenter(1) - barW/2 - 2} ${yToPlot(modes[1].score)}`}
+          fill="none" stroke="var(--svg-accent-blue)" stroke-width="1"
+          stroke-dasharray="3 2" opacity="0.9"/>
+    <text x={(xCenter(0) + xCenter(1)) / 2} y={(yToPlot(modes[0].score) + yToPlot(modes[1].score)) / 2 - 4}
+          text-anchor="middle"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6" font-weight={600}>+0.225</text>
+    {/* retrieval → oracle */}
+    <path d={`M ${xCenter(1) + barW/2 + 2} ${yToPlot(modes[1].score)} L ${xCenter(2) - barW/2 - 2} ${yToPlot(modes[2].score)}`}
+          fill="none" stroke="var(--color-primary)" stroke-width="1"
+          stroke-dasharray="3 2" opacity="0.9"/>
+    <text x={(xCenter(1) + xCenter(2)) / 2} y={(yToPlot(modes[1].score) + yToPlot(modes[2].score)) / 2 - 4}
+          text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="6" font-weight={600}>+0.100</text>
+  </g>
+
+  {/* Footer caption */}
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">closed-to-retrieval lift is 2.25× the retrieval-to-oracle gap</text>
+    <text x="150" y="194" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5" letter-spacing="0.10em">→ fine-tune the model first, retriever upgrades later</text>
+  </g>
+</svg>

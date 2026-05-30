@@ -1,0 +1,10 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+<div class:list={["relative h-px my-16", className]}>
+  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
+</div>

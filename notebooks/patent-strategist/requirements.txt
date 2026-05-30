@@ -1,0 +1,9 @@
+# Cloud-runtime deps for the patent-strategist notebooks (Colab / Kaggle).
+# The notebooks also self-install this via `%pip install -q 'fieldkit[notebook]'`
+# in their first code cell; this file lets a runtime that reads requirements.txt
+# (or a `pip install -r`) provision the same environment up front.
+#
+# fieldkit[notebook] pulls matplotlib, great-tables, pandas, polars, jupytext,
+# papermill, jupyterlab, pyyaml, huggingface_hub, and llama-cpp-python (the
+# cloud inference engine that runs the published GGUF on a free GPU).
+fieldkit[notebook]

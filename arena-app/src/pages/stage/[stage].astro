@@ -1,0 +1,93 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import StageFilter from '../../components/StageFilter.astro';
+import SeriesFilter from '../../components/SeriesFilter.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { publishOrdinals } from '../../lib/article-order.mjs';
+
+const STAGE_COPY: Record<string, { title: string; blurb: string }> = {
+  foundations: {
+    title: 'Foundations',
+    blurb: 'Setup, access, environment — the interaction stack that makes the rest feasible. What a personal AI box actually needs before any model runs on it.',
+  },
+  training: {
+    title: 'Training',
+    blurb: 'When the Spark trains from scratch or continues pre-training — and when it should not. On-device training economics for an individual.',
+  },
+  'fine-tuning': {
+    title: 'Fine-tuning',
+    blurb: 'Adapting open-weight models to your own data on a single machine. NeMo, LoRA, full-parameter — what each is for and what each demands.',
+  },
+  inference: {
+    title: 'Inference',
+    blurb: 'Serving models locally. NIM, Triton, TensorRT-LLM — what each replaces in your API bill, what each costs in cold-start and memory.',
+  },
+  deployment: {
+    title: 'Deployment',
+    blurb: 'From experiment to something that runs for you reliably. Containers, services, updates, graceful degradation on one machine.',
+  },
+  agentic: {
+    title: 'Agentic',
+    blurb: 'Multi-agent orchestration without a cluster. Sandboxing, tool use, long horizons — what is and is not possible on a single Spark.',
+  },
+  observability: {
+    title: 'Observability',
+    blurb: 'Knowing what is actually happening on your GPUs. Latency, memory, throughput — instrumentation for a rig you cannot stare at all day.',
+  },
+  'dev-tools': {
+    title: 'Dev-tools',
+    blurb: 'Nsight, CUDA tooling, editor integrations. The things that shorten the distance between an idea and its first running version.',
+  },
+};
+
+export async function getStaticPaths() {
+  const all = await getCollection('articles');
+  const ordinalById = publishOrdinals(all, process.cwd());
+
+  const STAGES_LOCAL = [
+    'foundations', 'training', 'fine-tuning', 'inference',
+    'deployment', 'agentic', 'observability', 'dev-tools',
+  ] as const;
+
+  return STAGES_LOCAL.map((stage) => {
+    const entries = all
+      .filter((a) => a.data.stage === stage || (a.data.also_stages ?? []).includes(stage as any))
+      .sort((a, b) => {
+        // Upcoming last, then by ordinal desc within each group.
+        const aUp = a.data.status === 'upcoming' ? 1 : 0;
+        const bUp = b.data.status === 'upcoming' ? 1 : 0;
+        if (aUp !== bUp) return aUp - bUp;
+        return ordinalById.get(b.id)! - ordinalById.get(a.id)!;
+      })
+      .map((article) => ({ article, ordinal: ordinalById.get(article.id)! }));
+    return {
+      params: { stage },
+      props: { stage, entries },
+    };
+  });
+}
+
+const { stage, entries } = Astro.props;
+const copy = STAGE_COPY[stage];
+---
+<BaseLayout title={`${copy.title} — ainative`} description={copy.blurb}>
+  <header class="stage-header">
+    <p class="stage-header__label">Stage</p>
+    <h1 class="stage-header__title">{copy.title}</h1>
+    <p class="stage-header__blurb">{copy.blurb}</p>
+  </header>
+
+  <SeriesFilter current={null} />
+  <StageFilter current={stage} />
+
+  <section class="research-list">
+    {entries.length === 0 ? (
+      <p class="research-list__empty">No entries yet — planned.</p>
+    ) : (
+      entries.map(({ article, ordinal }) => (
+        <ArticleCard article={article} ordinal={ordinal} />
+      ))
+    )}
+  </section>
+</BaseLayout>

@@ -1,0 +1,185 @@
+---
+// Signature figure for "autoresearch-agent-loop".
+// 50-iteration sparkline of val_bpb on a held-out wikitext slice. Each
+// dot is one iteration; ★-shaped dots are accepted proposals (val_bpb
+// improved by ≥ 0.5%), small dots are reverts. Horizontal dashed line
+// is the baseline. The accepted points cluster near the bottom — those
+// are the agent's wins. The iter-38 spike at val_bpb=13.76 (d_model=256,
+// disastrous −25.6%) is clipped with a callout — it didn't crash, it
+// just regressed sharply, and the rails caught nothing because the
+// proposal was structurally legal.
+//
+// This sparkline IS the trajectory. The signature's job is to show
+// at thumbnail size: the agent ran, eight times the agent helped,
+// once the agent badly hurt, and the box stayed up the whole time.
+
+const iters: Array<{i:number; v:number; keep:boolean}> = [
+  {i: 1, v:10.9524, keep:false}, {i: 2, v:10.9362, keep:false}, {i: 3, v:10.9448, keep:false},
+  {i: 4, v:10.8722, keep:true},  {i: 5, v:10.9373, keep:false}, {i: 6, v:10.8713, keep:true},
+  {i: 7, v:10.9245, keep:false}, {i: 8, v:10.9347, keep:false}, {i: 9, v:10.9504, keep:false},
+  {i:10, v:10.9401, keep:false}, {i:11, v:10.9385, keep:false}, {i:12, v:10.9125, keep:false},
+  {i:13, v:11.0791, keep:false}, {i:14, v:10.9299, keep:false}, {i:15, v:11.1329, keep:false},
+  {i:16, v:10.9350, keep:false}, {i:17, v:10.9566, keep:false}, {i:18, v:10.9371, keep:false},
+  {i:19, v:10.9767, keep:false}, {i:20, v:10.9616, keep:false}, {i:21, v:10.9524, keep:false},
+  {i:22, v:10.9618, keep:false}, {i:23, v:10.8575, keep:true},  {i:24, v:10.9479, keep:false},
+  {i:25, v:10.9335, keep:false}, {i:26, v:10.9593, keep:false}, {i:27, v:10.9422, keep:false},
+  {i:28, v:10.9504, keep:false}, {i:29, v:10.9460, keep:false}, {i:30, v:10.9393, keep:false},
+  {i:31, v:10.8873, keep:true},  {i:32, v:10.9236, keep:false}, {i:33, v:10.8692, keep:true},
+  {i:34, v:10.9127, keep:false}, {i:35, v:10.9374, keep:false}, {i:36, v:10.9571, keep:false},
+  {i:37, v:10.9469, keep:false}, {i:38, v:13.7575, keep:false}, // off-chart
+  {i:39, v:10.9487, keep:false}, {i:40, v:10.9405, keep:false}, {i:41, v:10.9667, keep:false},
+  {i:42, v:11.1193, keep:false}, {i:43, v:10.8989, keep:true},  {i:44, v:10.9686, keep:false},
+  {i:45, v:10.8534, keep:true},  {i:46, v:10.8885, keep:true},  {i:47, v:10.9398, keep:false},
+  {i:48, v:10.9337, keep:false}, {i:49, v:10.9334, keep:false}, {i:50, v:10.9601, keep:false},
+];
+
+const BASELINE = 10.9554;
+const Y_MIN = 10.84;
+const Y_MAX = 11.15;        // clip; iter 38 (13.76) is shown as a clipped marker
+const N = iters.length;
+const PLOT_X0 = 24;
+const PLOT_W = 248;
+const PLOT_TOP = 38;
+const PLOT_H = 110;
+
+const xAt = (i: number) => PLOT_X0 + ((i - 1) / (N - 1)) * PLOT_W;
+const yAt = (v: number) => {
+  const clamped = Math.min(Math.max(v, Y_MIN), Y_MAX);
+  return PLOT_TOP + (1 - (clamped - Y_MIN) / (Y_MAX - Y_MIN)) * PLOT_H;
+};
+
+// Build the line path connecting all iterations (for smooth context;
+// dots ride on top).
+const linePath = iters.map((p, idx) =>
+  `${idx === 0 ? "M" : "L"} ${xAt(p.i).toFixed(2)} ${yAt(p.v).toFixed(2)}`
+).join(" ");
+
+const yBaseline = yAt(BASELINE);
+const yBest = yAt(10.8534);
+
+const keeps = iters.filter(p => p.keep);
+const reverts = iters.filter(p => !p.keep);
+const clipped = iters.filter(p => p.v > Y_MAX);
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="50-iteration trajectory of val_bpb across the autoresearch agent loop. Baseline val_bpb 10.9554 shown as a horizontal dashed line. Eight iterations crossed the 0.5% improvement threshold and were kept (highlighted dots, all clustered just below the baseline). Best result val_bpb 10.8534 at iteration 45, a 0.93% improvement, all from a single recurring perturbation: d_model=768. One outlier at iteration 38 reached val_bpb 13.76 (d_model=256, off-chart) without crashing the host. Total wall 73.4 minutes, electricity ~0.07 kWh."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="art-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.05"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="art-best-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">AGENT TRAJECTORY · 50 ITERS · GB10</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">val_bpb · 8 keeps (★) · 0 rail blocks · 73 min · ~0.07 kWh</text>
+  </g>
+
+  {/* atmospheric band */}
+  <rect x={PLOT_X0 - 4} y={PLOT_TOP - 4}
+        width={PLOT_W + 8} height={PLOT_H + 8}
+        fill="url(#art-band)" stroke="none"/>
+
+  {/* baseline reference */}
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1={PLOT_X0} x2={PLOT_X0 + PLOT_W} y1={yBaseline} y2={yBaseline}
+          stroke="var(--svg-text-faint)" stroke-width="0.5" stroke-dasharray="2 2"/>
+    <text x={PLOT_X0 + PLOT_W + 2} y={yBaseline + 2} text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5">
+      baseline
+    </text>
+    <text x={PLOT_X0 + PLOT_W + 2} y={yBaseline + 8} text-anchor="start"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5">
+      10.96
+    </text>
+  </g>
+
+  {/* line through all points */}
+  <g class="svg-reveal svg-reveal-d3">
+    <path d={linePath} fill="none"
+          stroke="var(--svg-text-faint)" stroke-width="0.5" opacity="0.55"
+          stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  {/* revert dots */}
+  <g class="svg-reveal svg-reveal-d3">
+    {reverts.filter(p => p.v <= Y_MAX).map(p => (
+      <circle cx={xAt(p.i)} cy={yAt(p.v)} r="1.4"
+              fill="var(--svg-accent-indigo)" opacity="0.55"/>
+    ))}
+  </g>
+
+  {/* clipped points (off-chart) — small upward triangle at top edge */}
+  {clipped.map(p => {
+    const x = xAt(p.i);
+    return (
+      <g class="svg-reveal svg-reveal-d4">
+        <path d={`M ${x} ${PLOT_TOP - 2} L ${x - 2} ${PLOT_TOP + 2} L ${x + 2} ${PLOT_TOP + 2} Z`}
+              fill="var(--svg-accent-red)" opacity="0.85"
+              stroke="var(--svg-accent-red)" stroke-width="0.5"/>
+        <text x={x + 5} y={PLOT_TOP + 3}
+              fill="var(--svg-accent-red)" font-family="var(--font-mono)" font-size="5">
+          iter {p.i} · {p.v.toFixed(1)}
+        </text>
+      </g>
+    );
+  })}
+
+  {/* keep dots (★, larger, accent color) */}
+  <g class="svg-reveal svg-reveal-d5">
+    {keeps.map(p => (
+      <circle cx={xAt(p.i)} cy={yAt(p.v)} r="2.2"
+              fill="var(--svg-accent-blue)"
+              stroke="var(--svg-accent-blue)" stroke-width="0.5"/>
+    ))}
+  </g>
+
+  {/* best halo + callout */}
+  <g class="svg-reveal svg-reveal-d6">
+    <circle cx={xAt(45)} cy={yBest} r="9" fill="url(#art-best-halo)"/>
+    <text x={xAt(45)} y={yBest - 5} text-anchor="middle"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6" font-weight={700}>BEST 10.85</text>
+  </g>
+
+  {/* x-axis ticks */}
+  <g class="svg-reveal svg-reveal-d6">
+    {[1, 10, 20, 30, 40, 50].map(t => (
+      <text x={xAt(t)} y={PLOT_TOP + PLOT_H + 8} text-anchor="middle"
+            fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+        {t}
+      </text>
+    ))}
+    <text x={PLOT_X0 + PLOT_W / 2} y={PLOT_TOP + PLOT_H + 16} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="4.8"
+          letter-spacing="0.10em">iteration</text>
+  </g>
+
+  {/* legend / footnote */}
+  <g class="svg-reveal svg-reveal-d6">
+    <circle cx="64" cy="190" r="1.4" fill="var(--svg-accent-indigo)" opacity="0.65"/>
+    <text x="70" y="192" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="6">revert (42)</text>
+
+    <circle cx="124" cy="190" r="2.2" fill="var(--svg-accent-blue)"/>
+    <text x="130" y="192" fill="var(--svg-accent-blue)" font-family="var(--font-mono)" font-size="6" font-weight={600}>keep (8)</text>
+
+    <path d="M 178 192 L 176 195 L 180 195 Z" fill="var(--svg-accent-red)" opacity="0.85"/>
+    <text x="184" y="195" fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="6">off-chart</text>
+
+    <text x="290" y="195" text-anchor="end"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="5.5">
+      best +0.93%
+    </text>
+  </g>
+</svg>

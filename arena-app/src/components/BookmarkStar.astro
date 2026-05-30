@@ -1,0 +1,150 @@
+---
+/**
+ * BookmarkStar — toggle button only. Pairs with ResumeBanner.astro which
+ * renders the "Pick up where you left off?" prompt inline above the prose.
+ * Both share the same scroll-position storage protocol so the script lives
+ * here and runs once globally per article load.
+ *
+ * Storage:
+ *   afn:bookmarks                — JSON map { slug: { addedAt, title } }
+ *   afn:position:<slug>          — JSON { pct, ts } updated on debounced scroll
+ *   sessionStorage afn:position-dismiss:<slug>  — set when user dismisses banner
+ */
+interface Props {
+  slug: string;
+}
+const { slug } = Astro.props;
+---
+<button
+  type="button"
+  class="bookmark-star"
+  data-slug={slug}
+  aria-pressed="false"
+  aria-label="Bookmark this article"
+  title="Bookmark this article"
+>
+  <svg class="bookmark-star__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+  </svg>
+  <span class="bookmark-star__label">Bookmark</span>
+</button>
+
+<style>
+  .bookmark-star {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .bookmark-star:hover { color: var(--color-primary); border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-border)); }
+  .bookmark-star[aria-pressed="true"] {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 50%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  }
+  .bookmark-star[aria-pressed="true"] .bookmark-star__icon { fill: currentColor; }
+
+  @media (max-width: 640px) {
+    .bookmark-star__label { display: none; }
+  }
+</style>
+
+<script>
+  function initBookmarkAndPosition() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>('.bookmark-star');
+    const banners = document.querySelectorAll<HTMLElement>('.article__resume-banner');
+    const STORAGE_KEY = 'afn:bookmarks';
+    const POSITION_KEY = (slug: string) => `afn:position:${slug}`;
+    const DISMISS_KEY = (slug: string) => `afn:position-dismiss:${slug}`;
+
+    function readBookmarks(): Record<string, { addedAt: number; title?: string }> {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+    function writeBookmarks(next: Record<string, { addedAt: number; title?: string }>) {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch {}
+    }
+
+    let activeSlug: string | null = null;
+    buttons.forEach((btn) => {
+      const slug = btn.dataset.slug;
+      if (!slug) return;
+      activeSlug = slug;
+      const bookmarks = readBookmarks();
+      btn.setAttribute('aria-pressed', String(slug in bookmarks));
+      btn.addEventListener('click', () => {
+        const current = readBookmarks();
+        if (slug in current) {
+          delete current[slug];
+          btn.setAttribute('aria-pressed', 'false');
+        } else {
+          const title = document.querySelector('h1')?.textContent?.trim() ?? slug;
+          current[slug] = { addedAt: Date.now(), title };
+          btn.setAttribute('aria-pressed', 'true');
+        }
+        writeBookmarks(current);
+      });
+    });
+
+    if (activeSlug) {
+      let saveTimer: ReturnType<typeof setTimeout> | null = null;
+      window.addEventListener('scroll', () => {
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          const doc = document.documentElement;
+          const total = doc.scrollHeight - window.innerHeight;
+          if (total <= 0) return;
+          const pct = Math.min(1, Math.max(0, window.scrollY / total));
+          if (pct < 0.04 || pct > 0.97) {
+            try { localStorage.removeItem(POSITION_KEY(activeSlug!)); } catch {}
+            return;
+          }
+          try { localStorage.setItem(POSITION_KEY(activeSlug!), JSON.stringify({ pct, ts: Date.now() })); } catch {}
+        }, 350);
+      }, { passive: true });
+    }
+
+    banners.forEach((banner) => {
+      const slug = banner.dataset.resumeSlug;
+      if (!slug) return;
+      let stored: { pct: number; ts: number } | null = null;
+      try {
+        const raw = localStorage.getItem(POSITION_KEY(slug));
+        if (raw) stored = JSON.parse(raw);
+      } catch { stored = null; }
+      const dismissed = sessionStorage.getItem(DISMISS_KEY(slug)) === '1';
+      if (!stored || dismissed || stored.pct < 0.05) return;
+      banner.hidden = false;
+
+      banner.querySelector('button.js-resume')?.addEventListener('click', () => {
+        const doc = document.documentElement;
+        const total = doc.scrollHeight - window.innerHeight;
+        if (total > 0) window.scrollTo({ top: total * stored!.pct, behavior: 'smooth' });
+        banner.hidden = true;
+      });
+      banner.querySelector('button.js-dismiss')?.addEventListener('click', () => {
+        banner.hidden = true;
+        try { sessionStorage.setItem(DISMISS_KEY(slug), '1'); } catch {}
+      });
+    });
+  }
+
+  initBookmarkAndPosition();
+  document.addEventListener('astro:after-swap', initBookmarkAndPosition);
+</script>

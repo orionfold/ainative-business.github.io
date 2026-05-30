@@ -1,0 +1,24 @@
+{
+  "run_id": "20260517-104509-retrieval-518c10",
+  "started_at": "2026-05-17T17:45:09Z",
+  "mode": "retrieval",
+  "retrieval_only": false,
+  "shapes": [
+    "D-mcq"
+  ],
+  "reviewed_only": false,
+  "limit": 5,
+  "top_k": 8,
+  "max_context_chars": null,
+  "embed_model": "BAAI/bge-small-en-v1.5",
+  "embed_device": "cuda",
+  "generator": {
+    "url": "http://localhost:8080/v1/chat/completions",
+    "model": "deepseek-r1-0528-qwen3-8b",
+    "temperature": 0.6,
+    "max_tokens": 4096,
+    "timeout_s": 600.0
+  },
+  "bench_hash": "d6bf676cafe169e8",
+  "questions_planned": 5
+}

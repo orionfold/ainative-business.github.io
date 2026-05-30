@@ -1,0 +1,303 @@
+---
+/**
+ * TelemetryRail — the persistent 6-cell instrument rail under the app bar.
+ *
+ * Renders six bezel cells (GPU% / TEMP / UNIFIED MEM / TOK/S / TTFT / LANE)
+ * + a rolling 60s unified-mem sparkline. Subscribes to the same SSE source
+ * as the M3 <TelemetryGauge> island (GET /api/telemetry/stream on the
+ * FastAPI sidecar at 127.0.0.1:7866), but with a *cockpit instrument-panel*
+ * presentation rather than the M3 chip-row presentation.
+ *
+ * The rail is a static Astro shell + an inline preact-free script that
+ * drives EventSource directly. We avoid hydrating Preact for the rail to
+ * keep the time-to-first-tick under 100ms; the script is trivial and
+ * doesn't justify a framework.
+ *
+ * Cell colour-thresholds per spec §4.6:
+ *   GPU%   green ≤80  · yellow 80–95 · red ≥95
+ *   GPU°C  green <80  · yellow ≥80   · red ≥90
+ *   Unified used > total-8 → yellow (envelope guard headroom)
+ */
+---
+<div class="telemetry-rail" id="telemetry-rail" aria-label="Spark telemetry instrument rail">
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="gpu" data-state="idle"></span>
+      GPU&nbsp;Util
+    </span>
+    <span class="telemetry-rail__value" data-metric="gpu_util">—</span>
+    <span class="telemetry-rail__hint">% utilisation</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="temp" data-state="idle"></span>
+      GPU&nbsp;Temp
+    </span>
+    <span class="telemetry-rail__value" data-metric="gpu_temp_c">—</span>
+    <span class="telemetry-rail__hint">°C die</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="unified" data-state="idle"></span>
+      Unified
+    </span>
+    <span class="telemetry-rail__value" data-metric="unified">—</span>
+    <span class="telemetry-rail__hint" data-metric="unified-hint">GB of 128 · 8 GB guard</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="tok" data-state="idle"></span>
+      Throughput
+    </span>
+    <span class="telemetry-rail__value" data-metric="tok_per_s">—</span>
+    <span class="telemetry-rail__hint">tok / second</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="ttft" data-state="idle"></span>
+      TTFT
+    </span>
+    <span class="telemetry-rail__value" data-metric="ttft_ms">—</span>
+    <span class="telemetry-rail__hint">ms · first token</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="lane" data-state="idle"></span>
+      Active&nbsp;Lane
+    </span>
+    <span class="telemetry-rail__value" data-metric="lane_id" style="font-size: 0.92rem;">idle</span>
+    <span class="telemetry-rail__hint" data-metric="lane-hint">no warm brain</span>
+  </div>
+  <div class="telemetry-rail__cell">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="cost" data-state="idle"></span>
+      OpenRouter
+    </span>
+    <span class="telemetry-rail__value" data-metric="openrouter_cost_usd">$0.00</span>
+    <span class="telemetry-rail__hint" data-metric="cost-hint">spend · since start</span>
+  </div>
+  <div class="telemetry-rail__chart">
+    <span class="telemetry-rail__label">
+      Unified&nbsp;·&nbsp;60&nbsp;s
+    </span>
+    <canvas id="telemetry-rail-spark" class="telemetry-rail__chart-plot" width="480" height="56"></canvas>
+    <span class="telemetry-rail__hint">8 GB guard band shown at top</span>
+  </div>
+  <div class="telemetry-rail__offline" id="telemetry-rail-offline" hidden>
+    <strong>Sidecar offline</strong> — start with <code>fieldkit arena serve</code> on the Spark to feed this rail.
+  </div>
+</div>
+
+<script is:inline>
+  // Direct EventSource subscription — no framework. Same shape the M3
+  // <TelemetryGauge> uses, but driven into raw DOM cells.
+  //
+  // Classic IIFE, NOT type="module": the EventSource-ctor catch below does a
+  // bare `return`, which at a module's top level is an "Illegal return
+  // statement" SyntaxError. Vite/dev throws it and the whole script never runs
+  // — so the rail subscribed to nothing and showed "—" forever. (This was the
+  // console error the rail emitted on every page.) No imports are used, so a
+  // classic script loses nothing. See HANDOFF gotcha on inline module scripts.
+  (function () {
+  // Resolve the sidecar from the PAGE host — must match the app-bar pill +
+  // resolveSidecarUrl(), or a LAN/remote tab (e.g. 10.0.0.209:4321) probes its
+  // own 127.0.0.1 and shows "offline" while the pill says "live". (Earlier the
+  // base was hardcoded 127.0.0.1:7866 — that was exactly this bug.)
+  const host = window.location.hostname;
+  const isLoopback = ['127.0.0.1', 'localhost'].includes(host);
+  const isLan = /^10\.0\.0\.\d+$/.test(host);
+  // Demo bundle: boot.js shims EventSource, so connect (don't show offline)
+  // even on a public host. The EventSource URL is matched by path, not host.
+  const isDemo = !!window.__ARENA_DEMO__;
+  const railEl = document.getElementById('telemetry-rail');
+  const offlineEl = document.getElementById('telemetry-rail-offline');
+  if (!railEl) {} // noop guard
+  else if (!isDemo && !isLoopback && !isLan) {
+    // Public mirror — show offline immediately, don't try to connect.
+    offlineEl.hidden = false;
+  } else {
+    const base = isDemo ? window.location.origin : `${window.location.protocol}//${host}:7866`;
+    const cells = {
+      gpu_util:    railEl.querySelector('[data-metric="gpu_util"]'),
+      gpu_temp_c:  railEl.querySelector('[data-metric="gpu_temp_c"]'),
+      unified:     railEl.querySelector('[data-metric="unified"]'),
+      unifiedHint: railEl.querySelector('[data-metric="unified-hint"]'),
+      tok_per_s:   railEl.querySelector('[data-metric="tok_per_s"]'),
+      ttft_ms:     railEl.querySelector('[data-metric="ttft_ms"]'),
+      lane_id:     railEl.querySelector('[data-metric="lane_id"]'),
+      laneHint:    railEl.querySelector('[data-metric="lane-hint"]'),
+      cost:        railEl.querySelector('[data-metric="openrouter_cost_usd"]'),
+      costHint:    railEl.querySelector('[data-metric="cost-hint"]'),
+    };
+    const dots = {
+      gpu:     railEl.querySelector('[data-cell="gpu"]'),
+      temp:    railEl.querySelector('[data-cell="temp"]'),
+      unified: railEl.querySelector('[data-cell="unified"]'),
+      tok:     railEl.querySelector('[data-cell="tok"]'),
+      ttft:    railEl.querySelector('[data-cell="ttft"]'),
+      lane:    railEl.querySelector('[data-cell="lane"]'),
+      cost:    railEl.querySelector('[data-cell="cost"]'),
+    };
+
+    // Sparkline state — rolling 60 s of (timestamp, unified_used_gb).
+    const sparkCanvas = document.getElementById('telemetry-rail-spark');
+    const ctx = sparkCanvas?.getContext('2d');
+    const series = { t: [], used: [] };
+    const WINDOW_S = 60;
+
+    function drawSpark(total) {
+      if (!ctx) return;
+      const W = sparkCanvas.width;
+      const H = sparkCanvas.height;
+      ctx.clearRect(0, 0, W, H);
+      // Guard band — top 8 GB of the total range.
+      const tot = Math.max(total ?? 128, 64);
+      const guardY = (8 / tot) * H;
+      ctx.fillStyle = 'oklch(0.83 0.16 78 / 0.10)';
+      ctx.fillRect(0, 0, W, guardY);
+      ctx.strokeStyle = 'oklch(0.83 0.16 78 / 0.45)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(0, guardY); ctx.lineTo(W, guardY); ctx.stroke();
+      ctx.setLineDash([]);
+      if (series.t.length < 2) return;
+      const t0 = series.t[0];
+      const tN = series.t[series.t.length - 1];
+      const dt = Math.max(tN - t0, 1);
+      ctx.beginPath();
+      for (let i = 0; i < series.t.length; i++) {
+        const x = ((series.t[i] - t0) / dt) * W;
+        const y = H - (series.used[i] / tot) * H;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = 'oklch(0.72 0.18 250)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+      // Fill below the line.
+      ctx.lineTo(W, H); ctx.lineTo(0, H); ctx.closePath();
+      ctx.fillStyle = 'oklch(0.72 0.18 250 / 0.18)';
+      ctx.fill();
+    }
+
+    function classForGpu(v) {
+      if (v == null) return 'idle';
+      if (v >= 95) return 'alarm';
+      if (v >= 80) return 'warn';
+      return 'ok';
+    }
+    function classForTemp(v) {
+      if (v == null) return 'idle';
+      if (v >= 90) return 'alarm';
+      if (v >= 80) return 'warn';
+      return 'ok';
+    }
+
+    function setCell(el, value, state) {
+      if (!el) return;
+      el.textContent = value;
+      if (state) el.dataset.state = state;
+    }
+    function setDot(el, state) {
+      if (!el) return;
+      el.dataset.state = state || 'idle';
+    }
+
+    // Offline banner is driven by a freshness watchdog, NOT EventSource.onerror
+    // — onerror fires on every transient reconnect (e.g. a sidecar restart),
+    // which used to flash/stick "offline" even though the stream recovered.
+    let lastTick = Date.now();
+    let es;
+    try {
+      es = new EventSource(`${base}/api/telemetry/stream`);
+    } catch {
+      offlineEl.hidden = false;
+      return;
+    }
+    // Show offline only after a real gap (no telemetry for 6s); any fresh tick
+    // hides it. Seeded to "now" so a momentary connect blip doesn't flash it.
+    setInterval(() => {
+      if (Date.now() - lastTick > 6000) offlineEl.hidden = false;
+    }, 2000);
+    es.addEventListener('telemetry', (ev) => {
+      offlineEl.hidden = true;
+      lastTick = Date.now();
+      try {
+        const t = JSON.parse(ev.data);
+        // GPU util
+        const gpuState = classForGpu(t.gpu_util);
+        setCell(cells.gpu_util, t.gpu_util != null ? `${t.gpu_util.toFixed(0)}%` : '—', gpuState);
+        setDot(dots.gpu, gpuState);
+        // Temp
+        const tempState = classForTemp(t.gpu_temp_c);
+        setCell(cells.gpu_temp_c, t.gpu_temp_c != null ? `${t.gpu_temp_c.toFixed(0)}°` : '—', tempState);
+        setDot(dots.temp, tempState);
+        // Unified
+        const used = t.unified_used_gb, total = t.unified_total_gb;
+        if (used != null && total != null) {
+          const guardWarn = used > total - 8;
+          setCell(cells.unified, `${used.toFixed(1)} / ${total.toFixed(0)}`, guardWarn ? 'warn' : 'ok');
+          setDot(dots.unified, guardWarn ? 'warn' : 'ok');
+          if (cells.unifiedHint) cells.unifiedHint.textContent = `GB · ${(total - used).toFixed(1)} headroom`;
+          // Sparkline append + redraw
+          const now = Date.now() / 1000;
+          series.t.push(now); series.used.push(used);
+          while (series.t.length && series.t[0] < now - WINDOW_S) {
+            series.t.shift(); series.used.shift();
+          }
+          drawSpark(total);
+        }
+        // Throughput — bright while a stream is live, dimmed (but still shown)
+        // as the last generation's rate at idle, dash only before the first run.
+        const inflight = t.inflight;
+        if (t.tok_per_s != null) {
+          const state = inflight ? 'ok' : 'idle';
+          setCell(cells.tok_per_s, `${t.tok_per_s.toFixed(1)}`, state);
+          setDot(dots.tok, state);
+        } else {
+          setCell(cells.tok_per_s, '—', 'idle');
+          setDot(dots.tok, 'idle');
+        }
+        // TTFT
+        if (t.ttft_ms != null) {
+          setCell(cells.ttft_ms, `${t.ttft_ms.toFixed(0)} ms`, 'ok');
+          setDot(dots.ttft, 'ok');
+        } else {
+          setCell(cells.ttft_ms, '—', 'idle');
+          setDot(dots.ttft, 'idle');
+        }
+        // OpenRouter spend (cumulative since sidecar start)
+        const cost = t.openrouter_cost_usd;
+        if (cost != null && !Number.isNaN(cost)) {
+          const dollars = cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(4)}`;
+          setCell(cells.cost, dollars, cost > 0 ? 'ok' : 'idle');
+          setDot(dots.cost, cost > 0 ? 'ok' : 'idle');
+          if (cells.costHint) {
+            const n = t.openrouter_calls || 0;
+            cells.costHint.textContent = n > 0
+              ? `${n} call${n === 1 ? '' : 's'} · since start`
+              : 'spend · since start';
+          }
+        }
+        // Lane — active inference lane when streaming; otherwise the warm
+        // resident brain at idle (so it isn't "no warm brain" when one is up).
+        const lane = t.lane_id || t.resident_lane;
+        if (lane) {
+          setCell(cells.lane_id, lane, 'ok');
+          setDot(dots.lane, 'ok');
+          if (cells.laneHint)
+            cells.laneHint.textContent = inflight ? 'streaming' : 'resident · warm';
+        } else {
+          setCell(cells.lane_id, 'idle', 'idle');
+          setDot(dots.lane, 'idle');
+          if (cells.laneHint) cells.laneHint.textContent = 'no warm brain';
+        }
+      } catch {}
+    });
+    // Soft hint only: a hard-closed stream surfaces offline immediately; the
+    // watchdog above owns the steady-state decision.
+    es.onerror = () => {
+      if (es.readyState === 2) offlineEl.hidden = false;
+    };
+  }
+  })();
+</script>

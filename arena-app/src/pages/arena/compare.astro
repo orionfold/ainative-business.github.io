@@ -1,0 +1,46 @@
+---
+// Compare — /arena/compare/
+//
+// Standalone app shell — uses ArenaAppLayout. The <CompareDuel> island
+// carries the actual A/B-stream + rubric-score UX; this page restyles its
+// container as a cockpit duel pane.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import CompareDuel from '../../components/arena/CompareDuel.jsx';
+
+const title = 'Spark Arena — Compare';
+const description =
+  'Side-by-side rubric-scored compare on the Spark — resident brain vs OpenRouter frontier, deterministic scoring, operator thumbs as a separate signal.';
+---
+<ArenaAppLayout title={title} description={description} active="compare">
+
+  <header class="pageheader">
+    <div>
+      <p class="pageheader__eyebrow">M5 · A vs B · deterministic rubric</p>
+      <h1 class="pageheader__title">Compare</h1>
+      <p class="pageheader__blurb">
+        Streams <code>POST /api/compare/stream</code>. Lane A is the resident
+        brain; lane B defaults to OpenRouter via the H6 cost router. The rubric
+        scorer is deterministic <code>fieldkit.eval.score_answer</code>; thumbs-up
+        writes a <code>human_prefs</code> row but never mutates
+        <code>rubric_scores.total</code> (spec §4.3 separate-signal contract).
+      </p>
+    </div>
+  </header>
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Duel — A vs B</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">single SSE</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          publishable = 1 (compare_runs)
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      <CompareDuel client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>

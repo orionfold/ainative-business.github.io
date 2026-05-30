@@ -1,0 +1,145 @@
+---
+// Lab — /arena/lab/
+//
+// Phase 6: the first co-iteration surface — a visible workbench for the
+// operator+AI build loop. Three lanes (Now / Next / Exploring) sourced
+// statically (so it showcases the loop on the public preview too) + a
+// "built together" timeline generated from `git log --grep '^arena:'`
+// (scripts/gen_arena_changelog.mjs → src/data/arena-changelog.json).
+//
+// The board content is curated from the arena backlog (ideas/spark-arena.md
+// locked decisions + spec v0.2 scope + the HANDOFF deferral lists) and any
+// `status: upcoming` articles. The operator-private annotation layer
+// (<LabNotes>) is progressive enhancement — invisible on the public mirror,
+// loopback-only CRUD when the sidecar is live.
+import ArenaAppLayout from '../../../layouts/ArenaAppLayout.astro';
+import LabNotes from '../../../components/arena/LabNotes.jsx';
+import changelog from '../../../data/arena-changelog.json';
+import { getCollection } from 'astro:content';
+
+const title = 'Orionfold Arena — Lab';
+const description =
+  'The co-iteration workbench — what the operator and Claude are building together on the DGX Spark right now, what is queued next, and what we are still exploring, with a built-together timeline of every Arena commit.';
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const href = (p: string) => `${base}${p}`.replace(/\/+/g, '/');
+
+type Card = { id: string; title: string; detail: string; link?: string; linkLabel?: string };
+
+// --- NOW — landed / landing in the v0.2 leap (this session). ---
+const now: Card[] = [
+  { id: 'models-browser', title: 'Models browser', detail: 'The dead "Models" tab is now a filterable capability catalog — positioning, quant economics, bounded drift, deep-links into chat & compare.', link: 'arena/models/', linkLabel: 'Open' },
+  { id: 'efficiency-frontier', title: 'Cost/quality frontier', detail: 'A Pareto frontier anchored to real Spark hardware — quality × throughput scatter with a deterministic gold skyline, on the leaderboard marquee.', link: 'arena/leaderboard/', linkLabel: 'Open' },
+  { id: 'compare-depth', title: 'Compare depth + parity', detail: 'Side-by-side now renders markdown + syntax highlighting at chat parity, with a rubric-derived winner banner and a head-to-head delta strip.', link: 'arena/compare/', linkLabel: 'Open' },
+  { id: 'command-palette', title: 'Command palette (⌘K)', detail: 'A global fuzzy palette over every model, article, lane, and page — keyboard-first, offline-safe, with ask/compare quick actions.' },
+  { id: 'evidence-bridge', title: 'Telemetry ↔ evidence bridge', detail: 'The cockpit now contrasts live resident-brain throughput against the published baselines that 49 deep-dives measured.', link: 'arena/', linkLabel: 'Open' },
+  { id: 'lab-surface', title: 'This Lab', detail: 'A public window into the operator+AI build loop, with an operator-private margin (pin a note on any card when the sidecar is live).' },
+];
+
+// --- NEXT — decided, not yet built (spec v0.2 scope + HANDOFF deferrals). ---
+const next: Card[] = [
+  { id: 'wheel-distribution', title: 'Ships inside the fieldkit wheel', detail: 'pip install fieldkit[arena] → fieldkit arena up → the full cockpit at 127.0.0.1:7866/arena/ — no clone, no npm. The app rides the package.' },
+  { id: 'lane-swap', title: 'Lane swap from the pill', detail: 'Mutate ~/.hermes/config.yaml from the LanePill to hot-swap the resident brain without leaving chat.' },
+  { id: 'two-local-lanes', title: 'Two local lanes in compare', detail: 'Today compare pits the resident brain against the OpenRouter frontier; v0.2 lets you duel two local quants head-to-head.' },
+  { id: 'ab-regenerate', title: 'A/B regenerate on a turn', detail: 'Regenerate a single assistant turn into a side-by-side variant instead of a hard replace.' },
+  { id: 'history-sidebar', title: 'Full history sidebar', detail: 'Promote the session-switcher popover into a persistent left rail of prior chats.' },
+];
+
+// --- EXPLORING — open assumptions / back-of-queue (ideas/spark-arena.md). ---
+const exploring: Card[] = [
+  { id: 'gpt-oss-120b', title: 'gpt-oss-120b resident bakeoff', detail: 'Whether a 120B MoE can repin as the resident brain if it clears the multi-step capacity wall the 30B-MoE hit on H6 (assumption A3).' },
+  { id: 'job-queue', title: 'arq + Redis job queue', detail: 'A real background job surface for long eval sweeps, promoted from BackgroundTasks once the queue actually wires up (assumption A1).' },
+  { id: 'hf-space-demo', title: 'HuggingFace Space demo', detail: 'A static Arena preview as an Orionfold Space, matching where the models and datasets already live.' },
+  { id: 'blog-search', title: 'Blog search in the palette', detail: 'Wire the second-brain MCP into ⌘K so "search the blog" returns ranked article chunks inline.' },
+];
+
+// Pull any `status: upcoming` articles into the Next lane (future-proof; the
+// board stays curated until the roadmap entries exist).
+let upcoming: Card[] = [];
+try {
+  const arts = await getCollection('articles');
+  upcoming = arts
+    .filter((a: any) => a.data?.status === 'upcoming')
+    .map((a: any) => ({
+      id: `article-${a.id}`,
+      title: a.data.title ?? a.id,
+      detail: a.data.description ?? 'Proposed deep-dive (placeholder).',
+      link: `articles/${a.id}/`,
+      linkLabel: 'Read the abstract',
+    }));
+} catch (_e) {
+  upcoming = [];
+}
+const nextAll = [...next, ...upcoming];
+
+const lanes: { key: string; label: string; tag: string; cards: Card[] }[] = [
+  { key: 'now', label: 'Now', tag: 'shipping', cards: now },
+  { key: 'next', label: 'Next', tag: 'queued', cards: nextAll },
+  { key: 'exploring', label: 'Exploring', tag: 'open questions', cards: exploring },
+];
+
+const timeline = (changelog.entries ?? []).slice(0, 12);
+---
+<ArenaAppLayout title={title} description={description} active="lab">
+  <header class="pageheader">
+    <div>
+      <p class="pageheader__eyebrow">Co-iteration · built in tandem</p>
+      <h1 class="pageheader__title">Lab</h1>
+      <p class="pageheader__blurb">
+        Orionfold Arena is built <em>by</em> the operator and Claude, in the open. This is
+        the workbench: what we’re shipping <strong>now</strong>, what’s queued
+        <strong>next</strong>, and what we’re still <strong>exploring</strong> — plus a
+        timeline of every commit the loop has produced.
+      </p>
+    </div>
+    <div class="pageheader__actions">
+      <a href={href('arena/models/')} class="arena-btn">Browse models</a>
+      <a href={href('arena/leaderboard/')} class="arena-btn arena-btn--primary">Leaderboard ↗</a>
+    </div>
+  </header>
+
+  <section class="lab-board" aria-label="Co-iteration board">
+    {lanes.map((lane) => (
+      <div class={`lab-lane lab-lane--${lane.key}`}>
+        <header class="lab-lane__head">
+          <span class="lab-lane__label">{lane.label}</span>
+          <span class="lab-lane__tag">{lane.tag}</span>
+          <span class="lab-lane__count">{lane.cards.length}</span>
+        </header>
+        <div class="lab-lane__cards">
+          {lane.cards.map((c) => (
+            <article class="bezel lab-card">
+              <h2 class="lab-card__title">{c.title}</h2>
+              <p class="lab-card__detail">{c.detail}</p>
+              <div class="lab-card__foot">
+                {c.link ? (
+                  <a class="lab-card__link" href={href(c.link)}>{c.linkLabel ?? 'Open'} →</a>
+                ) : (
+                  <span class="lab-card__link lab-card__link--none">{lane.label === 'Now' ? 'in this build' : ''}</span>
+                )}
+                <LabNotes client:only="preact" card={c.id} lane={lane.key} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+
+  <section class="lab-timeline" aria-label="Built-together timeline">
+    <header class="lab-timeline__head">
+      <span class="lab-timeline__title">Built together</span>
+      <span class="lab-timeline__sub">{changelog.count} Arena commits · newest first</span>
+    </header>
+    <ol class="lab-timeline__list">
+      {timeline.map((e: any) => (
+        <li class="lab-timeline__item">
+          <span class="lab-timeline__date">{e.date}</span>
+          <span class="lab-timeline__dot" aria-hidden="true"></span>
+          <span class="lab-timeline__title-text">{e.title}</span>
+          <code class="lab-timeline__hash">{e.hash}</code>
+        </li>
+      ))}
+    </ol>
+  </section>
+</ArenaAppLayout>

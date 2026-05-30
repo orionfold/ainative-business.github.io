@@ -1,0 +1,123 @@
+---
+/**
+ * TermsInThisPiece — collapsible <details> mounted above .prose, listing
+ * every :::define[term] occurrence in this article. Sourced via
+ * article-glossary.mjs at build time. If the article has no defines, the
+ * component renders nothing (Astro `null` slot).
+ *
+ * Anchor links scroll to the matching <aside id="explain-define-...">,
+ * letting a learner skim the glossary first and then jump in-context.
+ */
+import { extractGlossaryEntries } from '../lib/article-glossary.mjs';
+
+interface Props {
+  body: string;
+}
+const { body } = Astro.props;
+const entries = extractGlossaryEntries(body ?? '');
+---
+{entries.length > 0 && (
+  <details class="terms-in-piece">
+    <summary>
+      <span class="terms-in-piece__eyebrow">Terms in this piece</span>
+      <span class="terms-in-piece__count">{entries.length}</span>
+      <svg class="terms-in-piece__chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="6 9 12 15 18 9"/>
+      </svg>
+    </summary>
+    <ul class="terms-in-piece__list">
+      {entries.map((e) => (
+        <li>
+          <a href={`#${e.anchor}`} class="terms-in-piece__term">{e.term}</a>
+          <span class="terms-in-piece__definition">{e.definitionText}</span>
+        </li>
+      ))}
+    </ul>
+  </details>
+)}
+
+<style>
+  .terms-in-piece {
+    max-width: var(--measure);
+    margin: 0 auto 2rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    padding: 0.75rem 1rem;
+    font-family: var(--font-body);
+  }
+  .terms-in-piece > summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--color-text-muted);
+    transition: color 0.15s;
+  }
+  .terms-in-piece > summary::-webkit-details-marker { display: none; }
+  .terms-in-piece > summary:hover { color: var(--color-primary); }
+  .terms-in-piece__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  .terms-in-piece__count {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.05rem 0.55rem;
+    color: var(--color-text-dim);
+    background: color-mix(in oklch, var(--color-surface) 60%, transparent);
+  }
+  .terms-in-piece__chev {
+    margin-left: auto;
+    transition: transform 0.2s;
+    opacity: 0.65;
+  }
+  .terms-in-piece[open] .terms-in-piece__chev {
+    transform: rotate(180deg);
+  }
+  .terms-in-piece__list {
+    list-style: none;
+    margin: 1rem 0 0.25rem;
+    padding: 0;
+    display: grid;
+    gap: 0.7rem;
+  }
+  .terms-in-piece__list > li {
+    display: grid;
+    grid-template-columns: minmax(8rem, 11rem) 1fr;
+    gap: 0.85rem;
+    align-items: baseline;
+    padding-top: 0.6rem;
+    border-top: 1px dashed color-mix(in oklch, var(--color-border) 80%, transparent);
+  }
+  .terms-in-piece__list > li:first-child { border-top: 0; padding-top: 0; }
+  .terms-in-piece__term {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--color-primary);
+    text-decoration: none;
+    border-bottom: 1px dotted var(--color-primary-dim);
+  }
+  .terms-in-piece__term:hover {
+    border-bottom-color: var(--color-primary);
+  }
+  .terms-in-piece__definition {
+    font-size: 0.92rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+  @media (max-width: 640px) {
+    .terms-in-piece__list > li {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+</style>

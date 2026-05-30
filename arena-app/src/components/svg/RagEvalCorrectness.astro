@@ -1,0 +1,129 @@
+---
+// Signature figure for "rag-eval-ragas-and-nemo-evaluator".
+// Held-out judge-score-mean on 44 questions for four variants, with the
+// retrieval-quality number underneath each bar. LoRA alone: 1.70
+// (voice-only, no facts). Naive RAG: 3.30 (retrieval lifts correctness
+// +94%, but 18% of questions still refuse on misses). Rerank RAG: 4.27
+// (retrieval precision@3 jumps from 66% to 96%; refusals go to zero;
+// this is the variant that earns the green accent). LoRA + RAG: 3.39
+// (terse voice caps the answer — it trades quality for 2.5× less token).
+
+const variants = [
+  { name: 'LoRA ONLY',   sub: 'qwen 3b + voice-only adapter',    score: 1.70, p3: null, accent: 'muted' },
+  { name: 'NAIVE RAG',   sub: 'pgvector top-3 → nim 8b',         score: 3.30, p3: 0.66, accent: 'cool' },
+  { name: 'LoRA + RAG',  sub: 'top-3 → qwen 3b + voice lora',    score: 3.39, p3: 0.57, accent: 'cool' },
+  { name: 'RERANK RAG',  sub: 'rrf + rerankqa → top-3 → nim 8b', score: 4.27, p3: 0.96, accent: 'peak' },
+];
+
+const maxScore = 5;
+const rowH = 32;
+const rowGap = 8;
+const plotLeft = 96;
+const plotRight = 270;
+const plotW = plotRight - plotLeft;
+const top0 = 44;
+
+const fillFor = (accent: string) => {
+  if (accent === 'peak')  return 'var(--svg-accent-green)';
+  if (accent === 'cool')  return 'var(--svg-accent-blue)';
+  return 'var(--svg-accent-indigo)';
+};
+const strokeFor = (accent: string) => {
+  if (accent === 'peak')  return 'var(--svg-accent-green)';
+  if (accent === 'cool')  return 'var(--svg-accent-blue)';
+  return 'var(--svg-stroke)';
+};
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Judge-score mean 0-5 across four RAG-eval variants on 44 held-out questions. LoRA-only 1.70, Naive RAG 3.30, LoRA+RAG 3.39, Rerank RAG 4.27. Retrieval precision@3 below each bar tracks correctness — rerank takes P@3 from 66% to 96% and that is where correctness comes from."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="reval-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-green)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="reval-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-green)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--svg-accent-green)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">CORRECTNESS (0–5) · 44 HELD-OUT Q&amp;A</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">P@3 = gold chunk in top-3 retrieved passages</text>
+  </g>
+
+  <!-- gridlines -->
+  <g class="svg-reveal svg-reveal-d2">
+    {[0, 1, 2, 3, 4, 5].map((s) => {
+      const x = plotLeft + (s / maxScore) * plotW;
+      return (
+        <>
+          <line x1={x} y1={top0} x2={x} y2={top0 + variants.length * (rowH + rowGap)}
+                stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"
+                stroke-dasharray="1 3" opacity="0.5"/>
+          <text x={x} y={top0 - 4} text-anchor="middle"
+                fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+                font-size="6">{s}</text>
+        </>
+      );
+    })}
+  </g>
+
+  <!-- rerank atmosphere -->
+  <rect x={plotLeft - 4} y={top0 + 3 * (rowH + rowGap) - 2}
+        width={plotW + 8} height={rowH + 4}
+        fill="url(#reval-band)" stroke="none"/>
+  <rect x={plotLeft - 4} y={top0 + 3 * (rowH + rowGap) - 2}
+        width={plotW + 8} height={rowH + 4}
+        fill="url(#reval-halo)" stroke="none"/>
+
+  <!-- bars -->
+  {variants.map((v, i) => {
+    const y = top0 + i * (rowH + rowGap);
+    const w = Math.max(2, (v.score / maxScore) * plotW);
+    const fill = fillFor(v.accent);
+    const stroke = strokeFor(v.accent);
+    const isPeak = v.accent === 'peak';
+    return (
+      <g class={`svg-reveal svg-reveal-d${3 + i}`}>
+        <text x={plotLeft - 6} y={y + rowH / 2 - 2} text-anchor="end"
+              fill={isPeak ? 'var(--svg-accent-green)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)"
+              font-size="8" font-weight={isPeak ? 700 : 600}>{v.name}</text>
+        <text x={plotLeft - 6} y={y + rowH / 2 + 7} text-anchor="end"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5" letter-spacing="0.05em">{v.sub}</text>
+
+        <rect x={plotLeft} y={y + 4} width={plotW} height={rowH - 14}
+              fill="var(--svg-bg-inner-fill)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+        <rect x={plotLeft} y={y + 4} width={w} height={rowH - 14}
+              fill={fill} stroke={stroke} stroke-width="0.5"
+              opacity={isPeak ? 0.95 : 0.7} class={isPeak ? 'fn-diagram__pulse' : ''}/>
+
+        <text x={plotLeft + w + 3} y={y + rowH / 2 - 1} text-anchor="start"
+              fill={isPeak ? 'var(--svg-accent-green)' : 'var(--svg-text-muted)'}
+              font-family="var(--font-mono)"
+              font-size="8.5" font-weight={isPeak ? 700 : 600}>{v.score.toFixed(2)}</text>
+
+        {v.p3 !== null && (
+          <text x={plotLeft} y={y + rowH - 2}
+                fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+                font-size="6" letter-spacing="0.08em">P@3 = {Math.round(v.p3 * 100)}%</text>
+        )}
+        {v.p3 === null && (
+          <text x={plotLeft} y={y + rowH - 2}
+                fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+                font-size="6" letter-spacing="0.08em">no retrieval</text>
+        )}
+      </g>
+    );
+  })}
+</svg>

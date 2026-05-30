@@ -1,0 +1,72 @@
+---
+// EvidenceBand — static band of measured numbers from the published articles.
+//
+// Phase 5 (telemetry ↔ article-evidence bridge). The point: the cockpit's live
+// telemetry rail shows what the Spark is doing RIGHT NOW; this band shows what
+// the Spark has been measured doing in the 49 published deep-dives. Same box,
+// numbers you can click through to the article that earned them.
+//
+// Safe source: `src/data/project-stats.json` `metrics.{throughput,accuracy,latency}`
+// — already aggregated by `nvidia-learn-stats`, each carrying an `article_slug`.
+// We do NOT parse the ~1,900 evidence files (per plan §P5). Renders identically
+// on the Spark and the public mirror — pure build-time, no island.
+import stats from '../../data/project-stats.json';
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const href = (p: string) => `${base}${p}`.replace(/\/+/g, '/');
+
+type Metric = { label: string; value: string; article_slug: string };
+const metrics = (stats as any).metrics ?? {};
+
+// One representative card per kind, plus a couple of extras — curated to read
+// well. The mined `label` fragments are sentence shards ("a brain that runs
+// at"); we surface the value as the hero and use the label as the context line
+// verbatim so the number is always honestly attributed to its article.
+type Card = Metric & { kind: string; unit: string };
+const pick = (arr: Metric[] | undefined, kind: string, unit: string, n: number): Card[] =>
+  (arr ?? []).slice(0, n).map((m) => ({ ...m, kind, unit }));
+
+const cards: Card[] = [
+  ...pick(metrics.throughput as Metric[], 'throughput', 'tok/s', 2),
+  ...pick(metrics.latency as Metric[], 'latency', 'latency', 2),
+  ...pick(metrics.accuracy as Metric[], 'accuracy', 'accuracy', 2),
+];
+
+// Title-case a slug for a readable article name.
+const slugTitle = (slug: string) =>
+  slug.replace(/-on-spark$/, '').replace(/-/g, ' ').replace(/\bgguf\b/i, 'GGUF').replace(/\brag\b/i, 'RAG');
+
+const kindGlyph: Record<string, string> = {
+  throughput: '▮',
+  latency: '◷',
+  accuracy: '◎',
+};
+const kindColor: Record<string, string> = {
+  throughput: 'var(--arena-ok)',
+  latency: 'var(--arena-accent-glow)',
+  accuracy: 'var(--arena-gold)',
+};
+---
+<section class="evidence-band" aria-label="Measured evidence from the published articles">
+  <header class="evidence-band__head">
+    <span class="evidence-band__title">Measured on the Spark</span>
+    <span class="evidence-band__sub">numbers earned in the deep-dives · click through to the article</span>
+  </header>
+  <div class="evidence-band__grid">
+    {cards.map((c) => (
+      <a
+        class="bezel evidence-card"
+        href={href(`articles/${c.article_slug}/`)}
+        style={`--evidence-color: ${kindColor[c.kind] ?? 'var(--arena-accent)'};`}
+      >
+        <span class="evidence-card__kind">
+          <span class="evidence-card__glyph" aria-hidden="true">{kindGlyph[c.kind] ?? '▸'}</span>
+          {c.kind}
+        </span>
+        <span class="evidence-card__value">{c.value}</span>
+        <span class="evidence-card__label">{c.label}</span>
+        <span class="evidence-card__src">{slugTitle(c.article_slug)} →</span>
+      </a>
+    ))}
+  </div>
+</section>

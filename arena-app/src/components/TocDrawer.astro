@@ -1,0 +1,260 @@
+---
+/**
+ * TocDrawer — slide-in section list, runtime-built from .prose h2/h3
+ * selectors. Pill trigger sits in the article header; panel slides in from
+ * the right (matching the destination /book/ settings-on-right convention).
+ * Scroll-spy highlights the section currently in view.
+ *
+ * No build-time dependency on the article body — entirely DOM-driven so
+ * it works on every article without per-article wiring.
+ */
+---
+<button
+  type="button"
+  class="toc-drawer__trigger"
+  aria-expanded="false"
+  aria-controls="toc-drawer-panel"
+  aria-label="Open table of contents"
+>
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <line x1="8" y1="6" x2="21" y2="6"/>
+    <line x1="8" y1="12" x2="21" y2="12"/>
+    <line x1="8" y1="18" x2="21" y2="18"/>
+    <circle cx="3.5" cy="6" r="1"/>
+    <circle cx="3.5" cy="12" r="1"/>
+    <circle cx="3.5" cy="18" r="1"/>
+  </svg>
+  <span>Sections</span>
+</button>
+
+<aside
+  id="toc-drawer-panel"
+  class="toc-drawer"
+  role="dialog"
+  aria-label="Table of contents"
+  hidden
+>
+  <div class="toc-drawer__head">
+    <p class="toc-drawer__eyebrow">In this article</p>
+    <button
+      type="button"
+      class="toc-drawer__close"
+      aria-label="Close table of contents"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <nav class="toc-drawer__list" aria-label="Sections"></nav>
+</aside>
+<div class="toc-drawer__scrim" hidden></div>
+
+<style is:global>
+  .toc-drawer__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+  }
+  .toc-drawer__trigger:hover {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-border));
+  }
+  .toc-drawer__trigger[aria-expanded="true"] {
+    color: var(--color-primary);
+    border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+  }
+
+  .toc-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(20rem, 88vw);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 1.25rem 1.25rem;
+    background: color-mix(in oklch, var(--color-surface-raised) 95%, transparent);
+    border-left: 1px solid color-mix(in oklch, var(--color-primary) 18%, var(--color-border));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transform: translateX(100%);
+    transition: transform 0.28s ease, visibility 0.28s ease;
+    visibility: hidden;
+  }
+  .toc-drawer[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .toc-drawer__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+  .toc-drawer__eyebrow {
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .toc-drawer__close {
+    background: transparent;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    padding: 0.3rem;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .toc-drawer__close:hover { color: var(--color-primary); border-color: color-mix(in oklch, var(--color-primary) 30%, var(--color-border)); }
+
+  .toc-drawer__list {
+    overflow-y: auto;
+    flex: 1;
+    margin-right: -0.5rem;
+    padding-right: 0.5rem;
+  }
+  .toc-drawer__list a {
+    display: block;
+    padding: 0.45rem 0.55rem;
+    margin-bottom: 0.1rem;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .toc-drawer__list a[data-level="3"] { padding-left: 1.3rem; font-size: 0.82rem; color: var(--color-text-dim); }
+  .toc-drawer__list a:hover { color: var(--color-primary); background: color-mix(in oklch, var(--color-primary) 6%, transparent); }
+  .toc-drawer__list a.is-current {
+    color: var(--color-primary);
+    border-left-color: var(--color-primary);
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+  }
+
+  .toc-drawer__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: color-mix(in oklch, var(--color-surface) 60%, transparent);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .toc-drawer__scrim[data-open="true"] {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  function initTocDrawer() {
+    const trigger = document.querySelector<HTMLButtonElement>('.toc-drawer__trigger');
+    const drawer = document.querySelector<HTMLElement>('.toc-drawer');
+    const scrim = document.querySelector<HTMLElement>('.toc-drawer__scrim');
+    const list = document.querySelector<HTMLElement>('.toc-drawer__list');
+    const closeBtn = document.querySelector<HTMLButtonElement>('.toc-drawer__close');
+    if (!trigger || !drawer || !scrim || !list) return;
+
+    // Build list from .prose h2/h3.
+    const headings = Array.from(document.querySelectorAll<HTMLElement>('.prose h2, .prose h3'));
+    if (headings.length === 0) {
+      trigger.style.display = 'none';
+      return;
+    }
+
+    list.innerHTML = '';
+    headings.forEach((h) => {
+      let id = h.id;
+      if (!id) {
+        id = (h.textContent || '')
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .slice(0, 80) || `section-${Math.random().toString(36).slice(2, 7)}`;
+        h.id = id;
+      }
+      const a = document.createElement('a');
+      a.href = `#${id}`;
+      a.textContent = h.textContent || '';
+      a.dataset.level = h.tagName === 'H3' ? '3' : '2';
+      a.dataset.target = id;
+      list.appendChild(a);
+    });
+
+    function open() {
+      drawer!.setAttribute('data-open', 'true');
+      drawer!.hidden = false;
+      scrim!.setAttribute('data-open', 'true');
+      scrim!.hidden = false;
+      trigger!.setAttribute('aria-expanded', 'true');
+    }
+    function close() {
+      drawer!.setAttribute('data-open', 'false');
+      scrim!.setAttribute('data-open', 'false');
+      trigger!.setAttribute('aria-expanded', 'false');
+      // Hide after transition so it stops trapping focus.
+      setTimeout(() => {
+        if (drawer!.getAttribute('data-open') === 'false') {
+          drawer!.hidden = true;
+          scrim!.hidden = true;
+        }
+      }, 300);
+    }
+
+    trigger.addEventListener('click', () => {
+      if (trigger.getAttribute('aria-expanded') === 'true') close(); else open();
+    });
+    scrim.addEventListener('click', close);
+    closeBtn?.addEventListener('click', close);
+    list.querySelectorAll<HTMLAnchorElement>('a').forEach((a) => {
+      a.addEventListener('click', () => {
+        // Slight delay so the smooth scroll starts before the drawer slides out.
+        setTimeout(close, 80);
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && trigger.getAttribute('aria-expanded') === 'true') close();
+    });
+
+    // Scroll-spy: pick the heading whose top is just above viewport top.
+    const links = Array.from(list.querySelectorAll<HTMLAnchorElement>('a'));
+    function updateCurrent() {
+      const scrollY = window.scrollY + 120; // offset for sticky-ish nav
+      let current: HTMLElement | null = null;
+      for (const h of headings) {
+        if (h.offsetTop <= scrollY) current = h;
+        else break;
+      }
+      links.forEach((a) => {
+        a.classList.toggle('is-current', current ? a.dataset.target === current.id : false);
+      });
+    }
+    updateCurrent();
+    window.addEventListener('scroll', updateCurrent, { passive: true });
+    window.addEventListener('resize', updateCurrent);
+  }
+
+  initTocDrawer();
+  document.addEventListener('astro:after-swap', initTocDrawer);
+</script>

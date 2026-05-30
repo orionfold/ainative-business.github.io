@@ -1,0 +1,23 @@
+{
+  "built_at": "2026-05-17T14:59:19+00:00",
+  "spec_ref": "specs/patent-strategist-v1.md \u00a73.4",
+  "model": "BAAI/bge-small-en-v1.5",
+  "model_revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+  "device": "cuda",
+  "batch_size": 128,
+  "dim": 384,
+  "total_vectors": 39777,
+  "index_type": "flat",
+  "index_metric": "inner_product (cosine on L2-normalized vectors)",
+  "chunks_per_source": {
+    "bigpatent": 10000,
+    "patentmatch": 25340,
+    "mpep": 4437,
+    "gpat": 0
+  },
+  "files": {
+    "index": "/home/nvidia/data/rag/patent-bge-small/index.faiss",
+    "chunks": "/home/nvidia/data/rag/patent-bge-small/chunks.parquet",
+    "meta": "/home/nvidia/data/rag/patent-bge-small/meta.json"
+  }
+}

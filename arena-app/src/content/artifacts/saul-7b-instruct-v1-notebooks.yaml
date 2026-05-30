@@ -1,0 +1,53 @@
+slug: saul-7b-instruct-v1-notebooks
+kind: notebook
+class: ipynb
+base_model: Equall/Saul-7B-Instruct-v1
+# The sibling MODEL repo these notebooks target — not a separate notebook repo.
+# Chart data (perplexity / tok-s / LegalBench) is sourced from that model
+# manifest by slug; this manifest carries no measurements of its own (spec §3).
+hf_repo: Orionfold/Saul-7B-Instruct-v1-GGUF
+variants:
+  - builder
+  - user
+license:
+  tier: free
+  model: mit
+article: articles/becoming-a-legal-curator-on-spark/
+published_at: "2026-05-23T17:55:00Z"
+# No stack_origin: GGUF-only quant vertical (no training run); the schema's
+# stack_origin enum is training-backend-only (unsloth/nemo/axolotl/verl/peft).
+positioning:
+  headline: Build the Saul-7B quant — and call the legal model — on a Spark or a free cloud GPU
+  problem: >-
+    The artifact → card → article loop sells the outcome but offers no runnable
+    on-ramp: a researcher who wants to reproduce the five-variant quant, or a
+    developer who wants to call the model, has to reconstruct the journey from
+    prose. These two notebooks close that gap. The builder notebook walks the
+    feasibility → quantize → measure → publish journey as typed fieldkit API
+    calls; the user notebook calls Saul on real legal-classification tasks. Both
+    are one-click via Open in Colab / Open in Kaggle and run offline on a DGX
+    Spark — privileged legal text never leaves the box.
+  use_cases:
+    - "Builder: reproduce the release — feasibility envelope, quantize sweep, the Spark-tested quad + variants table, publish — as fieldkit calls"
+    - "User: overruling detection, trademark-doctrine classification, contract-clause analysis, and diversity-jurisdiction reasoning"
+    - "User: ground answers in case-law / statute text with fieldkit.rag and gate classifications with fieldkit.eval.contains"
+    - "Both: run offline on a DGX Spark or on a free Colab / Kaggle GPU (dual-path, runtime-detected)"
+  audience: >-
+    AI researchers and engineers who want to reproduce the quant, and legal-tech
+    developers, compliance teams, and litigators who want a private offline legal
+    assistant — on Spark-class hardware (GB10, 128 GB unified memory) or a free
+    cloud GPU.
+known_drift:
+  - item: Cloud (Colab / Kaggle) path serves the Q4_K_M quant; the Spark path serves Q5_K_M
+    bound: One quant level apart, and the legal bench is the wider gap — Q4_K_M scores 62% on the LegalBench n=50 mini-eval vs Q5_K_M's 72% (10 points; recoverable in a review-in-the-loop flow); both run the identical code path. See the sibling GGUF card.
+  - item: The builder notebook's quantize + publish steps render the recorded Spark run, not a live re-execution
+    bound: 2 recorded Spark-only cells (the quantize sweep and the publish dry-run); the remaining cells — feasibility envelope, the spark_quad panel, and the variants table — run live on any runtime from the manifest.
+  - item: The user notebook's live model-chat cells are not captured in the published marketing snapshot
+    bound: 4 use-case cells call the model live on any runtime; the snapshot captures the deterministic charts + banners and describes the chat output rather than screenshotting it.
+notebooks:
+  - label: Build it
+    colab: https://colab.research.google.com/github/manavsehgal/ai-field-notes/blob/main/notebooks/legal/builder.ipynb
+    kaggle: https://kaggle.com/kernels/welcome?src=https://github.com/manavsehgal/ai-field-notes/blob/main/notebooks/legal/builder.ipynb
+  - label: Use it
+    colab: https://colab.research.google.com/github/manavsehgal/ai-field-notes/blob/main/notebooks/legal/user.ipynb
+    kaggle: https://kaggle.com/kernels/welcome?src=https://github.com/manavsehgal/ai-field-notes/blob/main/notebooks/legal/user.ipynb

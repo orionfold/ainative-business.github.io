@@ -1,0 +1,137 @@
+---
+// Signature figure for "nemo-framework-on-spark".
+// Three-row comparison of vanilla PyTorch vs NeMo / Megatron-Core on the
+// same 354M GPT pretrain on the Spark — throughput, peak GPU memory, and
+// initial loss (proxy for init quality). NeMo's wins on tokens/sec and
+// memory are the article's headline; the loss row is the surprise that
+// makes the case for the framework's defaults beyond just kernels.
+
+const rows = [
+  {
+    label: 'TOKENS/SEC',
+    sub:   'higher is better',
+    vanilla: 12119, nemo: 12820,
+    fmt: (v: number) => v.toLocaleString(),
+    metric: 'speed',
+    nemoWins: true,
+  },
+  {
+    label: 'PEAK GPU MEM',
+    sub:   'GiB · lower is better',
+    vanilla: 11.28, nemo: 7.94,
+    fmt: (v: number) => v.toFixed(2),
+    metric: 'memory',
+    nemoWins: true,
+  },
+  {
+    label: 'INITIAL LOSS',
+    sub:   'log scale · lower is better',
+    vanilla: 585.5, nemo: 11.0,
+    fmt: (v: number) => v.toFixed(1),
+    metric: 'init',
+    nemoWins: true,
+  },
+];
+
+const rowH = 38;
+const rowGap = 8;
+const plotLeft = 96;
+const plotRight = 270;
+const plotW = plotRight - plotLeft;
+const top0 = 36;
+
+// Per-row plotting: scale each row independently to its own max so the
+// shorter bar still reads at glance distance. This is a comparison
+// signature, not a quantitative axis — the labels carry the precision.
+const barWidthsFor = (row: typeof rows[0]) => {
+  const max = Math.max(row.vanilla, row.nemo);
+  return {
+    vanilla: Math.max(2, (row.vanilla / max) * plotW),
+    nemo:    Math.max(2, (row.nemo    / max) * plotW),
+  };
+};
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Vanilla PyTorch vs NeMo Framework on the same 354M GPT pretrain. NeMo earns +5.8% tokens/sec (12119 vs 12820), uses 30% less peak GPU memory (11.28 vs 7.94 GiB), and starts training at 50× lower initial loss (585.5 vs 11.0) thanks to Megatron-Core's calibrated init."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="nfp-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+    <radialGradient id="nfp-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">SAME 354M GPT · 100 STEPS · GB10</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">vanilla PyTorch vs NeMo / Megatron-Core</text>
+  </g>
+
+  <!-- nemo lane atmosphere (band across nemo bars only) -->
+  <rect x={plotLeft - 4} y={top0 + 18}
+        width={plotW + 8} height={rows.length * (rowH + rowGap) - 8}
+        fill="url(#nfp-band)" stroke="none"/>
+  <rect x={plotLeft - 4} y={top0 + 18}
+        width={plotW + 8} height={rows.length * (rowH + rowGap) - 8}
+        fill="url(#nfp-halo)" stroke="none"/>
+
+  {rows.map((row, i) => {
+    const y = top0 + i * (rowH + rowGap);
+    const w = barWidthsFor(row);
+    const yVan  = y + 4;
+    const yNemo = y + 18;
+    const barH = 10;
+    return (
+      <g class={`svg-reveal svg-reveal-d${2 + i}`}>
+        <text x={plotLeft - 6} y={y + 8} text-anchor="end"
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="7" font-weight={600}>{row.label}</text>
+        <text x={plotLeft - 6} y={y + 18} text-anchor="end"
+              fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+              font-size="5.5" letter-spacing="0.05em">{row.sub}</text>
+
+        {/* track */}
+        <rect x={plotLeft} y={yVan} width={plotW} height={barH}
+              fill="var(--svg-bg-inner-fill)"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+        <rect x={plotLeft} y={yNemo} width={plotW} height={barH}
+              fill="var(--svg-bg-inner-fill)"
+              stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+
+        {/* vanilla bar */}
+        <rect x={plotLeft} y={yVan} width={w.vanilla} height={barH}
+              fill="var(--svg-accent-indigo)"
+              stroke="var(--svg-stroke)" stroke-width="0.5"
+              opacity="0.55"/>
+        <text x={plotLeft + 4} y={yVan + 8}
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="6" letter-spacing="0.06em">vanilla</text>
+        <text x={plotLeft + w.vanilla + 3} y={yVan + 8} text-anchor="start"
+              fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+              font-size="7" font-weight={600}>{row.fmt(row.vanilla)}</text>
+
+        {/* nemo bar */}
+        <rect x={plotLeft} y={yNemo} width={w.nemo} height={barH}
+              fill="var(--svg-accent-blue)"
+              stroke="var(--svg-accent-blue)" stroke-width="0.5"
+              opacity="0.95"/>
+        <text x={plotLeft + 4} y={yNemo + 8}
+              fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+              font-size="6" letter-spacing="0.06em" font-weight={600}>nemo</text>
+        <text x={plotLeft + w.nemo + 3} y={yNemo + 8} text-anchor="start"
+              fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+              font-size="7" font-weight={700}>{row.fmt(row.nemo)}</text>
+      </g>
+    );
+  })}
+</svg>

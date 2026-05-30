@@ -1,0 +1,51 @@
+{
+  "generated_from": "git log --grep ^arena:",
+  "count": 9,
+  "entries": [
+    {
+      "hash": "716875d0",
+      "date": "2026-05-28",
+      "title": "v0.2 leap pt.1 — rebrand to Orionfold Arena, models browser, efficiency frontier, compare depth, ⌘K palette"
+    },
+    {
+      "hash": "aa86d92d",
+      "date": "2026-05-28",
+      "title": "v0.1.1 cockpit density + chat overhaul"
+    },
+    {
+      "hash": "f3de82bd",
+      "date": "2026-05-28",
+      "title": "standalone web app shell + cockpit chrome polish"
+    },
+    {
+      "hash": "b22f2b4b",
+      "date": "2026-05-28",
+      "title": "M6 leaderboard + mirror exporter"
+    },
+    {
+      "hash": "76993d57",
+      "date": "2026-05-28",
+      "title": "M5 compare + rubric scorer"
+    },
+    {
+      "hash": "1a4e7000",
+      "date": "2026-05-28",
+      "title": "M4 chat against the resident brain"
+    },
+    {
+      "hash": "d016d9bf",
+      "date": "2026-05-28",
+      "title": "M3 telemetry SSE + cockpit gauge live"
+    },
+    {
+      "hash": "ee186de7",
+      "date": "2026-05-28",
+      "title": "M2 retroactive import (40 lanes + 17 bench rows + 55 articles)"
+    },
+    {
+      "hash": "f6a6734e",
+      "date": "2026-05-28",
+      "title": "M1 spec + skeleton (Cockpit series · spark-arena-v1)"
+    }
+  ]
+}

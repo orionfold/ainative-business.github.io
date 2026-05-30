@@ -1,0 +1,47 @@
+{
+  "per_shape": {
+    "B": {
+      "mean": 0.0181,
+      "n": 40
+    },
+    "D-mcq": {
+      "mean": 0.625,
+      "n": 40
+    },
+    "D-irac": {
+      "mean": 1.0,
+      "n": 10
+    }
+  },
+  "per_use_case": {
+    "B/B1": {
+      "mean": 0.0,
+      "n": 19
+    },
+    "B/B3": {
+      "mean": 0.0345,
+      "n": 21
+    },
+    "D-mcq/D1": {
+      "mean": 0.7391,
+      "n": 23
+    },
+    "D-mcq/D3": {
+      "mean": 0.4706,
+      "n": 17
+    },
+    "D-irac/D2": {
+      "mean": 1.0,
+      "n": 10
+    }
+  },
+  "skipped_by_shape": {
+    "A": 50,
+    "C": 20,
+    "D-oa": 10,
+    "E": 30
+  },
+  "overall_mean": 0.3969,
+  "overall_n": 90,
+  "rescored": true
+}

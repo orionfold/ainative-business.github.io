@@ -1,0 +1,116 @@
+---
+import '@fontsource/geist-sans/400.css';
+import '@fontsource/geist-sans/500.css';
+import '@fontsource/geist-sans/700.css';
+import '@fontsource-variable/geist-mono';
+import '../styles/global.css';
+
+import ThemeScript from '../components/ThemeScript.astro';
+import ReaderScript from '../components/ReaderScript.astro';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description } = Astro.props;
+const desc = description ?? 'Field notes on building AI-native businesses — agent orchestration, governed inference, RAG patterns, training economics, and the deep-dive papers that anchor the AI Native Platform series. By Manav Sehgal.';
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const asset = (path: string) => `${base}${path}`.replace(/\/+/g, '/');
+const ogImageUrl = `https://ainative.business${asset('og-image.png')}`;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={desc} />
+    <meta name="author" content="Manav Sehgal" />
+    <meta name="theme-color" content="#0f141c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8f9fa" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href={asset('favicon.svg')} />
+    <link rel="apple-touch-icon" sizes="180x180" href={asset('apple-touch-icon.png')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={desc} />
+    <meta name="twitter:image" content={ogImageUrl} />
+    <title>{title}</title>
+    <ThemeScript />
+    <ReaderScript />
+  </head>
+  <body>
+    <Nav />
+    <main>
+      <slot />
+    </main>
+    <Footer />
+    <script is:inline>
+      // Scroll-reveal observer. Handles three entry effects:
+      //   - [data-animate]     → adds .is-visible (block-level fade-rise)
+      //   - [data-svg-animate] → flips .visible on svg-reveal/line-draw/bar-grow/… children
+      //   - .fn-diagram        → flips .fn-diagram--visible so legacy CSS animations play
+      // JS-ready marker keeps diagrams visible in no-JS fallback.
+      (() => {
+        if (typeof window === 'undefined') return;
+        document.documentElement.classList.add('js-ready');
+        if (!('IntersectionObserver' in window)) {
+          document.querySelectorAll('.fn-diagram').forEach((el) => el.classList.add('fn-diagram--visible'));
+          return;
+        }
+
+        const blockTargets = document.querySelectorAll('[data-animate]');
+        const svgHosts = document.querySelectorAll('[data-svg-animate]');
+        const fnDiagrams = document.querySelectorAll('.fn-diagram');
+
+        const blockObserver = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              blockObserver.unobserve(entry.target);
+            }
+          }
+        }, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+        blockTargets.forEach((el) => blockObserver.observe(el));
+
+        // Prime .line-draw custom properties once per host so the stroke-draw
+        // transition knows the path length. Must run before the observer fires.
+        svgHosts.forEach((host) => {
+          host.querySelectorAll('.line-draw').forEach((path) => {
+            if (typeof path.getTotalLength === 'function') {
+              const len = path.getTotalLength();
+              path.style.setProperty('--path-length', String(len));
+            }
+          });
+        });
+
+        const svgObserver = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.querySelectorAll(
+              '.svg-reveal, .line-draw, .bar-grow, .bar-grow-x, .ring-expand, .dot-pop'
+            ).forEach((child) => child.classList.add('visible'));
+            svgObserver.unobserve(entry.target);
+          }
+        }, { rootMargin: '0px 0px -10% 0px', threshold: 0.1 });
+        svgHosts.forEach((el) => svgObserver.observe(el));
+
+        const fnObserver = new IntersectionObserver((entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add('fn-diagram--visible');
+            fnObserver.unobserve(entry.target);
+          }
+        }, { rootMargin: '0px 0px -8% 0px', threshold: 0.15 });
+        fnDiagrams.forEach((el) => fnObserver.observe(el));
+      })();
+    </script>
+  </body>
+</html>

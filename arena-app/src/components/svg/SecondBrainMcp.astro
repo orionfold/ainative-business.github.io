@@ -1,0 +1,102 @@
+---
+// Signature figure for "mcp-second-brain-in-claude-code".
+// Hub-and-spoke. Accent hub on the left = the second-brain MCP server.
+// Four chips on the right fan out as the four MCP tools — ask_blog gets
+// the accent edge because it composes the full chain.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Hub-and-spoke. The second-brain MCP server on the left fans out to four MCP tools on the right — search_blog, ask_blog, list_articles, read_article_chunk. ask_blog is highlighted because it composes the full embed-retrieve-rerank-generate chain. Any Claude Code session on the Spark can call them."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sbm-hub-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="sbm-hub-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect x="14" y="62" width="92" height="76" rx="8" fill="url(#sbm-hub-halo)" stroke="none"/>
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">MCP TOOLS · second-brain</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <path class="line-draw svg-reveal-d4"
+          d="M 106 86 L 174 38"
+          fill="none" stroke="var(--svg-connector)" stroke-width="1"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 106 100 L 174 100"
+          fill="none" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 106 114 L 174 130"
+          fill="none" stroke="var(--svg-connector)" stroke-width="1"/>
+    <path class="line-draw svg-reveal-d4"
+          d="M 106 124 L 174 162"
+          fill="none" stroke="var(--svg-connector)" stroke-width="1"/>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="62" width="92" height="76" rx="8"
+          fill="url(#sbm-hub-grad)"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="60" y="86" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="700">second-brain</text>
+    <text x="60" y="100" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7">FastMCP</text>
+    <text x="60" y="113" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">stdio</text>
+    <text x="60" y="126" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">JSON-RPC 2.0</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="174" y="24" width="112" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="230" y="40" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="600">search_blog</text>
+    <text x="230" y="49" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">embed → pgvector → rerank</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="174" y="86" width="112" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--color-primary)" stroke-width="1"/>
+    <text x="230" y="102" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="700">ask_blog</text>
+    <text x="230" y="111" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">+ NIM 8B · grounded answer</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="174" y="116" width="112" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="230" y="132" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="600">list_articles</text>
+    <text x="230" y="141" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">discovery surface</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="174" y="148" width="112" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5"/>
+    <text x="230" y="164" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8.5" font-weight="600">read_article_chunk</text>
+    <text x="230" y="173" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6">verbatim chunk</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="192" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">ANY CLAUDE CODE SESSION</text>
+  </g>
+</svg>

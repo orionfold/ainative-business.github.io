@@ -1,0 +1,97 @@
+---
+// Signature figure for "clawgym-on-spark-grpo".
+// Two paired bars: `task_complete` rate on 158 held-out tasks. Phase 5 SFT
+// hit max_turns on every trajectory (0/158 task_complete); 34 GRPO steps
+// later, 154/158 trajectories end via the prose-stop sentinel. The +97.5 pp
+// callout is the load-bearing claim — RL unlearned the never-stop failure
+// mode that SFT couldn't reach. Mono captions under each bar carry the
+// trajectory-length collapse (12.0 → 5.0 turns) so a reader stopped at the
+// card sees both the operational metric and its wall-time consequence.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="task_complete rate on 158 held-out clawgym tasks: Phase 5 SFT 0/158 = 0%, Phase 6 GRPO 154/158 = 97.5%. The GRPO-tuned adapter earns +97.5 pp on the stop-signal metric; mean trajectory length collapses 12.0 → 5.0 turns."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grpo-sft-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.18"/>
+    </linearGradient>
+    <linearGradient id="grpo-rl-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="grpo-rl-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <!-- title -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">CLAWGYM GRPO · 158 HELD-OUT TASKS</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">task_complete stop-rate, matched-base</text>
+  </g>
+  <!-- SFT column -->
+  <g class="svg-reveal svg-reveal-d2">
+    <text x="78" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">PHASE 5 SFT</text>
+    <!-- bar full height (track) -->
+    <rect x="58" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- bar fill (0% — render a 1.5px floor stripe for visibility) -->
+    <rect class="bar-grow" x="58" y={60 + (92 - 1.5)} width="40" height="1.5" rx="0.75"
+          fill="url(#grpo-sft-grad)"
+          stroke="var(--svg-accent-blue)" stroke-width="1"
+          style="transform-origin: 78px 152px;"/>
+    <!-- value -->
+    <text x="78" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">0%</text>
+    <text x="78" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">12.0 turns</text>
+  </g>
+  <!-- GRPO column -->
+  <g class="svg-reveal svg-reveal-d3">
+    <!-- accent halo behind the GRPO bar -->
+    <rect x="178" y="60" width="40" height="92"
+          fill="url(#grpo-rl-halo)" stroke="none"/>
+    <text x="198" y="48" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.12em">+ 34 GRPO STEPS</text>
+    <!-- bar track -->
+    <rect x="178" y="60" width="40" height="92" rx="4"
+          fill="none" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 3"/>
+    <!-- bar fill (97.5% of 92 = 89.7) -->
+    <rect class="bar-grow" x="178" y={60 + (92 - 89.7)} width="40" height="89.7" rx="4"
+          fill="url(#grpo-rl-grad)"
+          stroke="var(--color-primary)" stroke-width="1"
+          style="transform-origin: 198px 152px;"/>
+    <!-- value -->
+    <text x="198" y="170" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="14" font-weight="600">97.5%</text>
+    <text x="198" y="184" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em">5.0 turns</text>
+  </g>
+  <!-- delta callout, right side -->
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="225" y1="108" x2="252" y2="108"
+          class="line-draw"
+          stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="270" y="103" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-sans)"
+          font-size="13" font-weight="600">+97.5</text>
+    <text x="270" y="116" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.14em">PP</text>
+  </g>
+</svg>

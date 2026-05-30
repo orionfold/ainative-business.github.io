@@ -1,0 +1,115 @@
+---
+import AmberRule from '../../ui/AmberRule.astro';
+
+interface Props {
+  version: string;
+}
+
+const { version } = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const apiHref = `${base}fieldkit/api/capabilities/`.replace(/\/+/g, '/');
+---
+<section class="py-32 px-6">
+  <AmberRule />
+
+  <div class="max-w-3xl mx-auto text-center">
+    <p data-animate class="font-mono text-xs tracking-widest text-text-muted uppercase mb-6">
+      fieldkit · v{version}
+    </p>
+
+    <h2 data-animate class="mb-6" style="transition-delay: 80ms">Build with verified patterns.</h2>
+
+    <p data-animate class="text-text-muted mb-10 max-w-lg mx-auto" style="transition-delay: 160ms">
+      Read the API reference, browse the field notes, or grab the source. Apache-2.0; Python 3.11+.
+    </p>
+
+    <div data-animate-stagger class="flex flex-col sm:flex-row items-center justify-center gap-4" style="transition-delay: 240ms">
+      <a
+        data-animate
+        href="https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md"
+      >
+        GitHub
+      </a>
+      <a
+        data-animate
+        href={apiHref}
+        class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md"
+      >
+        API Reference
+      </a>
+      <a
+        data-animate
+        href={base}
+        class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md"
+      >
+        Field Notes
+      </a>
+    </div>
+
+    <!-- Terminal CTA reprise -->
+    <p data-animate class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mt-10 mb-2">
+      Install the package
+    </p>
+    <div data-animate class="max-w-sm mx-auto">
+      <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
+          <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Terminal</span>
+          <button
+            id="fk-footer-copy-btn"
+            class="p-1 rounded text-text-muted/50 hover:text-text-muted transition-colors"
+            aria-label="Copy to clipboard"
+          >
+            <svg id="fk-footer-copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <svg id="fk-footer-check-icon" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </button>
+        </div>
+        <div class="bg-surface-raised px-4 py-3">
+          <pre class="font-mono text-lg sm:text-xl leading-relaxed text-text-muted"><span class="text-primary">$</span> <code id="fk-footer-code">pip install fieldkit</code><span class="fkf-cursor">▌</span></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .fkf-cursor {
+    animation: fkf-blink 1s step-end infinite;
+    color: var(--color-primary);
+  }
+  @keyframes fkf-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .fkf-cursor { animation: none; }
+  }
+</style>
+
+<script>
+  function initFkFooterCopy() {
+    document.getElementById('fk-footer-copy-btn')?.addEventListener('click', async () => {
+      const code = document.getElementById('fk-footer-code')?.textContent ?? '';
+      await navigator.clipboard.writeText(code);
+      const copyIcon = document.getElementById('fk-footer-copy-icon');
+      const checkIcon = document.getElementById('fk-footer-check-icon');
+      copyIcon?.classList.add('hidden');
+      checkIcon?.classList.remove('hidden');
+      setTimeout(() => {
+        copyIcon?.classList.remove('hidden');
+        checkIcon?.classList.add('hidden');
+      }, 2000);
+    });
+  }
+
+  initFkFooterCopy();
+  document.addEventListener('astro:after-swap', initFkFooterCopy);
+</script>

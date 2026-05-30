@@ -1,0 +1,124 @@
+---
+// Signature figure for "patent-strategist-bakeoff-unsloth-vs-nemo-framework".
+// Two paired-bar rows showing the two headline metrics: train wall (NeMo wins,
+// -26%) and patent-strategic mean chain length (NeMo wins, +44%). Same recipe,
+// same corpus, two backends — the bars are the verdict at a glance.
+
+// Wall (seconds): Unsloth 27,265 vs NeMo 20,280
+const wallUnsloth = 27265;
+const wallNemo = 20280;
+const wallMax = Math.max(wallUnsloth, wallNemo);
+
+// Patent-strategic mean chain length (tokens): Unsloth 916 vs NeMo 1320
+const chainUnsloth = 916;
+const chainNemo = 1320;
+const chainMax = Math.max(chainUnsloth, chainNemo);
+
+// Layout
+const leftX = 24;         // bar lane start
+const laneW = 220;        // bar lane width (the full bar)
+const labelX = 252;       // numeric label x
+
+// Row 1 (wall)
+const wallRowY = 64;
+const wallBarH = 14;
+const wallNemoY = wallRowY;
+const wallUnsY  = wallRowY + wallBarH + 6;
+
+// Row 2 (chain)
+const chainRowY = 124;
+const chainBarH = 14;
+const chainNemoY = chainRowY;
+const chainUnsY  = chainRowY + chainBarH + 6;
+
+const wallNemoW = (wallNemo / wallMax) * laneW;
+const wallUnsW  = (wallUnsloth / wallMax) * laneW;
+const chainNemoW = (chainNemo / chainMax) * laneW;
+const chainUnsW  = (chainUnsloth / chainMax) * laneW;
+
+// Format wall as "Xh YYm"
+const fmtWall = (s: number) => {
+  const h = Math.floor(s / 3600);
+  const m = Math.round((s - h * 3600) / 60);
+  return `${h}h ${m.toString().padStart(2, '0')}m`;
+};
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Patent-strategist LoRA bakeoff signature. Two paired bars: train wall (NeMo 5h 38m vs Unsloth 7h 34m, -26%) and patent-strategic mean chain length (NeMo 1,320 tok vs Unsloth 916 tok, +44%). Same recipe, same R1-Qwen3-8B base, same 5,000-row v3 corpus — the only thing that changed was the trainer."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="psb-sig-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="psb-sig-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+  <rect x="14" y="36" width="272" height="148" rx="6" fill="url(#psb-sig-band)" stroke="none"/>
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">R1-QWEN3-8B LoRA · BAKEOFF</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.14em">same recipe · same corpus · two backends</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <text x={leftX} y={wallRowY - 6}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em" font-weight={600}>TRAIN WALL</text>
+    <text x={labelX + 36} y={wallRowY - 6} text-anchor="end"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.06em" font-weight={700}>−26%</text>
+    <rect x={leftX} y={wallNemoY} width={wallNemoW} height={wallBarH} rx="2"
+          fill="url(#psb-sig-accent)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x={leftX + 6} y={wallNemoY + 10}
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="6" font-weight={700}>NeMo</text>
+    <text x={labelX} y={wallNemoY + 10}
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6.5" font-weight={700}>{fmtWall(wallNemo)}</text>
+    <rect x={leftX} y={wallUnsY} width={wallUnsW} height={wallBarH} rx="2"
+          fill="var(--svg-accent-indigo)" fill-opacity="0.30"
+          stroke="var(--svg-accent-indigo)" stroke-width="1" stroke-dasharray="3 2"/>
+    <text x={leftX + 6} y={wallUnsY + 10}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6" font-weight={600}>Unsloth</text>
+    <text x={labelX} y={wallUnsY + 10}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5">{fmtWall(wallUnsloth)}</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <text x={leftX} y={chainRowY - 6}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.10em" font-weight={600}>PATENT-STRATEGIC CHAIN · TOK</text>
+    <text x={labelX + 36} y={chainRowY - 6} text-anchor="end"
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6.5" letter-spacing="0.06em" font-weight={700}>+44%</text>
+    <rect x={leftX} y={chainNemoY} width={chainNemoW} height={chainBarH} rx="2"
+          fill="url(#psb-sig-accent)" stroke="var(--svg-accent-blue)" stroke-width="1"/>
+    <text x={leftX + 6} y={chainNemoY + 10}
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="6" font-weight={700}>NeMo</text>
+    <text x={labelX} y={chainNemoY + 10}
+          fill="var(--svg-accent-blue)" font-family="var(--font-mono)"
+          font-size="6.5" font-weight={700}>{chainNemo.toLocaleString()}</text>
+    <rect x={leftX} y={chainUnsY} width={chainUnsW} height={chainBarH} rx="2"
+          fill="var(--svg-accent-indigo)" fill-opacity="0.30"
+          stroke="var(--svg-accent-indigo)" stroke-width="1" stroke-dasharray="3 2"/>
+    <text x={leftX + 6} y={chainUnsY + 10}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6" font-weight={600}>Unsloth</text>
+    <text x={labelX} y={chainUnsY + 10}
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="6.5">{chainUnsloth.toLocaleString()}</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d4">
+    <text x="150" y="194" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="5.5" letter-spacing="0.10em">v3 corpus · 625 iters · DGX Spark</text>
+  </g>
+</svg>

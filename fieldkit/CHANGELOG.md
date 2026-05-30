@@ -1,0 +1,1324 @@
+# Changelog
+
+All notable changes to `fieldkit` are documented in this file.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the package is on `0.x`, minor versions may include breaking changes. `1.0` will mark API stability.
+
+## [Unreleased]
+
+### Added
+
+- **`fieldkit.arena` — M1 scaffold (new module, Cockpit content line)**
+  (`__all__` = 5 symbols: `ARENA_SURFACE_VERSION`, `DEFAULT_ARENA_PORT`,
+  `DEFAULT_ARENA_DB`, `ArenaError`, `LaneNotRegistered`,
+  `PublishableSliceEmpty`). The deterministic Python spine of the new
+  **Cockpit** content line — the operator surface a solo Spark builder uses
+  to drive every artifact `fieldkit` has shipped (sibling to
+  `fieldkit.harness`: Hermes = agent harness; Arena = operator harness).
+  Submodule layout: `__init__.py` (errors + frozen constants),
+  `schemas.py` (M1 placeholder — pydantic request/response shapes land at
+  M3–M6), `server.py` skeleton (`create_app()` / `serve()` raise
+  `NotImplementedError("M3")`), `cli.py` (Typer subcommands wired to top-level
+  `fieldkit` CLI; six commands locked at spec §3.4 — bodies raise
+  `typer.Exit` with a milestone marker until each milestone lands). All
+  stdlib-only on package load — `import fieldkit.arena` doesn't pull FastAPI.
+  Full design at `specs/spark-arena-v1.md`.
+- **`arena` optional install extra** (`pip install 'fieldkit[arena]'`) —
+  fastapi ≥ 0.115, uvicorn[standard] ≥ 0.30, sse-starlette ≥ 2.1,
+  aiosqlite ≥ 0.20, arq ≥ 0.26, redis ≥ 5.0, huggingface_hub ≥ 0.24,
+  pyyaml ≥ 6.0. M1's fresh-venv install is the aarch64 canary for the arq +
+  Redis combo (spec §10 R4).
+- **`fieldkit/docs/api/arena.md`** — module reference page (audit-docs gate
+  covers it from M1; symbol coverage 5/5).
+- **`audit_docs.py MODULES` list** updated to include `"arena"` so the
+  curator audit covers the new module at the next release.
+- **New artifact kind `arena_run`** — additive 9th kind alongside
+  `quant, lora, adapter, dataset, bench, notebook, harness, skill`. Declared
+  at M1 so the artifact schema validates `arena_run` references on day one;
+  manifests are written by `fieldkit.arena.publish` at v0.2.
+- **New SERIES `Cockpit`** — 8th editorial series (sibling to Harnesses, not
+  a sub-arc). Spark Arena is entry #1; the launch article
+  (`articles/introducing-spark-arena-on-spark/`) lands at M7.
+- **`fieldkit.arena` — M2 store + retroactive importer**
+  (`__all__` 6 → 15). New symbols re-exported lazily via PEP 562 so
+  `import fieldkit.arena` stays stdlib-only on package load:
+  - **`ArenaStore`** (`fieldkit.arena.store`) — synchronous SQLite store at
+    `~/.fieldkit/arena.db`, WAL + foreign-keys on. `.initialize()` creates
+    the 13-table schema (spec §4.8 verbatim — `lanes`, `chat_sessions`,
+    `chat_turns`, `compare_runs`, `compare_responses`, `rubric_scores`,
+    `leaderboard_rows`, `human_prefs`, `eval_runs` — plus the four M2
+    retroactive-load tables called out in §7: `bench_results`,
+    `article_index`, `hf_meta`, `notebook_export`). All upserts use
+    `INSERT OR REPLACE` so a second `fieldkit arena import` produces
+    identical row counts (the M2 idempotency gate). `PRAGMA user_version=1`
+    pinned for forward migration.
+  - **`import_artifacts()`** + **`ImportReport`** (`fieldkit.arena.importer`) —
+    walks `src/content/artifacts/*.yaml` (manifests → `lanes`),
+    `articles/*/article.md` (frontmatter → `article_index`),
+    `articles/<slug>/evidence/*_results.json` (per-variant rollups →
+    `bench_results`; four bench-shape extractors: `models`/`lanes`
+    top-level dicts, cost-router `strategies` + `summary.majority_pass_rates`,
+    vertical-router `per_vertical_quality` + `summary.vertical_pass_rates`),
+    `notebooks/*/exports/**/*.png` (→ `notebook_export`),
+    `~/.hermes/config.yaml` (→ resident-brain lane, optional),
+    `articles/picking-the-hermes-brain-on-spark/evidence/hermes_brain_results.json`
+    (→ 3 brain-bakeoff lanes + leaderboard seed). HF metadata pull is
+    optional (`refresh_hf=False` default keeps the importer offline-safe).
+  - **Row records** (`fieldkit.arena.schemas` — stdlib dataclasses, NOT
+    pydantic): `LaneRecord`, `BenchResultRow`, `ArticleIndexRow`,
+    `HfMetaRow`, `NotebookExportRow`, `LeaderboardRow`. M3+ chat/compare/
+    pref records declared but not yet in `__all__`.
+  - **`fieldkit arena import`** CLI body lands (was `typer.Exit` stub in
+    M1): `--dry-run`/`--write`, `--refresh-hf`, `--no-mirror`, `--json`,
+    `--repo-root` overrides. Also runnable as `python -m
+    fieldkit.arena.scripts.import_existing`.
+- **`src/data/arena-mirror/leaderboard.json`** — day-one leaderboard cut
+  (3 rows from the brain-bakeoff seed: qwen3-30b-moe-llamacpp-q4km 90% @
+  83.5 tok/s; qwen3-30b-moe-vllm-fp8 87.5% @ 55.0 tok/s; nim-incumbent
+  77.5% @ 23.9 tok/s). Astro reads it at build time so `/arena/` ships a
+  non-empty leaderboard table from M2 onward; M5 keeps it fresh, M6 hands
+  off to the mirror exporter.
+- **`/arena/` landing page wired** — the "Leaderboard — day-one cut" card
+  reads `src/data/arena-mirror/leaderboard.json` and renders the 3 rows.
+  Telemetry + current-lane cards remain explicit M3 stubs.
+- **28 new tests** in `fieldkit/tests/arena/` (test_store.py 12 +
+  test_importer.py 16): schema idempotency, upsert composite keys, the
+  4 bench-shape extractors, fixture-repo end-to-end walks, the
+  idempotency gate, and a mirror-output-shape sanity check ahead of M6.
+- **`fieldkit.arena` — M3 FastAPI sidecar** (`__all__` 15 → 18). New
+  symbols (lazy via PEP 562; FastAPI only loads when `create_app()` is
+  called):
+  - **`create_app(db, repo_root, telemetry_interval, cors_origins)`**
+    (`fieldkit.arena.server`) — builds the cockpit FastAPI app. Endpoints:
+    `GET /healthz`, `GET /api/lanes` (resident brain from
+    `~/.hermes/config.yaml` re-read every request per Risk R8 + roster
+    from the M2 `lanes` table), `GET /api/leaderboard?limit=N` (proxies
+    the static mirror JSON), `GET /api/telemetry/stream` (SSE at 500 ms
+    cadence). CORS allowed for `127.0.0.1:4321`, `localhost:4321`, and the
+    Spark LAN address so the Astro dev page can reach the sidecar.
+  - **`serve(host, port, db, repo_root, reload, log_level)`**
+    (`fieldkit.arena.server`) — uvicorn launcher; loopback-only by default
+    per spec §3.1 #4. `fieldkit arena serve` now resolves to this
+    instead of the M2 milestone-marker stub.
+  - **`TelemetryHub(interval=0.5)`** (`fieldkit.arena.server`) —
+    reference-counted wrapper around `fieldkit.harness.Telemetry`: first
+    SSE subscriber starts the sampler, last unsubscribe stops it (the
+    spec §4.6 zero-idle commitment). `.subscribe(loop)` returns
+    `(queue, unsubscribe_callable)`; `.report_inflight(...)` lets M4+
+    stream callers tag tok/s + TTFT + lane id on the live tick.
+  - **`telemetry_event_stream(hub, request)`** — async generator
+    powering the SSE endpoint, pulled out of the route closure so unit
+    tests can drive it directly (no FastAPI / sse-starlette round-trip).
+  Also: `src/components/arena/TelemetryGauge.jsx` +
+  `src/components/arena/CurrentLane.jsx` (Preact islands via the new
+  `@astrojs/preact` integration; uPlot powers the 60s unified-mem
+  sparkline), `src/lib/arena/sidecar.mjs` (sidecar URL resolver +
+  public-mirror short-circuit), and `/arena/` wires both islands as
+  `client:only="preact"`.
+- **17 new tests** in `fieldkit/tests/arena/test_server.py` — Hermes
+  config reader (3), `TelemetryHub` subscribe/unsubscribe accounting (3),
+  `create_app` endpoints (6), and the SSE generator's "hello + disconnect
+  → unsubscribe → sampler stop" contract (3 + 2 route-registration
+  sanity checks).
+- **`fieldkit.arena` — M4 chat against the resident brain** (`__all__`
+  18 → 20). New endpoint + records + helpers:
+  - **`POST /api/chat/stream`** (`fieldkit.arena.server.create_app`) —
+    single-lane chat against the resident brain (the lane returned by
+    `GET /api/lanes`'s `resident` field, re-read from
+    `~/.hermes/config.yaml` on every request per Risk R8). Body is a
+    Pydantic `ChatRequest` (`prompt`, optional `session_id`, optional
+    `rubric_id` (M5), `max_tokens=4096`, `temperature=0.0`). Streams
+    `start` / `token{channel}` / `done` / `error` / `heartbeat` SSE
+    events from `llama-server :8080` via
+    `fieldkit.notebook.OpenAICompatClient.chat_stream` + `split_think`
+    (per `feedback_nim_think_prefix_convention`). The blocking-httpx
+    chat generator runs on `asyncio.to_thread` so the SSE writer never
+    blocks the event loop. Returns 503 if the resident config is
+    missing / unreadable. Wires
+    `TelemetryHub.report_inflight(inflight=True, tok_per_s=…, ttft_ms=…,
+    lane_id=…)` on stream start + every ~16 tokens, then `inflight=False`
+    on done — the visible M3↔M4 round-trip the spec §4.2 review
+    validates.
+  - **`chat_event_stream(*, hub, request, body, resident, db_path)`**
+    (`fieldkit.arena.server`) — async generator powering the chat route.
+    Pulled out of the route closure so unit tests drive it directly
+    against a stub `OpenAICompatClient` (no live `llama-server` needed).
+    Persists user + assistant turns to `chat_sessions` + `chat_turns`
+    (operator-private — spec §4.8 + the M6 mirror exporter's allowlist
+    hardcodes `chat_*` tables OUT). On an upstream error, the partial
+    reply is still persisted with `finish_reason="error"` so the
+    operator can forensic it.
+  - **`ChatSessionRecord`** + **`ChatTurnRecord`** (`fieldkit.arena.schemas`,
+    re-exported via `fieldkit.arena` PEP-562 lazy map) — stdlib
+    dataclasses mirroring the spec §4.8 chat tables. Both default
+    `publishable=0`. `ChatSessionRecord` is keyed on `id` (FK target
+    for `chat_turns.session_id`); `ChatTurnRecord` is append-only with
+    `(session_id, ord)` UNIQUE.
+  - **`ArenaStore` chat helpers** — `.upsert_chat_session(row)` (idempotent
+    on `id`); `.append_chat_turn(row)` (strict INSERT; returns rowid; the
+    UNIQUE on `(session_id, ord)` trips on duplicate ord by design — that
+    is a programming error worth surfacing rather than silently
+    overwriting); `.chat_session(session_id)` + `.chat_turns(session_id)`
+    read helpers.
+- **`src/components/arena/ChatLane.jsx`** — Preact island wired on
+  `/arena/chat/` as `client:only="preact"`. Custom `fetch` + manual SSE
+  parser (EventSource is GET-only and the chat endpoint is POST). UI
+  collapses the `<think>` block by default into a `<details>` summary;
+  perf chips (TTFT / tok/s / ≈tokens / finish_reason) pin to the
+  assistant card footer on `done`. Threads `session_id` from the `start`
+  event back into subsequent sends so the multi-turn history stays
+  single-session. `/arena/chat/` page mounts the existing
+  `<TelemetryGauge>` above the chat so the operator sees the lane chip
+  + tok/s light up while a stream is in flight.
+- **`ArenaLayout.astro` cockpit nav flip** — "Chat (M4)" stub
+  (greyed-out stub) replaced with `<a href="/arena/chat/">Chat</a>`
+  (live link). `/arena/` landing footer bumped from `v0.1 — M3` to
+  `v0.1 — M4` with a link to `/arena/chat/`.
+- **9 new tests** in `fieldkit/tests/arena/` — `test_store.py` +4
+  (chat session round-trip + replace-on-conflict + turn append/read +
+  duplicate-ord IntegrityError); `test_server.py` +5
+  (chat_event_stream emits start/token/done with channel classification +
+  persists 2 turns per round + sustains session_id across rounds +
+  report_inflight pings + route registration + 503 on missing resident).
+- **`fieldkit arena --help`** top-line bumped from "M3 surface" to
+  "M4 surface — telemetry SSE + lanes + leaderboard +
+  chat-against-resident-brain endpoints live on `fieldkit arena serve`."
+- **`fieldkit.arena` — M5 side-by-side compare + rubric scorer**
+  (`__all__` 20 → 27). New symbols re-exported lazily via PEP 562:
+  - **`POST /api/compare/stream`** (`fieldkit.arena.server.create_app`) —
+    Pydantic `CompareRequest` body (`prompt`, `lane_b="openrouter"` (default,
+    H6 frontier tier) or `"local:<id>"` (v0.2 only — emits a structured
+    `two_local_lanes_v0_2_only` error in v0.1 per spec §4.9 single-brain
+    envelope), optional `rubric_id` (server falls back to
+    `default_rubric_for_prompt` when absent), `max_tokens=4096`,
+    `temperature=0.0`). Emits the full spec §4.3 SSE event sequence
+    `start_a → token_a → done_a → start_b → token_b → done_b → score`
+    with channel-classified tokens and per-check `ok` + `why` strings.
+    503 on missing resident.
+  - **`compare_event_stream(*, hub, request, body, resident, db_path)`**
+    (`fieldkit.arena.server`) — async generator pulled out of the route
+    closure so unit tests drive it directly against stub clients (no live
+    `llama-server` or OpenRouter needed). Uses `asyncio.to_thread` to keep
+    the SSE writer non-blocking; `_stream_one_side` wrapper handles both
+    A and B with the same channel-classifier (the `<think>` boundary is
+    a piece-equality check on the chunk).
+  - **`GET /api/rubrics`** (`fieldkit.arena.server.create_app`) — returns
+    the default 3-rubric registry (`generic-correctness` /
+    `patent_claim_validity` / `mcq_letter`); JSON-safe shape.
+  - **`POST /api/prefs`** (`fieldkit.arena.server.create_app`) — Pydantic
+    `PrefRequest` body (`compare_run_id`, `winner ∈ {A,B,tie}`, optional
+    `note`). Inserts one `human_prefs` row and returns `{ok, pref_id,
+    n_prefs}` — **separate signal** per spec §4.3, never mutates the
+    corresponding `rubric_scores.total`. 404 on unknown `compare_run_id`.
+  - **`fieldkit.arena.rubrics`** — new module shipping `RubricSpec`
+    (frozen dataclass — id + title + description + executable
+    `fieldkit.eval.Rubric`), `DEFAULT_RUBRIC_REGISTRY` (the 3-entry
+    built-in dict), `list_rubrics()` (JSON-safe shape for `GET /api/rubrics`),
+    `get_rubric(id)` (lookup-or-None), and `default_rubric_for_prompt(prompt)`
+    (spec §4.3 substring-sweep picker — patent triggers → patent,
+    `(a)/(b)/(c)/(d)/multiple choice` → mcq, else generic). Deterministic
+    Python data — no YAML round-trip at runtime per
+    `[[feedback_llm_skill_pattern]]`.
+  - **`ArenaStore`** chat helpers extended with 8 compare-flow methods:
+    `upsert_compare_run`, `upsert_compare_response` (composite
+    `(run_id, side)` key — INSERT OR REPLACE so long-stream reconnect can
+    re-emit the side cleanly), `append_rubric_score` (strict INSERT,
+    returns rowid; CHECK constraint enforces compare_run_id OR chat_turn_id),
+    `append_human_pref`, `compare_run(id)`, `compare_responses(id)`,
+    `rubric_scores_for_run(id)`, `human_prefs_for_run(id)`.
+  - **`CompareRunRecord` / `CompareResponseRecord` / `RubricScoreRecord` /
+    `HumanPrefRecord`** promoted to `fieldkit.arena.__all__` + the lazy
+    map. `CompareRunRecord` defaults `publishable=1`; per spec §4.8 the
+    M6 mirror exporter ships only the `redacted_prompt` column (operator
+    opt-in), never `prompt`.
+  - **`src/components/arena/CompareDuel.jsx`** — Preact island
+    (`client:only="preact"`). Custom `fetch` + manual SSE parser
+    (CRLF-normalize per the M4 pitfall — sse-starlette emits `\r\n` line
+    endings; JS `indexOf('\n\n')` is strict). Side-by-side A/B cards
+    (model chips, reasoning `<details>`, content, perf chips); on the
+    `score` event paints rubric checks with name/kind/ok/why under each
+    side. Thumbs-up / thumbs-down / tie buttons → `POST /api/prefs`
+    (visual lock once recorded). Rubric picker dropdown from `GET
+    /api/rubrics`.
+  - **`/arena/compare/`** — new page (`src/pages/arena/compare.astro`)
+    mounting `<TelemetryGauge>` + `<CompareDuel>`.
+  - **`ArenaLayout` cockpit nav flip:** "Compare (M5)" greyed stub → live
+    `<a href="/arena/compare/">Compare</a>`. `/arena/` landing footer
+    bumped from `v0.1 — M4` to `v0.1 — M5` with a link to `/arena/compare/`.
+  - **`fieldkit arena --help`** top-line bumped to "M5 surface".
+
+### Notes
+
+- M2's idempotency gate (`fieldkit arena import` twice → same counts on
+  every table) is the foundation for M5's "compare runs append" and M6's
+  "mirror exporter writes from settled state" semantics.
+- Per `feedback_keep_scorer_local_until_reuse`: the M2 importer's bench-shape
+  extractors stay in `fieldkit.arena.importer`. They will only promote to
+  `fieldkit.eval` once a second module needs them.
+- The remaining CLI subcommands (`mirror`, `memcheck`,
+  `rebuild-leaderboard`, `promote-run`) still exit with their milestone
+  markers (`typer.Exit` + a marker) until their milestone lands.
+- `from __future__ import annotations` is deliberately NOT used in
+  `fieldkit.arena.server` — FastAPI's dependency-injection introspects
+  the endpoint function signatures via `inspect.get_type_hints`, and
+  PEP 563 deferred annotations make the locally-imported `Request`
+  symbol invisible (looks at module globals). Every other arena module
+  keeps the future import.
+
+## [0.13.0] — 2026-05-28
+
+### Added
+
+- **`fieldkit.harness` — Cost-tier Route group (H6 — cost routing)** (`__all__` 54 → 59).
+  Promoted from the H6 cost-router work, sibling of the H5 vertical-router
+  surface. Same deterministic-predicate discipline (no runtime LLM
+  classifier, no embedder) on a different routing dimension: vertical
+  routes change *which expert* answers a prompt; cost tiers change *which
+  tier* (local Spark $0 → OpenRouter cheap → OpenRouter frontier).
+  - `RouteTier` — frozen dataclass for one tier: `name`, `endpoint`,
+    `model`, `complexity_keywords`, `min_input_tokens`,
+    `price_per_m_input_usd` / `price_per_m_output_usd`, `api_key_env`,
+    `notes`. The first tier in a `CostRouterConfig.tiers` tuple is the
+    floor (its triggers are ignored — a tier can't escalate to itself).
+  - `CostRouterConfig` — frozen `(tiers,)` wrapper. `.classify(prompt, *,
+    est_input_tokens=None)` walks tiers high → low and returns the first
+    one whose triggers fire (keyword OR token-budget); falls through to
+    the floor. `.route_for` is an alias; `.tier_by_name(name)` looks up;
+    `.render_yaml()` emits a diff-stable `router.yaml` block with snapshot
+    prices embedded (R7). Static `.estimated_cost_usd(prompt_toks,
+    completion_toks, tier)` is the per-call $ accounting the H6 article
+    uses for the dollar curve.
+  - `build_cost_router(tiers)` — the factory. Validates: non-empty,
+    unique names, non-monotonic prices (a later tier is supposed to cost
+    more — anything else is almost certainly a config bug), and every
+    escalation tier carries at least one trigger.
+  - `estimate_tokens(text)` — 4-chars-per-token heuristic used by
+    `classify` when the caller doesn't pass an explicit count. Avoids
+    taking a tokenizer dependency for a routing decision (a 10%
+    over/undercount doesn't flip the tier).
+  - +18 new tests (`test_harness.py`, full suite 920 → 946 passing).
+- **`HarnessProfile.lane_metrics: LaneMetricColumns | None`** — overrides
+  the last two columns + caption of the rendered serving-lanes table.
+  The default (`None`) keeps the H2/H4 tool-call shape; the H6 cost router
+  swaps in `$/M input` + `$/M output` with a money formatter (`$V/M`,
+  2 decimals); the H5 vertical router can repurpose for pass-rate +
+  warm-time. `LaneMetricColumns(label_a, label_b, key_a, key_b,
+  format_a="percent", format_b="percent", caption="")` —
+  `format_a/b` is `"percent"` / `"money"` / `"raw"`. Empty `caption`
+  suppresses the default agent-critical line entirely. Retires the
+  v0.12.1 polish item flagged in the H5 publish (template assumed
+  tool-call metrics on every `kind: harness` artifact).
+
+### Fixed
+
+- **`fieldkit.eval.score_answer` substring check now honors both `all` and
+  `any`** (latent bug since the graded primitives landed in v0.11.0). Was
+  reading `any` only and silently ignoring `all` — so an `all`-only check
+  ALWAYS returned the empty-`any` failure path (`"none of [] in answer"`),
+  and a combined `all+any` check returned a pass as soon as ANY of the
+  `any` terms appeared, regardless of whether the required `all` term was
+  present. Now: `all` is the AND-clause (every term must appear,
+  case-insensitive); `any` is the OR-clause (at least one term must
+  appear); both empty is now an explicit config-error failure (was
+  silent-pass). The H5 vertical-router prompts combined the two in a way
+  that happened to keep passing under the old scorer (the `any` list was
+  already discriminating enough); H6's t07 numeric prompt — `all: ["31.60"]`
+  with no `any` — surfaced the gap. +4 regression tests
+  (`test_eval_graded.py`).
+- **`HarnessProfile.to_manifest()` renders `article:` in path-shape
+  directly** — `articles/<slug>/`, not the bare `<slug>` the schema
+  rejects. Retires the post-write fixup the H5 publisher script carried
+  (v0.12.1 polish item #1). H5's publisher script can drop its trailing
+  `text.replace(...)` block on its next edit.
+- **`HarnessProfile.render()` frontmatter tags deduped against the four
+  built-ins** (`agent-harness`, `hermes`, `dgx-spark`, `orionfold`) —
+  caller-supplied `tags=("hermes", ...)` no longer ships them twice
+  (v0.12.1 polish item #3).
+
+### Verified on Spark
+
+- The H6 cost-router surface was exercised end-to-end against a live
+  Qwen3-30B-A3B Q4_K_M llama-server brain on `:8080` (always-warm) plus
+  OpenRouter `openai/gpt-4o-mini` and `anthropic/claude-opus-4.1` over
+  the wire. 108-call bakeoff (12 prompts × 3 strategies × N=3) landed at
+  router accuracy 12/12, local-only 8/12, cost-routed 11/12,
+  frontier-only 12/12, leak rate 4/12 = 33.3%, total OpenRouter spend
+  $1.85. Driver:
+  `articles/hermes-cost-routing-local-and-openrouter/evidence/run_cost_router_bakeoff.py`.
+- The scorer fix was validated against the H5 vertical-router prompts as
+  a side check — every prompt that previously passed under the old `any`-
+  only path still passes under the new AND/OR semantics (the H5
+  `all+any` shape always satisfied both clauses).
+- `Orionfold/spark-hermes-cost-router` published live to HF via
+  `publish_harness` (4 staged files; manifest landed at
+  `src/content/artifacts/spark-hermes-cost-router.yaml` with the new
+  v0.13.0 path-shape `article:` rendering — no post-write fixup needed).
+
+### Test suite
+
+- `pytest` offline: **950 passed, 16 skipped** (`matplotlib` /
+  `great_tables` missing in the minimal venv — same skip set as v0.12.0,
+  not regressions).
+- `audit_docs.py`: harness 59/59, eval 51/51, every other module passing
+  symbol-coverage. 11/12 PASSED, 1 SKIP (`cli` has no explicit `__all__`).
+- `audit_landing.py`: 4/4 PASSED.
+
+### Articles in this release
+
+- [`articles/hermes-cost-routing-local-and-openrouter/`](https://ainative.business/field-notes/hermes-cost-routing-local-and-openrouter/)
+  — Harnesses H6, cost-tier routing on Spark + Hermes + OpenRouter. The
+  measured leak rate is 33.3%; the cost-routed strategy lands at 91.7%
+  pass-rate for $2.19/100 tasks vs the frontier ceiling at 100% / $2.94.
+  `fieldkit_modules: [harness, eval]`, `customer_linked: true`.
+
+## [0.12.0] — 2026-05-28
+
+### Added
+
+- **`fieldkit.harness` — Route group (H5 — vertical router)** (`__all__` 49 → 54).
+  Promoted from the H5 vertical-router work over the 5 Orionfold GGUFs
+  (patent / legal / finance / cyber / medical) — same `RouterConfig` shape
+  H6's `build_cost_router` will extend with cost-tier predicates. Surface:
+  - **`VerticalRoute`** — frozen
+    `(name, hf_repo, variant, keywords, description, base_model, params_b,
+    dtype, weight, article)`. `keywords` is the deterministic classifier
+    signal (lowercased substring matches); `weight` defaults to 1.0 and
+    biases tie-breaks toward a more specific vertical when keyword sets
+    overlap; `params_b` / `dtype` flow into the `serve_lane` unified-memory
+    guard.
+  - **`RouterConfig`** — frozen `(routes, default, escalation=None)`.
+    `.classify(prompt) -> VerticalRoute` is the pure keyword-scored
+    predicate (no LLM, no embedder, per spec §4.6 discipline) — ties break
+    listed-first; zero matches → `default`. `.route_for(prompt)` is an
+    alias. `.render_yaml() -> str` emits a diff-stable router block for
+    embedding in `HarnessProfile.router_yaml`. `.serve_for(prompt, *,
+    guard=True, headroom_gb=8.0, warm_timeout=180.0, host, port,
+    lane_factory=None)` is the OOM-safe convenience contextmanager:
+    classify, then `serve_lane` the picked vertical one-at-a-time per the
+    128 GB unified-memory envelope (`project_spark_unified_memory_oom`).
+  - **`build_vertical_router(routes, *, default, escalation=None)
+    -> RouterConfig`** — the factory. Lightweight validation (raises
+    `RoutingError`): `routes` non-empty; route names unique + non-empty;
+    every route has at least one keyword (a route with no keywords could
+    never be picked — that's a bug, not a config); the `default` route
+    name is not also in `routes` (the default competes with no one).
+  - **`lane_spec_for_vertical(route, *, host, port, n_ctx, reasoning_format)
+    -> LaneSpec`** — the default `LlamaServerLane`-bound `LaneSpec`
+    builder. Pure function. Override `RouterConfig.serve_for`'s
+    `lane_factory` to swap to NIM / vLLM / etc.
+  - **`RoutingError`** — `HarnessError` subclass raised by
+    `build_vertical_router` rather than emit a quietly-broken router.
+
+- **Tests** (+24 → 920 passed). `test_harness.py::test_router_*` covers the
+  five-vertical happy path, the four validation refusals, classifier
+  correctness (case-insensitivity, score-over-listed-first, listed-first
+  tiebreak, weight tiebreak, default fallback on zero hits), `render_yaml`
+  determinism + escalation rendering + unit-weight omission, the
+  `lane_spec_for_vertical` knobs, and the `serve_for` lifecycle (right
+  vertical picked, default fall-through, teardown-on-exception).
+
+- **`fieldkit/docs/api/harness.md`** — Route section between Harden and
+  Eval; `RoutingError` row; status line + summary updated; H6 cost router
+  noted as the only remaining "Coming across the arc" surface. Audit-docs
+  gate covers it.
+
+### Verified on Spark
+
+- **H5 vertical-router bakeoff** — 5 Orionfold vertical GGUFs served
+  one-at-a-time via `llama-server` on `:8090` (each Q5_K_M, 4.5–5.5 GB,
+  warm 4–6 s), with the Step-2-pinned `Qwen3-30B-A3B-Q4_K_M` MoE always-warm
+  on `:8080` as the default brain. **Router accuracy 30/30 = 100.0%** on a
+  30-prompt suite (5 per vertical + 5 default-brain); **overall answer
+  quality 27/30 = 90.0%** (finance / cyber / medical 5/5; patent / legal /
+  brain 4/5). The 3 fails are auditable to measurement artifacts
+  (`max_tokens=1024` budget exhaustion, one rubric framework mismatch),
+  not model failures. Evidence:
+  `articles/hermes-vertical-router-on-spark/evidence/vertical_router_results.json`.
+
+### Test suite
+
+- `cd fieldkit && /tmp/fk/bin/pytest tests/` → **920 passed, 16 skipped**
+  (the 16 skips are unconditional `matplotlib` / `great_tables` absences in
+  the minimal `/tmp/fk` venv). 24 new `test_router_*` tests against the H5
+  Route surface — five-vertical happy path, the four validation refusals,
+  classifier correctness (case-insensitivity, score-over-listed-first,
+  listed-first tiebreak, weight tiebreak, default fallback on zero hits),
+  `render_yaml` determinism + escalation rendering + unit-weight omission,
+  `lane_spec_for_vertical` knobs, and the `serve_for` lifecycle (right
+  vertical picked, default fall-through, teardown-on-exception). No `--spark`
+  integration tests added — the H5 surface is pure config + a deterministic
+  predicate; live serving is exercised by the bakeoff above, not by tests.
+
+### Articles in this release
+
+- `articles/picking-the-hermes-brain-on-spark/` (Step 5 of the Harnesses
+  brain-bakeoff arc; landed since v0.11.0) — `fieldkit_modules:
+  [eval, harness]`.
+- `articles/hermes-vertical-router-on-spark/` (H5 — written alongside this
+  release) — `fieldkit_modules: [harness]`.
+
+## [0.11.0] — 2026-05-27
+
+### Added
+
+- **`fieldkit.eval` — graded-rubric primitives** (`__all__` 42 → 51). Promoted
+  from `articles/field-fixing-the-hermes-harness-on-spark/evidence/
+  hermes_brain_eval.py` after the Step-2 Hermes brain-quality bakeoff scored
+  the SAME rubric across three serving lanes (NIM-incumbent, llama.cpp Q4_K_M
+  MoE, vLLM FP8 MoE) — the cross-lane reuse that earned the abstraction per
+  `feedback_keep_scorer_local_until_reuse`. Surface:
+  - **`CheckSpec`** — frozen `(kind, any, all, keys, value, tolerance)` with
+    the five `CHECK_KINDS` exercised by the bakeoff (`substring`, `json_keys`,
+    `regex`, `honesty`, `numeric`). `CheckSpec.from_dict(d)` parses the
+    on-disk JSON shape; `CheckSpec.with_substitutions(subst)` resolves
+    `{{placeholder}}` tokens inside `any`/`all`/`keys` and returns a new
+    frozen spec (idempotent).
+  - **`Rubric` + `Rubric.single(spec)`** — wraps `tuple[CheckSpec, ...]`
+    (length 1 today); multi-check requires every check to pass. Future-proofs
+    AND-of-checks without growing call sites.
+  - **`CheckResult(passed, why)`** — short reason string suited to terminal
+    logs and the review-queue markdown.
+  - **`GradedPrompt` + `GradedPromptSuite.load(path, substitutions=None)`** —
+    parses the prompt-suite JSON shape; `select(core_only=, available_conditions=)`
+    filters to runnable; `by_id(...)` lookup. Raises `ValueError` on missing
+    `prompts`, missing `id`/`prompt`, or unknown `check.kind`.
+  - **`score_answer(answer, spec, *, hedges=HEDGE_PHRASES)`** — accepts
+    either a `CheckSpec` or `Rubric`; the `hedges` kwarg lets callers swap in
+    domain-specific uncertainty vocabularies.
+  - **`extract_last_json(text)`** — public helper that walks the LAST bare
+    JSON object out of mostly-prose model output.
+  - **`HEDGE_PHRASES`** — 33-entry uncertainty vocabulary; distinct from
+    `REFUSAL_PATTERNS` (those grade RAG context-grounding refusals).
+- **`fieldkit.harness` — brain evaluator** (`__all__` 39 → 49). The harness
+  ×model matrix that composes the new graded rubric with the existing
+  `tool_call_reliability` to rank serving lanes on QUALITY + consistency, not
+  just format-error rate:
+  - **`BrainCandidate`** — `(label, base_url, model, context_length, lane)`.
+    `lane=None` evaluates an already-up endpoint; `lane=<ServingLane>` wraps
+    the eval in `serve_lane(lane, guard=True, warm_timeout=...)`.
+  - **`bucket_hermes_sessions(records, slots, ...)`** — pure fn: assign each
+    exported Hermes CLI session to exactly one slot via the
+    last-slot-with-`t_start <= started_at` rule (mutually exclusive,
+    fixes the ±2s-pad double-counting bug from the local script). Exposed
+    because the bug was subtle and the test fixture is the contract.
+  - **`evaluate_brain(suite, *, label, scratch_dir, runs, ...)`** — drives ONE
+    already-pointed-at endpoint through a suite: N attempts per prompt,
+    bucket sessions to attempts, score via `fieldkit.eval.score_answer`,
+    compose `tool_call_reliability` over the bucketed records, build the
+    scorecard. Optional dedicated throughput probe (`throughput_samples`) and
+    telemetry sampler (`enable_telemetry`) run AROUND the suite so the lane
+    is still warm but the probe's decode doesn't double-count in GPU%.
+  - **`evaluate_brains(suite, candidates, *, scratch_dir, ...)`** — the
+    bakeoff loop: per candidate, optionally `serve_lane()`,
+    `point_hermes_at_endpoint(...)`, call `evaluate_brain`, tear down.
+    Errors in one candidate are recorded on its scorecard's `error` field
+    and the loop continues.
+  - **`BrainScorecard` + `BrainPromptScore` + `BrainAttempt`** — frozen
+    dataclasses for the result tree. `BrainScorecard.rank_key` returns the
+    Step-2 ordering: `(honesty_gate, core_pass_rate, consistency,
+    -runaway_rate, tok/s)`. Honesty is a GATE, not just an axis — a
+    confabulator sorts below a hedger regardless of other scores.
+  - **`point_hermes_at_endpoint(base_url, model, *, context_length=64000)`**
+    — the light-touch swap (5 `hermes config set` calls including the
+    auxiliary.compression context floor Hermes reuses for compression).
+    Complements the heavier first-time `configure_hermes`.
+  - **`Telemetry`** + **`measure_throughput`** — Spark-aware GPU%/unified-memory
+    sampler (`nvidia-smi memory.used` is `[N/A]` on GB10's unified memory, so
+    `/proc/meminfo` carries the real memory line) and a dedicated decode
+    probe (median tok/s over N OpenAI-compatible calls).
+- **53 new tests** (test_eval_graded.py: 36; test_harness.py append: 17),
+  full suite 896 passed / 16 optional-deps skips. Audit-docs `eval` 51/51,
+  `harness` 49/49.
+
+### Verified on Spark
+
+- **Step-2 Hermes brain-quality bakeoff** (the cross-lane reuse that earned
+  this surface) ran the same graded suite head-to-head against three serving
+  lanes on GB10: `nim-incumbent` (live Nemotron-9B NIM), `qwen3-30b-moe-llamacpp-q4km`
+  (llama.cpp Q4_K_M at 127.0.0.1:8080), and `qwen3-30b-moe-vllm-fp8`. Verdict
+  pinned the MoE Q4_K_M lane as the Hermes brain (8/8 @ 90% consistency,
+  83.5 tok/s, 31.8 GB unified; beat NIM 6/8 @ 82%, 23.9 tok/s + vLLM FP8 on
+  every axis). The driver scripts in
+  `articles/field-fixing-the-hermes-harness-on-spark/evidence/` now use this
+  release's `fieldkit.harness.evaluate_brain` + `fieldkit.eval.GradedPromptSuite.load`
+  directly; on-disk JSON shape preserved verbatim for diff stability with the
+  shipped verdict file.
+- The mutually-exclusive `bucket_hermes_sessions` rule replaces the local
+  script's ±2s-pad window that double-counted back-to-back attempts (caught
+  during Step-1 fixture iteration; the test fixture is the contract).
+- `Telemetry` + `measure_throughput` ran live during the bakeoff: GB10's
+  `nvidia-smi memory.used` is `[N/A]` (unified memory), so the sampler reads
+  `/proc/meminfo` for `unified_used_gb_max` and parses each `nvidia-smi` field
+  independently; live runs captured GPU util 91% mean / 96% max, 93.3 GB
+  unified peak, 75°C peak under sustained agentic load.
+
+### Test suite
+
+- `cd fieldkit && pytest` → **896 passed**, 16 skipped (optional-deps:
+  matplotlib / great_tables / jupytext) — was 843 passed at v0.10.0.
+- 53 new tests across `tests/test_eval_graded.py` (36 — every `CheckSpec`
+  kind, `Rubric` composition, `GradedPromptSuite.load` placeholder resolution
+  + `select` filters) and the brain-evaluator section of `tests/test_harness.py`
+  (17 — bucketing edge cases, `BrainScorecard.rank_key` honesty-gate +
+  tiebreakers, end-to-end `evaluate_brain` with monkeypatched subprocess +
+  session export, `evaluate_brains` error-isolation loop).
+
+### Articles in this release
+
+- `field-fixing-the-hermes-harness-on-spark` (Step-2 cross-lane bakeoff;
+  `fieldkit_modules: [harness, eval]`) — the article that earned this
+  abstraction. The next session ships Step-4 (publish the suite as a
+  `dataset` artifact) and Step-5 (the deep-dive article on how to actually
+  measure a local agent brain), both of which assume this release.
+
+## [0.10.0] — 2026-05-26
+
+### Added
+
+- **`fieldkit.harness` — H4 fieldkit-as-MCP surface** (`__all__` 33 → 39). The
+  keystone: a new `fieldkit.harness.mcp` submodule exposes a *curated* subset of
+  fieldkit surfaces as Model-Context-Protocol tools so an agent harness (Hermes
+  first) can drive the Spark over stdio (`python -m fieldkit.harness.mcp`):
+  - **Seven tools** (`MCP_TOOL_SPECS`): `spark_inference_envelope` +
+    `spark_weight_footprint` (capabilities, read-only), `measure_gguf_throughput`
+    + `measure_gguf_perplexity` (quant, real GPU work), `quantize_gguf` (quant,
+    `dry_run`-default + envelope-guarded), `publish_quant_dry_run` (publish,
+    dry-run-*forced* — the real-push path is unreachable through the server), and
+    `ask_second_brain` (rag, read-only — the `mcp-second-brain-in-claude-code`
+    bridge). Curation **is** the containment posture (H3 at the tool layer).
+  - **`build_mcp_server(name="fieldkit")`** / **`run_mcp_server`** lazy-import
+    `mcp.server.fastmcp.FastMCP` and register the tools with `readOnlyHint`
+    annotations; the tool *functions* are plain + unit-testable without the SDK.
+  - **`MCPToolSpec`** (frozen, pure data) + **`MCP_SERVER_NAME`** +
+    **`McpNotAvailable`**. The `mcp` SDK is the new optional **`fieldkit[harness]`**
+    extra; `import fieldkit.harness` stays stdlib-only (lazy PEP 562 re-export).
+  - +13 tests (843 total); audit-docs `harness` 39/39; `docs/api/harness.md`
+    fieldkit-as-MCP section.
+- **`fieldkit.harness` — H3 Harden surface** (`__all__` 28 → 33). Turns a
+  permissive local `HermesConfig` into a desk-grade one with a pure function,
+  mapping each policy field to a real Hermes config key verified against the
+  installed v0.14.0 schema (`terminal.*`, `tool_loop_guardrails.*`,
+  `approvals.*`, `agent.*`, `session_reset.*`):
+  - **`HardeningPolicy`** (frozen) — the §4.3 baseline posture: docker-sandboxed
+    terminal, `--network=none` egress deny, secrets confined to `~/.hermes/.env`,
+    local-only provider, manual approvals, hard-stopping tool-loop guardrails, a
+    turn cap, and an ephemeral sandbox that resets on a schedule. + `DEFAULT_HARDENING`.
+  - **`harden_config(config, policy=DEFAULT_HARDENING)`** — pure function → a new
+    frozen `HermesConfig` with the hardened sections folded into `.sections`
+    (input untouched). Raises **`HardeningError`** rather than emit a falsely-hardened
+    config when the provider isn't in `LOCAL_PROVIDERS` under `local_first`,
+    `approval_mode == "off"` (`--yolo`), or a secret leaks into the config body.
+  - **`LOCAL_PROVIDERS`** — the local-serving provider allowlist (the native
+    `nvidia` cloud provider is deliberately excluded).
+  - **`HermesConfig` gains `sections`** — top-level config.yaml sections beyond
+    `model:`; `render()` emits them after `model:`, `config_set_commands()` emits
+    scalar leaves as `hermes config set` lines (list/dict leaves like
+    `terminal.docker_extra_args` are skipped — `config set` can't parse them).
+  - Conceptual basis: the project's Guardrails-on-the-retrieval-path policy
+    pattern (a frozen policy + a pure apply function). +10 tests (830 total);
+    audit-docs `harness` 33/33; `docs/api/harness.md` Harden section.
+
+### Verified on Spark
+
+- **The H4 keystone gate ran live.** A hardened-pattern Hermes Agent v0.14.0, brained
+  by a local NIM Nemotron-Nano-9B-v2 (no API key), drove `measure_gguf_throughput`
+  through `fieldkit.harness.mcp` over stdio → real `llama-bench` on a 4.7 GB Q4 GGUF
+  → 41.75 tok/s generation. `tool_call_reliability` over the exported session:
+  `format_error_rate 0.0`, `clean_run_rate 1.0`. A second turn drove the read-only
+  `spark_inference_envelope`. Evidence in
+  `articles/hermes-drives-the-spark-via-fieldkit-mcp/evidence/`.
+
+### Test suite
+
+- `pytest tests/` → **843 passed, 12 skipped** (skips are missing matplotlib /
+  great_tables in the minimal venv). +13 `tests/test_harness_mcp.py`; audit-docs
+  `harness` 39/39; audit-landing 4/4.
+
+### Articles in this release
+
+- `hermes-drives-the-spark-via-fieldkit-mcp` (Harnesses H4, keystone) — assumes the
+  `fieldkit.harness.mcp` surface + the `fieldkit[harness]` extra.
+- `hardening-the-hermes-harness-on-spark` (Harnesses H3) — assumes the Harden surface.
+
+## [0.9.0] — 2026-05-26
+
+### Added
+
+- **`fieldkit.harness` module — H1 surface.** The deterministic Python spine
+  of the new **Harnesses** content line — optimized agent harnesses for the DGX
+  Spark, Hermes Agent (Nous Research, MIT) first (`specs/hermes-harness-v1.md`).
+  Builds on the Session-1 foundation (`HarnessError` / `ServingLaneError` /
+  `UnifiedMemoryExceeded` hierarchy, `LaneSpec`, abstract `ServingLane`) with the
+  full H1 surface, all verified on the Spark against Hermes v0.14.0 + the cached
+  Nemotron-Nano-9B-v2 NIM:
+  - **Serve:** concrete `NIMLane` (the hero — `docker run` recipe with
+    `NIM_MAX_BATCH_SIZE=32`, `nim.wait_for_warm` reuse, short-name→image
+    resolution, `footprint_gb` for the guard) and `LlamaServerLane` (delegates to
+    `notebook.local_server`); `resolve_lane` over a populated `SERVING_LANES`
+    registry; `serve_lane(lane_or_spec, guard=True, headroom_gb=8.0)`
+    contextmanager whose guard refuses an OOM-stacking lane before launch and
+    whose teardown enforces one-model-at-a-time.
+  - **Install / doctor:** `install_hermes` (two-key safety on `curl | bash`),
+    `hermes_doctor` + `DoctorReport` / `DoctorCheck` (section-aware parsing so the
+    dozens of un-configured-integration ✗'s don't fail `.ok`), `HermesNotInstalled`
+    / `DoctorFailed`, `HERMES_INSTALL_URL`.
+  - **Configure:** `HermesConfig` / `EnvFile` / `configure_hermes` — render the
+    `provider: custom` + `base_url` config + `.env` for a local lane, endpoint
+    resolution reusing `notebook.discover_local_server`.
+
+  `docs/api/harness.md` updated; 31 H1 tests (29 unit + 2 `@pytest.mark.spark`
+  live: `hermes_doctor` + `serve_lane(NIMLane)` end-to-end). Harden / route land
+  across H3–H6.
+- **`fieldkit.harness` — H2 surface (serving-lane bakeoff + tool-call eval +
+  the first `harness` artifact).** Extends the module from 20 → 28 `__all__`
+  symbols:
+  - **Serve:** `VLLMLane` — the high-throughput MoE lane (`Qwen3-30B-A3B-FP8`),
+    `vllm serve` inside the community DGX-Spark vLLM image (prebuilt
+    Spark-tested wheels, no aarch64 source build), whose `teardown()` sweeps
+    orphaned `EngineCore` PIDs after `docker rm` (the R8 landmine,
+    `feedback_vllm_engine_core_orphan`). `OllamaLane` — the lowest-friction
+    local alternative (`:11434`, pull + unload-on-teardown). Both registered in
+    `SERVING_LANES` / `resolve_lane`.
+  - **Eval:** `export_hermes_sessions` (shells `hermes sessions export` — the
+    SQLite session store is the structured trace surface),
+    `agent_runs_from_hermes_sessions` (→ `eval.AgentRun`; tool turns vs.
+    malformed-call error turns), `tool_call_reliability` (the agent-critical
+    `format_error_rate` / `clean_run_rate` reducer), and `HarnessEvalResult`
+    (composes `eval.summarize_agent_runs`). ~90% reuse of `fieldkit.eval`.
+  - **Profile / publish:** `HarnessProfile` (the `ModelCard` analog —
+    `.render()` / `.files()` / `.to_manifest()`) and `publish_harness` (dry-run
+    by default; reuses `publish.HFHubAdapter`), producing the first
+    `ArtifactManifest(kind="harness")`.
+
+  `docs/api/harness.md` updated (audit-docs: harness 28/28); +20 unit tests.
+  Parser validated against the real H1 session export.
+- **Two new artifact kinds** in the content schema: `harness` (a reproducible
+  Spark-Hermes profile bundle, rendered by `HarnessProfile`) and `skill` (an
+  agentskills.io `SKILL.md` package, cross-compatible with Claude Code skills).
+  Appended to `publish.ARTIFACT_KINDS` and `src/content.config.ts`.
+
+### Fixed
+
+- **`publish._render_yaml_block` now emits list-of-dict as structured YAML
+  mappings**, not the Python `repr` of each dict. A latent bug that mis-rendered
+  `known_drift` / `notebooks` / `siblings` on **every** artifact-manifest kind
+  (the destination Zod schema needs `item` / `bound` objects, not strings).
+  Surfaced while writing the first `kind: harness` manifest.
+
+### Verified on Spark
+
+- The full `fieldkit.harness` serve + eval + profile surface was exercised
+  end-to-end on the DGX Spark via the H2 five-lane bakeoff: `serve_lane(guard=True)`
+  brought up NIM, vLLM (`VLLMLane`, with the EngineCore orphan-sweep teardown),
+  and llama.cpp (`LlamaServerLane`) lanes one at a time; `export_hermes_sessions`
+  → `agent_runs_from_hermes_sessions` → `tool_call_reliability` scored every lane
+  at 0% format-error / 100% clean; `HarnessProfile` + `publish_harness` produced
+  the `Orionfold/spark-hermes-profile` manifest (dry-run). Memory returned to
+  ~116 GB free after every teardown (no orphan survived).
+
+### Test suite
+
+- `820 passed, 16 skipped` offline (`pytest`; skips are matplotlib/great_tables
+  not installed in the minimal venv + 2 `@pytest.mark.spark` markers). audit-docs
+  `harness 28/28`; audit-landing `4/4`.
+
+### Articles in this release
+
+- `articles/the-hermes-harness-on-spark/` (H1 — install + NIM provider).
+- `articles/hermes-serving-lane-on-spark/` (H2 — the serving-lane bakeoff).
+
+## [0.8.0] — 2026-05-24
+
+### Added
+
+- **`fieldkit.notebook` reply rendering + streaming.** Three new exports turn a
+  reasoning model's raw `<think>…</think>answer` reply into proper notebook
+  output instead of a tagged text blob:
+  - `split_think(reply) -> (reasoning, answer)` — handles closed, unclosed
+    (budget-truncated), no-think, and empty-false-start shapes.
+  - `display_reply(reply)` — renders the reasoning in an always-visible muted
+    box (brand palette) above the answer as Markdown in a Jupyter kernel; prints
+    raw outside one. The default the artifact notebooks use.
+  - `stream_reply(client, messages)` — opt-in live streaming (reasoning box fills
+    token-by-token, then the answer), backed by a new
+    `ChatClient.chat_stream(...) -> Iterator[str]` on every backend
+    (`OpenAICompatClient` parses SSE and reconstructs the `<think>` shape across
+    server reasoning-formats; `LlamaCppClient` streams the in-process engine).
+  10 new tests; `docs/api/notebook.md` updated (audit-docs: notebook 19/19).
+
+### Verified on Spark
+
+- The patent-strategist user notebook ran end-to-end against a local
+  `llama-server` serving `Orionfold/patent-strategist-v3-nemo-GGUF` Q5_K_M
+  (`--reasoning-format none`): `display_reply` rendered five reasoning boxes,
+  all spaced (`think_space_ratio` 0.156–0.171), with the answer as Markdown;
+  `stream_reply` streamed the chain token-by-token over SSE.
+
+### Test suite
+
+- `pytest tests/` offline: **780 passed, 3 skipped** (1 torch-absent training
+  test, 2 `--spark`-gated). `audit_docs.py --strict-kwargs`: 10/11 PASS, 1 skip
+  (cli has no `__all__`), 0 fail. `audit_landing.py`: 4/4 PASS.
+
+### Articles in this release
+
+- No new articles in the `fieldkit/v0.7.0..HEAD` window; the
+  `patent-strategist-bakeoff-unsloth-vs-nemo-framework` article was edited (the
+  Unsloth lane was unpublished — see the repo history), and its companion
+  notebooks now use the new `display_reply` renderer.
+
+## [0.7.0] — 2026-05-23
+
+### Added — `fieldkit.notebook` Spark serving glue
+
+- **`local_server(hf_repo, *, variant="Q5_K_M", n_ctx=8192, chat_template="jinja", reasoning_format="none", ...)`** — context manager that serves a GGUF on a local `llama-server` for the `with` block (resolve+download → `-ngl 99` → wait `/health` → **tear down on exit**), yielding the endpoint URL. The OOM-safe one-model-at-a-time pattern, promoted from a hand-rolled shell script. Binary resolved via `server_bin=` → `FIELDKIT_LLAMA_SERVER` → `PATH` → known Spark build.
+- **`discover_local_server(candidates=None, *, timeout=0.5)`** — probe `127.0.0.1:8080` (llama-server) / `:8000` (NIM) for a reachable OpenAI-compatible server; returns the base URL or `None`.
+
+### Changed — model-card notebook on-ramp is now a `## Notebooks` section
+
+- **`ModelCard.render()` emits a `## Notebooks` table section** (after positioning, before Spark-tested) instead of a pre-positioning badge row. The section is a short intro + a table (Notebook | What it does | Open) with the Colab/Kaggle badges per row. HF renders markdown images as `display: block` even in table cells, so an inline badge row stacks one-per-line with heavy whitespace; the table fixes the layout and explains each notebook. NARRATIVE-CONTRACT Rule 8 reworked to match.
+- **`notebooks[]` entries accept optional `name` / `blurb`** to override the table's display name and one-sentence description; both default from the entry's `label` ("Build it" → Builder, "Use it" → User).
+
+### Changed — `fieldkit.notebook` server path is now the Spark default
+
+- **`open_model(...)` autodiscovers a local server on Spark** (new `autodiscover` arg; default on for `runtime="spark"`) before the in-process path — since `llama-cpp-python` has no aarch64 wheel, a running `llama-server`/NIM is the working Spark backend. Behavior on cloud/`local`/explicit-endpoint runtimes is unchanged.
+- **`OpenAICompatClient.chat` reconstructs the `<think>` block** from a `reasoning_content` field when the server's `--reasoning-format` splits it out — a reasoning model no longer returns a silently-empty `content`.
+- **`open_model` warns when `chat_format` is passed on a server path** (the server owns the chat template) instead of dropping it silently.
+
+### Test suite
+
+Total suite: **774 passed, 3 skipped** offline (`pytest -q`, `/tmp/fk` venv) — up from 764 at v0.6.0 (+10). The 3 skips are the torch-gated training snapshot test and the two long-standing `--spark`-gated live-NIM / pgvector tests. New coverage exercises the `local_server` lifecycle, `discover_local_server` probing, `open_model` Spark autodiscovery, the `reasoning_content` think-block reconstruction, and the `## Notebooks` ModelCard section.
+
+### Verified on Spark
+
+- `open_model("Orionfold/patent-strategist-v3-unsloth-GGUF")` autodiscovered a live `llama-server` on `:8080` (Q5_K_M, `--jinja --reasoning-format none`) and returned an `OpenAICompatClient` whose `.chat()` produced a `<think>` reasoning trace — the dual-path contract walked end-to-end on the GB10 from a fresh notebook venv.
+
+### Notebooks-as-artifacts v1 (this release's driver)
+
+No new field-notes article landed in this window. The release closes the Spark gap in `specs/notebooks-as-artifacts-v1.md`: the published `user.ipynb` notebooks could not serve a model on Spark before this glue, because `open_model`'s in-process path needs the aarch64-unavailable `llama-cpp-python`. Surfaced while walking the first-time-user journey for the patent-strategist notebook pilot.
+
+## [0.6.0] — 2026-05-23
+
+The **notebooks-as-artifacts v1** build-out — two new public modules (`fieldkit.viz` + `fieldkit.notebook`), a 6th artifact kind (`notebook`), and the positioning-first card surface — that turns every Orionfold vertical's `artifact → card → article` loop into a runnable on-ramp: a builder + user Jupyter pair distributed as one-click Open-in-Colab / Open-in-Kaggle notebooks. Implements `specs/notebooks-as-artifacts-v1.md` (status: locked). Adds the `fieldkit[notebook]` install extra — the visual + inference stack the two new modules import lazily. `ARTIFACT_KINDS` is re-shaped: three speculative kinds dropped, `notebook` added.
+
+### Added — `fieldkit.viz` (branded chart + hero-table layer)
+
+New module. Turns an `ArtifactManifest` (or its bare measurement dicts) into marketing-grade, stack-colored matplotlib figures + great_tables hero tables — the same visuals the HF cards, article figures, and notebooks reuse, all the deterministic output of the measured Spark run. Lazy + optional (behind `fieldkit[notebook]`).
+
+- **`spark_quad(manifest, *, ...)`** — the four-axis signature hero (perplexity / throughput / vertical accuracy / thermal envelope) on one `Figure`.
+- **`variants_table(manifest, *, sizes=..., ...)`** — the great_tables hero table with inline nano-plot bars and the recommended row highlighted; the matrix readers screenshot. (nano-plots need `polars` even with a pandas frame — gated on the optional dep.)
+- **`perplexity_sweep` / `throughput_bars` / `vertical_eval_bars`** — single-axis panels.
+- **`train_wall_compare(walls, *, title=...)`** — builder-only bakeoff lane comparison.
+- **`save_figure` / `apply_style`** — high-DPI Agg export + the bundled `orionfold.mplstyle` (composes `dark_background` + brand rcParams; shipped as package data).
+- **`STACK_COLORS` / `DEFAULT_ACCENT` / `STYLE_PATH`** — the stack-origin color map (NARRATIVE-CONTRACT Rule 7) + the style-asset path.
+- **`VizNotAvailable`** — raised with an install hint when the `[notebook]` extra is absent.
+
+### Added — `fieldkit.notebook` (dual-path runtime + scaffolding)
+
+New module. Powers the runtime split the notebooks need: Spark = full local fieldkit path; Colab/Kaggle = pull the published GGUF → `llama-cpp-python` on a free GPU — same notebook, no branching in user code.
+
+- **`detect_runtime()` / `is_cloud(rt)` / `Runtime`** — environment detection.
+- **`open_model(hf_repo, variant=None, *, runtime=..., chat_format=..., n_ctx=..., ...)`** → **`ChatClient`** — one `.chat()` surface over either **`OpenAICompatClient`** (httpx → NIM / llama-server) or **`LlamaCppClient`** (in-process llama-cpp-python). Backend chosen by runtime.
+- **`colab_url` / `kaggle_url` / `notebook_path` / `badge_markdown` / `GITHUB_REPO`** — the badge-row URL builders, so the card badges and the in-notebook badges can't drift apart.
+- **`NotebookBuilder`** — deterministic jupytext py:percent scaffold (banner, parameters cell, code cells, prose-slot markers) that the `notebook-author` skill fills.
+- **`NotebookNotAvailable`** — raised with an install hint when the extra is absent.
+
+### Added — 6th artifact kind + positioning-first card surface
+
+- **`notebook` artifact kind** in `ARTIFACT_KINDS` — a per-vertical builder+user Jupyter pair, manifest-described with no measurements of its own (chart data is sourced from the sibling model manifest by slug).
+- **`notebooks` field on `ModelCard` + `ArtifactManifest`** — a tuple of `{label, colab, kaggle}` entries; `_render_model_card` renders the badge row under the one-liner, above positioning (Rule 8 — a navigation aid, not a claim).
+- **`positioning` / `stack_origin` / `known_drift` fields** on `ModelCard` + `ArtifactManifest` — the positioning-first card shape from the patent-strategist repolish: positioning leads, every drift entry carries a bound, drift never sits above-the-fold, no forward-looking roadmap.
+
+### Changed
+
+- **`ARTIFACT_KINDS` re-shaped.** Dropped three speculative kinds (`embed`, `reranker`, `space` — no live manifest used them) and added `notebook`. The canonical set is now `(quant, lora, adapter, dataset, bench, notebook)`; the test invariant moves to `_canonical_six`. Mirrored in the Astro Zod schema (`src/content.config.ts`).
+- **`_render_model_card`** now leads with positioning and pushes bounded drift below-the-fold, matching `/NARRATIVE-CONTRACT.md` (the surface-agnostic card rubric extracted this cycle).
+
+### Removed
+
+- **`embed`, `reranker`, `space`** from `ARTIFACT_KINDS` (breaking for any consumer of those enum members; none were live — permitted on `0.x` per the versioning policy).
+
+### Build / packaging
+
+- **`fieldkit[notebook]` extra** added to `pyproject.toml`: matplotlib, great-tables, pandas, polars, jupytext, papermill, jupyterlab, pyyaml, huggingface_hub, llama-cpp-python. The released `0.5.0` predated this extra, so `pip install 'fieldkit[notebook]'` warned there and pulled nothing; from `0.6.0` it resolves the visual + inference stack the notebooks need on a fresh Colab.
+- **`orionfold.mplstyle`** shipped as package data (`src/fieldkit/assets/*.mplstyle` added to the wheel include).
+
+### Test suite
+
+Total suite: **764 passed, 3 skipped** offline (`pytest -q`, `/tmp/fk` venv) — up from 710 at v0.5.0 (+54). The 3 skips are the torch-gated training snapshot test and the two long-standing `--spark`-gated live-NIM / pgvector tests. New coverage spans `fieldkit.viz` (19 tests) and `fieldkit.notebook` (20 tests), plus the `_canonical_six` artifact-kind invariant and the ModelCard positioning / drift / notebooks-field cases.
+
+### Verified on Spark
+
+- `fieldkit.viz` renders marketing-grade `spark_quad` + `variants_table` from the live `ii-medical-8b-gguf` and `patent-strategist-v3-unsloth-gguf` manifests (high-DPI Agg export + Playwright over nbconvert HTML for the great_tables hero).
+- `fieldkit.notebook` `NotebookBuilder` scaffolds the jupytext skeleton, and the medical builder notebook executes headless on the GB10 (`nbconvert --allow-errors`) with 0 errors.
+
+### Notebooks-as-artifacts v1 (this release's driver)
+
+No new field-notes article landed in this window; the release implements `specs/notebooks-as-artifacts-v1.md` and ships the patent-strategist + medical notebook pilots under `notebooks/`. The `notebook-author` + `notebook-snapshot` skills consume these two modules.
+
+## [0.5.0] — 2026-05-22
+
+The `fieldkit.training` v0.5 build-out — five new modules (`recipe`, `convert`, `run`, `probe`, `decide`) that lift the patent-strategist v3 paired bakeoff (NeMo Framework vs Unsloth, session 2026-05-21 → 2026-05-22) out of one-shot scripts and into a reusable, symmetric library surface. Drives Article H end-to-end. `fieldkit.training.__all__` grows from 7 → 46 entries; +203 new tests; package suite goes 507 → 710 passed.
+
+The release notes below run newest-phase-first (E → A) to match the build order. Cross-phase totals, live-Spark verification, and the article window are summarized at the bottom.
+
+### Added — `fieldkit.training` v0.5 build-out (Phase E: `decide.train_backend` + `refresh` flywheel)
+
+Final module of the v0.5 `fieldkit.training` build-out, after Phase A's `recipe.TrainRecipe` (`bee458d`), Phase B's `convert` (`9f2a59f`), Phase C's `run` + `merge_and_export` + `standardize_hf_export` (`2e142e7`), and Phase D's `probe.ReasoningProbe` + `ProbeReport.compare` (`78a3131`). YAML-lookup decision API with a lifecycle filter + a refresh flywheel — the contract that lets every future `articles/*-bakeoff-*` write a decide-entry alongside its prose so the next-session's `train_backend(...)` returns the article's findings programmatically.
+
+- **`fieldkit.training.train_backend(*, base_model_family, optimize_for, dirs=None)`** — walks the configured entry directories (default = bundled `SEED_ENTRIES_DIR` + `USER_ENTRIES_DIR`), filters to `lifecycle="active"` entries with `question="train_backend"`, sorts newest-first by `created`, and returns a `DecidePick` with the first finding whose `optimize_for` matches the argument from an entry whose `context.base_model_family` matches. `DecidePick.backend` is an alias for `.pick` to match the v0.5 spec example. Raises `DecideError` with a clear message (lists every active entry's slug + created date for the no-context-match case; lists available `optimize_for` keys for the partial-match case) when no entry covers the cell.
+- **`fieldkit.training.load_entries(*, dirs=None, lifecycle="active", question=None)`** — directory scanner. `lifecycle` accepts a single value, a sequence, or `None`. `question` filters when set. Returns entries sorted by `created` descending. Missing directories are silently skipped; non-YAML/JSON files are ignored.
+- **`fieldkit.training.refresh(*, dirs=None, freshness_days=180, today=None, include_lifecycle=None)`** — the refresh flywheel. Walks every entry (any lifecycle by default — audit signal matters across the full corpus, not just active) and flags any older than `freshness_days`. Returns a list of `StalenessReport` sorted oldest-first.
+- **`fieldkit.training.DecideEntry`** — frozen dataclass for a parsed YAML entry. Constructor enforces `lifecycle in VALID_LIFECYCLES` and at least one finding. Methods: `find(optimize_for=...)`, `matches_context(**constraints)`, `age_days(today=None)`. Classmethods: `from_dict(data, *, path=None)`, `from_yaml(path)`. Pyyaml-optional — falls back to `json.loads` for JSON-shaped entries.
+- **`fieldkit.training.DecideFinding`** — frozen dataclass for one row of an entry's `findings` list. `extra` field preserves forward-compatibility keys.
+- **`fieldkit.training.DecidePick`** — frozen dataclass returned by `train_backend`. Carries `pick` / `backend` (alias) / `evidence` / `entry` (the matched `DecideEntry`) / `optimize_for` / `context` / `entry_path` (alias).
+- **`fieldkit.training.StalenessReport`** — frozen dataclass returned by `refresh`. `entry` / `age_days` / `stale`.
+- **`fieldkit.training.DecideError`** — distinct exception class for decide-layer failures.
+- **`SEED_ENTRIES_DIR` / `USER_ENTRIES_DIR`** — Path constants. Seed dir is `fieldkit/src/fieldkit/training/data/decide-entries/` (bundled in the wheel via `pyproject.toml` package-data include — `src/fieldkit/**/data/**/*.yaml` added this release). User dir is `~/.fieldkit/decide-entries/` (read-after-write, gitignored, created by the caller on first write).
+- **`VALID_LIFECYCLES`** — frozenset of valid lifecycle values: `"active"` (currently authoritative — `train_backend` returns these), `"superseded"` (replaced by newer entry; preserved for audit), `"deprecated"` (explicitly retired; preserved for audit but never returned from lookups).
+- **`DEFAULT_FRESHNESS_DAYS`** — `180`. Six months matches typical hardware / framework / base-model drift cadence.
+
+### YAML schema
+
+```yaml
+slug: 2026-05-22-paired-bakeoff       # required, unique within dir
+lifecycle: active                     # active | superseded | deprecated
+created: 2026-05-22                   # ISO date (YYYY-MM-DD)
+question: train_backend               # the decide.<name>() entry point
+context:                              # required mapping
+  base_model_family: qwen3-r1-distill
+findings:                             # required, non-empty
+  - optimize_for: patent_chain_length
+    pick: nemo
+    evidence: "+44% mean chain ..."
+sources: []                           # optional, default []
+supersedes: []                        # optional, default []
+notes: "free-form annotation"         # optional
+```
+
+`SEED_ENTRIES_DIR` ships empty at Phase E landing — the first seed entry (the patent-strategist v3 paired bakeoff) ships alongside Article H so the prose and the YAML stay co-located in the commit log. The wheel-include glob picks it up automatically once the YAML lands.
+
+### Test suite (Phase E)
+
+**+53 new tests** in `tests/test_training_decide.py`:
+
+- Module constants: `DEFAULT_FRESHNESS_DAYS`, `VALID_LIFECYCLES`, `SEED_ENTRIES_DIR` path shape, `USER_ENTRIES_DIR` path shape.
+- `DecideFinding` — frozen enforcement, extra-keys preservation through `DecideEntry.from_dict`.
+- `DecideEntry.from_dict` — minimal shape, path recording, optional fields carried, native `date` object accepted (pyyaml emits these), missing-required-key + bad-lifecycle + empty-findings + non-mapping-context + finding-missing-pick + bad-iso-date + findings-as-string rejection.
+- `DecideEntry` methods — `find` happy + None, `matches_context` all/partial/empty-constraints, `age_days` with override + negative clamp.
+- `DecideEntry.from_yaml` — JSON-form load (so the suite passes without pyyaml), missing-file + non-mapping rejection.
+- `load_entries` — explicit dir, sorted newest-first, default-active filter, `lifecycle=None` returns all, sequence-of-lifecycles, bad-lifecycle rejection (string + sequence), question filter, non-entry-suffix skip, multi-dir merge, missing-dir tolerance.
+- `train_backend` — happy path with two optimize_for values, newer-entry-wins-on-equal-context, non-active entries skipped, no-context-match error message, no-optimize_for error message, only-train_backend-question, context-copy on result.
+- `refresh` — staleness flagging with `today=` override, oldest-first sort, default-all-lifecycles, `include_lifecycle="active"` filter, negative `freshness_days` rejection, empty corpus, `StalenessReport.age_days` round-trip.
+
+All pure-python; YAML / JSON fixtures written to `tmp_path` so no bundled-seed-dir or user-dir filesystem is ever touched. The seed dir + user dir resolution is asserted by Path-constant comparison only.
+
+Total suite: **710 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv) — up from 657 at Phase D landing. The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector tests.
+
+### Build / packaging
+
+- `pyproject.toml` `[tool.hatch.build.targets.wheel].include` extended to pick up `src/fieldkit/**/data/**/*.yaml`. Seed YAMLs dropped into the package data dir are now wheel-resident.
+
+### Added — `fieldkit.training` v0.5 build-out (Phase D: `probe.ReasoningProbe` + `ProbeReport.compare(normalize_budget=True)`)
+
+Fourth module of the v0.5 `fieldkit.training` build-out, after Phase A's `recipe.TrainRecipe` (commit `bee458d`), Phase B's `convert` (commit `9f2a59f`), and Phase C's `run` + `merge_and_export` + `standardize_hf_export` (commit `2e142e7`). Lifts `scripts/probe_reasoning.py` + `scripts/compare_probes.py` into a reusable library surface, with the budget-normalization knob the NeMo-vs-Unsloth bakeoff (session 2026-05-21) discovered the hard way: lanes run at different `max_new_tokens` and a naive overall-aggregate compare gives the higher-budget lane an unearned chain-length advantage.
+
+- **`fieldkit.training.ReasoningProbe`** — orchestrator. Construct from a sequence of `ProbeQuestion`, or load JSONL via `ReasoningProbe.from_jsonl(path)`. `run(model_id, *, lora_path, step, max_new_tokens, temperature, generator, on_progress)` returns a `ProbeReport`. Default `generator` lazy-imports `torch` + `transformers` (+ `peft` when `lora_path` is set) and loads bf16 on `cuda:0` with `attn_implementation="sdpa"` — the same shape as `scripts/probe_reasoning.py`. Pass a `generator=fn(ProbeQuestion) -> str` callable to bypass the load entirely (test seam + the legitimate prod knob for callers with a pre-loaded model).
+- **`fieldkit.training.ProbeReport`** — bag of `ProbeRow` plus run-metadata, with `overall` / `by_category` aggregates as properties. `with_budget(cap)` returns a new report excluding any row whose `<think>` chain exceeds the cap (rows with `has_think=False` preserved; new `max_new_tokens` is `min(self, cap)`; dropped qids appended to `excluded_qids`). `to_json(path)` / `ProbeReport.from_json(path)` round-trip the canonical JSON shape — matches what `scripts/probe_reasoning.py` already writes so existing artifacts (`probes/baseline.json`, `probes/patent-strategist-v3-*.json`) load directly. Tolerant of the legacy `think_quality_score` key on load — LLM-judge scoring is owned by an in-CC-session orchestrator skill per `[[feedback_llm_skill_pattern]]`.
+- **`ProbeReport.compare(other, *, normalize_budget=True, thresholds=None, baseline_label=None, current_label=None)`** — runs the spec §4 Layer 5 pass/fail check (`think_presence_rate` ≥ 90%, `think_token_length` ≥ 75%). With `normalize_budget=True` (default), if the two reports ran at different `max_new_tokens` any qid whose chain exceeds the smaller cap in EITHER report is excluded from BOTH before per-metric ratios are recomputed — the bakeoff's exact apples-to-apples fix. Excluded qids surface on `CompareResult.excluded_qids` for footnoting. `thresholds` accepts a custom `CompareThresholds`; `baseline_label` / `current_label` override the auto-derived model-id labels (use `"unsloth"` / `"nemo"` for lane bakeoffs).
+- **`fieldkit.training.parse_think(response)`** — pure helper that picks the longest `<think>...</think>` pair from a response. R1-distill models occasionally false-start with an empty `<think></think>` before the real chain; the non-greedy regex alone would match the empty pair first (caught on smoke-step-200 row 14 of the patent-strategist v1 lineage). Char-quarter token approximation.
+- **`fieldkit.training.summarize_rows(rows)`** — pure-python aggregator. `think_presence_rate` over all rows; `think_token_length` over `has_think=True` rows only (matches the standalone runner's `summarize()`). Re-runnable after any filter for subset summaries.
+- **`ProbeQuestion` / `ProbeRow` / `ProbeSummary`** — frozen dataclasses. `ProbeQuestion` keeps `source` / `license` / arbitrary `metadata` pass-throughs from the probe-set JSONL so provenance survives the round-trip. `ProbeRow` is the per-question result (`qid`, `category`, `response`, `has_think`, `think_n_tok`, `think_text`, `wall_seconds`). `ProbeSummary` is what `summarize_rows` + `ProbeReport.overall` return.
+- **`CompareThresholds` / `CompareRow` / `CompareResult`** — frozen dataclasses for the compare surface. `DEFAULT_COMPARE_THRESHOLDS` is the module-level singleton (presence 0.90, length 0.75 — the spec §4 Layer 5 defaults).
+- **`ProbeError`** — distinct exception class so callers selectively catch probe-layer failures.
+- **`THINK_REGEX`** — the compiled `<think>(.*?)</think>` pattern, exposed for callers that re-parse cached responses (e.g. the LLM-judge sidecar described in `[[feedback_llm_skill_pattern]]`).
+
+### Test suite (Phase D)
+
+**+56 new tests** in `tests/test_training_probe.py`:
+
+- `parse_think` — no block, single block, empty (false-start) block, longest-of-multiple pickup, multiline DOTALL handling, `THINK_REGEX` export.
+- `summarize_rows` — empty input zeros, all-think mean math, mixed-presence math, no-present-rows zero length.
+- `ProbeQuestion` / `ProbeRow` — frozen dataclass enforcement, metadata default.
+- `ProbeReport` — `max_new_tokens<=0` rejection, `overall` + `by_category` math, repr.
+- `ProbeReport.with_budget` — over-cap exclusion, has_think=False rows preserved, no-op below cap, lower-budget preserved on cap > self, `cap<=0` rejection, excluded-qids composition across calls.
+- `ProbeReport.compare` — same-budget pass + default labels, custom label overrides, presence-drop FAIL, custom thresholds enable pass, normalize-budget exclusion (the bakeoff case), normalize is no-op on same budget, `normalize_budget=False` direct compare, skip on zero baseline, per-category breakdown captured, `DEFAULT_COMPARE_THRESHOLDS` value lock.
+- `ProbeReport.to_json` / `from_json` — canonical-shape dict, round-trip through disk, missing-file / bad-JSON / missing-key error paths, legacy `think_quality_score` key tolerated on load (recomputed from rows).
+- `ReasoningProbe.from_jsonl` — required-key load, optional pass-throughs collected into metadata, missing-file / malformed-line / missing-key / empty-file rejection, blank lines skipped.
+- `ReasoningProbe.run` — fake-generator path, `lora_path` / `step` / `max_new_tokens` / `temperature` round-trip, `on_progress` callback per-question, `max_new_tokens<=0` rejection, `wall_seconds` recorded, no-think response handled, empty question-list rejection, `__len__`.
+
+All pure-python; no torch / transformers / peft / live model needed. The real generator path is exercised by hand in production (the existing `scripts/probe_reasoning.py` already validates that surface). Total suite: **657 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv) — up from 601 at Phase C landing. The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector tests.
+
+### Added — `fieldkit.training` v0.5 build-out (Phase C: `run` + `merge_and_export` + `standardize_hf_export`)
+
+Marquee module of the v0.5 `fieldkit.training` build-out, after Phase A's `recipe.TrainRecipe` (commit `bee458d`) and Phase B's `convert` (commit `9f2a59f`). Symmetric LoRA SFT driver across the NeMo Framework and Unsloth backends, with poll-disk liveness baked in and the BF16-clean export transformation that the patent-strategist v3 NeMo lane discovered the hard way (session 2026-05-21) lifted out of one-shot bash and into the library so the next lane doesn't repeat the discovery.
+
+- **`fieldkit.training.run(recipe, *, mode, poll_interval, on_progress, runner, sleep)`** — recipe → backend command → subprocess → poll-disk liveness → `TrainResult`. Builds the backend-specific `docker exec` command from a `TrainRecipe` (NeMo: `scripts/p65_train_nemo_lora.py` with the same flag set the bash orchestrator uses; Unsloth: `recipe.extra_env['TRAIN_SCRIPT']` with recipe fields passed as env vars). Polls `<run_dir>/latest_checkpointed_iteration.txt` + `iter_NNNNNNN/` directories — the *only* reliable progress signal under docker-exec + shell-redirect, where `train.log` can lag the process by 4+ hours per `[[feedback_megatron_train_log_buffering]]`. Defaults to a synchronous `subprocess.run` runner; injectable for tests and for async (nohup-style) launchers. Run-dir layout owned here: `<output_dir>/runs-smoke/` for smoke, `<output_dir>/runs-full/` for full.
+- **`fieldkit.training.merge_and_export(recipe, *, iter, expect_iter, standardize, tokenizer_class_remap, runner)`** — merge a LoRA adapter into base + export to HF BF16 + bake in the BF16-clean transformation. **NeMo:** invokes Megatron-Bridge's `merge_lora.py` + `convert_checkpoints.py export` and stages the merged checkpoint to `<output_dir>/merged-mcore/` + the HF export to `<output_dir>/merged-hf-bf16/`. Mirrors `scripts/p65_merge_and_probe.sh` stages 1/2. **Unsloth:** invokes the caller-supplied `recipe.extra_env['MERGE_SCRIPT']` with `BASE_MODEL` / `LORA_CKPT` / `MERGED_HF` env vars. Then always (unless `standardize=False`) runs `standardize_hf_export` so the output is consumer-ready for `huggingface_hub.upload_large_folder`, `convert_hf_to_gguf.py`, and `fieldkit.publish.publish_quant`. Resolves the LoRA iter from `latest_checkpointed_iteration.txt` by default; explicit `iter=` overrides; `expect_iter=` catches early-stopped runs the same way `p65_merge_and_probe.sh` did.
+- **`fieldkit.training.standardize_hf_export(hf_dir, *, tokenizer_class_remap)`** — pure-python helper that bakes in the two known NeMo-export quirks: (1) shard names like `model-NNNNN-of-000002.safetensors` get renamed to the HF-standard `model-NNNNN-of-00002.safetensors` width (`max(5, len(str(total_shards)))` digits) with matching `model.safetensors.index.json` rewrite — per `[[feedback_nemo_export_shard_numbering]]`; and (2) `tokenizer_config.json`'s `tokenizer_class` field is rewritten via lookup table (default `DEEPSEEK_TOKENIZER_CLASS_REMAP`: `TokenizersBackend` → `LlamaTokenizer`) — per `[[feedback_nemo_export_tokenizer_class_quirk]]`. Idempotent; tolerant of missing index and missing tokenizer config; raises `MergeExportError` only on malformed inputs (rename collision, non-JSON index, etc.). Pass `tokenizer_class_remap={}` to disable the tokenizer fix.
+- **`fieldkit.training.poll_run_progress(run_dir)`** — pure-python helper that reads `latest_checkpointed_iteration.txt` + scans for `iter_NNNNNNN/` directories. Returns `(latest_iter, sorted_iter_dirs)`. Used internally by `run()`; surfaced as a public function so callers can build their own progress monitors. `(0, [])` on a non-existent run dir is the documented quiescent state.
+- **`fieldkit.training.DEEPSEEK_TOKENIZER_CLASS_REMAP`** — the default `tokenizer_class` remap dict, exposed for inspection / extension. Currently `{"TokenizersBackend": "LlamaTokenizer"}`. Other model families that surface a similar export quirk can extend the table by passing a merged dict to `standardize_hf_export`.
+- **`TrainResult` / `MergeExportResult`** — frozen dataclasses returned from `run()` / `merge_and_export()`. `TrainResult` carries `(backend, mode, run_dir, final_iter, wall_seconds, container, log_path, iter_dirs)`. `MergeExportResult` carries `(backend, source_iter, merged_hf_dir, merged_mcore_dir, tokenizer_class_remapped, shard_renames, standardize_applied)`. Both are hashable; safe to drop into a lineage row.
+- **`TrainError` / `MergeExportError`** — distinct exception classes so callers can selectively catch launch-time + runtime training failures vs merge / export / standardize failures. Both are `RuntimeError` subclasses.
+
+### Test suite (Phase C)
+
+**+38 new tests** in `tests/test_training_run.py`:
+
+- `poll_run_progress` — missing dir, empty dir, latest file only, sorted iter dirs, non-iter siblings ignored, unparseable latest file degrades to 0.
+- `standardize_hf_export` shard-rename branch — over-padded shards renamed (+ index rewrite), idempotent re-run, already-standard shards untouched, genuine 5-digit totals left alone, missing dir errors, malformed index errors, missing index tolerated.
+- `standardize_hf_export` tokenizer-class branch — default remap fires, unmapped class left alone, empty remap dict disables fix, missing tokenizer config tolerated, exported constant value locked.
+- `run` — NeMo full + smoke modes (with `--train-iters` vs `--smoke` flag verification), `extra_env` overrides forwarded into the docker-exec command, Unsloth requires `TRAIN_SCRIPT`, Unsloth with `TRAIN_SCRIPT` produces ps-train-targeted command + env vars, non-zero runner rc raises `TrainError`, bad mode + negative poll-interval rejected, `on_progress` callback fires, async runner + poll loop, recipe-preflight failure surfaces as `TrainError`.
+- `merge_and_export` — NeMo end-to-end with shard rename + tokenizer remap baked in, explicit `iter` overrides resolution, `expect_iter` mismatch guard, missing-iter clear error, `standardize=False` skips cleanup, Unsloth requires `MERGE_SCRIPT`, Unsloth with `MERGE_SCRIPT` produces one-shot docker-exec, `MergeExportResult` frozen, `TrainResult` frozen.
+
+All pure-python; no torch / docker / megatron-bridge / live container needed. Backend shell-outs are exercised via a `_FakeRunner` / `_MergeExportRunner` injection that records the command and writes synthetic `iter_NNNNNNN/` directories. Total suite: **601 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv). The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector tests.
+
+### Added — `fieldkit.training` v0.5 build-out (Phase B: `convert`)
+
+Second module of the v0.5 `fieldkit.training` build-out, after Phase A's `recipe.TrainRecipe` (commit `bee458d`). Absorbs the two patches that the patent-strategist v3 NeMo lane (Phase 6.5, articles `patent-strategist-bakeoff-unsloth-vs-nemo-framework`) discovered the hard way during session 2026-05-21 — so the next lane doesn't repeat the discovery.
+
+- **`fieldkit.training.HFToMegatron`** — frozen dataclass wrapping `megatron.bridge.AutoBridge` with the YARN-rope-defaults fix baked in. Mirrors `scripts/p65_convert_hf_to_mcore.py`; replaces the hand-written script for any future YARN-rope HF model (DeepSeek-R1-Qwen3, Qwen3 extended-ctx, ...) headed for NeMo training. Lazy-imports `torch` + `megatron.bridge` — module import has no GPU cost and pure-inference dev envs stay clean. Run inside `nvcr.io/nvidia/nemo:26.04.00`; outside that envelope `.run()` raises `ConvertError` with a clear pointer.
+- **`patch_yarn_defaults(provider)`** — the load-bearing helper, also exported. Sets `yarn_beta_fast=32.0` / `yarn_beta_slow=1.0` / `yarn_mscale=1.0` / `yarn_mscale_all_dim=0.0` / `yarn_correction_range_round_to_int=True` (from `megatron.core.models.common.embeddings.yarn_rotary_pos_embedding`) on a provider whose YARN fields the bridge left as `None`. Idempotent — re-running after a successful patch is a no-op. Pure-python, offline-testable with a duck-typed `SimpleNamespace`. The `YARN_DEFAULTS` constant is also exposed for inspection.
+- **`register_llama_cpp_pretokenizer_hash(...)`** — idempotent string-patcher for llama.cpp's `convert_hf_to_gguf.py`. Inserts a 3-4 line block into the `get_vocab_base_pre` `if chkhsh == "...":` chain so future tokenizers (e.g. DeepSeek-R1-0528-Qwen3-8B) work without waiting for upstream merges. Returns `True` on insertion, `False` if the hash is already present, raises `ConvertError` on malformed inputs or a mis-pointed script. Re-apply after a fresh `git pull` on the llama.cpp checkout. The DeepSeek-R1 case lives in the module as `DEEPSEEK_R1_0528_QWEN3_TOKENIZER_HASH` so the next caller doesn't have to re-find it.
+- **`ConvertError`** — distinct exception class so callers can selectively catch convert-stage failures vs other runtime exceptions.
+
+### Test suite
+
+**+16 new tests** in `tests/test_training_convert.py`:
+
+- `patch_yarn_defaults` — happy path (all five fields patched), non-YARN provider skipped, already-set values preserved, idempotency, missing-attrs handled.
+- `register_llama_cpp_pretokenizer_hash` — insertion vs idempotent no-op, preserves existing chain blocks byte-identical, rejects non-hex / short hashes, raises on missing file / missing chain pattern.
+- `HFToMegatron` — dataclass shape (frozen, default `torch_dtype='bfloat16'`), `.run()` raises clear `ConvertError` when megatron-bridge is missing (`/tmp/fk` venv path — guarded with `try: import megatron.bridge` so the test is a no-op on a real `nemo-train` env).
+- `DEEPSEEK_R1_0528_QWEN3_TOKENIZER_HASH` constant format check.
+
+All pure-python; no torch / megatron-bridge / live llama.cpp checkout needed. Total suite: **563 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv). The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector tests.
+
+### Added — `fieldkit.training` v0.5 build-out (Phase A: `recipe.TrainRecipe`)
+
+First module of the v0.5 build-out — the declarative scaffold every later phase consumes. Captures what `scripts/p65_train_nemo_lora.{py,sh}` previously spread across argparse + bash env vars in a single typed dataclass, so one recipe drives either lane (NeMo or Unsloth) and offline preflight catches bad inputs before any container start.
+
+- **`fieldkit.training.TrainRecipe`** — frozen dataclass capturing backend / base_model / dataset / lora_rank / lora_alpha / lora_target_modules / lora_dropout / lr / warmup_steps / total_train_iters / micro_batch / global_batch / seq_length / save_interval / output_dir / log_interval / extra_env / mode. `validate()` is offline (pure-python, no filesystem touch); `preflight()` adds filesystem-existence checks on output_dir's parent + dataset path. YAML round-trip via `to_yaml` / `from_yaml` works with or without pyyaml (hand-rolled flat-schema fallback so the v0.5 surface installs cleanly in pure-pip envs).
+- **`fieldkit.training.lora_target_modules_for_backend(modules, backend)`** — maps HF target-module names (`q_proj` / `k_proj` / `v_proj` / `o_proj` / `gate_proj` / `up_proj` / `down_proj`) to Megatron-Bridge fused names (`linear_qkv` / `linear_proj` / `linear_fc1` / `linear_fc2`) at runtime so one recipe field drives either lane. Idempotent on already-mapped names.
+- **`fieldkit.training.MODE_FULL` / `MODE_SMOKE`** — string constants for the recipe's `mode` field; used by `run()` (Phase C) to decide between `runs-smoke/` and `runs-full/` output layout.
+- **`fieldkit.training.RecipeError`** — distinct exception class for recipe-stage validation failures.
+
+The pre-existing v0.4.x RL primitives (`WeightDeltaTracker`, `LoraReferenceSnapshot`) continue to re-export from `fieldkit.training` unchanged.
+
+### Test suite (Phase A)
+
+**+39 new tests** in `tests/test_training_recipe.py` — validate / preflight / YAML round-trip / target-module mapping / frozen-enforcement / mode constants. All pure-python; no torch / megatron-bridge / container needed. Total suite at Phase A landing: **547 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv) — up from 507 at v0.4.3.
+
+### Test suite (cross-phase total)
+
+| Phase | New tests | Cumulative | Module |
+|---|---|---|---|
+| A | +39 | 547 | `recipe.TrainRecipe` + helpers |
+| B | +16 | 563 | `convert.HFToMegatron` + pretokenizer registrar |
+| C | +38 | 601 | `run` + `merge_and_export` + `standardize_hf_export` |
+| D | +56 | 657 | `probe.ReasoningProbe` + `ProbeReport.compare` |
+| E | +53 | 710 | `decide.train_backend` + `refresh` |
+| **Total** | **+202** | **710 passed, 2 skipped** | `fieldkit.training` surface 7 → 46 `__all__` |
+
+All pure-python (torch / transformers / megatron-bridge / docker lazy-imported, fake-runner injection for shell-out paths). The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector tests, unchanged since v0.4.x. All 46 `__all__` symbols in `fieldkit.training` documented under `audit_docs.py --strict-kwargs`.
+
+### Verified on Spark
+
+The v0.5 build-out was driven from the patent-strategist v3 paired bakeoff (Phase 6.5 of `specs/patent-strategist-v1.md`) — every module exercised against live infra during sessions 2026-05-21 → 2026-05-22:
+
+- **`convert.HFToMegatron` + `patch_yarn_defaults`** — converted `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B` HF → Megatron-core inside `nvcr.io/nvidia/nemo:26.04.00`. YARN-rope-defaults landmine fixed in-library.
+- **`convert.register_llama_cpp_pretokenizer_hash`** — registered the DeepSeek-R1-0528-Qwen3-8B BPE-pretokenizer hash (`0d75215...` → `qwen35`) into `/home/nvidia/llama.cpp/convert_hf_to_gguf.py`. Subsequent GGUF conversions stable across all 4 quants × 2 lanes.
+- **`run` + `merge_and_export` + `standardize_hf_export`** — drove both the NeMo Framework lane (LoRA-SFT inside `nemo-train`, 8h 04m full-train wall) and the Unsloth lane (4-bit QLoRA, 10h 52m wall) end-to-end. Both lanes' LoRA adapters merged to BF16 HF; shard-rename + tokenizer-class fixes baked into the NeMo export (no more post-merge bash patching).
+- **`probe.ReasoningProbe.compare(normalize_budget=True)`** — produced Article H's apples-to-apples chain-length headline (NeMo +44% patent-strategic mean chain). The budget-normalization knob excluded qids whose chain exceeded the smaller cap in either lane (Unsloth 1536 vs NeMo 2048) so the metric isn't inflated by the higher-budget side.
+- **`decide.train_backend`** — first seed entry `2026-05-22-paired-bakeoff.yaml` shipped in `fieldkit/src/fieldkit/training/data/decide-entries/` (wheel-resident via the new package-data glob). End-to-end smoke green: `train_backend(base_model_family="qwen3-r1-distill", optimize_for="patent_chain_length")` → `nemo`.
+
+### Artifacts
+
+Phase 6.5 paired-bakeoff outputs (live on HuggingFace under `Orionfold/`):
+
+- [Orionfold/patent-strategist-v3-unsloth-GGUF](https://huggingface.co/Orionfold/patent-strategist-v3-unsloth-GGUF) — Q4_K_M / Q5_K_M / Q6_K / Q8_0
+- [Orionfold/patent-strategist-v3-nemo-GGUF](https://huggingface.co/Orionfold/patent-strategist-v3-nemo-GGUF) — Q4_K_M / Q5_K_M / Q6_K / Q8_0
+- [Orionfold/patent-strategist-v3-unsloth](https://huggingface.co/Orionfold/patent-strategist-v3-unsloth) — BF16
+- [Orionfold/patent-strategist-v3-nemo](https://huggingface.co/Orionfold/patent-strategist-v3-nemo) — BF16
+
+### Articles in this release
+
+- `articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/` — Article H, the marquee. Drives every Phase A–E module: `TrainRecipe` owns the lane recipes; `convert` carries the YARN + pretokenizer fixes; `run` + `merge_and_export` ran both lanes; `probe.compare(normalize_budget=True)` produced the +44% chain-length headline; `decide.train_backend`'s seed entry is the first row in the decide corpus.
+- `articles/unsloth-on-the-spark-when-train-peak-equals-base-peak/` — Unsloth feasibility companion to the bakeoff (`fieldkit.training.run` drove the Unsloth lane).
+- `articles/fine-tune-data-prep-decisions-on-spark/` — patent-strategist v2 corpus diagnosis (data-layer; doesn't depend on the v0.5 surface but ships in the same window).
+- `articles/becoming-a-medical-curator-on-spark/` — vertical 4 medical card (uses `fieldkit.publish`; pre-v0.5 surface).
+
+## [0.4.3] — 2026-05-17
+
+### Added — `fieldkit.eval` patent-strategist scorer build-out (T6)
+
+Four new scorers in `fieldkit.eval` round out the `format='patent-strategist'` branch landed in v0.4.2 (T4) and the `mcq_letter` promotion (T5), per `specs/patent-strategist-v1.md` §3.3:
+
+- **`patent_claim_validity(predicted, expected, *, judge, rubric=None)`** — PatentScore-methodology 7-dim claim-validity scorer (novelty / non-obviousness / written-description / enablement / indefiniteness / subject-matter-eligibility / dependent-claim-structure). LLM-judge backed; caller supplies a `Judge(client=..., rubric=RUBRIC_PATENT_CLAIM_VALIDITY)`. Per-row `rubric` dict (e.g. `cited_prior_art`, `claim_type`) is rendered into a sorted, deterministic `Hints:` block fed to the judge as context. PatentScore methodology only — no data reuse from the cited paper (license unclear).
+- **`office_action_argument(predicted, expected, *, judge, rubric=None)`** — 4-dim office-action-response scorer (rejection-type identification, statutory citation accuracy, argument structure, persuasiveness). Same `Judge`-wrapping shape; per-row hints like `rejection_type`, `required_citations`, `claim_count`, `relies_on_official_notice` flow through the `Hints:` block.
+- **`irac_structure(predicted, expected="")`** — deterministic 4-checklist scorer for Patent-Bar-style IRAC responses. One regex per component (Issue / Rule / Application / Conclusion); returns `{0.0, 0.25, 0.5, 0.75, 1.0}` based on how many fire. Tolerant patterns — markdown headings, all-caps section labels, transition prose ("Whether…", "Under 35 USC 103…", "Here…", "Therefore…") all count. False positives are far less harmful than false negatives at quarter-granularity. The only T6 scorer that needs no network, so it's the one wired end-to-end through `VerticalBench` in the integration test.
+- **`prior_art_relevance(predicted, expected) -> float`** — Spearman ρ on ranked prior-art lists, returning just the rho per spec §3.3. Tolerant parser accepts JSON arrays (`'["a","b","c"]'`), comma-separated, or newline-separated (with `1.`, `1)`, `- `, `* ` prefixes stripped) as well as `list[str]` directly. Missing-from-pred gold items get worst-rank padding so omissions still penalize. The paired-rank vectors are re-rankified before correlation so positional gaps from dup-skipping or padding collapse to contiguous ranks — without this, `["a","a","b","c"]` vs `["a","b","c"]` would yield ρ≈0.98 instead of the intuitive 1.0. **`prior_art_relevance_full`** returns the same rho plus an `mse_likert` field (populated only when both sides parse as numeric Likert vectors) and `n`, packaged as the frozen `PriorArtRelevanceResult` dataclass.
+
+### Added — rubric markdown bundled in the wheel
+
+- **`fieldkit/src/fieldkit/eval/rubrics/{patent_claim_validity,office_action_argument}.md`** — system-prompt markdown shipped alongside the module. Loaded lazily via the new **`load_rubric(name)`** helper (and exposed via the **`RUBRIC_PATENT_CLAIM_VALIDITY`** / **`RUBRIC_OFFICE_ACTION_ARGUMENT`** module constants for the common case). `[tool.hatch.build.targets.wheel].include` extended with `src/fieldkit/eval/rubrics/*.md` so the markdown lands in the wheel.
+
+### Added — `fieldkit.eval.vertical` live-callable dispatch
+
+- **`PATENT_STRATEGIST_SCORER_FNS: dict[str, Callable[..., float]]`** — companion to the existing string-keyed `PATENT_STRATEGIST_SCORERS` map. Resolves the four T6 scorers + the promoted `mcq_letter` to live functions (skips the two `judge_rubric` slots ("C", "E") which are open-ended `Judge.grade(...)` calls without a single named scorer fn). Drift-detection test asserts every fn's `__name__` matches the matching string-map entry.
+
+### Test suite
+
+**+93 new tests** across three new test files + the existing vertical-bench test class:
+
+- `tests/eval/test_irac_structure.py` — perfect / partial / per-component-detector coverage; quarter-granularity parametrize; whitespace-only / empty / expected-arg-ignored edges.
+- `tests/eval/test_prior_art_relevance.py` — perfect / reversed / partial-overlap; string-parsing variants (JSON, comma, newline-numbered, bullet, paren-numbered); Likert MSE branch (perfect, off-by-one, length-mismatch fallback, non-numeric); dataclass shape (frozen, three fields); the known-value `n=4` swap (ρ=0.8) plus the dup-skip test that drove the `_rankify`-on-paired-vectors fix.
+- `tests/eval/test_judge_backed_scorers.py` — `load_rubric` round-trip + missing-file error; `_format_rubric_hints` (empty / scalar / list-bullet / sorted-determinism / nested-dict JSON); both judge-backed scorers wired against a `_FakeJudge` fixture (no network) covering happy path, `None`-score fallback to `0.0`, rubric→`Hints:` threading, empty-reference collapse to `None`; signature-introspection tests ensuring `judge` and `rubric` stay keyword-only so `VerticalBench.scorer_kwargs` plumbing works.
+- `tests/test_vertical_bench.py::TestPatentStrategistFormat` — 3 new tests: `PATENT_STRATEGIST_SCORER_FNS` resolves each key to the expected callable; name-map vs fn-map drift assertion; full end-to-end `VerticalBench.run` exercising `irac_structure` over a 2-row JSONL with one perfect and one half-formed IRAC response (mean accuracy = 0.75).
+
+Total suite: **507 passed, 2 skipped** offline (`pytest -q`, `/tmp/fk` venv). The 2 skips are the long-standing `--spark`-gated live-NIM / pgvector integration tests.
+
+### Articles in this release
+
+- `articles/becoming-a-patent-strategist-on-spark/` — patent-strategist v1.0 article (W3 publish target per spec §1 deliverables). T6's scorer build-out is the load-bearing dependency for the article's bench-comparison numbers; v0.4.3 is the version the article will pin against.
+
+## [0.4.2] — 2026-05-15
+
+Patch release. Two card-rendering polish lifts on `fieldkit.publish` driven by the 2026-05-15 cyber-vertical cycle (`Orionfold/SecurityLLM-GGUF`, the third vertical card on this surface — zero fieldkit source changes between Saul / cyber, the v0.4.1 publishing surface generalized exactly as designed). Both lifts are additive (one new `ModelCard` field already shipped on `main` in `ff1b92f`; one new `ArtifactManifest` field added here). No new modules, no new public classes, no breaking changes — purely a tightening pass.
+
+### Added — `fieldkit.publish` card-rendering polish
+
+- **`ModelCard.llama_cpp_example_prompt: Optional[str]`** — new field. Threads through `publish_quant(..., llama_cpp_example_prompt=...)` and from a duck-typed report's `.llama_cpp_example_prompt` attribute. The default `## How to run` body's `llama-cpp-python` snippet now uses this string for the user-message; when omitted it falls back to a neutral `"Summarize the key idea in one paragraph."` placeholder instead of the previously-hardcoded `"Explain working capital."` (which leaked into the legal + cyber vertical cards on first push). Multi-line MCQ-shaped prompts are JSON-escaped (`\n`) so the snippet stays single-line + valid Python — caller passes the raw prompt, the renderer handles escaping.
+- **Side fix:** the previous renderer rendered the hardcoded finance prompt on every vertical card; the cyber + legal cards on HF were patched out-of-band on 2026-05-15 (commits `365dfe2`, `0824439`). Going forward, every `publish_quant` call should pass `llama_cpp_example_prompt=...` matching the article's "Using this release" section, per `[[feedback_customer_link_audit]]`.
+- **`ArtifactManifest.recommended_variant: Optional[str]`** — new field. Was already on `ModelCard` (so the README's How-to-run snippets template against the article's pick) but did NOT flow into the `<slug>.yaml` manifest, so the destination catalog couldn't see the article's narrative choice and ran its own rank-avg picker instead. `publish_quant` now threads `recommended_variant` into both surfaces — the HF README badge and the destination "Sweet spot" badge stay in sync from one kwarg. Mac added the matching `recommended_variant: z.string().optional()` to its artifacts schema in PR #6 (`mac-sweep/2026-05-15-cyber-vertical`) and pinned cyber's catalog `Q4_K_M` manually; source `src/content.config.ts` now mirrors that field for forward-compat. Motivated by cyber-vertical (2026-05-15): `Q4_K_M` topped CyberMetric at 40% but its worst-in-class perplexity dragged its rank-avg down, so without the override the picker selected `Q5_K_M`.
+
+### Test suite
+
+**+3 new tests:** `test_artifact_manifest_carries_recommended_variant_when_set` + `test_artifact_manifest_omits_recommended_variant_when_unset` (round-trip + elision on the new manifest field) and `test_publish_quant_threads_recommended_variant_into_card_and_manifest` (kwarg threads to both surfaces via `publish_quant`). Total: **378 passed, 3 skipped** offline (`pytest -q`). The 3 skips are the two `--spark`-gated live-integration tests + the `torch`-import skip in `test_training.py` (CPU-only venv).
+
+### Articles in this release
+
+- [`becoming-a-cyber-curator-on-spark`](https://ainative.business/field-notes/becoming-a-cyber-curator-on-spark/) — third Orionfold quant card. Drives both lifts: surfaces the `llama_cpp_example_prompt` leak (cyber's MCQ prompt would have shipped as "Explain working capital." otherwise) and motivates `ArtifactManifest.recommended_variant` (the destination's rank-avg picker would have surfaced `Q5_K_M` instead of `Q4_K_M`).
+
+### Verified on Spark
+
+- **Live HF push:** `Orionfold/SecurityLLM-GGUF` (5 GGUF variants + README, ~26 GB) shipped 2026-05-15 via the same `publish_quant(dry_run=False)` path as Saul and finance-chat. Zero source changes in `fieldkit.publish` between Saul (v0.4.1) and cyber (the cycle that drove this v0.4.2 patch) — the surface generalized as designed across three verticals.
+
+## [0.4.1] — 2026-05-14
+
+Patch release. The `fieldkit.eval.VerticalBench` overlay introduced in v0.4.0 needed two kwargs to score FinanceBench correctly (open-book context-prepend) and to bound a JSONL slice (subset filter on `question_type`). Both lifts came out of the 2026-05-13 V1 attempt on `AdaptLLM/finance-chat` (0/50 closed-book vs. 14–18%/50 open-book on the same JSONL) and the 2026-05-14 legal-curator scoring run on `Equall/Saul-7B-Instruct-v1`. The two scripts under `scripts/g3_*` that carried duplicated loaders now call into the package surface. No new modules, no new public classes — additive kwargs only.
+
+### Added — `fieldkit.eval.VerticalBench` open-book mode
+
+- **`VerticalBench.from_jsonl(..., open_book=...)`** — new kwarg. When `True`, FinanceBench rows have their `evidence[*].evidence_text` prepended to the question (templated as "Context from <doc>: …\n\nQuestion: …\n\nAnswer with just the numeric value.") so the model sees the 10-K excerpt the gold answer was derived from. Default `None` auto-resolves to `True` for `financebench` and `False` for `legalbench` / `generic` — the right defaults per benchmark convention. Lifts inline `_load_finbench_open_book` helpers from `scripts/g3_preflight_bench.py` and `scripts/g3_measure_variants.py` into the package surface; both scripts now call `VerticalBench.from_jsonl(open_book=True, subset=…)` instead of carrying duplicated loaders. The 2026-05-13 V1 attempt on AdaptLLM/finance-chat scored 0/50 closed-book and 14–18%/50 open-book on the same JSONL — open-book is the load-bearing flag for FinanceBench scoring.
+- **`VerticalBench.from_jsonl(..., subset=...)`** — new kwarg. FinanceBench-only convenience filter on the `question_type` column. Drops non-matching rows before the loader hits the `limit` cap, so callers can score the `metrics-generated` subset with `limit=50` and get 50 metrics-generated questions (not 50 mixed rows of which N are metrics-generated).
+
+### Test suite
+
+**+8 new tests** on `TestOpenBook` in `tests/test_vertical_bench.py` covering: auto-default for financebench, explicit `False` keeps closed-book, missing-evidence falls back to closed-book, legalbench / generic are no-ops, list-of-strings evidence shape, subset filter, subset × limit composition. Total: **375 passed, 3 skipped** offline (`pytest -q`). The 3 skips are the two `--spark`-gated live-integration tests + the `torch`-import skip in `test_training.py` (CPU-only venv).
+
+### Articles in this release
+
+- [`becoming-a-legal-curator-on-spark`](https://ainative.business/field-notes/becoming-a-legal-curator-on-spark/) — second Orionfold quant card, swaps FinanceBench for a curated 5-task LegalBench subset. Drives the `subset` kwarg's first non-finance use (LegalBench tasks via `legalbench` format) and validates that the `open_book` default-off branch is correct for LegalBench JSONLs.
+
+### Verified on Spark
+
+- **Live HF push:** `Orionfold/Saul-7B-Instruct-v1-GGUF` (5 GGUF variants + README, ~37 GB) shipped 2026-05-14 via the same `publish_quant(dry_run=False)` path the finance-chat card used a week earlier. Zero source changes in `fieldkit.publish` between the two pushes — the v0.4.0 surface generalized as designed.
+
+## [0.4.0] — 2026-05-14
+
+Fourth public release. Two new top-level modules (`fieldkit.publish` + `fieldkit.quant`) for the G3 GGUF / Quantization Publisher pick (MTBM Pick #1 per `ideas/mtbm-use-cases.md` §6), the v0.4.x **vertical-curator overlay** on `fieldkit.eval` (`VerticalBench`), and post-dry-run card-rendering fixes that landed the first live HF push (`Orionfold/finance-chat-GGUF`). The two new modules together unlock most of Cluster G; this cut implements the GGUF critical path and stubs the other quant formats with named entry points pointing at the v0.5+ roadmap.
+
+### Added — `fieldkit.publish` (new module)
+
+HuggingFace Hub adapter + auto model card builder from `fieldkit.lineage`. Three public surfaces:
+
+- **`fieldkit.publish.ModelCard`** — frontmatter + body builder. Renders the canonical card every Orionfold artifact gets: YAML frontmatter (license, library_name, base_model, pipeline_tag, tags, model_creator), a title + elevator, a **Spark-tested** block (per-variant perplexity + tok/s + thermal envelope), a variants table, **How to run** (`ollama pull` + `from_pretrained` snippets), an optional **Lineage** block (rendered from a `fieldkit.lineage.LineageStore` if provided), a **Methods** backlink to `ainative.business/field-notes/<slug>/`, and a footer attributing the publication to Orionfold LLC.
+- **`fieldkit.publish.ArtifactManifest`** — frozen dataclass for the `src/content/artifacts/<slug>.yaml` Phase-2 sync record (per memory `project_artifact_manifests_phase2`). `to_yaml()` emits via a hand-rolled stdlib emitter so the module has no runtime YAML dep. The source repo writes one of these per push; the Mac destination renders `/artifacts/<kind>/` catalog pages from `getCollection('artifacts')`.
+- **`fieldkit.publish.HFHubAdapter`** — lazy-`huggingface_hub` wrapper. Defaults to `dry_run=True` (stages files on disk, logs the would-be calls, no network). Flip `dry_run=False` to push via `HfApi().upload_folder(...)`. Token resolution order: explicit `token=` → `HF_TOKEN` env → cached login. The dry-run path is fully testable offline.
+
+Plus an orchestrator: **`fieldkit.publish.publish_quant(...)`** — one-line caller that ingests a `QuantReport`-shaped object (duck-typed; produced by `fieldkit.quant.quantize_gguf`), renders the card, writes the manifest, stages the variant files, and pushes (or dry-runs) the HF commit.
+
+Branded constants: `ORIONFOLD_BRAND = "Orionfold LLC"`, `ORIONFOLD_HF_HANDLE = "Orionfold"` (was `ORIONFOLD_HF_ORG = "orionfoldllc"` until 2026-05-14, when publishing moved to the existing user-account handle — Bartowski-shape personal handle precedent). Per the 2026-05-12 HANDOFF Q3 decision: Orionfold LLC is the parent brand for all AI-artifact publishing surfaces; repo names follow the Bartowski shape (`Orionfold/<model>-GGUF`, `Orionfold/<model>-LoRA`). `ORIONFOLD_HF_ORG` is retained as a back-compat alias pointing at the new constant; will be dropped at the next major cut.
+
+### Added — `fieldkit.quant` (new module)
+
+Quantization dispatcher. GGUF path implemented; AWQ/GPTQ/EXL3/MLX/NVFP4 declared as named stubs pointing at the roadmap.
+
+- **`fieldkit.quant.quantize_gguf(...)`** — wraps `llama.cpp/convert_hf_to_gguf.py` + `llama-quantize` to emit one GGUF file per requested variant (canonical Orionfold set: `Q4_K_M`, `Q5_K_M`, `Q6_K`, `Q8_0`, `F16`). Auto-derives F16 from a HF Transformers checkpoint when the source isn't already a GGUF. `dry_run=True` enumerates the would-be subprocess commands into `report.notes` without invoking them — used by tests and CI.
+- **`fieldkit.quant.measure_perplexity_gguf(...)`** — wraps `llama-perplexity`. Parses output via `parse_perplexity_output()` which recognizes the standard `Final estimate: PPL = N.NNN` shape and the lowercase `perplexity = N.NNN` fallback. Returns `None` on parse failure (cards ship without a perplexity column if measurement was skipped).
+- **`fieldkit.quant.measure_tokens_per_sec_gguf(...)`** — wraps `llama-bench`. Parses output via `parse_llama_bench_output()` for `tg` (text-gen, default) or `pp` (prompt-process) tok/s.
+- **`fieldkit.quant.ThermalProbe`** — pure-stdlib `nvidia-smi` poll loop. Reports sustained-load minutes before throttle, per the 2026-05-12 HANDOFF Q9 decision to publish duty-cycle limits on every Orionfold card.
+- **`fieldkit.quant.LlamaCppPaths`** — locator for `llama-quantize` / `llama-perplexity` / `llama-bench` / `convert_hf_to_gguf.py`. Env defaults: `LLAMA_CPP_BIN` directory, `LLAMA_CPP_CONVERT` script path. Override any field directly.
+- **`fieldkit.quant.QuantReport`** — canonical dataclass output. The contract `fieldkit.publish.publish_quant()` consumes.
+- **`fieldkit.quant.quantize_awq` / `quantize_gptq` / `quantize_exl3` / `quantize_mlx` / `quantize_nvfp4`** — named entry-point stubs. Raise `NotImplementedError` with a one-liner pointing at `ideas/mtbm-use-cases.md` §7. Locks the v0.4 public surface so v0.5+ implementations slot in without an API break.
+
+### Added — `fieldkit.eval.VerticalBench` (v0.4.x — vertical-curator overlay)
+
+Lightweight JSONL-loader wrapper around `fieldkit.eval.Bench` for vertical-domain accuracy scoring (FinanceBench / LegalBench / SemEval / generic). Drives the **vertical-curator pivot** announced 2026-05-13 (HANDOFF §2 + `ideas/mtbm-use-cases.md` §6 Pick #1.b + §8.5.1): every Orionfold quant card now ships with a vertical-domain accuracy axis, not just wikitext perplexity. Lives in `fieldkit/src/fieldkit/eval/vertical.py`; re-exported at the package root for `from fieldkit.eval import VerticalBench`.
+
+- **`fieldkit.eval.VerticalBench`** + **`VerticalQA`** — bench shape, JSONL loader, scorer plumbing. Accepts any `Callable[[str], str]` as the model function so subprocess (`llama-cli`), in-process (`llama-cpp-python`), or NIM-backed scoring all slot in. Per-call latency aggregates alongside accuracy + refusal via the underlying `Bench`.
+- **`fieldkit.eval.VerticalBench.from_jsonl(path, format='auto', ...)`** — auto-detects `financebench` / `legalbench` / `generic` JSONL shapes from the first row's field signature. Per-row metadata (company, doc_period, question_type, task) flows into per-call tags for slice-by aggregation downstream.
+- **Scorers** — `exact_match`, `contains`, `numeric_match` (with configurable `rel_tolerance`, default 1% — FinanceBench convention). The bench picks `numeric_match` by default for FinanceBench-shape JSONL, `exact_match` for LegalBench-shape.
+
+### Added — license + How-to-run defaults on `fieldkit.publish` (v0.4.x — `Orionfold/finance-chat-GGUF` dry-run found two card bugs)
+
+- **`ModelCard.license`** is now reachable from `publish_quant(..., model_license=...)` (and the duck-typed `quant_report.model_license` attribute). Previously the kwarg didn't exist and every card defaulted to `apache-2.0` — wrong for any Llama / Gemma / Qwen / CC-BY-NC base. AdaptLLM/finance-chat now correctly publishes with `license: llama2`.
+- **`ArtifactManifest.model_license`** mirrors the same value into the Astro manifest under `license.model:`. Astro Zod schema (`src/content.config.ts`) extended with `license.model: z.string().optional()` so destination catalog pages and HF badges stay in sync. The `license.tier:` field (commercial-distribution tier — `free` / `pro`) stays distinct from this upstream-license field.
+- **`ModelCard.hf_repo`** + **`ModelCard.chat_format`** + **`ModelCard.recommended_variant`** — three new fields that drive an auto-rendered default `## How to run` body. Before this fix, cards with no explicit `ollama_pull_handle` / `transformers_snippet` rendered an empty section header (the second finance-chat bug). The new renderer auto-builds three code blocks templated from `hf_repo` + a featured variant: `huggingface-cli download`, `llama-server` (OpenAI-compatible serve), and `llama-cpp-python` (in-process, threading `chat_format` if set). When all three new fields are absent + no explicit handle/snippet supplied, the section is omitted entirely (no more empty headers).
+- **`publish_quant(..., model_license=, chat_format=, recommended_variant=)`** kwargs added — orchestrate all three through to card + manifest. Same duck-typed fallback through `quant_report` attributes.
+- **`scripts/g3_build_first_quant.sh`** — `MODEL_LICENSE` / `CHAT_FORMAT` / `RECOMMENDED_VARIANT` env knobs added with case-statement overrides (`AdaptLLM/finance-chat → llama2 + llama-2`). Default `MODEL_LICENSE=apache-2.0` + `RECOMMENDED_VARIANT=Q5_K_M` for greenfield runs.
+- **`scripts/g3_push_first_quant.py`** (new) — one-shot live-push helper that reuses the existing dry-run stage (no 32 GB re-copy via `publish_quant(dry_run=False)`); calls `HFHubAdapter.push_folder()` directly. Bakes in xet-safety env (`HF_HOME=/home/nvidia/data/.hf-cache` + `HF_HUB_DISABLE_XET=1`) per the Spark-side `~/.cache/huggingface/` permission landmine; sources `HF_TOKEN` from `.env.local` (chmod 600).
+- **+11 tests** (full suite: 379 passed, 2 skipped offline). Covers: model_license override flow, default apache-2.0 fallback, default GGUF How-to-run rendering, `recommended_variant` override, `hf_repo`-less skip-section behavior, manifest `license.model` emission.
+
+### Added — vertical-eval surface on `fieldkit.publish`
+
+`ModelCard` + `ArtifactManifest` + `publish_quant(...)` extended to thread per-variant vertical-eval scores through to the rendered card and the Phase-2 sync manifest:
+
+- **`ModelCard.vertical_eval: dict[str, float]`** + **`ModelCard.vertical_eval_name: str`** — when set, the **Spark-tested** block renders a 5-column table (Variant / Size / Perplexity / tok/s / *Vertical-eval-name*) instead of the 4-column default, and the introductory copy switches from "measurement triple" to "measurement quad". Accuracy values render as percentages (`62.0%`). Cards without vertical eval render identically to v0.4.0 — backwards-compatible.
+- **`ArtifactManifest.vertical_eval` + `vertical_eval_name`** — written into the YAML manifest under the same key names. Mac destination Zod schema (`src/content.config.ts`) extended to accept both. Manifests without vertical eval skip the field entirely.
+- **`publish_quant(..., vertical_eval=, vertical_eval_name=)`** — explicit kwargs override whatever the duck-typed `quant_report` carries. Useful when scoring happens out-of-band from quantization (the canonical path on Spark: quantize 5 variants → measure each variant via `g3_measure_variants.py`, which calls `VerticalBench.run(llama_cli_fn)` and then feeds the resulting accuracy dict back into `publish_quant`).
+
+### Schema changes
+
+- `src/content.config.ts` — `FIELDKIT_MODULES` extended to include `'quant'` and `'publish'` in canonical order (`capabilities, nim, rag, eval, training, lineage, quant, publish, cli`).
+- `src/content.config.ts` — new `artifacts` Astro collection (Phase 2 sync contract). Loads YAML manifests from `src/content/artifacts/*.yaml`; Zod schema mirrors `fieldkit.publish.ArtifactManifest`. `ARTIFACT_KINDS` enum exposed alongside `FIELDKIT_MODULES` for downstream filtering. `src/content/artifacts/` directory created (empty + `.gitkeep`); first manifest will land when the first quant ships.
+- `src/content.config.ts` — `artifacts` schema extended with optional `vertical_eval: Record<string, number>` + `vertical_eval_name: string` (vertical-curator pivot 2026-05-13).
+
+### Test suite
+
+**130 new tests** across `tests/test_publish.py` (42, +16 from v0.4 scaffold incl. +11 for the model_license + How-to-run defaults fix), `tests/test_quant.py` (37), and `tests/test_vertical_bench.py` (39, new file), plus targeted regression coverage. Total: **379 passed, 2 skipped** offline (`pytest -q`). The 2 skips are `--spark`-gated live integration tests (chat NIM + pgvector); the v0.3 torch module-level skip has been resolved by lazy-importing torch only inside the training entry points. All new tests run offline — `dry_run=True` paths for `HFHubAdapter`, `publish_quant`, and `quantize_gguf` exercise the full code path without `huggingface_hub`, llama.cpp binaries, or `nvidia-smi` available. `VerticalBench` tests run without a model — `model_fn` is a callable, so a plain `lambda` exercises the full scoring + bench-aggregation path.
+
+### Articles in this release
+
+- [`becoming-a-gguf-publisher-on-spark`](https://ainative.business/field-notes/becoming-a-gguf-publisher-on-spark/) — G3 v0 anchor article. 3,388 words; documents the five-variant `Orionfold/finance-chat-GGUF` release end-to-end (Spark-tested perplexity / tok/s / sustained-load minutes / FinanceBench accuracy across F16, Q8_0, Q6_K, Q5_K_M, Q4_K_M) plus the V0 preflight-bench gate and the V1 chat-vs-continued-pretrain lesson. `hf_url:` frontmatter threads the live HF receipt onto the article.
+
+### Verified on Spark
+
+- **Live HF push:** `Orionfold/finance-chat-GGUF` shipped 2026-05-14 at <https://huggingface.co/Orionfold/finance-chat-GGUF> — 5 GGUF variants + auto-rendered README in 1h 57min. Repo returns HTTP 200, all 6 files present. `publish_quant(dry_run=False)` path exercised end-to-end.
+- **Five-variant measurement card** (F16 / Q8_0 / Q6_K / Q5_K_M / Q4_K_M) with the four Spark-tested axes — perplexity (wikitext-2), tg + pp tok/s (`llama-bench`), sustained-load minutes (`ThermalProbe` via `nvidia-smi`), and FinanceBench accuracy (n=50, `numeric_match`, open-book) — all produced via `fieldkit.quant.measure_*` + `fieldkit.eval.VerticalBench.run(...)` on GB10.
+
+### Deferred to v0.5
+
+- `fieldkit.image-lora` + `fieldkit.civitai` — Pick #2 (G9) prep. Deferred per the 2026-05-12 HANDOFF Q10 decision to sequence G3 → G9 rather than parallelize. Will land once G3 v0 proves the `fieldkit.publish` infra.
+- Non-GGUF formats in `fieldkit.quant` (AWQ, GPTQ, EXL3, MLX, NVFP4). The G3 v0 niche-positioning is Nemotron-family GGUFs with the Spark-tested layer; other formats are pure surface-area expansion and can wait for an audience signal.
+
+## [0.3.0] — 2026-05-11
+
+Third public release. One new top-level module (`fieldkit.lineage`) lifted from the [auto-research-loop-on-spark article](https://ainative.business/field-notes/auto-research-loop-on-spark/) — the portable part of cxcscmu's *Auto-Research-Recipes* harness, decomposed into a pure-stdlib substrate any harness on the Spark can write into.
+
+### Added — `fieldkit.lineage` (new module)
+
+The portable part of cxcscmu's *Auto-Research-Recipes* harness, extracted into a top-level submodule. The case for the primitive is in the released `pg_ablation_lineage_on` vs `pg_ablation_lineage_off` runs: same agent, same prompt template, same 201-trial budget on Parameter Golf — only whether the agent's session prompt includes the rendered lineage block differs. With lineage on: 16 keeps (8.0%), 38 eval-budget overruns. Without: 3 keeps (1.5%), 123 eval-budget overruns. **5.3× more keeps · 3.2× fewer wall-wastes**, with no model change, no compute change, no prompt-template change. ([extract from #auto-research-loop-on-spark])
+
+The new module is pure-stdlib (no torch, no numpy) — ~200 LOC of public surface, ~330 LOC including docstrings + renderer helpers.
+
+- **`fieldkit.lineage.FailureLabel`** — 10-class string enum (`keep`, `discard`, `crash`, `eval_budget_overrun`, `train_budget_overrun`, `size_blocked`, `preflight_crash`, `harness_abort`, `disqualified`, `baseline`). `.value` round-trips byte-identically to cxcscmu TSVs. The `is_informational` property is the cxcscmu `_QUARANTINED_STATUSES` rule as a method — returns `False` only for `harness_abort` (bookkeeping kills); every other class carries usable signal for the next agent.
+- **`fieldkit.lineage.Trial`** — frozen dataclass for one TSV row. 17 fields in canonical order. `core_metric` is the task-agnostic primary metric (so the module works for Parameter Golf, NanoChat-D12, CIFAR, and any future task in the arc); `val_bpb` is preserved alongside for direct interop with cxcscmu-shaped data. `Trial.header()` / `Trial.to_row()` / `Trial.from_row(dict)` give exact TSV round-trip — `None` floats serialize as empty strings (matches cxcscmu convention).
+- **`fieldkit.lineage.LineageStore(root, *, lower_is_better=True)`** — append-only TSV writer at `root/results.tsv` with `fcntl.flock` exclusive locking across header + row writes (concurrent specialists can write without interleaving). Read-side accessors: `all_trials()`, `latest(n)`, `best()`, `chain_to(exp_id)` (walks `parent_exp` pointers root-first, terminates on missing or self-referential parents), and `render_prompt(...)` — the deterministic Markdown emitter.
+- **`fieldkit.lineage.LineageSnapshot`** — frozen dataclass returned by `render_prompt`. Carries the rendered Markdown string plus the underlying structured data (`current_best`, `chain_to_best`, `top_k_leaderboard`, `recent_n_activity`, `last_m_with_full_hypothesis`) so callers can index in without re-parsing.
+- **`fieldkit.lineage.RecipeEdit`** — pairs a keep trial with its workdir `snapshot_path` and `parent_snapshot_path`. `diff()` computes a unified diff of every text file in the snapshot vs the parent (binary files elide with a `Binary files ... differ` marker); baseline trials with no parent return an empty diff.
+
+Rendered Markdown output mirrors cxcscmu's `release_artifacts/example_lineage_pg_lineage_on_arch.txt` shape: header line + `## LEADERBOARD.md` (current best + top-K kept table) + `## KNOWLEDGE.md` (current-best lineage as a nested `└─` chain + recent-activity table + last-M detailed entries). Determinism is tested — same TSV state in produces byte-identical Markdown across calls.
+
+### Test suite
+
+**29 new tests** for `fieldkit.lineage` (`tests/test_lineage.py`): `FailureLabel` value parity + `is_informational` predicate + 10-class enum surface lock; `Trial` round-trip via TSV; `LineageStore` append / latest / best / `chain_to` correctness across linear and branched topologies; `render_prompt` determinism, top-K filtering, chain rendering with `← BEST` marker; `RecipeEdit.diff()` against parent snapshots including new-file detection.
+
+Total fieldkit test count: **249 passed, 3 skipped** offline (`pytest -q`) — the 3 skips are 1 module-level torch importorskip in `test_training.py` and 2 `--spark`-gated live integration tests.
+
+### Articles in this release
+
+- [`auto-research-loop-on-spark`](https://ainative.business/field-notes/auto-research-loop-on-spark/) — anchor article. Walks the 17-column schema, the 10-class enum semantics, and the cxcscmu lineage ablation that proves the primitive's value.
+
+### Schema change — `FIELDKIT_MODULES`
+
+`src/content.config.ts` extended to include `'lineage'` in the `FIELDKIT_MODULES` tuple (order: `capabilities, nim, rag, eval, training, lineage, cli`). Required so articles can declare `fieldkit_modules: ['lineage']` in their frontmatter.
+
+[extract from #auto-research-loop-on-spark]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/auto-research-loop-on-spark
+
+## [0.2.0] — 2026-05-05
+
+Second public release. One new module (`fieldkit.training`) plus four extensions to the v0.1 `fieldkit.eval` surface, all lifted from articles in [ai-field-notes](https://ainative.business/field-notes/) — primarily the `clawgym-on-spark` and Frontier Scout arcs. The `fieldkit.agents` and `fieldkit.inference` modules originally targeted for v0.2 are deferred to v0.3+ because their public APIs need a second article's use case to lock in (see "Deferred to v0.3+" below).
+
+### Added — `fieldkit.training` (new module)
+
+Fine-tuning primitives for any RL or SFT loop on the DGX Spark's unified-memory GB10. Both classes use lazy `torch` imports so `import fieldkit.training` costs nothing in environments that don't run training.
+
+- **`fieldkit.training.WeightDeltaTracker`** — pre/post snapshot of trainable params with L2 and `max|Δ|` reporting. Sanity-check that any fine-tuning step actually moves weights — the first time someone debugs "why didn't my LoRA update?" they'll wish for this. Source: `articles/clawgym-on-spark/scripts/grpo_train.py` (`--check-weight-delta` block). ([extract from #clawgym-on-spark-grpo])
+- **`fieldkit.training.LoraReferenceSnapshot`** — CPU-resident snapshot of a peft adapter's LoRA tensors with a context manager that swaps the snapshot into the live model for one no-grad forward pass and restores trainable weights on exit. Two construction modes: snapshot from current policy at step start (online) vs. `from_disk(adapter_dir)` for a fixed reference (classic GRPO fixed-SFT-init reference, with the safetensors `.<adapter_name>.weight ↔ .weight` key transform peft 0.19+ requires). Solves a real bug: peft 0.19's `load_adapter(..., is_trainable=False)` crashes with `KeyError` under `device_map="auto"` whenever the GPU has anything else resident — peft's offload-detection over-triggers on Spark unified memory. The CPU-snapshot/swap dance sidesteps the offloader entirely. Source: `articles/clawgym-on-spark/scripts/grpo_train.py` (`--reference-adapter` + snapshot/swap blocks). ([extract from #clawgym-on-spark-grpo])
+
+### Added — extends `fieldkit.eval`
+
+Four new primitives that extend the v0.1 eval surface (`Bench`, `Judge`, `Trajectory`, `is_refusal`) with programmatic grading, code-bench pass@k, agent-loop schemas, and ablation comparison support.
+
+- **`fieldkit.eval.AssertionGrader`** — pure-function grader over five file-system assertion primitives (`file_exists`, `file_not_exists`, `file_unchanged`, `file_contents_contain`, `file_contents_match_regex`). Accepts either a SynthTask-shaped dict (auto-derives `seed_files` from `workspace_seed.files`) or a bare list of assertion dicts, so the grader stays usable without coupling to the deferred `fieldkit.agents.SynthTask` shape. Sibling to `Judge` — programmatic verification where it applies. Source: `articles/clawgym-on-spark/scripts/grader.py`. ([extract from #clawgym-on-spark])
+- **`fieldkit.eval.PassAtK`** + **`pass_at_k_estimator`** — verifier-loop primitive: per-task grader + `n`-sample iterator → `pass@1`, `pass@k` via the unbiased estimator (Chen et al. 2021). Decoupled from the model — caller supplies pre-generated samples + a grader callable, `PassAtK` aggregates. Two entry points: `score(problems, samples, grader)` for fresh runs and `from_rows(rows)` for offline pass@k math against pre-graded `(task_id, n, passed)` tuples. Tested on HumanEval + AIME 2024 across baseline vs. ESamp modes. Source: `articles/runtime-frontier-six-patches-on-spark/scripts/passatk_a2.py`. ([extract from #pass-at-k-after-the-seventh-patch])
+- **`fieldkit.eval.AgentRun`** + **`TurnDetail`** + **`summarize_agent_runs`** — per-question, per-turn schema for any third-party agent bench. Default constructor handles the AutoResearchBench JSONL shape (`input_data.arxiv_id`, `inference_results[0].turn_details/total_time/...`); `from_record(...)` accepts field-name overrides for other bench layouts. `TurnDetail` carries five canonical fields (turn, action, duration_s, input/output tokens) plus an `extras` dict so bench-specific fields (e.g. `papers_retrieved`, `parse_errors`) survive round-tripping. `summarize_agent_runs()` rolls up status counts + `wall_seconds` / `turns` / `candidates` / `tool_calls` / `tool_format_errors` summaries. Source: `articles/autoresearchbench-on-spark/scripts/analyze_run.py`. ([extract from #autoresearchbench-on-spark])
+- **`fieldkit.eval.MatchedBaseComparison`** + **`GroupStats`** + **`MatchedBaseComparisonResult`** — held-out task split + two-rollout driver + per-group / per-assertion-kind delta. The "filter held-out by training-set membership, run rollout twice with different `--model`, emit B-A comparison" pattern is reusable for any LoRA / adapter ablation. Default `group_extractor` splits `synth-<persona>-NN` task IDs into the persona; pass any `Callable[[str], str]` for other task-id schemes, or `None` to disable per-group breakdown. Accepts trajectories as in-memory dicts or a JSONL path. `.report()` returns a markdown summary table. Source: `articles/clawgym-on-spark/scripts/compare_phase5.py`. ([extract from #clawgym-on-spark])
+
+### Articles in this release
+
+Articles whose `fieldkit_modules` frontmatter assumes v0.2 (added since v0.1.0):
+
+- [`autoresearchbench-on-spark`](https://ainative.business/field-notes/autoresearchbench-on-spark/) — surfaced `fieldkit.eval.AgentRun`.
+- [`test-time-distilling-for-exploration`](https://ainative.business/field-notes/test-time-distilling-for-exploration/) — surfaced the deferred `fieldkit.inference.VLLMClient`.
+- [`runtime-frontier-six-patches-on-spark`](https://ainative.business/field-notes/runtime-frontier-six-patches-on-spark/) — surfaced `fieldkit.eval.PassAtK` (matured in the seventh-patch follow-up).
+- [`pass-at-k-after-the-seventh-patch`](https://ainative.business/field-notes/pass-at-k-after-the-seventh-patch/) — anchor article for `fieldkit.eval.PassAtK`.
+- [`clawgym-on-spark`](https://ainative.business/field-notes/clawgym-on-spark/) — surfaced `fieldkit.eval.AssertionGrader`, `fieldkit.eval.MatchedBaseComparison`, plus the deferred `fieldkit.agents` substrate.
+- [`clawgym-on-spark-grpo`](https://ainative.business/field-notes/clawgym-on-spark-grpo/) — surfaced the entire `fieldkit.training` module (`LoraReferenceSnapshot`, `WeightDeltaTracker`).
+
+### Test suite
+
+**232 passed, 2 skipped** offline (`pytest -q`) — covers all v0.1 surface plus 16 + 19 + 16 + 12 + 12 = 75 new tests for the v0.2 additions. Reproduce: `pip install fieldkit[dev]` then `pytest`. The `fieldkit.training` tests gate on `pytest.importorskip("torch")` so the suite skips cleanly in pure-inference dev envs and runs end-to-end in any env with torch installed. v0.1's live `--spark` integration tests still pass against warm NIMs + pgvector — none were modified in this release.
+
+### Deferred to v0.3+
+
+The full design doc at `articles/clawgym-on-spark/scripts/fieldkit_agents_v0_2_sketch.md` charts the larger `fieldkit.agents` substrate; the candidates below need a second article's use case before extraction is sound.
+
+- **`fieldkit.agents` module** (7 symbols — `Persona`, `WorkspaceSeed`/`WorkspaceFile`, `SynthTask`, `TaskAuthor`, `Sandbox`/`LocalTempSandbox`, `RolloutDriver`, `Trajectory`/`TurnRecord`). The whole agent-trajectory training substrate that the `clawgym-on-spark` arc walks. Coupled enough that the public API needs a second consuming article to lock in. Source: `articles/clawgym-on-spark/scripts/synth_tasks.py` + `rollout.py`. ([extract from #clawgym-on-spark])
+- **`fieldkit.inference.VLLMClient`** — mirror of `fieldkit.nim.NIMClient` for vLLM-side experiments. Deferred because the canonical interface needs a second runtime-frontier article (post-test-time-distilling) to converge. Source: `articles/runtime-frontier-six-patches-on-spark/scripts/bench_a2.py`. ([extract from #test-time-distilling-for-exploration])
+- **`fieldkit.agents.replay_messages_from_trajectory`** — reconstruct the exact `(system, user, assistant, observation, …)` message list a policy saw at rollout time. Required for any off-policy training (log-prob recompute is meaningless if reconstruction differs by even a token). Logic currently lives in two byte-identical places (`rollout.py:RolloutDriver.rollout()` forward + `grpo_train.py:reconstruct_messages()` reverse). Right callable interface for `(system_prompt, user_prompt_template, observation_formatter)` won't be obvious until a second article exercises it. ([extract from #clawgym-on-spark-grpo])
+
+[extract from #autoresearchbench-on-spark]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/autoresearchbench-on-spark
+[extract from #test-time-distilling-for-exploration]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/test-time-distilling-for-exploration
+[extract from #pass-at-k-after-the-seventh-patch]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/pass-at-k-after-the-seventh-patch
+[extract from #clawgym-on-spark]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/clawgym-on-spark
+[extract from #clawgym-on-spark-grpo]: https://github.com/manavsehgal/ai-field-notes/tree/main/articles/clawgym-on-spark-grpo
+
+## [0.1.0] — 2026-05-02
+
+First public release. Four library modules + a CLI + a docs site section, lifted from 25+ articles in [ai-field-notes](https://ainative.business/field-notes/).
+
+### Added
+
+- **`fieldkit.capabilities`** — typed Python facade over `spark-capabilities.json`. `Capabilities.load()` cached singleton (with `.hardware`, `.memory_budget_rules_of_thumb`, `.stack`, `.in_envelope_signals`, `.out_of_envelope_signals`, `.stage_routing_hints`, `.series_routing_hints`), plus canonical math helpers `kv_cache_bytes()`, `weight_bytes()`, `practical_inference_envelope()`. Numbers pinned to `kv-cache-arithmetic-at-inference` and `gpu-sizing-math-for-fine-tuning`. ([#capabilities])
+- **`fieldkit.nim`** — OpenAI-compatible `NIMClient` over `httpx` with `tenacity`-backed retries on 429 / 503 / `ConnectError` / timeouts. `NIMClient.chat()` runs a pre-flight context check and raises `NIMContextOverflowError` with the estimated token count *before any network call*, so the opaque NIM 400 from a >8192-token request never surfaces. Helpers: `chunk_text()` (paragraph→sentence→word splitting under a `max_tokens` budget), `estimate_tokens()` (1 tok ≈ 4 chars), `wait_for_warm()` (polls `/v1/models` for the ~90s NIM cold start). Constants: `NIM_CONTEXT_WINDOW = 8192`, `DEFAULT_CHUNK_TOKENS = 1024`. Errors: `NIMError` → `NIMHTTPError`, `NIMTimeoutError`, `NIMContextOverflowError`. ([#nim])
+- **`fieldkit.rag`** — composable ingest → retrieve → rerank → fuse pipeline backed by pgvector + a NIM embedder + the strict-context grounded prompt from `naive-rag-on-spark`. `Pipeline.ingest()` chunks via `fieldkit.nim.chunk_text` and upserts in batches of 32; `Pipeline.retrieve()` does pgvector cosine top-K; `Pipeline.rerank()` is a pass-through when `rerank_url=None`; `Pipeline.fuse()` builds the strict-context messages list and calls the generator; `Pipeline.ask()` chains all three. Embed and rerank inherit `NIMClient.chat`'s retry policy so co-resident memory pressure doesn't fail the pipeline. ([#rag])
+- **`fieldkit.eval`** — `Bench` (latency aggregation with the same `{summary, calls}` JSON shape as the article evidence files), `Judge` (LLM-as-judge with built-in `correctness` / `faithfulness` / `relevance` rubrics + a static `Judge.parse()` JSON-then-regex extractor), `Trajectory` (agent-loop JSONL analyzer with `knob_coverage / repeat_rate / mode_dominance / cumulative_best`), `is_refusal()` (regex catalog unioned across the project's articles), `summarize_metric()`. ([#eval])
+- **`fieldkit.cli`** — Typer wrapper exposing `fieldkit version`, `fieldkit envelope <size>`, `fieldkit feasibility <model_id> [--ctx --batch --dtype]`, `fieldkit bench rag`. On `$PATH` after `pip install`. ([#cli])
+- **Astro docs site** — `/fieldkit/` landing page with install + quickstart + module grid, and `/fieldkit/api/<module>/` reference pages backed by a new `fieldkit_docs` content collection. Articles can opt-in via `fieldkit_modules:` frontmatter to display a "USES fieldkit.X" chip on cards and appear under each module's "Articles that use fieldkit.<module>" footer. 11 articles opted in for the v0.1.0 launch.
+- **Samples**: `samples/feasibility-math.py` (capabilities reproduction of the kv-cache article's table), `samples/hello-nim.py` (Python equivalent of the curl one-liner), `samples/naive-rag.py` (end-to-end RAG in <30 lines), `samples/bench-rag.py` (offline `Bench` + `Judge.parse()` walkthrough).
+- `scripts/sync_capabilities.py` keeps the package-bundled `spark-capabilities.json` in sync with the source-of-truth at `scripts/lib/spark-capabilities.json` (pre-commit-enforced).
+- `pytest --spark` flag (via `tests/conftest.py`) gates integration tests that need a live NIM / pgvector on the DGX Spark; default runs skip them.
+
+### Changed
+
+- `frontier-scout` skill (`refresh` and `eval` modes, plus `references/feasibility-prompt.md` and `references/classifier-prompt.md`) now teaches the typed `from fieldkit.capabilities import …` API as the preferred grounding path; raw JSON read is the documented fallback.
+
+### Verified on Spark
+
+Phases 3, 4, 5 were live-verified end-to-end against the chat NIM (Llama 3.1 8B, port 8000), the embed NIM (Nemotron Embed 1B v2, port 8001), and pgvector (port 5432) before being committed. Phase 5 in particular rewrote `articles/naive-rag-on-spark/evidence/benchmark.py` against `fieldkit.eval.Bench` + `fieldkit.rag.Pipeline.fuse` and reproduced the original article's behavioral fingerprint (5 of 6 refusals incl. the canonical Google-IPO false refusal, plus the Ian Thorpe grounded answer).
+
+### Distribution
+
+Published to PyPI on 2026-05-02: <https://pypi.org/project/fieldkit/0.1.0/>. Canonical install is now `pip install fieldkit`; the git-tag install (`pip install "git+…@fieldkit/v0.1.0#subdirectory=fieldkit"`) remains supported for unreleased commits between tags. Subsequent releases publish to both git and PyPI in one flow via `fieldkit-curator release`.
+
+### Test suite
+
+**157 passing, 2 skipped** without `--spark` (151 passing with `--spark` against warm NIMs + pgvector). Reproduce: `pip install fieldkit/[dev]` then `pytest`; for the live tests, `pytest --spark`.
+
+[#capabilities]: https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit/src/fieldkit/capabilities
+[#nim]: https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit/src/fieldkit/nim
+[#rag]: https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit/src/fieldkit/rag
+[#eval]: https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit/src/fieldkit/eval
+[#cli]: https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit/src/fieldkit/cli

@@ -1,0 +1,100 @@
+---
+// Signature figure for "nemo-retriever-embeddings-local".
+// Left: three stacked text chunks. Middle: the Nemotron embed NIM (accent,
+// pulsing). Right: a dashed bounded region hosting a vector cloud — three
+// dots cluster near the query vector, the rest scatter as background. The
+// thesis in one glance: text becomes points in a shared vector space where
+// meaning is geometry, and the box on your desk owns the whole map.
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Embedding pipeline — text chunks flow through a local Nemotron NIM into a 2048-dimensional vector space" data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="embed-node-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="var(--svg-accent-teal)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="embed-space-grad" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="embed-lane-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <!-- atmospheric washes (background layer) -->
+  <rect x="8" y="38" width="72" height="128" rx="6" fill="url(#embed-lane-grad)" stroke="none"/>
+  <rect x="210" y="38" width="78" height="128" rx="6" fill="url(#embed-space-grad)" stroke="none"/>
+  <!-- flow connectors (drawn left-to-right) -->
+  <g fill="none" stroke="var(--svg-connector)" stroke-width="1" stroke-linecap="round">
+    <path class="line-draw svg-reveal-d1" d="M 76 60  L 112 92" />
+    <path class="line-draw svg-reveal-d1" d="M 76 100 L 112 100" />
+    <path class="line-draw svg-reveal-d1" d="M 76 140 L 112 108" />
+    <path class="line-draw svg-reveal-d2" d="M 178 100 L 210 100" />
+  </g>
+  <!-- text chunks on the left -->
+  <g class="svg-reveal svg-reveal-d1">
+    <rect x="14" y="48"  width="60" height="24" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <line x1="22" y1="58" x2="62" y2="58" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="22" y1="63" x2="54" y2="63" stroke="var(--svg-text-faint)" stroke-width="1"/>
+  </g>
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y="88"  width="60" height="24" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <line x1="22" y1="98"  x2="62" y2="98"  stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="22" y1="103" x2="50" y2="103" stroke="var(--svg-text-faint)" stroke-width="1"/>
+  </g>
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="14" y="128" width="60" height="24" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"/>
+    <line x1="22" y1="138" x2="62" y2="138" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <line x1="22" y1="143" x2="58" y2="143" stroke="var(--svg-text-faint)" stroke-width="1"/>
+  </g>
+  <!-- Nemotron NIM node -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="112" y="78" width="66" height="44" rx="8"
+          fill="url(#embed-node-grad)"
+          stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <text x="145" y="96" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="10" font-weight="600">nemotron</text>
+    <text x="145" y="110" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9">embed 1B</text>
+  </g>
+  <text class="svg-reveal svg-reveal-d4" x="145" y="70" text-anchor="middle"
+        fill="var(--svg-accent-teal)" font-family="var(--font-mono)"
+        font-size="8" letter-spacing="0.2em" font-weight="600">LOCAL NIM</text>
+  <!-- vector-space chrome on the right -->
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="210" y="38" width="78" height="128" rx="6"
+          fill="none"
+          stroke="var(--svg-bg-inner-stroke)" stroke-width="1"
+          stroke-dasharray="3 3"/>
+    <text x="249" y="50" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="8" letter-spacing="0.15em">2048-D SPACE</text>
+  </g>
+  <!-- near-cluster dots (accent "matches"): halo + core for depth -->
+  <g fill="var(--svg-accent-teal)">
+    <circle class="dot-pop svg-reveal-d5" cx="231" cy="88"  r="8"  opacity="0.22"/>
+    <circle class="dot-pop svg-reveal-d5" cx="231" cy="88"  r="3"/>
+    <circle class="dot-pop svg-reveal-d5" cx="245" cy="84"  r="8"  opacity="0.22"/>
+    <circle class="dot-pop svg-reveal-d5" cx="245" cy="84"  r="3"/>
+    <circle class="dot-pop svg-reveal-d6" cx="238" cy="98"  r="8"  opacity="0.22"/>
+    <circle class="dot-pop svg-reveal-d6" cx="238" cy="98"  r="3"/>
+  </g>
+  <!-- background cloud (muted) -->
+  <g fill="var(--svg-text-faint)">
+    <circle class="dot-pop svg-reveal-d6" cx="268" cy="70"  r="1.6"/>
+    <circle class="dot-pop svg-reveal-d6" cx="220" cy="126" r="1.6"/>
+    <circle class="dot-pop svg-reveal-d7" cx="275" cy="110" r="1.6"/>
+    <circle class="dot-pop svg-reveal-d7" cx="260" cy="146" r="1.6"/>
+    <circle class="dot-pop svg-reveal-d7" cx="226" cy="152" r="1.6"/>
+    <circle class="dot-pop svg-reveal-d8" cx="280" cy="132" r="1.6"/>
+    <circle class="dot-pop svg-reveal-d8" cx="250" cy="126" r="1.6"/>
+  </g>
+  <!-- query dot indicator (bright) -->
+  <g class="svg-reveal svg-reveal-d8">
+    <circle cx="238" cy="92" r="8"
+            fill="none" stroke="var(--svg-accent-teal)"
+            stroke-width="0.5" stroke-dasharray="2 2"/>
+  </g>
+</svg>

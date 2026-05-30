@@ -1,0 +1,407 @@
+---
+// Leaderboard — /arena/leaderboard/
+//
+// First-class cockpit surface — rank badges (#1 gold, #2 silver, #3 bronze),
+// score bars with traffic-light colour-thresholds, dense mono numeric cells.
+// Same M6 leak-proof data source (`src/data/arena-mirror/leaderboard.json`)
+// shipped at commit b22f2b4; only the visual presentation is rebuilt.
+//
+// Bench-anchored rows are grouped per `bench_id`; within each group the rows
+// are sorted by mean_score desc then tok/s desc. Live cockpit runs aggregate
+// per `(rubric, lane)` and surface human-pref winrate when ≥5 prefs landed
+// (spec §4.4 gate).
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import leaderboard from '../../data/arena-mirror/leaderboard.json';
+import { getCollection } from 'astro:content';
+import FrontierScatter from '../../components/arena/FrontierScatter.jsx';
+import { recommendedVariant } from '../../lib/arena/model-prompts.mjs';
+
+const title = 'Orionfold Arena — Leaderboard';
+const description =
+  'Bench-anchored + live-cockpit leaderboard — quality, throughput, headroom, and the cost-per-quality frontier for every artifact the Spark has produced.';
+
+type Row = {
+  bench_id: string;
+  lane_id: string;
+  manifest_slug: string | null;
+  n_runs: number;
+  mean_score: number;
+  median_tok_per_s: number | null;
+  mean_ttft_ms: number | null;
+  human_pref_winrate: number | null;
+  last_run_at: string;
+};
+
+const benchRows = (leaderboard.bench_rows as Row[]) ?? [];
+const liveRows = (leaderboard.live_rows as Row[]) ?? [];
+const generatedAt = (leaderboard as { generated_at?: string }).generated_at ?? 'unknown';
+const schemaVersion = (leaderboard as { schema_version?: number }).schema_version ?? 1;
+
+// Group bench rows.
+type Group = { bench_id: string; rows: Row[] };
+const benchGroups: Group[] = Object.values(
+  benchRows.reduce<Record<string, Group>>((acc, r) => {
+    if (!acc[r.bench_id]) acc[r.bench_id] = { bench_id: r.bench_id, rows: [] };
+    acc[r.bench_id].rows.push(r);
+    return acc;
+  }, {})
+).sort((a, b) => a.bench_id.localeCompare(b.bench_id));
+
+benchGroups.forEach((g) => {
+  g.rows.sort((a, b) => {
+    if (b.mean_score !== a.mean_score) return b.mean_score - a.mean_score;
+    return (b.median_tok_per_s ?? 0) - (a.median_tok_per_s ?? 0);
+  });
+});
+
+const liveSorted = [...liveRows].sort((a, b) => b.mean_score - a.mean_score);
+
+// Efficiency-frontier points — every GGUF model's quant variants plotted as
+// quality × throughput. Built at build time from getCollection('artifacts')
+// so the chart survives on the public web preview (no sidecar). Quality is
+// normalized per visible set inside the island (perplexity inverted, or
+// vertical_eval when present) — the axis is labelled "quality index", never
+// raw perplexity, so the cross-model comparison stays honest.
+const frontierArtifacts = (await getCollection('artifacts')).filter(
+  (a) => a.data.spark_tokens_per_sec && Object.keys(a.data.spark_tokens_per_sec).length > 0
+);
+const frontierPoints = frontierArtifacts.flatMap((a) => {
+  const d = a.data;
+  const rec = recommendedVariant(d);
+  const toks = d.spark_tokens_per_sec || {};
+  return Object.keys(toks)
+    .filter((v) => typeof toks[v] === 'number')
+    .map((v) => ({
+      label: `${d.slug} · ${v}`,
+      x: toks[v],
+      ppl: d.perplexity?.[v] ?? null,
+      evalScore: d.vertical_eval?.[v] ?? null,
+      group: d.slug,
+      recommended: v === rec,
+    }));
+});
+
+const benchCount = benchGroups.length;
+const laneCount = new Set([
+  ...benchRows.map((r) => r.lane_id),
+  ...liveRows.map((r) => r.lane_id),
+]).size;
+const totalRuns = benchRows.reduce((s, r) => s + r.n_runs, 0) +
+                  liveRows.reduce((s, r) => s + r.n_runs, 0);
+
+// Helpers.
+const pct = (s: number) => (s * 100).toFixed(1);
+const fmtTok = (n: number | null) => n == null ? '—' : n.toFixed(1);
+const fmtTtft = (n: number | null) => n == null ? '—' : `${n.toFixed(0)} ms`;
+const fmtPref = (n: number | null) => n == null ? '—' : `${(n * 100).toFixed(0)}%`;
+const laneLabel = (lane_id: string) => lane_id.replace(/::[a-z0-9-]+$/, '');
+const laneSuffix = (lane_id: string) => {
+  const m = lane_id.match(/::([a-z0-9-]+)$/);
+  return m ? m[1] : '';
+};
+const benchLabel = (bench_id: string) => bench_id.replace(/^cockpit:/, '');
+const benchMetric = (bench_id: string) => {
+  // Pulled from the M2 importer's bench_id convention: <slug>:<metric_or_check>.
+  const m = bench_id.match(/:([a-z0-9_-]+)$/);
+  return m ? m[1] : '';
+};
+const scoreClass = (s: number) => {
+  if (s >= 0.90) return 'ok';
+  if (s >= 0.75) return 'accent';
+  if (s >= 0.50) return 'mid';
+  return 'low';
+};
+const scoreColor = (s: number) => {
+  // Returns OKLCH so the inline style scales cleanly against the design system.
+  if (s >= 0.90) return 'oklch(0.78 0.18 155)';   // green
+  if (s >= 0.75) return 'oklch(0.72 0.18 250)';   // blue
+  if (s >= 0.50) return 'oklch(0.83 0.16 78)';    // amber
+  return 'oklch(0.68 0.22 25)';                   // red
+};
+const fmtTime = (iso: string) => {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
+  } catch { return iso; }
+};
+---
+<ArenaAppLayout title={title} description={description} active="leaderboard">
+  <header class="pageheader">
+    <div>
+      <p class="pageheader__eyebrow">M6 · leak-proof public mirror</p>
+      <h1 class="pageheader__title">Leaderboard</h1>
+      <p class="pageheader__blurb">
+        Bench-anchored evidence plus live cockpit runs against the resident brain —
+        ranked on quality, tok/s, and (when ≥5 prefs land) human preference. Built
+        from the M6 mirror exporter's allowlist slice of <code>~/.fieldkit/arena.db</code>.
+      </p>
+    </div>
+    <div class="pageheader__actions">
+      <a href="/arena/compare/" class="arena-btn arena-btn--primary">＋ Run a compare</a>
+      <a href="/arena/chat/" class="arena-btn">Chat against brain</a>
+    </div>
+  </header>
+
+  <div class="kpi-strip">
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Benches</span>
+      <span class="kpi-strip__value">{benchCount}</span>
+      <span class="kpi-strip__hint">cached evidence sources</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Lanes ranked</span>
+      <span class="kpi-strip__value">{laneCount}</span>
+      <span class="kpi-strip__hint">unique <code>(lane,&nbsp;bench)</code></span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Runs</span>
+      <span class="kpi-strip__value">{totalRuns}</span>
+      <span class="kpi-strip__hint">bench&nbsp;+&nbsp;live</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Schema</span>
+      <span class="kpi-strip__value">v{schemaVersion}</span>
+      <span class="kpi-strip__hint kpi-strip__hint--ok">leak-proof · ✓</span>
+    </div>
+    <div class="kpi-strip__cell">
+      <span class="kpi-strip__label">Generated</span>
+      <span class="kpi-strip__value" style="font-size: 0.92rem; font-family: var(--arena-mono); font-weight: 500;">{fmtTime(generatedAt)}</span>
+      <span class="kpi-strip__hint">last <code>fieldkit arena mirror</code></span>
+    </div>
+  </div>
+
+  <!-- ===================== Efficiency frontier (marquee) ===================== -->
+  {frontierPoints.length > 1 && (
+    <section class="bezel bezel--lit lb-frontier" data-pane="frontier">
+      <header class="bezel__head">
+        <span class="bezel__head-title">Cost / quality efficiency frontier</span>
+        <span class="bezel__head-tag bezel__head-tag--live">{frontierArtifacts.length} models · {frontierPoints.length} builds</span>
+      </header>
+      <div class="bezel__body">
+        <p class="lb-frontier__lede">
+          Every quant variant the Spark has measured, plotted as <b>quality × throughput</b>.
+          The gold line is the Pareto frontier — the builds nothing else beats on both axes
+          at once. <span class="dim">A frontier public cloud arenas can't draw: they don't know
+          what hardware their votes ran on. We do — the operator <em>is</em> the hardware.</span>
+        </p>
+        <FrontierScatter client:only="preact" points={frontierPoints} mode="multi" normalize="per-group" />
+        <p class="lb-frontier__foot dim">
+          Quality index is normalized per model (perplexity is corpus-dependent — only
+          comparable within one base model). Each model's variants form its own curve;
+          hover any point for the raw numbers. Per-model detail lives under
+          <a href="/arena/models/">Models</a>.
+        </p>
+      </div>
+    </section>
+  )}
+
+  <div class="filterbar" role="region" aria-label="Leaderboard view filters">
+    <span class="filterbar__label">View</span>
+    <button class="filterbar__chip is-active" aria-pressed="true" data-view="all">All</button>
+    <button class="filterbar__chip" aria-pressed="false" data-view="bench">Bench-anchored</button>
+    <button class="filterbar__chip" aria-pressed="false" data-view="live">Live cockpit</button>
+    <span style="flex: 1"></span>
+    <span class="filterbar__label">Sort</span>
+    <button class="filterbar__chip is-active" aria-pressed="true" data-sort="score">Quality</button>
+    <button class="filterbar__chip" aria-pressed="false" data-sort="tok">Throughput</button>
+  </div>
+
+  <!-- ===================== Bench-anchored leaderboard ===================== -->
+  <section data-pane="bench" style="margin-bottom: 2rem;">
+    <h2 style="font-family: var(--arena-mono); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--arena-text-mute); margin: 0 0 0.85rem;">
+      ⬢ Bench-anchored — cached evidence
+    </h2>
+    {benchGroups.length === 0 ? (
+      <div class="empty">
+        <p>No bench rows yet — run <code>fieldkit arena mirror</code> on your Spark to seed the leaderboard.</p>
+      </div>
+    ) : benchGroups.map((g) => (
+      <div class="bench-group">
+        <div class="bench-group__head">
+          <span class="bench-group__id">{benchLabel(g.bench_id)}</span>
+          <span class="bench-group__count">{g.rows.length} lanes · {g.rows.reduce((s, r) => s + r.n_runs, 0)} runs</span>
+          <span class="bench-group__metric">metric · {benchMetric(g.bench_id) || 'mean_score'}</span>
+        </div>
+        <table class="ranktable">
+          <thead>
+            <tr>
+              <th class="rankcol-rank">Rank</th>
+              <th class="rankcol-lane">Lane</th>
+              <th class="rankcol-score">Quality</th>
+              <th class="rankcol-tok">Throughput</th>
+              <th class="rankcol-num">Runs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {g.rows.map((r, i) => {
+              const rank = i + 1;
+              const badgeClass = rank < 4 ? `rank-badge--${rank}` : '';
+              const pctVal = pct(r.mean_score);
+              const color = scoreColor(r.mean_score);
+              return (
+                <tr>
+                  <td class="rankcol-rank">
+                    <span class={`rank-badge ${badgeClass}`}>{rank}</span>
+                  </td>
+                  <td class="rankcol-lane">
+                    <div class="lane-cell">
+                      <span class="lane-cell__id">{laneLabel(r.lane_id)}</span>
+                      {r.manifest_slug && <span class="lane-cell__slug">{r.manifest_slug}</span>}
+                    </div>
+                  </td>
+                  <td class="rankcol-score">
+                    <div class="scorebar" style={`--scorebar-color: ${color};`}>
+                      <span class="scorebar__track">
+                        <span class="scorebar__fill" style={`width: ${pctVal}%`}></span>
+                      </span>
+                      <span class="scorebar__value">{pctVal}%</span>
+                    </div>
+                  </td>
+                  <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
+                    {r.median_tok_per_s != null ? `${fmtTok(r.median_tok_per_s)} tok/s` : <span class="dim">—</span>}
+                  </td>
+                  <td class="rankcol-num mono" style="color: var(--arena-text-mute);">{r.n_runs}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    ))}
+  </section>
+
+  <!-- ===================== Live cockpit runs ===================== -->
+  <section data-pane="live">
+    <h2 style="font-family: var(--arena-mono); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--arena-text-mute); margin: 0 0 0.85rem;">
+      ◉ Live cockpit runs — operator compares
+    </h2>
+    {liveSorted.length === 0 ? (
+      <div class="empty">
+        <p>No live cockpit rows yet — run a compare in <a href="/arena/compare/">/arena/compare/</a> and re-mirror.</p>
+      </div>
+    ) : (
+      <div class="bench-group">
+        <div class="bench-group__head">
+          <span class="bench-group__id">cockpit · all rubrics</span>
+          <span class="bench-group__count">{liveSorted.length} rows · {liveSorted.reduce((s, r) => s + r.n_runs, 0)} runs</span>
+          <span class="bench-group__metric">metric · rubric mean</span>
+        </div>
+        <table class="ranktable">
+          <thead>
+            <tr>
+              <th class="rankcol-rank">Rank</th>
+              <th class="rankcol-lane">Rubric · Lane</th>
+              <th class="rankcol-score">Quality</th>
+              <th class="rankcol-tok">Throughput</th>
+              <th class="rankcol-tok">TTFT</th>
+              <th class="rankcol-num">Runs</th>
+              <th class="rankcol-pct">Human ↑</th>
+            </tr>
+          </thead>
+          <tbody>
+            {liveSorted.map((r, i) => {
+              const rank = i + 1;
+              const badgeClass = rank < 4 ? `rank-badge--${rank}` : '';
+              const pctVal = pct(r.mean_score);
+              const color = scoreColor(r.mean_score);
+              return (
+                <tr>
+                  <td class="rankcol-rank">
+                    <span class={`rank-badge ${badgeClass}`}>{rank}</span>
+                  </td>
+                  <td class="rankcol-lane">
+                    <div class="lane-cell">
+                      <span class="lane-cell__id">{benchLabel(r.bench_id)}</span>
+                      <span class="lane-cell__slug">vs · {laneLabel(r.lane_id)}{laneSuffix(r.lane_id) && ` (${laneSuffix(r.lane_id)})`}</span>
+                    </div>
+                  </td>
+                  <td class="rankcol-score">
+                    <div class="scorebar" style={`--scorebar-color: ${color};`}>
+                      <span class="scorebar__track">
+                        <span class="scorebar__fill" style={`width: ${pctVal}%`}></span>
+                      </span>
+                      <span class="scorebar__value">{pctVal}%</span>
+                    </div>
+                  </td>
+                  <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
+                    {r.median_tok_per_s != null ? `${fmtTok(r.median_tok_per_s)} tok/s` : <span class="dim">—</span>}
+                  </td>
+                  <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">{fmtTtft(r.mean_ttft_ms)}</td>
+                  <td class="rankcol-num mono" style="color: var(--arena-text-mute);">{r.n_runs}</td>
+                  <td class="rankcol-pct mono" style="color: var(--arena-text-mute);">{fmtPref(r.human_pref_winrate)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </section>
+
+  <p style="margin: 2rem 0 0; font-family: var(--arena-mono); font-size: 0.7rem; color: var(--arena-text-dim); letter-spacing: 0.08em;">
+    Source — <code>fieldkit.arena.mirror.export_publishable_slice()</code>; allowlist pinned by <code>fieldkit/tests/arena/test_mirror_does_not_leak.py</code>.
+    The <code>chat_*</code> tables, <code>compare_runs.prompt</code>, and <code>compare_responses.{`{content,reasoning}`}</code> are NEVER enumerated.
+  </p>
+</ArenaAppLayout>
+
+<script type="module" is:inline>
+  // Filter + sort chip interactions. Lightweight DOM-only; no framework.
+  const root = document.currentScript?.parentElement || document;
+  const bar = root.querySelector('.filterbar');
+  const benchPane = root.querySelector('[data-pane="bench"]');
+  const livePane  = root.querySelector('[data-pane="live"]');
+
+  function setActive(chip) {
+    const group = chip.dataset.view ? 'view' : (chip.dataset.sort ? 'sort' : null);
+    if (!group) return;
+    bar.querySelectorAll(`[data-${group}]`).forEach((c) => {
+      c.classList.remove('is-active');
+      c.setAttribute('aria-pressed', 'false');
+    });
+    chip.classList.add('is-active');
+    chip.setAttribute('aria-pressed', 'true');
+  }
+
+  bar?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.filterbar__chip');
+    if (!chip) return;
+    setActive(chip);
+    if (chip.dataset.view) {
+      const v = chip.dataset.view;
+      benchPane.style.display = (v === 'live')  ? 'none' : '';
+      livePane.style.display  = (v === 'bench') ? 'none' : '';
+    } else if (chip.dataset.sort) {
+      const sortKey = chip.dataset.sort;
+      [benchPane, livePane].forEach((pane) => {
+        if (!pane) return;
+        pane.querySelectorAll('.bench-group').forEach((g) => {
+          const tbody = g.querySelector('tbody');
+          if (!tbody) return;
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          rows.sort((a, b) => {
+            if (sortKey === 'tok') {
+              const av = parseFloat(a.cells[3]?.textContent || '0') || 0;
+              const bv = parseFloat(b.cells[3]?.textContent || '0') || 0;
+              return bv - av;
+            } else {
+              const av = parseFloat(a.cells[2]?.querySelector('.scorebar__value')?.textContent || '0');
+              const bv = parseFloat(b.cells[2]?.querySelector('.scorebar__value')?.textContent || '0');
+              return bv - av;
+            }
+          });
+          // Re-rank badges 1..N.
+          rows.forEach((tr, i) => {
+            tbody.appendChild(tr);
+            const badge = tr.querySelector('.rank-badge');
+            if (badge) {
+              badge.textContent = String(i + 1);
+              badge.classList.remove('rank-badge--1', 'rank-badge--2', 'rank-badge--3');
+              if (i < 3) badge.classList.add(`rank-badge--${i + 1}`);
+            }
+          });
+        });
+      });
+    }
+  });
+</script>

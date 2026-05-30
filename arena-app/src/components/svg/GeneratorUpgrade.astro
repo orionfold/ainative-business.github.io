@@ -1,0 +1,157 @@
+---
+// Signature figure for "bigger-generator-grounding-on-spark".
+// Three generators — 8B local, 49B Nemotron-Super hosted, 70B Llama 3.3
+// hosted — all fed the same top-5 chunks from the article-#7 retrieval
+// chain. The refusal rate on perfect retrieval (recall@5 = 1.0) is shown
+// under each chip. 8B at 9.1%, 49B at 18.2% (the surprise — tuned for
+// grounding, over-refuses MORE than the baseline), 70B at 13.6%.
+// Topology: one retrieval input → three parallel generators → three
+// verdicts. The 49B chip carries the amber accent because it's the
+// counterexpected result — the bigger, NVIDIA-native, instruction-tuned
+// model that refused more than the 8B.
+const cy = 100;
+---
+<svg viewBox="0 0 300 200" role="img" aria-label="Three generators fed the same retrieval chain: Llama 3.1 8B local at 9.1% refusal on perfect retrieval, Nemotron-Super-49B hosted at 18.2% — higher than the baseline despite being tuned for grounded QA, and Llama 3.3 70B hosted at 13.6%. Bigger does not heal refusal." data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gu-band-teal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-teal)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-teal)" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="gu-band-amber" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+      <stop offset="50%"  stop-color="var(--svg-accent-orange)" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.02"/>
+    </linearGradient>
+    <linearGradient id="gu-49b-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="gu-49b-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-orange)" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="var(--svg-accent-orange)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Atmospheric bands: teal retrieval left, amber on the 49B center (the surprise), teal right lane -->
+  <rect x="10"  y={cy - 18} width="54" height="36" rx="3" fill="url(#gu-band-teal)" stroke="none"/>
+  <rect x="110" y={cy - 16} width="60" height="32" rx="6" fill="url(#gu-49b-halo)" stroke="none"/>
+  <rect x="126" y={cy - 22} width="48" height="44" rx="3" fill="url(#gu-band-amber)" stroke="none"/>
+
+  <!-- Retrieval node → fan-out to 3 generators -->
+  <g class="svg-reveal svg-reveal-d1">
+    <path class="line-draw svg-reveal-d2"
+          d={`M 64 ${cy} L 100 ${cy} L 108 60`}
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d2"
+          d={`M 100 ${cy} L 108 ${cy}`}
+          fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d2"
+          d={`M 100 ${cy} L 108 140`}
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+  </g>
+
+  <!-- Post-generator arrows to verdicts -->
+  <g class="svg-reveal svg-reveal-d4">
+    <path class="line-draw svg-reveal-d5"
+          d={`M 172 60 L 196 60`}
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d5"
+          d={`M 172 ${cy} L 196 ${cy}`}
+          fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+    <path class="line-draw svg-reveal-d5"
+          d={`M 172 140 L 196 140`}
+          fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5"/>
+  </g>
+
+  <!-- Stage 0: retrieval chain (rerank from article #7) -->
+  <g class="svg-reveal svg-reveal-d2">
+    <rect x="14" y={cy - 14} width="50" height="28" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="39" y={cy - 1} text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">rerank</text>
+    <text x="39" y={cy + 9} text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">top-5 chunks</text>
+    <text x="39" y={cy - 22} text-anchor="middle"
+          fill="var(--svg-accent-teal)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">ARTICLE #7</text>
+  </g>
+
+  <!-- Top: 8B local (teal) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="110" y="44" width="60" height="32" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="140" y="58" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">llama 8b</text>
+    <text x="140" y="70" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">local :8000</text>
+  </g>
+
+  <!-- Middle: Nemotron-Super 49B hosted (amber, halo — the surprise) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="110" y={cy - 16} width="60" height="32" rx="6"
+          fill="url(#gu-49b-grad)"
+          stroke="var(--svg-accent-orange)" stroke-width="1.5"/>
+    <text x="140" y={cy - 1} text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">nemotron 49b</text>
+    <text x="140" y={cy + 9} text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="7">hosted</text>
+  </g>
+
+  <!-- Bottom: Llama 3.3 70B hosted (teal) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="110" y="124" width="60" height="32" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-teal)" stroke-width="1"/>
+    <text x="140" y="138" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight="600">llama 70b</text>
+    <text x="140" y="150" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="7">hosted</text>
+  </g>
+
+  <!-- Verdict chips — refusal rate on perfect retrieval -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="196" y="46" width="90" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="241" y="59" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em">REFUSE | R@5 = 1</text>
+    <text x="241" y="70" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="10" font-weight="600">9.1%</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="196" y={cy - 14} width="90" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-accent-orange)" stroke-width="1"/>
+    <text x="241" y={cy - 1} text-anchor="middle"
+          fill="var(--svg-accent-orange)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">REFUSE | R@5 = 1</text>
+    <text x="241" y={cy + 10} text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="10" font-weight="600">18.2%</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="196" y="126" width="90" height="28" rx="4"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="241" y="139" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em">REFUSE | R@5 = 1</text>
+    <text x="241" y="150" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="10" font-weight="600">13.6%</text>
+  </g>
+
+  <!-- The 49B callout -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="140" y={cy - 28} text-anchor="middle"
+          fill="var(--svg-accent-orange)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.2em" font-weight="600">OVER-REFUSES</text>
+  </g>
+</svg>
