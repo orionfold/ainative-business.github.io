@@ -204,22 +204,17 @@
     }
 
     let lastTick = Date.now();
-    let es;
-    try {
-      es = new EventSource(`${base}/api/telemetry/stream`);
-    } catch {
-      offlineEl.hidden = false;
-      return;
-    }
     setInterval(() => {
       if (Date.now() - lastTick > 6000) offlineEl.hidden = false;
     }, 2000);
 
-    es.addEventListener('telemetry', (ev) => {
+    // Paint from the shared telemetry bus (window.__arenaTelemetry) — ONE
+    // EventSource for the whole page, opened after the load event. The bus
+    // owns the socket + after-load deferral; this just renders each payload.
+    function applyTelemetry(t) {
       offlineEl.hidden = true;
       lastTick = Date.now();
       try {
-        const t = JSON.parse(ev.data);
         const now = Date.now() / 1000;
         const inflight = t.inflight;
 
@@ -311,10 +306,12 @@
         drawMini(sparks.unified, series.used, { color: 'oklch(0.72 0.18 250)', fill: 'oklch(0.72 0.18 250 / 0.18)', max: Math.max(total || 128, 64), band: 8 });
         drawMini(sparks.tok, series.tok, { color: 'oklch(0.74 0.16 165)', fill: 'oklch(0.74 0.16 165 / 0.14)' });
       } catch {}
+    }
+    window.__arenaTelemetry.subscribe({
+      onTelemetry: applyTelemetry,
+      onError: (rs) => { if (rs === 2) offlineEl.hidden = false; },
+      onUnreachable: () => { offlineEl.hidden = false; },
     });
-    es.onerror = () => {
-      if (es.readyState === 2) offlineEl.hidden = false;
-    };
   }
   })();
 </script>

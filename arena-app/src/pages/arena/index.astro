@@ -114,29 +114,28 @@ const fmtTok = (v: number | null) =>
       var el = document.getElementById('cockpit-hero-now');
       var txt = document.getElementById('cockpit-hero-now-text');
       if (!el || !txt) return;
-      var h = window.location.hostname || '';
-      var loopback = h === '127.0.0.1' || h === 'localhost' || /^10\.0\.0\.\d+$/.test(h);
-      if (!loopback) return; // public mirror — keep the static offline line
-      var url = window.location.protocol + '//' + h + ':7866/api/telemetry/stream';
-      var es;
-      try { es = new EventSource(url); } catch (e) { return; }
-      es.addEventListener('telemetry', function (ev) {
-        var t;
-        try { t = JSON.parse(ev.data); } catch (e) { return; }
-        el.classList.remove('cockpit-hero__now--offline');
-        var lane = t.lane_id || 'resident brain';
-        if (t.inflight && typeof t.tok_per_s === 'number') {
-          txt.innerHTML = '<b>' + lane + '</b> streaming · ' + t.tok_per_s.toFixed(1) + ' tok/s · ' +
-            (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB' : '—');
-        } else {
-          txt.innerHTML = '<b>' + lane + '</b> resident · idle · ' +
-            (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB used' : 'warm');
-        }
+      // Ride the shared telemetry bus (one page-wide EventSource) instead of
+      // opening our own — see the layout bus for the rationale. The bus already
+      // handles the public-mirror / loopback / LAN reachability decision.
+      var bus = window.__arenaTelemetry;
+      if (!bus || !bus.reachable) return; // public mirror — keep the static line
+      bus.subscribe({
+        onTelemetry: function (t) {
+          el.classList.remove('cockpit-hero__now--offline');
+          var lane = t.lane_id || 'resident brain';
+          if (t.inflight && typeof t.tok_per_s === 'number') {
+            txt.innerHTML = '<b>' + lane + '</b> streaming · ' + t.tok_per_s.toFixed(1) + ' tok/s · ' +
+              (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB' : '—');
+          } else {
+            txt.innerHTML = '<b>' + lane + '</b> resident · idle · ' +
+              (t.unified_used_gb != null ? t.unified_used_gb.toFixed(0) + ' GB used' : 'warm');
+          }
+        },
+        onError: function () {
+          el.classList.add('cockpit-hero__now--offline');
+          txt.textContent = 'resident brain idle · waiting for the sidecar';
+        },
       });
-      es.onerror = function () {
-        el.classList.add('cockpit-hero__now--offline');
-        txt.textContent = 'resident brain idle · waiting for the sidecar';
-      };
     })();
   </script>
 

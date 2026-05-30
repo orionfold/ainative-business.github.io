@@ -89,6 +89,87 @@ try {
   </head>
   <body class="arena-app__body">
     <!--
+      Shared telemetry bus — ONE EventSource to /api/telemetry/stream for the
+      whole page, fanned out to every consumer (the rail + the LiveLeaderboard /
+      LiveVsBaseline / hero islands). Before this existed each consumer opened
+      its OWN stream: the homepage held 3 and the leaderboard 2. With the
+      browser's ~6-connection-per-origin HTTP/1.1 cap and the server's ~1-2 s
+      lag to reap a navigated-away stream, rapid tab switching piled lingering
+      streams past the cap, stalling the next page's stream/fetches and flashing
+      a false "Sidecar offline". A single ref-counted, after-load connection
+      keeps every page at one telemetry socket and kills that contention.
+
+      Classic inline script (runs during parse, before any deferred island
+      module), installed UNCONDITIONALLY (islands need it even when the rail is
+      hidden). Consumers call window.__arenaTelemetry.subscribe({onTelemetry,
+      onError, onHeartbeat, onUnreachable}) → returns an unsubscribe fn.
+    -->
+    <script is:inline>
+      window.__arenaTelemetry = (function () {
+        var subs = new Set();
+        var es = null, arming = false, lastData = null;
+        var host = window.location.hostname || '';
+        var isDemo = !!window.__ARENA_DEMO__;
+        var isLoopback = host === '127.0.0.1' || host === 'localhost';
+        var isLan = /^10\.0\.0\.\d+$/.test(host);
+        var reachable = isDemo || isLoopback || isLan;
+        var base = isDemo ? window.location.origin
+                          : window.location.protocol + '//' + host + ':7866';
+
+        function fan(method, arg) {
+          subs.forEach(function (s) { try { if (s[method]) s[method](arg); } catch (e) {} });
+        }
+        function open() {
+          if (es || !reachable) return;
+          try { es = new EventSource(base + '/api/telemetry/stream'); }
+          catch (e) { fan('onError', 2); return; }
+          es.addEventListener('telemetry', function (ev) {
+            var d; try { d = JSON.parse(ev.data); } catch (e) { return; }
+            lastData = d; fan('onTelemetry', d);
+          });
+          es.addEventListener('heartbeat', function () { fan('onHeartbeat'); });
+          es.onerror = function () { fan('onError', es ? es.readyState : 2); };
+        }
+        function armOpen() {
+          // Defer past the load event: a stream opened mid-parse keeps the tab's
+          // loading spinner spinning and holds a connection during the critical
+          // asset-load window.
+          if (es || arming || !reachable) return;
+          arming = true;
+          if (document.readyState === 'complete') setTimeout(open, 0);
+          else window.addEventListener('load', function () { setTimeout(open, 0); }, { once: true });
+        }
+        // Force the socket closed when the page is navigated away (incl. into
+        // the back/forward cache). Chromium does NOT reliably drop a
+        // mid-response SSE connection on its own when the document is replaced,
+        // so the server kept holding the old subscriber — every tab switch
+        // leaked one connection until the ~6-per-origin cap stalled the next
+        // page's stream/fetches and flashed a false "Sidecar offline". pagehide
+        // guarantees a FIN so the server reaps the subscriber within ~1 s.
+        window.addEventListener('pagehide', function () {
+          if (es) { try { es.close(); } catch (e) {} es = null; arming = false; }
+        });
+        return {
+          reachable: reachable,
+          base: base,
+          subscribe: function (handler) {
+            subs.add(handler);
+            if (!reachable) {
+              try { (handler.onUnreachable || handler.onError || function () {})(2); } catch (e) {}
+              return function () { subs.delete(handler); };
+            }
+            // Replay the last payload so a late subscriber paints immediately.
+            if (lastData && handler.onTelemetry) { try { handler.onTelemetry(lastData); } catch (e) {} }
+            armOpen();
+            return function () {
+              subs.delete(handler);
+              if (subs.size === 0 && es) { try { es.close(); } catch (e) {} es = null; arming = false; }
+            };
+          }
+        };
+      })();
+    </script>
+    <!--
       Top app bar — brand · tabs · sidecar status pill.
       Sticky across scroll; backdrop-blurred when the canvas scrolls under.
     -->
@@ -143,12 +224,10 @@ try {
       <span class="arena-app__chrome-mono">ORIONFOLD&nbsp;ARENA</span>
       <span class="arena-app__chrome-sep">·</span>
       <span>operator cockpit for the DGX Spark</span>
-      <span class="arena-app__chrome-sep">·</span>
-      <span>source: <code>~/.fieldkit/arena.db</code></span>
-      <span class="arena-app__chrome-sep">·</span>
-      <span>spec: <code>specs/spark-arena-v1.md</code></span>
       <span class="arena-app__chrome-spacer"></span>
-      <a class="arena-app__chrome-link" href="/" rel="noopener">↗ ainative field notes</a>
+      <span class="arena-app__chrome-copy">© 2026 Orionfold LLC</span>
+      <span class="arena-app__chrome-spacer"></span>
+      <a class="arena-app__chrome-link" href="https://orionfold.com" rel="noopener">Made by Orionfold ↗</a>
     </footer>
 
     <!-- Global ⌘K command palette — one island for the whole app. -->
@@ -465,6 +544,7 @@ try {
       }
       .arena-app__chrome-mono { color: var(--arena-text-mute); }
       .arena-app__chrome-sep { color: var(--arena-line); }
+      .arena-app__chrome-copy { color: var(--arena-text-mute); }
       .arena-app__chrome-spacer { flex: 1; }
       .arena-app__chrome-link {
         color: var(--arena-text-mute);
