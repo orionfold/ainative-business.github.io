@@ -84,39 +84,32 @@ export default function LiveLeaderboard({ seedRows = [] }) {
 
     fetchRows(); // initial live pull replaces the SSR seed
 
-    let es;
-    try {
-      es = new EventSource(`${base}/api/telemetry/stream`);
-    } catch {
-      return () => {
-        cancelled = true;
-      };
-    }
-    es.addEventListener('telemetry', (ev) => {
-      let rev;
-      try {
-        rev = JSON.parse(ev.data).leaderboard_rev;
-      } catch {
-        return;
-      }
-      if (typeof rev !== 'number' || rev === revRef.current) return;
-      revRef.current = rev;
-      // Debounce the compare double-bump + a near-simultaneous chat-score bump
-      // into a single refetch.
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(fetchRows, 200);
-    });
-    es.onerror = () => {
-      // EventSource auto-reconnects; only flag offline on a hard close.
-      if (es.readyState === 2) setMode((m) => (m === 'live' ? 'offline' : m));
-    };
+    // Ride the shared telemetry bus (one page-wide EventSource) rather than
+    // opening a second stream to the same endpoint — the duplicate streams were
+    // a big part of the rapid-tab-switch connection-pool starvation. The bus
+    // handles after-load deferral and ref-counted close.
+    const bus = typeof window !== 'undefined' && window.__arenaTelemetry;
+    const unsubscribe = bus
+      ? bus.subscribe({
+          onTelemetry: (t) => {
+            const rev = t && t.leaderboard_rev;
+            if (typeof rev !== 'number' || rev === revRef.current) return;
+            revRef.current = rev;
+            // Debounce the compare double-bump + a near-simultaneous chat-score
+            // bump into a single refetch.
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            debounceRef.current = setTimeout(fetchRows, 200);
+          },
+          onError: (rs) => {
+            if (rs === 2) setMode((m) => (m === 'live' ? 'offline' : m));
+          },
+        })
+      : null;
 
     return () => {
       cancelled = true;
+      if (unsubscribe) unsubscribe();
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      try {
-        es && es.close();
-      } catch {}
     };
   }, []);
 

@@ -33,32 +33,23 @@ export default function LiveVsBaseline({
       setState('offline');
       return undefined;
     }
-    const base = resolveSidecarUrl();
-    if (!base) {
+    // Ride the shared telemetry bus (one page-wide EventSource) instead of
+    // opening our own — see TelemetryRail / the layout bus for the rationale.
+    const bus = typeof window !== 'undefined' && window.__arenaTelemetry;
+    if (!bus || !bus.reachable) {
       setState('offline');
       return undefined;
     }
-    let es;
-    try {
-      es = new EventSource(`${base}/api/telemetry/stream`);
-    } catch (_err) {
-      setState('offline');
-      return undefined;
-    }
-    es.addEventListener('telemetry', (ev) => {
-      try {
-        const t = JSON.parse(ev.data);
+    const unsubscribe = bus.subscribe({
+      onTelemetry: (t) => {
         setState('live');
         setInflight(Boolean(t.inflight));
         if (t.inflight && typeof t.tok_per_s === 'number') setLiveTok(t.tok_per_s);
-      } catch (_e) {
-        /* sticky on malformed payload */
-      }
+      },
+      onError: () => setState('offline'),
+      onUnreachable: () => setState('offline'),
     });
-    es.onerror = () => setState('offline');
-    return () => {
-      try { es.close(); } catch {}
-    };
+    return () => { if (unsubscribe) unsubscribe(); };
   }, []);
 
   const delta =
