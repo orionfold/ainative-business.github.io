@@ -107,6 +107,49 @@ After 3 consecutive runs with the same `<file>:<issue-id>` unfixed, `issue-histo
 
 <!-- snapshots appended below this line; newest first -->
 
+## [2026-05-29 20:37] Snapshot
+
+**Window:** 2026-05-01 → 2026-05-29 (28 days)
+**Status:** changed · 2 auto fixes applied · 0 skipped · 0 console actions surfaced
+**Summary:** Clicks 4 (↑ +3) · Impressions 357 (↑ +249) · Indexed 24 (↑ +6) · LCP 2.70s (↓ —)
+
+| KPI | Value | Δ vs prior |
+|-----|-------|------------------|
+| GSC Total clicks (28d) | 4 | ↑ +3 (better) |
+| GSC Total impressions (28d) | 357 | ↑ +249 (better) |
+| GSC Avg CTR (28d) | 1.1% | ↑ +0.2% (better) |
+| GSC Avg position | 7.80 | ↓ -1.00 (better) |
+| GSC Indexed pages | 24 | ↑ +6 (better) |
+| GSC Crawled Not Indexed | 1 | ↓ -4 (better) |
+| GSC Discovered Not Indexed | 355 | ↑ +355 (worse) |
+| GSC Redirect | 3 | → no change |
+| PSI Home mobile LCP (s) | 2.70s | ↓ — |
+| PSI Home mobile CLS | 0.00 | ↓ — |
+| PSI Home mobile Performance | 94 | ↓ — |
+| PSI Home mobile SEO | 100 | ↓ — |
+| PSI Home mobile Accessibility | 93 | ↓ — |
+| AUDIT Local audit issues | 12 | ↑ +11 (worse) |
+
+**Top movers:**
+- Query "ainative" — clicks 0→1 (↑ +1)
+- Page "https://ainative.business/" — clicks 0→2 (↑ +2)
+- Page "https://ainative.business/book/" — clicks 0→2 (↑ +2)
+
+**Applied auto fixes (2):** Sitemap filter now excludes `/field-notes/tags/` + `/field-notes/stages/` (236 thin noindex URLs) on `astro.config.mjs`; removed `noindex="follow"` from the 9 curated series pages so they're indexable + stay in the sitemap on `src/pages/field-notes/series/[series].astro`. Local audit 257 → 12 (all 245 `noindex-on-indexable` resolved).
+
+**Same-session follow-up (all done — audit 257 → 1):**
+- ✅ Resubmitted `sitemap-index.xml` via the visible Chromium — GSC confirmed "Sitemap submitted successfully" (submitted-date → 2026-05-29). NB: re-read the still-live 412-URL sitemap; the slimmed ~182 version lands after deploy.
+- ✅ Shortened 3 over-long descriptions to ≤160ch: `/` 186→150, `/about/` 205→158, `/arena/` 202→158 (`src/data/seo.ts`, `about.astro`, `arena/index.astro`).
+- ✅ Fixed the 8 artifact descriptions — turned out **template-level, not manifest**: the 280ch ones were `.slice(0,280)` in 4 detail templates (`loras/notebooks/datasets/adapters [slug]`), replaced with inline `truncateForMeta` (word-boundary ≤160); the 2 short ones were the datasets-index string (60→148) and the benches no-rows headline fallback (60→158). **Zero manifest edits — survives `fieldkit.publish` regen.**
+
+**Still pending (manual):**
+- Remove 1 unused ownership-verification token in GSC › Settings.
+- No action: `/field-notes/fine-tune-data-prep-decisions-on-spark/` title-length (67) is a known false-positive (rendered title = 63ch).
+
+**Archive:** seo/2026-05-29-2037.md · **Build:** ✓ 9.52s
+
+---
+
 ## [2026-05-19 09:00] Snapshot
 
 **Window:** 2026-04-21 → 2026-05-19 (28 days)

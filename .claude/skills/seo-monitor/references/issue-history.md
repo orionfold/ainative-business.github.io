@@ -676,3 +676,12 @@ Rows older than 6 months can be safely truncated — only the most recent occurr
 | 2026-05-16 | src/pages/docs/api/documents.mdx:418:internal-href-missing-trailing-slash | auto | stale |
 | 2026-05-16 | src/pages/docs/api/uploads.mdx:161:internal-href-missing-trailing-slash | auto | stale |
 | 2026-05-19 | /field-notes/fine-tune-data-prep-decisions-on-spark/:title-length-out-of-range | console | new (false-positive: audit counts HTML-entity-encoded chars; rendered title is 63ch) |
+| 2026-05-29 | field-notes/{tags,series,stages}/*:noindex-on-indexable-page | auto | resolved (245 pages: 236 desitemapped via astro.config.mjs filter, 9 series un-noindexed) |
+| 2026-05-29 | /:description-length-out-of-range | console | new (186ch, marketing chrome — manual rewrite) |
+| 2026-05-29 | /about/:description-length-out-of-range | console | new (205ch) |
+| 2026-05-29 | /arena/:description-length-out-of-range | console | new (202ch) |
+| 2026-05-29 | /artifacts/benches/hermes-brain-bench-v0.1/:description-length-out-of-range | console | new (60ch, generated from manifest) |
+| 2026-05-29 | /artifacts/datasets/:description-length-out-of-range | console | new (60ch, generated) |
+| 2026-05-29 | /artifacts/loras/patent-strategist-v3-nemo/:description-length-out-of-range | console | new (280ch, generated) |
+| 2026-05-29 | /artifacts/notebooks/*:description-length-out-of-range | console | new (5 notebook pages @ 280ch, generated from manifest) |
+| 2026-05-29 | /field-notes/fine-tune-data-prep-decisions-on-spark/:title-length-out-of-range | console | false-positive (3rd run: rendered title 63ch; audit counts HTML-entity chars) |

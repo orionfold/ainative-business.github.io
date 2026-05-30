@@ -54,7 +54,10 @@ export default defineConfig({
   },
   integrations: [mdx(), sitemap({
     filter: (page) =>
-      !page.includes('/confirmed') && !page.includes('/og'),
+      !page.includes('/confirmed') && !page.includes('/og') &&
+      // Thin taxonomy pages are noindex; keep them out of the sitemap too so
+      // Google doesn't surface them as "Discovered – currently not indexed".
+      !page.includes('/field-notes/tags/') && !page.includes('/field-notes/stages/'),
     // Priority + changefreq hints. Search engines treat these as signals,
     // not directives — but they influence crawl scheduling, especially for
     // sites with frequently updated editorial sections like /field-notes/.

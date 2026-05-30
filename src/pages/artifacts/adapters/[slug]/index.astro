@@ -40,7 +40,16 @@ if (article) {
 }
 
 const pageTitle = `${slug} — Adapter — ainative`;
-const pageDescription = positioning?.problem?.slice(0, 280) ?? `Adapter for ${base_model}.`;
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
+const pageDescription = positioning?.problem
+  ? truncateForMeta(positioning.problem.replace(/\s+/g, ' '))
+  : `Adapter for ${base_model}.`;
 const jsonLd = [
   { '@context': 'https://schema.org', '@type': 'Dataset', name: slug, description: pageDescription, url: `${SITE.url}/artifacts/adapters/${slug}/`, publisher: PUBLISHER, datePublished: published_at },
 ];

@@ -89,8 +89,15 @@ const resolvedSiblings: ResolvedSibling[] = (siblings ?? []).map((s) => {
 
 const pageTitle = `${slug} — LoRA fine-tune — ainative`;
 const positioningHeadline = positioning?.headline ?? `LoRA fine-tune of ${base_model}`;
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
 const pageDescription = positioning?.problem
-  ? positioning.problem.replace(/\s+/g, ' ').slice(0, 280)
+  ? truncateForMeta(positioning.problem.replace(/\s+/g, ' '))
   : `LoRA fine-tune of ${base_model}. Spark-trained, bounded drift disclosed, wire-back to field notes.`;
 
 const jsonLd = [

@@ -17,7 +17,7 @@ const countPadded = String(sorted.length).padStart(2, '0');
 const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
 
 const pageTitle = 'Datasets — Artifacts — ainative';
-const pageDescription = `Curated and synthesized training/eval datasets. ${sorted.length} published.`;
+const pageDescription = `Curated and synthesized training and evaluation datasets built on a DGX Spark — each with provenance and a wire-back to the field note. ${sorted.length} published.`;
 
 const jsonLd = [
   {

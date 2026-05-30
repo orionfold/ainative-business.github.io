@@ -85,7 +85,7 @@ const truncateForMeta = (s: string, limit = 160): string => {
 };
 const metaDescription = truncateForMeta(copy.blurb);
 ---
-<FieldNotesLayout title={`${name} — AI Native Field Notes`} description={metaDescription} noindex="follow">
+<FieldNotesLayout title={`${name} — AI Native Field Notes`} description={metaDescription}>
   <Nav />
   <main>
     <header class="stage-header">

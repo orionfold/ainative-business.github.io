@@ -55,7 +55,7 @@ const howToLoad = a.how_to_load ?? defaultHowToLoad;
 const pageTitle = `${a.slug} — Benchmarks — ainative`;
 const headline = totalRows
   ? `${a.class} benchmark: ${totalRows} rows across ${shapeCount} shapes, anchored to ${sourceCount} public source${sourceCount === 1 ? '' : 's'}.`
-  : `${a.class} benchmark, anchored to ${sourceCount} public source${sourceCount === 1 ? '' : 's'}.`;
+  : `A reproducible ${a.class} benchmark for scoring local language models on a DGX Spark — published open with provenance and a wire-back to the field note.`;
 const pageDescription = headline.slice(0, 158);
 
 const jsonLd = [

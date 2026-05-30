@@ -93,8 +93,15 @@ const resolvedSiblings = explicitSiblings.length > 0 ? explicitSiblings : fallba
 
 const pageTitle = `${slug} — Notebook — ainative`;
 const positioningHeadline = positioning?.headline ?? `Runnable notebook for ${base_model}`;
+const truncateForMeta = (s: string, limit = 160): string => {
+  if (s.length <= limit) return s;
+  let cut = s.slice(0, limit - 1).trimEnd();
+  const sp = cut.lastIndexOf(' ');
+  if (sp > 0) cut = cut.slice(0, sp).replace(/[,;:\-—]+$/, '').trimEnd();
+  return cut + '…';
+};
 const pageDescription = positioning?.problem
-  ? positioning.problem.replace(/\s+/g, ' ').slice(0, 280)
+  ? truncateForMeta(positioning.problem.replace(/\s+/g, ' '))
   : `Builder + user notebook for ${base_model}. Runs on Spark or on free Colab/Kaggle GPU.`;
 
 const jsonLd = [
