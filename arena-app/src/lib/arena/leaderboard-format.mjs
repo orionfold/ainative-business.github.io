@@ -7,11 +7,27 @@ export const fmtTok = (n) => (n == null ? '—' : Number(n).toFixed(1));
 export const fmtTtft = (n) => (n == null ? '—' : `${Number(n).toFixed(0)} ms`);
 export const fmtPref = (n) => (n == null ? '—' : `${(n * 100).toFixed(0)}%`);
 
-export const laneLabel = (id) => String(id || '').replace(/::[a-z0-9-]+$/, '');
+// Lanes can carry a `local:` serving-prefix on some chat rows but not others —
+// strip it so the model name reads identically everywhere.
+const stripLanePrefix = (id) => String(id || '').replace(/^local:/, '');
+// Trailing `::token`. Two shapes share this slot: the live table's uppercase
+// quant tag (Q4_K_M, Q8_0, F16) and the bench table's kebab manifest slug
+// (…::hermes-vertical-router-on-spark). One class — uppercase, digits, `_`,
+// `-` — covers both. Cloud lanes (`openrouter::owner/model`) have `/` after the
+// `::` so they never match this end-anchored class and are left intact.
+const TAIL_SUFFIX = /::([A-Za-z0-9_-]+)$/;
+export const laneLabel = (id) => stripLanePrefix(id).replace(TAIL_SUFFIX, '');
 export const laneSuffix = (id) => {
-  const m = String(id || '').match(/::([a-z0-9-]+)$/);
+  const m = stripLanePrefix(id).match(TAIL_SUFFIX);
   return m ? m[1] : '';
 };
+// Where the lane ran — cloud (OpenRouter) vs local (DGX Spark). Rendered as a
+// badge instead of an `openrouter::` prefix / no marker at all. Reads the RAW id.
+export const laneSource = (id) => (/^openrouter/.test(String(id || '')) ? 'openrouter' : 'spark');
+// Model name for the source-badged live table — drops the cloud prefix since
+// the badge carries that signal: `openrouter::owner/model` → `owner/model`,
+// `openrouter-frontier` → `frontier`. The bench table keeps prefix-aware laneLabel.
+export const laneModel = (id) => laneLabel(id).replace(/^openrouter(::|-)/, '');
 export const benchLabel = (id) => String(id || '').replace(/^cockpit:/, '');
 
 export const scoreColor = (s) => {
