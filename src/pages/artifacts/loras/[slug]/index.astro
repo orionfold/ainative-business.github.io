@@ -42,9 +42,18 @@ const {
   known_drift,
   siblings,
   notebooks,
+  how_to_load,
 } = artifact.data;
 
 const hfUrl = hf_repo.includes('://') ? hf_repo : `https://huggingface.co/${hf_repo}`;
+// These repos ship MERGED BF16 weights (not unmerged adapter shards), so the
+// correct default is a direct AutoModelForCausalLM load — a PEFT load would
+// fail looking for adapter_config.json. Manifests can override via how_to_load.
+const defaultHowToLoad = `from transformers import AutoModelForCausalLM, AutoTokenizer
+
+model = AutoModelForCausalLM.from_pretrained("${hf_repo}", torch_dtype="bfloat16", device_map="auto")
+tok = AutoTokenizer.from_pretrained("${hf_repo}")`;
+const howToLoad = how_to_load ?? defaultHowToLoad;
 const baseModelHref =
   /^[^/\s]+\/[^/\s]+$/.test(base_model) ? `https://huggingface.co/${base_model}` : null;
 const publishedDate = published_at
@@ -217,14 +226,9 @@ const jsonLd = [
     <section class="lora-detail__section">
       <h2 class="lora-detail__h2">How to use</h2>
       <p class="lora-detail__h2-blurb">
-        Load via Transformers + PEFT, or via the linked HF repo for inference snippets.
+        Load with Transformers, or see the linked HF repo for full inference snippets.
       </p>
-      <pre class="lora-detail__code"><code>{`from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel
-
-base = AutoModelForCausalLM.from_pretrained("${base_model}", torch_dtype="bfloat16", device_map="auto")
-tok = AutoTokenizer.from_pretrained("${base_model}")
-model = PeftModel.from_pretrained(base, "${hf_repo}")`}</code></pre>
+      <pre class="lora-detail__code"><code>{howToLoad}</code></pre>
       <p class="lora-detail__h2-after">
         Full inference walkthrough on <a class="lora-detail__inline-link" href={hfUrl} target="_blank" rel="noopener noreferrer">the HuggingFace model card</a>.
       </p>
