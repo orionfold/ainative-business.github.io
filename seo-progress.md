@@ -142,8 +142,8 @@ After 3 consecutive runs with the same `<file>:<issue-id>` unfixed, `issue-histo
 - ✅ Shortened 3 over-long descriptions to ≤160ch: `/` 186→150, `/about/` 205→158, `/arena/` 202→158 (`src/data/seo.ts`, `about.astro`, `arena/index.astro`).
 - ✅ Fixed the 8 artifact descriptions — turned out **template-level, not manifest**: the 280ch ones were `.slice(0,280)` in 4 detail templates (`loras/notebooks/datasets/adapters [slug]`), replaced with inline `truncateForMeta` (word-boundary ≤160); the 2 short ones were the datasets-index string (60→148) and the benches no-rows headline fallback (60→158). **Zero manifest edits — survives `fieldkit.publish` regen.**
 
-**Still pending (manual):**
-- Remove 1 unused ownership-verification token in GSC › Settings.
+**Resolved / no-action:**
+- 🛑 **HOLD — do NOT remove the GSC "unused" verification token.** Investigated 2026-05-30 (drove GSC + iwantmyname via the visible Chromium, queried live DNS). The flagged token is `google-site-verification=fePoYwMXn0py3dKuRw_z37f4FZJPSMCQU3BzQtpDEUU`, **owned by `manav@ainative.business` (Google Workspace)**; domain email runs on Workspace (`MX = smtp.google.com`). The active SC verification uses a *different* TXT (`google-site-verification=8fWV3_z0g21Pf5_VBBMWUovGA3grmmQOg_QfjZ2rsGA`). GSC calls fePoYwMXn "unused" only from Search Console's POV — it's almost certainly the **Workspace** domain-verification record, so deleting its DNS TXT risks un-verifying Workspace / email disruption. Decision: leave both TXT records in place; the GSC recommendation nag is cosmetic. Only remove if Workspace Admin confirms re-verification via a different method first.
 - No action: `/field-notes/fine-tune-data-prep-decisions-on-spark/` title-length (67) is a known false-positive (rendered title = 63ch).
 
 **Archive:** seo/2026-05-29-2037.md · **Build:** ✓ 9.52s
