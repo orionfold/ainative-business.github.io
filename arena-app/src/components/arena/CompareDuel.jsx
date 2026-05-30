@@ -917,9 +917,15 @@ function WinnerBanner({ a, b, evalMode }) {
   );
 }
 
-// Head-to-head deltas — diverging bars: fill leans toward the better lane.
-// Quality + speed: higher is better → A-better leans right (green). TTFT +
-// (optionally) tokens: lower is better → invert so the faster lane leans right.
+// Head-to-head — paired magnitude bars from a common left baseline. Each lane
+// gets its own bar sized to the REAL value (longer = larger number), scaled to
+// the row's max so the two are directly comparable; the winner (honouring
+// lower-is-better for TTFT) is marked with a ✓ and full opacity, the loser
+// dimmed. This reads literally ("B's tok/s bar is ~4× A's") — unlike the old
+// centre-diverging bars whose length was a normalised margin, not the value.
+const DELTA_A = '#76b900';
+const DELTA_B = '#5b9cff';
+
 function DeltaStrip({ a, b, evalMode }) {
   const qualityA = evalMode ? a.evalScore?.normalized : a.score?.total;
   const qualityB = evalMode ? b.evalScore?.normalized : b.score?.total;
@@ -930,30 +936,43 @@ function DeltaStrip({ a, b, evalMode }) {
     { label: 'Tokens', av: a.tokens_out, bv: b.tokens_out, lowerBetter: false, fmt: (v) => v.toLocaleString() },
   ].filter((r) => typeof r.av === 'number' && typeof r.bv === 'number');
 
+  // One tight row per metric: label · two thin stacked bars (A over B, each
+  // sized to the real value vs the row max) · both values with the winner
+  // bolded + ✓. Four metrics fit in ~80px — far denser than a bar-per-line.
+  const thin = (val, color, wins, tie, max) => {
+    const w = Math.max((Math.abs(val) / max) * 100, 3);
+    return (
+      <span style="display:block; height:5px; border-radius:3px; background:rgba(127,127,127,0.16); overflow:hidden;">
+        <span style={`display:block; height:100%; width:${w}%; background:${color}; opacity:${wins || tie ? 1 : 0.5}; border-radius:3px;`} />
+      </span>
+    );
+  };
+
   return (
     <div class="compare-delta">
-      <span class="compare-delta__head">Head to head</span>
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px;">
+        <span class="compare-delta__head">Head to head</span>
+        <span style="font-size:0.62rem; opacity:0.6; white-space:nowrap;">
+          <span style={`color:${DELTA_A};font-weight:700`}>A</span>{' '}
+          <span style={`color:${DELTA_B};font-weight:700`}>B</span> · bar = value · ✓ winner
+        </span>
+      </div>
       {rows.map((r) => {
         const max = Math.max(Math.abs(r.av), Math.abs(r.bv), 1e-9);
-        // Positive ⇒ A is better. Flip sign when lower-is-better.
-        const raw = (r.av - r.bv) / max;
-        const signed = r.lowerBetter ? -raw : raw;
-        const pct = Math.max(-1, Math.min(1, signed)) * 50; // ±50% of the track
-        const aBetter = signed >= 0;
+        const tie = r.av === r.bv;
+        const aWins = !tie && (r.lowerBetter ? r.av < r.bv : r.av > r.bv);
+        const bWins = !tie && !aWins;
         return (
-          <div class="compare-delta__row">
-            <span class="compare-delta__label">{r.label}</span>
-            <span class="compare-delta__vals">
-              <span style="color:#76b900">{r.fmt(r.av)}</span>
-              <span class="dim"> · </span>
-              <span style="color:#5b9cff">{r.fmt(r.bv)}</span>
+          <div style="display:grid; grid-template-columns:52px 1fr auto; gap:9px; align-items:center; padding:2.5px 0;">
+            <span style="font-size:0.66rem; opacity:0.72; text-transform:uppercase; letter-spacing:0.03em;" title={r.lowerBetter ? 'lower is better' : 'higher is better'}>{r.label}</span>
+            <span style="display:flex; flex-direction:column; gap:2px; min-width:0;">
+              {thin(r.av, DELTA_A, aWins, tie, max)}
+              {thin(r.bv, DELTA_B, bWins, tie, max)}
             </span>
-            <span class="compare-delta__track">
-              <span class="compare-delta__center" />
-              <span
-                class="compare-delta__bar"
-                style={`${aBetter ? 'left:50%' : `right:50%`}; width:${Math.abs(pct)}%; background:${aBetter ? '#76b900' : '#5b9cff'};`}
-              />
+            <span style="font-variant-numeric:tabular-nums; font-size:0.72rem; white-space:nowrap;">
+              <span style={`color:${DELTA_A}; font-weight:${aWins ? 700 : 400}`}>{r.fmt(r.av)}{aWins ? '✓' : ''}</span>
+              <span style="opacity:0.4"> · </span>
+              <span style={`color:${DELTA_B}; font-weight:${bWins ? 700 : 400}`}>{r.fmt(r.bv)}{bWins ? '✓' : ''}</span>
             </span>
           </div>
         );
@@ -975,16 +994,26 @@ function SideCard({ side, accent, state, streaming, title, needsLoad, onLoad }) 
       } ${state.state === 'error' ? 'compare-side--error' : ''}`}
       style={`--side-accent: ${accent};`}
     >
-      <header class="compare-side__head">
+      <header class="compare-side__head" style="display:flex; align-items:center; gap:0.5rem;">
         <span class="compare-side__tag">{side}</span>
         <span class="compare-side__title">{title}</span>
+        {(state.lane_id || state.base_url) && (() => {
+          const isOR = String(state.lane_id || '').startsWith('openrouter')
+            || /openrouter\.ai/.test(state.base_url || '');
+          const c = isOR ? '#5b9cff' : '#76b900';
+          return (
+            <span
+              title={isOR ? 'Runs in the cloud via OpenRouter' : 'Runs locally on the DGX Spark'}
+              style={`margin-left:auto; flex:none; font-size:0.58rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:2px 8px; border-radius:999px; color:${c}; background:${c}1f; border:1px solid ${c}66;`}
+            >
+              {isOR ? 'OpenRouter' : 'Spark GPU'}
+            </span>
+          );
+        })()}
       </header>
-      {state.model && (
+      {state.no_key && (
         <div class="compare-side__meta">
-          <code>{state.model}</code>
-          {state.no_key && (
-            <span class="compare-side__warn">no OPENROUTER_API_KEY</span>
-          )}
+          <span class="compare-side__warn">no OPENROUTER_API_KEY</span>
         </div>
       )}
       {state.reasoning && state.reasoning.length > 0 && (

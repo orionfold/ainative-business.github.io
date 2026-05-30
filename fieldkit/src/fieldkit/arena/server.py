@@ -260,7 +260,7 @@ class TelemetryHub:
         inflight: bool,
         tok_per_s: float | None = _KEEP_SPEEDS,
         ttft_ms: float | None = _KEEP_SPEEDS,
-        lane_id: str | None = None,
+        lane_id: Any = _KEEP_SPEEDS,
     ) -> None:
         """M4+ stream callers ping this to tag the active lane + speeds.
 
@@ -271,13 +271,18 @@ class TelemetryHub:
         clobber the speeds. Omit ``tok_per_s``/``ttft_ms`` (they default to the
         keep-sentinel and are preserved); pass ``None`` explicitly only when you
         genuinely want to clear them.
+
+        ``lane_id`` is sticky the same way — the rail keeps labelling the last
+        model + where it ran (Spark vs OpenRouter) at idle, so the throughput /
+        TTFT figures always carry their source. Omit it to preserve the label;
+        pass ``None`` explicitly only to genuinely clear the active-lane tag.
         """
         prev = self._last_inflight
         self._last_inflight = {
             "inflight": bool(inflight),
             "tok_per_s": prev["tok_per_s"] if tok_per_s is _KEEP_SPEEDS else tok_per_s,
             "ttft_ms": prev["ttft_ms"] if ttft_ms is _KEEP_SPEEDS else ttft_ms,
-            "lane_id": lane_id,
+            "lane_id": prev["lane_id"] if lane_id is _KEEP_SPEEDS else lane_id,
         }
 
     def add_openrouter_cost(self, usd: float) -> None:
@@ -356,6 +361,40 @@ class TelemetryHub:
         self._resident_cache_v = val
         return val
 
+    def _speed_label(self, lane_id: str | None) -> tuple[str | None, str | None]:
+        """``lane_id`` → (friendly model name, where it runs).
+
+        ``where`` is ``"spark"`` for any local lane (the on-demand quant slot or
+        the warm resident brain) and ``"openrouter"`` for a cloud lane, so the
+        rail can print the throughput/TTFT source as ``<model>`` + ``Spark GPU``
+        / ``OpenRouter`` two-liner. Returns ``(None, None)`` before the first
+        generation (no lane to label)."""
+        if not lane_id:
+            return None, None
+        lid = str(lane_id)
+        # Cloud lane — "openrouter::<provider/model>" (built in the lane factory)
+        # or the "openrouter:<id>" picker form. Strip either, drop the provider
+        # prefix for brevity (nvidia/nemotron-nano-9b-v2 → nemotron-nano-9b-v2).
+        if lid.startswith("openrouter:"):
+            mid = lid[len("openrouter:") :].lstrip(":")
+            model = mid.split("/", 1)[1] if "/" in mid else mid
+            return model, "openrouter"
+        # The always-warm resident brain (row id varies — "resident-brain",
+        # "local:resident", …); label it with the configured resident model.
+        if "resident" in lid:
+            return (self._resident_model() or "resident brain"), "spark"
+        # On-demand local quant — bare "<slug>::<variant>" (the compare lane_id)
+        # or a "local:" picker-prefixed form. Strip "-gguf", pretty the variant.
+        spec = lid[len("local:") :] if lid.startswith("local:") else lid
+        if "::" in spec:
+            slug, _, variant = spec.partition("::")
+            if slug.endswith("-gguf"):
+                slug = slug[: -len("-gguf")]
+            model = f"{slug} · {variant}" if variant else slug
+            return model, "spark"
+        # Any other bare local row id → still a Spark lane.
+        return (self._resident_model() or spec), "spark"
+
     def _build_payload(self) -> dict[str, Any]:
         sample: dict[str, float] = {}
         if self._telemetry is not None and self._telemetry.samples:
@@ -374,6 +413,17 @@ class TelemetryHub:
             "tok_per_s": self._last_inflight["tok_per_s"],
             "ttft_ms": self._last_inflight["ttft_ms"],
             "lane_id": self._last_inflight["lane_id"],
+            # Source of the sticky tok/s + TTFT above: the model that produced
+            # them + where it ran (Spark vs OpenRouter). After a compare this
+            # is reconciled to the local/Spark side; in chat it's the lane you
+            # ran. Lets the rail print a "<model> / <where>" two-liner so the
+            # throughput/TTFT figures are never ambiguous about their origin.
+            **dict(
+                zip(
+                    ("speed_model", "speed_where"),
+                    self._speed_label(self._last_inflight["lane_id"]),
+                )
+            ),
             "resident_lane": self._resident_model(),
             "openrouter_cost_usd": round(self._openrouter_cost_usd, 6),
             "openrouter_calls": self._openrouter_calls,
@@ -1969,8 +2019,10 @@ async def chat_event_stream(
         store.close()
         # Last-line guard: idle ticks read the in-flight defaults, so
         # always reset to "no in-flight stream" when this generator
-        # exits (success, disconnect, or error).
-        hub.report_inflight(inflight=False, lane_id=None)
+        # exits (success, disconnect, or error). Keep the lane label +
+        # final speeds sticky (omit lane_id) so the rail shows the model
+        # you just ran + where it ran, with its completion-final tok/s.
+        hub.report_inflight(inflight=False)
 
 
 # ---------------------------------------------------------------------------
@@ -3212,10 +3264,35 @@ async def compare_event_stream(
         }
         if eval_payload is not None:
             score_event["eval"] = eval_payload
+
+        # Reconcile the top instrument rail to this duel's *resting* state.
+        # The rail's tok/s + TTFT are sticky to the last ping, which during a
+        # local-vs-cloud duel is the cloud side (B streams last) — and that
+        # last ping was a mid-stream 16-token estimate, not the final figure
+        # the per-side card shows. Two fixes in one push: (1) prefer the LOCAL
+        # (Spark) side so the cockpit headlines the Spark lane, falling back to
+        # B when neither side is local; (2) report that side's FINAL tok/s +
+        # TTFT (the exact numbers in its card) so the rail and the compare view
+        # agree no matter where the operator looks.
+        if lane_a["kind"] != "openrouter":
+            rest_id, rest = lane_a_id, a_done
+        elif lane_b["kind"] != "openrouter":
+            rest_id, rest = lane_b_id, b_done
+        else:
+            rest_id, rest = lane_b_id, b_done
+        hub.report_inflight(
+            inflight=False,
+            tok_per_s=rest.get("tok_per_s"),
+            ttft_ms=rest.get("ttft_ms"),
+            lane_id=rest_id,
+        )
+
         yield {"event": "score", "data": json.dumps(score_event)}
     finally:
         store.close()
-        hub.report_inflight(inflight=False, lane_id=None)
+        # Flip to idle but KEEP the reconciled speeds + lane label so the rail
+        # keeps showing "<model> / <where>" at rest (omit lane_id → sticky).
+        hub.report_inflight(inflight=False)
 
 
 # ---------------------------------------------------------------------------
