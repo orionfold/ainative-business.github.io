@@ -37,12 +37,31 @@ function discoverFieldNoteSlugs(): string[] {
     .sort();
 }
 
+// Discover product-launch articles by reading the products/ directory. Each
+// product gets a per-slug OG image rendered from /og/products/<slug>/ and saved
+// to /public/og/products/<slug>.png so the flagship product pages surface a
+// branded, build-metric social card instead of the generic site OG.
+function discoverProductSlugs(): string[] {
+  const productsDir = path.join(ROOT, 'products');
+  if (!fs.existsSync(productsDir)) return [];
+  return fs
+    .readdirSync(productsDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .filter((d) => fs.existsSync(path.join(productsDir, d.name, 'product.md')))
+    .map((d) => d.name)
+    .sort();
+}
+
 function buildTargets(): { route: string; outName: string }[] {
   const articleTargets = discoverFieldNoteSlugs().map((slug) => ({
     route: `/og/field-notes/${slug}/`,
     outName: `og/field-notes/${slug}.png`,
   }));
-  return [...STATIC_TARGETS, ...articleTargets];
+  const productTargets = discoverProductSlugs().map((slug) => ({
+    route: `/og/products/${slug}/`,
+    outName: `og/products/${slug}.png`,
+  }));
+  return [...STATIC_TARGETS, ...articleTargets, ...productTargets];
 }
 
 const MIME: Record<string, string> = {
@@ -145,7 +164,9 @@ async function main() {
     await page.setViewport({ width: 1200, height: 630, deviceScaleFactor: 1 });
 
     const targets = buildTargets();
-    console.log(`[og] Rendering ${targets.length} OG images (${STATIC_TARGETS.length} static + ${targets.length - STATIC_TARGETS.length} field-notes)`);
+    const productCount = discoverProductSlugs().length;
+    const fieldNoteCount = targets.length - STATIC_TARGETS.length - productCount;
+    console.log(`[og] Rendering ${targets.length} OG images (${STATIC_TARGETS.length} static + ${fieldNoteCount} field-notes + ${productCount} products)`);
 
     for (const { route, outName } of targets) {
       const url = `http://127.0.0.1:${port}${route}`;

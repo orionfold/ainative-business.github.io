@@ -17,7 +17,10 @@ const d = entry.data;
 
 const dateIso = d.date.toISOString().slice(0, 10);
 const productUrl = `${SITE.url}/products/${entry.id}/`;
-const ogImage = SITE.ogImage; // TODO: per-product OG image (see HANDOFF carry-forward)
+// Per-product OG card rendered by scripts/generate-og-images.ts (build:og, CI-only)
+// from /og/products/<slug>/ → /og/products/<slug>.png. In local dev where build:og
+// hasn't run, the file 404s and socials fall back to the site default — acceptable.
+const ogImage = `/og/products/${entry.id}.png`;
 const ogImageAlt = `${d.product_name} — ${d.tagline}`;
 
 const SUFFIX = ' — ainative';
