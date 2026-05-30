@@ -1,8 +1,15 @@
-# Default policy — open crawl, except internal renderers and post-checkout pages.
+# Default policy — open crawl, except internal renderers, post-checkout pages,
+# and thin taxonomy archives. The /field-notes/tags/ and /stages/ archives are
+# auto-generated, near-duplicate, low-value pages; blocking them keeps Google
+# from queuing ~236 thin URLs as "Discovered – currently not indexed" and
+# refocuses crawl budget on real articles, the book, and the docs. They are
+# already excluded from the sitemap (see astro.config.mjs).
 User-agent: *
 Allow: /
 Disallow: /confirmed/
 Disallow: /og/
+Disallow: /field-notes/tags/
+Disallow: /field-notes/stages/
 
 # Explicit allow-list for major answer-engine crawlers. These bots already
 # respect User-agent: * but listing them explicitly makes intent unambiguous

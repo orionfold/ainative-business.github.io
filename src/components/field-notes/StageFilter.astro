@@ -29,6 +29,7 @@ const STAGE_LABELS: Record<string, string> = {
     <a
       class="stage-filter__chip"
       href={`/field-notes/stages/${stage}/`}
+      rel="nofollow"
       aria-current={current === stage ? 'page' : undefined}
     >{STAGE_LABELS[stage]}</a>
   ))}

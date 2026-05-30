@@ -149,7 +149,7 @@ const articleHref = (slug: string) => `/field-notes/${slug}/`;
         );
         return empty
           ? <span class={cls}>{inner}</span>
-          : <a class={cls} href={`/field-notes/stages/${key}/`}>{inner}</a>;
+          : <a class={cls} href={`/field-notes/stages/${key}/`} rel="nofollow">{inner}</a>;
       })}
     </div>
   </div>

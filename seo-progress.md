@@ -107,6 +107,42 @@ After 3 consecutive runs with the same `<file>:<issue-id>` unfixed, `issue-histo
 
 <!-- snapshots appended below this line; newest first -->
 
+## [2026-05-30 10:21] Investigation + fix — the 355 "Discovered – currently not indexed"
+
+- **Status**: changed (root-caused via live GSC drilldown; 3 code fixes applied)
+- **Trigger**: GSC flagged **355 pages "Discovered – currently not indexed"**, coinciding with the 2026-05-29 monorepo consolidation (`2299d22`) + Orionfold rebrand (`35edf1f`) deploy.
+- **Archive**: `./seo/2026-05-30-1021.md` (full URL breakdown + diagnostic)
+
+#### Root cause (confirmed by enumerating all 355 URLs from GSC)
+The 355 split **213 thin taxonomy + 142 real content**:
+
+| Bucket | Count | Nature |
+|--------|-------|--------|
+| `/field-notes/tags/` + `/stages/` | 213 | Auto-generated thin archives (239 tags for 62 articles, 68% singletons). Benign. |
+| Real content (field-notes 56, docs/api 40, artifacts 18, book 12, fieldkit 11, misc 5) | 142 | Technically perfect — 200, `noindex=0`, correct self-canonical, well-linked. Stuck on **crawl priority**, not a defect. |
+
+The consolidation dumped ~190 new URLs on a young, low-authority domain at once. Google discovered everything via the sitemap but deferred crawling the low-value/low-priority pages. The 213 thin pages were eating crawl budget that the 142 real pages needed. (Redirect-explosion and Orionfold-JSON-LD theories ruled out — the 62 `/articles/→/field-notes/` 301s land in "Page with redirect", and branding doesn't create discovered-not-indexed.)
+
+#### Code fixes applied (auto)
+| # | File | Fix |
+|---|------|-----|
+| 1 | `public/robots.txt` | `Disallow: /field-notes/tags/` + `/stages/` — stops Google queuing the 213 thin URLs; they drain to the benign "Blocked by robots.txt" bucket, refocusing crawl budget on real content. |
+| 2 | `src/pages/field-notes/[slug]/index.astro`, `components/field-notes/StageFilter.astro`, `ProjectStats.astro` | `rel="nofollow"` on tag/stage links — prevents URL-only indexing of now-robots-blocked pages. |
+| 3 | `astro.config.mjs` | Per-article `<lastmod>` in the sitemap (62 real frontmatter dates, varied 2026-03-01→05-29 — NOT a uniform build stamp Google would distrust) — gives the stuck field-notes URLs a freshness signal to lift crawl priority. |
+
+Verified: build green (484 pages), `dist/sitemap-0.xml` = 183 clean canonicals, 0 tags/stages, 62 lastmod entries; `dist/robots.txt` carries both Disallow lines.
+
+#### Console actions for the user (manual in GSC — skill never auto-clicks)
+- [ ] **Sitemaps** → resubmit `sitemap-index.xml` (signals the cleaned URL set + new lastmods)
+- [ ] **URL Inspection → Request indexing** for top real pages: `/field-notes/`, `/docs/`, `/book/`, `/artifacts/`, and 3-5 flagship articles (e.g. `/field-notes/kv-cache-arithmetic-at-inference/`, `/field-notes/nim-first-inference-dgx-spark/`)
+- [ ] **"Discovered – currently not indexed" report → Validate Fix** so Google reprocesses the bucket
+- [ ] Re-run `/seo-monitor` in ~1–2 weeks; expect taxonomy → "Blocked by robots.txt" and real-content "Indexed" to climb (baseline trend already +: 12→18→24)
+
+#### Deferred follow-up
+- Tag curation: 239 tags → ~20 controlled vocabulary (now SEO-neutral since tag pages are robots-blocked; reader-hygiene only).
+
+---
+
 ## [2026-05-29 20:37] Snapshot
 
 **Window:** 2026-05-01 → 2026-05-29 (28 days)

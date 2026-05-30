@@ -2,7 +2,7 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-import { readdirSync, existsSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import remarkDirective from 'remark-directive';
@@ -24,6 +24,28 @@ const articleSlugRedirects = Object.fromEntries(
       existsSync(join(articlesDir, d.name, 'article.mdx'))
     )
     .map((d) => [`/articles/${d.name}/`, `/field-notes/${d.name}/`]),
+);
+
+// Per-article <lastmod> for the sitemap, parsed from each article's frontmatter
+// `date:`. A real, varied freshness signal (NOT a uniform build-date, which
+// Google distrusts and ignores) helps the crawler prioritize the field-notes
+// URLs that the 2026-05-29 consolidation left stuck in "Discovered – currently
+// not indexed". Keyed by the canonical /field-notes/<slug>/ URL.
+const articleLastmod = Object.fromEntries(
+  readdirSync(articlesDir, { withFileTypes: true })
+    .filter((d) => d.isDirectory())
+    .map((d) => {
+      const file = ['article.md', 'article.mdx']
+        .map((f) => join(articlesDir, d.name, f))
+        .find((p) => existsSync(p));
+      if (!file) return null;
+      const fm = readFileSync(file, 'utf8').match(/^---\r?\n([\s\S]*?)\r?\n---/);
+      const m = fm && fm[1].match(/^date:\s*['"]?(\d{4}-\d{2}-\d{2})/m);
+      if (!m) return null;
+      const iso = new Date(`${m[1]}T00:00:00Z`).toISOString();
+      return [`https://ainative.business/field-notes/${d.name}/`, iso];
+    })
+    .filter(Boolean),
 );
 
 export default defineConfig({
@@ -63,6 +85,11 @@ export default defineConfig({
     // sites with frequently updated editorial sections like /field-notes/.
     serialize(item) {
       const url = item.url;
+      // Attach a real per-article lastmod where we have one (field-notes).
+      // Other sections omit lastmod rather than emit a faked uniform date.
+      if (articleLastmod[url]) {
+        item = { ...item, lastmod: articleLastmod[url] };
+      }
       if (url === 'https://ainative.business/') {
         return { ...item, changefreq: 'weekly', priority: 1.0 };
       }

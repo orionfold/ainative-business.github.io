@@ -147,7 +147,7 @@ const jsonLd = [
         )}
         <div class="article__meta">
           <span>{ordinalLabel}</span>
-          <a class="article__meta-link" href={`/field-notes/stages/${stage}/`}>{stage}</a>
+          <a class="article__meta-link" href={`/field-notes/stages/${stage}/`} rel="nofollow">{stage}</a>
           {product && <span>{product}</span>}
           <time datetime={dateIso}>{isUpcoming ? `planned · ${dateFmt}` : dateFmt}</time>
           {time_required && <span>{time_required}</span>}
@@ -160,7 +160,7 @@ const jsonLd = [
           <ul class="article__tags" aria-label="Tags">
             {tags.map((tag) => (
               <li>
-                <a class="article__tag" href={`/field-notes/tags/${tag}/`}>#{tag}</a>
+                <a class="article__tag" href={`/field-notes/tags/${tag}/`} rel="nofollow">#{tag}</a>
               </li>
             ))}
           </ul>
