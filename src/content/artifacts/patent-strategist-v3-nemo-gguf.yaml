@@ -25,6 +25,12 @@ license:
 article: articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/
 published_at: "2026-05-22T01:26:26Z"
 stack_origin: nemo
+lane_summary: >-
+  Offline inference of the NeMo-trained model on llama.cpp / Ollama — four quants
+  from Q4_K_M (fastest at 39.6 tok/s on Spark) up to Q8_0 (lowest perplexity,
+  9.93). Q5_K_M is the recommended balance of speed and fidelity. Reach for the
+  BF16 LoRA sibling when you want the full-precision weights for transformers /
+  vLLM GPU inference.
 positioning:
   headline: Offline patent-prosecution reasoning on Spark-class hardware
   problem: >-
@@ -48,3 +54,7 @@ known_drift:
     bound: Two known terminology drifts inherited from the v3 synthetic corpus; balance of probe answers (~99%) cite real MPEP sections.
   - item: Fabricated MPEP §2163.05(s) citation
     bound: Same scope as above — corpus-generator artifact, not a model-wide hallucination pattern. Real §2163.05 has subsections (a)–(f) on written-description support.
+siblings:
+  - slug: patent-strategist-v3-nemo
+    hf_repo: Orionfold/patent-strategist-v3-nemo
+    hook: Full-precision BF16 weights of the same NeMo fine-tune for transformers / vLLM GPU inference.
