@@ -33,3 +33,41 @@ license:
   tier: free
 article: articles/becoming-a-gguf-publisher-on-spark/
 published_at: "2026-05-14T03:32:50Z"
+positioning:
+  headline: A finance-specialized 7B chat model, quantized to run offline on a 4 GB consumer GPU
+  problem: >-
+    AdaptLLM's finance-chat is a 13.5 GB Llama-2-7B continued-pretrain that needs
+    a 24 GB-VRAM card to load — out of reach for the 4–8 GB consumer GPUs most
+    people own. This release repackages it as five GGUF variants (Q4_K_M at 3.8 GB
+    and 31 tok/s up to a lossless Q8_0) so the model runs offline on consumer
+    hardware, each variant carrying a four-axis Spark-measured card: wikitext-2
+    perplexity, sustained tok/s, thermal-envelope minutes, and an open-book
+    FinanceBench score. Orionfold's contribution is the distribution +
+    measurement layer — AdaptLLM did the domain pre-training (ICLR 2024).
+  use_cases:
+    - Offline finance-domain chat and 10-K Q&A on consumer hardware
+    - A worked reference for GGUF quantization fidelity (Q8_0 perplexity-matches F16 losslessly)
+    - Picking a quant variant by workload shape, not just RAM budget
+  audience: >-
+    Local-LLM power users who want an offline finance chat model on a 4–8 GB
+    consumer GPU, and publishers studying how to measure quantization fidelity
+    with a four-axis card on Spark-class hardware.
+known_drift:
+  - item: FinanceBench accuracy ceiling (7B base, not a quant defect)
+    bound: >-
+      Open-book FinanceBench (n=50, numeric_match) lands 14–18% across all five
+      variants — a reasoning ceiling inherited from the Llama-2-Chat base, not a
+      quantization failure. Fine for finance chat; not for high-stakes
+      quantitative tasks, where a larger base is the only path up.
+  - item: Q8_0 sustained-throughput anomaly
+    bound: >-
+      Q8_0 generates at 8.9 tok/s — ~23% below F16's 11.5 and slower than every
+      K-quant — likely a thermal/run-order or GB10 Q8_0-kernel effect. Perplexity
+      favors Q8_0 (matches F16 to 4 decimals) but Q6_K is the safer pick for
+      throughput-sensitive workloads; verify on your own hardware.
+  - item: No modern chat_template in the tokenizer config
+    bound: >-
+      1 usage gotcha inherited from the upstream Llama-2-era base: the tokenizer
+      ships no chat_template field, so apply_chat_template won't format prompts —
+      wrap manually in the [INST] … [/INST] shape (llama-server, LM Studio, and
+      Ollama handle this automatically).
