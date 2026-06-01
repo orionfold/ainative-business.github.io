@@ -19,10 +19,10 @@
 
 **Recently shipped (all live):** patent-strategist `lane_summary`+`siblings` (`9df9438`); positioning+`known_drift` backfill on the 4 older vertical quants (`ddfa492`); per-product OG card for `/products/` (`0cb175d`); Arena marketing refresh — demo bundle + launch article + landing (`0bf2ec7`); Orionfold LLC brand pass + go-live (deploy `26664480875`). Arena cockpit/leaderboard/telemetry work is committed on `origin/main` (arena-app only).
 
-## ⚙️ Live runtime (throwaway — kill when done)
+## ⚙️ Live runtime
 
 - **Arena cockpit** `fieldkit arena up` from venv `/tmp/arena-venv` → http://127.0.0.1:7866/arena/ (loopback; bind `0.0.0.0` for LAN). Log `/tmp/arena-cockpit.log`, db `~/.fieldkit/arena.db`, OpenRouter key sourced from `.env.local` (re-source if restarted). Recycle with `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart [--browser]`. Left up per operator request — do NOT relaunch unless dead. Find: `pgrep -af 'fieldkit arena up'`.
-- **Static dist server + visible Chromium** (stood up 2026-05-31 to show the operator the quant pages): `python3 -m http.server 8099 --bind 127.0.0.1` (cwd `dist/`) + Chromium on `DISPLAY=:1` CDP **:9222**, profile `/tmp/arena-chrome-profile`, parked on `http://127.0.0.1:8099/artifacts/quants/`. Drive via `node` + **`puppeteer-core`** (NOT playwright-core — not installed), `puppeteer.connect({browserURL:'http://127.0.0.1:9222', defaultViewport:null})`, **run the .mjs from repo root** (ESM won't resolve under `/tmp`); screenshots → `/tmp/aifn-smoke/`. Kill: `pkill -f 'http.server 8099'` / `pkill -f remote-debugging-port=9222`. Recipe: memory `reference_visible_browser_cdp_attach`. If the Spark rebooted, both are gone.
+- Nothing else running. (The 2026-05-31 throwaway dist server `:8099` + visible Chromium CDP `:9222` used to show the quant pages have been torn down.) To bring a visible browser back for browser-use, see memory `reference_visible_browser_cdp_attach` or `arena_lifecycle.sh restart --browser`.
 
 ## Open items
 
