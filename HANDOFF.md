@@ -64,7 +64,7 @@
 
 **Post-launch (2026-05-30): `/seo-monitor` run + meta-description cleanup (committed + pushed).** Ran the SEO monitor against live `ainative.business` — GSC + GA4 driven through a **visible, logged-in Chromium** (CDP attach on `:9222` via `playwright-core connectOverCDP`, since both browser MCPs are headless and hit Cloudflare/login walls; see memory `reference_visible_browser_cdp_attach`). Headline finding (high-confidence GSC∩local-audit join): the Orionfold launch dragged **245 thin `noindex` taxonomy pages** into the sitemap → GSC *Discovered–not-indexed 0→355*. **Auto-fix:** `astro.config.mjs` sitemap `filter` now excludes `/field-notes/tags/` + `/field-notes/stages/` (236 URLs); removed `noindex="follow"` from the 9 curated `/field-notes/series/` pages so they're indexable + stay in the sitemap. **User follow-ups:** (a) resubmitted `sitemap-index.xml` in GSC *via the browser* (confirmed "submitted successfully"); (b) shortened home/about/arena meta descriptions to ≤160ch (`src/data/seo.ts`, `about.astro`, `arena/index.astro`); (c) fixed the 8 over/under-length artifact descriptions — **template-level, not manifest**: the 280ch ones were a hard `.slice(0,280)` in 4 detail templates (`loras/notebooks/datasets/adapters [slug]`) → replaced with inline `truncateForMeta` (word-boundary ≤160); the 2 short ones were the datasets-index string + the benches no-rows headline fallback. Zero manifest edits → survives `fieldkit.publish` regen. **Local audit 257 → 1** (only a known title-length false-positive remains). Build green (483 pages). The live sitemap re-reads to the slimmed ~182 URLs after THIS deploy. KPIs vs 05-19: clicks 1→4, impressions 108→357, indexed 18→24, organic engagement 10.5%→43.6%. Journal: `seo-progress.md` + `seo/2026-05-29-2037.md`. **GSC "unused verification token" → resolved as HOLD (do NOT remove):** investigated via the browser + live DNS — the flagged token `google-site-verification=fePoYwMXn0py3dKuRw_z37f4FZJPSMCQU3BzQtpDEUU` is owned by the `manav@ainative.business` **Google Workspace** account, and domain email runs on Workspace (`MX = smtp.google.com`). The active SC verification uses a *different* TXT (`8fWV3…`). Deleting fePoYwMXn risks un-verifying Workspace/email, so both TXT records were left in place; the GSC nag is cosmetic. Full rationale in `seo-progress.md` "Resolved / no-action".
 
-**Last destination commit:** live-leaderboard label/badge polish (tip of `main`) atop `c6aea4d` (live cockpit leaderboard) atop `611dcac` (source-aware telemetry rail) atop `05a9001` (CI Node 24) atop `2299d22` (monorepo consolidation). Earlier launch chain: `0917b51` (GSC HOLD) → `3cf072e` (seo cleanup) → `013ed51` (LoRA fix) → … → `ac5cf04` (Arena launch).
+**Last destination commit:** `ddfa492` positioning + known_drift backfill on the 4 older vertical quants (closes carry-forward #10) atop `9df9438` patent-strategist `lane_summary` + `siblings[]` (closes #8 + #9; build green 485 pages, verifier ✓) atop `8b8bb1f` per-product OG handoff. Earlier: live-leaderboard label/badge polish atop `c6aea4d` (live cockpit leaderboard) atop `611dcac` (source-aware telemetry rail) atop `05a9001` (CI Node 24) atop `2299d22` (monorepo consolidation). Earlier launch chain: `0917b51` (GSC HOLD) → `3cf072e` (seo cleanup) → `013ed51` (LoRA fix) → … → `ac5cf04` (Arena launch).
 **Push status:** all work through this session is PUSHED to `origin/main` (the live-leaderboard label/badge polish is the tip). arena-app/fieldkit build separately from the marketing site, so this push did NOT change the public `dist/`. Source side: `91594f2` on `github.com/manavsehgal/ai-field-notes@main`.
 
 **Cutover (2026-05-29): ✅ EXECUTED on Spark.** This repo is now cloned + operated from the Spark at `/home/nvidia/ainative-business.github.io`; the `sync-field-notes` model is retired. The Orionfold Arena launch surfaces are built and the local build is green — see the banner + **Open items §1–3** below for current state and the stop-before-deploy gate. Full ownership split + runbook: **`MAC-TO-SPARK-TRANSITION.md`**; strategic plan: `~/.claude/plans/mellow-snuggling-tide.md`.
@@ -167,11 +167,19 @@ This session did not run a live browser preview of the new pages. The verifier c
 
 `npm run dev` + Chrome browser via `claude-in-chrome` MCP can do this. Lighthouse + WCAG AA contrast check on the LoRA detail page is also worth doing (per the existing `feedback_pagespeed_techniques.md`).
 
-### 8. NEXT — Patent-strategist sibling cross-links not yet populated in manifests
+### 8. ✅ DONE (2026-05-31, `9df9438` pushed) — Patent-strategist sibling cross-links populated
+
+Both surviving manifests (`patent-strategist-v3-nemo` LoRA + `-gguf` quant) now carry `siblings[]` pointing at each other (resolved hrefs to the live `/artifacts/{loras,quants}/` pages, verified in built HTML). NB: the family is **two lanes today, not four** — the Unsloth siblings were deleted 2026-05-24, so one sibling each, not three. "Other Orionfold variants" now renders on both detail pages.
+
+### 8.orig — Patent-strategist sibling cross-links not yet populated in manifests (historical)
 
 The 4 patent-strategist manifests don't carry a `siblings[]` field. The destination's "Other Orionfold variants" section is gated on this field, so it doesn't render on any of the 4 detail pages today. To activate the cross-link block — a `NARRATIVE-CONTRACT.md` Rule 4 requirement from card #2 onward — the 4 manifests need entries pointing at each other (3 siblings per artifact). The data is easy: each manifest's siblings list is the other 3 in the family. This is source-side authoring work; can either happen at next fieldkit publish or as a manual edit during the next `/sync-field-notes` cycle. Once added, no code change needed on destination — the templates already render `siblings[]` when present.
 
-### 9. NEXT — Lane summary copy for patent-strategist bakeoff
+### 9. ✅ DONE (2026-05-31, `9df9438` pushed) — Lane summary copy for patent-strategist bakeoff
+
+`lane_summary` populated on both surviving manifests → "Choosing this lane" renders editorial copy (was generic auto-fallback). **Correction vs the proposed copy below:** the "26%" is the *training wall-time* margin (20,280s vs 27,265s), NOT a bench-quality score — the bakeoff article explicitly declines a head-to-head correctness verdict for lack of a rubric. Copy written on the three measured axes: 26% faster training, 44% longer chains, ~0.9 lower perplexity. Only 2 lanes survive (no Unsloth copy needed).
+
+### 9.orig — Lane summary copy for patent-strategist bakeoff (historical, pre-correction)
 
 The patent-strategist family is exactly the case "Choosing this lane" was designed for — Unsloth vs NeMo, GGUF vs BF16. Today the "Choosing this lane" section renders only when `lane_summary` is set OR (automatic fallback) when sibling artifacts share `base_model`. The automatic fallback works because all 4 share `deepseek-ai/DeepSeek-R1-0528-Qwen3-8B`, but the auto-copy is generic. Editorial `lane_summary` would be stronger:
 - Nemo (BF16 LoRA): "Pick this lane for the canonical NeMo Framework fine-tune — beat Unsloth by 26% on the patent-strategist bench."
@@ -181,7 +189,11 @@ The patent-strategist family is exactly the case "Choosing this lane" was design
 
 Source-side authoring; ~5 min total. Pairs naturally with #2.
 
-### 10. NEXT — Older quant manifests lack positioning narrative (graceful-fallback today)
+### 10. ✅ DONE (2026-05-31, `ddfa492` pushed) — Older quant positioning backfilled
+
+`positioning.{headline,problem,use_cases,audience}` + `known_drift[]` added to all four (`finance-chat-gguf`, `ii-medical-8b-gguf`, `saul-7b-instruct-v1-gguf`, `securityllm-gguf`), mined from each linked curator article. Detail pages now lead with "What this model does" (was the generic "At a glance" fallback) + carry a bounded "Known drift" section; headlines surface on `/artifacts/quants/` cards. **Scope correction vs the note below:** did NOT add `stack_origin` — these are quant *republishes* of third-party bases, not Orionfold fine-tunes, so stack_origin/lane_summary/siblings don't apply. Honest framing: each credits the upstream trainer + scopes Orionfold to the distribution+measurement layer; drift carries numeric bounds (eval ceilings, medical n_predict≥1024 gotcha, Q8_0 slowdown on finance+legal only). Build green (485 pages), verifier ✓.
+
+### 10.orig — Older quant manifests lack positioning narrative (historical)
 
 4 older quants render with the new "At a glance" fallback section (auto-generated from variants + base_model) because their manifests predate the v0.5.x positioning fields:
 - `finance-chat-gguf`
