@@ -4,7 +4,7 @@
   - Replace "Open items" each session; do NOT append.
   - "Recent decisions" is a short running log — keep ~2 latest, prune older.
   - Full history of any pruned entry is recoverable via `git log -p HANDOFF.md`.
-  - Last pruned/reset: 2026-05-31.
+  - Last pruned/reset: 2026-06-01.
 -->
 
 # HANDOFF — ainative-business.github.io
@@ -12,7 +12,7 @@
 ## Current state
 
 - **This repo is the single Spark-owned monorepo** at `/home/nvidia/ainative-business.github.io` — build workspace *and* website. The old two-repo `ai-field-notes`→Mac sync model is **retired**; author directly here (do NOT use `sync-field-notes`).
-- **Live** at `ainative.business` (GitHub Pages). Tip of `origin/main` = `58363b0`; **everything is pushed**, tree clean except two pre-existing untracked items (`.claude/scheduled_tasks.lock`, `src/data/arena-mirror/` — leave alone).
+- **Live** at `ainative.business` (GitHub Pages). `origin/main` tip = `58363b0`; **this HANDOFF + a `.gitignore` entry committed locally on top — NOT yet pushed** (run `git push origin main`). `WORKFLOWS.md` is an **operator-local gitignored doc** (same class as HANDOFF — lives on disk, not tracked). Tree otherwise clean except two pre-existing untracked items (`.claude/scheduled_tasks.lock`, `src/data/arena-mirror/` — leave alone).
 - **Build/verify loop:** `node node_modules/astro/astro.js build` (485 pages; `npm run build` is broken on this checkout per `reference_astro_build_smb_symlink_break`) → `node scripts/verify_artifact_rendering.mjs` (18 pages/7 kinds) + `node scripts/verify_field_notes_rendering.mjs` (404/62). `build:og` is **CI-only** (needs Chrome); CI regenerates OG on push.
 - **arena-app/ + fieldkit/ build separately** from the marketing site — pushing arena/fieldkit changes does NOT change the public `dist/`. After any `arena-app/` edit, rebuild the served bundle: `fieldkit arena build --repo-root arena-app` (bakes `_webui`, gitignored).
 - **Secrets:** `.env.local` (gitignored, chmod 600) holds `PYPI_TOKEN`, `HF_TOKEN`, `OPENROUTER_API_KEY` — `fieldkit-curator` + `hf-publisher` auth here.
@@ -45,6 +45,11 @@
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-01 (Authored `WORKFLOWS.md` — canonical origin→artifact map + 100x roadmap)
+- New root-contract-tier living doc `WORKFLOWS.md` (peer to `NARRATIVE-CONTRACT.md`). Two halves: **reference** (every current origin-instruction→artifact workflow — editorial→Book pipeline first, then model/notebook/serving/release ops, a full ~24-skill audit table, cross-cutting contracts) + **roadmap** (4 foregrounded bets: closed-loop RLVR / autonomous harness+cron / Arena-as-control-plane / Workflow-native fan-out). Grounded in SOTA (GRPO single-GPU <100-ex; Nemotron-3-Super on Spark; Claude-Code 5-layer stack). Refresh like HANDOFF when workflows change.
+- **Key insight surfaced:** `fieldkit.eval` verifiers (`patent_claim_validity`, `mcq_letter`, `numeric_match`, `irac_structure`) ARE GRPO reward functions → spec stubs *named* (not built): `specs/rlvr-loop-v1.md`, `specs/autonomous-harness-v1.md`, Arena M8. We run 3 of the 5 Claude-Code layers — **hooks + fieldkit-as-MCP (Hermes H4) are the missing leverage**; `.claude/scheduled_tasks.lock` shows the cron substrate is half-wired.
+- **Stale-memory fix queued:** memory `project_uber_corpus_decision_doc` points at `ideas/uber-local-corpus-gen-decision.md` which **does not exist** (only `ideas/ai-field-notes-consolidation.md` is present) — correct the memory next pass. Also noticed `src/data/book/chapters/ch-14-the-meta-program.md` exists (even more on-thesis than Ch 10/11 for the mission frame).
+
 ### 2026-05-31 (Catalog narrative pass: patent-strategist lanes + 4 older-quant positioning + browser-verify)
 - Closed catalog carry-forwards #8/#9 (`9df9438`), #10 (`ddfa492`), #7-for-the-quant-pages (`2b8d531`); HANDOFF/runtime note (`58363b0`). Deploy `26739446188` succeeded + verified live.
 - **Scope correction for future quant publishes:** v0.5.x `stack_origin`/`lane_summary`/`siblings` are for **Orionfold fine-tunes**, NOT third-party quant republishes. The 4 vertical quants (finance/medical/legal/cyber) got `positioning`+`known_drift` only — adding lane/family fields would render an empty/misleading "Choosing this lane."
@@ -52,6 +57,4 @@
 - Patent-strategist family is **2 lanes, not 4** (Unsloth siblings deleted 2026-05-24). Lane copy uses the bakeoff's measured axes — 26% = *training wall-time*, 44% longer chains, ~0.9 lower perplexity — NOT a head-to-head bench score (the article declines that for lack of a rubric).
 - Quant detail pages do NOT surface `positioning.headline` (by design — it shows on the listing card); detail leads with "What this model does" (problem/use_cases/audience) + "Known drift".
 
-### 2026-05-29 (🚀 Go-live: Orionfold LLC launch deployed to ainative.business)
-- Merged `spark-cutover-2026-05-29` `--ff-only` to `main` + pushed → Pages deploy `26664480875` (live URLs 200). Site launches as **Orionfold LLC**: employer disclaimer scrubbed from all 6 surfaces → Orionfold blurb; `/about/` redone as an Orionfold studio page; footer "© 2026 Orionfold LLC"; GitHub+theme moved to footer; JSON-LD org→Orionfold. Rollback tag `pre-spark-cutover` on the remote.
-- **Upstream-parity carry-forward (now moot — ai-field-notes being archived):** the demo bundle's sponsor link + the `/arena/arena/chat/` double-base fix were applied to the *built* bundle in-repo; would have needed mirroring into the ai-field-notes arena source. Monorepo consolidation makes this self-contained here now.
+<!-- 2026-05-29 Orionfold LLC go-live entry pruned per "keep ~2 latest"; recover via `git log -p HANDOFF.md`. -->
