@@ -34,3 +34,37 @@ license:
   model: mit
 article: articles/becoming-a-legal-curator-on-spark/
 published_at: "2026-05-14T15:49:07Z"
+positioning:
+  headline: A 7B legal-domain chat model, quantized to run offline on a consumer GPU
+  problem: >-
+    Equall's Saul-7B-Instruct-v1 is a Mistral-based legal chat model — strong on
+    LegalBench-style classification — but its 13.5 GB checkpoint wants a
+    workstation card. This release ships five GGUF variants (Q4_K_M at 4.1 GB and
+    29.4 tok/s up to F16) so it runs offline on consumer hardware, each carrying a
+    four-axis Spark-measured card: wikitext-2 perplexity, sustained tok/s,
+    thermal-envelope minutes, and a LegalBench score. Orionfold's contribution is
+    the distribution + measurement layer; Equall did the legal fine-tune.
+  use_cases:
+    - Offline legal-domain chat and clause/issue classification on consumer hardware
+    - Drafting and triage behind your own document-retrieval layer
+    - Picking a quant variant by workload shape, not just RAM budget
+  audience: >-
+    Local-LLM power users and legal-tech builders who want an offline legal chat
+    model on a consumer GPU — for drafting and triage support, not legal advice.
+known_drift:
+  - item: LegalBench scored with a lenient "contains" matcher
+    bound: >-
+      The LegalBench mini-eval (n=50) scores by substring "contains" match, more
+      forgiving than strict exact-match — read the 62–72% range as an upper bound
+      on that rubric, not a strict-accuracy figure. Q5_K_M tops at 36/50.
+  - item: Q8_0 sustained-throughput anomaly
+    bound: >-
+      Q8_0 generates at 7.3 tok/s — ~33% below F16's 10.9 and slower than every
+      K-quant — the same continued-pretrain-shape Q8_0 slowdown seen on the
+      finance card. Perplexity favors Q8_0 but Q6_K (22.4 tok/s) is the safer
+      throughput pick.
+  - item: Not legal advice
+    bound: >-
+      A 7B model inherited from the upstream Mistral base — for drafting, triage,
+      and classification support, not legal advice or filing decisions. No
+      jurisdiction-specific validation is claimed.

@@ -35,3 +35,40 @@ license:
   model: apache-2.0
 article: articles/becoming-a-medical-curator-on-spark/
 published_at: "2026-05-16T05:20:26Z"
+positioning:
+  headline: An 8B medical-reasoning model with a visible think-chain, quantized for offline clinical Q&A
+  problem: >-
+    Intelligent-Internet's II-Medical-8B is a Qwen3-8B base carrying an SFT + DAPO
+    reasoning recipe — it walks a differential inside a think block before it
+    answers, which is what a clinical-Q&A console wants and what a 15.3 GB
+    checkpoint can't do on a small consumer GPU. This release ships five GGUF
+    variants (Q4_K_M at 4.68 GB and 43.6 tok/s up to F16) so the reasoning loop
+    runs offline, each with a four-axis Spark-measured card: wikitext-2
+    perplexity, sustained tok/s, thermal-envelope minutes, and a MedMCQA score.
+    Orionfold's contribution is the distribution + measurement layer;
+    Intelligent-Internet did the reasoning fine-tune.
+  use_cases:
+    - A local clinical-Q&A console behind your own retrieval layer, fully offline
+    - Medical-reasoning experiments where the visible think-chain is the point
+    - Picking a quant variant by workload shape, not just RAM budget
+  audience: >-
+    Local-LLM power users and clinical-informatics builders who want an offline
+    medical-reasoning model on a consumer GPU with the reasoning trace visible —
+    not a hosted API and not a medical device.
+known_drift:
+  - item: Reasoning models need a generous n_predict (≥1024)
+    bound: >-
+      A clinical-MCQ reasoning trace runs 400–800 tokens before the closing
+      think tag, and the answer is 1 token after it. At n_predict=256 the budget
+      runs out mid-differential and the answer never lands — set n_predict to
+      1024 or more. A measurement gotcha, not a model defect.
+  - item: MedMCQA accuracy ceiling (8B, n=50 mini-eval)
+    bound: >-
+      MedMCQA (n=50, mcq_letter) lands 42–52% across the five variants, peaking
+      at Q5_K_M (26/50) — an 8B reasoning ceiling on a 50-question mini-eval, not
+      a quantization failure. Indicative, not a clinical validation.
+  - item: Not medical advice
+    bound: >-
+      An 8B reasoning model inherited from the upstream base — for study,
+      retrieval-grounded drafting, and triage UX, not diagnosis or treatment
+      decisions. No clinical-grade validation is claimed.
