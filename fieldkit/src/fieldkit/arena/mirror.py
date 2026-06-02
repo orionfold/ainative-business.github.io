@@ -159,6 +159,7 @@ FORBIDDEN_TABLES: tuple[str, ...] = (
     "eval_scores",  # v0.3 — interactive eval grades; rationale can quote model output. Served live via /api/eval/leaderboard, never the static mirror.
     "jobs",  # M8 — control-plane queue; payload_json carries operator prompts/lanes/benches. Served live via /api/jobs, never the static mirror (R13).
     "job_triggers",  # M8 — job audit trail (regression deltas, operator notes); operator-private alongside jobs.
+    "leaderboard_baseline",  # M8 — regression-detector prev-snapshot; derived from forbidden eval_scores, operator-internal control-plane state.
 )
 
 #: Columns inside otherwise-publishable tables that the exporter must never

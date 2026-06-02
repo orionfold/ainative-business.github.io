@@ -3200,6 +3200,14 @@ try {
         border-radius: 0.35rem; padding: 0.32rem 0.7rem; cursor: pointer;
       }
       .arena-app .jobs__go:disabled { opacity: 0.4; cursor: default; }
+      .arena-app .jobs__scan {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.06em;
+        color: var(--arena-text-dim); background: transparent;
+        border: 1px solid var(--arena-border, #243044);
+        border-radius: 0.35rem; padding: 0.32rem 0.7rem; cursor: pointer;
+      }
+      .arena-app .jobs__scan:hover:not(:disabled) { color: var(--arena-accent); border-color: var(--arena-accent); }
+      .arena-app .jobs__scan:disabled { opacity: 0.4; cursor: default; }
       .arena-app .jobs__note { font-size: 0.66rem; color: var(--arena-text-dim); }
       .arena-app .jobs__board {
         display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem;

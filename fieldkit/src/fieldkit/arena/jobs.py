@@ -30,8 +30,10 @@ stdlib + the sibling store.
 from __future__ import annotations
 
 import json
+import os
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Callable, Mapping, Optional, Sequence
 
 from fieldkit.arena import ArenaError
@@ -42,11 +44,15 @@ __all__ = [
     "JobStatus",
     "JobDispatchError",
     "UnknownJobKind",
+    "BenchNotRegistered",
     "enqueue_job",
     "dispatch_job",
     "drain_jobs",
+    "resolve_bench",
+    "DEFAULT_BENCH_DIR",
     "detect_leaderboard_regression",
     "enqueue_regressions",
+    "check_and_enqueue_regressions",
     "default_runner",
     "DEFAULT_REGRESSION_TAU",
 ]
@@ -110,6 +116,17 @@ class UnknownJobKind(ArenaError):
     """
 
 
+class BenchNotRegistered(ArenaError):
+    """An ``eval_rerun`` named a ``bench_id`` with no resolvable gold JSONL.
+
+    The dispatcher resolves ``bench_path`` from the bench registry
+    (:func:`resolve_bench` — the ``$ARENA_BENCH_DIR/<bench_id>.jsonl``
+    convention) when the job payload doesn't carry one. This is raised, with
+    the exact path it looked for, when neither a payload ``bench_path`` nor a
+    registered gold set exists — so a re-eval can't silently grade nothing.
+    """
+
+
 #: Default accuracy drop (in normalized [0,1] points) that counts as a
 #: regression. 0.05 ≈ a 5-point accuracy slip — above eval/synth noise per the
 #: R15 false-positive guard. Tunable per call.
@@ -119,6 +136,49 @@ DEFAULT_REGRESSION_TAU = 0.05
 def _utc_now_iso() -> str:
     """ISO-8601 UTC stamp, matching the sidecar + mirror convention."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+#: Where the bench registry lives — one ``<bench_id>.jsonl`` gold set per bench,
+#: with an optional ``<bench_id>.meta.json`` sidecar carrying ``scorer`` /
+#: ``max_tokens`` / ``limit``. Override with ``$ARENA_BENCH_DIR``. This is the
+#: convention `run_vertical_eval`'s "needs bench_path" error advertises.
+DEFAULT_BENCH_DIR = "~/.fieldkit/arena/benches"
+
+
+def resolve_bench(
+    bench_id: str, *, bench_dir: Optional[str] = None
+) -> Optional[dict[str, Any]]:
+    """Resolve a ``bench_id`` → ``{bench_path, scorer, max_tokens, limit}``.
+
+    The registry is a directory (``$ARENA_BENCH_DIR`` or
+    :data:`DEFAULT_BENCH_DIR`): a bench is registered when
+    ``<bench_id>.jsonl`` exists there. An optional ``<bench_id>.meta.json``
+    sidecar overrides the scorer (default ``exact_match``) and the eval knobs.
+    Returns ``None`` when no gold set is registered — the dispatcher turns that
+    into a :class:`BenchNotRegistered` with the path it searched. Pure
+    filesystem lookup (no store, no GPU), so it's cheap and unit-testable.
+    """
+    base = Path(
+        os.path.expanduser(
+            bench_dir or os.environ.get("ARENA_BENCH_DIR", DEFAULT_BENCH_DIR)
+        )
+    )
+    jsonl = base / f"{bench_id}.jsonl"
+    if not jsonl.is_file():
+        return None
+    meta: dict[str, Any] = {}
+    meta_path = base / f"{bench_id}.meta.json"
+    if meta_path.is_file():
+        try:
+            meta = json.loads(meta_path.read_text())
+        except (OSError, json.JSONDecodeError):
+            meta = {}
+    return {
+        "bench_path": str(jsonl),
+        "scorer": meta.get("scorer", "exact_match"),
+        "max_tokens": int(meta.get("max_tokens", 512)),
+        "limit": meta.get("limit"),
+    }
 
 
 def _dedup_key(kind: str, payload: Mapping[str, Any]) -> Optional[str]:
@@ -212,11 +272,36 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
     from fieldkit.harness import mcp
 
     if kind == JobKind.EVAL_RERUN:
+        bench_id = payload["bench_id"]
+        # Resolve the gold JSONL from the bench registry when the payload
+        # (regression triggers, the UI dispatch form) carries only bench_id.
+        # An explicit payload bench_path/scorer/limit still wins.
+        bench_path = payload.get("bench_path")
+        scorer = payload.get("scorer", "exact_match")
+        max_tokens = int(payload.get("max_tokens", 512))
+        limit = payload.get("limit")
+        if not bench_path:
+            reg = resolve_bench(bench_id)
+            if reg is None:
+                base = os.path.expanduser(
+                    os.environ.get("ARENA_BENCH_DIR", DEFAULT_BENCH_DIR)
+                )
+                raise BenchNotRegistered(
+                    f"bench {bench_id!r} is not registered — no gold JSONL at "
+                    f"{base}/{bench_id}.jsonl. Register one (or pass an explicit "
+                    f"`bench_path` in the job payload)."
+                )
+            bench_path = reg["bench_path"]
+            scorer = payload.get("scorer", reg["scorer"])
+            max_tokens = int(payload.get("max_tokens", reg["max_tokens"]))
+            limit = payload.get("limit", reg["limit"])
         return mcp.run_vertical_eval(
             lane=payload["lane_id"],
-            bench=payload["bench_id"],
-            bench_path=payload.get("bench_path"),
-            limit=payload.get("limit"),
+            bench=bench_id,
+            bench_path=bench_path,
+            scorer=scorer,
+            limit=limit,
+            max_tokens=max_tokens,
         )
     if kind == JobKind.MEASURE_VARIANTS:
         return mcp.measure_variants(
@@ -462,3 +547,38 @@ def enqueue_regressions(
         if job_id is not None:
             enqueued.append(job_id)
     return enqueued
+
+
+def check_and_enqueue_regressions(
+    store: Any,
+    *,
+    tau: float = DEFAULT_REGRESSION_TAU,
+    now_fn: Callable[[], str] = _utc_now_iso,
+) -> dict[str, Any]:
+    """The wired producer (M8-2): diff the live leaderboard against the stored
+    baseline, enqueue a confirming ``eval_rerun`` per regression, then re-set
+    the baseline to the current snapshot.
+
+    This is the missing link between the pure :func:`detect_leaderboard_regression`
+    core and the running cockpit — an operator-triggered scan (``POST
+    /api/jobs/check-regressions``; the Phase-2 cron will call the same code on a
+    schedule). The baseline is per ``(bench, lane)`` accuracy, persisted in
+    ``leaderboard_baseline``; the first scan only *sets* the baseline (nothing
+    to diff against → no regressions), so a fresh box never storms.
+
+    Returns ``{checked, baselined, enqueued: [job_id, …], regressions: [delta,
+    …]}``. Dedup (R15) still applies — a confirming re-eval already in flight
+    for the same bench×lane yields no new id.
+    """
+    curr = store.eval_leaderboard()
+    prev = store.leaderboard_baseline()
+    regressions = detect_leaderboard_regression(prev, curr, tau=tau)
+    enqueued = enqueue_regressions(store, prev, curr, tau=tau, now_fn=now_fn)
+    store.snapshot_leaderboard_baseline(curr, now=now_fn())
+    return {
+        "checked": len(curr),
+        "baselined": len(curr),
+        "had_baseline": len(prev) > 0,
+        "enqueued": enqueued,
+        "regressions": regressions,
+    }

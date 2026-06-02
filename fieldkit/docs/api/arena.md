@@ -309,7 +309,7 @@ Idempotent — re-running over the same DB produces identical rows. Returns `Reb
 
 ## M8 — Arena as the control plane
 
-The M8 milestone (`_SPECS/spark-arena-v1.md` §12) promotes Arena from a **recorder** into a **dispatcher** — the place the operator triggers work from. `~/.fieldkit/arena.db` gains two operator-private tables at `PRAGMA user_version = 3` (additive + idempotent over the v0.2 schema): `jobs` (the queue spine) and `job_triggers` (the audit trail). Both are on `FORBIDDEN_TABLES`; `(jobs, payload_json)` is on `FORBIDDEN_COLUMNS` — job payloads carry prompts/lanes/benches and are **never** mirrored (R13). The dispatcher executes **through the `fieldkit.harness` MCP surface** (M8-1) — one execution surface shared with Hermes, so the containment rails are defined once.
+The M8 milestone (`_SPECS/spark-arena-v1.md` §12) promotes Arena from a **recorder** into a **dispatcher** — the place the operator triggers work from. `~/.fieldkit/arena.db` gains three operator-private tables (additive + idempotent over the v0.2 schema): `jobs` (the queue spine) and `job_triggers` (the audit trail) at `PRAGMA user_version = 3`, plus `leaderboard_baseline` (the regression detector's prev-snapshot store) at `user_version = 4`. All three are on `FORBIDDEN_TABLES`; `(jobs, payload_json)` is on `FORBIDDEN_COLUMNS` — job payloads carry prompts/lanes/benches and are **never** mirrored (R13). The dispatcher executes **through the `fieldkit.harness` MCP surface** (M8-1) — one execution surface shared with Hermes, so the containment rails are defined once.
 
 ### M8 — records (`fieldkit.arena.schemas`)
 
@@ -345,12 +345,21 @@ Writes one `queued` row and returns its id, or `None` when an in-flight job alre
 
 `detect_leaderboard_regression` is the pure, testable core: diff two `ArenaStore.eval_leaderboard()` accuracy-rollup snapshots and return one `{bench_id, lane_id, prev_score, new_score, delta}` per `(bench, lane)` whose `mean_normalized` dropped by more than `tau` (default `0.05`), worst-drop first. Newly-seen lanes can't regress. `enqueue_regressions` runs the detector and enqueues a confirming `eval_rerun` (priority 1, `leaderboard_regression` trigger) per regression — coalescing duplicates while one is in flight.
 
+### M8 — `check_and_enqueue_regressions(store, *, tau, now_fn)`
+
+The **wired** regression producer (M8-2) — the link between the pure detector and the running cockpit. Diffs the live `eval_leaderboard()` against the stored `leaderboard_baseline`, enqueues a confirming `eval_rerun` per over-`tau` drop (R15 dedup applies), then overwrites the baseline with the current snapshot. The first scan only *sets* the baseline (nothing to diff against → no enqueues), so a fresh box never storms. Returns `{checked, baselined, had_baseline, enqueued: [job_id, …], regressions: [delta, …]}`. Operator-triggered via `POST /api/jobs/check-regressions` (a Jobs-page button); the Phase-2 cron calls the same path on a schedule.
+
+### M8 — `resolve_bench(bench_id, *, bench_dir)` / `DEFAULT_BENCH_DIR`
+
+Resolves a `bench_id` → `{bench_path, scorer, max_tokens, limit}` from the **bench registry** — a directory (`$ARENA_BENCH_DIR` or `DEFAULT_BENCH_DIR` = `~/.fieldkit/arena/benches`) holding one `<bench_id>.jsonl` gold set per bench, with an optional `<bench_id>.meta.json` sidecar overriding the scorer (default `exact_match`) and the eval knobs. Returns `None` when no gold set is registered. `default_runner` calls this to fill an `eval_rerun`'s `bench_path` when the job payload (a regression trigger, the UI dispatch form) carries only a `bench_id`; an unresolvable bench raises `BenchNotRegistered` naming the exact path searched, rather than failing opaquely deep in the eval tool. An explicit payload `bench_path` still wins.
+
 ### M8 — errors
 
 | Error | Raised when |
 |---|---|
 | `JobDispatchError` | A job failed mid-execution; the row is already marked `failed` with the message in `jobs.error`. |
 | `UnknownJobKind` | An `enqueue` named a kind outside `JobKind.ALL`, or a `dispatch` named a stub outside `JobKind.DISPATCHABLE`. |
+| `BenchNotRegistered` | An `eval_rerun` named a `bench_id` with no resolvable gold JSONL (no payload `bench_path`, no registered `<bench_id>.jsonl`). The message names the path searched. |
 
 ### M8 — sidecar endpoints (`/api/jobs`)
 
@@ -358,6 +367,7 @@ Writes one `queued` row and returns its id, or `None` when an in-flight job alre
 |---|---|---|
 | `GET` | `/api/jobs?status=&limit=` | The board read — newest first, optional status filter. Empty (not 404) on a fresh box. |
 | `POST` | `/api/jobs` | Enqueue `{kind, payload, trigger, priority, dispatch}`. `dispatch=True` (default) drains the queue in a BackgroundTask (the M8 primary single-lane path, R14 — no arq/Redis). Returns `coalesced=True` when the dedup gate fires. |
+| `POST` | `/api/jobs/check-regressions?tau=&dispatch=` | Scan the live leaderboard vs the baseline, enqueue a `leaderboard_regression` `eval_rerun` per over-`tau` drop, re-baseline. First scan only sets the baseline. Returns `{checked, had_baseline, enqueued, regressions}`. Declared before `{job_id}`. |
 | `GET` | `/api/jobs/stream` | SSE — emits a full board snapshot on connect + on change (declared before `{job_id}` so it isn't captured as an id). |
 | `GET` | `/api/jobs/{job_id}` | One job + its trigger trail; 404 if unknown. |
 | `DELETE` | `/api/jobs/{job_id}` | Cancel a not-yet-running job (→ `skipped`); 409 if running/done, 404 if unknown. |
@@ -371,6 +381,7 @@ Writes one `queued` row and returns its id, or `None` when an in-flight job alre
 | `.claim_next_job(*, dispatched_at)` | `sqlite3.Row \| None` | Atomically flip the oldest `queued` job to `dispatched`. |
 | `.update_job(job_id, **fields)` / `.get_job(id)` / `.list_jobs(*, status, limit)` / `.cancel_job(id)` | — | Patch / read / board-list / cancel. |
 | `.upsert_eval_run(row)` / `.update_eval_run(id, **fields)` / `.get_eval_run(id)` | — | The per-run status row M8 activates (the `arq_job_id` socket). |
+| `.leaderboard_baseline()` / `.snapshot_leaderboard_baseline(rows, *, now)` | `list[Row]` / `int` | Read / full-overwrite the regression baseline (one `(bench, lane)` accuracy row each) that `check_and_enqueue_regressions` diffs against. |
 
 ## v0.2 surfaces (Lab + distribution)
 

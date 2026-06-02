@@ -28,6 +28,13 @@ function laneBench(job) {
   return [p.lane_id, p.bench_id || p.manifest_slug].filter(Boolean).join(' × ') || job.kind;
 }
 
+// Banner verb phrase per confirm-job status — reads as prose, not "is failed".
+function confirmPhrase(status) {
+  if (status === 'failed') return 'failed to confirm — needs a look';
+  if (status === 'running') return 'is running to confirm';
+  return 'is queued to confirm'; // queued / dispatched
+}
+
 export default function JobsBoard() {
   const [online, setOnline] = useState(false);
   const [jobs, setJobs] = useState([]);
@@ -113,6 +120,26 @@ export default function JobsBoard() {
     }
   }
 
+  // Diff the live leaderboard against the baseline → enqueue a confirming
+  // eval_rerun per regression (M8-2). The first scan only sets the baseline.
+  async function scanRegressions() {
+    if (busy || !online) return;
+    setBusy(true);
+    setNote('');
+    try {
+      const r = await fetch(`${baseRef.current}/api/jobs/check-regressions`, { method: 'POST' });
+      const j = await r.json();
+      const n = (j.enqueued || []).length;
+      if (!j.had_baseline) setNote(`baseline set (${j.checked} lanes) — scan again after the next eval`);
+      else if (n === 0) setNote(`no regressions across ${j.checked} lanes`);
+      else setNote(`${n} regression${n > 1 ? 's' : ''} → eval_rerun queued`);
+    } catch (_e) {
+      setNote('sidecar unreachable');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // Most-recent auto-enqueued regression still in flight → banner.
   const regression = jobs.find(
     (j) => j.trigger === 'leaderboard_regression' && j.status !== 'done' && j.status !== 'skipped',
@@ -140,7 +167,7 @@ export default function JobsBoard() {
           <span class="jobs__regression-tag">regression</span>
           <span>
             Leaderboard drop on <code>{laneBench(regression)}</code> — an
-            <code> eval_rerun</code> is {regression.status} to confirm.
+            <code> eval_rerun</code> {confirmPhrase(regression.status)}.
           </span>
         </div>
       )}
@@ -167,6 +194,15 @@ export default function JobsBoard() {
         />
         <button type="submit" class="jobs__go" disabled={!online || busy || !lane.trim() || !bench.trim()}>
           {busy ? '…' : 'queue'}
+        </button>
+        <button
+          type="button"
+          class="jobs__scan"
+          onClick={scanRegressions}
+          disabled={!online || busy}
+          title="Diff the live leaderboard against the baseline and enqueue a confirming re-eval per regression"
+        >
+          scan regressions
         </button>
         {note && <span class="jobs__note">{note}</span>}
       </form>
