@@ -38,6 +38,9 @@ __all__ = [
     "CompareResponseRecord",
     "RubricScoreRecord",
     "HumanPrefRecord",
+    # M8 — control-plane queue records (operator-private; NEVER mirrored).
+    "JobRecord",
+    "JobTriggerRecord",
 ]
 
 
@@ -315,3 +318,56 @@ class HumanPrefRecord:  # M5
     winner: str  # 'A'|'B'|'tie'
     created_at: str
     note: Optional[str] = None
+
+
+# ---------------------------------------------------------------------------
+# M8 records — the control-plane queue (operator-private; never mirrored)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class JobRecord:  # M8
+    """One row of the ``jobs`` table — spec §12.3. The queue spine.
+
+    A queued job is drained one-at-a-time (single lane, 128 GB envelope)
+    through the ``fieldkit.harness`` MCP surface. ``payload_json`` is
+    OPERATOR-ONLY (it carries the lane/bench/prompt of the work) — ``jobs``
+    is on ``mirror.FORBIDDEN_TABLES`` and ``("jobs","payload_json")`` is on
+    ``FORBIDDEN_COLUMNS`` (R13). ``dedup_key`` = ``(kind, lane_id, bench_id)``
+    coalesces duplicate triggers while a job is still in flight; leave it
+    ``None`` for a manual one-off that should always run. ``arq_job_id`` is the
+    existing ``eval_runs`` socket — ``None`` while draining via the M8 primary
+    ``BackgroundTasks`` path (R14), populated only under the opt-in arq backend.
+    """
+
+    id: str
+    kind: str  # 'eval_rerun' | 'measure_variants' (M8); later-phase stubs beyond
+    status: str  # 'queued'|'dispatched'|'running'|'done'|'failed'|'skipped'
+    trigger: str  # 'manual'|'leaderboard_regression'|'stale_bench'|…
+    payload_json: str
+    enqueued_at: str
+    priority: int = 0
+    dedup_key: Optional[str] = None
+    result_json: Optional[str] = None
+    error: Optional[str] = None
+    attempt: int = 0
+    dispatched_at: Optional[str] = None
+    finished_at: Optional[str] = None
+    arq_job_id: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class JobTriggerRecord:  # M8
+    """One row of the ``job_triggers`` table — spec §12.3.
+
+    The audit trail of *what* fired each job: a regression delta
+    (``{bench_id, prev_score, new_score, delta}``), a staleness age
+    (``{age_days}``), or an operator note (``{operator_note}``). Never
+    mirrored (the table is on ``FORBIDDEN_TABLES``). ``id`` is AUTOINCREMENT,
+    so the importer/dispatcher omits it on insert.
+    """
+
+    job_id: str
+    source: str  # 'leaderboard_regression'|'stale_bench'|'operator'
+    detail_json: str
+    created_at: str

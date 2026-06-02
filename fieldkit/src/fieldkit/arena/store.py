@@ -46,8 +46,10 @@ __all__ = [
 
 #: Schema version pin. Bump when a CREATE TABLE shape changes incompatibly;
 #: until then additive tables can land without a bump (the importer uses
-#: ``CREATE TABLE IF NOT EXISTS`` + ``INSERT OR REPLACE``).
-USER_VERSION = 2
+#: ``CREATE TABLE IF NOT EXISTS`` + ``INSERT OR REPLACE``). 3 at M8 — adds
+#: the ``jobs`` / ``job_triggers`` control-plane tables (additive + idempotent,
+#: but bumped so a downstream tool can gate on "arena.db has the queue").
+USER_VERSION = 3
 
 #: Expanded ``~/.fieldkit/arena.db``. Importable so tests can override the
 #: env var without forcing a CLI roundtrip.
@@ -269,6 +271,46 @@ CREATE INDEX IF NOT EXISTS idx_bench_results_slug ON bench_results(bench_slug);
 CREATE INDEX IF NOT EXISTS idx_article_index_series ON article_index(series);
 CREATE INDEX IF NOT EXISTS idx_notebook_export_slug ON notebook_export(artifact_slug);
 CREATE INDEX IF NOT EXISTS idx_lab_notes_card ON lab_notes(card_id);
+
+-- M8 (Arena control plane, user_version 2→3) — the job queue spine + its
+-- trigger audit trail. ``jobs`` is the operator's dispatch table: a queued
+-- row is drained one-at-a-time (single lane, 128 GB envelope) through the
+-- ``fieldkit.harness`` MCP surface. ``payload_json`` carries the prompt /
+-- lane / bench of the work and is OPERATOR-ONLY — ``jobs`` + ``job_triggers``
+-- are on ``mirror.FORBIDDEN_TABLES`` and ``("jobs","payload_json")`` is on
+-- ``FORBIDDEN_COLUMNS``; neither table is in ``PUBLISHABLE_TABLES`` (R13).
+CREATE TABLE IF NOT EXISTS jobs (
+    id              TEXT PRIMARY KEY,
+    kind            TEXT NOT NULL,       -- 'eval_rerun'|'measure_variants' (M8); requant/rl_run/reindex/... (later stubs)
+    status          TEXT NOT NULL,       -- 'queued'|'dispatched'|'running'|'done'|'failed'|'skipped'
+    trigger         TEXT NOT NULL,       -- 'manual'|'leaderboard_regression'|'stale_bench'|...
+    priority        INTEGER NOT NULL DEFAULT 0,
+    payload_json    TEXT NOT NULL,       -- {lane_id, bench_id, manifest_slug, …} — OPERATOR-ONLY, never mirrored
+    dedup_key       TEXT,                -- (kind, lane_id, bench_id) — coalesces duplicate triggers while queued
+    result_json     TEXT,                -- harness tool return; for eval_rerun → an eval_runs.id ref
+    error           TEXT,
+    attempt         INTEGER NOT NULL DEFAULT 0,
+    enqueued_at     TEXT NOT NULL,
+    dispatched_at   TEXT,
+    finished_at     TEXT,
+    arq_job_id      TEXT                 -- the eval_runs socket; null when draining via BackgroundTasks (R14)
+);
+
+-- Partial unique index: coalesce duplicate triggers while a job for the same
+-- (kind, lane, bench) is still in flight. NULL dedup_key never collides
+-- (SQLite treats NULLs as distinct), so manual one-off jobs are exempt.
+CREATE UNIQUE INDEX IF NOT EXISTS ix_jobs_dedup
+    ON jobs(dedup_key) WHERE status IN ('queued','dispatched','running');
+CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status, priority, enqueued_at);
+
+CREATE TABLE IF NOT EXISTS job_triggers (   -- audit trail of what fired each job
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id          TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+    source          TEXT NOT NULL,       -- 'leaderboard_regression'|'stale_bench'|'operator'
+    detail_json     TEXT NOT NULL,       -- {bench_id, prev_score, new_score, delta} | {age_days} | {operator_note}
+    created_at      TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_job_triggers_job ON job_triggers(job_id);
 """
 
 
@@ -808,6 +850,147 @@ class ArenaStore:
                 "ORDER BY bench_id, mean_score DESC, lane_id"
             )
         )
+
+    # ---- M8 jobs (operator-private control plane; never mirrored) ----
+
+    def enqueue_job(self, row: Mapping[str, Any]) -> str | None:
+        """Insert one ``jobs`` row; return its id, or ``None`` if coalesced.
+
+        Strict INSERT — the partial unique index ``ix_jobs_dedup`` trips
+        (``sqlite3.IntegrityError``) when an in-flight job already covers the
+        same ``dedup_key``. That is the spec's dedup gate (R15): a duplicate
+        ``leaderboard_regression`` trigger while one re-eval is still queued
+        is a no-op, not a re-eval storm. The caller stamps ``enqueued_at``
+        (deterministic; the store never calls ``now()``). Rows with a NULL
+        ``dedup_key`` (manual one-offs) never coalesce.
+        """
+        if is_dataclass(row) and not isinstance(row, type):
+            row = asdict(row)
+        cols = list(row.keys())
+        placeholders = ",".join("?" for _ in cols)
+        col_list = ",".join(cols)
+        sql = f"INSERT INTO jobs ({col_list}) VALUES ({placeholders})"
+        conn = self.connect()
+        try:
+            conn.execute(sql, [row[c] for c in cols])
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            return None
+        return str(row["id"])
+
+    def record_job_trigger(self, row: Mapping[str, Any]) -> int:
+        """Append one ``job_triggers`` audit row; return its rowid."""
+        if is_dataclass(row) and not isinstance(row, type):
+            row = asdict(row)
+        cols = list(row.keys())
+        placeholders = ",".join("?" for _ in cols)
+        col_list = ",".join(cols)
+        sql = f"INSERT INTO job_triggers ({col_list}) VALUES ({placeholders})"
+        conn = self.connect()
+        cur = conn.execute(sql, [row[c] for c in cols])
+        conn.commit()
+        return int(cur.lastrowid or 0)
+
+    def claim_next_job(self, *, dispatched_at: str) -> sqlite3.Row | None:
+        """Atomically claim the highest-priority oldest ``queued`` job.
+
+        Flips it to ``dispatched`` (stamping ``dispatched_at``) inside one
+        transaction so a second drainer can't grab the same row. Returns the
+        claimed row (post-flip) or ``None`` when the queue is empty. Sequential
+        single-lane drain (M8-5): the dispatcher calls this in a loop until it
+        returns ``None``.
+        """
+        conn = self.connect()
+        with conn:  # BEGIN…COMMIT/ROLLBACK
+            cur = conn.execute(
+                "SELECT id FROM jobs WHERE status='queued' "
+                "ORDER BY priority DESC, enqueued_at ASC LIMIT 1"
+            )
+            hit = cur.fetchone()
+            if hit is None:
+                return None
+            job_id = hit["id"]
+            conn.execute(
+                "UPDATE jobs SET status='dispatched', dispatched_at=? "
+                "WHERE id=? AND status='queued'",
+                [dispatched_at, job_id],
+            )
+        return self.get_job(job_id)
+
+    def update_job(self, job_id: str, **fields: Any) -> None:
+        """Patch arbitrary columns on a ``jobs`` row (status, result_json, …)."""
+        if not fields:
+            return
+        cols = list(fields.keys())
+        assignments = ",".join(f"{c}=?" for c in cols)
+        conn = self.connect()
+        conn.execute(
+            f"UPDATE jobs SET {assignments} WHERE id=?",
+            [fields[c] for c in cols] + [job_id],
+        )
+        conn.commit()
+
+    def get_job(self, job_id: str) -> sqlite3.Row | None:
+        cur = self.connect().execute("SELECT * FROM jobs WHERE id=?", [job_id])
+        return cur.fetchone()
+
+    def list_jobs(
+        self, *, status: str | None = None, limit: int = 200
+    ) -> list[sqlite3.Row]:
+        """Jobs board read — newest first, optionally filtered by status."""
+        conn = self.connect()
+        if status:
+            return list(
+                conn.execute(
+                    "SELECT * FROM jobs WHERE status=? "
+                    "ORDER BY enqueued_at DESC LIMIT ?",
+                    [status, limit],
+                )
+            )
+        return list(
+            conn.execute(
+                "SELECT * FROM jobs ORDER BY enqueued_at DESC LIMIT ?", [limit]
+            )
+        )
+
+    def cancel_job(self, job_id: str) -> bool:
+        """Mark a not-yet-running job ``skipped``. Returns True if it flipped.
+
+        Only ``queued`` / ``dispatched`` jobs can be cancelled — once a job is
+        ``running`` on the GPU the dispatcher owns it to completion (M8-5).
+        """
+        conn = self.connect()
+        cur = conn.execute(
+            "UPDATE jobs SET status='skipped', finished_at=NULL "
+            "WHERE id=? AND status IN ('queued','dispatched')",
+            [job_id],
+        )
+        conn.commit()
+        return cur.rowcount > 0
+
+    # ---- M8 eval_runs (the per-run status row M8 finally activates) ----
+
+    def upsert_eval_run(self, row: Mapping[str, Any]) -> None:
+        """Insert or replace one ``eval_runs`` status row (M8 activates it)."""
+        self._upsert("eval_runs", row, key=("id",))
+
+    def update_eval_run(self, run_id: str, **fields: Any) -> None:
+        """Patch status/timestamps/result on an ``eval_runs`` row."""
+        if not fields:
+            return
+        cols = list(fields.keys())
+        assignments = ",".join(f"{c}=?" for c in cols)
+        conn = self.connect()
+        conn.execute(
+            f"UPDATE eval_runs SET {assignments} WHERE id=?",
+            [fields[c] for c in cols] + [run_id],
+        )
+        conn.commit()
+
+    def get_eval_run(self, run_id: str) -> sqlite3.Row | None:
+        cur = self.connect().execute("SELECT * FROM eval_runs WHERE id=?", [run_id])
+        return cur.fetchone()
 
     # ---- bulk helpers ----
 

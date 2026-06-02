@@ -157,6 +157,8 @@ FORBIDDEN_TABLES: tuple[str, ...] = (
     "chat_turns",
     "lab_notes",  # v0.2 — operator-private Lab annotations; freeform body never mirrored
     "eval_scores",  # v0.3 — interactive eval grades; rationale can quote model output. Served live via /api/eval/leaderboard, never the static mirror.
+    "jobs",  # M8 — control-plane queue; payload_json carries operator prompts/lanes/benches. Served live via /api/jobs, never the static mirror (R13).
+    "job_triggers",  # M8 — job audit trail (regression deltas, operator notes); operator-private alongside jobs.
 )
 
 #: Columns inside otherwise-publishable tables that the exporter must never
@@ -170,6 +172,7 @@ FORBIDDEN_COLUMNS: tuple[tuple[str, str], ...] = (
     ("chat_turns", "reasoning"),
     ("chat_sessions", "id"),
     ("lab_notes", "body"),
+    ("jobs", "payload_json"),  # M8 — job prompts/lanes/benches; never mirrored (R13)
 )
 
 

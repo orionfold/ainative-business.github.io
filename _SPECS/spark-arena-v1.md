@@ -878,7 +878,10 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 
 ## 12. M8 — Arena as the control plane (Phase 1 of the MTBM roadmap)
 
-> **Status: SPEC (2026-06-02), unbuilt.** This section extends the locked v0.1+v0.2 spec
+> **Status: BUILT (2026-06-02).** All 8 M8 decisions (M8-1…8) were green-lit as written and the
+> milestone is implemented end-to-end — see §12.7 for the as-built map. The release *tag/publish*
+> (`fieldkit v0.16.0`) is a separate `fieldkit-curator` action, not yet cut. This section extends
+> the locked v0.1+v0.2 spec
 > with the **M8 control-plane milestone** — `_FLOWS/the-machine-that-builds-machines.md` §3
 > **Phase 1 / Bet 3 ("Arena as the control plane — the pane")**. It is grounded against
 > Spark-measured evidence in [`roadmap-reconciliation.md`](roadmap-reconciliation.md) §"Phase 1"
@@ -1046,12 +1049,30 @@ table rather than inventing its own queue:
 - **Bet 5 (`second-brain-pipeline-v1.md`)** — adds `reindex` / `rag_eval` / `scout_ingest` job kinds + an Arena knowledge pane; the re-index-on-publish hook is a Phase-2 trigger producer.
 - **Bet 6 (`cost-plane-v1.md`)** — persists `cost_usd` on the compare/chat tables + an `openrouter_price_snapshot`; the jobs board and leaderboard gain a `$/task` + `$/quality-point` axis; `fieldkit.budget` (Phase 2) reads the ledger before the dispatcher launches a job.
 
+### 12.7 As-built map (2026-06-02 — all 8 decisions green-lit, implemented)
+
+Every §12 decision landed as specified. Where the spec described "already exists" infrastructure, the build wired into it rather than recreating it.
+
+| Deliverable | As built | Tests |
+|---|---|---|
+| `jobs` + `job_triggers` tables, `user_version` 2→3 | `arena/store.py` `_SCHEMA_SQL` (idempotent `CREATE TABLE IF NOT EXISTS` + partial unique `ix_jobs_dedup` + `USER_VERSION = 3`); `JobStore` methods on `ArenaStore` (`enqueue_job`/`claim_next_job`/`update_job`/`get_job`/`list_jobs`/`cancel_job` + `upsert_eval_run`/`update_eval_run`/`get_eval_run`) | store smoke; `test_jobs.py` |
+| `JobRecord` / `JobTriggerRecord` | `arena/schemas.py` | — |
+| **`fieldkit.arena.jobs`** — `enqueue_job` · `dispatch_job` · `drain_jobs` · `detect_leaderboard_regression` · `enqueue_regressions` · `JobKind`/`JobStatus` · `JobDispatchError`/`UnknownJobKind` · `default_runner` | new module; dispatch routes through `fieldkit.harness.mcp` (M8-1); `eval_rerun` persists via the existing `append_eval_score` → `eval_scores` path + activates the `eval_runs` status row; sequential single-lane drain (M8-5); dedup coalesce (R15) | `test_jobs.py` (17) |
+| `measure_variants` + `run_vertical_eval` MCP tools | `harness/mcp.py` — `run_vertical_eval` is the first `fieldkit.eval` wiring (wraps `VerticalBench`); both registered on `build_mcp_server()` (9 tools) + `MCP_TOOL_SPECS` | `test_harness_mcp.py` (live FastMCP registration) |
+| `POST/GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/jobs/stream` (SSE), `DELETE /api/jobs/{id}` | `arena/server.py` — `BackgroundTasks` drain as the primary path (R14, no arq/Redis); `jobs_event_stream` snapshot-on-change SSE; graceful `failed`-not-500 degradation when no lane is served | `test_jobs_api.py` (9) |
+| `/arena/jobs/` route + `<JobsBoard>` island | `arena-app/src/pages/arena/jobs.astro` + `components/arena/JobsBoard.jsx` (4 columns, dispatch form, cancel, regression banner, `isPublicMirrorHost` offline-safe) + "Jobs" nav tab + global CSS; builds into both the public preview (`dist/`) and the wheel bundle (`dist-arena/`) | Astro build (119 pages) |
+| Mirror allowlist+denylist extension + leak sentinel | `mirror.py` — `jobs`/`job_triggers` → `FORBIDDEN_TABLES`, `("jobs","payload_json")` → `FORBIDDEN_COLUMNS`; `test_mirror_does_not_leak.py` plants a `payload_json` sentinel + adds the `test_jobs_tables_are_forbidden` anchor | `test_mirror_does_not_leak.py` (8) |
+| Docs | `docs/api/arena.md` §"M8" + `docs/api/harness.md` — `audit-docs arena/harness` both clean | audit-docs gate |
+
+**Gates green:** full `fieldkit` suite **1118 passed / 16 skipped** (skips = optional heavy deps + `--spark`-only); `audit-docs` 12/13 PASS (the lone SKIP is `cli`, no `__all__`; the 2 residual kwarg-WARNs are pre-existing v0.2/v0.3 methods, not M8). **Not done (deliberately):** the `fieldkit v0.16.0` tag + PyPI publish (a `fieldkit-curator` action), the Phase-1 `product-writer` launch article (gated on M8 shipping — now unblocked), and a live human-eye/Lighthouse pass of `/arena/jobs/` with the sidecar up (the cockpit is currently DOWN).
+
 ## 13. Change log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-28 | Initial spec landed (v1.0 locked). Decisions §3.1 #1–#10 confirmed in the planning session (hybrid Astro + FastAPI · rubric-deterministic compare · anchor MVP scope · public-mirror distribution · new Cockpit series · `arena_run` artifact kind · Qwen3-30B-A3B brain as the resident lane · OpenRouter via H6 CostRouterConfig as default compare B-lane · deterministic generation boundary · scorer-reuse discipline). Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`. | Manav (with Claude planning session) |
 | 2026-06-02 | **M8 control-plane milestone authored (§12).** Extends the locked v0.1+v0.2 spec with `_FLOWS` §3 **Phase 1 / Bet 3** — promote Arena recorder → dispatcher: new `jobs`/`job_triggers` tables, a single-lane dispatcher executing **through the MCP harness**, `eval_rerun` as the first (and only real) M8 job type, a leaderboard-regression trigger producer, `/arena/jobs/` cockpit surface, and the mirror-allowlist extension (R13). 8 locked decisions (M8-1…8, confirm before build), 5 new risks (R13–R17), grounded against `roadmap-reconciliation.md` §"Phase 1" (CONFIRMED, operational). Phases 2/3 + Bets 5/6 sequenced to extend this `jobs` table. **Spec only — unbuilt.** | Manav (with Claude) |
+| 2026-06-02 | **M8 BUILT** (all 8 decisions green-lit as written). `fieldkit.arena.jobs` dispatcher + `jobs`/`job_triggers` schema (`user_version` 2→3) + `JobStore` methods; two harness MCP tools (`run_vertical_eval` — first `fieldkit.eval` wiring — + `measure_variants`); `/api/jobs` CRUD + SSE drain (BackgroundTasks primary, R14); `jobs`/`job_triggers` on the mirror denylist + leak sentinel (R13); `/arena/jobs/` route + `<JobsBoard>` island (builds into preview + wheel bundle). Tests: `test_jobs.py` (17) + `test_jobs_api.py` (9) + extended `test_mirror_does_not_leak.py`; full suite **1118 passed**, `audit-docs` clean. As-built map in §12.7. **Not yet: the `fieldkit v0.16.0` tag/publish + the Phase-1 launch article + a live-sidecar human-eye pass.** | Manav (with Claude) |
 
 ## 14. References
 

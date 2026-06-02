@@ -520,7 +520,7 @@ def create_app(
     try:
         from contextlib import asynccontextmanager
 
-        from fastapi import FastAPI, HTTPException, Query, Request
+        from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
         from fastapi.middleware.cors import CORSMiddleware
         from pydantic import BaseModel, Field
         from sse_starlette.sse import EventSourceResponse
@@ -655,6 +655,25 @@ def create_app(
         on-demand model is torn down first); the resident on :8080 is untouched."""
 
         lane: str = Field(min_length=1, max_length=200)
+
+    class JobCreateRequest(BaseModel):
+        """``POST /api/jobs`` body — enqueue a control-plane job (M8).
+
+        Operator-private: ``payload`` carries the lane/bench/manifest the job
+        operates on and lands in ``jobs.payload_json`` — a FORBIDDEN_COLUMN,
+        never mirrored (R13). M8 dispatches only ``eval_rerun`` /
+        ``measure_variants``; ``dispatch=True`` (default) drains the queue in
+        a BackgroundTask right after enqueue (the M8 primary single-lane path,
+        R14 — no arq/Redis required). The drain executes **through the
+        `fieldkit.harness` MCP surface** (M8-1), so it needs the resident lane
+        served + the `harness` extra; on a box without them the job is marked
+        ``failed`` with the import/connection error, never silently dropped."""
+
+        kind: str = Field(pattern="^(eval_rerun|measure_variants)$")
+        payload: dict = Field(default_factory=dict)
+        trigger: str = Field(default="manual", max_length=40)
+        priority: int = Field(default=0, ge=0, le=100)
+        dispatch: bool = True
 
     db_path = str(db or DEFAULT_ARENA_DB)
     root = Path(repo_root or Path.cwd()).resolve()
@@ -1518,6 +1537,128 @@ def create_app(
             store.close()
 
     # ------------------------------------------------------------------
+    # M8 — control-plane jobs. Enqueue/inspect/cancel + an SSE board feed.
+    # ``/api/jobs/stream`` is declared BEFORE ``/api/jobs/{job_id}`` so the
+    # literal path isn't captured as a job id. ``jobs`` is OUT of the mirror
+    # allowlist (R13) — these routes are the ONLY way the queue surfaces, and
+    # they bind loopback (CORS) only.
+    @app.get("/api/jobs")
+    async def api_jobs_list(
+        status: Optional[str] = Query(default=None, max_length=20),
+        limit: int = Query(default=200, ge=1, le=1000),
+    ) -> dict[str, Any]:
+        """The jobs board read — newest first, optional status filter.
+
+        Empty (not 404) when the store doesn't exist yet, so the cockpit
+        paints an empty board instead of erroring on a fresh box."""
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            return {"jobs": []}
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            rows = store.list_jobs(status=status, limit=limit)
+            return {"jobs": [_job_to_public(r) for r in rows]}
+        finally:
+            store.close()
+
+    @app.post("/api/jobs")
+    async def api_jobs_create(
+        body: JobCreateRequest, background_tasks: BackgroundTasks
+    ) -> dict[str, Any]:
+        """Enqueue a job; optionally drain the queue in the background (M8).
+
+        Returns the new job id, or ``coalesced=True`` when an in-flight job
+        already covers the same ``(kind, lane, bench)`` (R15 dedup gate)."""
+        from fieldkit.arena import jobs as _jobs
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            job_id = _jobs.enqueue_job(
+                store,
+                body.kind,
+                body.payload,
+                trigger=body.trigger,
+                priority=body.priority,
+            )
+        finally:
+            store.close()
+        if job_id is None:
+            return {"ok": True, "coalesced": True, "job_id": None}
+        if body.dispatch:
+            background_tasks.add_task(_drain_jobs_background, str(db_file))
+        return {"ok": True, "coalesced": False, "job_id": job_id}
+
+    @app.get("/api/jobs/stream")
+    async def api_jobs_stream(request: Request) -> Any:
+        """SSE board feed — emits a full jobs snapshot on connect + on change.
+
+        Offline-safe by construction: on the public mirror there is no
+        sidecar (and ``jobs`` is never exported), so the island falls back to
+        an empty 'Cockpit offline' board."""
+        return EventSourceResponse(
+            jobs_event_stream(str(Path(os.path.expanduser(db_path))), request),
+            ping=15,
+        )
+
+    @app.get("/api/jobs/{job_id}")
+    async def api_jobs_get(job_id: str) -> dict[str, Any]:
+        """One job by id (+ its trigger audit trail). 404 if unknown."""
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            raise HTTPException(status_code=404, detail="no jobs")
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            row = store.get_job(job_id)
+            if row is None:
+                raise HTTPException(status_code=404, detail=f"job {job_id} not found")
+            triggers = list(
+                store.connect().execute(
+                    "SELECT source, detail_json, created_at FROM job_triggers "
+                    "WHERE job_id=? ORDER BY id",
+                    [job_id],
+                )
+            )
+            job = _job_to_public(row)
+            job["triggers"] = [dict(t) for t in triggers]
+            return job
+        finally:
+            store.close()
+
+    @app.delete("/api/jobs/{job_id}")
+    async def api_jobs_cancel(job_id: str) -> dict[str, Any]:
+        """Cancel a not-yet-running job (queued/dispatched → skipped).
+
+        A ``running`` job owns the GPU lane to completion (M8-5); 409 if it's
+        past the point of safe cancellation, 404 if it never existed."""
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            raise HTTPException(status_code=404, detail="no jobs")
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            if store.get_job(job_id) is None:
+                raise HTTPException(status_code=404, detail=f"job {job_id} not found")
+            if not store.cancel_job(job_id):
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"job {job_id} is past cancellation (running/done)",
+                )
+            return {"ok": True, "job_id": job_id, "status": "skipped"}
+        finally:
+            store.close()
+
+    # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
     # API (page + sidecar both on :7866), so the islands' resolveSidecarUrl()
@@ -1621,6 +1762,102 @@ def _new_session_id() -> str:
 
 def _utc_now_iso() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+# ---------------------------------------------------------------------------
+# M8 — control-plane job helpers (shared by the /api/jobs routes + SSE feed)
+# ---------------------------------------------------------------------------
+
+
+def _job_to_public(row: Any) -> dict[str, Any]:
+    """Render a ``jobs`` row for the cockpit board.
+
+    Parses ``payload_json`` / ``result_json`` into objects so the island
+    doesn't double-decode. Operator-only surface (loopback CORS, never
+    mirrored), so the payload — the lane/bench the job operates on — is
+    returned as-is for the operator's own board."""
+    d = {k: row[k] for k in row.keys()}
+    raw_payload = d.pop("payload_json", None)
+    try:
+        d["payload"] = json.loads(raw_payload) if raw_payload else {}
+    except (json.JSONDecodeError, TypeError):
+        d["payload"] = {}
+    if d.get("result_json"):
+        try:
+            d["result"] = json.loads(d["result_json"])
+        except (json.JSONDecodeError, TypeError):
+            d["result"] = None
+    return d
+
+
+def _jobs_signature(jobs: list[dict[str, Any]]) -> tuple:
+    """Cheap change-detector for the SSE feed — id × status × finished_at."""
+    return tuple((j["id"], j["status"], j.get("finished_at")) for j in jobs)
+
+
+def _drain_jobs_background(db_path_str: str) -> None:
+    """Drain the queue one job at a time through the harness (BackgroundTask).
+
+    The M8 primary single-lane path (R14) — no arq/Redis. Runs in FastAPI's
+    threadpool after the POST response, executing each job through the
+    `fieldkit.harness` MCP tools (M8-1). Never raises out of the background
+    task: a failed job is already marked ``failed`` in its row; an
+    environment failure (no harness extra / lane not served) is swallowed
+    after the row is stamped, so a misconfigured box degrades to a visible
+    ``failed`` card rather than a 500."""
+    from fieldkit.arena import jobs as _jobs
+    from fieldkit.arena.store import ArenaStore
+
+    store = ArenaStore(Path(db_path_str))
+    store.initialize()
+    try:
+        _jobs.drain_jobs(store, on_error="record")
+    except Exception as exc:  # noqa: BLE001 — background task must not crash the loop
+        _log.warning("job drain aborted: %s", exc)
+    finally:
+        store.close()
+
+
+async def jobs_event_stream(
+    db_path_str: str, request: Any
+) -> "AsyncIterator[dict[str, str]]":
+    """Async generator powering ``/api/jobs/stream``.
+
+    Emits a full board snapshot on connect, then re-emits only when the
+    board changes (a job flips status or finishes) — polling the sync store
+    off the event loop via :func:`asyncio.to_thread`. A heartbeat keeps the
+    channel warm between changes. Pulled out of the route closure so it can
+    be unit-tested against a temp DB without a FastAPI round-trip."""
+    from fieldkit.arena.store import ArenaStore
+
+    def _snapshot() -> list[dict[str, Any]]:
+        path = Path(db_path_str)
+        if not path.is_file():
+            return []
+        store = ArenaStore(path)
+        store.initialize()
+        try:
+            return [_job_to_public(r) for r in store.list_jobs(limit=200)]
+        finally:
+            store.close()
+
+    last_sig: tuple | None = None
+    idle = 0
+    while True:
+        if await request.is_disconnected():
+            break
+        jobs = await asyncio.to_thread(_snapshot)
+        sig = _jobs_signature(jobs)
+        if sig != last_sig:
+            last_sig = sig
+            idle = 0
+            yield {"event": "jobs", "data": json.dumps({"jobs": jobs})}
+        else:
+            idle += 1
+            if idle >= 8:  # ~12 s of quiet → heartbeat so proxies don't reap
+                idle = 0
+                yield {"event": "heartbeat", "data": "{}"}
+        await asyncio.sleep(1.5)
 
 
 def _ensure_resident_lane_row(store: Any, resident: dict[str, Any]) -> str:

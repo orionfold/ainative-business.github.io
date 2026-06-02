@@ -224,6 +224,7 @@ try {
         <a href={href('arena/leaderboard/')} class:list={["arena-app__tab", active === 'leaderboard' && 'is-active']}>Leaderboard</a>
         <a href={href('arena/chat/')}        class:list={["arena-app__tab", active === 'chat'        && 'is-active']}>Chat</a>
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
+        <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
       </nav>
 
@@ -3147,6 +3148,116 @@ try {
         border-radius: 0.35rem; padding: 0.3rem 0.6rem; cursor: pointer;
       }
       .arena-app .labnotes__add:disabled { opacity: 0.4; cursor: default; }
+
+      /* =====================================================================
+       *  Jobs — control plane (/arena/jobs/) — M8
+       * =================================================================== */
+      .arena-app .jobs { display: flex; flex-direction: column; gap: 1rem; }
+      .arena-app .jobs__offline {
+        display: flex; align-items: flex-start; gap: 0.7rem;
+        padding: 1rem 1.1rem; font-size: 0.78rem; line-height: 1.5;
+        color: var(--arena-text-mute); border: 1px dashed var(--arena-line);
+        border-radius: 0.5rem; background: rgba(255,255,255,0.02);
+      }
+      .arena-app .jobs__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
+      .arena-app .jobs__offline strong { color: var(--arena-text); }
+      .arena-app .jobs__offline-dot {
+        width: 8px; height: 8px; border-radius: 50%; margin-top: 0.35rem; flex: none;
+        background: var(--arena-text-dim);
+      }
+      .arena-app .jobs__regression {
+        display: flex; align-items: center; gap: 0.6rem;
+        padding: 0.55rem 0.85rem; font-size: 0.74rem; line-height: 1.4;
+        color: var(--arena-text); border-radius: 0.45rem;
+        border: 1px solid color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+        background: color-mix(in oklch, var(--arena-warn) 9%, transparent);
+      }
+      .arena-app .jobs__regression code { font-family: var(--arena-mono); color: var(--arena-warn); }
+      .arena-app .jobs__regression-tag {
+        font-family: var(--arena-mono); font-size: 0.55rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-bg, #0a0e14);
+        background: var(--arena-warn); border-radius: 3px; padding: 0.12rem 0.4rem; flex: none;
+      }
+      .arena-app .jobs__dispatch {
+        display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+        padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
+        background: rgba(255,255,255,0.02);
+      }
+      .arena-app .jobs__dispatch-label {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__input {
+        flex: 1; min-width: 9rem; font-family: var(--arena-mono); font-size: 0.72rem;
+        background: var(--arena-bg, #0a0e14); color: var(--arena-text);
+        border: 1px solid var(--arena-line); border-radius: 0.35rem; padding: 0.3rem 0.5rem;
+      }
+      .arena-app .jobs__input:focus { outline: none; border-color: var(--arena-accent); }
+      .arena-app .jobs__input:disabled { opacity: 0.45; }
+      .arena-app .jobs__go {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.06em;
+        color: var(--arena-bg, #0a0e14); background: var(--arena-accent); border: 0;
+        border-radius: 0.35rem; padding: 0.32rem 0.7rem; cursor: pointer;
+      }
+      .arena-app .jobs__go:disabled { opacity: 0.4; cursor: default; }
+      .arena-app .jobs__note { font-size: 0.66rem; color: var(--arena-text-dim); }
+      .arena-app .jobs__board {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem;
+      }
+      @media (max-width: 760px) { .arena-app .jobs__board { grid-template-columns: repeat(2, 1fr); } }
+      .arena-app .jobs__col {
+        display: flex; flex-direction: column; gap: 0.55rem;
+        border: 1px solid var(--arena-line); border-radius: 0.5rem; padding: 0.6rem 0.6rem 0.7rem;
+        background: rgba(255,255,255,0.015);
+      }
+      .arena-app .jobs__col-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-bottom: 0.35rem; border-bottom: 1px solid var(--arena-line);
+      }
+      .arena-app .jobs__col-title {
+        font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--arena-text-mute);
+      }
+      .arena-app .jobs__col[data-col="running"] .jobs__col-title { color: var(--arena-accent); }
+      .arena-app .jobs__col[data-col="done"] .jobs__col-title { color: var(--arena-ok); }
+      .arena-app .jobs__col[data-col="failed"] .jobs__col-title { color: var(--arena-warn); }
+      .arena-app .jobs__col-count {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-dim);
+        background: rgba(255,255,255,0.05); border-radius: 0.6rem; padding: 0.02rem 0.4rem;
+      }
+      .arena-app .jobs__col-body { display: flex; flex-direction: column; gap: 0.5rem; min-height: 2.5rem; }
+      .arena-app .jobs__empty { margin: 0; text-align: center; color: var(--arena-text-dim); font-size: 0.8rem; }
+      .arena-app .jobs__card {
+        display: flex; flex-direction: column; gap: 0.35rem;
+        padding: 0.5rem 0.55rem; border-radius: 0.4rem;
+        border: 1px solid var(--arena-line); background: var(--arena-bg, #0a0e14);
+      }
+      .arena-app .jobs__card[data-status="running"] {
+        border-color: color-mix(in oklch, var(--arena-accent) 50%, var(--arena-line));
+        box-shadow: 0 0 0 1px color-mix(in oklch, var(--arena-accent) 20%, transparent) inset;
+      }
+      .arena-app .jobs__card[data-status="failed"],
+      .arena-app .jobs__card[data-status="skipped"] { opacity: 0.78; }
+      .arena-app .jobs__card-top {
+        display: flex; align-items: center; justify-content: space-between; gap: 0.4rem;
+        font-family: var(--arena-mono); font-size: 0.54rem; letter-spacing: 0.08em; text-transform: uppercase;
+      }
+      .arena-app .jobs__card-kind { color: var(--arena-text-mute); }
+      .arena-app .jobs__card-trigger { color: var(--arena-text-dim); }
+      .arena-app .jobs__card-target { font-size: 0.74rem; color: var(--arena-text); word-break: break-word; }
+      .arena-app .jobs__card-result { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-ok); }
+      .arena-app .jobs__card-error {
+        font-size: 0.62rem; color: var(--arena-warn); line-height: 1.3;
+        overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+        -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      }
+      .arena-app .jobs__cancel {
+        align-self: flex-start; font-family: var(--arena-mono); font-size: 0.56rem;
+        color: var(--arena-text-dim); background: transparent; border: 1px solid var(--arena-line);
+        border-radius: 0.3rem; padding: 0.1rem 0.4rem; cursor: pointer;
+      }
+      .arena-app .jobs__cancel:hover { color: var(--arena-warn); border-color: var(--arena-warn); }
+      .arena-app .jobs__cancel:disabled { opacity: 0.4; cursor: default; }
 
       /* Built-together timeline */
       .arena-app .lab-timeline { margin: 1.75rem 0 1rem; }

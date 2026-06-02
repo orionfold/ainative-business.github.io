@@ -46,6 +46,9 @@ def test_tool_specs_shape():
         "quantize_gguf",
         "publish_quant_dry_run",
         "ask_second_brain",
+        # M8 — Arena dispatcher job-execution tools (added by demand, M8-7)
+        "run_vertical_eval",
+        "measure_variants",
     ]
     by_name = {s.name: s for s in fkmcp.MCP_TOOL_SPECS}
     # the two capability tools + the RAG bridge are read-only; the rest write
@@ -55,11 +58,15 @@ def test_tool_specs_shape():
     assert by_name["measure_gguf_throughput"].read_only is False
     assert by_name["quantize_gguf"].read_only is False
     assert by_name["publish_quant_dry_run"].read_only is False
+    # M8 eval/measure tools both touch the GPU → not read-only
+    assert by_name["run_vertical_eval"].read_only is False
+    assert by_name["measure_variants"].read_only is False
     assert {s.surface for s in fkmcp.MCP_TOOL_SPECS} == {
         "capabilities",
         "quant",
         "publish",
         "rag",
+        "eval",  # M8 — run_vertical_eval is mcp.py's first fieldkit.eval wiring
     }
 
 

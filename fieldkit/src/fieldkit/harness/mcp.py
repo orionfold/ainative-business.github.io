@@ -50,6 +50,9 @@ __all__ = [
     "MCP_TOOL_SPECS",
     "build_mcp_server",
     "run_mcp_server",
+    # M8 — Arena dispatcher job-execution tools (also callable plainly).
+    "run_vertical_eval",
+    "measure_variants",
 ]
 
 MCP_SERVER_NAME = "fieldkit"
@@ -136,6 +139,21 @@ MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         "rag",
         "Ask the ai-field-notes RAG corpus (NIM embed → pgvector → NIM LLM).",
         True,
+    ),
+    # M8 (Arena control plane) — the dispatcher's job-execution tools. Added
+    # by demand (M8-7), not speculatively: `run_vertical_eval` is mcp.py's
+    # first `fieldkit.eval` wiring; `measure_variants` reuses `fieldkit.quant`.
+    MCPToolSpec(
+        "run_vertical_eval",
+        "eval",
+        "Re-run a vertical bench against a served lane → per-question accuracy.",
+        False,
+    ),
+    MCPToolSpec(
+        "measure_variants",
+        "quant",
+        "Single-stream tok/s across a manifest's GGUF variants via llama-bench.",
+        False,
     ),
 )
 
@@ -363,6 +381,137 @@ def ask_second_brain(
     }
 
 
+_VERTICAL_SCORERS = ("exact_match", "contains", "numeric_match")
+
+
+def run_vertical_eval(
+    lane: str,
+    bench: str,
+    *,
+    bench_path: Optional[str] = None,
+    base_url: Optional[str] = None,
+    model: Optional[str] = None,
+    scorer: str = "exact_match",
+    limit: Optional[int] = None,
+    max_tokens: int = 512,
+) -> dict[str, Any]:
+    """Re-run a vertical bench against a served lane (M8 ``eval_rerun`` body).
+
+    Builds a `model_fn` that talks to the lane's OpenAI-compatible endpoint,
+    loads the bench JSONL via `fieldkit.eval.VerticalBench`, runs it, and
+    returns per-question grades the Arena dispatcher persists through the
+    existing `eval_scores` scorer path. `lane` / `bench` are identifiers
+    (echoed back for the store write); `base_url` + `model` locate the served
+    lane (default the resident llama-server via env `ARENA_EVAL_BASE_URL` /
+    `ARENA_EVAL_MODEL`); `bench_path` is the JSONL gold set.
+
+    Returns ``{lane, bench, scorer_kind, n, mean_normalized, calls: [...]}``
+    where each call is ``{qid, score, max_score, normalized}``.
+    """
+    from fieldkit.eval import VerticalBench, contains, exact_match, numeric_match
+    from fieldkit.notebook import OpenAICompatClient
+
+    if scorer not in _VERTICAL_SCORERS:
+        raise ValueError(
+            f"unknown scorer {scorer!r}; choose one of {_VERTICAL_SCORERS}"
+        )
+    if not bench_path:
+        raise ValueError(
+            "run_vertical_eval needs `bench_path` — the bench gold JSONL "
+            "(e.g. ~/.fieldkit/arena/benches/<bench>.jsonl). The Arena "
+            "dispatcher fills this from the bench registry."
+        )
+    path = Path(bench_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Bench JSONL not found: {bench_path}")
+
+    scorer_fn = {
+        "exact_match": exact_match,
+        "contains": contains,
+        "numeric_match": numeric_match,
+    }[scorer]
+
+    endpoint = base_url or os.environ.get(
+        "ARENA_EVAL_BASE_URL", "http://127.0.0.1:8080"
+    )
+    model_name = model or os.environ.get("ARENA_EVAL_MODEL", "resident")
+    client = OpenAICompatClient(endpoint=endpoint, model=model_name)
+
+    def model_fn(prompt: str) -> str:
+        return client.chat(
+            [{"role": "user", "content": prompt}], max_tokens=max_tokens
+        )
+
+    vb = VerticalBench.from_jsonl(
+        path, name=bench, scorer=scorer_fn, limit=limit
+    )
+    result = vb.run(model_fn, limit=limit)
+
+    calls: list[dict[str, Any]] = []
+    accs: list[float] = []
+    for call in result.calls:
+        if not call.success:
+            continue
+        acc = call.metrics.get("accuracy")
+        qid = (call.tags or {}).get("qid")
+        calls.append(
+            {
+                "qid": qid,
+                "score": acc,
+                "max_score": 1.0,
+                "normalized": acc,
+            }
+        )
+        if acc is not None:
+            accs.append(float(acc))
+    mean_normalized = sum(accs) / len(accs) if accs else None
+    return {
+        "lane": lane,
+        "bench": bench,
+        "bench_path": str(path),
+        "scorer_kind": scorer,
+        "n": len(calls),
+        "mean_normalized": mean_normalized,
+        "calls": calls,
+    }
+
+
+def measure_variants(
+    manifest_slug: str,
+    gguf_paths: Optional[dict[str, str]] = None,
+    n_gen: int = 128,
+    n_prompt: int = 512,
+) -> dict[str, Any]:
+    """Single-stream tok/s across a manifest's GGUF variants (M8 stub job).
+
+    `gguf_paths` maps variant label (e.g. ``"Q4_K_M"``) → absolute .gguf path;
+    each is measured via llama-bench (real GPU work, one at a time inside the
+    envelope). Returns per-variant throughput keyed by label. Same measure core
+    as `measure_gguf_throughput`, batched over a manifest's variants so the
+    leaderboard can carry a tok/s column per variant.
+    """
+    from fieldkit.quant import measure_tokens_per_sec_gguf
+
+    if not gguf_paths:
+        raise ValueError(
+            "measure_variants needs `gguf_paths` — {variant: /abs/path.gguf}. "
+            "The Arena dispatcher fills this from the manifest's variant set."
+        )
+    paths = _llama_paths()
+    variants: dict[str, Any] = {}
+    for label, raw in gguf_paths.items():
+        path = _validate_gguf(raw)
+        result = measure_tokens_per_sec_gguf(
+            gguf_path=path, paths=paths, n_gen=n_gen, n_prompt=n_prompt
+        )
+        variants[label] = {"gguf_path": str(path), **(result or {})}
+    return {
+        "manifest_slug": manifest_slug,
+        "n_variants": len(variants),
+        "variants": variants,
+    }
+
+
 # --- Server assembly -------------------------------------------------------
 
 _READ_ONLY = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
@@ -448,6 +597,25 @@ def build_mcp_server(name: str = MCP_SERVER_NAME) -> Any:
         ),
         annotations=_READ_ONLY,
     )(ask_second_brain)
+
+    server.tool(
+        description=(
+            "Re-run a vertical bench (patent/legal/finance/…) against a served "
+            "lane and return per-question accuracy. Real GPU work — talks to the "
+            "lane's OpenAI-compatible endpoint over a bench gold JSONL. Backs the "
+            "Arena `eval_rerun` job (leaderboard-regression → confirm)."
+        ),
+        annotations=_WRITES,
+    )(run_vertical_eval)
+
+    server.tool(
+        description=(
+            "Measure single-stream throughput (tok/s) across a manifest's GGUF "
+            "variants via llama-bench. Real GPU work, one variant at a time "
+            "inside the 128 GB envelope. Pass {variant: absolute .gguf path}."
+        ),
+        annotations=_WRITES,
+    )(measure_variants)
 
     return server
 

@@ -98,6 +98,21 @@ __all__ = [
     "PUBLISHABLE_TABLES",
     "FORBIDDEN_TABLES",
     "FORBIDDEN_COLUMNS",
+    # M8 — control-plane queue (operator-private; never mirrored). The job
+    # records, the dispatcher (executes through the `fieldkit.harness` MCP
+    # surface), and the leaderboard-regression trigger producer. See
+    # `_SPECS/spark-arena-v1.md` §12.
+    "JobRecord",
+    "JobTriggerRecord",
+    "JobKind",
+    "JobStatus",
+    "enqueue_job",
+    "dispatch_job",
+    "drain_jobs",
+    "detect_leaderboard_regression",
+    "enqueue_regressions",
+    "JobDispatchError",
+    "UnknownJobKind",
 ]
 
 # v0.1.0-alpha; bumps independently of fieldkit's package version so a
@@ -186,6 +201,21 @@ _LAZY_RE_EXPORTS: dict[str, tuple[str, str]] = {
     "PUBLISHABLE_TABLES": ("fieldkit.arena.mirror", "PUBLISHABLE_TABLES"),
     "FORBIDDEN_TABLES": ("fieldkit.arena.mirror", "FORBIDDEN_TABLES"),
     "FORBIDDEN_COLUMNS": ("fieldkit.arena.mirror", "FORBIDDEN_COLUMNS"),
+    # M8 — jobs control plane
+    "JobRecord": ("fieldkit.arena.schemas", "JobRecord"),
+    "JobTriggerRecord": ("fieldkit.arena.schemas", "JobTriggerRecord"),
+    "JobKind": ("fieldkit.arena.jobs", "JobKind"),
+    "JobStatus": ("fieldkit.arena.jobs", "JobStatus"),
+    "enqueue_job": ("fieldkit.arena.jobs", "enqueue_job"),
+    "dispatch_job": ("fieldkit.arena.jobs", "dispatch_job"),
+    "drain_jobs": ("fieldkit.arena.jobs", "drain_jobs"),
+    "detect_leaderboard_regression": (
+        "fieldkit.arena.jobs",
+        "detect_leaderboard_regression",
+    ),
+    "enqueue_regressions": ("fieldkit.arena.jobs", "enqueue_regressions"),
+    "JobDispatchError": ("fieldkit.arena.jobs", "JobDispatchError"),
+    "UnknownJobKind": ("fieldkit.arena.jobs", "UnknownJobKind"),
 }
 
 
