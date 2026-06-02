@@ -158,24 +158,20 @@ Once the inputs are confirmed:
    ```
    PyPI propagation is usually instant on `pip install <name>==<exact>` since pip checks the simple index directly. If pip can't find the version, wait 60s and retry — the CDN occasionally lags.
 
-10. **Refresh project-stats.** The home-page "At a glance" infographic reads `src/data/project-stats.json`; the LOC count includes `fieldkit/src/` and `fieldkit/tests/`, so any release that adds modules / tests will move the number. Per `feedback_refresh_stats_on_publish`:
+10. **Refresh project-stats.** The home-page "At a glance" infographic reads `src/data/field-notes/project-stats.json`; the LOC count includes `fieldkit/src/` and `fieldkit/tests/` (excluding the gitignored `_webui/` baked bundle), so any release that adds modules / tests will move the number. Per `feedback_refresh_stats_on_publish`:
    ```bash
    python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py
    ```
-   Then refresh `README.md`:
-   ```bash
-   python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py
-   ```
    Stage + commit:
    ```bash
-   git add src/data/project-stats.json README.md
-   git commit -m "Refresh stats + README post-fieldkit-v0.X.Y"
+   git add src/data/field-notes/project-stats.json
+   git commit -m "Refresh stats post-fieldkit-v0.X.Y"
    git push origin main
    ```
 
 11. **Update `HANDOFF.md`.** Per `feedback_handoff_md_update_protocol`, rewrite or amend the living session-transfer doc so the next session opens to the new state. At minimum: bump the **Last updated** line, the **Latest tag** field, the **TL;DR** version line, and the **fieldkit state** entry (include both the git tag and the PyPI URL). Add or trim the next-priority section.
 
-   `HANDOFF.md` is gitignored — don't try to commit it. The user reviews it locally; that's the contract.
+   `HANDOFF.md` is **tracked** (since 2026-06-02) — commit it along with the stats refresh. The user reviews it; that's the contract.
 
 12. **Report.** One short message in chat covering: new version, tag pushed, PyPI URL, stats refresh commit, both install-verifies ✅, anything that moved in `HANDOFF.md`. Don't paste the CHANGELOG or test output — those are the artifact.
 

@@ -196,7 +196,7 @@ The easy-to-forget tail. Compounds across releases — every skipped item is a f
 
 - [ ] **Update `HANDOFF.md`** — live URL + variant table (size, ppl, tok/s, vertical-eval) + actual upload time + any new lessons. Per `[[feedback_handoff_md_update_protocol]]`.
 - [ ] **Write a descriptive commit subject** — `feat(field-notes): publish Orionfold/<slug>` + a body summarizing the variant table is the change narrative (commit subjects are the changelog in this monorepo). The old two-repo Mac `/sync-field-notes` + SYNC-HANDOFF / mirror-handshake ceremony is retired — author directly here.
-- [ ] **Refresh `src/data/project-stats.json`** — invoke the `nvidia-learn-stats` skill. Per `[[feedback_refresh_stats_on_publish]]` — the home "At a glance" infographic drifts silently otherwise.
+- [ ] **Refresh `src/data/field-notes/project-stats.json`** — invoke the `nvidia-learn-stats` skill. Per `[[feedback_refresh_stats_on_publish]]` — the home "At a glance" infographic drifts silently otherwise.
 - [ ] **Promote the article** — flip `status: upcoming` → `status: published` in `articles/<slug>/article.md` if not already done. Add `hf_url` to frontmatter if the schema supports it.
 - [ ] **Commit + push to main** — solo-blog repo per `[[project_nvidia_learn_git_workflow]]`. Confirm with the user first; expect a permission prompt on first main-push per session.
 

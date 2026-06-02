@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-05-28T15:29:16Z",
+  "generated_at": "2026-06-02T13:04:16Z",
   "articles": {
-    "total": 49,
-    "published": 49,
-    "upcoming": 6,
+    "total": 50,
+    "published": 50,
+    "upcoming": 11,
     "drafts": 0
   },
   "words": {
-    "total": 163116,
-    "mean_per_article": 3328,
+    "total": 165946,
+    "mean_per_article": 3318,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -16,27 +16,25 @@
     }
   },
   "code": {
-    "evidence_loc": 16827,
-    "fieldkit_loc": 24216,
-    "vendored_loc": 344724,
-    "total_loc": 41043,
+    "evidence_loc": 0,
+    "fieldkit_loc": 35446,
+    "vendored_loc": 0,
+    "total_loc": 35446,
     "by_language": {
-      "python": 40896,
-      "shell": 132,
-      "sql": 15
+      "python": 35446
     },
     "data_lines": {
-      "json": 64424816,
-      "yaml": 3371
+      "json": 163,
+      "yaml": 52
     }
   },
   "stages": {
-    "foundations": 12,
+    "foundations": 13,
     "training": 12,
     "fine-tuning": 12,
     "inference": 19,
     "deployment": 10,
-    "agentic": 20,
+    "agentic": 21,
     "observability": 12,
     "dev-tools": 3
   },
@@ -44,17 +42,17 @@
     "foundations": 0,
     "training": 1,
     "fine-tuning": 2,
-    "inference": 1,
+    "inference": 2,
     "deployment": 0,
-    "agentic": 1,
-    "observability": 1,
+    "agentic": 4,
+    "observability": 2,
     "dev-tools": 1
   },
   "models": [
     {
       "id": "llama-3.1-8b-instruct",
       "label": "Llama 3.1 8B Instruct",
-      "articles": 18
+      "articles": 19
     },
     {
       "id": "nemotron-nano-9b",
@@ -96,12 +94,12 @@
     {
       "id": "dgx-spark",
       "label": "DGX Spark",
-      "articles": 41
+      "articles": 42
     },
     {
       "id": "nim",
       "label": "NVIDIA NIM",
-      "articles": 37
+      "articles": 38
     },
     {
       "id": "nemo",
@@ -174,11 +172,6 @@
     ],
     "accuracy": [
       {
-        "label": "perfect retrieval on the eval set",
-        "value": "recall@5 = 1.0",
-        "article_slug": "bigger-generator-grounding-on-spark"
-      },
-      {
         "label": "use to land the headline",
         "value": "9% accuracy",
         "article_slug": "autoresearchbench-on-spark"
@@ -192,6 +185,11 @@
         "label": "wiki text and still lose",
         "value": "4% accuracy",
         "article_slug": "becoming-a-gguf-publisher-on-spark"
+      },
+      {
+        "label": "queries where retrieval was perfect",
+        "value": "recall@5 = 1.0",
+        "article_slug": "bigger-generator-grounding-on-spark"
       }
     ],
     "latency": [

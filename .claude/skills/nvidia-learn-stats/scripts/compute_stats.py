@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compute project-level stats for nvidia-learn and write src/data/project-stats.json.
+"""Compute project-level stats for nvidia-learn and write src/data/field-notes/project-stats.json.
 
 Run from the repo root:
     python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py [--repo /path/to/nvidia-learn]
@@ -82,8 +82,11 @@ DATA_BUCKETS = {
 }
 
 # Directories / files to skip when counting LOC under articles/*/evidence/ and fieldkit/.
+# `_webui` is the baked Arena web bundle (gitignored build artifact written by
+# `fieldkit arena build`, not source) — it lives under fieldkit/src/.../arena/_webui/
+# and would otherwise add ~9k lines of generated HTML/JS/CSS to the fieldkit LOC.
 SKIP_DIR_NAMES = {
-    "node_modules", ".astro", "dist", ".git",
+    "node_modules", ".astro", "dist", ".git", "_webui",
     "__pycache__", ".venv", ".pytest_cache", ".ruff_cache",
 }
 # Substring marker for vendored third-party snapshots under evidence/.
@@ -274,14 +277,14 @@ def extract_metrics(text: str, slug: str, max_per_category: int = 4) -> dict:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", default=None, help="Path to nvidia-learn repo (defaults to CWD)")
-    ap.add_argument("--out", default=None, help="Output JSON path (defaults to <repo>/src/data/project-stats.json)")
+    ap.add_argument("--out", default=None, help="Output JSON path (defaults to <repo>/src/data/field-notes/project-stats.json)")
     args = ap.parse_args()
 
     repo = Path(args.repo) if args.repo else Path.cwd()
     articles_dir = repo / "articles"
     src_dir = repo / "src"
     fieldkit_dir = repo / "fieldkit"
-    out_path = Path(args.out) if args.out else src_dir / "data" / "project-stats.json"
+    out_path = Path(args.out) if args.out else src_dir / "data" / "field-notes" / "project-stats.json"
 
     if not articles_dir.is_dir() or not src_dir.is_dir():
         print(f"error: {repo} does not look like the ai-field-notes repo (missing articles/ or src/)", file=sys.stderr)
@@ -486,7 +489,11 @@ def main():
     out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
     # ---- human-readable summary ----
-    print(f"Wrote {out_path.relative_to(repo)}")
+    try:
+        shown = out_path.relative_to(repo)
+    except ValueError:
+        shown = out_path
+    print(f"Wrote {shown}")
     print(f"  articles:  {payload['articles']['total']}  (upcoming: {payload['articles']['upcoming']}, drafts: {payload['articles']['drafts']})")
     print(f"  words:     {total_words:,}  (mean {mean_words:,}/article; longest: {longest.slug if longest else '—'} @ {longest.word_count if longest else 0:,})")
     print(f"  code:      {payload['code']['total_loc']:,} LOC  (evidence {evidence_total:,} · fieldkit {fieldkit_total:,} · vendored excluded {vendored_total:,})")

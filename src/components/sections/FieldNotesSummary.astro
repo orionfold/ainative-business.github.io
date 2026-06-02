@@ -15,21 +15,14 @@ const upcoming = all.filter((a: FieldNote) => a.data.status === 'upcoming').leng
 
 const s: any = stats;
 const WORDS = s.words?.total ?? 0;
-const LOC = s.code?.total_loc ?? 0;
-const LOC_EVIDENCE = s.code?.evidence_loc ?? 0;
-const LOC_FIELDKIT = s.code?.fieldkit_loc ?? 0;
-const LOC_VENDORED = s.code?.vendored_loc ?? 0;
+// Lines of original fieldkit code (Python/CLI/tests) — the one honest LOC figure
+// after the monorepo cutover retired the article-evidence / vendored split.
+const LOC = s.code?.fieldkit_loc ?? s.code?.total_loc ?? 0;
 const MODEL_COUNT = s.models?.length ?? 0;
 const PRODUCT_COUNT = s.products?.length ?? 0;
 
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
-const kfmt = (n: number) => n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
-const locBreakdown = LOC_EVIDENCE > 0 || LOC_FIELDKIT > 0
-  ? `${kfmt(LOC_EVIDENCE)} article · ${kfmt(LOC_FIELDKIT)} package`
-  : '';
-const locTitle = LOC_VENDORED > 0
-  ? `${fmt(LOC_EVIDENCE)} article evidence + ${fmt(LOC_FIELDKIT)} fieldkit package = ${fmt(LOC)} original. ${fmt(LOC_VENDORED)} vendored repo-snapshot LOC tracked but excluded.`
-  : `${fmt(LOC_EVIDENCE)} article evidence + ${fmt(LOC_FIELDKIT)} fieldkit package = ${fmt(LOC)} original.`;
+const locTitle = `${fmt(LOC)} lines of original fieldkit code (Python, CLI, tests). The Astro site and the gitignored _webui bundle are excluded.`;
 
 // One headline metric per category, linked to the article that generated it.
 const headlineLatency    = s.metrics?.latency?.[0];
@@ -90,8 +83,7 @@ const articleHref = (slug: string) => `/field-notes/${slug}/`;
         </div>
         <div class="fns-kpi" title={locTitle}>
           <div class="fns-kpi__value">{fmt(LOC)}</div>
-          {locBreakdown && <div class="fns-kpi__breakdown">{locBreakdown}</div>}
-          <div class="fns-kpi__label">Lines of code</div>
+          <div class="fns-kpi__label">fieldkit LOC</div>
         </div>
         <div class="fns-kpi">
           <div class="fns-kpi__value">{MODEL_COUNT}</div>
@@ -174,17 +166,6 @@ const articleHref = (slug: string) => `/field-notes/${slug}/`;
     letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--color-text-muted);
-  }
-  .fns-kpi__breakdown {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.04em;
-    color: var(--color-text-dim);
-    line-height: 1.25;
-    margin-top: -0.15rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .fns-metric {

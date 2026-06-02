@@ -55,10 +55,10 @@ Articles are not blog filler — they are the **raw stock the published Book is 
 ```
 exploration session on the Spark
   → /tech-writer  (Claude writes the essay; voice = deep-dive, not cookbook)
-  → new_article.sh (scaffold)  ·  refresh_readme.py  ·  Playwright/scrot screenshots → /tmp then repo
+  → new_article.sh (scaffold)  ·  Playwright/scrot screenshots → /tmp then repo
   → [GATE verify_article.sh] frontmatter + image-resolution + secret-scan
   → [GATE verify_svg.sh] stroke-weight ∈ {0.5,1,1.5,2}, no hex literals, inline fn-diagram present
-  → [GATE /nvidia-learn-stats] refresh src/data/project-stats.json (home infographic drifts silently otherwise)
+  → [GATE /nvidia-learn-stats] refresh src/data/field-notes/project-stats.json (home infographic drifts silently otherwise)
   → artifact: articles/<slug>/article.md + screenshots/ + transcript.md + inline SVG
   → commit to main
 ```
@@ -163,7 +163,7 @@ Every custom skill that automates a workflow, with its origin→artifact contrac
 
 | Skill | Trigger | Output artifact | Key scripts | Hands off to | Status |
 |---|---|---|---|---|---|
-| `tech-writer` | "write this up" | `articles/<slug>/article.md` | `new_article.sh` `verify_article.sh` `verify_svg.sh` `refresh_readme.py` | nvidia-learn-stats, fieldkit-curator (extract) | active |
+| `tech-writer` | "write this up" | `articles/<slug>/article.md` | `new_article.sh` `verify_article.sh` `verify_svg.sh` | nvidia-learn-stats, fieldkit-curator (extract) | active |
 | `product-writer` | "write the launch" | `products/<slug>/product.md` | `mine_build_metrics.py` `verify_product_article.sh` | — | active |
 | `frontier-scout` | "scout papers" | `papers/`, `articles/<slug>/seed.md` | arxiv/HF/PWC fetchers, classifier/feasibility prompts | tech-writer | active |
 | `hf-model-scout` | "pick a base for `<vertical>`" | `/tmp/hf-scout/<run>/report.md` | `probe_model.sh` `spark_envelope.py` | hf-publisher (via g3) | active |
@@ -172,7 +172,7 @@ Every custom skill that automates a workflow, with its origin→artifact contrac
 | `notebook-author` | "author notebooks for `<vertical>`" | `notebooks/<v>/{builder,user}.ipynb` | `scaffold_notebook.py` `validate_cadence.py` `inject_badges.py` | notebook-snapshot | active |
 | `notebook-snapshot` | "snapshot the notebook" | `notebooks/<v>/exports/*.png` | `execute_notebook.py` `export_figures.py` `build_index.py` | hf-publisher (badges) | active |
 | `fieldkit-curator` | "release fieldkit" | PyPI package + tag | `audit_docs.py` `audit_landing.py` | nvidia-learn-stats | active |
-| `nvidia-learn-stats` | "refresh stats" | `src/data/project-stats.json` | `compute_stats.py` | home infographic | active |
+| `nvidia-learn-stats` | "refresh stats" | `src/data/field-notes/project-stats.json` | `compute_stats.py` | home infographic | active |
 | `arena-lifecycle` | "restart the arena" | running cockpit `:7866` | `arena_lifecycle.sh` | — | active |
 | `spark-serve` | "serve a model" | running lane | lane-selection logic | — | active |
 | `vertical-route` | domain question | local expert answer | classifier + spark-serve | — | active |
