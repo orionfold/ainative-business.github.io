@@ -6,7 +6,7 @@ The deterministic Python spine of the **Cockpit** content line — the surface a
 solo Spark builder drives every shipped artifact from. Sibling to
 `fieldkit.harness`: where Hermes is the *agent harness* (Spark answers "how
 does my agent drive the box"), Arena is the *operator harness* (Spark answers
-"how do *I* drive the box"). See `specs/spark-arena-v1.md` for the full design.
+"how do *I* drive the box"). See `_SPECS/spark-arena-v1.md` for the full design.
 
 **M1 surface (this scaffold — Sessions 1):** the import-cheap submodule with
 errors + placeholder dataclasses + a typed `__all__`. No FastAPI on package

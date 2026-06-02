@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Build the patent-strategist RAG index on disk.
 
-Per `specs/patent-strategist-v1.md` §3.4: embeds the pulled patent corpus at
+Per `_SPECS/patent-strategist-v1.md` §3.4: embeds the pulled patent corpus at
 `/home/nvidia/data/corpus/patent/<source>/*.jsonl` with `BAAI/bge-small-en-v1.5`
 and persists a FAISS index + Parquet sidecar at
 `/home/nvidia/data/rag/patent-bge-small/`.
@@ -475,7 +475,7 @@ def main() -> int:
 
     meta = {
         "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "spec_ref": "specs/patent-strategist-v1.md §3.4",
+        "spec_ref": "_SPECS/patent-strategist-v1.md §3.4",
         "model": args.model,
         "model_revision": model_revision,
         "device": device,

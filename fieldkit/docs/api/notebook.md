@@ -7,7 +7,7 @@ order: 11
 
 ## What it is
 
-The runtime + authoring spine of the notebooks-as-artifacts pilot (`specs/notebooks-as-artifacts-v1.md`). A vertical's two notebooks — a builder notebook for the AI engineer and a user notebook for the app developer — must run unchanged on a DGX Spark *and* on a free Colab/Kaggle GPU. This module is what makes one notebook source serve both: detect the runtime, open a model behind a uniform chat surface, and scaffold the cells deterministically so the session model only writes prose.
+The runtime + authoring spine of the notebooks-as-artifacts pilot (`_SPECS/notebooks-as-artifacts-v1.md`). A vertical's two notebooks — a builder notebook for the AI engineer and a user notebook for the app developer — must run unchanged on a DGX Spark *and* on a free Colab/Kaggle GPU. This module is what makes one notebook source serve both: detect the runtime, open a model behind a uniform chat surface, and scaffold the cells deterministically so the session model only writes prose.
 
 Three concerns:
 

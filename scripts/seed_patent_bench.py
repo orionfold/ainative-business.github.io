@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Seed the patent-strategist-v0.1 eval bench by prompting Claude Sonnet 4.6.
 
-Per `specs/patent-strategist-v1.md` §3.2 / §5.1 / §5.3, this script writes
+Per `_SPECS/patent-strategist-v1.md` §3.2 / §5.1 / §5.3, this script writes
 JSONL rows that conform to the `format='patent-strategist'` branch of
 `fieldkit.eval.vertical` — qid / question / family / use_case / scoring_mode /
 gold_label / options / context / oracle_context / rubric / reviewed=False /

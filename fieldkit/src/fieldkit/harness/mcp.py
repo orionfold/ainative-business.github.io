@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """fieldkit-as-MCP — let an agent harness drive the Spark's Orionfold pipeline.
 
-The H4 keystone of the **Harnesses** line (`specs/hermes-harness-v1.md` §4.4).
+The H4 keystone of the **Harnesses** line (`_SPECS/hermes-harness-v1.md` §4.4).
 Exposes a *curated* subset of `fieldkit` surfaces as Model-Context-Protocol
 tools so a harness — Hermes (Nous Research, MIT) first, but any MCP client —
 can operate the box itself: read the inference envelope, measure a GGUF, run a

@@ -10,7 +10,7 @@ Owns the **notebook-authoring surface** for Orionfold artifact verticals. A vert
 - **builder notebook** — for the AI researcher/engineer. Walks the build journey as `fieldkit` API calls. Takeaway: **speed** of development with fieldkit, **feasibility** (does it fit the 128 GB Spark envelope?), **viability** (it shipped — live HF artifact + card).
 - **user notebook** — for the model consumer / app developer. Walks realistic domain use cases. Takeaway: **desirability** (the model on real tasks, reasoning chains surfaced), **viability** (fieldkit glue makes app-building tractable), **feasibility** (runs on Spark *and* a free Colab/Kaggle GPU).
 
-The governing spec is `specs/notebooks-as-artifacts-v1.md` — read §4 (anatomy), §6 (dual-path runtime), §7 (visual system) before authoring a new vertical.
+The governing spec is `_SPECS/notebooks-as-artifacts-v1.md` — read §4 (anatomy), §6 (dual-path runtime), §7 (visual system) before authoring a new vertical.
 
 ## Architecture rule — read first
 
@@ -94,4 +94,4 @@ After the patent-strategist pilot, the cell skeleton in `references/cell-templat
 ## Reference files
 
 - `references/cell-template.md` — the locked builder + user cell skeletons (what each cell accomplishes). Read before authoring.
-- `references/authoring-contract.md` — voice, the marketing-landing-page mandate, and the visual/narrative contract pointers (`NARRATIVE-CONTRACT.md`, `fieldkit.viz` figures, dual-path runtime banners).
+- `references/authoring-contract.md` — voice, the marketing-landing-page mandate, and the visual/narrative contract pointers (`_GUIDES/NARRATIVE-CONTRACT.md`, `fieldkit.viz` figures, dual-path runtime banners).

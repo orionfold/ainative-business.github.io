@@ -4,7 +4,7 @@ Authoritative source for the production patent `<think>`-chain training corpus.
 
 ## Source of truth
 
-`/home/nvidia/ainative-business.github.io/specs/patent-strategist-v1.md`:
+`/home/nvidia/ainative-business.github.io/_SPECS/patent-strategist-v1.md`:
 
 - **§4 Layer 2** — training-data structure mandate (`<think>chain</think>answer`, 100% of patent examples)
 - **§5.3** — bench source allocation (Claude-seeded synthetic = Families A1-A4, E1-E2)

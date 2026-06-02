@@ -5,7 +5,7 @@
 `fieldkit.viz` turns an `ArtifactManifest` (or its bare measurement dicts) into
 marketing-grade visuals: matplotlib `Figure`s styled by the bundled
 `orionfold.mplstyle`, and great_tables `GT` hero tables. It is the visual layer
-the notebooks-as-artifacts pilot (`specs/notebooks-as-artifacts-v1.md`) leans on
+the notebooks-as-artifacts pilot (`_SPECS/notebooks-as-artifacts-v1.md`) leans on
 so every vertical's builder/user notebook, the field-notes article figures, and
 (eventually) the home-page infographic all draw from one branded surface.
 
@@ -28,7 +28,7 @@ Design:
   cycle.
 - **Stack-distinct color.** The accent is keyed off `stack_origin` via
   `STACK_COLORS` so two siblings (Unsloth vs NeMo) render visually distinct at a
-  glance — NARRATIVE-CONTRACT.md Rule 7.
+  glance — _GUIDES/NARRATIVE-CONTRACT.md Rule 7.
 - **`ax=`-aware.** Single-panel figures accept an `ax` to draw onto, which is
   how `spark_quad` composes the four-axis panel out of the same primitives.
 

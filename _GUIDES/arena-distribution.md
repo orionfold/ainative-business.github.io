@@ -1,13 +1,16 @@
-# APP-SYNC.md — Orionfold Arena → ainative.business (the PUBLISHER)
+<!-- Arena distribution (build + publish the cockpit / static preview) — Last updated: 2026-05-28 -->
 
-> Builder-authored handoff for the **app** distribution surface. Sibling to the
-> content `SYNC-WORKFLOW.md` (which covers articles/fieldkit-docs), scoped only
-> to **Orionfold Arena**. The destination repo (ainative.business) points at
-> this file to know what to do with Arena's assets.
+# Arena distribution — building & publishing the Orionfold Arena cockpit
+
+> How the **Orionfold Arena** app is built and published. Since the 2026-05-29
+> monorepo cutover, build and publish both happen in *this* repo (Spark-owned);
+> the "BUILDER → PUBLISHER" hop is now internal, not cross-repo. orionfold.com
+> (the MARKETER) is still a separate storefront — see
+> `arena-storefront-marketing.md`.
 >
-> Distribution pipeline: **this repo (BUILDER, on Spark) → ainative.business
-> (PUBLISHER) → orionfold.com (MARKETER).** PyPI / HF / GitHub are the external
-> artifact hosts the publisher and marketer link to.
+> Distribution pipeline: **this monorepo (BUILDER + PUBLISHER, on Spark) →
+> orionfold.com (MARKETER).** PyPI / HF / GitHub are the external artifact hosts
+> the publisher and marketer link to.
 
 ## What Orionfold Arena is
 

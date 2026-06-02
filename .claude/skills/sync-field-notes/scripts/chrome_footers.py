@@ -19,9 +19,10 @@ This module owns:
 Both `sync_articles.py` (post-sync re-append) and `diff_articles.py`
 (pre-compare strip) import from here so they agree on the boundary.
 
-Per `mirrors/destination-overrides.md` "Article-body overrides (narrow,
-gated)" section in the source repo: Spark CC never writes this block;
-Mac CC owns it end-to-end.
+This is the "Article-body overrides (narrow, gated)" convention from the
+retired two-repo sync model: the catalog footer was a destination-owned,
+gated block. (That two-repo boundary is retired under the monorepo; this
+sync skill is now legacy.)
 """
 
 from __future__ import annotations

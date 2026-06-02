@@ -31,7 +31,7 @@ authoritative: Spark
 > web preview. v0.1's "cockpit on 127.0.0.1:7866 only" still holds for the *sidecar*; what
 > changed is that the static UI is no longer sync-only — it ships in the package. App
 > registered as the first `arena_run` artifact manifest (`src/content/artifacts/orionfold-arena.yaml`).
-> Handoffs: `APP-SYNC.md` (publisher) + `APP-MARKETING.md` (marketer).
+> Handoffs: `_GUIDES/arena-distribution.md` (publisher) + `_GUIDES/arena-storefront-marketing.md` (marketer).
 
 ## 1. Context
 
@@ -194,7 +194,7 @@ named after a product line rather than a workflow phase — breaking the taxonom
 - SQLite path: **`~/.fieldkit/arena.db`** (operator-private, NOT in repo).
 - HF dataset (publishable slice, v0.2 push): **`Orionfold/spark-arena-leaderboard-v0.1`**.
 - CC skill: **`spark-arena-curator`** (sibling to `fieldkit-curator`, `hf-publisher`).
-- Spec path: **`specs/spark-arena-v1.md`** (this file).
+- Spec path: **`_SPECS/spark-arena-v1.md`** (this file).
 - Ideas doc: **`ideas/spark-arena.md`**.
 - First article slug: **`articles/introducing-spark-arena-on-spark/`**.
 
@@ -230,11 +230,10 @@ never SSRs (the sidecar isn't available at build time).
 many inbound links). Add `/arena/articles/` as a *filtered cross-link surface* over the
 same `getCollection('articles')` source. No URL collision.
 
-**`/arena/models/[slug]/` boundary.** Per Phase-3 review of
-`mirrors/destination-overrides.md`: `/artifacts/<kind>/<slug>/` URL space is
-**Mac-authoritative** (the canonical catalog at the Mac side). Arena's per-model pages
-are the **cockpit surface** (chat-with-this-model, run-rubric, telemetry-while-warm) and
-**link OUT** to the Mac catalog for canonical detail. No chrome collision.
+**`/arena/models/[slug]/` boundary.** The `/artifacts/<kind>/<slug>/` URL space is the
+**canonical catalog surface**. Arena's per-model pages are the **cockpit surface**
+(chat-with-this-model, run-rubric, telemetry-while-warm) and **link OUT** to the catalog
+for canonical detail. No chrome collision.
 
 ### 4.1 Cockpit landing — `/arena/`
 
@@ -586,10 +585,9 @@ or one** lane shows the `WARM` chip. Every swap routes through
 | `leaderboard/*.html` | reads `src/data/arena-mirror/leaderboard.json` | fully static |
 | `models/*`, `benches/*`, `harnesses/*`, `skills/*`, `notebooks/*`, `articles/*` | `getCollection('artifacts')` + cached JSON | fully static |
 
-**Mac sync handshake.** `mirrors/destination-overrides.md` adds `/arena/**` to the
-Spark-authoritative side (single Mac-coordination point for the whole project). The Mac
-`/sync-field-notes` skill picks up `src/pages/arena/**` + `src/data/arena-mirror/**` + the
-new `ArenaLayout.astro` on its next run.
+**Build inputs.** The `/arena/**` static surface is built in this monorepo directly from
+`src/pages/arena/**` + `src/data/arena-mirror/**` + `ArenaLayout.astro`. (Pre-cutover this
+was a Mac `/sync-field-notes` handshake; under the monorepo it's just part of the site build.)
 
 **SQLite → JSON serialization.** `fieldkit arena mirror` CLI runs
 `store.export_publishable_slice()` into `src/data/`. Triggers:
@@ -776,10 +774,9 @@ Proposed Cockpit blurb:
 > when you're ready. The cockpit complements the Harnesses arc: where Hermes is the
 > agent harness, Arena is the operator harness."*
 
-**`mirrors/destination-overrides.md` source-side note.** Add `/arena/**` to the
-Spark-authoritative section (the inverse of `/book/`, `/pricing/`, etc.). Mac
-mirrors back via standard `mirror: destination-overrides update — <date> — add /arena/**
-spark-authoritative` PR loop.
+**IA note.** `/arena/**` is a top-level route family alongside `/book/`, `/pricing/`,
+`/artifacts/`, etc., owned in this monorepo. (Pre-cutover this was a Spark-authoritative
+entry in the two-repo chrome-boundary contract; that boundary is retired.)
 
 **`.claude/skills/tech-writer/references/use-case-arc.md`.** Add a "Cockpit series"
 section so the tech-writer next-article detection knows the Arena arc.
@@ -876,7 +873,7 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`
-- Spec format precedents: `specs/hermes-harness-v1.md` (closest sibling), `specs/notebooks-as-artifacts-v1.md`, `specs/patent-strategist-v1.md`
+- Spec format precedents: `_SPECS/hermes-harness-v1.md` (closest sibling), `_SPECS/notebooks-as-artifacts-v1.md`, `_SPECS/patent-strategist-v1.md`
 - Editorial arcs: `.claude/skills/tech-writer/references/use-case-arc.md`
 - Hermes brain pin (the resident lane): `articles/picking-the-hermes-brain-on-spark/`
 - H5 vertical router (compare-routing v0.2 surface): `articles/hermes-vertical-router-on-spark/`
@@ -884,7 +881,6 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 - H4 fieldkit-MCP (the trajectory replay shape): `articles/hermes-drives-the-spark-via-fieldkit-mcp/`
 - Series page (the trap): `src/pages/series/[series].astro` `SERIES_COPY`
 - Artifact schema: `src/content.config.ts` (`SERIES`, `ARTIFACT_KINDS`, `FIELDKIT_MODULES`)
-- Destination overrides contract: `mirrors/destination-overrides.md`
 - fieldkit modules reused: `fieldkit/src/fieldkit/{harness,eval,viz,notebook,publish,capabilities}/`
 
 ### External

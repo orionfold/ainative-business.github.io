@@ -480,7 +480,7 @@ Bench dataset card references this snapshot. If a source license drifts mid-proj
 ## 8. Week-by-week task plan
 
 ### Week 1 (~22 PT hours)
-- **T1** (2h): Scaffold `specs/patent-strategist-v1.md` (this file) — *done as part of plan-mode exit*
+- **T1** (2h): Scaffold `_SPECS/patent-strategist-v1.md` (this file) — *done as part of plan-mode exit*
 - **T2** (6h): `scripts/build_patent_corpus.py` — PatentMatch + BIGPATENT + GPat + MPEP + OARD pulls + snapshot.json
 - **T3** (3h): `scripts/build_rag_index.py` — bge-small + FAISS persist
 - **T4** (2h): Add `format='patent-strategist'` branch to `fieldkit/src/fieldkit/eval/vertical.py`

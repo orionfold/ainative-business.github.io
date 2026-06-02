@@ -1,4 +1,6 @@
-# COMMANDS
+<!-- Local AI stack commands (Ollama / NemoClaw / OpenShell) — Last updated: 2026-04-21 -->
+
+# Local AI stack commands
 
 Repeat commands for the local AI stack on this DGX Spark. Sandbox name is `clawnav`. Current default model is `glm-4.7-flash:latest`.
 

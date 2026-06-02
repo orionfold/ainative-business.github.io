@@ -91,7 +91,7 @@ The Tier A HF Space *is* the BYOP surface — the model dropdown + prompt input 
 - `playground-space/app.py` — **new**; Gradio Blocks + llama-cpp-python prebuilt wheels (deploys to `Orionfold/playground`)
 - `playground-space/requirements.txt` — **new**; pins to the prebuilt-wheels index
 - For each of 6 Orionfold HF model repos: copy `notebook-standardized.ipynb` to repo root + add Open-in-Colab/Kaggle badges to README (hf-publisher skill territory)
-- `NARRATIVE-CONTRACT.md` — extend to cover the "benchmarks block" surface (so HF cards and site stay in sync)
+- `_GUIDES/NARRATIVE-CONTRACT.md` — extend to cover the "benchmarks block" surface (so HF cards and site stay in sync)
 
 ## Phasing (validates cheaply before fanning out)
 
@@ -127,7 +127,7 @@ The Tier A HF Space *is* the BYOP surface — the model dropdown + prompt input 
 - **HF Spaces 48h sleep + cold-start ~90s** can feel broken to first-time prospects. Mitigation: static fallback grid + visible "Wake up the model (~90s)" CTA + cached example outputs.
 - **6 GGUF models lazily loaded in 16 GB RAM** is tight (4-5 GB each at Q4_K_M); risk of OOM when switching. Mitigation: unload-on-switch in the Gradio app; benchmark RAM headroom before publishing.
 - **LegalBench license curation** is real work — 162 tasks, mixed per-task licenses. Mitigation: start with the Stanford-blessed "instruct" subset (~20 tasks) Saul itself was evaluated on.
-- **Source/destination schema drift** if the `benchmarks[]` field is added on destination first. Mitigation: write the source-side Zod change before destination merges (NFS-mount writes; same pattern as the 2026-05-22 NARRATIVE-CONTRACT.md edit).
+- **Source/destination schema drift** if the `benchmarks[]` field is added on destination first. Mitigation: write the source-side Zod change before destination merges (NFS-mount writes; same pattern as the 2026-05-22 _GUIDES/NARRATIVE-CONTRACT.md edit).
 - **CC-NC blunder** if anyone copies TAT-QA / ContractNLI / Pile-of-Law scores into the marketing-facing benchmark grid. Mitigation: hard `LICENSE_ALLOWLIST` constant in `fieldkit/eval/harness_runner.py`; refuse to write disallowed tasks into manifests.
 
 ## Open questions for the user before execution

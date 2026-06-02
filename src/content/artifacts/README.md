@@ -23,7 +23,7 @@ human-readable summary; if the two ever drift, the Zod schema wins.
 |---|---|---|---|
 | `slug` | ✓ | string | URL slug; should match the filename without `.yaml` |
 | `kind` | ✓ | enum | One of `quant`, `lora`, `adapter`, `dataset`, `bench` |
-| `positioning.headline` |  | string | One-line elevator (added v0.5.x; required by [NARRATIVE-CONTRACT.md](/Volumes/home/ai-field-notes/NARRATIVE-CONTRACT.md)) |
+| `positioning.headline` |  | string | One-line elevator (added v0.5.x; required by [_GUIDES/NARRATIVE-CONTRACT.md](/Volumes/home/ai-field-notes/NARRATIVE-CONTRACT.md)) |
 | `positioning.problem` |  | string | Customer-problem framing — sets "What this model does" body |
 | `positioning.use_cases` |  | string[] | Use-case bullets |
 | `positioning.audience` |  | string | Who picks this artifact |
@@ -143,17 +143,14 @@ scored results; a dataset is data without scores.
 
 ---
 
-## Source-side authoring
+## Authoring
 
-Manifests are authored in the sibling `ai-field-notes` source repo (under
-its own `src/content/artifacts/`) and copied here by the
-`sync-field-notes` skill on Mac. **Don't author manifests directly in this
-repo** — the next sync will overwrite them. The source repo's
-`mirrors/destination-overrides.md` points back to this README so source-side
-authors know what fields to populate.
+Manifests are authored directly in this monorepo, here under
+`src/content/artifacts/`. (Pre-cutover they were authored in a sibling
+`ai-field-notes` source repo and copied in by the `sync-field-notes` skill;
+that two-repo model is retired — author here.)
 
 The catalog footer (`**Catalog page:** …`) that appears at the tail of
-articles with a paired quant manifest is a destination-side override per
-`mirrors/destination-overrides.md` — Mac CC appends it on every sync; Spark
-CC never writes it. See `chrome_footers.py` in the sync skill for the
-boundary-owning code.
+articles with a paired quant manifest is appended programmatically — see
+`chrome_footers.py` in the (now-legacy) sync skill for the strip/re-append
+logic that owns that boundary.

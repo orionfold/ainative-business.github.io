@@ -1,17 +1,17 @@
 # Site rendering rubric — artifact cards & detail pages
 
-This file is the Astro-side companion to the source repo's `NARRATIVE-CONTRACT.md`
+This file is the Astro-side companion to `_GUIDES/NARRATIVE-CONTRACT.md`
 (canonical content rubric for both HuggingFace and the marketing site; read it at
-`~/.cache/ai-field-notes-src/NARRATIVE-CONTRACT.md` after a Step 1 refresh, or on GitHub).
+`_GUIDES/NARRATIVE-CONTRACT.md` in this repo).
 
-**The content rules live in `NARRATIVE-CONTRACT.md`.** This file covers
+**The content rules live in `_GUIDES/NARRATIVE-CONTRACT.md`.** This file covers
 site-surface specifics only: which manifest field maps to which Astro
 component slot, plus light-theme / mobile / a11y guidance the source-side
 contract doesn't address because it's not relevant on HF.
 
 ## Section order on detail pages
 
-Mirrors the canonical order in `NARRATIVE-CONTRACT.md`:
+Mirrors the canonical order in `_GUIDES/NARRATIVE-CONTRACT.md`:
 
 1. **Header** — kicker (kind + class + stack_origin badge), title, elevator (`positioning.headline`), hero signature SVG + meta strip
 2. **What this model does** — `positioning.problem` → `positioning.use_cases` → `positioning.audience`

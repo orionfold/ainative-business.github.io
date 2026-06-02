@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Build the patent-strategist raw corpus on disk.
 
-Per `specs/patent-strategist-v1.md` §3.2 + §6: pulls commercial-safe patent
+Per `_SPECS/patent-strategist-v1.md` §3.2 + §6: pulls commercial-safe patent
 sources to `/home/nvidia/data/corpus/patent/<source>/*.jsonl` and writes a
 provenance snapshot at `evidence/patent-strategist/corpus-snapshot.json`
 that the R10 (license-drift) mitigation hangs on.
@@ -550,7 +550,7 @@ def _build_snapshot(results: list[SourceResult]) -> dict[str, Any]:
         }
     return {
         "pulled_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "spec_ref": "specs/patent-strategist-v1.md §6",
+        "spec_ref": "_SPECS/patent-strategist-v1.md §6",
         "sources": sources,
     }
 

@@ -186,7 +186,7 @@ def mcq_letter(
 # `office_action_argument` — they wrap a caller-supplied `Judge`), one is
 # deterministic regex-checklist (`irac_structure`), and one is a pure
 # Spearman-rank reducer over ranked prior-art lists (`prior_art_relevance`).
-# Per `specs/patent-strategist-v1.md` §3.3. Rubric markdown ships alongside
+# Per `_SPECS/patent-strategist-v1.md` §3.3. Rubric markdown ships alongside
 # this module under `rubrics/` and loads via `load_rubric()`.
 
 

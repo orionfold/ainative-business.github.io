@@ -78,7 +78,7 @@ framings, with the traps to avoid:
 The skill does not render the chart — the destination (Mac) repo owns the
 infographic component, exactly as it owns the home-page "At a glance" chart and
 the layouts. The skill's job is to emit clean data + a clear spec. In
-`PRODUCT-ARTICLES.md` the rendering contract describes the component the
+`_GUIDES/PRODUCT-ARTICLES.md` the rendering contract describes the component the
 destination should build; the `build:` frontmatter block is its data source.
 
 A good infographic for a build story shows, at a glance:

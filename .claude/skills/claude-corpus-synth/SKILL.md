@@ -1,6 +1,6 @@
 ---
 name: claude-corpus-synth
-description: Generates patent `<think>chain</think>answer` training-corpus rows IN the Claude Code CLI session itself — no API calls, no subprocess, no `anthropic` / `claude-agent-sdk` imports. Claude (the session model) writes rows directly via Edit-append using the spec §4 Layer 2 prompt template. Trigger when the user says "build the production corpus", "synth the 25k patent corpus", "generate the W3 training data", "spec §4 Layer 2 corpus", `/claude-corpus-synth`, or whenever the patent-strategist W3 production fine-tune unblocks (current state: blocked-on-corpus per HANDOFF). ALWAYS gate live runs with paste-`/usage` pre-flight showing projected % of weekly Max 20x cap consumed AND estimated number of CC sessions needed. Three modes — `dry` (5 rows in one assistant turn, validates prompt + measures tokens-per-row), `preflight` (computes weekly-cap delta + session-count from dry-run measurement), `live` (cursor-driven batch loop across multiple CC sessions). Do NOT trigger for non-patent corpora without re-reading specs/patent-strategist-v1.md §4. Do NOT use this skill to invoke Claude via any subprocess / SDK / API key.
+description: Generates patent `<think>chain</think>answer` training-corpus rows IN the Claude Code CLI session itself — no API calls, no subprocess, no `anthropic` / `claude-agent-sdk` imports. Claude (the session model) writes rows directly via Edit-append using the spec §4 Layer 2 prompt template. Trigger when the user says "build the production corpus", "synth the 25k patent corpus", "generate the W3 training data", "spec §4 Layer 2 corpus", `/claude-corpus-synth`, or whenever the patent-strategist W3 production fine-tune unblocks (current state: blocked-on-corpus per HANDOFF). ALWAYS gate live runs with paste-`/usage` pre-flight showing projected % of weekly Max 20x cap consumed AND estimated number of CC sessions needed. Three modes — `dry` (5 rows in one assistant turn, validates prompt + measures tokens-per-row), `preflight` (computes weekly-cap delta + session-count from dry-run measurement), `live` (cursor-driven batch loop across multiple CC sessions). Do NOT trigger for non-patent corpora without re-reading _SPECS/patent-strategist-v1.md §4. Do NOT use this skill to invoke Claude via any subprocess / SDK / API key.
 ---
 
 # claude-corpus-synth
@@ -47,7 +47,7 @@ Two non-skippable preflights. If either fails, surface to the user and bail.
 ### 1. Patent-strategist spec must exist
 
 ```bash
-test -r /home/nvidia/ainative-business.github.io/specs/patent-strategist-v1.md || echo MISSING
+test -r /home/nvidia/ainative-business.github.io/_SPECS/patent-strategist-v1.md || echo MISSING
 ```
 
 The prompt template + family distribution come from spec §4 Layer 2 + §5.3 + §6.1. Do not run if the spec has moved without updating `references/corpus-recipe.md`.
@@ -249,7 +249,7 @@ Downstream `g3_train_first_lora.sh` reads only rows where `has_think == true` �
 - Do NOT import `anthropic`, `claude_agent_sdk`, or any other SDK that calls Claude programmatically. The user's policy is explicit: in-CC-session orchestration only. See `[[feedback_llm_skill_pattern]]`.
 - Do NOT shell out to `python -c 'client.messages.create(…)'` or any equivalent escape hatch.
 - Do NOT bypass the pre-flight gate. The 25k corpus is many weeks of cap consumption — the user must see the math before committing.
-- Do NOT extend this skill to non-patent corpora without re-reading `specs/patent-strategist-v1.md` §4. The prompt template + family templates are domain-specific. A new domain wants a sibling skill, not a flag.
+- Do NOT extend this skill to non-patent corpora without re-reading `_SPECS/patent-strategist-v1.md` §4. The prompt template + family templates are domain-specific. A new domain wants a sibling skill, not a flag.
 - Do NOT skip the dry-run before preflight. Without measured tokens-per-row, the cap projection is guesswork.
 - Do NOT continue generating in a session whose context is > 70% full. Stop, advise `/clear`, resume in a fresh session.
 

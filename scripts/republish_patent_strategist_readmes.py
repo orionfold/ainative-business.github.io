@@ -99,7 +99,7 @@ SIBLINGS = (
 # pair targets the NeMo lane, so every card carries the identical
 # badge row directly under the one-liner (NARRATIVE-CONTRACT Rule 8: a
 # navigation aid, not a claim — positioning still leads). Colab/Kaggle open the
-# committed `.ipynb` from `main`. See specs/notebooks-as-artifacts-v1.md §8.3.
+# committed `.ipynb` from `main`. See _SPECS/notebooks-as-artifacts-v1.md §8.3.
 # URLs are built by the SAME fieldkit helpers that wrote the in-notebook badge
 # row (colab path is `/github/owner/...`, kaggle is `?src=https://github.com/...`)
 # so the two surfaces can't drift.

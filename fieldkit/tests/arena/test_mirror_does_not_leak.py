@@ -4,7 +4,7 @@
 appears in any mirror JSON output.
 
 This is the hard regression test the M6 release gates against, called out
-in HANDOFF (QUEUED NEXT #1) and `specs/spark-arena-v1.md` §4.10 + risk R1.
+in HANDOFF (QUEUED NEXT #1) and `_SPECS/spark-arena-v1.md` §4.10 + risk R1.
 The test seeds *unique sentinel strings* into every forbidden column the
 exporter must never touch (``chat_turns.content``, ``chat_turns.reasoning``,
 ``compare_runs.prompt``, ``compare_responses.content``,

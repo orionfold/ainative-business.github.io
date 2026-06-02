@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """T10 — RAG-only baseline driver for patent-strategist-v0.1 bench.
 
-Per `specs/patent-strategist-v1.md` §3.4 and the W2 HANDOFF: drives the
+Per `_SPECS/patent-strategist-v1.md` §3.4 and the W2 HANDOFF: drives the
 patent-strategist eval bench against either retrieved context (BGE-small +
 FAISS flat-IP at top-k=8), the seeded oracle context, or no context at all,
 then optionally calls a llama-server / OpenAI-compatible chat endpoint for

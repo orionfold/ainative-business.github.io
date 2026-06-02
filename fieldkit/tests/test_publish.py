@@ -57,7 +57,7 @@ def test_artifact_kinds_are_the_canonical_set() -> None:
         "dataset",
         "bench",
         "notebook",
-        "harness",  # Harnesses content line (specs/hermes-harness-v1.md)
+        "harness",  # Harnesses content line (_SPECS/hermes-harness-v1.md)
         "skill",
     )
 

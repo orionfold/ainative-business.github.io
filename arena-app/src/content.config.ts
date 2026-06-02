@@ -12,11 +12,11 @@ import { glob } from 'astro/loaders';
 // `viz` is the branded chart/table layer, `notebook` the dual-path
 // Spark/Colab/Kaggle inference + scaffold surface. `harness` (Harnesses
 // series, hermes-harness-v1) is the agent-harness serving/configure/harden/
-// route/eval/profile surface — see specs/hermes-harness-v1.md §4.7.
+// route/eval/profile surface — see _SPECS/hermes-harness-v1.md §4.7.
 // `arena` (Cockpit series, spark-arena-v1) is the operator cockpit sidecar —
 // FastAPI + SSE + SQLite under `fieldkit.arena.server`; sibling to `harness`
 // (Arena drives the box from the operator's side; Hermes drives it from the
-// agent's). See specs/spark-arena-v1.md §4.7.
+// agent's). See _SPECS/spark-arena-v1.md §4.7.
 export const FIELDKIT_MODULES = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena'] as const;
 
 // Articles live at ../articles/<slug>/article.md and are authored via the
@@ -163,7 +163,7 @@ export const ARTIFACT_KINDS = [
   'bench',
   // 6th kind (notebooks-as-artifacts v1) — a per-vertical Jupyter pair
   // (builder + user) distributed as Open-in-Colab / Open-in-Kaggle notebooks.
-  // See specs/notebooks-as-artifacts-v1.md.
+  // See _SPECS/notebooks-as-artifacts-v1.md.
   'notebook',
   // 7th + 8th kinds (Harnesses series, hermes-harness-v1 §4.8). `harness` =
   // a reproducible Spark-Hermes profile bundle (provider config + serving-lane
@@ -244,7 +244,7 @@ const artifacts = defineCollection({
     // The catalog card renders the same badge row the HF README shows, directly
     // under the one-liner (a navigation aid, above-the-fold). Each entry carries
     // an optional label + either/both Colab/Kaggle URLs. See
-    // specs/notebooks-as-artifacts-v1.md §8.3.
+    // _SPECS/notebooks-as-artifacts-v1.md §8.3.
     notebooks: z.array(z.object({
       label: z.string().optional(),
       colab: z.string().optional(),

@@ -70,7 +70,7 @@ and the captured probe `probes/rerun/p-p-strat-01-rerun.json`. The article names
 itself: *"A v4 corpus generation with a fact-check pass is the next iteration."* The
 **HF-card presentation** problem (drift above-the-fold) is **already fixed** — bounded
 `known_drift` rendered below Methods via `scripts/republish_patent_strategist_readmes.py` +
-`NARRATIVE-CONTRACT.md` Rules 1–2. What remains is the **content** fix: the model still emits
+`_GUIDES/NARRATIVE-CONTRACT.md` Rules 1–2. What remains is the **content** fix: the model still emits
 the fabricated cites because they're in its weights. `claude-corpus-synth`'s `verify_chunk.py`
 gates catch meta-state leakage but have **no MPEP-grounding check** — that gap is why the
 artifacts shipped.
@@ -137,7 +137,7 @@ is part of the diagnostic.
   `lora_target_modules=("q_proj","k_proj","v_proj","o_proj","gate_proj","up_proj","down_proj")`
   and a rank/steps bump (e.g. r=32, ~2–3 epochs), so the FT has the capacity to overwrite the
   generation-style prior. **Risk:** MLP targeting is the dominant `<think>`-degradation source
-  per `specs/patent-strategist-v1.md` §4 — so the probe must check `think_presence_rate` +
+  per `_SPECS/patent-strategist-v1.md` §4 — so the probe must check `think_presence_rate` +
   `think_token_length` **alongside** `think_space_ratio` and revert if reasoning collapses.
 - **Base-switch fallback (only if the bounded recipe sweep still trips `< 0.08`):**
   `hf-model-scout` for an alternate open-license reasoning base without the spaceless think
@@ -172,9 +172,9 @@ Reuse the proven v3 path end-to-end — no new training infra:
 | Corpus (v3 source) | `/home/nvidia/data/aifn-corpus-v3/v3_full_5000.jsonl` |
 | Corpus verify gates | `.claude/skills/claude-corpus-synth/scripts/verify_chunk.py` |
 | Hallucination evidence | `articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/article.md:254-256` |
-| Card drift + render | `scripts/republish_patent_strategist_readmes.py`, `fieldkit/src/fieldkit/publish/__init__.py`, `NARRATIVE-CONTRACT.md` |
+| Card drift + render | `scripts/republish_patent_strategist_readmes.py`, `fieldkit/src/fieldkit/publish/__init__.py`, `_GUIDES/NARRATIVE-CONTRACT.md` |
 | v3 nemo merged BF16 (diagnostic target) | `/home/nvidia/data/aifn-train-lora/p65-nemo/merged-hf-bf16-clean` |
-| Decision context | `ideas/uber-local-corpus-gen-decision.md`, `specs/patent-strategist-v1.md` §4 |
+| Decision context | `ideas/uber-local-corpus-gen-decision.md`, `_SPECS/patent-strategist-v1.md` §4 |
 | **NEW** fact-check pre-pass | `scripts/v4_corpus_factcheck.py` |
 
 ## Session-sized task breakdown (each = one CC session context)

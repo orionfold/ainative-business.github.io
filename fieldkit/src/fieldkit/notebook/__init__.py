@@ -3,7 +3,7 @@
 """Dual-path notebook runtime + scaffolding for Orionfold artifact notebooks.
 
 The runtime + authoring spine of the notebooks-as-artifacts pilot
-(`specs/notebooks-as-artifacts-v1.md`). Three concerns:
+(`_SPECS/notebooks-as-artifacts-v1.md`). Three concerns:
 
 1. **Runtime detection** — `detect_runtime()` returns `"spark" | "colab" |
    "kaggle" | "local"`. The notebook's parameterized first cell branches on it:

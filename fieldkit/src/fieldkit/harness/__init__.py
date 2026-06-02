@@ -4,7 +4,7 @@
 
 The deterministic Python spine of the **Harnesses** content line — optimized
 agent harnesses released for the DGX Spark, Hermes Agent (Nous Research, MIT)
-first. See `specs/hermes-harness-v1.md` for the full design.
+first. See `_SPECS/hermes-harness-v1.md` for the full design.
 
 **H1 surface (this release):** install + doctor + configure + the NIM /
 llama-server serving lanes + the `serve_lane` contextmanager with a

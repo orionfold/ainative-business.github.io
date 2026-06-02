@@ -4,7 +4,7 @@
 boundary** between the operator-private cockpit DB and the public mirror.
 
 **M6 surface.** Per spec §4.10 + the M6 / M7 sequencing in
-`specs/spark-arena-v1.md`: this module owns *what leaves the Spark*. Two
+`_SPECS/spark-arena-v1.md`: this module owns *what leaves the Spark*. Two
 hardcoded surfaces enforce the boundary, both of which the regression test
 ``fieldkit/tests/arena/test_mirror_does_not_leak.py`` pins as a hard
 M7-blocker:

@@ -109,7 +109,7 @@ ARTIFACT_KINDS: tuple[str, ...] = (
 `notebook` (added in the notebooks-as-artifacts v1 work) is the 6th kind: a
 per-vertical Jupyter pair (`variants: [builder, user]`) distributed as
 Open-in-Colab / Open-in-Kaggle one-click notebooks. See
-`specs/notebooks-as-artifacts-v1.md`.
+`_SPECS/notebooks-as-artifacts-v1.md`.
 
 `harness` + `skill` (added for the Harnesses content line, `specs/
 hermes-harness-v1.md`): a `harness` is a reproducible Spark-Hermes profile
@@ -271,7 +271,7 @@ class ModelCard:
     """Open-in-Colab / Open-in-Kaggle runnable on-ramps — each entry shaped
     `{"label": "<short call-to-action>", "colab": "<url>", "kaggle": "<url>"}`.
     Renders as a **badge row directly under the one-liner**, above-the-fold,
-    *before* positioning. Per `NARRATIVE-CONTRACT.md` the badge row is a
+    *before* positioning. Per `_GUIDES/NARRATIVE-CONTRACT.md` the badge row is a
     navigation aid (a runnable link), not a claim, so it does not violate
     "positioning leads" — positioning is still the first prose a reader meets.
 
@@ -281,7 +281,7 @@ class ModelCard:
     Spark-only builder notebook with no cloud fallback may set only `colab`,
     etc.). Empty default skips the block. Mirrored on `ArtifactManifest.notebooks`
     so the destination catalog card renders the same badges. See
-    `specs/notebooks-as-artifacts-v1.md` §8.3."""
+    `_SPECS/notebooks-as-artifacts-v1.md` §8.3."""
 
     def render(self) -> str:
         """Return the full README.md-style card as a single string."""
@@ -544,7 +544,7 @@ def _render_model_card(card: ModelCard) -> str:
     # Runnable on-ramp — a titled `## Notebooks` section placed *after* the
     # positioning lead (not above-the-fold). It carries a one-sentence "what it
     # does" per notebook in a table, so it is a section, not a bare badge row.
-    # See NARRATIVE-CONTRACT.md Rule 8.
+    # See _GUIDES/NARRATIVE-CONTRACT.md Rule 8.
     if card.notebooks:
         section = _render_notebook_section(card.notebooks)
         if section:
@@ -834,7 +834,7 @@ class ArtifactManifest:
     optional). On a sibling **model** manifest these point at the vertical's
     notebooks; on a `kind: notebook` manifest they are the manifest's own
     artifact. The destination catalog card renders the same badge row the HF
-    README shows. See `specs/notebooks-as-artifacts-v1.md` §8.3."""
+    README shows. See `_SPECS/notebooks-as-artifacts-v1.md` §8.3."""
 
     def to_yaml(self) -> str:
         """Render to the YAML shape the destination Astro collection expects."""
