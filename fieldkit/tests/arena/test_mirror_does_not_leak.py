@@ -72,6 +72,8 @@ def seeded_store_with_sentinels(store):
         "compare_responses_reasoning_A": _new_sentinel("RESPONSE_A_REASONING"),
         "compare_responses_reasoning_B": _new_sentinel("RESPONSE_B_REASONING"),
         "lab_notes_body": _new_sentinel("LAB_NOTE_BODY"),
+        "jobs_payload_json": _new_sentinel("JOBS_PAYLOAD"),
+        "job_triggers_detail": _new_sentinel("JOB_TRIGGER_DETAIL"),
     }
 
     # Resident-brain + frontier lanes
@@ -179,6 +181,39 @@ def seeded_store_with_sentinels(store):
         }
     )
 
+    # --- M8 jobs + job_triggers (control-plane queue; operator-private —
+    # the exporter must never touch these; R13) ---
+    store.enqueue_job(
+        {
+            "id": "job-leak",
+            "kind": "eval_rerun",
+            "status": "queued",
+            "trigger": "manual",
+            "priority": 0,
+            "payload_json": json.dumps(
+                {"secret_prompt": sentinels["jobs_payload_json"]}
+            ),
+            "dedup_key": None,
+            "result_json": None,
+            "error": None,
+            "attempt": 0,
+            "enqueued_at": now,
+            "dispatched_at": None,
+            "finished_at": None,
+            "arq_job_id": None,
+        }
+    )
+    store.record_job_trigger(
+        {
+            "job_id": "job-leak",
+            "source": "operator",
+            "detail_json": json.dumps(
+                {"operator_note": sentinels["job_triggers_detail"]}
+            ),
+            "created_at": now,
+        }
+    )
+
     # Add some bench rows so the export doesn't trip PublishableSliceEmpty.
     conn = store.connect()
     conn.execute(
@@ -283,3 +318,15 @@ def test_lab_notes_is_forbidden():
     assert "lab_notes" in FORBIDDEN_TABLES
     assert "lab_notes" not in PUBLISHABLE_TABLES
     assert ("lab_notes", "body") in FORBIDDEN_COLUMNS
+
+
+def test_jobs_tables_are_forbidden():
+    """M8 anchor (R13) — the control-plane queue is operator-private: ``jobs``
+    payloads carry prompts/lanes/benches, ``job_triggers`` carries operator
+    notes. Both must be on FORBIDDEN_TABLES + out of PUBLISHABLE_TABLES, and
+    the payload column must be on FORBIDDEN_COLUMNS."""
+    assert "jobs" in FORBIDDEN_TABLES
+    assert "job_triggers" in FORBIDDEN_TABLES
+    assert "jobs" not in PUBLISHABLE_TABLES
+    assert "job_triggers" not in PUBLISHABLE_TABLES
+    assert ("jobs", "payload_json") in FORBIDDEN_COLUMNS

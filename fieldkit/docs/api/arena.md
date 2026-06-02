@@ -66,6 +66,20 @@ from fieldkit.arena import (
     PUBLISHABLE_TABLES,
     FORBIDDEN_TABLES,
     FORBIDDEN_COLUMNS,
+    # M8 — control-plane queue (operator-private; never mirrored). The job
+    # records, the dispatcher (executes through the fieldkit.harness MCP
+    # surface), and the leaderboard-regression trigger producer. See §12.
+    JobRecord,
+    JobTriggerRecord,
+    JobKind,
+    JobStatus,
+    enqueue_job,
+    dispatch_job,
+    drain_jobs,
+    detect_leaderboard_regression,
+    enqueue_regressions,
+    JobDispatchError,
+    UnknownJobKind,
 )
 ```
 
@@ -290,8 +304,73 @@ Idempotent — re-running over the same DB produces identical rows. Returns `Reb
 |---|---|---|
 | `PUBLISHABLE_TABLES` | `dict[str, tuple[str, ...]]` | The hardcoded allowlist. The exporter NEVER reads a column from a table that isn't a key here, and NEVER reads a column from a publishable table that isn't in its tuple. `compare_runs` exposes `redacted_prompt` but NOT `prompt`. `compare_responses` exposes `tokens_out` / `tok_per_s` / `unified_peak_gb` but NOT `content` / `reasoning`. |
 | `FORBIDDEN_TABLES` | `tuple[str, ...]` | `("chat_sessions", "chat_turns", "lab_notes")`. Belt over the allowlist's suspenders — the exporter does not reference these by name; the regression test asserts the table NAMES don't appear in the emitted JSON either. `lab_notes` added at v0.2 (operator-private Lab annotations). |
-| `FORBIDDEN_COLUMNS` | `tuple[tuple[str, str], ...]` | The (table, column) pairs that MUST NOT leak. `(compare_runs, prompt)`, `(compare_responses, content)`, `(compare_responses, reasoning)`, the `chat_turns` columns, plus `(lab_notes, body)`. |
+| `FORBIDDEN_COLUMNS` | `tuple[tuple[str, str], ...]` | The (table, column) pairs that MUST NOT leak. `(compare_runs, prompt)`, `(compare_responses, content)`, `(compare_responses, reasoning)`, the `chat_turns` columns, `(lab_notes, body)`, plus `(jobs, payload_json)` (M8). |
 | `MIRROR_SCHEMA_VERSION` | `int` | Bumped to `2` for M6 (was `1` at M2). Adds `bench_rows` / `live_rows` arrays alongside the legacy `rows` alias. |
+
+## M8 — Arena as the control plane
+
+The M8 milestone (`_SPECS/spark-arena-v1.md` §12) promotes Arena from a **recorder** into a **dispatcher** — the place the operator triggers work from. `~/.fieldkit/arena.db` gains two operator-private tables at `PRAGMA user_version = 3` (additive + idempotent over the v0.2 schema): `jobs` (the queue spine) and `job_triggers` (the audit trail). Both are on `FORBIDDEN_TABLES`; `(jobs, payload_json)` is on `FORBIDDEN_COLUMNS` — job payloads carry prompts/lanes/benches and are **never** mirrored (R13). The dispatcher executes **through the `fieldkit.harness` MCP surface** (M8-1) — one execution surface shared with Hermes, so the containment rails are defined once.
+
+### M8 — records (`fieldkit.arena.schemas`)
+
+| Record | Table | Notes |
+|---|---|---|
+| `JobRecord` | `jobs` | The queue row. `kind` is `eval_rerun` / `measure_variants` (M8) or a later-phase stub; `status` ∈ `queued`/`dispatched`/`running`/`done`/`failed`/`skipped`; `payload_json` is operator-only; `dedup_key` = `(kind, lane_id, bench_id)` coalesces in-flight duplicates (R15), `None` = always-run; `arq_job_id` is the `eval_runs` socket (`None` on the M8 BackgroundTasks path). |
+| `JobTriggerRecord` | `job_triggers` | What fired a job: a regression delta, a staleness age, or an operator note. `id` is AUTOINCREMENT (omit on insert). |
+
+### M8 — `JobKind` / `JobStatus`
+
+| Symbol | Members |
+|---|---|
+| `JobKind` | `EVAL_RERUN`, `MEASURE_VARIANTS` (the `DISPATCHABLE` set), plus the named-but-not-built stubs `REQUANT`, `RL_RUN`, `REINDEX`, `RAG_EVAL`, `SCOUT_INGEST`. `DISPATCHABLE` / `ALL` are frozensets. |
+| `JobStatus` | `QUEUED`, `DISPATCHED`, `RUNNING`, `DONE`, `FAILED`, `SKIPPED`; `IN_FLIGHT` is the dedup-holding subset. |
+
+### M8 — `enqueue_job(store, kind, payload, *, trigger, priority, dedup_key, trigger_detail, now_fn)`
+
+Writes one `queued` row and returns its id, or `None` when an in-flight job already holds the `dedup_key` (the R15 coalesce). Records a `job_triggers` audit row when `trigger_detail` is given.
+
+| Kwarg | Default | What it does |
+|---|---|---|
+| `trigger` | `"manual"` | Provenance: `manual` / `leaderboard_regression` / `stale_bench` / … |
+| `priority` | `0` | Higher drains first (regression confirmations enqueue at `1`). |
+| `dedup_key` | `(kind, lane_id, bench_id)` from payload | Pass `""` to force an always-run job, or a custom key. `None`-resolving keys never coalesce. |
+| `trigger_detail` | `None` | When set, also writes the `job_triggers` audit row (the regression delta / staleness age / operator note). |
+| `now_fn` | UTC ISO stamp | Injectable clock (deterministic tests). |
+
+### M8 — `dispatch_job(store, job, *, runner, now_fn)` / `drain_jobs(store, *, runner, max_jobs, now_fn, on_error)`
+
+`dispatch_job` runs one claimed job end-to-end: `running` → execute via `runner` (default `default_runner`, which calls the harness MCP tools — `run_vertical_eval` / `measure_variants`) → `done` (persisting an `eval_rerun` through the existing `eval_scores` scorer path + activating the `eval_runs` status row) or `failed` (stamping `jobs.error` + raising `JobDispatchError`). `runner` is injectable so tests dispatch without a GPU. `drain_jobs` claims the oldest `queued` job and dispatches it in a loop until empty (M8-5, sequential single-lane); `max_jobs` caps a pass, `on_error` (`"record"` default / `"raise"`) controls whether a failed job halts the drain.
+
+### M8 — `detect_leaderboard_regression(prev, curr, *, tau)` / `enqueue_regressions(store, prev, curr, *, tau, now_fn)`
+
+`detect_leaderboard_regression` is the pure, testable core: diff two `ArenaStore.eval_leaderboard()` accuracy-rollup snapshots and return one `{bench_id, lane_id, prev_score, new_score, delta}` per `(bench, lane)` whose `mean_normalized` dropped by more than `tau` (default `0.05`), worst-drop first. Newly-seen lanes can't regress. `enqueue_regressions` runs the detector and enqueues a confirming `eval_rerun` (priority 1, `leaderboard_regression` trigger) per regression — coalescing duplicates while one is in flight.
+
+### M8 — errors
+
+| Error | Raised when |
+|---|---|
+| `JobDispatchError` | A job failed mid-execution; the row is already marked `failed` with the message in `jobs.error`. |
+| `UnknownJobKind` | An `enqueue` named a kind outside `JobKind.ALL`, or a `dispatch` named a stub outside `JobKind.DISPATCHABLE`. |
+
+### M8 — sidecar endpoints (`/api/jobs`)
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/jobs?status=&limit=` | The board read — newest first, optional status filter. Empty (not 404) on a fresh box. |
+| `POST` | `/api/jobs` | Enqueue `{kind, payload, trigger, priority, dispatch}`. `dispatch=True` (default) drains the queue in a BackgroundTask (the M8 primary single-lane path, R14 — no arq/Redis). Returns `coalesced=True` when the dedup gate fires. |
+| `GET` | `/api/jobs/stream` | SSE — emits a full board snapshot on connect + on change (declared before `{job_id}` so it isn't captured as an id). |
+| `GET` | `/api/jobs/{job_id}` | One job + its trigger trail; 404 if unknown. |
+| `DELETE` | `/api/jobs/{job_id}` | Cancel a not-yet-running job (→ `skipped`); 409 if running/done, 404 if unknown. |
+
+### M8 — store methods (`ArenaStore`)
+
+| Method | Returns | What |
+|---|---|---|
+| `.enqueue_job(row)` | `str \| None` | Strict INSERT; `None` when the dedup unique-index coalesces. |
+| `.record_job_trigger(row)` | `int` | Append a `job_triggers` audit row. |
+| `.claim_next_job(*, dispatched_at)` | `sqlite3.Row \| None` | Atomically flip the oldest `queued` job to `dispatched`. |
+| `.update_job(job_id, **fields)` / `.get_job(id)` / `.list_jobs(*, status, limit)` / `.cancel_job(id)` | — | Patch / read / board-list / cancel. |
+| `.upsert_eval_run(row)` / `.update_eval_run(id, **fields)` / `.get_eval_run(id)` | — | The per-run status row M8 activates (the `arq_job_id` socket). |
 
 ## v0.2 surfaces (Lab + distribution)
 

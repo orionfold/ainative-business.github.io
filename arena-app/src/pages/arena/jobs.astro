@@ -1,0 +1,40 @@
+---
+// Jobs — /arena/jobs/
+//
+// M8 control-plane surface (spec §12). Arena becomes a *dispatcher*: the
+// operator triggers work here (re-eval a lane×bench, or watch the auto-enqueued
+// leaderboard-regression confirmations drain). The <JobsBoard> island carries
+// the live board (SSE GET /api/jobs/stream); this page is the cockpit shell.
+//
+// Operator-private + offline-safe by construction: the `jobs` table is on
+// mirror.FORBIDDEN_TABLES (R13), so on the public mirror the board renders a
+// static "Cockpit offline" state — there is nothing to leak.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import JobsBoard from '../../components/arena/JobsBoard.jsx';
+
+const title = 'Orionfold Arena — Jobs';
+const description =
+  'The control plane — dispatch re-evals and watch leaderboard-regression confirmations drain through the Spark, one lane at a time. Operator-private; never mirrored.';
+---
+<ArenaAppLayout title={title} description={description} active="jobs">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Control&nbsp;plane</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">single&nbsp;lane · MCP&nbsp;harness</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          jobs.payload_json — never mirrored
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* Sequential single-lane drain through the fieldkit.harness MCP surface
+          (M8-1/M8-5). eval_rerun is the first/only real M8 job type; the queue
+          coalesces duplicate triggers while in flight (R15). */}
+      <JobsBoard client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>
