@@ -6,6 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.16.0] — 2026-06-02
+
+The **Arena content line, M1 → M8** — the operator cockpit (`fieldkit.arena`,
+new module, `__all__` 0 → 49) lands end-to-end in one release: the SQLite
+store + retroactive importer (M2), the FastAPI sidecar + telemetry (M3),
+chat-against-the-resident-brain (M4), side-by-side compare + rubric scorer
+(M5), the leak-proof publishable-mirror exporter (M6), the v0.2 launch
+surface — packaged web UI + Lab board (M7), and the **control plane** — a jobs
+dispatcher that executes through the `fieldkit.harness` MCP surface, a
+filesystem bench registry, and a wired leaderboard-regression producer (M8).
+First Arena release; supersedes the unreleased M1–M5 work that accumulated
+since 0.13.0.
+
+### Test suite
+
+- `pytest` (offline) → **1129 passed / 16 skipped** (skips = torch / jupytext /
+  matplotlib / great_tables + `--spark`-live-only). `audit-docs` PASS (49/49
+  arena symbols documented); `audit-landing` 4/4.
+- **Verified on Spark:** M8 control plane driven live in the cockpit (visible
+  Chromium) — dispatch → Done, scan → baseline → regression banner, 0 console
+  errors; `arena.db` mirror-leak gate green.
+
 ### Added
 
 - **`fieldkit.arena` — M1 scaffold (new module, Cockpit content line)**
@@ -246,6 +268,88 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `<a href="/arena/compare/">Compare</a>`. `/arena/` landing footer
     bumped from `v0.1 — M4` to `v0.1 — M5` with a link to `/arena/compare/`.
   - **`fieldkit arena --help`** top-line bumped to "M5 surface".
+- **`fieldkit.arena` — M6 publishable-mirror exporter** (`__all__` 18 → 26).
+  The leak-proof boundary between the operator-private cockpit DB and the
+  public mirror at `ainative.business/arena/`. New symbols (lazy PEP-562
+  re-exports):
+  - **`export_publishable_slice(store, out_dir, *, allow_empty, rebuild,
+    repo_root)`** + **`ExportReport`** (`fieldkit.arena.mirror`) — reads ONLY
+    columns listed in `PUBLISHABLE_TABLES`; the `chat_*` tables and
+    `compare_runs.prompt` / `compare_responses.{content,reasoning}` are never
+    enumerated by any code path. Stages to `_staging/leaderboard.json`,
+    `fsync`s, then atomic-renames (NFS-safe per
+    `reference_sync_workflow_nfs_mount`). Raises `PublishableSliceEmpty` when
+    `allow_empty=False` and the export would blank the public mirror.
+  - **`rebuild_leaderboard(store)`** + **`RebuildReport`** — recomputes
+    `leaderboard_rows` from `bench_results` + the live
+    `compare_runs × rubric_scores × human_prefs` join; idempotent; human-pref
+    winrate gated at ≥5 prefs (spec §4.4).
+  - **`PUBLISHABLE_TABLES` / `FORBIDDEN_TABLES` / `FORBIDDEN_COLUMNS` /
+    `MIRROR_SCHEMA_VERSION`** — the two-layer containment constants
+    `tests/arena/test_mirror_does_not_leak.py` pins: an allowlist (the exporter
+    reads nothing outside it) belt-and-suspendered by a forbidden list (table
+    names never appear in the emitted JSON).
+- **`fieldkit.arena` — M7 / v0.2 launch (Lab board + packaged web UI)**. The
+  distribution + operator-annotation surface that makes Arena a shippable
+  product:
+  - **Packaged web UI** — `fieldkit.arena.webui.build_webui(repo_root, *,
+    dest, skip_astro, demo)` bakes the Astro cockpit (`base: '/arena'`) into a
+    self-contained bundle. **wheel mode** (`ARENA_BUILD=1`) → packaged
+    `fieldkit/src/fieldkit/arena/_webui/` (in `pyproject.toml` hatch
+    `include`), served by the sidecar's `StaticFiles` mount; **demo mode**
+    (`ARENA_DEMO=1`) → `dist-arena-demo-pruned/` for the sidecar-less GitHub
+    Pages preview (fetch/EventSource shim + recorded `fixtures.json` +
+    `.nojekyll`). New CLI: **`fieldkit arena build [--repo-root --skip-astro
+    --demo]`** (builder-side bake) + **`fieldkit arena up [--host --port --db
+    --open/--no-open]`** (one-command UX — `pip install fieldkit[arena]` →
+    `fieldkit arena up` → `http://127.0.0.1:7866/arena/`). `create_app()`
+    mounts the bake via `_mount_packaged_webui` (guarded — a missing bundle
+    degrades to API-only).
+  - **Lab notes** — operator-private annotations pinned to a Lab board card
+    (`/arena/lab/`, `<LabNotes>` island). `ArenaStore.append_lab_note` /
+    `.lab_notes` / `.delete_lab_note` + `GET|POST|DELETE /api/lab/notes`.
+    Deterministic CRUD, no LLM. The `lab_notes` table is on `FORBIDDEN_TABLES`
+    + `(lab_notes, body)` on `FORBIDDEN_COLUMNS` — the freeform body is never
+    mirrored.
+  - **Launch article** — `articles/introducing-spark-arena-on-spark/` (SERIES
+    `Cockpit`, entry #1) + the `/products/` demo bundle.
+- **`fieldkit.arena` — M8 control plane: jobs dispatcher + cockpit**
+  (`__all__` 26 → 49). Promotes Arena from a *recorder* into a *dispatcher* —
+  the place the operator triggers work from (`_SPECS/spark-arena-v1.md` §12).
+  The cockpit gains `/arena/jobs/` (a 4-column board · dispatch form · "scan
+  regressions" button) + `/api/jobs*` endpoints. New symbols:
+  - **Queue spine** — `JobRecord` / `JobTriggerRecord`
+    (`fieldkit.arena.schemas`), `JobKind` / `JobStatus`, `enqueue_job` /
+    `dispatch_job` / `drain_jobs` (`fieldkit.arena.jobs`). Two new SQLite
+    tables (`jobs` / `job_triggers`, `user_version` 2 → 3) drained
+    one-at-a-time (M8-5, single lane / 128 GB envelope); a partial unique
+    index coalesces duplicate in-flight triggers (R15). Dispatch executes
+    **through the `fieldkit.harness` MCP surface** (M8-1) — one execution
+    surface shared with Hermes, so the containment rails (`publish`
+    unreachable, `quantize` dry-run-default, `--network=none`) are defined
+    once. `eval_rerun` is the first/only real job type — it wraps the inline
+    `eval_scores` scorer + activates the dormant `eval_runs` status row.
+  - **Bench registry** — `resolve_bench(bench_id, *, bench_dir)` +
+    `DEFAULT_BENCH_DIR` + `BenchNotRegistered`. The dispatcher resolves an
+    `eval_rerun`'s `bench_path` / `scorer` / `max_tokens` from
+    `$ARENA_BENCH_DIR/<id>.jsonl` (+ optional `<id>.meta.json`) when the
+    payload carries only a `bench_id`; an unregistered bench fails loud,
+    naming the path it searched.
+  - **Regression → re-eval (wired producer)** —
+    `detect_leaderboard_regression` (pure diff), `enqueue_regressions`, and
+    `check_and_enqueue_regressions` (the wired producer: diffs the live
+    `eval_leaderboard()` against a new `leaderboard_baseline` table,
+    `user_version` 3 → 4, enqueues a confirming `eval_rerun` per over-τ
+    accuracy drop, then re-baselines). Exposed at **`POST
+    /api/jobs/check-regressions`** + the cockpit "scan regressions" button;
+    the first scan only sets the baseline (no re-eval storm).
+  - **Harness tools** — `fieldkit.harness.mcp` gains `run_vertical_eval` +
+    `measure_variants` (9 registered MCP tools), the dispatcher's only
+    execution surface.
+  - **Two-layer mirror containment** — `jobs` / `job_triggers` /
+    `leaderboard_baseline` on `FORBIDDEN_TABLES`, `(jobs, payload_json)` on
+    `FORBIDDEN_COLUMNS` — operator prompts/lanes/benches never mirrored (R13).
+  - **Errors** — `JobDispatchError`, `UnknownJobKind`, `BenchNotRegistered`.
 
 ### Notes
 

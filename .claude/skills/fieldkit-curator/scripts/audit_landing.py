@@ -60,7 +60,12 @@ def read_fieldkit_modules() -> list[str]:
     only changes when a module ships, and the array form is stable.
     """
     src = CONTENT_CONFIG.read_text(encoding="utf-8")
-    m = re.search(r"FIELDKIT_MODULES\s*=\s*\[([^\]]+)\]", src)
+    # The array literal may be assigned to FIELDKIT_MODULES directly, or (the
+    # monorepo form) to a lowercase `fieldkitModules` const that FIELDKIT_MODULES
+    # then re-exports. Match the literal under either name.
+    m = re.search(r"FIELDKIT_MODULES\s*=\s*\[([^\]]+)\]", src) or re.search(
+        r"fieldkitModules\s*=\s*\[([^\]]+)\]", src
+    )
     if not m:
         raise SystemExit("could not locate FIELDKIT_MODULES in src/content.config.ts")
     return re.findall(r"'([^']+)'", m.group(1))
