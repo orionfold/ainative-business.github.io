@@ -1,0 +1,68 @@
+{
+  "_note": "Arena M8 control-plane milestone. Tokens + turns + sessions mined by scripts/mine_build_metrics.py over the 2026-06-02 09:50->12:40 sprint window. LOC and wall-clock are git-diff/commit-derived (see below) because M8 EXTENDS existing arena files rather than landing as a single new tree, so the per-path --loc count alone (new modules only) understates the milestone.",
+  "build_window": {
+    "since": "2026-06-02T09:50:00+00:00",
+    "until": "2026-06-02T12:40:00+00:00"
+  },
+  "tokens": {
+    "by_model": {
+      "claude-opus-4-8": {
+        "input_tokens": 24892,
+        "output_tokens": 104052,
+        "cache_creation_input_tokens": 628906,
+        "cache_read_input_tokens": 17819249,
+        "turns": 107
+      }
+    },
+    "totals": {
+      "input_tokens": 24892,
+      "output_tokens": 104052,
+      "cache_creation_input_tokens": 628906,
+      "cache_read_input_tokens": 17819249,
+      "total_all": 18577099,
+      "fresh_in_out": 128944,
+      "cache_read_ratio": 0.9592
+    },
+    "assistant_turns": 107,
+    "sessions_touched": 2
+  },
+  "loc": {
+    "_method": "new-module files counted by mine_build_metrics.py (non-blank); milestone-diff figures from `git diff 5f80fe9..d6ce51a` (the two M8 code commits after the spec lock).",
+    "new_module_files": {
+      "fieldkit/src/fieldkit/arena/jobs.py": 510,
+      "arena-app/src/components/arena/JobsBoard.jsx": 234,
+      "arena-app/src/pages/arena/jobs.astro": 37
+    },
+    "new_module_lines": 781,
+    "milestone_source_insertions": 1762,
+    "milestone_test_insertions": 632,
+    "lines_of_code": 1762
+  },
+  "tests": {
+    "_method": "`def test_` under fieldkit/tests/arena/test_jobs*.py (the dispatcher + API suite). M8 also added a payload_json leak sentinel to test_mirror_does_not_leak.py and reshaped test_harness_mcp.py to the 9-tool surface; the spec tallies 37 M8-touched cases total.",
+    "test_files": 2,
+    "test_cases": 35
+  },
+  "wall_clock": {
+    "_method": "M8 milestone span: spec-lock commit 57f2155 -> release commit f50267f, 2026-06-02. (The mine's --commit-grep span is discarded; it matched the full arena history.)",
+    "first_commit": {
+      "hash": "57f2155",
+      "time": "2026-06-02T09:56:15-07:00",
+      "subject": "docs(spec): write Arena M8 control-plane milestone"
+    },
+    "last_commit": {
+      "hash": "f50267f",
+      "time": "2026-06-02T12:34:23-07:00",
+      "subject": "fieldkit v0.16.0: Arena content line M1-M8"
+    },
+    "commit_count": 6,
+    "elapsed_hours": 2.64
+  },
+  "release": {
+    "fieldkit_version": "0.16.0",
+    "pypi": "https://pypi.org/project/fieldkit/0.16.0/",
+    "tag": "fieldkit/v0.16.0",
+    "arena_all_exports": 49,
+    "suite": "1129 passed / 16 skipped"
+  }
+}
