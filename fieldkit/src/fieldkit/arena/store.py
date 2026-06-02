@@ -48,8 +48,9 @@ __all__ = [
 #: until then additive tables can land without a bump (the importer uses
 #: ``CREATE TABLE IF NOT EXISTS`` + ``INSERT OR REPLACE``). 3 at M8 — adds
 #: the ``jobs`` / ``job_triggers`` control-plane tables (additive + idempotent,
-#: but bumped so a downstream tool can gate on "arena.db has the queue").
-USER_VERSION = 3
+#: but bumped so a downstream tool can gate on "arena.db has the queue"). 4
+#: adds ``leaderboard_baseline`` (the regression-detector's prev-snapshot store).
+USER_VERSION = 4
 
 #: Expanded ``~/.fieldkit/arena.db``. Importable so tests can override the
 #: env var without forcing a CLI roundtrip.
@@ -311,6 +312,20 @@ CREATE TABLE IF NOT EXISTS job_triggers (   -- audit trail of what fired each jo
     created_at      TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_job_triggers_job ON job_triggers(job_id);
+
+-- M8 (user_version 3→4) — the leaderboard-regression baseline. One row per
+-- (bench, lane) holding the accuracy the last regression scan snapshotted;
+-- ``check_and_enqueue_regressions`` diffs the live ``eval_leaderboard()``
+-- against these rows, enqueues a confirming ``eval_rerun`` per over-tau drop,
+-- then overwrites the baseline. Operator-internal control-plane state (kept
+-- off the mirror alongside ``jobs`` — derived from forbidden ``eval_scores``).
+CREATE TABLE IF NOT EXISTS leaderboard_baseline (
+    bench_id        TEXT NOT NULL,
+    lane_id         TEXT NOT NULL,
+    mean_normalized REAL,
+    snapshot_at     TEXT NOT NULL,
+    PRIMARY KEY (bench_id, lane_id)
+);
 """
 
 
@@ -653,6 +668,39 @@ class ArenaStore:
                 "ORDER BY mean_normalized DESC, n_runs DESC"
             )
         )
+
+    def leaderboard_baseline(self) -> list[sqlite3.Row]:
+        """The stored regression baseline — one ``(bench_id, lane_id,
+        mean_normalized)`` row per lane, in the same shape as
+        :meth:`eval_leaderboard` so the pure detector can diff the two
+        directly. Empty on a fresh box (first scan only sets the baseline)."""
+        return list(
+            self.connect().execute(
+                "SELECT bench_id, lane_id, mean_normalized, snapshot_at "
+                "FROM leaderboard_baseline"
+            )
+        )
+
+    def snapshot_leaderboard_baseline(
+        self, rows: Sequence[Mapping[str, Any]], *, now: str
+    ) -> int:
+        """Replace the regression baseline with ``rows`` (an
+        :meth:`eval_leaderboard` snapshot). Full overwrite in one transaction —
+        a ``(bench, lane)`` that vanished from the leaderboard drops out of the
+        baseline too. Returns the row count written."""
+        conn = self.connect()
+        with conn:
+            conn.execute("DELETE FROM leaderboard_baseline")
+            conn.executemany(
+                "INSERT INTO leaderboard_baseline "
+                "(bench_id, lane_id, mean_normalized, snapshot_at) "
+                "VALUES (?, ?, ?, ?)",
+                [
+                    (r["bench_id"], r["lane_id"], r["mean_normalized"], now)
+                    for r in rows
+                ],
+            )
+        return len(rows)
 
     def leaderboard_live(self, *, include_chat: bool = True) -> list[dict[str, Any]]:
         """Live cockpit leaderboard rows, computed on-the-fly (no rebuild).

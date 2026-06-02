@@ -109,10 +109,13 @@ __all__ = [
     "enqueue_job",
     "dispatch_job",
     "drain_jobs",
+    "resolve_bench",
     "detect_leaderboard_regression",
     "enqueue_regressions",
+    "check_and_enqueue_regressions",
     "JobDispatchError",
     "UnknownJobKind",
+    "BenchNotRegistered",
 ]
 
 # v0.1.0-alpha; bumps independently of fieldkit's package version so a
@@ -209,13 +212,19 @@ _LAZY_RE_EXPORTS: dict[str, tuple[str, str]] = {
     "enqueue_job": ("fieldkit.arena.jobs", "enqueue_job"),
     "dispatch_job": ("fieldkit.arena.jobs", "dispatch_job"),
     "drain_jobs": ("fieldkit.arena.jobs", "drain_jobs"),
+    "resolve_bench": ("fieldkit.arena.jobs", "resolve_bench"),
     "detect_leaderboard_regression": (
         "fieldkit.arena.jobs",
         "detect_leaderboard_regression",
     ),
     "enqueue_regressions": ("fieldkit.arena.jobs", "enqueue_regressions"),
+    "check_and_enqueue_regressions": (
+        "fieldkit.arena.jobs",
+        "check_and_enqueue_regressions",
+    ),
     "JobDispatchError": ("fieldkit.arena.jobs", "JobDispatchError"),
     "UnknownJobKind": ("fieldkit.arena.jobs", "UnknownJobKind"),
+    "BenchNotRegistered": ("fieldkit.arena.jobs", "BenchNotRegistered"),
 }
 
 

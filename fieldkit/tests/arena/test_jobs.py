@@ -16,6 +16,8 @@ No GPU / no `mcp` SDK needed — the runner is injected.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from fieldkit.arena import jobs
@@ -244,3 +246,136 @@ def test_enqueue_regressions_dedups_storm(store):
     enq1 = jobs.enqueue_regressions(store, prev, curr, now_fn=lambda: _NOW)
     enq2 = jobs.enqueue_regressions(store, prev, curr, now_fn=lambda: _NOW)  # same in-flight
     assert len(enq1) == 1 and len(enq2) == 0  # second is coalesced (R15)
+
+
+# ---------------------------------------------------------------------------
+# resolve_bench — the bench registry (Fix #1: eval_rerun's bench_path)
+# ---------------------------------------------------------------------------
+
+
+def _write_bench(bench_dir, bench_id, *, meta=None, n=2):
+    bench_dir.mkdir(parents=True, exist_ok=True)
+    rows = [
+        {"prompt": f"q{i}", "answer": str(i), "qid": f"q{i}"} for i in range(n)
+    ]
+    (bench_dir / f"{bench_id}.jsonl").write_text(
+        "\n".join(json.dumps(r) for r in rows) + "\n"
+    )
+    if meta is not None:
+        (bench_dir / f"{bench_id}.meta.json").write_text(json.dumps(meta))
+
+
+def test_resolve_bench_finds_registered_jsonl(tmp_path, monkeypatch):
+    bench_dir = tmp_path / "benches"
+    _write_bench(bench_dir, "patent-strategist")
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(bench_dir))
+    reg = jobs.resolve_bench("patent-strategist")
+    assert reg is not None
+    assert reg["bench_path"].endswith("patent-strategist.jsonl")
+    assert reg["scorer"] == "exact_match"  # default when no meta sidecar
+    assert reg["max_tokens"] == 512
+
+
+def test_resolve_bench_meta_sidecar_overrides(tmp_path, monkeypatch):
+    bench_dir = tmp_path / "benches"
+    _write_bench(
+        bench_dir, "finance", meta={"scorer": "numeric_match", "max_tokens": 256, "limit": 10}
+    )
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(bench_dir))
+    reg = jobs.resolve_bench("finance")
+    assert reg["scorer"] == "numeric_match"
+    assert reg["max_tokens"] == 256
+    assert reg["limit"] == 10
+
+
+def test_resolve_bench_unregistered_returns_none(tmp_path, monkeypatch):
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(tmp_path / "benches"))
+    assert jobs.resolve_bench("nope") is None
+
+
+def test_default_runner_raises_bench_not_registered(tmp_path, monkeypatch):
+    # The exact gap the side-by-side walkthrough hit: eval_rerun with only a
+    # bench_id and no registered gold set now fails LOUD + actionable, naming
+    # the path it searched — not the opaque "needs bench_path" deep in the tool.
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(tmp_path / "benches"))
+    with pytest.raises(jobs.BenchNotRegistered) as exc:
+        jobs.default_runner(
+            JobKind.EVAL_RERUN, {"lane_id": "patent-q4km", "bench_id": "patent-strategist"}
+        )
+    assert "patent-strategist.jsonl" in str(exc.value)
+
+
+def test_default_runner_resolves_bench_path(tmp_path, monkeypatch):
+    # With a registered bench, default_runner reaches run_vertical_eval with a
+    # populated bench_path — it runs to completion (the closed-port lane just
+    # yields zero successful calls), echoing back the resolved path. The point:
+    # no BenchNotRegistered, the gap the walkthrough hit is closed.
+    bench_dir = tmp_path / "benches"
+    _write_bench(bench_dir, "patent-strategist")
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(bench_dir))
+    monkeypatch.setenv("ARENA_EVAL_BASE_URL", "http://127.0.0.1:9")  # closed port
+    result = jobs.default_runner(
+        JobKind.EVAL_RERUN, {"lane_id": "patent-q4km", "bench_id": "patent-strategist"}
+    )
+    assert result["bench"] == "patent-strategist"
+    assert result["bench_path"].endswith("patent-strategist.jsonl")
+
+
+# ---------------------------------------------------------------------------
+# check_and_enqueue_regressions — the wired producer (Fix #2)
+# ---------------------------------------------------------------------------
+
+
+def _seed_score(store, bench_id, lane_id, normalized, *, qid, scored_at):
+    store.append_eval_score(
+        {
+            "bench_id": bench_id,
+            "qid": qid,
+            "lane_id": lane_id,
+            "scorer_kind": "exact_match",
+            "score": normalized,
+            "max_score": 1.0,
+            "normalized": normalized,
+            "reference": None,
+            "rationale": None,
+            "judge_backend": None,
+            "cross_vertical": 0,
+            "source": "test",
+            "source_id": qid,
+            "scored_at": scored_at,
+        }
+    )
+
+
+def test_first_scan_only_sets_baseline(store):
+    _seed_score(store, "patent-bench", "patent-q4km", 0.9, qid="q1", scored_at="2026-06-01T00:00:00Z")
+    out = jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)
+    assert out["had_baseline"] is False
+    assert out["enqueued"] == []  # nothing to diff against yet
+    assert out["baselined"] == 1
+    assert len(store.leaderboard_baseline()) == 1
+
+
+def test_scan_enqueues_on_real_drop(store):
+    # baseline at 0.9, then a flood of 0.0 scores drags the mean below tau.
+    _seed_score(store, "patent-bench", "patent-q4km", 0.9, qid="q1", scored_at="2026-06-01T00:00:00Z")
+    jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)  # sets baseline @0.9
+    for i in range(9):
+        _seed_score(store, "patent-bench", "patent-q4km", 0.0, qid=f"d{i}", scored_at="2026-06-02T00:00:00Z")
+    out = jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)
+    assert out["had_baseline"] is True
+    assert len(out["enqueued"]) == 1  # the over-tau drop fired one confirming re-eval
+    job = store.get_job(out["enqueued"][0])
+    assert job["kind"] == JobKind.EVAL_RERUN
+    assert job["trigger"] == "leaderboard_regression"
+    # baseline was re-set to the new (lower) snapshot
+    base = store.leaderboard_baseline()
+    assert base and base[0]["mean_normalized"] < 0.5
+
+
+def test_scan_no_regression_when_stable(store):
+    _seed_score(store, "b", "patent-q4km", 0.8, qid="q1", scored_at="2026-06-01T00:00:00Z")
+    jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)
+    _seed_score(store, "b", "patent-q4km", 0.82, qid="q2", scored_at="2026-06-02T00:00:00Z")
+    out = jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)
+    assert out["enqueued"] == []

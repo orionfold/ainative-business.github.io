@@ -1606,6 +1606,35 @@ def create_app(
             ping=15,
         )
 
+    @app.post("/api/jobs/check-regressions")
+    async def api_jobs_check_regressions(
+        background_tasks: BackgroundTasks,
+        tau: Optional[float] = Query(default=None, ge=0.0, le=1.0),
+        dispatch: bool = Query(default=True),
+    ) -> dict[str, Any]:
+        """Scan the live leaderboard for regressions and enqueue confirmations.
+
+        The wired producer (M8-2): diffs ``eval_leaderboard()`` against the
+        stored baseline, enqueues one ``leaderboard_regression`` ``eval_rerun``
+        per over-tau accuracy drop (R15 dedup applies), then re-baselines. The
+        first scan only sets the baseline. Operator-triggered today (a Jobs-page
+        button); the Phase-2 cron calls the same path on a schedule. Declared
+        before ``/api/jobs/{job_id}`` so the literal path isn't read as an id."""
+        from fieldkit.arena import jobs as _jobs
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            kwargs = {} if tau is None else {"tau": tau}
+            result = _jobs.check_and_enqueue_regressions(store, **kwargs)
+        finally:
+            store.close()
+        if dispatch and result["enqueued"]:
+            background_tasks.add_task(_drain_jobs_background, str(db_file))
+        return {"ok": True, **result}
+
     @app.get("/api/jobs/{job_id}")
     async def api_jobs_get(job_id: str) -> dict[str, Any]:
         """One job by id (+ its trigger audit trail). 404 if unknown."""

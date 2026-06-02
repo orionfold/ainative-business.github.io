@@ -330,3 +330,10 @@ def test_jobs_tables_are_forbidden():
     assert "jobs" not in PUBLISHABLE_TABLES
     assert "job_triggers" not in PUBLISHABLE_TABLES
     assert ("jobs", "payload_json") in FORBIDDEN_COLUMNS
+
+
+def test_leaderboard_baseline_is_forbidden():
+    """M8 anchor — the regression-detector baseline is control-plane-internal
+    (derived from forbidden ``eval_scores``); off the mirror alongside ``jobs``."""
+    assert "leaderboard_baseline" in FORBIDDEN_TABLES
+    assert "leaderboard_baseline" not in PUBLISHABLE_TABLES

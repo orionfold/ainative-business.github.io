@@ -137,3 +137,54 @@ def test_sse_emits_board_snapshot(client):
     ev = asyncio.run(_drive())
     assert ev["event"] == "jobs"
     assert len(json.loads(ev["data"])["jobs"]) == 1
+
+
+def _seed_score(db, normalized, *, qid, scored_at):
+    from fieldkit.arena.store import ArenaStore
+
+    s = ArenaStore(db)
+    s.initialize()
+    s.append_eval_score(
+        {
+            "bench_id": "patent-bench",
+            "qid": qid,
+            "lane_id": "patent-q4km",
+            "scorer_kind": "exact_match",
+            "score": normalized,
+            "max_score": 1.0,
+            "normalized": normalized,
+            "reference": None,
+            "rationale": None,
+            "judge_backend": None,
+            "cross_vertical": 0,
+            "source": "test",
+            "source_id": qid,
+            "scored_at": scored_at,
+        }
+    )
+    s.close()
+
+
+def test_check_regressions_first_scan_sets_baseline(client):
+    c, db = client
+    _seed_score(db, 0.9, qid="q1", scored_at="2026-06-01T00:00:00Z")
+    r = c.post("/api/jobs/check-regressions")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] and body["had_baseline"] is False
+    assert body["enqueued"] == [] and body["checked"] == 1
+
+
+def test_check_regressions_enqueues_on_drop(client):
+    c, db = client
+    _seed_score(db, 0.9, qid="q1", scored_at="2026-06-01T00:00:00Z")
+    c.post("/api/jobs/check-regressions")  # sets baseline @0.9
+    for i in range(9):
+        _seed_score(db, 0.0, qid=f"d{i}", scored_at="2026-06-02T00:00:00Z")
+    body = c.post("/api/jobs/check-regressions", params={"dispatch": False}).json()
+    assert body["had_baseline"] is True
+    assert len(body["enqueued"]) == 1
+    # the confirming re-eval is on the board, trigger-tagged for the UI banner
+    jobs = c.get("/api/jobs").json()["jobs"]
+    reg = [j for j in jobs if j["trigger"] == "leaderboard_regression"]
+    assert len(reg) == 1 and reg[0]["kind"] == "eval_rerun"

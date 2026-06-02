@@ -419,7 +419,9 @@ def run_vertical_eval(
         raise ValueError(
             "run_vertical_eval needs `bench_path` — the bench gold JSONL "
             "(e.g. ~/.fieldkit/arena/benches/<bench>.jsonl). The Arena "
-            "dispatcher fills this from the bench registry."
+            "dispatcher resolves this from the bench registry "
+            "(`fieldkit.arena.jobs.resolve_bench`); pass it explicitly when "
+            "calling this tool directly."
         )
     path = Path(bench_path).expanduser()
     if not path.exists():
