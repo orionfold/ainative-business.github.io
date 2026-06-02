@@ -874,7 +874,7 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | `fieldkit v0.14.0` | First arena cut; MVP surface (M1–M6 fills) | All 5 cockpit panes paint; mirror leak regression test green; `audit-docs arena/N` clean; fresh-venv install verifies on aarch64; A1 article published; `nvidia-learn-stats` refreshed; Mac `/sync-field-notes` pushes static slice to `ainative.business/arena/`. |
 | `fieldkit v0.14.1` | Telemetry + compare polish | Lane-swap UX edge cases (concurrent streams); rubric reuse promotion of any 2nd-reuse rubrics; mirror exporter performance on full-leaderboard exports. |
 | `fieldkit v0.15.0` | v0.2 surface (eval runner + HF publish gate + cost-routed chat) | `arq` worker green; `Orionfold/spark-arena-leaderboard-v0.1` HF dataset live; A2 + A3 articles published. |
-| `fieldkit v0.16.0` | **M8 control plane** (§12 — Phase 1 / Bet 3) | `jobs`/`job_triggers` schema migrates (`user_version` 1→2); an `eval_rerun` job dispatches **end-to-end through the MCP harness** and writes back an `eval_runs` row + rebuilds the leaderboard; leaderboard-regression trigger fires on a seeded regression; `/arena/jobs/` paints; `jobs` is OUT of the mirror allowlist and the leak regression test (R13) is green; `audit-docs arena/N` clean; the Phase-1 `product-writer` launch published. **No cron / no auto-push** (that is Phase 2). |
+| `fieldkit v0.16.0` | **M8 control plane** (§12 — Phase 1 / Bet 3) | `jobs`/`job_triggers` schema migrates (`user_version` 2→3); an `eval_rerun` job dispatches **end-to-end through the MCP harness** and writes back an `eval_runs` row + rebuilds the leaderboard; leaderboard-regression trigger fires on a seeded regression; `/arena/jobs/` paints; `jobs` is OUT of the mirror allowlist and the leak regression test (R13) is green; `audit-docs arena/N` clean; the Phase-1 `product-writer` launch published. **No cron / no auto-push** (that is Phase 2). |
 
 ## 12. M8 — Arena as the control plane (Phase 1 of the MTBM roadmap)
 
@@ -887,6 +887,17 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 > into a **dispatcher** — the place the operator *triggers* work from. It is **connective
 > tissue, not greenfield**: both its inputs (the `eval_runs.arq_job_id` socket drilled in §4.8)
 > and its execution surface (the live 7-tool MCP harness, `build_mcp_server()`) already exist.
+>
+> **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/`).** The
+> "already exists" claims hold: `harness/mcp.py::build_mcp_server()` registers exactly **7
+> `server.tool()`** (envelope · weight · throughput · perplexity · `quantize_gguf` [dry-default] ·
+> `publish_quant_dry_run` · `ask_second_brain`); `arena/store.py` has the real `eval_runs` table
+> with `arq_job_id`; `arena/mirror.py` has the `PUBLISHABLE_TABLES` allowlist **plus** a
+> `FORBIDDEN_TABLES`/`FORBIDDEN_COLUMNS` deny-list. Three drift corrections folded into this
+> section: (1) **no `jobs.py` exists** — the §4.7 file tree named it a v0.2 stub but it was never
+> built, so M8 *creates* the module; (2) the built store is **already at `user_version = 2`** (v0.2
+> added `lab_notes` + `eval_scores`), so M8 migrates **2→3**, not 1→2; (3) M8 extends *both* mirror
+> lists (allowlist + forbidden), matching the built `lab_notes` precedent.
 
 ### 12.1 M8 locked decisions (proposed — confirm before build)
 
@@ -899,14 +910,14 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | M8-5 | **Sequential loads only** | The dispatcher drains **one job at a time**, one lane resident (128 GB envelope, `serve_lane(guard=True)`). Parallel drain is a DGX-Cloud config (`_FLOWS` §6), **out of scope** for the Spark M8. | `[[project_spark_unified_memory_oom]]`; `hermes-vertical-router-on-spark`: 78 GB headroom at brain + 1 vertical, still single-lane. |
 | M8-6 | **No autonomy yet** | M8 is **operator-triggered + button-dispatched.** The cron drain, hook battery, and morning-standup review gate are **Phase 2** (`autonomous-harness-v1.md`). M8 honors the no-auto-push invariant by *staging only* — no job pushes. | `_FLOWS` §3 sequencing: pane (M8) before hands (cron). |
 | M8-7 | **Harness grows by demand** | Add `measure_variants` / `run_vertical_eval` MCP tools to `fieldkit.harness` **as the dispatcher calls them** — not speculatively. This is where Phase 1 and Phase 2's harness work partially merge. | `_FLOWS` §4 enhancement table (harness row is **S**, not M — 7 tools already shipped). |
-| M8-8 | **Mirror safety** | The new `jobs` + `job_triggers` tables stay **OUT** of `export_publishable_slice()`'s `PUBLISHABLE_TABLES` allowlist — job payloads carry prompts and must never leak. Same discipline as `chat_*` (§4.8, R1). | Extends the M6 leak-gate regression test. |
+| M8-8 | **Mirror safety** | The new `jobs` + `job_triggers` tables stay **OUT** of `export_publishable_slice()`'s `PUBLISHABLE_TABLES` allowlist *and* are added to the belt-and-suspenders `FORBIDDEN_TABLES` (with `("jobs","payload_json")` in `FORBIDDEN_COLUMNS`) — the exact two-list pattern the built `mirror.py` already uses for `lab_notes`/`("lab_notes","body")`. Job payloads carry prompts and must never leak. Same discipline as `chat_*` (§4.8, R1). | Extends the M6 leak-gate regression test. |
 
 ### 12.2 Deliverables
 
 | Artifact | Surface | Gate |
 |---|---|---|
-| `jobs` + `job_triggers` tables (`PRAGMA user_version` 1 → 2; idempotent migration) | `~/.fieldkit/arena.db` | M8 schema gate |
-| `fieldkit.arena.jobs` promoted from arq **stubs** → real **`JobStore` + `dispatch_job` + `enqueue_job`** (dispatches via the MCP harness) | `fieldkit` PyPI | `audit-docs arena/N` clean |
+| `jobs` + `job_triggers` tables (`PRAGMA user_version` **2 → 3** — the built store is already at 2 after v0.2's `lab_notes`/`eval_scores`; idempotent migration) | `~/.fieldkit/arena.db` | M8 schema gate |
+| **New module `fieldkit.arena.jobs`** — `JobStore` + `dispatch_job` + `enqueue_job` (dispatches via the MCP harness). NB the §4.7 file tree named `jobs.py` as a v0.2 stub but it was **never built** — M8 creates it fresh, not "promotes" it. | `fieldkit` PyPI | `audit-docs arena/N` clean |
 | `POST/GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/jobs/stream` (SSE), `DELETE /api/jobs/{id}` | sidecar `server.py` | endpoint smoke |
 | `/arena/jobs/` Astro route + `<JobsBoard>` Preact island (queued · running · done · failed; dispatch + cancel) | source site | paints offline-safe on mirror |
 | **Leaderboard-regression trigger producer** — diff new `leaderboard_rows.mean_score` vs prior; over-threshold drop enqueues an `eval_rerun` | `fieldkit.arena.jobs` | unit test on a seeded regression |
@@ -916,11 +927,10 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 
 ### 12.3 Architecture
 
-**The `jobs` table** (replaces the v0.2 `eval_runs` stub's role as the queue spine; `eval_runs`
-stays as the typed result row an `eval_rerun` job writes into):
+**The `jobs` table** (takes over the queue-spine role; the built `eval_runs` table — real, not a stub — stays as the typed result row an `eval_rerun` job writes into):
 
 ```sql
--- M8 (user_version=2):
+-- M8 (user_version 2→3):
 CREATE TABLE jobs (
   id              TEXT PRIMARY KEY,
   kind            TEXT NOT NULL,               -- 'eval_rerun'|'measure_variants'  (M8)
