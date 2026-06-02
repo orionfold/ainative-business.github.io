@@ -1,7 +1,7 @@
 ---
 module: arena
 title: fieldkit.arena
-summary: Operator cockpit for the DGX Spark — FastAPI sidecar on 127.0.0.1:7866 with SSE telemetry/chat/compare streams, a SQLite-backed `~/.fieldkit/arena.db`, and a static-mirror exporter that publishes a leak-proof leaderboard slice to `ainative.business/arena/`. Sibling to `fieldkit.harness` (Hermes = agent harness; Arena = operator harness). M2 ships the SQLite store + retroactive importer; M3 ships the FastAPI app + telemetry SSE; M4 ships the chat island; M5 ships side-by-side compare; **M6 (this release) ships the leak-proof mirror exporter** (`fieldkit.arena.mirror.export_publishable_slice` with hardcoded allowlist; regression test pins zero chat-content leaks); M7 lands the launch article + Mac sync per `specs/spark-arena-v1.md`.
+summary: Operator cockpit for the DGX Spark — FastAPI sidecar on 127.0.0.1:7866 with SSE telemetry/chat/compare streams, a SQLite-backed `~/.fieldkit/arena.db`, and a static-mirror exporter that publishes a leak-proof leaderboard slice to `ainative.business/arena/`. Sibling to `fieldkit.harness` (Hermes = agent harness; Arena = operator harness). M2 ships the SQLite store + retroactive importer; M3 ships the FastAPI app + telemetry SSE; M4 ships the chat island; M5 ships side-by-side compare; **M6 (this release) ships the leak-proof mirror exporter** (`fieldkit.arena.mirror.export_publishable_slice` with hardcoded allowlist; regression test pins zero chat-content leaks); M7 lands the launch article + Mac sync per `_SPECS/spark-arena-v1.md`.
 order: 13
 ---
 
@@ -9,7 +9,7 @@ order: 13
 
 The Harnesses arc taught the project to publish *agent harnesses* — Hermes drives Spark, fieldkit-as-MCP keystone, vertical + cost routers. `fieldkit.arena` is the **operator** counterpart: the cockpit a solo Spark builder uses to drive every artifact the rest of the package has shipped. Six months of work has accreted 49 articles, 17 manifests under `src/content/artifacts/`, 13 HF repos under the `Orionfold/` namespace, and a 950-test `fieldkit` substrate — none of it had a single surface to drive it from until now. The cockpit lives at `http://127.0.0.1:7866/arena/` (loopback only) with a static slice mirrored to `ainative.business/arena/`. Per `feedback_llm_skill_pattern` the module is **deterministic Python only** — all LLM generation (rubric prompts, prose) stays in session-driven skills.
 
-The full design is in `specs/spark-arena-v1.md`. M2 ships the SQLite store + the retroactive importer; M3–M7 fill the substantive sidecar surface (see `[Unreleased]` in `CHANGELOG.md`).
+The full design is in `_SPECS/spark-arena-v1.md`. M2 ships the SQLite store + the retroactive importer; M3–M7 fill the substantive sidecar surface (see `[Unreleased]` in `CHANGELOG.md`).
 
 > **Status: v0.2 product leap — Orionfold Arena.** Builds on the M1–M6 sidecar with six showcase surfaces: a Models/capabilities browser, the cost/quality efficiency frontier, Compare markdown+winner+delta parity, a ⌘K command palette, the telemetry↔article-evidence bridge, and the **Lab** co-iteration board (`/arena/lab/`) with an operator-private `lab_notes` annotation layer (`GET/POST/DELETE /api/lab/notes`; on `FORBIDDEN_TABLES`). Distribution: the runnable cockpit now ships **inside the fieldkit wheel** — `pip install fieldkit[arena]` → `fieldkit arena up` → `http://127.0.0.1:7866/arena/` — baked by `fieldkit arena build` and served via a `StaticFiles` mount. The leak gate `fieldkit/tests/arena/test_mirror_does_not_leak.py` still pins zero operator-private leaks (chat + `lab_notes`). The full breakdown lives in HANDOFF.md's 🏟️ ARENA TRACK section.
 
@@ -488,7 +488,7 @@ Per `feedback_keep_scorer_local_until_reuse`, ad-hoc rubrics live at `~/.fieldki
 
 ## See also
 
-- `specs/spark-arena-v1.md` — the locked v1.0 spec; section numbers referenced throughout this page.
+- `_SPECS/spark-arena-v1.md` — the locked v1.0 spec; section numbers referenced throughout this page.
 - `HANDOFF.md` 🏟️ ARENA TRACK section — the session-by-session milestone breakdown.
 - `ideas/spark-arena.md` — the living-doc tracking of gate decisions + execution updates (per `feedback_ideas_docs_living`).
 - `fieldkit.harness` API page — the sibling content line's module reference.

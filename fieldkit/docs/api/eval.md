@@ -322,7 +322,7 @@ Deterministic 4-checklist Patent-Bar IRAC detector. Returns one of `{0.0, 0.25, 
 
 #### `prior_art_relevance(predicted, expected) -> float`
 
-Spearman ρ between predicted and gold prior-art rankings — the bench-facing scalar per `specs/patent-strategist-v1.md` §3.3. Accepts `list[str]` directly or a tolerant string parse (JSON arrays `'["a","b","c"]'`, comma-separated `"a, b, c"`, or newline-separated with `1.` / `1)` / `- ` / `* ` prefixes stripped). Items missing from `predicted` get worst-rank padding so omissions still penalize. The paired-rank vectors get re-rankified before correlation so positional gaps from dup-skipping or padding collapse to contiguous ranks — without this, `["a","a","b","c"]` vs `["a","b","c"]` would yield ρ≈0.98 instead of 1.0.
+Spearman ρ between predicted and gold prior-art rankings — the bench-facing scalar per `_SPECS/patent-strategist-v1.md` §3.3. Accepts `list[str]` directly or a tolerant string parse (JSON arrays `'["a","b","c"]'`, comma-separated `"a, b, c"`, or newline-separated with `1.` / `1)` / `- ` / `* ` prefixes stripped). Items missing from `predicted` get worst-rank padding so omissions still penalize. The paired-rank vectors get re-rankified before correlation so positional gaps from dup-skipping or padding collapse to contiguous ranks — without this, `["a","a","b","c"]` vs `["a","b","c"]` would yield ρ≈0.98 instead of 1.0.
 
 #### `prior_art_relevance_full(predicted, expected) -> PriorArtRelevanceResult`
 

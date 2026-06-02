@@ -478,7 +478,7 @@ class TestEndToEnd:
         assert bench.calls[0].success is True
 
 
-# --- Patent-strategist format (T4 / specs/patent-strategist-v1.md §3.3) -----
+# --- Patent-strategist format (T4 / _SPECS/patent-strategist-v1.md §3.3) -----
 
 
 def _ps_row(

@@ -1,15 +1,17 @@
-# APP-MARKETING.md — Orionfold Arena → orionfold.com (the MARKETER)
+<!-- Arena storefront marketing (orionfold.com) — Last updated: 2026-05-28 -->
+
+# Arena storefront marketing — Orionfold Arena → orionfold.com (the MARKETER)
 
 > Builder-authored handoff for the **storefront** surface. Sibling to
-> `APP-SYNC.md`. The operator points the Orionfold marketing repo at this file.
-> The operator controls orionfold.com messaging, so this is **guidance to
-> implement**, not a contract.
+> `arena-distribution.md`. The operator points the Orionfold marketing repo at
+> this file. The operator controls orionfold.com messaging, so this is
+> **guidance to implement**, not a contract.
 >
-> Distribution pipeline: **this repo (BUILDER) → ainative.business (PUBLISHER)
-> → orionfold.com (MARKETER).** orionfold.com is a thin, **light-themed** static
-> storefront that routes outward to the real hosts (GitHub / HF `Orionfold` /
-> PyPI) with docs/preview on ainative.business; every product carries
-> local/private/open badges + a "Sponsor this work" CTA.
+> Distribution pipeline: **this monorepo (BUILDER + PUBLISHER, on Spark) →
+> orionfold.com (MARKETER).** orionfold.com is a separate, thin, **light-themed**
+> static storefront that routes outward to the real hosts (GitHub / HF
+> `Orionfold` / PyPI) with docs/preview on ainative.business; every product
+> carries local/private/open badges + a "Sponsor this work" CTA.
 
 ## Positioning (on-thesis — lead with the local runnable app)
 

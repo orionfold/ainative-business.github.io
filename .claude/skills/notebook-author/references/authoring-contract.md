@@ -27,7 +27,7 @@ recalibrate. In short:
 ## The narrative contract still applies
 
 The notebook surfaces the same artifact as the card and the article, so
-`/NARRATIVE-CONTRACT.md` governs it too:
+`/_GUIDES/NARRATIVE-CONTRACT.md` governs it too:
 
 - **Positioning leads.** The intro cell is positioning — problem, who it's for,
   the value. Measurements come after. (The badge row is the one thing above
@@ -62,7 +62,7 @@ has the per-artifact Spark-measured data the figure is built from.
 ## Dual-path runtime
 
 The notebook must run on Spark **and** a free Colab/Kaggle GPU
-(`specs/notebooks-as-artifacts-v1.md` §6). `fieldkit.notebook.detect_runtime()`
+(`_SPECS/notebooks-as-artifacts-v1.md` §6). `fieldkit.notebook.detect_runtime()`
 + `open_model(hf_repo)` handle the inference split for you. For builder cells
 that genuinely need Spark hardware (training, thermal probe), do NOT let them
 error on cloud — show the recorded output behind a banner:

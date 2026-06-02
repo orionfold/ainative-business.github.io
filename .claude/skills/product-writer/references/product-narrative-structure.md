@@ -11,7 +11,7 @@ published product article should hit all of these beats.
 Product articles live in their own content collection at
 `products/<slug>/product.md` and validate against a `products` Zod schema in
 `src/content.config.ts`. The full proposed schema and the destination-repo
-rendering contract are in `PRODUCT-ARTICLES.md` at the repo root — read it
+rendering contract are in `_GUIDES/PRODUCT-ARTICLES.md` — read it
 before authoring so the frontmatter you emit matches what the site expects.
 The fields the skill fills:
 

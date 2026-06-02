@@ -1,7 +1,7 @@
 ---
 module: harness
 title: fieldkit.harness
-summary: Deterministic Python spine for the Harnesses content line — install / configure / serve / harden / route / eval / profile an agent harness (Hermes Agent first) on the DGX Spark. H1 ships install + doctor + configure + the NIM / llama-server lanes + the serve_lane guard; H2 adds the vLLM / Ollama lanes, the Hermes-trace tool-call-reliability eval, and the HarnessProfile artifact; H3 adds Harden (hostile-tool-call-survivable config posture); H4 adds the fieldkit-as-MCP server; H5 adds the vertical router (VerticalRoute / RouterConfig / build_vertical_router) over the 5 Orionfold GGUFs. H6 (cost router) lands separately. See specs/hermes-harness-v1.md.
+summary: Deterministic Python spine for the Harnesses content line — install / configure / serve / harden / route / eval / profile an agent harness (Hermes Agent first) on the DGX Spark. H1 ships install + doctor + configure + the NIM / llama-server lanes + the serve_lane guard; H2 adds the vLLM / Ollama lanes, the Hermes-trace tool-call-reliability eval, and the HarnessProfile artifact; H3 adds Harden (hostile-tool-call-survivable config posture); H4 adds the fieldkit-as-MCP server; H5 adds the vertical router (VerticalRoute / RouterConfig / build_vertical_router) over the 5 Orionfold GGUFs. H6 (cost router) lands separately. See _SPECS/hermes-harness-v1.md.
 order: 12
 ---
 
@@ -9,7 +9,7 @@ order: 12
 
 The artifact arc taught the project to publish a *thing you download and run*. A harness is the **cockpit** — what a Spark power-user actually drives the box from. `fieldkit.harness` is the deterministic Python spine of the **Harnesses** content line: take a frontier open-source agent harness (Hermes Agent — Nous Research, MIT — is entry #1), install it, point it at a Spark-right-sized serving lane, harden it, and wire it to the box itself via fieldkit-as-MCP.
 
-Per `feedback_llm_skill_pattern` the module is **deterministic Python only**: it renders configs, sizes serving lanes against the unified-memory envelope, and reduces eval JSONL — all the LLM generation (skill bodies, agent task runs, prose) stays in session-driven skills. The full design is in `specs/hermes-harness-v1.md`.
+Per `feedback_llm_skill_pattern` the module is **deterministic Python only**: it renders configs, sizes serving lanes against the unified-memory envelope, and reduces eval JSONL — all the LLM generation (skill bodies, agent task runs, prose) stays in session-driven skills. The full design is in `_SPECS/hermes-harness-v1.md`.
 
 > **Status: H1 + H2 + H3 + H4 + brain evaluator (Step 3) + H5 vertical router shipped.** H5 adds `VerticalRoute` / `RouterConfig` / `build_vertical_router` / `lane_spec_for_vertical` — a deterministic keyword-classifier router over the 5 Orionfold vertical GGUFs (patent / legal / finance / cyber / medical) with a fallback default brain (the Step-2 pinned Qwen3-30B-A3B MoE). One-at-a-time serving per the unified-memory envelope; no LLM classifier (spec §4.6 discipline). H6 (`build_cost_router` + `RouteTier`) lands separately.
 

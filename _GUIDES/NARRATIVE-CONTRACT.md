@@ -1,3 +1,5 @@
+<!-- Narrative contract (Orionfold artifact READMEs + detail pages) — Last updated: 2026-05-23 -->
+
 # Narrative contract — Orionfold artifact READMEs and detail pages
 
 The canonical, surface-agnostic content rubric for every artifact published
@@ -207,7 +209,7 @@ notebook. All 8 Orionfold cards re-pushed.
 
 Prior: 2026-05-23 (AM) — added Rule 8 + section-order slot 3 for the runnable
 Open-in-Colab / Open-in-Kaggle badge row, per
-`specs/notebooks-as-artifacts-v1.md` §8.3 (superseded same day).
+`_SPECS/notebooks-as-artifacts-v1.md` §8.3 (superseded same day).
 
 Prior: 2026-05-22 (initial extraction from card-polish.md; adds Rule 7
 visual contract; codifies section order across both surfaces).

@@ -1,15 +1,20 @@
+<!-- Product-launch article contract — Last updated: 2026-05-29 -->
+
+> **Monorepo note (2026-06-02):** this contract was authored under the old
+> two-repo Spark→Mac model; "destination / Mac repo" now just means the
+> rendering side of *this* monorepo (Spark owns both authoring and rendering
+> since the 2026-05-29 cutover). The schema + rendering-ownership contract below
+> still applies verbatim — only the "sync / reverse-sync" ceremony is moot.
+
 # Product articles — a new content type
 
-> **Audience: the destination (Mac) repo that renders `ai-field-notes` to
-> `ainative.business`.** This document is the source-side contract introducing a
-> new content type — the **product-launch article** — and specifying the
-> rendering the destination owns. It follows the same source/destination split
-> as everything else in this repo (see `mirrors/destination-overrides.md`):
-> Spark authors the content, the schema, and this spec; the Mac repo owns the
-> layouts, components, and URL family that render it.
+> This document is the contract introducing a new content type — the
+> **product-launch article** — and specifying the rendering it requires.
+> Authoring (content, schema, this spec) and rendering (layouts, components, URL
+> family) now live in one repo.
 >
-> Authored on the Spark side, 2026-05-29. First product article: **Orionfold
-> Arena** (`products/orionfold-arena/`).
+> Authored 2026-05-29. First product article: **Orionfold Arena**
+> (`products/orionfold-arena/`).
 
 ## Why a separate type
 
@@ -114,9 +119,8 @@ zero.
 
 ## Rendering the destination owns
 
-Per the chrome boundary in `mirrors/destination-overrides.md`, layouts,
-components, styles, and top-level URL families are Mac-authoritative. The
-destination owns the following for this type:
+Layouts, components, styles, and top-level URL families are owned by the site's
+rendering side. It owns the following for this type:
 
 1. **`/products/` URL family** — an index page at `/products/` and detail pages
    at `/products/<slug>/`. Same precedent as the forthcoming `/artifacts/**`
@@ -175,12 +179,9 @@ rather than assuming one. If the destination wants products folded into the
 totals, extend the stats scanner on the Mac side and note it here on the next
 reverse-sync.
 
-## Sync
+## Rendering wiring
 
-Product articles flow Spark → Mac through the normal content sync (the same
-mechanism that carries `articles/**`). No special handling is needed beyond
-wiring the `products` collection + layout once. When the destination implements
-the rendering, please reverse-sync an update to this file (or to
-`mirrors/destination-overrides.md`) recording that `/products/**` is now
-Mac-rendered, so the Spark side knows the local-Astro-dev gap is expected and
-not a regression.
+Product articles use the same content pipeline as `articles/**`. No special
+handling is needed beyond wiring the `products` collection + layout once. The
+`/products/**` URL family is rendered by the site build; record any rendering
+change here so the schema and the local-Astro-dev expectations stay in sync.

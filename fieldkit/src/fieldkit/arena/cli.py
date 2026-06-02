@@ -31,7 +31,7 @@ app = typer.Typer(
         "(`pip install fieldkit[arena]` → `fieldkit arena up`); `fieldkit arena "
         "build` bakes the web UI into the wheel; `fieldkit arena import` (M2) "
         "seeds the DB; `fieldkit arena mirror` (M6) exports the leak-proof "
-        "publishable slice. See specs/spark-arena-v1.md."
+        "publishable slice. See _SPECS/spark-arena-v1.md."
     ),
     no_args_is_help=True,
     add_completion=False,
@@ -157,7 +157,7 @@ def mirror(
     **never** enumerated. Writes to ``<out_dir>/_staging/`` first then
     atomic-renames per ``[[reference_sync_workflow_nfs_mount]]``. The
     regression test ``fieldkit/tests/arena/test_mirror_does_not_leak.py``
-    pins the leak-proof contract — see ``specs/spark-arena-v1.md`` §4.10.
+    pins the leak-proof contract — see ``_SPECS/spark-arena-v1.md`` §4.10.
     """
     # Local import — keeps `fieldkit arena --help` cheap (sqlite + dataclass
     # only by this path, but the convention holds).
@@ -396,5 +396,5 @@ def promote_run(
 def _milestone_message(cmd: str, milestone: str) -> str:
     return (
         f"`fieldkit arena {cmd}` is an M1 stub — the body lands at "
-        f"{milestone}. See specs/spark-arena-v1.md."
+        f"{milestone}. See _SPECS/spark-arena-v1.md."
     )

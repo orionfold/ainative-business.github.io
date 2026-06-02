@@ -22,7 +22,7 @@ Supported JSONL shapes (auto-detected by `VerticalBench.from_jsonl`):
 - **legalbench** — Stanford CRFM's LegalBench schema. Most tasks use
   ``text`` / ``input`` for prompt and ``answer`` / ``label`` for reference.
 - **patent-strategist** — Orionfold patent-strategist-bench schema
-  (`specs/patent-strategist-v1.md` §3.3). Rows carry ``family`` (A-E),
+  (`_SPECS/patent-strategist-v1.md` §3.3). Rows carry ``family`` (A-E),
   ``use_case``, ``scoring_mode`` (closed/retrieval/oracle), ``gold_label``,
   optional ``options`` (MCQ subset), ``context`` (retrieval), and
   ``oracle_context`` (oracle). The branch handles open-book context
@@ -84,7 +84,7 @@ __all__ = [
 # --- Patent-strategist scorer dispatch -----------------------------------
 
 PATENT_STRATEGIST_SCORERS: dict[str, str] = {
-    # Per `specs/patent-strategist-v1.md` §3.3. Values are scorer *names*
+    # Per `_SPECS/patent-strategist-v1.md` §3.3. Values are scorer *names*
     # (strings) for callers that want lazy resolution or want to render the
     # dispatch into a config dump. The matching live-callable map below
     # (`PATENT_STRATEGIST_SCORER_FNS`) is the import-it-and-use surface.

@@ -1,7 +1,7 @@
 /*
  * products.css — launch-article substrate for the /products/* family.
  * A product-launch article is a different genre from a field-notes deep-dive
- * (see /PRODUCT-ARTICLES.md): a hero, a mined build-metrics infographic, a
+ * (see /_GUIDES/PRODUCT-ARTICLES.md): a hero, a mined build-metrics infographic, a
  * feature-tour gallery, then prose. Loaded only on /products/* pages via
  * ProductLayout.astro + the products index, so selectors don't leak.
  *

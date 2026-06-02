@@ -5,7 +5,7 @@
 # tech-writer skill produces — they live in their own collection so the
 # destination site can render them with a launch layout (hero, build-metrics
 # infographic, feature-tour gallery) instead of the article reading layout.
-# See PRODUCT-ARTICLES.md at the repo root for the destination-repo contract.
+# See _GUIDES/PRODUCT-ARTICLES.md for the destination-repo contract.
 set -euo pipefail
 
 REPO="${REPO:-/home/nvidia/ainative-business.github.io}"

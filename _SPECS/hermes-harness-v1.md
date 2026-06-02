@@ -447,7 +447,7 @@ artifact kinds · the Spark-Hermes profile bundle + router config · the agentsk
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/we-will-create-another-delightful-willow.md`
 - Vertical-curator article template: `articles/becoming-a-legal-curator-on-spark/article.md`
-- Spec format precedent: `specs/patent-strategist-v1.md`, `specs/notebooks-as-artifacts-v1.md`
+- Spec format precedent: `_SPECS/patent-strategist-v1.md`, `_SPECS/notebooks-as-artifacts-v1.md`
 - Editorial arcs: `.claude/skills/tech-writer/references/use-case-arc.md`
 - MTBM agent-loop pieces: `articles/autoresearch-agent-loop/`, `mcp-second-brain-in-claude-code`
 - fieldkit modules reused: `fieldkit/src/fieldkit/{nim,notebook,capabilities,eval,publish,rag}/`

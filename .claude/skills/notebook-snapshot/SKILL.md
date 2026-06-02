@@ -11,7 +11,7 @@ pages; this skill harvests the rendered cells (charts, hero table, branded
 banner, reasoning chains) as PNGs the website and HF cards reuse — so the asset
 is the deterministic output of an actual executed run, not a mockup.
 
-Governing spec: `specs/notebooks-as-artifacts-v1.md` §9.2 + §7 (visual system).
+Governing spec: `_SPECS/notebooks-as-artifacts-v1.md` §9.2 + §7 (visual system).
 
 ## Output layout
 

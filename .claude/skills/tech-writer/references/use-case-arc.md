@@ -144,7 +144,7 @@ When a track reaches a product already covered in another track, **acknowledge t
 
 ## Harnesses series (H1–H6)
 
-The fourth running thread is a **series, not one of the three arcs** — same shape as Frontier Scout (a series whose articles spread across `agentic` / `deployment` / `inference` / `observability` stages with no dedicated stage). Where the three arcs answer *what you run* on the Spark, Harnesses answers *what you drive it from*: the **cockpit**. Take a frontier open-source agent harness, tune its serving lane to the 128 GB envelope, harden it, and wire it to the box itself via fieldkit-as-MCP. **Hermes Agent (Nous Research, MIT) is entry #1**; a second harness will get its own spec + sub-arc later. Source of truth: `specs/hermes-harness-v1.md`.
+The fourth running thread is a **series, not one of the three arcs** — same shape as Frontier Scout (a series whose articles spread across `agentic` / `deployment` / `inference` / `observability` stages with no dedicated stage). Where the three arcs answer *what you run* on the Spark, Harnesses answers *what you drive it from*: the **cockpit**. Take a frontier open-source agent harness, tune its serving lane to the 128 GB envelope, harden it, and wire it to the box itself via fieldkit-as-MCP. **Hermes Agent (Nous Research, MIT) is entry #1**; a second harness will get its own spec + sub-arc later. Source of truth: `_SPECS/hermes-harness-v1.md`.
 
 **The defensible angle is NIM-first** — every other Spark Hermes write-up documents Ollama; this series leads with the tuned NIM Nemotron lane (the project's `NIM_MAX_BATCH_SIZE=32` → 325 tok/s knob).
 

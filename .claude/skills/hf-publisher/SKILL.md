@@ -195,8 +195,7 @@ Anchored: `^Traceback` (line-start), `HTTP/X.Y" 4XX` (proper request-log format)
 The easy-to-forget tail. Compounds across releases — every skipped item is a future "wait, why isn't the stats page updated" thread.
 
 - [ ] **Update `HANDOFF.md`** — live URL + variant table (size, ppl, tok/s, vertical-eval) + actual upload time + any new lessons. Per `[[feedback_handoff_md_update_protocol]]`.
-- [ ] **Write a descriptive commit subject** — Mac's `/sync-field-notes` skill reads `git log` over the NFS-mounted source to know what shipped. `feat(field-notes): publish Orionfold/<slug>` + a body summarizing variant table is the change narrative. No separate SYNC-HANDOFF / SYNC-RENAMES files to maintain — those were deleted in the 2026-05-22 workflow simplification per `[[sync-workflow-nfs-mount]]`.
-- [ ] **Check `mirrors/destination-overrides.md`** — only if the push introduces a new top-level page or path (most pure-quant pushes don't touch Mac-owned chrome). Per `[[destination-overrides-mirror]]`.
+- [ ] **Write a descriptive commit subject** — `feat(field-notes): publish Orionfold/<slug>` + a body summarizing the variant table is the change narrative (commit subjects are the changelog in this monorepo). The old two-repo Mac `/sync-field-notes` + SYNC-HANDOFF / mirror-handshake ceremony is retired — author directly here.
 - [ ] **Refresh `src/data/project-stats.json`** — invoke the `nvidia-learn-stats` skill. Per `[[feedback_refresh_stats_on_publish]]` — the home "At a glance" infographic drifts silently otherwise.
 - [ ] **Promote the article** — flip `status: upcoming` → `status: published` in `articles/<slug>/article.md` if not already done. Add `hf_url` to frontmatter if the schema supports it.
 - [ ] **Commit + push to main** — solo-blog repo per `[[project_nvidia_learn_git_workflow]]`. Confirm with the user first; expect a permission prompt on first main-push per session.
