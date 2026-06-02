@@ -1,8 +1,8 @@
 # Card polish — the Orionfold engagement-pull recipe
 
-> **Narrative rules live in [`/_GUIDES/NARRATIVE-CONTRACT.md`](../../../../_GUIDES/NARRATIVE-CONTRACT.md)** (repo root). That file is the surface-agnostic canonical rubric — section order, drift bounds, no forward-looking language, sibling cross-links, lane differentiation. This file covers **HF-surface specifics only**: frontmatter conventions, llms.txt, Spark-tested table format, and the engagement-pull moves (above-the-fold differentiator, cross-link templates, wire-back hooks) that the HF model-card surface needs but the destination site's templates handle differently.
+> **Narrative rules live in [`/_GUIDES/narrative-contract.md`](../../../../_GUIDES/narrative-contract.md)** (repo root). That file is the surface-agnostic canonical rubric — section order, drift bounds, no forward-looking language, sibling cross-links, lane differentiation. This file covers **HF-surface specifics only**: frontmatter conventions, llms.txt, Spark-tested table format, and the engagement-pull moves (above-the-fold differentiator, cross-link templates, wire-back hooks) that the HF model-card surface needs but the destination site's templates handle differently.
 >
-> If the rules below conflict with anything in `_GUIDES/NARRATIVE-CONTRACT.md`, the contract wins.
+> If the rules below conflict with anything in `_GUIDES/narrative-contract.md`, the contract wins.
 
 This file codifies the **v5 §3.15.b engagement-pull recipe** — the set of model-card design moves that separates a card someone clones-and-forgets from a card someone *likes, follows, and recommends*. The reference exists because empirical evidence (Pulse #1, 2026-05-16) showed the four shipped Orionfold cards landed **472 DL / 0 likes** despite measurement quality being uniformly strong: the gap is a card-design problem, not a content problem.
 

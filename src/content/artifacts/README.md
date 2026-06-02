@@ -23,7 +23,7 @@ human-readable summary; if the two ever drift, the Zod schema wins.
 |---|---|---|---|
 | `slug` | ✓ | string | URL slug; should match the filename without `.yaml` |
 | `kind` | ✓ | enum | One of `quant`, `lora`, `adapter`, `dataset`, `bench` |
-| `positioning.headline` |  | string | One-line elevator (added v0.5.x; required by [_GUIDES/NARRATIVE-CONTRACT.md](/Volumes/home/ai-field-notes/NARRATIVE-CONTRACT.md)) |
+| `positioning.headline` |  | string | One-line elevator (added v0.5.x; required by [_GUIDES/narrative-contract.md](../../../_GUIDES/narrative-contract.md)) |
 | `positioning.problem` |  | string | Customer-problem framing — sets "What this model does" body |
 | `positioning.use_cases` |  | string[] | Use-case bullets |
 | `positioning.audience` |  | string | Who picks this artifact |

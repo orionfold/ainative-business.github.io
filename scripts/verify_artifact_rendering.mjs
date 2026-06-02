@@ -2,7 +2,7 @@
  * Post-build verifier: enforces the narrative + visual contract on every
  * artifact detail page. Walks dist/artifacts/{loras,adapters,datasets,quants,benches,notebooks}/
  * and checks each rendered HTML against the rules codified in source's
- * _GUIDES/NARRATIVE-CONTRACT.md.
+ * _GUIDES/narrative-contract.md.
  *
  * Rules (apply only when the corresponding manifest field is populated):
  *   1. First <h2> on a detail page must NOT be a drift heading.

@@ -1,6 +1,6 @@
 ---
 name: product-writer
-description: Turn the building of a product (an app, tool, or cockpit shipped on the DGX Spark — e.g. Orionfold Arena) into a published product-launch article at /home/nvidia/ainative-business.github.io/products/<slug>/product.md. Use this skill whenever the user wants to write up, announce, launch, or market a product or tool they built — phrases like "write up the launch", "announce the Arena", "do a launch article for X", "market the product", "write the product story", "show what it took to build X", or invokes /product-writer. This is the sibling to tech-writer: tech-writer writes concept-teaching deep-dive essays; product-writer writes product launches with a mined build-metrics infographic (tokens, hours, lines of code, tests, features) and a screenshot-per-feature tour, reading for BOTH an AI-research audience (what it unlocks) and a Spark power-user/operator (what each feature does). Prefer this skill over tech-writer or freehand markdown when the subject is a shippable product and the goal is to launch/market it and sell the agentic-coding workflow that produced it. Targets a separate `products` content collection — see _GUIDES/PRODUCT-ARTICLES.md.
+description: Turn the building of a product (an app, tool, or cockpit shipped on the DGX Spark — e.g. Orionfold Arena) into a published product-launch article at /home/nvidia/ainative-business.github.io/products/<slug>/product.md. Use this skill whenever the user wants to write up, announce, launch, or market a product or tool they built — phrases like "write up the launch", "announce the Arena", "do a launch article for X", "market the product", "write the product story", "show what it took to build X", or invokes /product-writer. This is the sibling to tech-writer: tech-writer writes concept-teaching deep-dive essays; product-writer writes product launches with a mined build-metrics infographic (tokens, hours, lines of code, tests, features) and a screenshot-per-feature tour, reading for BOTH an AI-research audience (what it unlocks) and a Spark power-user/operator (what each feature does). Prefer this skill over tech-writer or freehand markdown when the subject is a shippable product and the goal is to launch/market it and sell the agentic-coding workflow that produced it. Targets a separate `products` content collection — see _GUIDES/product-articles.md.
 ---
 
 # product-writer
@@ -30,7 +30,7 @@ live in their own collection at `products/<slug>/product.md` so the destination
 site can render them with a launch layout (hero, build-metrics infographic,
 feature-tour gallery) instead of the article reading layout.
 
-`_GUIDES/PRODUCT-ARTICLES.md` is the **contract to the destination
+`_GUIDES/product-articles.md` is the **contract to the destination
 (Mac) repo**: it declares the new type, proposes the `products` Zod collection
 for `src/content.config.ts`, and specifies the rendering the destination owns
 (the `/products/` URL family, the launch layout, the infographic component).
@@ -57,7 +57,7 @@ If ambiguous, ask one sharp question rather than guessing.
 1. **Editorial source of truth:** `/home/nvidia/.claude/projects/-home-nvidia-ai-field-notes/memory/project_nvidia_learn_editorial.md` — the uber theme threads product articles too (everything ties back to maximizing one Spark for one builder).
 2. **Voice + positioning:** `references/voice-and-positioning.md` before writing any prose. The two hard lines: positioning first, and **never name or imply a competitor** (no clone/copy/alternative-to framing — this has bitten before).
 3. **Privacy + security:** the blog is public and permanent. The scrub rules are identical to tech-writer's — read `../tech-writer/references/privacy-and-security.md` and apply it to `product.md`, screenshots, and `assets/`. `scripts/verify_product_article.sh` re-runs the secret scan as a hard gate.
-4. **Destination contract:** `_GUIDES/PRODUCT-ARTICLES.md` (schema + rendering ownership).
+4. **Destination contract:** `_GUIDES/product-articles.md` (schema + rendering ownership).
 
 ## Mode playbooks
 
@@ -149,7 +149,7 @@ Capture (or refresh) the feature screenshots.
    `FAIL` before proceeding.
 2. Refresh project stats if the repo's stats pipeline counts products
    (check whether `src/data/field-notes/project-stats.json` has a products bucket; if so run
-   the stats refresh — coordinate via `_GUIDES/PRODUCT-ARTICLES.md`, since the
+   the stats refresh — coordinate via `_GUIDES/product-articles.md`, since the
    destination owns the home infographic).
 3. Stage `products/<slug>/` (and any refreshed stats) and commit with a
    descriptive message: `Add product launch: <Product Name>`.
@@ -184,7 +184,7 @@ Capture (or refresh) the feature screenshots.
 ## When things go sideways
 
 - **No `products/` tree yet?** `new_product_article.sh` creates the folder; the
-  destination renders it once `_GUIDES/PRODUCT-ARTICLES.md`'s schema is wired on the Mac
+  destination renders it once `_GUIDES/product-articles.md`'s schema is wired on the Mac
   side. If the local Astro dev doesn't yet have the `products` collection, that
   is expected — it's a destination-owned rendering step, not a Spark blocker.
 - **Token mine returns 0 / wrong totals?** Check the `--log-dir` points at the

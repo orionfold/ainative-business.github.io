@@ -8,22 +8,25 @@ author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on 
 
 ## Doc map
 
-- **`WORKFLOWS.md`** (root) — the canonical **origin-instruction → artifact** map + the
-  forward-looking roadmap. Start here to understand how a request ("write this up", "publish
-  the GGUF", "release fieldkit") flows to a shipped artifact. *(tracked since `adb1c04`)*
+- **`_FLOWS/`** → **`_FLOWS/the-machine-that-builds-machines.md`** — the canonical
+  **origin-instruction → artifact** map + the forward-looking roadmap. Start here to understand
+  how a request ("write this up", "publish the GGUF", "release fieldkit") flows to a shipped
+  artifact. `_FLOWS/` is the home of the "Flows" stream — process flow, data flow, and operator
+  flow-state. *(renamed from root `WORKFLOWS.md` 2026-06-02 — "Flows", not the CC-overloaded
+  "Workflow"; tracked since `adb1c04`)*
 - **`HANDOFF.md`** (root) — the living **session-transfer** doc: current state, live runtime,
   open items, recent decisions. Read at the start of a session; update after significant work.
-- **`_GUIDES/`** → see [`_GUIDES/INDEX.md`](_GUIDES/INDEX.md) — **active guidance & practices**:
-  publishing contracts (`NARRATIVE-CONTRACT.md`, `PRODUCT-ARTICLES.md`), Arena distribution
+- **`_GUIDES/`** → see [`_GUIDES/index.md`](_GUIDES/index.md) — **active guidance & practices**:
+  publishing contracts (`narrative-contract.md`, `product-articles.md`), Arena distribution
   (`arena-distribution.md`, `arena-storefront-marketing.md`), operator reference
   (`local-ai-stack-commands.md`).
-- **`_SPECS/`** → see [`_SPECS/INDEX.md`](_SPECS/INDEX.md) — **specs, plans & design docs**:
+- **`_SPECS/`** → see [`_SPECS/index.md`](_SPECS/index.md) — **specs, plans & design docs**:
   the 4 active specs (`patent-strategist-v1`, `notebooks-as-artifacts-v1`, `spark-arena-v1`,
   `hermes-harness-v1`) at root; superseded/historical under `_SPECS/archive/`.
 - **Skill procedures** — `.claude/skills/<name>/SKILL.md` (authoritative per-skill workflow).
 - **Generated reports** (root, skill-written) — `ainative-stats.md`, `seo-progress.md`.
 
-## Load-bearing invariants (full detail in `WORKFLOWS.md` §1)
+## Load-bearing invariants (full detail in `_FLOWS/the-machine-that-builds-machines.md` §1)
 
 1. **Solo-blog, direct-to-main** — commit subjects are the changelog; human review is the gate.
 2. **One serving lane in 128 GB** — GB10 shares CPU+GPU memory; one model resident at a time.

@@ -27,7 +27,7 @@ recalibrate. In short:
 ## The narrative contract still applies
 
 The notebook surfaces the same artifact as the card and the article, so
-`/_GUIDES/NARRATIVE-CONTRACT.md` governs it too:
+`/_GUIDES/narrative-contract.md` governs it too:
 
 - **Positioning leads.** The intro cell is positioning — problem, who it's for,
   the value. Measurements come after. (The badge row is the one thing above

@@ -40,4 +40,4 @@ skills, `src/content.config.ts`, and the `fieldkit` package source).
 > the archived `ai-field-notes` repo keep the old path. Live references (skills,
 > content config, `fieldkit` source docstrings, `fieldkit/docs/api/`) point here.
 
-Active guidance & practices live in [`../_GUIDES/`](../_GUIDES/INDEX.md).
+Active guidance & practices live in [`../_GUIDES/`](../_GUIDES/index.md).

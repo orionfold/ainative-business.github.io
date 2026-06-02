@@ -271,7 +271,7 @@ class ModelCard:
     """Open-in-Colab / Open-in-Kaggle runnable on-ramps — each entry shaped
     `{"label": "<short call-to-action>", "colab": "<url>", "kaggle": "<url>"}`.
     Renders as a **badge row directly under the one-liner**, above-the-fold,
-    *before* positioning. Per `_GUIDES/NARRATIVE-CONTRACT.md` the badge row is a
+    *before* positioning. Per `_GUIDES/narrative-contract.md` the badge row is a
     navigation aid (a runnable link), not a claim, so it does not violate
     "positioning leads" — positioning is still the first prose a reader meets.
 
@@ -544,7 +544,7 @@ def _render_model_card(card: ModelCard) -> str:
     # Runnable on-ramp — a titled `## Notebooks` section placed *after* the
     # positioning lead (not above-the-fold). It carries a one-sentence "what it
     # does" per notebook in a table, so it is a section, not a bare badge row.
-    # See _GUIDES/NARRATIVE-CONTRACT.md Rule 8.
+    # See _GUIDES/narrative-contract.md Rule 8.
     if card.notebooks:
         section = _render_notebook_section(card.notebooks)
         if section:

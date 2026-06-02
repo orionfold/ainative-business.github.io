@@ -1,7 +1,7 @@
 # Provenance — the-meta-program-on-spark
 
 **Type:** concept / thesis essay (no hands-on session). MTBM-arc opener.
-**Authored:** 2026-06-02, directly in-repo per the editorial-overlay plan in `WORKFLOWS.md` §3 and the HANDOFF "Editorial overlay" open item.
+**Authored:** 2026-06-02, directly in-repo per the editorial-overlay plan in `_FLOWS/the-machine-that-builds-machines.md` §3 (then at root as `WORKFLOWS.md`) and the HANDOFF "Editorial overlay" open item.
 
 ## Origin instruction
 
@@ -30,10 +30,10 @@ configuration over code). Cross-link the published chapters via
     domain application"; "the specification IS the application"; "configuration over
     code" (~7,400 lines vs est. 30,000–50,000); governance inherited structurally;
     "cattle, not pets."
-- **WORKFLOWS.md §1** — "This doc is itself a Ch-14 artifact"; the
+- **`_FLOWS/the-machine-that-builds-machines.md` §1** (then root `WORKFLOWS.md`) — "This doc is itself a Ch-14 artifact"; the
   `origin instruction → skill → script → artifact` legend = the `program.md` pattern;
   the ~24 skills are configuration over the fieldkit + Claude-Code substrate.
-- **WORKFLOWS.md §3** — the `pane → hands → engine` sequencing principle (verbatim:
+- **`_FLOWS/the-machine-that-builds-machines.md` §3** — the `pane → hands → engine` sequencing principle (verbatim:
   "Each phase makes the next more valuable, never the reverse … autonomy is useless
   without a control plane to approve and dispatch from"). NB: the article frames this
   as a *way of seeing the machine*, NOT as the roadmap phase plan — deliberately no
@@ -68,4 +68,4 @@ configuration over code). Cross-link the published chapters via
 - Closed-loop eval→reward→fine-tune→re-eval is **not** wired; the pieces exist, the
   wiring is future work. Stated plainly in the Tradeoffs section.
 - Bridge made explicit: the book's meta-program is the *ainative* SaaS platform; this
-  is the *same pattern, another instance* on one Spark (per WORKFLOWS §1 framing).
+  is the *same pattern, another instance* on one Spark (per the-machine-that-builds-machines §1 framing).
