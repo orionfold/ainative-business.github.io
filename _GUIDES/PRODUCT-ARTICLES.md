@@ -170,14 +170,12 @@ rendering side. It owns the following for this type:
 
 ## Stats and indices
 
-If the home "At a glance" infographic or the README article index should also
-count product articles, that's a destination-side decision — the
-`nvidia-learn-stats` pipeline and `refresh_readme.py` currently scan
+If the home "At a glance" infographic should also count product articles, that's
+a decision to make here — the `nvidia-learn-stats` pipeline currently scans
 `articles/**` only. The `product-writer` skill's `publish` mode checks whether
-`src/data/project-stats.json` has a products bucket and defers to this document
-rather than assuming one. If the destination wants products folded into the
-totals, extend the stats scanner on the Mac side and note it here on the next
-reverse-sync.
+`src/data/field-notes/project-stats.json` has a products bucket and defers to this
+document rather than assuming one. If we want products folded into the totals,
+extend `compute_stats.py` and note it here.
 
 ## Rendering wiring
 

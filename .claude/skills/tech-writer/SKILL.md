@@ -11,7 +11,7 @@ The blog's unique value vs. NVIDIA's own docs is **synthesis + named POV from on
 
 ## Mode router
 
-The skill operates in seven modes. Detect the mode from the user's phrasing, then follow the relevant playbook below.
+The skill operates in six modes. Detect the mode from the user's phrasing, then follow the relevant playbook below.
 
 | User intent | Mode |
 |---|---|
@@ -20,7 +20,6 @@ The skill operates in seven modes. Detect the mode from the user's phrasing, the
 | "capture this", "note this for later", "save this moment for the blog", "/tech-writer capture" | **capture** |
 | "polish X", "refine the X piece", "improve the article on X", "/tech-writer polish X" | **polish** |
 | "publish X", "commit the X article", "/tech-writer publish X" | **publish** |
-| "show me the articles", "update the blog index", "what have I written", "refresh the README" | **index** |
 | "extract from X to fieldkit", "lift X into fieldkit", "what should land in fieldkit", "/tech-writer extract X" | **extract** |
 
 If the intent is ambiguous, ask one sharp question rather than guessing. Example: "Drafting a new article, or capturing a note to a scratch folder?"
@@ -133,8 +132,7 @@ For `polish`, `capture`, `publish`, and `index` modes, the overlay may already e
 8. **Add the explainer layer (6–10 sidebar annotations).** Read `references/explainers.md` if you haven't this session. Identify 6–10 candidates — typically 3–4 `:::define`, 1–2 `:::why`, 0–1 `:::pitfall`, 0–1 `:::math`, 1 `:::deeper`, 1 `:::hardware` — and place each adjacent to the prose paragraph that introduces or motivates it. The bracket labels should read as a coherent spine on their own. Foundation pieces and arithmetic-heavy articles aim for ~10; bridge and shorter pieces sit at 6–8. Skip this step *only* on `status: upcoming` placeholder previews.
 9. **Wire up `fieldkit` if it applies.** If any of the article's code naturally uses `fieldkit.capabilities | nim | rag | eval | cli`, declare those modules in the frontmatter (`fieldkit_modules: [rag, eval]`) and use the import boilerplate from `references/fieldkit-imports.md` in the article's Python code blocks instead of pasting the package's internals back into the prose. The Astro layout reads `fieldkit_modules` to render the "USES fieldkit.X" chip on the article card and to back-link the article from `/fieldkit/api/<module>/`. Conservative — only set the field for modules the article actually imports. After ai-field-notes publishes a new article, run `extract` mode (below) to find code in `evidence/` that should be lifted into a future fieldkit release.
 10. Save cleaned narrative source material to `articles/<slug>/transcript.md` as provenance.
-11. **Refresh the top-level README.** Run `python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py` from the repo root. It rewrites `README.md` from `src/data/project-stats.json` + every article's frontmatter so the GitHub-rendered repo entry stays in sync with the live site (masthead, stage table, product/model tables, article index by primary stage). Stats need to be current first — if you haven't run `compute_stats.py` since the article was scaffolded, run it before the README refresh.
-12. Report to the user: what was written, where screenshots came from, which diagrams were added and why, how many explainers you placed (with the palette breakdown), and which sections need their input (common: the overlay hook opening, the "what this unlocks" section's concrete use cases).
+11. Report to the user: what was written, where screenshots came from, which diagrams were added and why, how many explainers you placed (with the palette breakdown), and which sections need their input (common: the overlay hook opening, the "what this unlocks" section's concrete use cases).
 
 ### upcoming (placeholder preview for a future article)
 
@@ -145,8 +143,7 @@ Use when the user asks for a "placeholder", "roadmap entry", "proposed abstract"
 3. Write a short body — typically 100–300 words — that names the NVIDIA technologies the piece will cover, the question it will answer, and where it sits in the running arc(s). Treat it as a public commitment, not a TODO list.
 4. Skip verify_article.sh's screenshot and diagram checks (they're relevant for published pieces). The Astro build will still validate frontmatter.
 5. Refresh stats (`python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py`) — upcoming articles feed the `stages_upcoming` counters on the home infographic even though they're excluded from word/LOC totals.
-6. **Refresh the top-level README** (`python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py`) so the placeholder shows up in the GitHub-rendered article index with a 🔜 marker and its planned date. Run after the stats refresh so both files reflect the same state.
-7. Commit the placeholder folder along with the stats and README refresh. Promote to `status: published` later when the real article is written in place.
+6. Commit the placeholder folder along with the stats refresh. Promote to `status: published` later when the real article is written in place.
 
 ### capture
 
@@ -165,25 +162,15 @@ Lightweight, fast. Used in the middle of a session to not lose a moment.
 4. If the polish involves new web screenshots, use Playwright-MCP — numbering continues from existing screenshots.
 5. **Diagram pass.** Scan for architectural content currently carried only by prose or ASCII code blocks. If a passage meets the taste test in `references/visualizations.md`, propose a diagram (one of the six archetypes) to the user before adding it. Keep the ASCII block in `transcript.md` for provenance.
 6. **Explainer pass.** Audit the article's existing explainer layer against `references/explainers.md`. Are there 6–10 explainers? If under 6, propose new ones at terms the prose introduces in passing. Is the palette balanced (heavy-on-defines is the usual drift)? Do bracket labels read as a coherent spine when scanned in isolation? Skip on `status: upcoming` placeholders.
-7. If the polish changed frontmatter (title, summary, product, tags, stage, status, also_stages) or added/removed a substantive paragraph, the home "At a glance" numbers and the README article index may have drifted. Refresh both: `python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py` then `python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py`. Body-only edits that don't touch frontmatter or word count don't need either refresh.
+7. If the polish changed frontmatter (title, summary, product, tags, stage, status, also_stages) or added/removed a substantive paragraph, the home "At a glance" numbers may have drifted. Refresh them: `python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py`. Body-only edits that don't touch frontmatter or word count don't need a refresh.
 
 ### publish
 
 1. Run `scripts/verify_article.sh <slug>`. It checks frontmatter validity, image references resolve, required fields are present, `TODO` markers are flagged. Address any failures before proceeding.
-2. **Refresh the home-page "At a glance" infographic.** Run `python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py` from the repo root. It rewrites `src/data/project-stats.json` so the article count, word count, LOC, models, and products all reflect the new article. Skipping this leaves the home page showing yesterday's numbers — stats drift silently. Eyeball the printed summary before continuing.
-3. **Refresh the top-level README.** Run `python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py` from the repo root. It rewrites `README.md` from the just-refreshed stats JSON + every article's frontmatter, so the GitHub-rendered repo entry stays in sync with the live site (masthead, stage table, product/model tables, article index by primary stage). Run this *after* `compute_stats.py` so both files reflect the same state.
-4. From the repo root, stage the article, the refreshed stats, and the refreshed README together: `git add articles/<slug>/ src/data/project-stats.json README.md`. They belong in the same commit so `git log` shows them as one editorial event.
-5. Commit with a descriptive message: `git commit -m "Add article: <title>"` (or `Update article: ...` for polish commits). Mention the stats/README refresh in the body if the numbers moved meaningfully (e.g., a new product or model entered the catalog).
-6. **Do not push.** Report the commit hash and remind the user to push when they're ready.
-
-### index
-
-Regenerate the top-level `README.md` to mirror the live home page — masthead, "At a glance" stats, stage / product / model tables, and the article index grouped by primary stage. This is the same operation that runs as a step inside `draft`, `upcoming`, `polish`, and `publish` — `index` mode is the standalone trigger when the user asks for a README refresh without other authoring work.
-
-1. Run `python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py` first if stats may be stale (e.g., the user just hand-edited an article's frontmatter outside this skill).
-2. Run `python3 ~/.claude/skills/tech-writer/scripts/refresh_readme.py`. It reads `src/data/project-stats.json` + each `articles/<slug>/article.md` frontmatter and writes `README.md`.
-3. Show the user a diff (`git diff README.md`) so they can spot anything unexpected before committing.
-4. Do not commit unless the user asks. README-only refreshes typically ride along with the next article commit.
+2. **Refresh the home-page "At a glance" infographic.** Run `python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py` from the repo root. It rewrites `src/data/field-notes/project-stats.json` so the article count, word count, LOC, models, and products all reflect the new article. Skipping this leaves the home page showing yesterday's numbers — stats drift silently. Eyeball the printed summary before continuing.
+3. From the repo root, stage the article and the refreshed stats together: `git add articles/<slug>/ src/data/field-notes/project-stats.json`. They belong in the same commit so `git log` shows them as one editorial event.
+4. Commit with a descriptive message: `git commit -m "Add article: <title>"` (or `Update article: ...` for polish commits). Mention the stats refresh in the body if the numbers moved meaningfully (e.g., a new product or model entered the catalog).
+5. **Do not push.** Report the commit hash and remind the user to push when they're ready.
 
 ### extract
 

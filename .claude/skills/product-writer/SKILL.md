@@ -148,7 +148,7 @@ Capture (or refresh) the feature screenshots.
    block, screenshots resolve, no leftover placeholders, secret scan. Fix any
    `FAIL` before proceeding.
 2. Refresh project stats if the repo's stats pipeline counts products
-   (check whether `src/data/project-stats.json` has a products bucket; if so run
+   (check whether `src/data/field-notes/project-stats.json` has a products bucket; if so run
    the stats refresh — coordinate via `_GUIDES/PRODUCT-ARTICLES.md`, since the
    destination owns the home infographic).
 3. Stage `products/<slug>/` (and any refreshed stats) and commit with a

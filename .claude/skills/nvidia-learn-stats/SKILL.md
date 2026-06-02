@@ -1,11 +1,11 @@
 ---
 name: nvidia-learn-stats
-description: Compute and refresh project-level statistics for the nvidia-learn repo — article count, total word count, total lines of code across evidence/ and src/, NVIDIA models and products covered, per-stage distribution, and representative latency/throughput/accuracy metrics mined from article prose. Writes a compact JSON file at src/data/project-stats.json that the Astro home page imports to render a visual infographic. Use this skill whenever the user asks for "project stats", "blog stats", "how many articles", "refresh the stats", "update the infographic on the home page", or after publishing a new article (stats should be refreshed so the home page numbers stay current). Prefer this skill over ad-hoc counting because the numbers show up in a user-facing infographic and drift silently otherwise.
+description: Compute and refresh project-level statistics for the nvidia-learn repo — article count, total word count, total lines of code across evidence/ and src/, NVIDIA models and products covered, per-stage distribution, and representative latency/throughput/accuracy metrics mined from article prose. Writes a compact JSON file at src/data/field-notes/project-stats.json that the Astro home page imports to render a visual infographic. Use this skill whenever the user asks for "project stats", "blog stats", "how many articles", "refresh the stats", "update the infographic on the home page", or after publishing a new article (stats should be refreshed so the home page numbers stay current). Prefer this skill over ad-hoc counting because the numbers show up in a user-facing infographic and drift silently otherwise.
 ---
 
 # nvidia-learn project stats
 
-Produces `src/data/project-stats.json` consumed by the home page's "at-a-glance" infographic. The JSON is the single source of truth — the Astro component just renders it.
+Produces `src/data/field-notes/project-stats.json` consumed by the home page's "at-a-glance" infographic. The JSON is the single source of truth — the Astro component just renders it.
 
 ## What to do
 
@@ -16,7 +16,7 @@ cd /home/nvidia/ainative-business.github.io
 python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py
 ```
 
-It walks `articles/*/article.md` for prose stats, counts code under `articles/*/evidence/` (excluding `/repo-snapshot/` vendored upstream snapshots) and `fieldkit/{src,tests,samples,scripts}/`, emits `src/data/project-stats.json`, and prints a short human-readable summary so you can eyeball the numbers before committing. The Astro site under `src/` is infrastructure, not the deliverable, and is intentionally excluded from `total_loc`.
+It walks `articles/*/article.md` for prose stats, counts code under `articles/*/evidence/` (excluding `/repo-snapshot/` vendored upstream snapshots) and `fieldkit/{src,tests,samples,scripts}/` (excluding the gitignored `_webui/` baked Arena bundle — a build artifact, not source), emits `src/data/field-notes/project-stats.json`, and prints a short human-readable summary so you can eyeball the numbers before committing. The Astro site under `src/` is infrastructure, not the deliverable, and is intentionally excluded from `total_loc`.
 
 If the schema or detection lists need to change (new product, new metric pattern), edit `scripts/compute_stats.py` — the script is the schema.
 
@@ -53,7 +53,7 @@ The home page component (`src/components/ProjectStats.astro`) is tolerant of mis
 Astro could compute these at build time, but:
 1. The git-derived publish ordinal (see `src/lib/article-order.mjs`) already gave us one precedent where computing at render time led to hidden drift across pages. A single JSON file committed to the repo makes the numbers visible in PR diffs.
 2. The detection lists (model IDs, product names, metric regexes) are maintenance code — keeping them in a Python script rather than scattered across Astro components keeps the home page lean.
-3. `git log src/data/project-stats.json` becomes a low-key timeline of the repo's maturation.
+3. `git log src/data/field-notes/project-stats.json` becomes a low-key timeline of the repo's maturation.
 
 ## Detection scope (edit the script to extend)
 
@@ -76,7 +76,7 @@ Astro could compute these at build time, but:
 - **Drafts**: `articles/_drafts/` is excluded from the published count but listed as `articles.drafts`. Check `_drafts/` exists before counting.
 - **Transcripts**: each article has a `transcript.md` — **not counted** in the word total (session logs, not published prose).
 - **Evidence LOC**: counted across common code extensions (`.py`, `.sh`, `.sql`, `.js`, `.ts`, `.json`, `.yaml`, `.toml`). Skip binary files, logs (`.log`), screenshots, and `node_modules/`.
-- **`src/` LOC**: skip `src/data/project-stats.json` itself (so the stat doesn't count its own weight) and `src/content/articles/` symlinks.
+- **`src/` LOC**: skip `src/data/field-notes/project-stats.json` itself (so the stat doesn't count its own weight) and `src/content/articles/` symlinks.
 
 ## Post-run
 
