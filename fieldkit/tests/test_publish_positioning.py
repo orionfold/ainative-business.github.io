@@ -111,7 +111,7 @@ def test_notebook_section_skips_entry_with_no_urls() -> None:
 
 
 def test_notebook_section_sits_after_positioning() -> None:
-    """Per _GUIDES/NARRATIVE-CONTRACT.md Rule 8 the runnable on-ramp is its own
+    """Per _GUIDES/narrative-contract.md Rule 8 the runnable on-ramp is its own
     `## Notebooks` section placed AFTER the positioning lead — positioning is
     the first prose the reader meets, then the on-ramp."""
     card = ModelCard(

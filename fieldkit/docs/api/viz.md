@@ -11,7 +11,7 @@ Five verticals × two notebooks × ~5 figures each is fifty charts that must all
 
 Every figure consumes a duck-typed `manifest` (anything with `.perplexity` / `.spark_tokens_per_sec` / `.vertical_eval` / `.variants` / `.recommended_variant` / `.stack_origin` …) **or** the bare measurement dicts as keyword arguments; explicit kwargs win. The module imports nothing from `fieldkit.publish`, so there is no cycle — it duck-types the manifest shape instead.
 
-The accent color is keyed off `stack_origin` (`STACK_COLORS`) so two siblings — the Unsloth lane and the NeMo lane of the same vertical — render visually distinct at a glance. That is _GUIDES/NARRATIVE-CONTRACT.md Rule 7 (data-driven, stack-distinct visuals) expressed in code.
+The accent color is keyed off `stack_origin` (`STACK_COLORS`) so two siblings — the Unsloth lane and the NeMo lane of the same vertical — render visually distinct at a glance. That is _GUIDES/narrative-contract.md Rule 7 (data-driven, stack-distinct visuals) expressed in code.
 
 Heavy deps (matplotlib, great_tables, pandas, polars) are lazy and optional. `import fieldkit.viz` stays cheap; the imports happen on first call and raise `VizNotAvailable` with an install hint (`pip install fieldkit[notebook]`) if the extra is missing.
 

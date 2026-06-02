@@ -94,4 +94,4 @@ After the patent-strategist pilot, the cell skeleton in `references/cell-templat
 ## Reference files
 
 - `references/cell-template.md` — the locked builder + user cell skeletons (what each cell accomplishes). Read before authoring.
-- `references/authoring-contract.md` — voice, the marketing-landing-page mandate, and the visual/narrative contract pointers (`_GUIDES/NARRATIVE-CONTRACT.md`, `fieldkit.viz` figures, dual-path runtime banners).
+- `references/authoring-contract.md` — voice, the marketing-landing-page mandate, and the visual/narrative contract pointers (`_GUIDES/narrative-contract.md`, `fieldkit.viz` figures, dual-path runtime banners).

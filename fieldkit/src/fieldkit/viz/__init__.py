@@ -28,7 +28,7 @@ Design:
   cycle.
 - **Stack-distinct color.** The accent is keyed off `stack_origin` via
   `STACK_COLORS` so two siblings (Unsloth vs NeMo) render visually distinct at a
-  glance — _GUIDES/NARRATIVE-CONTRACT.md Rule 7.
+  glance — _GUIDES/narrative-contract.md Rule 7.
 - **`ax=`-aware.** Single-panel figures accept an `ax` to draw onto, which is
   how `spark_quad` composes the four-axis panel out of the same primitives.
 

@@ -181,7 +181,7 @@ const artifacts = defineCollection({
     citation: z.string().optional(),
     // Engagement-pull narrative fields (fieldkit v0.5.x, May 2026). All optional
     // so older manifests still validate. Render templates degrade gracefully
-    // when absent. See /_GUIDES/NARRATIVE-CONTRACT.md in the source repo.
+    // when absent. See /_GUIDES/narrative-contract.md in the source repo.
     positioning: z
       .object({
         headline: z.string(),
@@ -225,7 +225,7 @@ const artifacts = defineCollection({
 // Product-launch articles at ./products/<slug>/product.md — a distinct genre
 // from field-notes deep-dives (introduces a shippable product, with a mined
 // build-metrics infographic + a feature-tour gallery). Mirrors the field-notes
-// glob-loader so URLs collapse to /products/<slug>/. Contract: /_GUIDES/PRODUCT-ARTICLES.md
+// glob-loader so URLs collapse to /products/<slug>/. Contract: /_GUIDES/product-articles.md
 // in the source repo. `build` + `features` are what make it a product article;
 // every build figure is mined (scripts/mine_build_metrics.py), never estimated.
 const products = defineCollection({

@@ -1,19 +1,22 @@
 <!--
-  WORKFLOWS.md — the canonical origin-instruction → artifact map + the 100x roadmap.
-  Living doc. Refresh after any workflow / skill / spec change, the same way HANDOFF.md
-  and ideas/ are kept current. Peer to _GUIDES/NARRATIVE-CONTRACT.md in the root-contract tier.
+  _FLOWS/the-machine-that-builds-machines.md — the canonical origin-instruction → artifact
+  map + the 100x roadmap. The anchor doc of the `_FLOWS/` stream (process flow, data flow,
+  and operator flow-state); renamed from the root `WORKFLOWS.md` on 2026-06-02 so "Flows" —
+  not "Workflow" (which collides with the Claude Code orchestration tool) — names this body of work.
+  Living doc. Refresh after any flow / skill / spec change, the same way HANDOFF.md
+  and ideas/ are kept current. Peer to _GUIDES/narrative-contract.md in the root-contract tier.
   Build-in-public contract (public doc since 2026-06-02): ship-to-converge — graduate §3 roadmap
   bets into §2 reference as they ship; keep §7 drift honest + bounded; no unhedged forward promises.
   Last updated: 2026-06-02 (§3 resequenced into pane→hands→engine phases; §1 folds in Ch-14; build-in-public contract added; §3/§7 grounded against the article corpus — see _SPECS/roadmap-reconciliation.md; §3 adds the cross-cutting recall layer — Bet 5, the Second Brain as a control-plane-managed knowledge pipeline).
 -->
 
-# WORKFLOWS — the machine that builds the machines
+# The machine that builds the machines — the canonical flows map
 
-**What this is.** The single map from a human **origin instruction** ("write this up", "pick a base model", "publish the GGUF", "release fieldkit") to a shipped **artifact** (article, quant, LoRA, notebook, bench, app, package, book chapter). Until now this knowledge lived scattered across 24 `SKILL.md` files, 4 locked specs, ~10 root contracts, and `HANDOFF.md`. This doc consolidates it — and then points at where the system goes next. (Active guidance now lives in `_GUIDES/`, specs in `_SPECS/` — see `_GUIDES/INDEX.md` + `_SPECS/INDEX.md`.)
+**What this is.** The single map from a human **origin instruction** ("write this up", "pick a base model", "publish the GGUF", "release fieldkit") to a shipped **artifact** (article, quant, LoRA, notebook, bench, app, package, book chapter). Until now this knowledge lived scattered across 24 `SKILL.md` files, 4 locked specs, ~10 root contracts, and `HANDOFF.md`. This doc consolidates it — and then points at where the system goes next. (Active guidance now lives in `_GUIDES/`, specs in `_SPECS/` — see `_GUIDES/index.md` + `_SPECS/index.md`.)
 
 **Two halves.** §0–§2 are the **reference** (current workflows, exactly as they run today). §3–§7 are the **roadmap** (four disruptive bets sequenced into `pane → hands → engine` phases, plus a cross-cutting **recall layer** that threads them, Fieldkit/Arena abstractions, a new-artifact brainstorm, and a frontier-hardware extrapolation). It is a *living* doc: when a workflow changes, the reference half changes; when a bet ships, it graduates from roadmap to reference.
 
-**Cross-refs.** `HANDOFF.md` (session state) · `_GUIDES/INDEX.md` (active guidance: `_GUIDES/NARRATIVE-CONTRACT.md` publish rubric, `_GUIDES/PRODUCT-ARTICLES.md` launch-article contract, `arena-distribution.md` + `arena-storefront-marketing.md`, `local-ai-stack-commands.md`) · `_SPECS/INDEX.md` (`_SPECS/*.md` project specs + the `archive/` of superseded designs) · `_SPECS/roadmap-reconciliation.md` (the §3 bets reconciled against Spark-measured article evidence — grounding for the unwritten spec stubs) · `ideas/ai-field-notes-consolidation.md` (the one live strategy doc).
+**Cross-refs.** `HANDOFF.md` (session state) · `_GUIDES/index.md` (active guidance: `_GUIDES/narrative-contract.md` publish rubric, `_GUIDES/product-articles.md` launch-article contract, `arena-distribution.md` + `arena-storefront-marketing.md`, `local-ai-stack-commands.md`) · `_SPECS/index.md` (`_SPECS/*.md` project specs + the `archive/` of superseded designs) · `_SPECS/roadmap-reconciliation.md` (the §3 bets reconciled against Spark-measured article evidence — grounding for the unwritten spec stubs) · `ideas/ai-field-notes-consolidation.md` (the one live strategy doc).
 
 **Legend for every map below:**
 
@@ -73,7 +76,7 @@ a shipped product (e.g. Orionfold Arena)
   → [GATE verify_product_article.sh]
   → artifact: products/<slug>/product.md + build-metrics infographic + feature-tour gallery
 ```
-Contract: `_GUIDES/PRODUCT-ARTICLES.md`. The `products` collection is distinct from `articles` (launch genre vs deep-dive). First entry shipped: `products/orionfold-arena/`. Mac owns the `/products/**` URL family, layout, OG cards.
+Contract: `_GUIDES/product-articles.md`. The `products` collection is distinct from `articles` (launch genre vs deep-dive). First entry shipped: `products/orionfold-arena/`. Mac owns the `/products/**` URL family, layout, OG cards.
 
 **(c) Articles → Book chapters** *(the recursion)*
 
@@ -108,7 +111,7 @@ Feasibility gate is memory-correct, not wall-clock-optimistic: compute `wall × 
   → artifact: src/content/artifacts/<slug>.yaml (manifest) + HF Orionfold/<slug> card
   → HANDOFF update · commit · /nvidia-learn-stats refresh
 ```
-The card shape is enforced by `_GUIDES/NARRATIVE-CONTRACT.md`: **positioning leads, never drift**; every `known_drift` entry carries a count/bound; no forward-looking roadmap (memories `feedback_hf_readme_positioning`, `feedback_customer_link_audit`). Preflight 5 bench questions on FP weights **before** sinking multi-hour quant cycles (`feedback_preflight_bench_before_quant`). Pick base models past the 4 traps (`feedback_chat_vs_continued_pretrain_trap`, `feedback_reasoning_model_npredict`).
+The card shape is enforced by `_GUIDES/narrative-contract.md`: **positioning leads, never drift**; every `known_drift` entry carries a count/bound; no forward-looking roadmap (memories `feedback_hf_readme_positioning`, `feedback_customer_link_audit`). Preflight 5 bench questions on FP weights **before** sinking multi-hour quant cycles (`feedback_preflight_bench_before_quant`). Pick base models past the 4 traps (`feedback_chat_vs_continued_pretrain_trap`, `feedback_reasoning_model_npredict`).
 
 **Manifest schema** (`fieldkit.publish.ArtifactManifest`, rendered on both HF + the catalog): `slug · kind · class · base_model · hf_repo · variants[] · perplexity{} · spark_tokens_per_sec{} · sustained_load_minutes · vertical_eval{} · recommended_variant · lineage_run_id · license{tier,model} · article · positioning{headline,problem,use_cases,audience} · stack_origin · known_drift[{item,bound}] · notebooks[{label,colab,kaggle}]`. The `positioning`/`stack_origin`/`known_drift` trio is the v0.5.x publishing-first surface (memory `project_artifact_manifests_phase2`).
 
@@ -189,8 +192,8 @@ Every custom skill that automates a workflow, with its origin→artifact contrac
 
 | Contract | Governs |
 |---|---|
-| `_GUIDES/NARRATIVE-CONTRACT.md` | The 11-rule publish rubric across HF cards + site (positioning-first, bounded drift, no roadmap, sibling cross-links, Methods wire-back). Enforced by `hf-publisher` + `verify_artifact_rendering.mjs`. |
-| `_GUIDES/PRODUCT-ARTICLES.md` | The `products/` launch-article genre (build-metrics infographic, feature tour, agentic-effort row). |
+| `_GUIDES/narrative-contract.md` | The 11-rule publish rubric across HF cards + site (positioning-first, bounded drift, no roadmap, sibling cross-links, Methods wire-back). Enforced by `hf-publisher` + `verify_artifact_rendering.mjs`. |
+| `_GUIDES/product-articles.md` | The `products/` launch-article genre (build-metrics infographic, feature tour, agentic-effort row). |
 | `_GUIDES/arena-distribution.md` / `_GUIDES/arena-storefront-marketing.md` | Arena distribution (PyPI `fieldkit[arena]` ships the cockpit; the leak-proof static `/arena/` preview) + storefront positioning for orionfold.com (local-runnable CTA, not SaaS). |
 | `_GUIDES/local-ai-stack-commands.md` | Operator command reference for the local AI stack (Ollama / NemoClaw / OpenShell) + troubleshooting + state-file map. |
 | `HANDOFF.md` protocol | Single living session-transfer doc; rewrite/amend after every significant task (memory `feedback_handoff_md_update_protocol`). |
@@ -348,6 +351,6 @@ The discipline stays solo-bootstrap: prove the loop cheaply on the Spark, rent f
 - **The recall layer (Bet 5) is grounding-rich but only half-built.** The retrieval components + RAG-eval harness + scout producers are shipped (articles + on-disk code in `rag-eval-work/` + `frontier-scout`), but the Second Brain index is **article-prose-only and manually re-indexed** — stale by default: it held **12/63 articles** at the 2026-06-02 harvest (its `ingest_blog.py` still pointed at the retired `nvidia-learn` path); re-index repointed it at the monorepo that day. Structured-lineage + external-research coverage, the provenance-card schema, the re-index-on-publish hook, the recurring RAG-eval + scheduled scout sweep, and the Arena knowledge pane are all unbuilt. Spec stub `second-brain-pipeline-v1` named here, not written.
 - **Stale memory pointer** — memory `project_uber_corpus_decision_doc` references `ideas/uber-local-corpus-gen-decision.md`, which **does not exist**; the only live ideas doc is `ideas/ai-field-notes-consolidation.md`. (Fix the memory next HANDOFF pass.)
 - **`sync-field-notes` is legacy** but still installed; left for history, not for use. (Its dead `mirrors/destination-overrides.md` references — and the matching ones in `_SPECS/spark-arena-v1.md` + `src/content/artifacts/README.md` — were cleared 2026-06-02; removing the skill itself is a separate open call.)
-- **Doc consolidation (2026-06-02).** Active guidance moved to `_GUIDES/` (`NARRATIVE-CONTRACT.md`, `PRODUCT-ARTICLES.md`, `arena-distribution.md` ← `APP-SYNC.md`, `arena-storefront-marketing.md` ← `APP-MARKETING.md`, `local-ai-stack-commands.md` ← `COMMANDS.md`) with `_GUIDES/INDEX.md`. All specs/plans/designs folded into `_SPECS/` (active at root, superseded under `_SPECS/archive/`) with `_SPECS/INDEX.md`; the four active specs moved `specs/` → `_SPECS/` and every live reference (skills, `src/content.config.ts`, `fieldkit` source + `docs/api/`) was rewired. `handoff/`, `mirrors/`, `MAC-TO-SPARK-TRANSITION.md`, `SYNC-WORKFLOW.md` deleted. **Deliberately not rewired** (historical/immutable): `fieldkit/CHANGELOG.md`, `evidence/*.json` `spec_ref`, and one article's external archived-repo permalink.
+- **Doc consolidation (2026-06-02).** Active guidance moved to `_GUIDES/` (`narrative-contract.md`, `product-articles.md`, `arena-distribution.md` ← `APP-SYNC.md`, `arena-storefront-marketing.md` ← `APP-MARKETING.md`, `local-ai-stack-commands.md` ← `COMMANDS.md`) with `_GUIDES/index.md`. All specs/plans/designs folded into `_SPECS/` (active at root, superseded under `_SPECS/archive/`) with `_SPECS/index.md`; the four active specs moved `specs/` → `_SPECS/` and every live reference (skills, `src/content.config.ts`, `fieldkit` source + `docs/api/`) was rewired. `handoff/`, `mirrors/`, `MAC-TO-SPARK-TRANSITION.md`, `SYNC-WORKFLOW.md` deleted. **Deliberately not rewired** (historical/immutable): `fieldkit/CHANGELOG.md`, `evidence/*.json` `spec_ref`, and one article's external archived-repo permalink.
 
 **Refresh protocol.** Update §2 when a workflow/skill/spec changes; graduate a §3 bet into §2 when it ships; bump the "Last updated" stamp in the header comment each pass.

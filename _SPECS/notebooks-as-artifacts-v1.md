@@ -193,7 +193,7 @@ New module + `fieldkit/docs/api/notebook.md`:
 ### 8.3 `ModelCard.notebooks` + `ArtifactManifest.notebooks` field *(build in pilot)*
 `{colab: <url>, kaggle: <url>}`. Rendered as a **badge row directly under the one-liner** in
 the HF README (new block in `_render_model_card`), and surfaced in the manifest for Mac to
-render badges on artifact cards. **Update `_GUIDES/NARRATIVE-CONTRACT.md`** to slot the badge row
+render badges on artifact cards. **Update `_GUIDES/narrative-contract.md`** to slot the badge row
 above-the-fold (after elevator, before/with positioning — it is a navigation aid, not a
 claim, so it does not violate "positioning leads").
 
@@ -275,7 +275,7 @@ train/probe) — the template toggles sections by the sibling manifest's `kind`.
 - Colab/Kaggle badge links resolve to the committed `.ipynb` on `main`.
 - Snapshot PNGs land in `notebooks/patent-strategist/exports/` and look marketing-grade
   (vibe-test per `feedback_testing_cadence`, not a formal eval).
-- HF READMEs show the badge row above-the-fold; `_GUIDES/NARRATIVE-CONTRACT.md` updated + consistent.
+- HF READMEs show the badge row above-the-fold; `_GUIDES/narrative-contract.md` updated + consistent.
 
 ## 14. Deferred / open
 

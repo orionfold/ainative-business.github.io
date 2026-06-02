@@ -1,5 +1,5 @@
 <!--
-  Roadmap reconciliation note — grounds WORKFLOWS.md §3's four abstract bets against
+  Roadmap reconciliation note — grounds `_FLOWS/the-machine-that-builds-machines.md` §3's four abstract bets against
   Spark-measured reality harvested from the article corpus. Output (1) of the
   "Roadmap/specs harvest" item in HANDOFF.md. The per-spec evidence index (output 2)
   is deliberately deferred — built JIT when each spec is written.
@@ -10,7 +10,7 @@
 
 # Roadmap reconciliation — §3 bets vs. Spark-measured reality
 
-**What this is.** `WORKFLOWS.md §3` sequences four bets (`pane → hands → engine`) with abstract
+**What this is.** `_FLOWS/the-machine-that-builds-machines.md` §3 sequences four bets (`pane → hands → engine`) with abstract
 claims ("GRPO works on a single GPU with <100 examples", "dispatch through the MCP harness", …).
 This note reconciles each against what the published article corpus actually *measured* on the
 Spark — flagging where reality **confirms**, **sharpens** (adds a caveat/precision), or
