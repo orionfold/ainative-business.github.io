@@ -4,14 +4,14 @@
   and ideas/ are kept current. Peer to _GUIDES/NARRATIVE-CONTRACT.md in the root-contract tier.
   Build-in-public contract (public doc since 2026-06-02): ship-to-converge — graduate §3 roadmap
   bets into §2 reference as they ship; keep §7 drift honest + bounded; no unhedged forward promises.
-  Last updated: 2026-06-02 (§3 resequenced into pane→hands→engine phases; §1 folds in Ch-14; build-in-public contract added; §3/§7 grounded against the article corpus — see _SPECS/roadmap-reconciliation.md).
+  Last updated: 2026-06-02 (§3 resequenced into pane→hands→engine phases; §1 folds in Ch-14; build-in-public contract added; §3/§7 grounded against the article corpus — see _SPECS/roadmap-reconciliation.md; §3 adds the cross-cutting recall layer — Bet 5, the Second Brain as a control-plane-managed knowledge pipeline).
 -->
 
 # WORKFLOWS — the machine that builds the machines
 
 **What this is.** The single map from a human **origin instruction** ("write this up", "pick a base model", "publish the GGUF", "release fieldkit") to a shipped **artifact** (article, quant, LoRA, notebook, bench, app, package, book chapter). Until now this knowledge lived scattered across 24 `SKILL.md` files, 4 locked specs, ~10 root contracts, and `HANDOFF.md`. This doc consolidates it — and then points at where the system goes next. (Active guidance now lives in `_GUIDES/`, specs in `_SPECS/` — see `_GUIDES/INDEX.md` + `_SPECS/INDEX.md`.)
 
-**Two halves.** §0–§2 are the **reference** (current workflows, exactly as they run today). §3–§7 are the **roadmap** (four disruptive bets sequenced into `pane → hands → engine` phases, Fieldkit/Arena abstractions, a new-artifact brainstorm, and a frontier-hardware extrapolation). It is a *living* doc: when a workflow changes, the reference half changes; when a bet ships, it graduates from roadmap to reference.
+**Two halves.** §0–§2 are the **reference** (current workflows, exactly as they run today). §3–§7 are the **roadmap** (four disruptive bets sequenced into `pane → hands → engine` phases, plus a cross-cutting **recall layer** that threads them, Fieldkit/Arena abstractions, a new-artifact brainstorm, and a frontier-hardware extrapolation). It is a *living* doc: when a workflow changes, the reference half changes; when a bet ships, it graduates from roadmap to reference.
 
 **Cross-refs.** `HANDOFF.md` (session state) · `_GUIDES/INDEX.md` (active guidance: `_GUIDES/NARRATIVE-CONTRACT.md` publish rubric, `_GUIDES/PRODUCT-ARTICLES.md` launch-article contract, `arena-distribution.md` + `arena-storefront-marketing.md`, `local-ai-stack-commands.md`) · `_SPECS/INDEX.md` (`_SPECS/*.md` project specs + the `archive/` of superseded designs) · `_SPECS/roadmap-reconciliation.md` (the §3 bets reconciled against Spark-measured article evidence — grounding for the unwritten spec stubs) · `ideas/ai-field-notes-consolidation.md` (the one live strategy doc).
 
@@ -269,6 +269,31 @@ const promotable = found.flat().filter(p => p.verdict?.feasible);
 
 ---
 
+### Cross-cutting — Bet 5: The recall layer (the Second Brain as a control-plane-managed knowledge pipeline)
+
+**The leverage.** §1 invokes Ch-10's *continuously-updated world model* and the Ch-11 recursion, but the roadmap never cashes out the **read-back** half: the system *writes* artifacts (articles → Book, §2A) yet has no governed way to *query its own past work — or the frontier's*. The Second Brain is that missing half — today a **manual, article-prose-only** RAG index behind the live `ask_second_brain` MCP tool. Promote it from a one-off script into a **control-plane-managed knowledge pipeline** (ingest → index → eval → serve → query) the **operator drives from Arena**. This is *not* a sequential phase — it's the **memory the pane, hands, and engine all consult**, so it threads all three rather than slotting after one.
+
+**It indexes three source classes — one recall surface over all:**
+1. **Internal experiment memory** — `fieldkit.lineage` trials, `eval_runs`, `rl_run` cards, `evidence/` summaries. Prose-RAG → *measured-experiment*-RAG (the exact gap the 2026-06-02 harvest hit: `ask_second_brain` was prose-only, so it couldn't return the numbers and the harvest fell back to a disk-read fan-out).
+2. **Published prose** — `articles/*` (+ Book sections); what today's index already holds (and what we're re-indexing now, repointed at the monorepo after it sat stale at 12/63).
+3. **External research (the scout crossover)** — `frontier-scout`'s `papers.json` + per-paper **Spark-feasibility verdicts**, and `deep-research` cited reports. A scouted-but-rejected paper then persists in the index as *"evaluated, infeasible because X"* — the **external** cure for re-scouting amnesia, mirroring the **internal** `autoresearch-agent-loop` 72%-repeat cure.
+
+**Provenance is a first-class field.** A common knowledge-card schema (`source · kind · date · claims · feasibility/verdict · link`) lets retrieval **filter by trust** — a Spark-*measured* number and an external-*claimed* one are not interchangeable. This bakes the harvest's confirms / sharpens / **complicates** discipline (`_SPECS/roadmap-reconciliation.md`) into the index itself.
+
+**Why it's grounding, not greenfield.** The components are shipped and measured: `naive-rag-on-spark`, `pgvector-on-spark`, `nemo-retriever-embeddings-local`, `rerank-fusion-retrieval-on-spark`, `guardrails-on-the-retrieval-path`, `bigger-generator-grounding-on-spark` build the retrieval stack; `rag-eval-ragas-and-nemo-evaluator` (+ the on-disk harness in `rag-eval-work/`: `retrieve.py`, a `qa-eval` set, `nemo_evaluator_config.yaml`) is the **RAG-eval** half; `mcp-second-brain-in-claude-code` is the query surface; `frontier-scout` / `deep-research` already *produce* the external sources. The bet is **consolidating these producers into one managed, evaluated, operator-driven index**, not inventing them.
+
+**What the control plane drives (the operator UX).** Arena gains a **knowledge/RAG pane** — the first non-trivial pipeline the M8 dispatcher runs end-to-end, and the cleanest dogfood (the machine managing its own memory):
+- **Coverage + freshness** across all three source classes — what's indexed, stale, or missing, with chunk counts; the silent lag that bit the harvest becomes a visible, actionable number.
+- **Re-index** — a manual button *and* an auto-on-publish hook (Phase 2); full-rebuild or incremental.
+- **RAG-eval trend** — re-run the existing harness after each index (recall@k, faithfulness, the RAGAS / NeMo-Evaluator metrics already in the corpus) and chart the score; index promotion can **gate** on it (don't ship a rebuild that drops recall@k).
+- **Query / inspect** — the operator's own provenance-filtered, cited `ask_second_brain` console.
+
+**Cross-phase wiring.** *Pane* (Phase 1): the Arena knowledge pane + dispatcher job types `reindex`, `rag_eval`, `scout_ingest`. *Hands* (Phase 2): the **re-index-on-publish hook** (fixes today's staleness at the source) + a **scheduled freshness monitor** that re-runs RAG-eval *and* kicks a `frontier-scout` sweep whose results land back in the index — finally realizing Ch-11's named-but-unbuilt "Freshness Monitoring" box. *Engine* (Phase 3): the index ingests `rl_run`/`lineage` cards, and the **pre-flight pattern spans internal + external** — a `compare`-loss trigger queries the Second Brain *before* the governor approves an RLVR job, returning *both* the internal `t2po` finding (47.7% per-assertion ceiling, +33% wall for nothing) *and* any external paper verdict, so the run is declined or redirected.
+
+**The new engineering (honest).** (a) Extend ingest from `articles/*` to **lineage / eval / `rl_run` cards + scout / deep-research outputs**, all under one provenance-tagged knowledge-card schema. (b) **Freshness automation** (publish hook + monitor + scheduled scout sweep). (c) Wire the one-off `rag-eval-work/` harness as a **recurring dispatcher job** with a tracked score. (d) Build the **Arena knowledge pane**. **Abstraction added:** `fieldkit.memory` — the managed multi-source index + provenance-aware query API behind `ask_second_brain` — over `fieldkit.lineage` + the retrieval stack + the scout producers. **Spec stub: `_SPECS/second-brain-pipeline-v1.md`** (an Arena milestone — the operator-facing knowledge-pipeline surface).
+
+---
+
 ## 4. Fieldkit & Arena enhancement summary
 
 | Proposed abstraction | What it abstracts | Builds on | Phase | Effort |
@@ -280,6 +305,8 @@ const promotable = found.flat().filter(p => p.verdict?.feasible);
 | `fieldkit.reward` | scorer → GRPO reward callable | `fieldkit.eval` verifiers (all 7 present) | 3 | S |
 | `fieldkit.rl` | GRPO/RLVR driver (Unsloth + NeMo-RL lanes) | `g3_train_*`, `fieldkit.lineage` | 3 | M |
 | new kinds: `verifier`/`reward`, `rl_run`, `agent_run` | publishable scorer packs + loop lineage + agent traces | `fieldkit.publish.ARTIFACT_KINDS` | 3 | S |
+| `fieldkit.memory` | provenance-tagged multi-source recall index (articles + lineage/eval/`rl_run` + scout/deep-research) + query API behind `ask_second_brain` | live `ask_second_brain` tool + `fieldkit.lineage` + `ingest_blog` + `frontier-scout` | 5 (1→2) | M |
+| Arena knowledge/RAG pane | operator UX: coverage·freshness·re-index·RAG-eval trend; dispatcher `reindex`/`rag_eval`/`scout_ingest` jobs | `fieldkit.arena.jobs` (M8) + the `rag-eval-work/` harness | 5 (1) | M |
 
 Each extends, not replaces, the existing manifest-first, lazy-import, duck-typed design. The harness row is **S not M** because `build_mcp_server()` already ships 7 tools — Phase 1 only adds the measure/eval tools its dispatcher calls.
 
@@ -295,6 +322,7 @@ Solo-bootstrap-friendly, Orionfold-monetizable directions — clearly uncommitte
 - **Agent/skill artifacts as products** — Hermes profiles and Claude skills already have `kind: skill`/`harness`; package the best ones (e.g. the whole vertical-curator loop) as a one-command installable.
 - **DGX-Spark "recipe" artifacts** — reproducible one-command stacks (serve + bench + a notebook) that turn an article into a runnable appliance.
 - **Arena-as-a-product** — already the plan (`pip install fieldkit[arena] && fieldkit arena up`, per `_GUIDES/arena-storefront-marketing.md`); the local-runnable cockpit *is* the flagship app, and Phase 1 makes it a control plane buyers can drive, not just a recorder.
+- **Managed local-knowledge appliance** (*the Bet-5 recall layer, productized; rides Phase 1*). The control-plane-driven Second Brain — ingest your own docs + research, index, RAG-eval, query — packaged in the same local cockpit (`fieldkit[arena]`). Dogfood it on this repo's own corpus first, then ship "bring your docs, get a *measured* local RAG you operate, not a SaaS." The **provenance/trust filter + a tracked RAG-eval score** are the differentiators a hosted RAG can't honestly claim.
 
 ---
 
@@ -317,6 +345,7 @@ The discipline stays solo-bootstrap: prove the loop cheaply on the Spark, rent f
 - **The phases are sequenced, not yet built — but the substrate is further along than the original draft claimed.** Phase 0 (Workflow fan-out) needs no new infra. Phase 1 (Arena M8) extends a store that already has the `eval_runs.arq_job_id` socket and dispatches through an MCP harness that **already ships 7 tools** (`build_mcp_server()` is live, not stubbed). Phase 3's reward substrate (all 7 `fieldkit.eval` verifiers) is present. Genuinely absent: the dispatcher glue, the cron layer, hook *expansion* (one `SessionStart` hook today), and the RLVR stack (`fieldkit.reward`/`fieldkit.rl`/`g6_*`). Spec stubs (`rlvr-loop-v1`, `autonomous-harness-v1`, Arena M8) are named here, not written.
 - **Cron substrate is half-wired** — `.claude/scheduled_tasks.lock` exists but it is a **lock file, not a scheduler**; no scheduled agents are defined.
 - **§3 is now grounded against measured evidence** (`_SPECS/roadmap-reconciliation.md`, 2026-06-02) — the sequencing survives, but two §3 abstractions were wrong and one risk was missing: Phase 3 named **Unsloth/NeMo-RL** where a **hand-rolled REINFORCE loop** is what actually ran on the Spark; the GRPO bottleneck is the **vLLM restart, not the trainer**; and the **training-pool↔held-out inversion** (an 81.8 pp gap) is a real failure mode §3 didn't flag (held-out-every-10-steps is now a hard gate in the grounding). Phase 1's "dispatch through the MCP harness" is **validated end-to-end, not theoretical**. These are folded into §3's per-phase *Measured grounding* notes; the spec stubs should open against the numbers there.
+- **The recall layer (Bet 5) is grounding-rich but only half-built.** The retrieval components + RAG-eval harness + scout producers are shipped (articles + on-disk code in `rag-eval-work/` + `frontier-scout`), but the Second Brain index is **article-prose-only and manually re-indexed** — stale by default: it held **12/63 articles** at the 2026-06-02 harvest (its `ingest_blog.py` still pointed at the retired `nvidia-learn` path); re-index repointed it at the monorepo that day. Structured-lineage + external-research coverage, the provenance-card schema, the re-index-on-publish hook, the recurring RAG-eval + scheduled scout sweep, and the Arena knowledge pane are all unbuilt. Spec stub `second-brain-pipeline-v1` named here, not written.
 - **Stale memory pointer** — memory `project_uber_corpus_decision_doc` references `ideas/uber-local-corpus-gen-decision.md`, which **does not exist**; the only live ideas doc is `ideas/ai-field-notes-consolidation.md`. (Fix the memory next HANDOFF pass.)
 - **`sync-field-notes` is legacy** but still installed; left for history, not for use. (Its dead `mirrors/destination-overrides.md` references — and the matching ones in `_SPECS/spark-arena-v1.md` + `src/content/artifacts/README.md` — were cleared 2026-06-02; removing the skill itself is a separate open call.)
 - **Doc consolidation (2026-06-02).** Active guidance moved to `_GUIDES/` (`NARRATIVE-CONTRACT.md`, `PRODUCT-ARTICLES.md`, `arena-distribution.md` ← `APP-SYNC.md`, `arena-storefront-marketing.md` ← `APP-MARKETING.md`, `local-ai-stack-commands.md` ← `COMMANDS.md`) with `_GUIDES/INDEX.md`. All specs/plans/designs folded into `_SPECS/` (active at root, superseded under `_SPECS/archive/`) with `_SPECS/INDEX.md`; the four active specs moved `specs/` → `_SPECS/` and every live reference (skills, `src/content.config.ts`, `fieldkit` source + `docs/api/`) was rewired. `handoff/`, `mirrors/`, `MAC-TO-SPARK-TRANSITION.md`, `SYNC-WORKFLOW.md` deleted. **Deliberately not rewired** (historical/immutable): `fieldkit/CHANGELOG.md`, `evidence/*.json` `spec_ref`, and one article's external archived-repo permalink.
