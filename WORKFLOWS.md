@@ -2,7 +2,9 @@
   WORKFLOWS.md — the canonical origin-instruction → artifact map + the 100x roadmap.
   Living doc. Refresh after any workflow / skill / spec change, the same way HANDOFF.md
   and ideas/ are kept current. Peer to _GUIDES/NARRATIVE-CONTRACT.md in the root-contract tier.
-  Last updated: 2026-06-02 (roadmap §3 resequenced into pane→hands→engine phases; §1 mission frame folds in Ch-14 the-meta-program).
+  Build-in-public contract (public doc since 2026-06-02): ship-to-converge — graduate §3 roadmap
+  bets into §2 reference as they ship; keep §7 drift honest + bounded; no unhedged forward promises.
+  Last updated: 2026-06-02 (§3 resequenced into pane→hands→engine phases; §1 folds in Ch-14; build-in-public contract added).
 -->
 
 # WORKFLOWS — the machine that builds the machines
