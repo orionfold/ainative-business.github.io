@@ -10,7 +10,7 @@ author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on 
 
 - **`WORKFLOWS.md`** (root) — the canonical **origin-instruction → artifact** map + the
   forward-looking roadmap. Start here to understand how a request ("write this up", "publish
-  the GGUF", "release fieldkit") flows to a shipped artifact. *(operator-local, gitignored)*
+  the GGUF", "release fieldkit") flows to a shipped artifact. *(tracked since `adb1c04`)*
 - **`HANDOFF.md`** (root) — the living **session-transfer** doc: current state, live runtime,
   open items, recent decisions. Read at the start of a session; update after significant work.
 - **`_GUIDES/`** → see [`_GUIDES/INDEX.md`](_GUIDES/INDEX.md) — **active guidance & practices**:
