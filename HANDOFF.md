@@ -12,7 +12,7 @@
 ## Current state
 
 - **This repo is the single Spark-owned monorepo** at `/home/nvidia/ainative-business.github.io` — build workspace *and* website. The old two-repo `ai-field-notes`→Mac sync model is **retired**; author directly here (do NOT use `sync-field-notes`).
-- **Live** at `ainative.business` (GitHub Pages). `origin/main` tip = `58363b0`; **this HANDOFF + a `.gitignore` entry committed locally on top — NOT yet pushed** (run `git push origin main`). `WORKFLOWS.md` is an **operator-local gitignored doc** (same class as HANDOFF — lives on disk, not tracked). Tree otherwise clean except two pre-existing untracked items (`.claude/scheduled_tasks.lock`, `src/data/arena-mirror/` — leave alone).
+- **Live** at `ainative.business` (GitHub Pages). `origin/main` tip = `f4b35aa`; **tree clean, 0 ahead / 0 behind — all pushed.** `WORKFLOWS.md` + `HANDOFF.md` are both **now tracked** (WORKFLOWS un-ignored in `adb1c04`; the older "operator-local gitignored" framing is superseded — they're canonical tracked docs). Two pre-existing untracked items remain (`.claude/scheduled_tasks.lock`, `src/data/arena-mirror/` — leave alone).
 - **Build/verify loop:** `node node_modules/astro/astro.js build` (485 pages; `npm run build` is broken on this checkout per `reference_astro_build_smb_symlink_break`) → `node scripts/verify_artifact_rendering.mjs` (18 pages/7 kinds) + `node scripts/verify_field_notes_rendering.mjs` (404/62). `build:og` is **CI-only** (needs Chrome); CI regenerates OG on push.
 - **arena-app/ + fieldkit/ build separately** from the marketing site — pushing arena/fieldkit changes does NOT change the public `dist/`. After any `arena-app/` edit, rebuild the served bundle: `fieldkit arena build --repo-root arena-app` (bakes `_webui`, gitignored).
 - **Secrets:** `.env.local` (gitignored, chmod 600) holds `PYPI_TOKEN`, `HF_TOKEN`, `OPENROUTER_API_KEY` — `fieldkit-curator` + `hf-publisher` auth here.
@@ -21,14 +21,13 @@
 
 ## ⚙️ Live runtime
 
-- **Arena cockpit** `fieldkit arena up` from venv `/tmp/arena-venv` → http://127.0.0.1:7866/arena/ (loopback; bind `0.0.0.0` for LAN). Log `/tmp/arena-cockpit.log`, db `~/.fieldkit/arena.db`, OpenRouter key sourced from `.env.local` (re-source if restarted). Recycle with `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart [--browser]`. Left up per operator request — do NOT relaunch unless dead. Find: `pgrep -af 'fieldkit arena up'`.
-- Nothing else running. (The 2026-05-31 throwaway dist server `:8099` + visible Chromium CDP `:9222` used to show the quant pages have been torn down.) To bring a visible browser back for browser-use, see memory `reference_visible_browser_cdp_attach` or `arena_lifecycle.sh restart --browser`.
+- **Arena cockpit is DOWN** (was left up per a prior session; torn down since — no process, `:7866` dead as of 2026-06-02). To bring it back: `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart [--browser]` (venv `/tmp/arena-venv`, serves http://127.0.0.1:7866/arena/, log `/tmp/arena-cockpit.log`, db `~/.fieldkit/arena.db`, OpenRouter key from `.env.local`). Find: `pgrep -af 'fieldkit arena up'`.
+- Nothing running. (The 2026-05-31 throwaway dist server `:8099` + visible Chromium CDP `:9222` used to show the quant pages have been torn down.) To bring a visible browser back for browser-use, see memory `reference_visible_browser_cdp_attach` or `arena_lifecycle.sh restart --browser`.
 
 ## Open items
 
 ### Operator actions (you own these)
-- **Archive `ai-field-notes` read-only** — `gh repo archive manavsehgal/ai-field-notes`. Monorepo consolidation is committed (`2299d22`); local copy already renamed to `/home/nvidia/archive-ai-field-notes` (kept, not deleted). Archiving preserves git history + the 92M research-evidence layer deliberately not migrated.
-- **Merge Mac PR #11** — [ai-field-notes#11](https://github.com/manavsehgal/ai-field-notes/pull/11) still open (will be moot once the repo is archived).
+- ✅ **`ai-field-notes` archived read-only** (2026-06-02). Git history + the 92M research-evidence layer preserved; local copy kept at `/home/nvidia/archive-ai-field-notes`. Mac PR #11 is now moot (repo is read-only).
 - **PSI authenticated key** still missing (blocks PageSpeed in `/seo-monitor`).
 
 ### Destination work
