@@ -13,7 +13,7 @@ skills, `src/content.config.ts`, and the `fieldkit` package source).
 |---|---|---|
 | [`patent-strategist-v1.md`](patent-strategist-v1.md) | ACTIVE | First fine-tuned vertical — hand-curated patent corpus + DeepSeek-R1-Qwen3-8B LoRA SFT + VerticalBench. §3.3 defines the `fieldkit.eval` scorers; §4 the corpus synth template (read by `claude-corpus-synth`). |
 | [`notebooks-as-artifacts-v1.md`](notebooks-as-artifacts-v1.md) | ACTIVE (locked) | The 6th artifact kind — dual-path Spark/Colab builder + user notebooks per vertical. Governs `notebook-author` / `notebook-snapshot` + `fieldkit.notebook` / `fieldkit.viz`. |
-| [`spark-arena-v1.md`](spark-arena-v1.md) | ACTIVE | The Orionfold Arena operator cockpit (M1–M7) — sidecar, chat, compare, leaderboard, leak-proof mirror. Governs `fieldkit.arena`. |
+| [`spark-arena-v1.md`](spark-arena-v1.md) | ACTIVE | The Orionfold Arena operator cockpit (M1–M7 + v0.2 leap) — sidecar, chat, compare, leaderboard, leak-proof mirror. **§12 adds the M8 control-plane milestone** (`_FLOWS` §3 Phase 1: recorder → dispatcher, `jobs` table + MCP-harness dispatcher; spec-only, unbuilt). Governs `fieldkit.arena`. |
 | [`hermes-harness-v1.md`](hermes-harness-v1.md) | ACTIVE | The Harnesses content line — install / serve / harden / route / eval an agent harness (Hermes first) on the Spark. Governs `fieldkit.harness`. |
 
 ### Rendering companions

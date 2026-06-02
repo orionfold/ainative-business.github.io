@@ -33,6 +33,16 @@ authoritative: Spark
 > registered as the first `arena_run` artifact manifest (`src/content/artifacts/orionfold-arena.yaml`).
 > Handoffs: `_GUIDES/arena-distribution.md` (publisher) + `_GUIDES/arena-storefront-marketing.md` (marketer).
 
+> **Changelog — M8 control-plane extension (2026-06-02).** Added **§12 — Arena as the control
+> plane**, the `_FLOWS/the-machine-that-builds-machines.md` §3 **Phase 1 / Bet 3** milestone:
+> promote Arena from recorder → **dispatcher** via a `jobs`/`job_triggers` table + a single-lane
+> dispatcher that executes **through the live MCP harness** (`build_mcp_server()`), with
+> `eval_rerun` (leaderboard-regression → re-eval) as the first and only real M8 job type and
+> `/arena/jobs/` as the cockpit surface. Grounded against `roadmap-reconciliation.md` §"Phase 1"
+> (CONFIRMED, operational — connective tissue, not greenfield: the `eval_runs.arq_job_id` socket
+> and the 7-tool harness already exist). **Spec only — unbuilt;** Phases 2/3 + cross-cutting
+> Bets 5/6 are sequenced to extend this same `jobs` table. Release gate: `fieldkit v0.16.0` (§11).
+
 ## 1. Context
 
 ### Why this project
@@ -834,6 +844,8 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | R11 | `/arena/` URL collision with future Mac chrome | very low (destination-overrides clearly Mac-owns `/book`, `/pricing` etc.; `/arena/**` is Spark-authoritative addition) | route clash | This spec includes the Mac PR adding `/arena/**` to Spark-authoritative side | Rename to `/cockpit/` (slug already reserved) if Mac ever wants `/arena/` for marketing |
 | R12 | `fieldkit.arena` bloats `import fieldkit` time | low | CLI slow | Follow `fieldkit.harness` pattern: lazy `__getattr__`, no FastAPI import on package load | Benchmark in `test_arena.py::test_import_time_under_50ms` |
 
+> **M8 adds R13–R17** (job-payload mirror leak, arq/Redis aarch64 first-consumer, regression false-positives, dangerous-tool reach, per-job restart cost) — see §12.5.
+
 **Top 3 must-do early actions:**
 
 1. **M1 build + schema gate** — land both `content.config.ts` + `[series].astro` edits +
@@ -862,14 +874,157 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | `fieldkit v0.14.0` | First arena cut; MVP surface (M1–M6 fills) | All 5 cockpit panes paint; mirror leak regression test green; `audit-docs arena/N` clean; fresh-venv install verifies on aarch64; A1 article published; `nvidia-learn-stats` refreshed; Mac `/sync-field-notes` pushes static slice to `ainative.business/arena/`. |
 | `fieldkit v0.14.1` | Telemetry + compare polish | Lane-swap UX edge cases (concurrent streams); rubric reuse promotion of any 2nd-reuse rubrics; mirror exporter performance on full-leaderboard exports. |
 | `fieldkit v0.15.0` | v0.2 surface (eval runner + HF publish gate + cost-routed chat) | `arq` worker green; `Orionfold/spark-arena-leaderboard-v0.1` HF dataset live; A2 + A3 articles published. |
+| `fieldkit v0.16.0` | **M8 control plane** (§12 — Phase 1 / Bet 3) | `jobs`/`job_triggers` schema migrates (`user_version` 1→2); an `eval_rerun` job dispatches **end-to-end through the MCP harness** and writes back an `eval_runs` row + rebuilds the leaderboard; leaderboard-regression trigger fires on a seeded regression; `/arena/jobs/` paints; `jobs` is OUT of the mirror allowlist and the leak regression test (R13) is green; `audit-docs arena/N` clean; the Phase-1 `product-writer` launch published. **No cron / no auto-push** (that is Phase 2). |
 
-## 12. Change log
+## 12. M8 — Arena as the control plane (Phase 1 of the MTBM roadmap)
+
+> **Status: SPEC (2026-06-02), unbuilt.** This section extends the locked v0.1+v0.2 spec
+> with the **M8 control-plane milestone** — `_FLOWS/the-machine-that-builds-machines.md` §3
+> **Phase 1 / Bet 3 ("Arena as the control plane — the pane")**. It is grounded against
+> Spark-measured evidence in [`roadmap-reconciliation.md`](roadmap-reconciliation.md) §"Phase 1"
+> (marked **CONFIRMED, operational** — the only bet with zero wrong abstractions). M8 promotes
+> Arena from a **recorder** (M1–M7: records lanes/chats/compares, exports a leaderboard mirror)
+> into a **dispatcher** — the place the operator *triggers* work from. It is **connective
+> tissue, not greenfield**: both its inputs (the `eval_runs.arq_job_id` socket drilled in §4.8)
+> and its execution surface (the live 7-tool MCP harness, `build_mcp_server()`) already exist.
+
+### 12.1 M8 locked decisions (proposed — confirm before build)
+
+| # | Decision | Value | Grounding |
+|---|---|---|---|
+| M8-1 | **Execution surface** | The dispatcher executes **through the MCP harness** (`fieldkit.harness.build_mcp_server()`), **not** ad-hoc `g3_*` shelling. Single surface shared with Hermes ⇒ the safety rails are defined once and never diverge. | `hermes-drives-the-spark-via-fieldkit-mcp`: agent → `measure_gguf_throughput` → GPU → real number (41.75 tok/s), **0% tool-call format error**, stdio, no network. |
+| M8-2 | **First job type** | **`eval_rerun` / re-measure only.** Deterministic, already exists, meaningful day one ("leaderboard regression → re-eval"). `requant`, `rl_run`, `reindex`/`rag_eval`/`scout_ingest` ship as **named stubs** (Phases 3 / Bet-5). | reconciliation: the measure tools are "exactly the ones already exercised through the harness with zero format errors." |
+| M8-3 | **Containment** | **Two-layer, inherited from the harness:** (a) tool curation — the 7-tool list size *is* the policy (`publish` structurally unreachable, `quantize` dry-run-default); (b) execution sandbox — docker `--network=none`, hard-stop guardrails. The dispatcher adds nothing new; it inherits both. | `hardening-the-hermes-harness-on-spark`: 3/3 hostile DNS/exfil/fetch calls contained. |
+| M8-4 | **Anti-amnesia gate** | Any *agentic* job (Phase-3 `rl_run`, Bet-5 `scout_ingest`) bakes in the Phase-0 dedup/history gate: `block_repeat(last_k≈50)` + `render_history(k≈30)`. `eval_rerun` is deterministic and exempt. | `trajectory-eval-is-the-agent-flailing`: 72% repeat rate, 14 unique/50 → gate lifts unique trials ≈**4×**. |
+| M8-5 | **Sequential loads only** | The dispatcher drains **one job at a time**, one lane resident (128 GB envelope, `serve_lane(guard=True)`). Parallel drain is a DGX-Cloud config (`_FLOWS` §6), **out of scope** for the Spark M8. | `[[project_spark_unified_memory_oom]]`; `hermes-vertical-router-on-spark`: 78 GB headroom at brain + 1 vertical, still single-lane. |
+| M8-6 | **No autonomy yet** | M8 is **operator-triggered + button-dispatched.** The cron drain, hook battery, and morning-standup review gate are **Phase 2** (`autonomous-harness-v1.md`). M8 honors the no-auto-push invariant by *staging only* — no job pushes. | `_FLOWS` §3 sequencing: pane (M8) before hands (cron). |
+| M8-7 | **Harness grows by demand** | Add `measure_variants` / `run_vertical_eval` MCP tools to `fieldkit.harness` **as the dispatcher calls them** — not speculatively. This is where Phase 1 and Phase 2's harness work partially merge. | `_FLOWS` §4 enhancement table (harness row is **S**, not M — 7 tools already shipped). |
+| M8-8 | **Mirror safety** | The new `jobs` + `job_triggers` tables stay **OUT** of `export_publishable_slice()`'s `PUBLISHABLE_TABLES` allowlist — job payloads carry prompts and must never leak. Same discipline as `chat_*` (§4.8, R1). | Extends the M6 leak-gate regression test. |
+
+### 12.2 Deliverables
+
+| Artifact | Surface | Gate |
+|---|---|---|
+| `jobs` + `job_triggers` tables (`PRAGMA user_version` 1 → 2; idempotent migration) | `~/.fieldkit/arena.db` | M8 schema gate |
+| `fieldkit.arena.jobs` promoted from arq **stubs** → real **`JobStore` + `dispatch_job` + `enqueue_job`** (dispatches via the MCP harness) | `fieldkit` PyPI | `audit-docs arena/N` clean |
+| `POST/GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/jobs/stream` (SSE), `DELETE /api/jobs/{id}` | sidecar `server.py` | endpoint smoke |
+| `/arena/jobs/` Astro route + `<JobsBoard>` Preact island (queued · running · done · failed; dispatch + cancel) | source site | paints offline-safe on mirror |
+| **Leaderboard-regression trigger producer** — diff new `leaderboard_rows.mean_score` vs prior; over-threshold drop enqueues an `eval_rerun` | `fieldkit.arena.jobs` | unit test on a seeded regression |
+| `measure_variants` + `run_vertical_eval` MCP tools (added by M8-7 demand) | `fieldkit.harness.mcp` | dispatch smoke through the harness |
+| Mirror allowlist extension + regression test asserting no `jobs.payload_json` text appears in `src/data/arena-mirror/*.json` | `mirror.py` + `tests/arena/test_mirror_does_not_leak.py` | **hard gate** (R1 family) |
+| The Phase-1 **`product-writer` launch** (`products/`, `series: Cockpit`) — build-metrics + jobs/dispatch/regression feature tour, cross-linking the H4 deep-dive | `products/<slug>/product.md` | gated on M8 shipping (HANDOFF editorial overlay) |
+
+### 12.3 Architecture
+
+**The `jobs` table** (replaces the v0.2 `eval_runs` stub's role as the queue spine; `eval_runs`
+stays as the typed result row an `eval_rerun` job writes into):
+
+```sql
+-- M8 (user_version=2):
+CREATE TABLE jobs (
+  id              TEXT PRIMARY KEY,
+  kind            TEXT NOT NULL,               -- 'eval_rerun'|'measure_variants'  (M8)
+                                               --   |'requant'|'rl_run'            (Phase 3 stub)
+                                               --   |'reindex'|'rag_eval'|'scout_ingest' (Bet-5 stub)
+  status          TEXT NOT NULL,               -- 'queued'|'dispatched'|'running'|'done'|'failed'|'skipped'
+  trigger         TEXT NOT NULL,               -- 'manual'|'leaderboard_regression'|'stale_bench'|'compare_loss'(P3)
+  priority        INTEGER NOT NULL DEFAULT 0,
+  payload_json    TEXT NOT NULL,               -- {lane_id, bench_id, manifest_slug, …} — OPERATOR-ONLY, never mirrored
+  dedup_key       TEXT,                        -- (kind, lane_id, bench_id) — coalesces duplicate triggers while queued
+  result_json     TEXT,                        -- harness tool return; for eval_rerun → an eval_runs.id ref
+  error           TEXT,
+  attempt         INTEGER NOT NULL DEFAULT 0,
+  enqueued_at     TEXT NOT NULL,
+  dispatched_at   TEXT,
+  finished_at     TEXT,
+  arq_job_id      TEXT                         -- the existing socket; null when running via BackgroundTasks fallback
+);
+CREATE UNIQUE INDEX ix_jobs_dedup ON jobs(dedup_key) WHERE status IN ('queued','dispatched','running');
+
+CREATE TABLE job_triggers (                    -- audit trail of what fired each job (regression deltas, etc.)
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  job_id          TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  source          TEXT NOT NULL,               -- 'leaderboard_regression'|'stale_bench'|'operator'
+  detail_json     TEXT NOT NULL,               -- {bench_id, prev_score, new_score, delta} | {age_days} | {operator_note}
+  created_at      TEXT NOT NULL
+);
+```
+
+**The dispatcher** (`fieldkit.arena.jobs.dispatch_job`) — single-lane, MCP-routed:
+
+```
+enqueue_job(kind, payload, trigger)            # writes a 'queued' row; dedup_key coalesces
+  → drain loop (arq worker | BackgroundTasks fallback per R4), one job at a time:
+      claim oldest 'queued' (priority desc, enqueued asc) → 'dispatched'
+      → build_mcp_server() tool call:
+            eval_rerun       → run_vertical_eval(lane, bench)   [M8-7 tool]
+            measure_variants → measure_variants(manifest_slug)  [M8-7 tool]
+      → 'running' → harness executes on GPU (one lane resident, serve_lane guard)
+      → write result_json (eval_rerun → INSERT eval_runs row) → 'done' | 'failed'
+      → on 'done': rebuild_leaderboard() → re-run the regression detector (may enqueue follow-ups)
+      → SSE 'job' event on /api/jobs/stream throughout
+```
+
+**Trigger producers** (M8 wires the first two; the third is a Phase-3 stub):
+
+| Trigger | Source | Fires | Status |
+|---|---|---|---|
+| `leaderboard_regression` | post-`rebuild_leaderboard` diff: `new.mean_score < prev.mean_score − τ` | `eval_rerun` (confirm the regression is real, not noise) | **M8** |
+| `stale_bench` | `leaderboard_rows.last_run_at` older than `freshness_days` | `eval_rerun` | **M8** (manual-poll in M8; *scheduled* in Phase 2) |
+| `compare_loss` | a `human_prefs`/`rubric_scores` loss on the resident model | `rl_run` | **Phase 3 stub** (`rlvr-loop-v1.md`) |
+
+**`fieldkit.arena` `__all__` additions (M8):**
+
+```python
+# + jobs
+"JobRecord", "JobStore", "enqueue_job", "dispatch_job", "JobKind", "JobStatus",
+"detect_leaderboard_regression",
+# + errors
+"JobDispatchError", "UnknownJobKind",
+```
+
+**Cockpit UX (`/arena/jobs/`).** A `<JobsBoard>` island: four columns (queued / running / done /
+failed) over `GET /api/jobs/stream`; a **"Dispatch"** affordance (re-eval a lane×bench manually);
+a **regression banner** when the detector has auto-enqueued ("Leaderboard regression on `patent-bench`:
+0.81 → 0.74; `eval_rerun` queued"). Offline-safe on the public mirror (same `hostname !== '127.0.0.1'`
+guard as the other islands) — and since `jobs` is never mirrored, the public `/arena/jobs/` renders an
+empty "Cockpit offline" state by construction.
+
+### 12.4 Grounding (from `roadmap-reconciliation.md`)
+
+- **Dispatch-through-MCP is validated end-to-end, not theoretical** — `hermes-drives-the-spark-via-fieldkit-mcp`: real measured dispatch, **0% format error**. ⇒ M8-1 is connective tissue.
+- **Containment is two-layer** — tool curation (the list size *is* the policy) + docker `--network=none` sandbox (3/3 hostile contained, `hardening-the-hermes-harness-on-spark`). ⇒ M8-3 inherits both.
+- **First job type is the right call** — the measure tools are exactly the ones exercised through the harness with zero format errors. ⇒ M8-2.
+- **The dedup gate is where the leverage is** — 72% repeat rate without it (`trajectory-eval-is-the-agent-flailing`); ≈4× unique trials with `block_repeat(last_k=50)` + `render_history(k=30)`. ⇒ M8-4.
+
+### 12.5 M8 risk additions (extend §10)
+
+| ID | Risk | Likelihood | Impact | Mitigation | Fallback |
+|---|---|---|---|---|---|
+| R13 | **`jobs.payload_json` leaks to the public mirror** | low | **Catastrophic** (job prompts) | `jobs`/`job_triggers` OUT of `PUBLISHABLE_TABLES`; regression test asserts no `payload_json` text in the mirror JSON (R1 family) | revert the mirror commit; restage from `_staging/` |
+| R14 | **arq/Redis aarch64 surface finally exercised** (R4 was deferred to v0.2; M8 is the first real consumer) | low-med | dispatcher dead | M8 ships a `fastapi.BackgroundTasks` drain as the *primary* single-lane path; arq is opt-in (`--jobs-backend arq`) for when Phase 2 needs durable cross-process scheduling | BackgroundTasks-only; jobs drain in-process while the sidecar is up |
+| R15 | **Regression detector false-positives** (synth/eval noise trips a re-eval storm) | med | wasted GPU | threshold `τ` + a `dedup_key` unique-index that coalesces duplicate triggers while queued; `eval_rerun` is cheap (measure, no train) and *confirms* before any downstream action | raise `τ`; require manual confirm for any non-`eval_rerun` follow-up |
+| R16 | **Dispatcher reaches a dangerous tool** | low | publish/quant side-effect | inherited M8-3 curation: `publish` structurally absent from `build_mcp_server()`, `quantize` dry-run-default; M8 job kinds only call read/measure tools | the harness tool-list is the single chokepoint — audit it, not each job |
+| R17 | **Per-job lane restart dominates wall** (`~3.5 min` vLLM restart per the RL grounding) | med | slow drain | `eval_rerun` measures the *resident* lane where possible (no restart); batch same-lane jobs before swapping; this is the same restart-elimination win flagged for Phase 3 | accept the restart cost for cross-lane batches; surface it in the jobs board ETA |
+
+### 12.6 Sequencing — what M8 unblocks
+
+M8 is the **pane** the rest of the roadmap lands into. Each later phase extends *this* `jobs`
+table rather than inventing its own queue:
+
+- **Phase 2 (`autonomous-harness-v1.md`)** — a cron layer *drains the M8 queue overnight* (sequential loads, M8-5); a hook battery enqueues jobs (post-publish → `eval_rerun`); the morning-standup artifact renders the jobs board as the human-review gate. M8-6's "stage only, no push" is the contract the standup enforces.
+- **Phase 3 (`rlvr-loop-v1.md`)** — a `compare_loss` trigger enqueues an `rl_run`; the result flows back to the leaderboard, closing the loop *visibly* — the entire reason the pane was built first. The held-out-every-10-steps gate and the `(success, failure_class, auxiliary)` reward tuple live in that spec, not here.
+- **Bet 5 (`second-brain-pipeline-v1.md`)** — adds `reindex` / `rag_eval` / `scout_ingest` job kinds + an Arena knowledge pane; the re-index-on-publish hook is a Phase-2 trigger producer.
+- **Bet 6 (`cost-plane-v1.md`)** — persists `cost_usd` on the compare/chat tables + an `openrouter_price_snapshot`; the jobs board and leaderboard gain a `$/task` + `$/quality-point` axis; `fieldkit.budget` (Phase 2) reads the ledger before the dispatcher launches a job.
+
+## 13. Change log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-28 | Initial spec landed (v1.0 locked). Decisions §3.1 #1–#10 confirmed in the planning session (hybrid Astro + FastAPI · rubric-deterministic compare · anchor MVP scope · public-mirror distribution · new Cockpit series · `arena_run` artifact kind · Qwen3-30B-A3B brain as the resident lane · OpenRouter via H6 CostRouterConfig as default compare B-lane · deterministic generation boundary · scorer-reuse discipline). Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`. | Manav (with Claude planning session) |
+| 2026-06-02 | **M8 control-plane milestone authored (§12).** Extends the locked v0.1+v0.2 spec with `_FLOWS` §3 **Phase 1 / Bet 3** — promote Arena recorder → dispatcher: new `jobs`/`job_triggers` tables, a single-lane dispatcher executing **through the MCP harness**, `eval_rerun` as the first (and only real) M8 job type, a leaderboard-regression trigger producer, `/arena/jobs/` cockpit surface, and the mirror-allowlist extension (R13). 8 locked decisions (M8-1…8, confirm before build), 5 new risks (R13–R17), grounded against `roadmap-reconciliation.md` §"Phase 1" (CONFIRMED, operational). Phases 2/3 + Bets 5/6 sequenced to extend this `jobs` table. **Spec only — unbuilt.** | Manav (with Claude) |
 
-## 13. References
+## 14. References
 
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`
@@ -878,7 +1033,10 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 - Hermes brain pin (the resident lane): `articles/picking-the-hermes-brain-on-spark/`
 - H5 vertical router (compare-routing v0.2 surface): `articles/hermes-vertical-router-on-spark/`
 - H6 cost router (Compare B-lane substrate): `articles/hermes-cost-routing-local-and-openrouter/`
-- H4 fieldkit-MCP (the trajectory replay shape): `articles/hermes-drives-the-spark-via-fieldkit-mcp/`
+- H4 fieldkit-MCP (the trajectory replay shape; M8 dispatch surface): `articles/hermes-drives-the-spark-via-fieldkit-mcp/`
+- H3 harness hardening (M8 sandbox containment layer): `articles/hardening-the-hermes-harness-on-spark/`
+- **MTBM roadmap (M8 = Phase 1 / Bet 3):** `_FLOWS/the-machine-that-builds-machines.md` §3
+- **M8 grounding (CONFIRMED, operational):** `_SPECS/roadmap-reconciliation.md` §"Phase 1" + the "Arena M8" spec-feedable facts
 - Series page (the trap): `src/pages/series/[series].astro` `SERIES_COPY`
 - Artifact schema: `src/content.config.ts` (`SERIES`, `ARTIFACT_KINDS`, `FIELDKIT_MODULES`)
 - fieldkit modules reused: `fieldkit/src/fieldkit/{harness,eval,viz,notebook,publish,capabilities}/`
