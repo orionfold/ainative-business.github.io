@@ -1,0 +1,82 @@
+---
+// Signature figure for "the-meta-program-on-spark".
+// Three concentric frames as a mise-en-abyme: the outer frame is "the
+// machine," the middle frame is the machine it builds, the innermost
+// (accent) is the specification that starts the whole thing again — so
+// spec → machine → spec, nested, with a dashed loop arrow arcing over
+// the top to say "this repeats." The visual claim, at thumbnail size:
+// the tool you build with is an instance of the thing you build, and
+// the loop closes on itself.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="A meta-program recursion motif. Three concentric rounded frames nest inside one another — the outer labeled MACHINE, the middle labeled MACHINE, the innermost accent frame labeled SPEC — illustrating spec building machine building spec. A dashed loop arrow arcs over the top from right to left, showing the loop repeats: the tool you build with is an instance of the thing you build."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mpr-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="mpr-halo" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0%"   stop-color="var(--svg-accent-blue)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="14" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.18em">META-PROGRAM · NEXT INSTANCE</text>
+    <text x="150" y="24" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.12em">spec → machine → spec · configuration over code</text>
+  </g>
+
+  {/* dashed loop arrow over the top — "this repeats" */}
+  <g class="svg-reveal svg-reveal-d2">
+    <path class="line-draw" d="M 236 44 C 236 18 64 18 64 44"
+          fill="none" stroke="var(--svg-connector)" stroke-width="1.25"
+          stroke-dasharray="3 3" stroke-linecap="round"/>
+    <path d="M 64 44 L 60 37 L 70 38 Z" fill="var(--svg-connector)"/>
+  </g>
+
+  {/* outer frame — the machine */}
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="46" y="52" width="208" height="118" rx="10"
+          fill="var(--svg-accent-blue)" fill-opacity="0.05"
+          stroke="var(--svg-connector)" stroke-width="1"/>
+    <text x="54" y="65" fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">MACHINE</text>
+  </g>
+
+  {/* middle frame — the machine it builds */}
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="80" y="70" width="140" height="82" rx="8"
+          fill="var(--svg-accent-blue)" fill-opacity="0.08"
+          stroke="var(--svg-connector)" stroke-width="1"/>
+    <text x="88" y="83" fill="var(--svg-text-faint)" font-family="var(--font-mono)"
+          font-size="6" letter-spacing="0.10em">MACHINE</text>
+  </g>
+
+  {/* innermost frame — the spec (accent) */}
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="112" y="86" width="76" height="50" rx="6"
+          fill="url(#mpr-halo)" stroke="none"/>
+    <rect x="116" y="90" width="68" height="42" rx="5"
+          fill="url(#mpr-accent)"
+          stroke="var(--color-primary)" stroke-width="1.25"/>
+    <text x="150" y="109" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="9" font-weight={700} letter-spacing="0.06em">SPEC</text>
+    <text x="150" y="123" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="5.5">program.md · skill</text>
+  </g>
+
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="188" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="6">
+      the tool is an instance of the thing it builds
+    </text>
+  </g>
+</svg>
