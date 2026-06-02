@@ -898,6 +898,22 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 > built, so M8 *creates* the module; (2) the built store is **already at `user_version = 2`** (v0.2
 > added `lab_notes` + `eval_scores`), so M8 migrates **2→3**, not 1→2; (3) M8 extends *both* mirror
 > lists (allowlist + forbidden), matching the built `lab_notes` precedent.
+>
+> **Fuller `fieldkit.arena` audit (2026-06-02) — M8 is *more* connective tissue than first stated.**
+> The eval-scoring substrate `eval_rerun` needs **already exists and runs synchronously**: an
+> **`eval_scores`** table (per-question grades), `ArenaStore.append_eval_score()`,
+> `ArenaStore.eval_leaderboard()` (accuracy rollup), and the `POST /api/chat/score` + `GET
+> /api/eval/*` endpoints. **So M8's `eval_rerun` job wraps the existing inline scorer in the queue
+> — it does not build eval from scratch.** Two clarifications this forces: **(a)** the three eval
+> tables play distinct roles — **`jobs`** (M8) = queue spine; **`eval_runs`** (built, but its
+> `arq_job_id` socket is currently *unused*) = M8 activates it as the per-run *status* row;
+> **`eval_scores`** (built, populated by `/api/chat/score`) = the per-question *results*. **(b)** two
+> leaderboards exist — `leaderboard_rows` (rebuilt by `rebuild_leaderboard()`, `mean_score` from
+> `rubric_scores.total`/`core_pass_rate`) and `eval_leaderboard()` (accuracy over `eval_scores`) —
+> so the §12.3 regression detector diffs the **accuracy** rollup (`eval_leaderboard`), not the
+> compare-rubric one. **Pre-existing §4.7 drift (not M8's):** the file tree lists `models.py` /
+> `streams.py` / `jobs.py`, but records live in `schemas.py` and SSE helpers are embedded in
+> `server.py` — only `jobs.py` is M8's to create.
 
 ### 12.1 M8 locked decisions (proposed — confirm before build)
 
@@ -921,13 +937,13 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | `POST/GET /api/jobs`, `GET /api/jobs/{id}`, `GET /api/jobs/stream` (SSE), `DELETE /api/jobs/{id}` | sidecar `server.py` | endpoint smoke |
 | `/arena/jobs/` Astro route + `<JobsBoard>` Preact island (queued · running · done · failed; dispatch + cancel) | source site | paints offline-safe on mirror |
 | **Leaderboard-regression trigger producer** — diff new `leaderboard_rows.mean_score` vs prior; over-threshold drop enqueues an `eval_rerun` | `fieldkit.arena.jobs` | unit test on a seeded regression |
-| `measure_variants` + `run_vertical_eval` MCP tools (added by M8-7 demand) | `fieldkit.harness.mcp` | dispatch smoke through the harness |
-| Mirror allowlist extension + regression test asserting no `jobs.payload_json` text appears in `src/data/arena-mirror/*.json` | `mirror.py` + `tests/arena/test_mirror_does_not_leak.py` | **hard gate** (R1 family) |
+| `measure_variants` + `run_vertical_eval` MCP tools (added by M8-7 demand) — **`mcp.py`'s first `fieldkit.eval` wiring** (the 7 built tools import only `capabilities`/`quant`/`publish`/`nim`/`rag`); also add their `MCPToolSpec` entries to `MCP_TOOL_SPECS` | `fieldkit.harness.mcp` | dispatch smoke through the harness + `docs/api/` updated (audit-docs gate) |
+| Mirror allowlist+denylist extension + leak-test sentinel: plant a `LEAK_SENTINEL_*` string in `jobs.payload_json`, assert it is absent from `src/data/arena-mirror/*.json` (the existing test only covers tables that exist) | `mirror.py` + `tests/arena/test_mirror_does_not_leak.py` | **hard gate** (R1 family) |
 | The Phase-1 **`product-writer` launch** (`products/`, `series: Cockpit`) — build-metrics + jobs/dispatch/regression feature tour, cross-linking the H4 deep-dive | `products/<slug>/product.md` | gated on M8 shipping (HANDOFF editorial overlay) |
 
 ### 12.3 Architecture
 
-**The `jobs` table** (takes over the queue-spine role; the built `eval_runs` table — real, not a stub — stays as the typed result row an `eval_rerun` job writes into):
+**The `jobs` table** (the queue spine; distinct from the two built eval tables — `eval_runs` is the per-run *status* row whose `arq_job_id` socket M8 finally activates, and `eval_scores` holds the per-question *results* the existing `/api/chat/score` scorer already writes):
 
 ```sql
 -- M8 (user_version 2→3):
@@ -970,8 +986,11 @@ enqueue_job(kind, payload, trigger)            # writes a 'queued' row; dedup_ke
             eval_rerun       → run_vertical_eval(lane, bench)   [M8-7 tool]
             measure_variants → measure_variants(manifest_slug)  [M8-7 tool]
       → 'running' → harness executes on GPU (one lane resident, serve_lane guard)
-      → write result_json (eval_rerun → INSERT eval_runs row) → 'done' | 'failed'
-      → on 'done': rebuild_leaderboard() → re-run the regression detector (may enqueue follow-ups)
+      → eval_rerun writes via the EXISTING scorer path (append_eval_score → eval_scores rows)
+            + flips the eval_runs status row (enqueued→started→finished); result_json = eval_runs.id
+      → 'done' | 'failed'
+      → on 'done': rebuild_leaderboard() + refresh eval_leaderboard() → re-run the regression
+            detector against the accuracy rollup (may enqueue follow-ups)
       → SSE 'job' event on /api/jobs/stream throughout
 ```
 
@@ -979,7 +998,7 @@ enqueue_job(kind, payload, trigger)            # writes a 'queued' row; dedup_ke
 
 | Trigger | Source | Fires | Status |
 |---|---|---|---|
-| `leaderboard_regression` | post-`rebuild_leaderboard` diff: `new.mean_score < prev.mean_score − τ` | `eval_rerun` (confirm the regression is real, not noise) | **M8** |
+| `leaderboard_regression` | diff the **accuracy** rollup (`eval_leaderboard()`): `new.mean_score < prev.mean_score − τ` (the per-question `eval_scores` source, not the compare-rubric `leaderboard_rows`) | `eval_rerun` (confirm the regression is real, not noise) | **M8** |
 | `stale_bench` | `leaderboard_rows.last_run_at` older than `freshness_days` | `eval_rerun` | **M8** (manual-poll in M8; *scheduled* in Phase 2) |
 | `compare_loss` | a `human_prefs`/`rubric_scores` loss on the resident model | `rl_run` | **Phase 3 stub** (`rlvr-loop-v1.md`) |
 
