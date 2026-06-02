@@ -41,7 +41,6 @@ fieldkit/.ruff_cache/
 fieldkit/.venv/
 .pytest_cache/
 # operator-local working docs (same class as HANDOFF.md)
-WORKFLOWS.md
 README-ARENA.md
 RECONCILE-SPARK-MAC.md
 .sync-active
