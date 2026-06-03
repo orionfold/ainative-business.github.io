@@ -1,5 +1,5 @@
 {
-  "_note": "The local-knowledge-appliance IS the Arena M10 recall layer (fieldkit.memory + the /arena/knowledge pane), shipped 2026-06-02 in commit ebe6425. This launch documents the session that DROVE it end-to-end on the repo's own corpus, measured its recall, and fixed a bug. The agentic-effort numbers (sessions/turns/tokens/wall-clock) are that launch session; lines_of_code + test_cases describe the appliance's recall-layer code surface (authored at M10), credited as substrate in the prose.",
+  "_note": "Orionfold Cortex (slug orionfold-cortex; renamed from local-knowledge-appliance) IS the Arena M10 recall layer (fieldkit.memory + the /arena/knowledge pane), shipped 2026-06-02 in commit ebe6425. This launch documents the session that DROVE it end-to-end on the repo's own corpus, measured its recall, and fixed a bug. The agentic-effort numbers (sessions/turns/tokens/wall-clock) are that launch session; lines_of_code + test_cases describe Cortex's recall-layer code surface (authored at M10), credited as substrate in the prose.",
   "build_window": {
     "label": "one launch session (~4 hours) driving + measuring the Arena M10 recall layer",
     "since": "2026-06-03T10:35:47Z",

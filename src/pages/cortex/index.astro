@@ -1,0 +1,315 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import Nav from '../../components/Nav.astro';
+import Footer from '../../components/Footer.astro';
+import SectionLabel from '../../components/ui/SectionLabel.astro';
+import AmberRule from '../../components/ui/AmberRule.astro';
+import { SITE } from '../../data/seo';
+
+// Cortex landing page — the marketing hub for Orionfold Cortex, sibling to
+// /arena/, /fieldkit/, and /book/. The launch story lives at
+// /products/orionfold-cortex/; the live demo will live at /cortex/demo/ (the
+// sidecar-less recorded knowledge-pane bundle, built next). This page reads the
+// `products` collection so the headline build metrics stay honest (mined by
+// scripts/mine_build_metrics.py, never hand-typed here).
+const products = await getCollection('products');
+const cortex = products.find((p) => p.id === 'orionfold-cortex');
+if (!cortex) throw new Error('orionfold-cortex product entry is missing');
+const d = cortex.data;
+const b = d.build;
+const slug = cortex.id;
+
+// Live demo is deployed (the Arena cockpit's knowledge tab, sidecar-less, at
+// /cortex/demo/ → /arena/demo/knowledge/). This lights up the hero "Launch the
+// demo" CTA and the Live-preview section.
+const demoReady = true;
+
+const shot = (s: string) => `/products/${slug}/${s.replace(/^\/+/, '')}`;
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const hoursLabel = Number.isInteger(b.wall_clock_hours)
+  ? `${b.wall_clock_hours}`
+  : b.wall_clock_hours.toFixed(1);
+
+const heroShot = d.features[0]?.screenshot ?? 'screenshots/04-knowledge-after-rebuild.png';
+const demoShot = d.features.find((f) => /quer/i.test(f.name))?.screenshot
+  ?? d.features[3]?.screenshot
+  ?? 'screenshots/05-knowledge-rag-query.png';
+
+const demoHref = '/cortex/demo/';
+const storyHref = `/products/${slug}/`;
+const cardHref = `/artifacts/harnesses/${slug}/`;
+const installUrl = d.download_url ?? 'https://pypi.org/project/fieldkit/';
+
+const pageTitle = 'Orionfold Cortex — a local memory layer that gates its own recall — ainative';
+const pageDescription =
+  'Your second brain on one NVIDIA DGX Spark — re-index your corpus, score chunk-recall@k against a gold set, gate any rebuild that regresses it, and query with a provenance/trust filter. Private by construction.';
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: d.product_name,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'NVIDIA DGX Spark (Linux, ARM64)',
+  description: pageDescription,
+  url: `${SITE.url}/cortex/`,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  softwareRequirements: 'fieldkit (pip install fieldkit[arena])',
+};
+---
+<Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
+  <Nav />
+  <main>
+
+    <!-- ─────────────────────────  HERO  ───────────────────────── -->
+    <section class="relative flex items-center px-6 overflow-x-clip pt-32 pb-12">
+      <div class="absolute inset-0 -z-10 flex items-center justify-center pointer-events-none">
+        <div class="absolute w-[800px] h-[800px] rounded-full bg-primary/[0.10] blur-[180px]"></div>
+        <div class="absolute w-[400px] h-[400px] rounded-full bg-primary/[0.15] blur-[100px]"></div>
+      </div>
+      <div class="absolute bottom-0 left-0 right-0 h-40 pointer-events-none" style="background: linear-gradient(to bottom, transparent, var(--color-surface-raised));"></div>
+
+      <div class="relative z-10 w-full max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <!-- Left: content -->
+        <div class="text-center lg:text-left" data-animate-stagger>
+          <div data-animate class="mb-4">
+            <SectionLabel text="Now shipping · Cockpit" />
+          </div>
+          <h1 data-animate class="cortex-gradient-text font-display text-[clamp(2.1rem,4.2vw,3.1rem)] font-bold leading-[1.1] mb-3">
+            {d.product_name}
+          </h1>
+          <p data-animate class="text-[clamp(0.9rem,1.9vw,1.1rem)] text-text-muted leading-relaxed mb-7 mx-auto lg:mx-0 max-w-xl" style="transition-delay: 80ms">
+            {d.tagline}
+          </p>
+
+          <!-- Build-metric chips (honest; mined from frontmatter) -->
+          <div data-animate class="flex flex-wrap justify-center lg:justify-start gap-6 mb-8" style="transition-delay: 120ms">
+            <div>
+              <div class="font-display font-bold text-2xl text-text">{hoursLabel}h</div>
+              <div class="font-mono text-[0.62rem] tracking-widest uppercase text-text-muted">to drive + measure</div>
+            </div>
+            <div>
+              <div class="font-display font-bold text-2xl text-text">{fmt(b.lines_of_code)}</div>
+              <div class="font-mono text-[0.62rem] tracking-widest uppercase text-text-muted">lines of code</div>
+            </div>
+            <div>
+              <div class="font-display font-bold text-2xl text-text">{b.test_cases}</div>
+              <div class="font-mono text-[0.62rem] tracking-widest uppercase text-text-muted">tests</div>
+            </div>
+            <div>
+              <div class="font-display font-bold text-2xl text-text">{b.feature_count}</div>
+              <div class="font-mono text-[0.62rem] tracking-widest uppercase text-text-muted">features</div>
+            </div>
+          </div>
+
+          <!-- CTAs (demo lights up when the /cortex/demo/ bundle ships) -->
+          <div data-animate-stagger class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3" style="transition-delay: 160ms">
+            {demoReady ? (
+              <>
+                <a data-animate href={demoHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-7 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow">
+                  Launch the demo
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <a data-animate href={storyHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-primary border border-primary/30 px-7 py-3 rounded-md hover:bg-primary/10 transition-colors">
+                  Read the launch story
+                </a>
+              </>
+            ) : (
+              <>
+                <a data-animate href={storyHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-7 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow">
+                  Read the launch story
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
+                <a data-animate href={installUrl} rel="noopener" class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-primary border border-primary/30 px-7 py-3 rounded-md hover:bg-primary/10 transition-colors">
+                  Download ↓
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+
+        <!-- Right: knowledge-pane screenshot -->
+        <a href={storyHref} data-animate class="block rounded-xl border border-border overflow-hidden bg-surface-overlay shadow-2xl" aria-label={`${d.product_name} — read the launch story`}>
+          <img src={shot(heroShot)} alt={`${d.product_name} recall layer`} width="1280" height="800" loading="eager" decoding="async" class="block w-full h-auto" />
+        </a>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────  WHAT IT IS  ───────────────────────── -->
+    <section class="py-20 px-6 bg-surface-raised">
+      <div class="max-w-3xl mx-auto text-center">
+        <div data-animate><SectionLabel text="What it is" /></div>
+        <p data-animate class="text-lg leading-relaxed text-text mt-5" style="transition-delay: 80ms">
+          {d.summary}
+        </p>
+        <div data-animate class="flex flex-wrap justify-center gap-2 mt-8" style="transition-delay: 140ms">
+          <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-3 py-1.5">Private by construction</span>
+          <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-3 py-1.5">Gates its own recall</span>
+          <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-3 py-1.5">Provenance-stamped chunks</span>
+          <span class="font-mono text-[10px] tracking-wider text-primary border border-primary/20 bg-primary/5 rounded-full px-3 py-1.5">{d.hardware}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────  FEATURE HIGHLIGHTS  ───────────────────────── -->
+    <section class="py-24 px-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="text-center mb-12">
+          <div data-animate><SectionLabel text="Inside Cortex" /></div>
+          <h2 data-animate class="mt-4" style="transition-delay: 80ms">{b.feature_count} surfaces, one recall loop</h2>
+        </div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-2 gap-4" data-animate-stagger>
+          {d.features.map((f) => (
+            <div data-animate class="rounded-xl border border-border bg-surface-overlay p-5 hover:border-primary/30 transition-colors">
+              <h3 class="font-display font-semibold text-base text-text mb-1.5">{f.name}</h3>
+              <p class="text-sm text-text-muted leading-relaxed">{f.benefit}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────  LIVE PREVIEW (gated on demoReady)  ───────────────────────── -->
+    {demoReady && (
+      <section class="py-24 px-6 bg-surface-raised">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          <a href={demoHref} data-animate class="order-2 lg:order-1 block rounded-xl border border-border overflow-hidden bg-surface-overlay shadow-xl" aria-label="Launch the Cortex demo">
+            <img src={shot(demoShot)} alt={`${d.product_name} — live preview`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+          </a>
+          <div class="order-1 lg:order-2" data-animate-stagger>
+            <div data-animate><SectionLabel text="Live preview" /></div>
+            <h2 data-animate class="mt-4 mb-4" style="transition-delay: 80ms">Drive the recall loop yourself</h2>
+            <p data-animate class="text-text-muted leading-relaxed mb-4" style="transition-delay: 120ms">
+              The preview is <strong class="text-text">recorded on a DGX Spark</strong> and runs sidecar-less —
+              no GPU, no backend, nothing phones home. Click rebuild and watch the re-index and RAG-eval jobs
+              drain; the recall gate, coverage report, and provenance-filtered query console are the genuine cuts.
+            </p>
+            <p data-animate class="text-text-muted leading-relaxed mb-7" style="transition-delay: 160ms">
+              Walk the knowledge pane, score a rebuild against the gold set, query the Second Brain with a trust
+              filter — then run it for real on your own Spark with one command.
+            </p>
+            <div data-animate-stagger class="flex flex-col sm:flex-row gap-3" style="transition-delay: 200ms">
+              <a data-animate href={demoHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-7 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow">
+                Launch the demo
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+              <a data-animate href={cardHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-text-muted border border-border px-7 py-3 rounded-md hover:border-text-muted transition-colors">
+                Artifact card
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    )}
+
+    <!-- ─────────────────────────  READ THE STORY  ───────────────────────── -->
+    <section class="py-24 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <div data-animate><SectionLabel text="The build" /></div>
+        <h2 data-animate class="mt-4 mb-4" style="transition-delay: 80ms">How it came together</h2>
+        <p data-animate class="text-text-muted leading-relaxed mb-8 max-w-xl mx-auto" style="transition-delay: 120ms">
+          {d.product_name} is the Arena M10 recall layer — {fmt(b.lines_of_code)} lines, {b.test_cases} tests —
+          driven end-to-end on this repo's own corpus in {d.build.window}. The launch story walks every surface,
+          the measured recall@k, and the dogfood bug the drive surfaced.
+        </p>
+        <div data-animate class="flex flex-col sm:flex-row items-center justify-center gap-4" style="transition-delay: 160ms">
+          <a href={storyHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-7 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow">
+            Read the launch story
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href={cardHref} class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-text-muted border border-border px-7 py-3 rounded-md hover:border-text-muted transition-colors">
+            Artifact card
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─────────────────────────  CTA FOOTER  ───────────────────────── -->
+    <section class="py-32 px-6">
+      <AmberRule />
+      <div class="max-w-3xl mx-auto text-center">
+        <p data-animate class="font-mono text-xs tracking-widest text-text-muted uppercase mb-6">
+          Orionfold Cortex · ships inside fieldkit
+        </p>
+        <h2 data-animate class="mb-6" style="transition-delay: 80ms">Run it on your own Spark.</h2>
+        <p data-animate class="text-text-muted mb-10 max-w-lg mx-auto" style="transition-delay: 160ms">
+          Install fieldkit with the arena extra, point it at your corpus, and open the knowledge pane over
+          your own notes, evals, and research — measured, gated, and private.
+        </p>
+
+        <p data-animate class="font-mono text-[10px] tracking-[0.2em] uppercase text-text-muted mb-2">
+          Install Cortex
+        </p>
+        <div data-animate class="max-w-sm mx-auto mb-10">
+          <div class="relative border border-primary/30 rounded-lg primary-pulse overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-2 border-b border-primary/10">
+              <span class="font-mono text-[10px] uppercase tracking-widest text-text-muted">Terminal</span>
+              <button id="cortex-copy-btn" class="p-1 rounded text-text-muted/50 hover:text-text-muted transition-colors" aria-label="Copy to clipboard">
+                <svg id="cortex-copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                <svg id="cortex-check-icon" class="hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+            </div>
+            <div class="bg-surface-raised px-4 py-3">
+              <pre class="font-mono text-lg sm:text-xl leading-relaxed text-text-muted"><span class="text-primary">$</span> <code id="cortex-code">pip install fieldkit[arena]</code><span class="cortex-cursor">▌</span></pre>
+            </div>
+          </div>
+        </div>
+
+        <div data-animate-stagger class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          {demoReady && (
+            <a data-animate href={demoHref} class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md">
+              Live demo
+            </a>
+          )}
+          <a data-animate href={storyHref} class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md">
+            Launch story
+          </a>
+          <a data-animate href={installUrl} target="_blank" rel="noopener noreferrer" class="font-mono text-xs tracking-[0.2em] uppercase text-text-muted border border-border px-8 py-3 hover:border-text-muted transition-colors rounded-md">
+            Download
+          </a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .cortex-gradient-text {
+    background: linear-gradient(135deg, oklch(0.74 0.14 300), var(--color-primary), oklch(0.62 0.17 270));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .cortex-cursor {
+    animation: cortex-blink 1s step-end infinite;
+    color: var(--color-primary);
+  }
+  @keyframes cortex-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cortex-cursor { animation: none; }
+  }
+</style>
+
+<script>
+  function initCortexCopy() {
+    document.getElementById('cortex-copy-btn')?.addEventListener('click', async () => {
+      const code = document.getElementById('cortex-code')?.textContent ?? '';
+      await navigator.clipboard.writeText(code);
+      const copyIcon = document.getElementById('cortex-copy-icon');
+      const checkIcon = document.getElementById('cortex-check-icon');
+      copyIcon?.classList.add('hidden');
+      checkIcon?.classList.remove('hidden');
+      setTimeout(() => {
+        copyIcon?.classList.remove('hidden');
+        checkIcon?.classList.add('hidden');
+      }, 2000);
+    });
+  }
+  initCortexCopy();
+  document.addEventListener('astro:after-swap', initCortexCopy);
+</script>

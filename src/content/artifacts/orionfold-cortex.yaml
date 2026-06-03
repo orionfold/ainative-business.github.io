@@ -1,8 +1,8 @@
-slug: local-knowledge-appliance
+slug: orionfold-cortex
 kind: harness
 class: recall-harness
 base_model: "fieldkit.memory · pgvector(vectors/blog_chunks) · NIM llama-nemotron-embed-1b-v2"
-hf_repo: Orionfold/local-knowledge-appliance
+hf_repo: Orionfold/cortex
 # Reserved namespace, nothing pushed to the Hub. A recall harness distributes as
 # `pip install "fieldkit[arena]"` code that builds the index on-box — there is no
 # downloadable bundle. The detail page shows the local install path, not a
@@ -21,11 +21,11 @@ vertical_eval:
 license:
   tier: free
   model: apache-2.0
-article: products/local-knowledge-appliance/
+article: products/orionfold-cortex/
 published_at: "2026-06-03T11:09:00Z"
 positioning:
-  headline: A local-knowledge appliance that gates its own recall
-  problem: "A raw pgvector table drifts silently and carries no trust card on its chunks — you cannot tell a Spark-measured fact from an external claim, and a re-index can quietly drop recall with no alarm. This appliance wraps the index with stamped provenance, a coverage report, and a recall@k promotion gate, all dispatched and watched through the Arena control plane. The machine manages its own memory."
+  headline: A local memory layer that gates its own recall
+  problem: "A raw pgvector table drifts silently and carries no trust card on its chunks — you cannot tell a Spark-measured fact from an external claim, and a re-index can quietly drop recall with no alarm. Orionfold Cortex wraps the index with stamped provenance, a coverage report, and a recall@k promotion gate, all dispatched and watched through the Arena control plane. The machine manages its own memory."
   use_cases:
     - Re-index a multi-source corpus (article · lineage · eval · scout · deep_research) with provenance stamped per chunk, dispatched from the cockpit
     - Score chunk-recall@k + slug-recall@k against an in-repo gold set, gated like-for-like against the prior index so a rebuild can't silently regress recall

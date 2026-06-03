@@ -1,0 +1,73 @@
+---
+import { getCollection } from 'astro:content';
+import SectionLabel from '../ui/SectionLabel.astro';
+
+// Homepage launch teaser for Orionfold Cortex — the local memory layer, sibling
+// to the Arena teaser. Reads the product collection so the headline metrics stay
+// honest (mined, never hand-typed here). Renders nothing if the product isn't
+// present. Image-left / text-right to alternate against the Arena teaser above.
+const products = await getCollection('products');
+const cortex = products.find((p) => p.id === 'orionfold-cortex') ?? null;
+
+// Live demo deployed (the Arena cockpit knowledge tab at /cortex/demo/). This
+// swaps the primary CTA to "Try the live preview".
+const demoReady = true;
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const b = cortex?.data.build;
+const hoursLabel = b ? (Number.isInteger(b.wall_clock_hours) ? `${b.wall_clock_hours}` : b.wall_clock_hours.toFixed(1)) : '';
+const shot = cortex ? `/products/${cortex.id}/${cortex.data.features[0]?.screenshot?.replace(/^\/+/, '') ?? 'screenshots/04-knowledge-after-rebuild.png'}` : '';
+const landingHref = '/cortex/';
+const storyHref = cortex ? `/products/${cortex.id}/` : '/cortex/';
+const installUrl = cortex?.data.download_url ?? 'https://pypi.org/project/fieldkit/';
+---
+{cortex && (
+  <section class="py-24 px-6 bg-surface-raised">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <a href={landingHref} data-animate class="order-2 md:order-1 block rounded-xl border border-border overflow-hidden bg-surface-overlay" aria-label={`${cortex.data.product_name} — overview`}>
+          <img src={shot} alt={`${cortex.data.product_name} recall layer`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+        </a>
+        <div class="order-1 md:order-2">
+          <SectionLabel text="Now shipping · Second Brain" />
+          <h2 data-animate class="mt-4 mb-3">{cortex.data.product_name}</h2>
+          <p data-animate class="text-text-muted text-lg leading-relaxed mb-6" style="transition-delay: 80ms">
+            {cortex.data.tagline}
+          </p>
+          {b && (
+            <div data-animate class="flex flex-wrap gap-6 mb-7" style="transition-delay: 120ms">
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{hoursLabel}h</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">to drive + measure</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{fmt(b.lines_of_code)}</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">lines of code</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{b.test_cases}</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">tests</div>
+              </div>
+            </div>
+          )}
+          <div data-animate class="flex flex-wrap gap-3" style="transition-delay: 160ms">
+            <a
+              href={demoReady ? '/cortex/demo/' : storyHref}
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-6 py-2.5 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+            >
+              {demoReady ? 'Try the live preview' : 'Read the launch'}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a
+              href={installUrl}
+              rel="noopener"
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-primary border border-primary/30 px-6 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+            >
+              Download ↓
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
