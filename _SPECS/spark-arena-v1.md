@@ -929,7 +929,7 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | M8-3 | **Containment** | **Two-layer, inherited from the harness:** (a) tool curation — the 7-tool list size *is* the policy (`publish` structurally unreachable, `quantize` dry-run-default); (b) execution sandbox — docker `--network=none`, hard-stop guardrails. The dispatcher adds nothing new; it inherits both. | `hardening-the-hermes-harness-on-spark`: 3/3 hostile DNS/exfil/fetch calls contained. |
 | M8-4 | **Anti-amnesia gate** | Any *agentic* job (Phase-3 `rl_run`, Bet-5 `scout_ingest`) bakes in the Phase-0 dedup/history gate: `block_repeat(last_k≈50)` + `render_history(k≈30)`. `eval_rerun` is deterministic and exempt. | `trajectory-eval-is-the-agent-flailing`: 72% repeat rate, 14 unique/50 → gate lifts unique trials ≈**4×**. |
 | M8-5 | **Sequential loads only** | The dispatcher drains **one job at a time**, one lane resident (128 GB envelope, `serve_lane(guard=True)`). Parallel drain is a DGX-Cloud config (`_FLOWS` §6), **out of scope** for the Spark M8. | `[[project_spark_unified_memory_oom]]`; `hermes-vertical-router-on-spark`: 78 GB headroom at brain + 1 vertical, still single-lane. |
-| M8-6 | **No autonomy yet** | M8 is **operator-triggered + button-dispatched.** The cron drain, hook battery, and morning-standup review gate are **Phase 2** (`autonomous-harness-v1.md`). M8 honors the no-auto-push invariant by *staging only* — no job pushes. | `_FLOWS` §3 sequencing: pane (M8) before hands (cron). |
+| M8-6 | **No autonomy yet** | M8 is **operator-triggered + button-dispatched.** The cron drain, hook battery, and morning-standup review gate are **Phase 2** (now written: §15 / Arena M11). M8 honors the no-auto-push invariant by *staging only* — no job pushes. | `_FLOWS` §3 sequencing: pane (M8) before hands (cron). |
 | M8-7 | **Harness grows by demand** | Add `measure_variants` / `run_vertical_eval` MCP tools to `fieldkit.harness` **as the dispatcher calls them** — not speculatively. This is where Phase 1 and Phase 2's harness work partially merge. | `_FLOWS` §4 enhancement table (harness row is **S**, not M — 7 tools already shipped). |
 | M8-8 | **Mirror safety** | The new `jobs` + `job_triggers` tables stay **OUT** of `export_publishable_slice()`'s `PUBLISHABLE_TABLES` allowlist *and* are added to the belt-and-suspenders `FORBIDDEN_TABLES` (with `("jobs","payload_json")` in `FORBIDDEN_COLUMNS`) — the exact two-list pattern the built `mirror.py` already uses for `lab_notes`/`("lab_notes","body")`. Job payloads carry prompts and must never leak. Same discipline as `chat_*` (§4.8, R1). | Extends the M6 leak-gate regression test. |
 
@@ -1046,7 +1046,7 @@ empty "Cockpit offline" state by construction.
 M8 is the **pane** the rest of the roadmap lands into. Each later phase extends *this* `jobs`
 table rather than inventing its own queue:
 
-- **Phase 2 (`autonomous-harness-v1.md`)** — a cron layer *drains the M8 queue overnight* (sequential loads, M8-5); a hook battery enqueues jobs (post-publish → `eval_rerun`); the morning-standup artifact renders the jobs board as the human-review gate. M8-6's "stage only, no push" is the contract the standup enforces.
+- **Phase 2 (M11, §15)** — a cron layer *drains the M8 queue overnight* (sequential loads, M8-5); a hook battery enqueues jobs (post-publish → `eval_rerun`); the morning-standup artifact renders the jobs board as the human-review gate. M8-6's "stage only, no push" is the contract the standup enforces.
 - **Phase 3 (`rlvr-loop-v1.md`)** — a `compare_loss` trigger enqueues an `rl_run`; the result flows back to the leaderboard, closing the loop *visibly* — the entire reason the pane was built first. The held-out-every-10-steps gate and the `(success, failure_class, auxiliary)` reward tuple live in that spec, not here.
 - **Bet 5 (`second-brain-pipeline-v1.md`)** — adds `reindex` / `rag_eval` / `scout_ingest` job kinds + an Arena knowledge pane; the re-index-on-publish hook is a Phase-2 trigger producer.
 - **Bet 6 (`cost-plane-v1.md`)** — persists `cost_usd` on the compare/chat tables + an `openrouter_price_snapshot`; the jobs board and leaderboard gain a `$/task` + `$/quality-point` axis; `fieldkit.budget` (Phase 2) reads the ledger before the dispatcher launches a job.
@@ -1079,7 +1079,7 @@ Every §12 decision landed as specified. Where the spec described "already exist
 > §"Bet 6" / `hermes-cost-routing-local-and-openrouter`. **Like M8, M9 is connective
 > tissue, not greenfield** — the cost is already *computed*, just discarded; M9 *persists +
 > surfaces* it. The `fieldkit.budget` **enforcement** arm is explicitly out of scope (Phase 2,
-> `autonomous-harness-v1.md`); M9 ships the **ledger + read API** that governor consumes.
+> now written: §15 / Arena M11); M9 ships the **ledger + read API** that governor consumes.
 >
 > **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/`).**
 > Five facts shape the decisions: **(1)** `_compare_cost_usd()` is **real but DB-ephemeral** —
@@ -1110,7 +1110,7 @@ Every §12 decision landed as specified. Where the spec described "already exist
 | M9-6 | **Real token counts, heuristic fallback** | Use the OpenAI-compat response `usage.{prompt_tokens, completion_tokens}` when present; fall back to the 4-char heuristic when the endpoint omits `usage`. Persist a `tokens_estimated` flag so an approximate `$/task` is visibly marked, never silently trusted. | recon #4. |
 | M9-7 | **Mirror safety (two-list discipline)** | `openrouter_price_snapshot` is **public-safe** (no prompts) ⇒ added to `PUBLISHABLE_TABLES` so the public leaderboard's `$/task` is reconstructable. Per-run cost columns inherit their host tables' exclusion. Extend `test_mirror_does_not_leak.py` with a sentinel asserting no prompt text rides a cost path. | mirror two-list pattern + R13 precedent (§12.5/M8-8). |
 | M9-8 | **Persisted session spend (fix the reset)** | The live spend rail's session total is **read back from the persisted rows**, surviving a sidecar restart instead of resetting from `_openrouter_cost_usd = 0.0`. | recon #1 — accumulator resets. |
-| M9-9 | **Scope boundary — ship the ledger, not the governor** | M9 ships `fieldkit.cost` (per-run ledger + price snapshot + `$/quality` read API) + the cockpit cost axis. It does **NOT** ship enforcement: `fieldkit.budget`, the `LOCAL_CEILING = 33%` escalation contract, and the standup spend digest live in **`autonomous-harness-v1.md` (Phase 2)**, which *consumes* this ledger. | §12.6 sequencing; cross-bet-feeds-Phase-2 dependency. |
+| M9-9 | **Scope boundary — ship the ledger, not the governor** | M9 ships `fieldkit.cost` (per-run ledger + price snapshot + `$/quality` read API) + the cockpit cost axis. It does **NOT** ship enforcement: `fieldkit.budget`, the `LOCAL_CEILING = 33%` escalation contract, and the standup spend digest live in **Phase 2 (§15 / Arena M11)**, which *consumes* this ledger. | §12.6 sequencing; cross-bet-feeds-Phase-2 dependency. |
 | M9-10 | **Version-control the H6 evidence** | Commit `evidence/openrouter_prices.json` + `cost_router_results.json` to the `hermes-cost-routing-local-and-openrouter` article (currently untracked) as the canonical seed for M9-5 — closing the `_FLOWS` §7 drift in the same milestone. | recon #5; signed-off call #3. |
 
 ### 13.2 Deliverables
@@ -1195,7 +1195,7 @@ mirror export:
 
 M9 is a **cross-cutting price signal**, not a sequential phase — it threads the pane/hands/engine the same way M8's `jobs` table does:
 
-- **Phase 2 (`autonomous-harness-v1.md`)** — `fieldkit.budget` reads M9's persisted ledger before the dispatcher launches a job; it encodes the **`LOCAL_CEILING = 33%`** failure-mode escalation (escalate when local *gives up*, not on a token ceiling alone) and emits a **spend digest** (today's $ by lane / by bench vs cap) into the morning standup. M9-9 is the seam.
+- **Phase 2 (M11, §15)** — `fieldkit.budget` reads M9's persisted ledger before the dispatcher launches a job; it encodes the **`LOCAL_CEILING = 33%`** failure-mode escalation (escalate when local *gives up*, not on a token ceiling alone) and emits a **spend digest** (today's $ by lane / by bench vs cap) into the morning standup. M9-9 is the seam.
 - **Phase 3 (`rlvr-loop-v1.md`)** — **$/quality-point ROI**: a `compare_loss` trigger consults measured $/quality *before* the governor approves an `rl_run`, declining RL when frontier escalation is cheaper at equal quality — generalizing the $0.0004/failed-trial inversion to "cheaper to RLVR a local model to threshold, or pay frontier per call?" (mirrors Bet 5's pre-flight gate).
 - **Bet 5 (Arena M10, §14)** — **now written**; shares the M8 `jobs` table + this $/quality discipline (a `rag_eval` job can carry its own cost row from this ledger).
 
@@ -1214,7 +1214,7 @@ M9 is a **cross-cutting price signal**, not a sequential phase — it threads th
 > tool, and the *job-kind sockets themselves* already exist; M10 *promotes + consolidates +
 > makes multi-source* what is today a manual, prose-only, externally-scripted index. The
 > autonomous freshness arm (re-index-on-publish hook + scheduled scout sweep) is explicitly
-> out of scope (Phase 2, `autonomous-harness-v1.md`); M10 ships the **operator-driven pane +
+> out of scope (Phase 2, now written: §15 / Arena M11); M10 ships the **operator-driven pane +
 > the managed index** that arm later automates.
 >
 > **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/` + the
@@ -1259,7 +1259,7 @@ M9 is a **cross-cutting price signal**, not a sequential phase — it threads th
 | M10-8 | **Coverage = `article_index` ⋈ index** | The pane's coverage/freshness number is the join of arena.db `article_index` (what *should* be indexed) against the set of indexed slugs in pgvector (what *is*) — chunk counts, stale-since, missing. The silent 12/63 staleness that bit the harvest becomes a visible, actionable number. | recon #6 — `article_index` exists; `_FLOWS` §7 (the 12/63 lag was invisible). |
 | M10-9 | **Single canonical query backend** | `fieldkit.memory` is the **one backend** behind *both* the standalone `second-brain-mcp` server and the harness `ask_second_brain` tool — provenance filter + rerank policy defined once, never diverging. | recon #2; **signed-off open call B.** |
 | M10-10 | **Mirror safety (two-list discipline)** | `rag_eval_runs` *scores* (recall@k, faithfulness — aggregates, no prompts) are **public-safe** ⇒ added to `PUBLISHABLE_TABLES` for a public "RAG-eval trend". `reindex_runs` and **any chunk-text path** (the query/inspect console returns chunk text, which is prompt-like) stay **out**, in `FORBIDDEN_TABLES`. Extend `test_mirror_does_not_leak.py` with a sentinel on the knowledge path. | M8-8 / M9-7 two-list precedent (R13 family). |
-| M10-11 | **Scope boundary — ship the pane, not the autonomous hands** | M10 ships the operator-driven **knowledge pane** + the three dispatcher job types + `fieldkit.memory` + the **eval-gated manual re-index**. It does **NOT** ship the **re-index-on-publish hook** or the **scheduled freshness monitor + scout sweep** — those live in **`autonomous-harness-v1.md` (Phase 2)**, which *consumes* this pane's re-index button + eval gate. | §12.6 / M9-9 ledger-not-governor pattern; `_FLOWS` §3 Bet 5 cross-phase wiring. |
+| M10-11 | **Scope boundary — ship the pane, not the autonomous hands** | M10 ships the operator-driven **knowledge pane** + the three dispatcher job types + `fieldkit.memory` + the **eval-gated manual re-index**. It does **NOT** ship the **re-index-on-publish hook** or the **scheduled freshness monitor + scout sweep** — those live in **Phase 2 (§15 / Arena M11)**, which *consumes* this pane's re-index button + eval gate. | §12.6 / M9-9 ledger-not-governor pattern; `_FLOWS` §3 Bet 5 cross-phase wiring. |
 | M10-12 | **Version-control the external assets** | Commit `ingest_blog.py` (as the seed for `fieldkit.memory`'s ingest), the `qa-eval.jsonl` gold set, `nemo_evaluator_config.yaml`, and the `second-brain-mcp` server into the monorepo (under `fieldkit/` + the relevant article's `evidence/`) as the canonical seed — closing the `_FLOWS` §7 "external / manually re-indexed" drift in the same milestone. | recon (the drift); **signed-off open call D**; the M9-10 analog. |
 
 ### 14.2 Deliverables
@@ -1366,11 +1366,144 @@ mirror export:
 
 M10 is a **cross-cutting recall surface**, not a sequential phase — it threads pane/hands/engine the same way M8's `jobs` table and M9's cost ledger do:
 
-- **Phase 2 (`autonomous-harness-v1.md`)** — the **re-index-on-publish hook** + a **scheduled freshness monitor** automate M10's manual re-index button, and a scheduled `frontier-scout` sweep lands back through M10's `scout_ingest` job — finally realizing Ch-11's named-but-unbuilt "Freshness Monitoring" box. M10-11 is the seam (it ships the pane the hooks later drive).
+- **Phase 2 (M11, §15)** — the **re-index-on-publish hook** + a **scheduled freshness monitor** automate M10's manual re-index button, and a scheduled `frontier-scout` sweep lands back through M10's `scout_ingest` job — finally realizing Ch-11's named-but-unbuilt "Freshness Monitoring" box. M10-11 is the seam (it ships the pane the hooks later drive).
 - **Phase 3 (`rlvr-loop-v1.md`)** — the index ingests `rl_run`/`lineage` cards (M10-3's internal class), and a `compare_loss` trigger **queries the Second Brain before the governor approves an `rl_run`** — returning the internal `t2po` finding (47.7% per-assertion ceiling, +33% wall for nothing) *and* any external paper verdict, so a doomed RL run is declined or redirected. Mirrors M9's pre-flight cost gate.
-- **`autonomous-harness-v1.md` (Phase 2) is the next stub to write** — with both cross-cutting bets now specced (M9 cost ✅, M10 recall ✅), Phase 2 can reference both defined contracts (the budget governor reads M9's ledger; the freshness monitor drives M10's re-index) instead of dangling them. Then `rlvr-loop-v1.md` (Phase 3) last.
+- **Phase 2 (M11, §15) — now written** — with both cross-cutting bets specced (M9 cost ✅, M10 recall ✅), the autonomous harness references both defined contracts (the budget governor reads M9's ledger; the freshness monitor drives M10's re-index) instead of dangling them. Authored as **§15 (Arena M11)** 2026-06-02 (placement chosen consistent with M8/M9/M10). Then `rlvr-loop-v1.md` (Phase 3) last.
 
-## 15. Change log
+## 15. M11 — Autonomous harness + cron (Phase 2 of the MTBM roadmap)
+
+> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Phase 2 / Bet 2 ("the
+> autonomous harness — hooks + a scheduled loop that the control plane governs")** as the
+> **Arena M11** milestone — the **hands** in the `pane → hands → engine` sequence. Placement
+> chosen 2026-06-02 to land as an Arena section (consistent with M8/M9/M10) rather than the
+> standalone `_SPECS/autonomous-harness-v1.md` the roadmap text originally named: Phase 2's
+> concrete build is the autonomy layer *over* the M8 pane — it drains the M8 `jobs` queue,
+> renders the standup from the M8 board + M9 ledger, and emits triggers into the M8 dispatcher.
+> It is grounded against Spark-measured evidence in
+> [`roadmap-reconciliation.md`](roadmap-reconciliation.md) §"Phase 2" (*foundation solid,
+> autonomy scaffold genuinely unbuilt*). **Unlike M8/M9/M10, M11 is NOT pure connective tissue
+> on the data plane** — the *trigger producers and the drain already exist*, but the
+> **scheduler, the hook battery, and `fieldkit.budget` are greenfield**; M11 is the layer that
+> turns a button-driven dispatcher into a self-operating loop with a human review gate. The
+> closed-loop **engine** (`rl_run` dispatch, the RLVR trainer) is explicitly out of scope
+> (Phase 3, `rlvr-loop-v1.md`); M11 ships the **scheduler + hooks + budget governor + standup**
+> that *drain and govern* whatever the dispatcher already supports.
+>
+> **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/` + the
+> live `.claude/`).** Six facts shape the decisions: **(1)** the **drain + trigger producer are
+> already built** — `arena/jobs.py` ships `drain_jobs()` (single-pass, `max_jobs`-capped) and
+> `check_and_enqueue_regressions()`, *both carrying the in-code comment "the Phase-2 cron will
+> call this on a schedule"*; M11 adds the **scheduler that calls them**, not the dispatch. **(2)**
+> **`fieldkit.budget` does NOT exist** (`ls fieldkit/src/fieldkit/` — no `budget`); it is the new
+> top-level module M11 introduces, sibling to M9's `fieldkit.cost`. **(3)** **`fieldkit.cost`
+> (M9) is also unbuilt**, so the governor's `$/task` input has *no source yet* — M11 must degrade
+> gracefully rather than hard-block on M9's build slot (AH-5). **(4)** there is **exactly one hook
+> today** — repo `.claude/settings.json` `SessionStart` (the gh-deploy-failure check); `~/.claude`
+> hooks are `{}`, and the §6.5 Stop-hook feedback loop is **named but never installed** — so §3's
+> "one hook, no cron" is literally accurate. **(5)** `.claude/scheduled_tasks.lock` is a **stale
+> lock from a dead 2026-05-30 session** (pid 357866) — a lock file, *not* a scheduler — confirming
+> the substrate is half-wired. **(6)** arena.db is at `USER_VERSION = 4` (M9 → 5, M10 → 6); M11
+> adds **no schema** (AH-9) — schedules live in version-controlled config + `/schedule` routines,
+> the standup is an ephemeral render over the existing `jobs` / `leaderboard_baseline` / M9 cost
+> rows — keeping M11 a *connective* milestone on the storage plane even as it is greenfield on the
+> automation plane.
+
+### 15.1 M11 locked decisions (signed off 2026-06-02)
+
+| # | Decision | Value | Grounding |
+|---|---|---|---|
+| AH-1 | **Scheduler over the built drain, not a new dispatcher** | A `/schedule`-driven cron (or `~/.claude` cron routine) calls the *already-built* `drain_jobs()` + `check_and_enqueue_regressions()` on a schedule — **single-lane sequential**, `max_jobs`/per-pass timeout, one model lane resident at a time (OOM envelope). The cron reimplements nothing; it is the missing *trigger*, not new dispatch logic. | recon #1 — drain + regression producer exist, comments name the Phase-2 cron. |
+| AH-2 | **Hook battery, 1 → N** | Expand the lone `SessionStart` hook into a battery: **post-publish → `nvidia-learn-stats` refresh + enqueue `eval_rerun`**; **pre-commit → `verify_*`** (the two rendering verifiers); **post-article → secret-scan**; and finally *install* the §6.5 Stop-hook feedback loop (named-but-absent today). Hooks are **deterministic shell only — never an LLM call** (invariant #4). | recon #4 — one hook today; §6.5 Stop hook uninstalled. |
+| AH-3 | **Morning-standup artifact = an Arena render, NO push** | The no-auto-push invariant (#3/#1) means the cron **stages + opens a review, never pushes.** The standup renders **what ran / what regressed / what's queued / today's $ by lane** over the M8 `jobs` board + the M8 `leaderboard_baseline` regression set + the M9 spend digest — the *mandatory human-review gate*. M8-6's "stage only, no push" is the contract it enforces. | §12.6 (M8-6); invariants #1/#3. |
+| AH-4 | **`fieldkit.budget` — new governor module** | New top-level module the cron consults **before** launching a job. Encodes the **`LOCAL_CEILING = 33%`** *failure-mode-driven* escalation (escalate when local *gives up* — multi-step planning / KV-cache derivation hit the 30B-A3B class boundary — not on a token ceiling alone). Generalizes the corpus-synth weekly-`/usage` gate + the OOM-envelope check into one guard. | recon #2; recon §"Phase 2" 33%-leak; `[[project_spark_unified_memory_oom]]`. |
+| AH-5 | **M9 cost plane = a *soft* prerequisite** | When `fieldkit.cost` (M9) is present the governor reads the persisted ledger for `$/task` + the 33% ceiling; when absent it **degrades to a token + OOM-envelope guard** (the two checks that already exist). M11 ships **independent of M9's build slot**; M9 *upgrades* the governor when it lands. No hard ordering between M9 and M11 builds. | recon #3 — `fieldkit.cost` unbuilt; avoid build deadlock. |
+| AH-6 | **Freshness-monitor = a scheduled job that *emits* M8 triggers** | A scheduled bench / stale-index check that enqueues `eval_rerun` (post-M10: `reindex` / `rag_eval`) into the dispatcher via the built `check_and_enqueue_regressions()` path — realizing Ch-11's named-but-unbuilt **"Freshness Monitoring"** box. This is the *trigger source* that makes the plane autonomous rather than button-driven. | recon #1; §12.6; `_FLOWS` §3 Phase 2(e); M10-11 seam. |
+| AH-7 | **Scope = the autonomy *layer*, not new job kinds** | M11 builds scheduler + hooks + budget + standup over what the dispatcher *already* supports (`eval_rerun`, `measure_variants`). It does **NOT** promote `rl_run` (Phase 3) or `reindex`/`rag_eval`/`scout_ingest` (M10) to `DISPATCHABLE` — those land in their own milestones. M11 *drains and schedules*; it does not extend `JobKind.DISPATCHABLE`. | `JobKind.DISPATCHABLE` (recon); §12.6 phase boundaries. |
+| AH-8 | **Containment carries forward — unsupervised ≠ unconstrained** | The overnight loop dispatches through the **same two-layer MCP harness + docker `--network=none` sandbox** M8 inherited (tool-list-is-policy; `publish` dry-run-forced; 3/3 hostile calls contained). Autonomy adds the budget ceiling (AH-4) + the standup review gate (AH-3) *on top of* that containment; it never relaxes it. | M8 §12.4 grounding; `hardening-the-hermes-harness-on-spark`. |
+| AH-9 | **No new arena.db table, no `user_version` bump** | Schedules live in **version-controlled config** (`fieldkit.budget` policy + `/schedule` routines), not a new table; the standup is an **ephemeral render** over the existing `jobs` / `leaderboard_baseline` / M9 cost rows. M11 leaves the schema at M10's `6`. Keeps M11 connective-tissue on the storage plane. | recon #6 — minimize schema churn. |
+
+### 15.2 Deliverables
+
+| Artifact | Surface | Gate |
+|---|---|---|
+| **New module `fieldkit.budget`** — `BudgetGovernor` (pre-launch check) + `BudgetDecision` (allow / escalate / defer + reason) + `SpendDigest` (today's $ by lane/bench vs cap) + `check_budget()` read API | `fieldkit` PyPI | `audit-docs budget` clean |
+| **Scheduler glue** — a cron/`/schedule` routine calling `drain_jobs(max_jobs=…)` + `check_and_enqueue_regressions()` single-lane on a schedule, behind a one-drain-at-a-time lock | `fieldkit.arena` / cron config | drain-on-schedule smoke (a seeded queue drains one pass, lane teardown verified) |
+| **Hook battery** — post-publish / pre-commit / post-article / Stop hooks in `.claude/settings.json` | repo `.claude/` | each hook fires deterministically; pre-commit `verify_*` round-trip; secret-scan blocks a planted secret |
+| **Budget governor wiring** — the drain consults `BudgetGovernor.check_budget()` before each job; escalation honors `LOCAL_CEILING=33%` (M9 present) or token+envelope (M9 absent, AH-5) | `arena/jobs.py` drain path | governor unit tests (both M9-present and M9-absent branches) |
+| **Morning-standup render** — an Arena surface (`/arena/standup/` or the jobs board's digest header) over `jobs` + `leaderboard_baseline` + M9 spend; stage-only, no push | source site | paints offline-safe (mirror shows aggregate only); no push path exists by construction |
+| **Freshness-monitor job** — a scheduled `eval_rerun`/regression sweep emitting triggers into the M8 dispatcher | cron + `arena/jobs.py` | a stale-bench sweep enqueues the expected `job_triggers` row |
+| Docs `docs/api/arena.md` §"M11" + `docs/api/budget.md` | `fieldkit` docs | `audit-docs` gate |
+| Release `~fieldkit v0.19.0` | PyPI + tag | `fieldkit-curator` action (separate) |
+
+### 15.3 Architecture
+
+**No schema (AH-9).** M11 adds neither a table nor a `user_version` bump; it is automation glue over the M8/M9 storage already in place. The three new surfaces are the **scheduler**, the **governor**, and the **standup render**.
+
+**Scheduler flow** — the cron is a thin loop over the built drain, gated by the governor:
+
+```
+cron tick (overnight, single-lane):
+  acquire drain lock (.claude/scheduled_tasks.lock pattern — one drain at a time)  [AH-1]
+  for each pending job (claim_next_job, sequential):                              [AH-1]
+    decision ← BudgetGovernor.check_budget(job, today_spend, envelope)            [AH-4]
+      ├─ allow    → dispatch_job(job)  via the MCP harness + sandbox              [AH-8]
+      ├─ escalate → mark job for frontier lane (local gave up; 33% ceiling)       [AH-4/AH-5]
+      └─ defer    → leave queued, log to standup (over cap / no envelope)         [AH-3]
+  check_and_enqueue_regressions()   (freshness sweep emits new triggers)          [AH-6]
+  release lock; stage the standup; DO NOT push                                    [AH-3]
+```
+
+**Hook battery** (`.claude/settings.json` — deterministic shell, AH-2):
+
+| Event | Hook | Action |
+|---|---|---|
+| post-publish (commit touching `articles/**`/`products/**`) | stats + enqueue | run `nvidia-learn-stats`; `enqueue_job(eval_rerun)` for affected benches |
+| pre-commit | verify | `verify_artifact_rendering.mjs` + `verify_field_notes_rendering.mjs` (advisory `\|\| true` where non-blocking) |
+| post-article | secret-scan | scan the staged diff for secrets before it can be committed |
+| Stop | feedback loop | the §6.5 named-but-uninstalled loop, finally wired |
+
+**Budget governor decision** — `fieldkit.budget` generalizes the two existing guards into one pre-launch check:
+
+```
+BudgetGovernor.check_budget(job, spend_today, envelope):
+  if cost ledger present (M9):                                                    [AH-5]
+      if spend_today + est_cost(job) > daily_cap:        return defer
+      if job.failure_class in LOCAL_CEILING_TRIGGERS:    return escalate (33%)    [AH-4]
+  else (M9 absent — token + envelope only):                                       [AH-5]
+      if weekly_usage_pct > cap:                         return defer  (/usage gate)
+  if not envelope.fits(job.lane):                        return defer  (OOM guard) [AH-4]
+  return allow
+```
+
+**`fieldkit.budget` `__all__` (M11):** `BudgetGovernor`, `BudgetDecision`, `SpendDigest`, `EscalationReason`, `check_budget`, `BudgetError`.
+
+**Standup render (AH-3).** An Arena surface assembling, from the existing tables, a stage-only review: **Ran** (completed `jobs` since the last standup), **Regressed** (`leaderboard_baseline` deltas this pass), **Queued** (pending `jobs`), **Spend** (M9 `SpendDigest`: today's $ by lane/bench vs cap; "—" when M9 absent). It has **no push capability** — the operator reads it and promotes manually, honoring #1/#3. Offline-safe: the public mirror renders only the aggregate standup (never a per-run prompt or per-run $).
+
+### 15.4 Grounding (from `roadmap-reconciliation.md` §"Phase 2" + `_FLOWS` §3 Phase 2)
+
+- **Every prerequisite is measured and in place.** The brain is pinned by evidence — `picking-the-hermes-brain-on-spark` + `hermes-serving-lane-on-spark`: **Qwen3-30B-A3B Q4_K_M at 83.5 tok/s / 31.8 GB / 8/8**, where the 9B incumbent hits a hard **2/5 multi-step-planning wall** ⇒ the MoE is **non-negotiable** for overnight reasoning (AH-1's single-lane drain assumes the brain is the resident lane). The sequential-load envelope is validated — `hermes-vertical-router-on-spark`: brain 31.8 GB + one cold vertical ~5.5 GB ≈ **50 GB, 78 GB headroom** ⇒ AH-1's "one lane at a time" has comfortable margin.
+- **The 33% local ceiling sets the governor's escalation contract.** `hermes-cost-routing-local-and-openrouter`: local-only **8/12**, cost-routed **11/12** at $2.19/100, frontier-only **12/12** at $2.94/100 ⇒ a third of the workload *genuinely needs* frontier escalation. So AH-4's `LOCAL_CEILING = 33%` is **failure-mode-driven**, not a token ceiling — the governor decides *when local gives up*.
+- **The gap is real (greenfield), and that's the whole milestone.** No published article demonstrates a cron scheduler, a hook battery, or a morning-standup flow — the agent is *shown able to run unsupervised* (`hermes-drives-the-spark-via-fieldkit-mcp`, 0% format error) but **not shown running overnight with a review gate**. M11 is exactly that missing scaffold, built on a proven synchronous-dispatch substrate.
+- **Containment is the precondition for autonomy.** `hardening-the-hermes-harness-on-spark` (docker `--network=none`, **3/3 hostile DNS/exfil/fetch calls contained**) + the tool-list-is-policy MCP layer are what make unsupervised overnight runs *safe* — AH-8 inherits both rather than re-deriving them.
+
+### 15.5 M11 risk additions (extend §10)
+
+| ID | Risk | Likelihood | Impact | Mitigation | Fallback |
+|---|---|---|---|---|---|
+| R24 | **Overnight cron OOMs the box** — a job loads a second model while the brain is resident, or the drain stacks lanes | med | box hang (the 2026-04-22 landmine) | single-lane sequential drain (AH-1) + the governor's envelope guard (AH-4) + the one-drain-at-a-time lock; each job tears its lane down before the next claims | the lock bounds blast radius to one pass; OOM kills the pass, not the box; `pkill -f 'vllm\|EngineCore'` sweep in lane teardown (`[[feedback_vllm_engine_core_orphan]]`) |
+| R25 | **A hook slows or blocks the solo-blog commit flow** — a flaky/slow pre-commit hook stalls a legitimate direct-to-main commit | med | friction / blocked commit | hooks are fast deterministic checks (`verify_*` run in seconds); advisory checks use `\|\| true` and log rather than abort; only the secret-scan is hard-blocking | `--no-verify` escape hatch; demote a misbehaving hook to advisory; the SessionStart deploy check already catches a bad push downstream |
+| R26 | **An errant autonomous path pushes or leaks** despite the no-push invariant — a cron route bypasses the standup gate | low | published leak / unreviewed push | the cron has **no push capability by construction** (stages only, AH-3); job payloads are already on the mirror denylist (M8-8, R13); the standup is the *only* promote path and it is human-driven | the `SessionStart` deploy-failure hook surfaces any errant push; revert + re-stage; mirror leak sentinel (`test_mirror_does_not_leak.py`) blocks payload columns |
+
+### 15.6 Sequencing — what M11 feeds
+
+M11 is the **hands** that operate the pane (M8) using the cost (M9) and recall (M10) signals — and it is the *home* the engine (Phase 3) lands into:
+
+- **Phase 3 (`rlvr-loop-v1.md`)** — the cron **drains `rl_run` jobs overnight** (Phase 3's compute is too long for a synchronous click; the M11 scheduler is its execution home, single-lane); the budget governor's **$/quality gate decides RL-vs-frontier** *before* approving an `rl_run` (cheaper to RLVR a local model to threshold, or pay frontier per call?); and **held-out eval becomes a scheduled job** (the held-out-every-10-steps hard gate from `t2po` runs as an M11-scheduled `eval_rerun`, not a manual step). RLVR without M11 is a loop with no overnight home and no budget brake.
+- **Closes the autonomous loop over M8/M9/M10** — M8's queue gets **drained autonomously**, M9's ledger gets **enforced** (not just displayed), M10's index gets **refreshed on schedule** (AH-6 ⇒ M10-11's freshness arm). After M11, the operator's posture is *review the standup + promote*, not *run the scripts* — the thesis the whole roadmap is about.
+- **The §5 series gets its Phase-2 launch** — the `product-writer` "autonomous harness" launch (morning-standup · cron queue · budget governor) cross-linking the existing H4 deep-dive, per the HANDOFF editorial overlay, becomes promotable once M11 ships.
+
+## 16. Change log
 
 | Date | Change | Author |
 |---|---|---|
@@ -1379,8 +1512,9 @@ M10 is a **cross-cutting recall surface**, not a sequential phase — it threads
 | 2026-06-02 | **M8 BUILT** (all 8 decisions green-lit as written). `fieldkit.arena.jobs` dispatcher + `jobs`/`job_triggers` schema (`user_version` 2→3) + `JobStore` methods; two harness MCP tools (`run_vertical_eval` — first `fieldkit.eval` wiring — + `measure_variants`); `/api/jobs` CRUD + SSE drain (BackgroundTasks primary, R14); `jobs`/`job_triggers` on the mirror denylist + leak sentinel (R13); `/arena/jobs/` route + `<JobsBoard>` island (builds into preview + wheel bundle). Tests: `test_jobs.py` (17) + `test_jobs_api.py` (9) + extended `test_mirror_does_not_leak.py`; full suite **1118 passed**, `audit-docs` clean. As-built map in §12.7. **Not yet: the `fieldkit v0.16.0` tag/publish + the Phase-1 launch article + a live-sidecar human-eye pass.** | Manav (with Claude) |
 | 2026-06-02 | **M9 cost-plane milestone authored (§13).** Realizes `_FLOWS` §3 **Bet 6** as the first cross-cutting Arena milestone after M8 (priority locked in `_SPECS/index.md` Planned queue). 10 locked decisions (M9-1…10, **signed off** — persist the already-computed `_compare_cost_usd()`; per-side cost on `compare_responses` + `tokens_in`; aggregate `$/quality-point` on the public `leaderboard_rows`; `openrouter_price_snapshot` pinned from the H6 evidence JSON; real `usage` tokens w/ heuristic fallback; ledger-not-governor scope boundary; version-control the untracked H6 evidence). Schema `user_version` **4→5** — the first ALTER-based migration (R18). 3 new risks (R18–R20). New abstraction `fieldkit.cost`. Grounded against `roadmap-reconciliation.md` §"Bet 6" (`hermes-cost-routing`: 25% spend cut at 8.3% quality cost, 33% leak). **Spec only — unbuilt;** release gate ~`fieldkit v0.17.0`. | Manav (with Claude) |
 | 2026-06-02 | **M10 recall-layer milestone authored (§14).** Realizes `_FLOWS` §3 **Bet 5** as the second cross-cutting Arena milestone (priority locked in `_SPECS/index.md` Planned queue; rides the shipped M8 pane, freshest grounding post-re-index). 12 locked decisions (M10-1…12, **signed off** — promote the pre-drilled `reindex`/`rag_eval`/`scout_ingest` job stubs to dispatchable; `fieldkit.memory` over the existing `fieldkit.rag.Pipeline` w/ the Pipeline adopted as canonical ingest; multi-source [prose · lineage/eval · scout/deep-research] under one provenance card on `blog_chunks`; trust-filtered retrieval; arena.db `5→6` + pgvector provenance cols; wrap the on-disk `rag-eval-work/` harness as the eval-gated `rag_eval` job; cosine-only GB10 baseline w/ rerank as bounded drift; coverage = `article_index`⋈index; single query backend behind both MCP surfaces; two-list mirror; version-control the external `ingest_blog.py`/`qa-eval`/eval-config/SB-server). 4 open calls signed off "recommended" (ingest fork → Pipeline canonical; query backend → `fieldkit.memory`; provenance → `blog_chunks` columns; VC the external assets). Schema `user_version` **5→6** (contingent on M9's 4→5). 3 new risks (R21–R23). New abstraction `fieldkit.memory`. Code-reconciled against the built `arena/jobs.py` (sockets pre-drilled), `fieldkit.rag`, the on-disk `rag-eval-work/` + `second-brain-mcp/`. **Spec only — unbuilt;** release gate ~`fieldkit v0.18.0`. **Next stub: `autonomous-harness-v1.md` (Phase 2).** | Manav (with Claude) |
+| 2026-06-02 | **M11 autonomous-harness milestone authored (§15).** Realizes `_FLOWS` §3 **Phase 2 / Bet 2** as the **hands** — placement chosen to land as an Arena section (§15/M11), consistent with M8/M9/M10, rather than the standalone `_SPECS/autonomous-harness-v1.md` the roadmap originally named. 9 locked decisions (AH-1…9, **signed off** — a `/schedule` cron over the *already-built* `drain_jobs()`/`check_and_enqueue_regressions()`, single-lane sequential; hook battery 1→N [post-publish/pre-commit/post-article/Stop]; morning-standup as a stage-only Arena render; new `fieldkit.budget` governor w/ `LOCAL_CEILING=33%` failure-mode escalation; M9 cost-plane a **soft** prerequisite [token+envelope fallback when `fieldkit.cost` absent]; freshness-monitor emits M8 triggers [Ch-11's box]; scope = the autonomy layer NOT new job kinds; two-layer containment carried forward; **no new arena.db table / no `user_version` bump**). 3 new risks (R24–R26: overnight OOM · hook-blocks-commit · errant push/leak). New abstraction `fieldkit.budget`. Code-reconciled against the built `arena/jobs.py` (drain + regression producer pre-built, comments name the Phase-2 cron), the absent `fieldkit.budget`/`fieldkit.cost`, the one live `.claude/` hook, and the stale `scheduled_tasks.lock`. **Spec only — unbuilt;** release gate ~`fieldkit v0.19.0`. **Last stub: `rlvr-loop-v1.md` (Phase 3 — the engine).** | Manav (with Claude) |
 
-## 16. References
+## 17. References
 
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`
