@@ -16,7 +16,14 @@ const description =
   'Every artifact the Spark has produced — quantized vertical models, notebooks, benches, and harnesses — as a browsable capability catalog. Explore positioning, the quant economics, and known drift, then drive each one in chat or compare.';
 
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
-const href = (p) => `${base}${p}`.replace(/\/+/g, '/');
+// When the bundle is baked at `…/arena` (wheel + demo), the base already ends
+// in /arena, so an `arena/…` path must drop its leading segment or it doubles
+// to /arena/arena/… (a 404). Mirrors the layout's href() helper.
+const bakedArena = base.replace(/\/$/, '').endsWith('/arena');
+const href = (p) => {
+  const rel = bakedArena && p.startsWith('arena/') ? p.slice('arena/'.length) : p;
+  return `${base}${rel}`.replace(/\/+/g, '/');
+};
 
 const artifacts = (await getCollection('artifacts')).map((a) => a);
 
