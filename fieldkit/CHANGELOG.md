@@ -6,6 +6,53 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Vendored the real GPU backend for `fieldkit.rl.gpu_seams`** — the closing
+  operator follow-on from `rlvr-loop-v1` §10.1. `gpu_seams` no longer raises a
+  "not vendored" stub; it returns the three real seams when the new
+  `fieldkit[rl]` extra is installed, and a friendly `RLLoopError` pointing at the
+  extra when it isn't. The ported `clawgym-on-spark-grpo` loop splits in two so
+  the GPU stack is touched only on a live call:
+  - **`fieldkit._rl_gpu_serve`** (torch-free) — the HTTP rollout sampler over the
+    local pinned-vLLM OpenAI endpoint (via `fieldkit.nim.NIMClient`; the GPU lives
+    in a separate vLLM server process), the held-out gate, and the `VLLMLane`
+    kill-and-restart serve lifecycle (`pkill -9 -f 'vllm|EngineCore'` — RV-R4 /
+    `feedback_vllm_engine_core_orphan`). A `_GpuRollout` carries the prompt so the
+    trainer can rebuild token sequences without the bench; duck-types straight
+    into `RewardAdapter`.
+  - **`fieldkit._rl_gpu_trainer`** (the `fieldkit[rl]` / torch gate) — the
+    REINFORCE-with-KL step ported faithfully from `grpo_train.py` (per-token
+    log-prob over assistant tokens, the K3 KL estimator against a frozen
+    CPU-resident reference snapshot, advantage-weighted loss, AdamW + grad-clip,
+    adapter save), generalized from clawgym's multi-turn agentic trajectories to
+    the single-turn QA `Rollout` contract, and kept **resident across steps**
+    (load the 7B base once, not per step — RV-10 one-lane envelope).
+- **New `fieldkit[rl]` optional-dependency extra** — `torch`, `peft`,
+  `transformers`, `safetensors`, `accelerate`. vLLM is deliberately **not** a
+  dependency: there is no aarch64+CUDA-13 wheel for the pinned version yet
+  (`project_verl_atgpo_vllm_gap`), so it is served as a separate operator
+  process. `import fieldkit.rl` stays stdlib-cheap; only a live `gpu_seams()`
+  call imports the torch trainer.
+- **`gpu_seams(config, *, reward=None)`** — backward-compatible keyword so the
+  held-out gate can score the frozen split through the `RewardAdapter` (RV-4);
+  `run_rl_loop` now passes it.
+- **Operator runbook** in `docs/api/rl.md` ("Operator run") — the `fieldkit[rl]`
+  install, the separate pinned-vLLM bring-up, the `FK_RL_*` env knobs, and the
+  overnight-only dispatch posture. **The live run stays operator-armed** (no
+  aarch64+CUDA-13 vLLM wheel + the ~8.5 h loop is a cron drain, not a click).
+
+### Test suite
+
+- **1233 passed, 5 skipped** offline (`pytest tests/`, +9 GPU-free seam tests).
+  The vendoring is verified without a GPU: `import fieldkit.rl` stays torch-free,
+  the sampler builds correct single-turn messages + `_GpuRollout`s over a fake
+  client, the held-out gate scores via the reward adapter, `serve_command` /
+  `stop_command` construct the LoRA-enabled argv + EngineCore-aware teardown,
+  `RLBackendConfig.from_env` reads the knobs, and `gpu_seams` raises the
+  `fieldkit[rl]` pointer when torch is absent. The 5 skips are the `torch` GPU
+  training path + 4 `--spark` live integration tests.
+
 ## [0.20.1] — 2026-06-03
 
 A one-line bug-fix patch for the M10 recall-eval path, surfaced by the

@@ -39,9 +39,19 @@ GPU-touching seams are **injected** — the same `dispatch_job(runner=…)` patt
 
 torch / vLLM are **never imported at module load** — only inside the GPU-seam
 factory `gpu_seams`, so `import fieldkit.rl` stays stdlib-cheap and the
-orchestration tests run with no GPU. `gpu_seams` raises until the pinned-vLLM
-backend is vendored into the `fieldkit[rl]` extra; callers driving the loop today
-inject their own seams.
+orchestration tests run with no GPU. The real backend is now **vendored** (the
+ported `clawgym-on-spark-grpo` loop): `gpu_seams` returns the three real seams
+when the `fieldkit[rl]` extra is installed, and raises a friendly `RLLoopError`
+pointing at the extra when it isn't. It splits torch-free / torch-bound so the
+GPU stack is touched only on a live call:
+
+- `fieldkit._rl_gpu_serve` (**torch-free**) — the HTTP rollout sampler over the
+  local pinned-vLLM OpenAI endpoint (via `fieldkit.nim.NIMClient`; the GPU lives
+  in a *separate* vLLM server process), the held-out gate, and the `VLLMLane`
+  kill-and-restart serve lifecycle;
+- `fieldkit._rl_gpu_trainer` — the torch/peft REINFORCE-with-KL step (the K3 KL
+  estimator against a frozen CPU-resident reference snapshot, advantage-weighted
+  loss, AdamW, adapter save). Importing it **is** the `fieldkit[rl]` gate.
 
 ## Three corrections, encoded structurally
 
@@ -87,6 +97,41 @@ a held-out win, an optional `requant` re-quantizes the lifted checkpoint and the
 loop closes visibly on the leaderboard. **No new arena.db table, no
 `user_version` bump** (RV-8): the trajectory rides `fieldkit.lineage`, the
 held-out scores ride `eval_runs`.
+
+## Operator run (the GPU path is armed, not automatic)
+
+A live run is a deliberate operator action — the orchestration is GPU-free, but
+the rollout/train loop needs the GPU stack on the box:
+
+1. **Install the extra** — `pip install "fieldkit[rl]"` (torch + peft +
+   transformers + safetensors + accelerate). These are pip-installable on the
+   GB10.
+2. **Serve a pinned vLLM separately.** vLLM is *not* a dependency of the extra:
+   there is no aarch64+CUDA-13 wheel for the pinned version yet
+   (`[[project_verl_atgpo_vllm_gap]]`), so it is brought up as its own process
+   (or container) serving the base model with `--enable-lora`. `VLLMLane` then
+   kill-and-restarts it between steps to load each lifted adapter.
+3. **Point the seams at the box** via environment (the seam signature
+   `gpu_seams(config)` stays stable — the operator tunes the box, not the API):
+
+   | Var | Meaning | Default |
+   |---|---|---|
+   | `FK_RL_VLLM_URL` | local vLLM OpenAI base | `http://localhost:8000/v1` |
+   | `FK_RL_BASE_MODEL` | HF base id to serve + train | `Qwen/Qwen2.5-7B-Instruct` |
+   | `FK_RL_ADAPTER_INIT` | SFT-init LoRA the run starts from | *(required)* |
+   | `FK_RL_WORK_DIR` | where per-step adapters are written | `~/.fieldkit/rl` |
+   | `FK_RL_LORA_NAME` | served LoRA module == chat `model` | `policy` |
+   | `FK_RL_GPU_UTIL` | vLLM `--gpu-memory-utilization` (one-lane, RV-10) | `0.55` |
+   | `FK_RL_HELDOUT_TEMP` | held-out-eval temperature (< train temp) | `0.2` |
+   | `FK_RL_SERVE_CMD` / `FK_RL_STOP_CMD` | full serve/stop overrides (e.g. `docker exec`) | host `vllm` / EngineCore-aware `pkill` |
+
+4. **Dispatch overnight, never synchronously** (RV-6) — `rl_run` enqueues into
+   the M8 dispatcher and drains under the M11 single-lane cron behind the budget
+   governor. The ~8.5 h loop is not a cockpit click.
+
+Until those are in place, inject your own `sampler` / `trainer` / `heldout_eval`
+into `RLLoop` directly — the orchestration is fully functional and tested with
+fakes.
 
 ## What it is not
 

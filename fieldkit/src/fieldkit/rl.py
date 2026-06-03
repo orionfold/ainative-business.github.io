@@ -398,27 +398,50 @@ def _as_float(v: Any) -> Optional[float]:
         return None
 
 
-def gpu_seams(config: GRPOConfig) -> tuple[Sampler, Trainer, HeldoutEval]:
+def gpu_seams(
+    config: GRPOConfig, *, reward: Optional["RewardAdapter"] = None
+) -> tuple[Sampler, Trainer, HeldoutEval]:
     """Build the real GPU-backed `(sampler, trainer, heldout_eval)` seams.
 
-    This is the production path the Arena ``run_rl_loop`` tool wires: a pinned
-    vLLM rollout, the hand-rolled REINFORCE-with-KL LoRA step + kill-and-restart
-    (RV-1/RV-5), and a direct held-out bench score. It lazy-imports torch +
-    vLLM, so plain ``import fieldkit.rl`` and the orchestration tests stay
-    GPU-free.
+    This is the production path the Arena ``run_rl_loop`` tool wires (the
+    vendored `clawgym-on-spark-grpo` loop): a pinned-vLLM rollout over the local
+    OpenAI endpoint, the hand-rolled REINFORCE-with-KL LoRA step +
+    kill-and-restart (RV-1/RV-5), and a held-out bench score through the reward
+    adapter. The backend splits in two so plain ``import fieldkit.rl`` stays
+    stdlib-cheap and only this call touches the GPU stack:
 
-    **v1 ships the orchestration, not a re-implemented GPU trainer.** The proven
-    loop lives in `articles/clawgym-on-spark-grpo/` (the ~280-LOC REINFORCE run)
-    and depends on a pinned vLLM with no aarch64+CUDA-13 wheel yet
-    (`[[project_verl_atgpo_vllm_gap]]`). Until that backend is vendored into the
-    `fieldkit[rl]` extra, this raises :class:`RLLoopError` with the pointer —
-    callers inject their own seams (the loop is fully functional with them). The
-    hot-LoRA-swap optimization (RV-5) lands here as the tracked fast-follow.
+    - :mod:`fieldkit._rl_gpu_serve` — **torch-free** (the HTTP sampler via
+      `fieldkit.nim.NIMClient` + the vLLM serve lane); always importable.
+    - :mod:`fieldkit._rl_gpu_trainer` — the torch/peft REINFORCE step. Importing
+      it **is** the `fieldkit[rl]` gate: a missing-dependency ``ImportError``
+      becomes a friendly :class:`RLLoopError` pointing at the extra.
+
+    `reward` is the :class:`~fieldkit.reward.RewardAdapter` the **held-out gate**
+    scores the frozen split with (the verifier's score, never the pool — RV-4);
+    ``run_rl_loop`` passes it. Omit it only when you intend to inject your own
+    `heldout_eval` into `RLLoop` instead.
+
+    **The run is operator-armed, not synchronous.** The seams are real, but a
+    live run needs the `fieldkit[rl]` extra installed *and* a pinned vLLM with an
+    aarch64+CUDA-13 wheel served on the box (`[[project_verl_atgpo_vllm_gap]]`),
+    plus ``FK_RL_ADAPTER_INIT`` and friends (see :mod:`fieldkit._rl_gpu_serve`).
+    Without the GPU stack this raises :class:`RLLoopError` — callers can still
+    inject fakes into `RLLoop` to exercise the orchestration. The hot-LoRA-swap
+    optimization (RV-5) lands in the trainer as the tracked fast-follow.
     """
-    raise RLLoopError(
-        "the real GPU GRPO backend is not vendored into fieldkit[rl] yet — pin a "
-        "vLLM with an aarch64+CUDA-13 wheel (project_verl_atgpo_vllm_gap) and wire "
-        "the proven ~280-LOC REINFORCE loop from articles/clawgym-on-spark-grpo/. "
-        "v1 ships the orchestration: inject sampler/trainer/heldout_eval into "
-        "RLLoop to run the closed loop now."
+    from fieldkit import _rl_gpu_serve  # torch-free — always importable
+
+    try:
+        from fieldkit import _rl_gpu_trainer  # the fieldkit[rl] / torch gate
+    except ImportError as exc:
+        raise RLLoopError(
+            "the GPU GRPO backend needs the fieldkit[rl] extra "
+            "(torch + peft + transformers + safetensors) — `pip install "
+            "'fieldkit[rl]'` — plus a pinned vLLM with an aarch64+CUDA-13 wheel "
+            "served locally (project_verl_atgpo_vllm_gap). Until then inject "
+            f"sampler/trainer/heldout_eval into RLLoop directly. ({exc})"
+        ) from exc
+
+    return _rl_gpu_serve.build_serve_seams(
+        config, _rl_gpu_trainer.make_trainer, reward=reward
     )
