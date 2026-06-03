@@ -43,7 +43,7 @@ const jsonLd = [
     '@type': 'SoftwareSourceCode',
     name: a.slug,
     description: headline,
-    codeRepository: hfUrl,
+    codeRepository: a.catalog_only ? undefined : hfUrl,
     license: a.license.model ? `https://spdx.org/licenses/${a.license.model.toUpperCase()}` : undefined,
     url: `${SITE.url}/artifacts/harnesses/${a.slug}/`,
     publisher: PUBLISHER,
@@ -143,13 +143,29 @@ const jsonLd = [
 
     <section class="hd__section">
       <h2 class="hd__section-title">How to load</h2>
-      <p class="hd__section-blurb">
-        License: <strong>{a.license.tier}</strong>
-        {a.license.model && <> · {a.license.model}</>}.
-        Published to HuggingFace as a harness profile bundle (config files,
-        lane recipe, doctor checklist).
-      </p>
-      <pre class="hd__code"><code>{`from huggingface_hub import snapshot_download\n\nlocal = snapshot_download("${a.hf_repo}")\nprint(local)  # local path to the harness bundle`}</code></pre>
+      {a.catalog_only ? (
+        <>
+          <p class="hd__section-blurb">
+            License: <strong>{a.license.tier}</strong>
+            {a.license.model && <> · {a.license.model}</>}.
+            This is a local-first recall harness — it ships as code inside
+            <code>fieldkit[arena]</code> and builds its index on-box. There is
+            no downloadable Hub bundle; the corpus and queries never leave the
+            machine.
+          </p>
+          <pre class="hd__code"><code>{`pip install "fieldkit[arena]"\n\nfieldkit arena up   # cockpit + recall layer on 127.0.0.1:7866`}</code></pre>
+        </>
+      ) : (
+        <>
+          <p class="hd__section-blurb">
+            License: <strong>{a.license.tier}</strong>
+            {a.license.model && <> · {a.license.model}</>}.
+            Published to HuggingFace as a harness profile bundle (config files,
+            lane recipe, doctor checklist).
+          </p>
+          <pre class="hd__code"><code>{`from huggingface_hub import snapshot_download\n\nlocal = snapshot_download("${a.hf_repo}")\nprint(local)  # local path to the harness bundle`}</code></pre>
+        </>
+      )}
     </section>
 
     {a.known_drift && a.known_drift.length > 0 && (

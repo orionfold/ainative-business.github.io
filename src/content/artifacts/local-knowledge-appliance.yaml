@@ -3,6 +3,11 @@ kind: harness
 class: recall-harness
 base_model: "fieldkit.memory · pgvector(vectors/blog_chunks) · NIM llama-nemotron-embed-1b-v2"
 hf_repo: Orionfold/local-knowledge-appliance
+# Reserved namespace, nothing pushed to the Hub. A recall harness distributes as
+# `pip install "fieldkit[arena]"` code that builds the index on-box — there is no
+# downloadable bundle. The detail page shows the local install path, not a
+# `snapshot_download` that would 404. (The spark-hermes-* harnesses ARE pushed.)
+catalog_only: true
 variants:
   - "cosine-only · top_k=5 · GB10 measured baseline"
 recommended_variant: "cosine-only · top_k=5 · GB10 measured baseline"

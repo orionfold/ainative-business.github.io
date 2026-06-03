@@ -135,6 +135,12 @@ const artifacts = defineCollection({
     civitai_id: z.number().int().optional(),
     download_count: z.number().int().optional(),
     published_at: z.string().optional(),
+    // Catalog-only artifact — the `hf_repo` name is reserved but nothing was
+    // pushed to the Hub (e.g. a `kind: harness` recall layer that distributes
+    // as `pip install`-able code, not a downloadable bundle). Detail pages
+    // branch on this to show the local install path instead of a
+    // `snapshot_download` that would 404. Default false = published to HF.
+    catalog_only: z.boolean().optional(),
     // Bench-specific optional fields. Quant manifests leave them undefined;
     // bench manifests with all fields populated fill the detail page; bench
     // manifests with none degrade to a text-only detail page.
