@@ -306,6 +306,21 @@ class TelemetryHub:
             self._openrouter_cost_usd += inc
             self._openrouter_calls += 1
 
+    def seed_session_spend(self, usd: float, calls: int) -> None:
+        """Initialize the spend rail from the persisted cost ledger (M9-8).
+
+        Called once at ``create_app`` from :meth:`fieldkit.cost.CostLedger.
+        session_spend` so the live rail surfaces the running total instead of
+        resetting to ``0.0`` on every sidecar restart — the recon-#1 fix.
+        Replaces (not accumulates) the in-memory figures: it is the rehydrated
+        baseline, and subsequent :meth:`add_openrouter_cost` calls add to it.
+        """
+        try:
+            self._openrouter_cost_usd = max(0.0, float(usd))
+            self._openrouter_calls = max(0, int(calls))
+        except (TypeError, ValueError):
+            pass
+
     @property
     def leaderboard_rev(self) -> int:
         with self._lock:
@@ -680,6 +695,21 @@ def create_app(
     hub = TelemetryHub(interval=telemetry_interval)
     # Let the telemetry "Active Lane" cell show the warm resident at idle.
     hub._resident_reader = _read_hermes_lane  # noqa: SLF001
+    # M9 (Bet 6): rehydrate the live spend rail from the persisted cost ledger
+    # so the running OpenRouter total survives a sidecar restart (M9-8) instead
+    # of resetting to $0. Best-effort — a cold/missing db just leaves $0.
+    try:
+        from fieldkit.arena.store import ArenaStore
+        from fieldkit.cost import CostLedger
+
+        _db_file = Path(db_path).expanduser()
+        if _db_file.is_file():
+            _store = ArenaStore(_db_file)
+            with _store:
+                _spend, _calls = CostLedger(_store).session_spend()
+            hub.seed_session_spend(_spend, _calls)
+    except Exception as exc:  # noqa: BLE001 — telemetry nicety, never fatal
+        _log.warning("session-spend rehydrate failed: %s", exc)
 
     if cors_origins is None:
         cors_origins = [
@@ -2300,6 +2330,21 @@ async def chat_event_stream(
             approx_tokens / post_first if post_first > 0.001 else None
         )
 
+        # M9 (Bet 6): meter OpenRouter spend BEFORE persisting so the cost
+        # lands ON the chat turn row (local lanes cost nothing → 0.0). Token
+        # counts are the 4-char heuristic (no usage block on the stream), so
+        # ``tokens_estimated=1`` marks the figure as approximate (R20).
+        cost_usd = 0.0
+        tokens_in_est: int | None = None
+        tokens_estimated = 1
+        if lane["kind"] == "openrouter":
+            tokens_in_est = _estimate_input_tokens(body.prompt)
+            cost_usd = _compare_cost_usd(
+                prompt=body.prompt,
+                tokens_out=approx_tokens,
+                price_in=lane["price_in"],
+                price_out=lane["price_out"],
+            )
         asst_ord = _next_ord(store, session_id)
         turn_id = store.append_chat_turn(
             ChatTurnRecord(
@@ -2308,11 +2353,14 @@ async def chat_event_stream(
                 role="assistant",
                 content=answer,
                 reasoning=reasoning or None,
+                tokens_in=tokens_in_est,
                 tokens_out=approx_tokens or None,
                 ttft_ms=ttft_ms,
                 tok_per_s=tok_per_s,
                 finish_reason="stop",
                 created_at=_utc_now_iso(),
+                cost_usd=cost_usd,
+                tokens_estimated=tokens_estimated,
             )
         )
         hub.report_inflight(
@@ -2325,15 +2373,7 @@ async def chat_event_stream(
         # signal the LiveLeaderboard island to refetch (throughput-only row
         # even before any quality score lands).
         hub.bump_leaderboard()
-        # Meter OpenRouter spend (local lanes cost nothing).
-        cost_usd = 0.0
-        if lane["kind"] == "openrouter":
-            cost_usd = _compare_cost_usd(
-                prompt=body.prompt,
-                tokens_out=approx_tokens,
-                price_in=lane["price_in"],
-                price_out=lane["price_out"],
-            )
+        if cost_usd > 0:
             hub.add_openrouter_cost(cost_usd)
         yield {
             "event": "done",
@@ -2347,6 +2387,7 @@ async def chat_event_stream(
                     "wall_s": wall,
                     "finish_reason": "stop",
                     "cost_usd": round(cost_usd, 6),
+                    "tokens_estimated": tokens_estimated,
                 }
             ),
         }
@@ -2628,6 +2669,15 @@ def _compare_cost_usd(
     tin = _estimate_input_tokens(prompt)
     tout = int(tokens_out or 0)
     return (tin / 1_000_000.0) * price_in + (tout / 1_000_000.0) * price_out
+
+
+# M9 (Bet 6): the price snapshot every persisted OpenRouter cost row stamps. The
+# lane prices flow from the baked H6 evidence (``_OR_FALLBACK_MODELS`` /
+# ``_openrouter_b_lane_factory``), the same source ``fieldkit.cost`` seeds
+# ``openrouter_price_snapshot`` from — so a row priced at ``H6_SNAPSHOT_ID``
+# stays reproducible. (When the live catalog overrides a price the row still
+# stamps the baseline snapshot; R19's reseed path issues a fresh id.)
+from fieldkit.cost import H6_SNAPSHOT_ID as _ACTIVE_PRICE_SNAPSHOT_ID  # noqa: E402
 
 
 # --- v0.2 on-demand local model serving (OOM-managed single slot) ----------
@@ -3428,16 +3478,28 @@ async def compare_event_stream(
                     raise _CompareSideError(payload)
                 elif kind == "done":
                     done = payload
+                    # M9 (Bet 6): price the side + carry the cost fields onto
+                    # the ``done`` payload so the compare_responses INSERT below
+                    # persists them (per-side input tokens — each lane bills the
+                    # shared prompt at its own input price, M9-2).
                     cost = 0.0
+                    tokens_in: int | None = None
+                    tokens_estimated = 1
+                    price_snapshot_id: str | None = None
                     if lane["kind"] == "openrouter":
+                        tokens_in = _estimate_input_tokens(body.prompt)
                         cost = _compare_cost_usd(
                             prompt=body.prompt,
                             tokens_out=payload.get("tokens_out"),
                             price_in=lane["price_in"],
                             price_out=lane["price_out"],
                         )
+                        price_snapshot_id = _ACTIVE_PRICE_SNAPSHOT_ID
                         hub.add_openrouter_cost(cost)
                     done["cost_usd"] = round(cost, 6)
+                    done["tokens_in"] = tokens_in
+                    done["tokens_estimated"] = tokens_estimated
+                    done["price_snapshot_id"] = price_snapshot_id
                     yield {
                         "event": f"done_{suffix}",
                         "data": json.dumps(
@@ -3450,6 +3512,7 @@ async def compare_event_stream(
                                     "wall_s",
                                     "finish_reason",
                                     "cost_usd",
+                                    "tokens_estimated",
                                 )
                             }
                         ),
@@ -3473,6 +3536,10 @@ async def compare_event_stream(
                     tokens_out=a_done["tokens_out"],
                     ttft_ms=a_done["ttft_ms"],
                     tok_per_s=a_done["tok_per_s"],
+                    tokens_in=a_done.get("tokens_in"),
+                    cost_usd=a_done.get("cost_usd"),
+                    tokens_estimated=a_done.get("tokens_estimated", 1),
+                    price_snapshot_id=a_done.get("price_snapshot_id"),
                 )
             )
             async for ev in _emit_side("B", lane_b):
@@ -3491,6 +3558,10 @@ async def compare_event_stream(
                 tokens_out=b_done["tokens_out"],
                 ttft_ms=b_done["ttft_ms"],
                 tok_per_s=b_done["tok_per_s"],
+                tokens_in=b_done.get("tokens_in"),
+                cost_usd=b_done.get("cost_usd"),
+                tokens_estimated=b_done.get("tokens_estimated", 1),
+                price_snapshot_id=b_done.get("price_snapshot_id"),
             )
         )
 

@@ -50,7 +50,14 @@ __all__ = [
 #: the ``jobs`` / ``job_triggers`` control-plane tables (additive + idempotent,
 #: but bumped so a downstream tool can gate on "arena.db has the queue"). 4
 #: adds ``leaderboard_baseline`` (the regression-detector's prev-snapshot store).
-USER_VERSION = 4
+#: **5 at M9 — the first ALTER-based migration** (the cost plane, §13 / Bet 6):
+#: adds the per-run cost columns to ``chat_turns`` / ``compare_responses``, the
+#: aggregate cost columns to ``leaderboard_rows``, and the new
+#: ``openrouter_price_snapshot`` table. Unlike M8 (new tables only, idempotent
+#: ``CREATE TABLE IF NOT EXISTS``), M9 ALTERs existing tables, so
+#: :meth:`ArenaStore._migrate` runs guarded ``ALTER TABLE ADD COLUMN`` on a
+#: live ``user_version=4`` db (R18).
+USER_VERSION = 5
 
 #: Expanded ``~/.fieldkit/arena.db``. Importable so tests can override the
 #: env var without forcing a CLI roundtrip.
@@ -100,6 +107,8 @@ CREATE TABLE IF NOT EXISTS chat_turns (
     tok_per_s       REAL,
     finish_reason   TEXT,
     created_at      TEXT NOT NULL,
+    cost_usd         REAL,                          -- M9 (Bet 6): per-turn OpenRouter spend; local lanes write 0.0. Never mirrored.
+    tokens_estimated INTEGER NOT NULL DEFAULT 1,    -- M9: 1 = heuristic (no usage block); surfaced as a "~" prefix in the UI (R20)
     UNIQUE (session_id, ord)
 );
 
@@ -124,6 +133,10 @@ CREATE TABLE IF NOT EXISTS compare_responses (
     ttft_ms         REAL,
     tok_per_s       REAL,
     unified_peak_gb REAL,
+    tokens_in        INTEGER,                       -- M9 (Bet 6): per-SIDE input tokens — each lane bills the shared prompt at its own input price
+    cost_usd         REAL,                          -- M9: per-side OpenRouter spend; local lanes write 0.0. Never mirrored.
+    tokens_estimated INTEGER NOT NULL DEFAULT 1,    -- M9: 1 = heuristic token counts (no usage block); UI marks with "~" (R20)
+    price_snapshot_id TEXT,                         -- M9: which openrouter_price_snapshot priced this row (reproducible-by-snapshot, M9-5)
     PRIMARY KEY (compare_run_id, side)
 );
 
@@ -149,6 +162,8 @@ CREATE TABLE IF NOT EXISTS leaderboard_rows (
     mean_ttft_ms       REAL,
     human_pref_winrate REAL,
     last_run_at        TEXT NOT NULL,
+    mean_cost_usd          REAL,                    -- M9 (Bet 6): AVG(cost_usd) over the bench×lane runs; the ONLY public cost surface
+    cost_per_quality_point REAL,                    -- M9: mean_cost_usd / mean_score (guard >0) — the third ranking axis
     PRIMARY KEY (bench_id, lane_id)
 );
 
@@ -326,6 +341,23 @@ CREATE TABLE IF NOT EXISTS leaderboard_baseline (
     snapshot_at     TEXT NOT NULL,
     PRIMARY KEY (bench_id, lane_id)
 );
+
+-- M9 (Bet 6, user_version 4→5) — the cost plane's price snapshot. Seeded at
+-- store-init from the baked H6 evidence (``fieldkit.cost.seed_price_snapshot``)
+-- rather than the live OpenRouter catalog, so a comparison stays reproducible
+-- as prices drift (M9-5, R19). PUBLIC-SAFE (no prompts) — added to
+-- ``mirror.PUBLISHABLE_TABLES`` so the public leaderboard's $/task is
+-- reconstructable (M9-7). Each ``compare_responses.price_snapshot_id`` FKs here
+-- logically (no SQL FK — a row may be priced under a since-superseded snapshot).
+CREATE TABLE IF NOT EXISTS openrouter_price_snapshot (
+    snapshot_id            TEXT NOT NULL,           -- batch id ('h6-baseline' | a re-seed label)
+    model_id               TEXT NOT NULL,           -- 'anthropic/claude-opus-4.1'
+    price_per_m_input_usd  REAL NOT NULL,
+    price_per_m_output_usd REAL NOT NULL,
+    source                 TEXT NOT NULL,           -- 'h6_evidence' | 'fallback' | operator label
+    captured_at            TEXT NOT NULL,           -- upstream capture instant (NOT seed time)
+    PRIMARY KEY (snapshot_id, model_id)
+);
 """
 
 
@@ -399,11 +431,80 @@ class ArenaStore:
     # ---- schema ----
 
     def initialize(self) -> None:
-        """Create tables + indexes (idempotent) and pin ``PRAGMA user_version``."""
+        """Create tables + indexes (idempotent), run pending ALTER migrations,
+        seed the M9 price snapshot, and pin ``PRAGMA user_version``.
+
+        Fresh dbs get the full current shape from ``_SCHEMA_SQL`` (the M9
+        columns are already in the CREATE statements); existing dbs at an older
+        ``user_version`` get the additive columns via :meth:`_migrate` (the
+        first ALTER-based migration, M9 / R18). Both paths converge on
+        ``USER_VERSION`` and a seeded ``openrouter_price_snapshot``.
+        """
         conn = self.connect()
         with conn:
             conn.executescript(_SCHEMA_SQL)
+            self._migrate(conn)
             conn.execute(f"PRAGMA user_version={USER_VERSION}")
+        self._seed_prices()
+
+    def _migrate(self, conn: sqlite3.Connection) -> None:
+        """Apply additive ALTER migrations for any version gap up to
+        ``USER_VERSION``. Idempotent — each column add is guarded against a
+        fresh db that already carries it (so re-init is a no-op).
+
+        M9 (4→5) is the first such migration: SQLite's ``ALTER TABLE ADD
+        COLUMN`` is additive + non-destructive (constant defaults only), so a
+        live ``user_version=4`` db gains the cost columns without a rebuild
+        (R18). ``ADD COLUMN`` would raise "duplicate column name" on a
+        fresh-schema db, so :meth:`_add_column_if_missing` checks
+        ``PRAGMA table_info`` first.
+        """
+        # M9 (4→5) — the cost plane's per-run + aggregate columns.
+        self._add_column_if_missing(conn, "chat_turns", "cost_usd", "REAL")
+        self._add_column_if_missing(
+            conn, "chat_turns", "tokens_estimated", "INTEGER NOT NULL DEFAULT 1"
+        )
+        self._add_column_if_missing(conn, "compare_responses", "tokens_in", "INTEGER")
+        self._add_column_if_missing(conn, "compare_responses", "cost_usd", "REAL")
+        self._add_column_if_missing(
+            conn,
+            "compare_responses",
+            "tokens_estimated",
+            "INTEGER NOT NULL DEFAULT 1",
+        )
+        self._add_column_if_missing(
+            conn, "compare_responses", "price_snapshot_id", "TEXT"
+        )
+        self._add_column_if_missing(conn, "leaderboard_rows", "mean_cost_usd", "REAL")
+        self._add_column_if_missing(
+            conn, "leaderboard_rows", "cost_per_quality_point", "REAL"
+        )
+
+    @staticmethod
+    def _add_column_if_missing(
+        conn: sqlite3.Connection, table: str, column: str, decl: str
+    ) -> None:
+        """``ALTER TABLE ADD COLUMN`` only when ``column`` is absent.
+
+        Reads ``PRAGMA table_info`` so a fresh-schema db (column already
+        present from ``_SCHEMA_SQL``) is a no-op rather than a
+        "duplicate column name" error. The ``table``/``column``/``decl`` are
+        module-internal constants, never user input — safe to interpolate.
+        """
+        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+
+    def _seed_prices(self) -> None:
+        """Seed the M9 ``openrouter_price_snapshot`` from the baked H6 evidence.
+
+        Lazy import of :mod:`fieldkit.cost` keeps the store import-light and
+        avoids a cycle (``fieldkit.cost`` duck-types the store, never imports
+        it). Idempotent — ``INSERT OR REPLACE`` on the snapshot PK.
+        """
+        from fieldkit.cost import seed_price_snapshot
+
+        seed_price_snapshot(self.connect())
 
     @property
     def user_version(self) -> int:

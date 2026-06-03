@@ -90,7 +90,7 @@
       OpenRouter
     </span>
     <span class="telemetry-rail__value" data-metric="openrouter_cost_usd">$0.00</span>
-    <span class="telemetry-rail__hint" data-metric="cost-hint">spend · since start</span>
+    <span class="telemetry-rail__hint" data-metric="cost-hint">spend · session</span>
   </div>
   <div class="telemetry-rail__offline" id="telemetry-rail-offline" hidden>
     <strong>Sidecar offline</strong> — start with <code>fieldkit arena serve</code> on the Spark to feed this rail.
@@ -301,7 +301,7 @@
           setDot(dots.cost, cost > 0 ? 'ok' : 'idle');
           if (cells.costHint) {
             const n = t.openrouter_calls || 0;
-            cells.costHint.textContent = n > 0 ? `${n} call${n === 1 ? '' : 's'} · since start` : 'spend · since start';
+            cells.costHint.textContent = n > 0 ? `${n} call${n === 1 ? '' : 's'} · session` : 'spend · session';
           }
         }
         // Lane — friendly model name (active lane while streaming, else the

@@ -1070,7 +1070,7 @@ Every §12 decision landed as specified. Where the spec described "already exist
 
 ## 13. M9 — Cost plane (Bet 6 of the MTBM roadmap)
 
-> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> **Status: BUILT (2026-06-02) — see §13.7 as-built map; staged for `~v0.17.0`.** This section
 > realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Bet 6 ("the cost plane —
 > token economics as a first-class decision axis")** as the **Arena M9** milestone, the
 > first of the two cross-cutting bets to extend the M8 control plane (the priority is
@@ -1198,6 +1198,32 @@ M9 is a **cross-cutting price signal**, not a sequential phase — it threads th
 - **Phase 2 (M11, §15)** — `fieldkit.budget` reads M9's persisted ledger before the dispatcher launches a job; it encodes the **`LOCAL_CEILING = 33%`** failure-mode escalation (escalate when local *gives up*, not on a token ceiling alone) and emits a **spend digest** (today's $ by lane / by bench vs cap) into the morning standup. M9-9 is the seam.
 - **Phase 3 (`rlvr-loop-v1.md`)** — **$/quality-point ROI**: a `compare_loss` trigger consults measured $/quality *before* the governor approves an `rl_run`, declining RL when frontier escalation is cheaper at equal quality — generalizing the $0.0004/failed-trial inversion to "cheaper to RLVR a local model to threshold, or pay frontier per call?" (mirrors Bet 5's pre-flight gate).
 - **Bet 5 (Arena M10, §14)** — **now written**; shares the M8 `jobs` table + this $/quality discipline (a `rag_eval` job can carry its own cost row from this ledger).
+
+### 13.7 As-built map (2026-06-02)
+
+All 10 decisions landed as designed; the build matched the spec with no
+deviations. Verified: full fieldkit suite **1142 passed / 16 skipped** (+13 over
+the v0.16.0 baseline — 10 new `tests/test_cost.py`, 4 new mirror anchors, 1
+existing allowlist test extended), `audit-docs` **cost 5/5 + arena clean**, main
+`astro build` **493 pages** (the new `/fieldkit/api/cost/` route), both rendering
+verifiers green, the arena cockpit bundle **bakes** (cost cells compile).
+
+| Decision | As-built |
+|---|---|
+| M9-1 / M9-2 | New module **`fieldkit/src/fieldkit/cost.py`** (`__all__` = 5). Server `_emit_side` + chat path INSERT `cost_usd`/`tokens_in`/`tokens_estimated`/`price_snapshot_id` at the `add_openrouter_cost` point; local lanes write `0.0`. Dataclass fields added to `ChatTurnRecord` / `CompareResponseRecord`. |
+| M9-3 / M9-4 | `mirror._aggregate_cockpit_rows` accumulates per-run cost → `mean_cost_usd` + `cost_per_quality_point` (guard `mean_score>0`); `cost.cost_per_quality()` + `_format_cost_per_quality()` own the `$0 (local)` render. |
+| M9-5 / R19 | `openrouter_price_snapshot` seeded at `ArenaStore.initialize()` → `_seed_prices()` → `cost.seed_price_snapshot()` from the baked `H6_PRICE_SEED` (snapshot id `h6-baseline`); re-seed-under-new-id path tested. |
+| M9-6 / R20 | Heuristic tokens carry `tokens_estimated=1`; cockpit marks the figure with a `~` prefix (compare metric + SSE `done` payload). |
+| M9-7 | `openrouter_price_snapshot` → `PUBLISHABLE_TABLES`; the two aggregate columns → `leaderboard_rows` allowlist; per-run cost columns stay off (inherit host-table exclusion). 4 new anchors in `test_mirror_does_not_leak.py` + a `price_snapshot_id` sentinel. |
+| M9-8 | `TelemetryHub.seed_session_spend()` ← `CostLedger.session_spend()` at `create_app` — the rail's running total now survives a restart. |
+| M9-9 | Scope held — ledger + read API + cockpit axis only; no `fieldkit.budget` (Phase 2). |
+| M9-10 | `articles/hermes-cost-routing-local-and-openrouter/evidence/{openrouter_prices,cost_router_results}.json` committed (was untracked). |
+| R18 | `ArenaStore._migrate` / `_add_column_if_missing` — guarded `ALTER TABLE ADD COLUMN` on `PRAGMA table_info`. **Round-trip test on a seeded `user_version=4` db** (`test_migration_v4_to_v5_round_trip`): existing rows preserved, columns added, version → 5, snapshot seeded. |
+
+**Staged, not released:** the version bump + tag + PyPI push are a separate
+`fieldkit-curator` action (CHANGELOG `[Unreleased]` entry written). The running
+cockpit's `_webui` was rebaked; the public `dist/` is unchanged until a
+marketing-site deploy.
 
 ## 14. M10 — Recall layer (Bet 5 of the MTBM roadmap)
 

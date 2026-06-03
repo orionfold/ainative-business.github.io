@@ -7,6 +7,27 @@ export const fmtTok = (n) => (n == null ? '—' : Number(n).toFixed(1));
 export const fmtTtft = (n) => (n == null ? '—' : `${Number(n).toFixed(0)} ms`);
 export const fmtPref = (n) => (n == null ? '—' : `${(n * 100).toFixed(0)}%`);
 
+// M9 (Bet 6 — cost plane): the $/task + $/quality-point cells. A local lane
+// (mean_cost_usd === 0) renders "$0 (local)" rather than a divide-by-zero "—",
+// matching fieldkit.cost._format_cost_per_quality (M9-4). An unpriced/unscored
+// lane (null) renders "—".
+export const fmtCost = (n) => {
+  if (n == null) return '—';
+  const v = Number(n);
+  if (v === 0) return '$0';
+  return v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(3)}`;
+};
+export const fmtCostPerQuality = (meanCost, cpq) => {
+  if (meanCost != null && Number(meanCost) === 0) return '$0 (local)';
+  if (cpq == null) return '—';
+  return `$${Number(cpq).toFixed(4)}/pt`;
+};
+// Live spend rail (the running session total survives a sidecar restart, M9-8).
+export const fmtSpend = (n) => {
+  const v = Number(n || 0);
+  return v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(2)}`;
+};
+
 // Lanes can carry a `local:` serving-prefix on some chat rows but not others —
 // strip it so the model name reads identically everywhere.
 const stripLanePrefix = (id) => String(id || '').replace(/^local:/, '');

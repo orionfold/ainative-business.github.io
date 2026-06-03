@@ -18,6 +18,8 @@ import {
   fmtTok,
   fmtTtft,
   fmtPref,
+  fmtCost,
+  fmtCostPerQuality,
   laneModel,
   laneSuffix,
   laneSource,
@@ -160,6 +162,8 @@ export default function LiveLeaderboard({ seedRows = [] }) {
                 <th class="rankcol-score">Quality</th>
                 <th class="rankcol-tok">Throughput</th>
                 <th class="rankcol-tok">TTFT</th>
+                <th class="rankcol-tok" title="Mean cost per task — $0 (local) for Spark lanes">$/task</th>
+                <th class="rankcol-tok" title="Cost per quality point — mean cost ÷ mean score (M9)">$/quality</th>
                 <th class="rankcol-num">Runs</th>
                 <th class="rankcol-pct">Human ↑</th>
               </tr>
@@ -213,6 +217,14 @@ export default function LiveLeaderboard({ seedRows = [] }) {
                     </td>
                     <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
                       {fmtTtft(r.mean_ttft_ms)}
+                    </td>
+                    {/* M9 (Bet 6): the cost axis. Local lanes read "$0 (local)";
+                        a priced lane reads its $/task + $/quality-point. */}
+                    <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
+                      {fmtCost(r.mean_cost_usd)}
+                    </td>
+                    <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
+                      {fmtCostPerQuality(r.mean_cost_usd, r.cost_per_quality_point)}
                     </td>
                     <td class="rankcol-num mono" style="color: var(--arena-text-mute);">
                       {r.n_runs}

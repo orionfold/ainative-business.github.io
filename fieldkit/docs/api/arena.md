@@ -383,6 +383,38 @@ Resolves a `bench_id` → `{bench_path, scorer, max_tokens, limit}` from the **b
 | `.upsert_eval_run(row)` / `.update_eval_run(id, **fields)` / `.get_eval_run(id)` | — | The per-run status row M8 activates (the `arq_job_id` socket). |
 | `.leaderboard_baseline()` / `.snapshot_leaderboard_baseline(rows, *, now)` | `list[Row]` / `int` | Read / full-overwrite the regression baseline (one `(bench, lane)` accuracy row each) that `check_and_enqueue_regressions` diffs against. |
 
+## M9 — cost plane (Bet 6)
+
+The **third ranking axis** — token economics promoted to a first-class signal
+(`_SPECS/spark-arena-v1.md` §13). The cost the compare/chat path already
+*computes* (`_compare_cost_usd`) is now **persisted** and **surfaced**: per-run
+rows feed an aggregate `$/quality-point` on the public leaderboard, and the live
+spend rail survives a sidecar restart. The full API lives in its own module —
+**[`fieldkit.cost`](cost.md)** (`CostLedger`, `PriceSnapshot`,
+`seed_price_snapshot`, `cost_per_quality`) — because it spans the new
+`openrouter_price_snapshot` table, not just `fieldkit.arena`. It is a **ledger,
+not a governor**: enforcement (`fieldkit.budget`) is Phase 2 (Arena M11, §15).
+
+What changed inside `fieldkit.arena`:
+
+- **Schema `user_version` 4 → 5** — the first ALTER-based migration
+  (`ArenaStore._migrate` / `_add_column_if_missing`, R18). Adds the per-run cost
+  columns to `chat_turns` / `compare_responses`, the aggregate
+  `mean_cost_usd` / `cost_per_quality_point` to `leaderboard_rows`, and the new
+  `openrouter_price_snapshot` table (seeded at `initialize()` from the baked H6
+  evidence via `fieldkit.cost.seed_price_snapshot`).
+- **`server.py`** — the compare `_emit_side` + chat completion paths INSERT
+  `cost_usd` / `tokens_in` / `tokens_estimated` / `price_snapshot_id` onto the
+  response row at the point they call `add_openrouter_cost`; `TelemetryHub.
+  seed_session_spend` rehydrates the live rail from `CostLedger.session_spend()`
+  at `create_app` (M9-8). Local lanes write `0.0`.
+- **`mirror.py`** — `rebuild_leaderboard` computes `mean_cost_usd` (AVG over the
+  bench×lane runs) + `cost_per_quality_point` (`mean_cost_usd / mean_score`,
+  guard `>0`). `openrouter_price_snapshot` joins `PUBLISHABLE_TABLES` (public —
+  no prompts), the two aggregate cost columns join the `leaderboard_rows`
+  allowlist, and the per-run cost columns inherit their host tables' exclusion
+  (M9-7, anchored by `test_mirror_does_not_leak.py`).
+
 ## v0.2 surfaces (Lab + distribution)
 
 ### v0.2 — Lab notes (`lab_notes` table + `/api/lab/notes`)

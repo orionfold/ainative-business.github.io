@@ -1,0 +1,32 @@
+{
+  "snapshot_at_utc": "2026-05-28T14:32:06.836115+00:00",
+  "source": "https://openrouter.ai/api/v1/models",
+  "tiers": {
+    "simple": {
+      "model": "Qwen3-30B-A3B-Q4_K_M (llama.cpp)",
+      "endpoint": "http://127.0.0.1:8080/v1",
+      "price_per_m_input_usd": 0.0,
+      "price_per_m_output_usd": 0.0,
+      "context_length": 65536,
+      "role": "local Spark lane (no OpenRouter)"
+    },
+    "standard": {
+      "model": "openai/gpt-4o-mini",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "price_per_m_input_usd": 0.15,
+      "price_per_m_output_usd": 0.6,
+      "context_length": 128000,
+      "role": "OpenRouter cheap-tier value pick",
+      "or_model_name": "OpenAI: GPT-4o-mini"
+    },
+    "complex": {
+      "model": "anthropic/claude-opus-4.1",
+      "endpoint": "https://openrouter.ai/api/v1",
+      "price_per_m_input_usd": 15.0,
+      "price_per_m_output_usd": 75.0,
+      "context_length": 200000,
+      "role": "OpenRouter frontier-tier hard-reasoning pick",
+      "or_model_name": "Anthropic: Claude Opus 4.1"
+    }
+  }
+}

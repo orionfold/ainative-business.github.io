@@ -1,0 +1,2037 @@
+{
+  "suite": "hermes-cost-router-v1",
+  "router_config_version": "v1.0",
+  "snapshot_at": "2026-05-28T14:32:06.836115+00:00",
+  "router_accuracy": {
+    "n": 12,
+    "correct": 12,
+    "accuracy": 1.0,
+    "per_prompt": [
+      {
+        "id": "s01_gguf_acronym",
+        "expected": "simple",
+        "predicted": "simple",
+        "correct": true,
+        "est_input_tokens": 23
+      },
+      {
+        "id": "s02_json_output",
+        "expected": "simple",
+        "predicted": "simple",
+        "correct": true,
+        "est_input_tokens": 49
+      },
+      {
+        "id": "s03_python_translate",
+        "expected": "simple",
+        "predicted": "simple",
+        "correct": true,
+        "est_input_tokens": 26
+      },
+      {
+        "id": "s04_three_uses",
+        "expected": "simple",
+        "predicted": "simple",
+        "correct": true,
+        "est_input_tokens": 32
+      },
+      {
+        "id": "t05_summarize_quant",
+        "expected": "standard",
+        "predicted": "standard",
+        "correct": true,
+        "est_input_tokens": 60
+      },
+      {
+        "id": "t06_compare_memory",
+        "expected": "standard",
+        "predicted": "standard",
+        "correct": true,
+        "est_input_tokens": 57
+      },
+      {
+        "id": "t07_analyze_csv",
+        "expected": "standard",
+        "predicted": "standard",
+        "correct": true,
+        "est_input_tokens": 42
+      },
+      {
+        "id": "t08_compare_lora",
+        "expected": "standard",
+        "predicted": "standard",
+        "correct": true,
+        "est_input_tokens": 193
+      },
+      {
+        "id": "c09_prove_odd_sum",
+        "expected": "complex",
+        "predicted": "complex",
+        "correct": true,
+        "est_input_tokens": 70
+      },
+      {
+        "id": "c10_derive_kv_cache",
+        "expected": "complex",
+        "predicted": "complex",
+        "correct": true,
+        "est_input_tokens": 118
+      },
+      {
+        "id": "c11_multi_step_planning",
+        "expected": "complex",
+        "predicted": "complex",
+        "correct": true,
+        "est_input_tokens": 129
+      },
+      {
+        "id": "c12_long_context_extract",
+        "expected": "complex",
+        "predicted": "complex",
+        "correct": true,
+        "est_input_tokens": 3917
+      }
+    ],
+    "confusion": [
+      {
+        "expected": "complex",
+        "predicted": "complex",
+        "count": 4
+      },
+      {
+        "expected": "simple",
+        "predicted": "simple",
+        "count": 4
+      },
+      {
+        "expected": "standard",
+        "predicted": "standard",
+        "count": 4
+      }
+    ]
+  },
+  "strategies": {
+    "local-only": {
+      "strategy": "local-only",
+      "n_prompts_completed": 12,
+      "n_prompts_partial": 0,
+      "n_calls_made": 36,
+      "cap_tripped": false,
+      "cap_tripped_at": null,
+      "attempt_pass_rate": 0.6944,
+      "majority_pass_count": 8,
+      "majority_pass_rate": 0.6667,
+      "total_cost_usd": 0.0,
+      "per_prompt": [
+        {
+          "id": "s01_gguf_acronym",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 8.54,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 9.33,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 673,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format\" in the llama.cpp ecosystem.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 8.03,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 609,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format\" in the llama.cpp ecosystem.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 8.25,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 609,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format\" in the llama.cpp ecosystem.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s02_json_output",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 10.56,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 12.06,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 866,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 9.84,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 704,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 9.78,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 704,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s03_python_translate",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 0,
+          "pass_rate": 0.0,
+          "task_success": false,
+          "wall_s_mean": 5.48,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 6.54,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 489,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 4.89,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 354,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 5.0,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 354,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s04_three_uses",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 3.61,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 4.2,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 297,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts.  \nTests different Python versions or library versions without affecting the global environment.  \nMaintains separate dependency sets for multiple projects on the same machine.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 3.21,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 244,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts with other projects.  \nProvides a clean environment for testing code changes without affecting the global Python installation.  \nEnables management of different Python versions for separate projects.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 3.42,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 244,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts with other projects.  \nProvides a clean environment for testing code changes without affecting the global Python installation.  \nEnables management of different Python versions for separate projects.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t05_summarize_quant",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 1,
+          "pass_rate": 0.3333,
+          "task_success": false,
+          "wall_s_mean": 6.84,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 6.88,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 517,
+              "cost_usd": 0.0,
+              "answer_preview": "(a) Q4_K_M reduces file size by ~25% compared to Q5_K_M, as 4-bit quantization halves the storage requirements relative to 5-bit. (b) Q5_K_M achieves ~15-20% higher decode throughput on DGX Spark due to better utilization of FMA operations and reduced precision-related overhead. (c) Q4_K_M shows a ~1-2% drop in benchmark scores (e.g., MMLU, LAMBDA) versus Q5_K_M, reflecting minor quality trade-offs from lower bit-depth.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "none of ['quality', 'perplexity'] in answer",
+              "wall_s": 6.83,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 528,
+              "cost_usd": 0.0,
+              "answer_preview": "(a) Q5_K_M GGUF increases file size by ~20% compared to Q4_K_M due to higher bit precision (5 vs. 4 bits). (b) Q4_K_M achieves ~10-15% higher decode throughput on DGX Spark, leveraging reduced computational overhead from lower-precision operations. (c) Q5_K_M demonstrates ~2-3% better performance on benchmarks like MMLU and LAMBDA, reflecting improved accuracy from higher quantization fidelity.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "none of ['quality', 'perplexity'] in answer",
+              "wall_s": 6.8,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 528,
+              "cost_usd": 0.0,
+              "answer_preview": "(a) Q5_K_M GGUF increases file size by ~20% compared to Q4_K_M due to higher bit precision (5 vs. 4 bits). (b) Q4_K_M achieves ~10-15% higher decode throughput on DGX Spark, leveraging reduced computational overhead from lower-precision operations. (c) Q5_K_M demonstrates ~2-3% better performance on benchmarks like MMLU and LAMBDA, reflecting improved accuracy from higher quantization fidelity.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t06_compare_memory",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.34,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 9.6,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 742,
+              "cost_usd": 0.0,
+              "answer_preview": "- DGX Spark's 128 GB unified memory enables larger 8B model batches and reduced CPU-GPU transfer overhead.  \n- H100's 80 GB HBM3 offers higher bandwidth, accelerating inference latency for 8B model serving.  \n- Unified memory in DGX Spark simplifies 8B model deployment, ideal for dynamic workloads.  \n- H100's discrete HBM3 requires precise memory allocation, risking underutilization for 8B models.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 6.23,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 486,
+              "cost_usd": 0.0,
+              "answer_preview": "- DGX Spark (128 GB unified) supports larger 8B models with less memory fragmentation.  \n- H100 (80 GB HBM3) offers higher bandwidth for faster inference latency.  \n- Unified memory simplifies management but may limit parallelism vs H100\u2019s discrete setup.  \n- H100\u2019s HBM3 excels in high-throughput serving, while DGX Spark handles memory-heavy workloads.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 6.2,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 486,
+              "cost_usd": 0.0,
+              "answer_preview": "- DGX Spark (128 GB unified) supports larger 8B models with less memory fragmentation.  \n- H100 (80 GB HBM3) offers higher bandwidth for faster inference latency.  \n- Unified memory simplifies management but may limit parallelism vs H100\u2019s discrete setup.  \n- H100\u2019s HBM3 excels in high-throughput serving, while DGX Spark handles memory-heavy workloads.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t07_analyze_csv",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.08,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 8.34,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 64,
+              "completion_tokens": 635,
+              "cost_usd": 0.0,
+              "answer_preview": "31.60",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 6.5,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 64,
+              "completion_tokens": 502,
+              "cost_usd": 0.0,
+              "answer_preview": "31.60",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 6.4,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 64,
+              "completion_tokens": 502,
+              "cost_usd": 0.0,
+              "answer_preview": "31.60",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t08_compare_lora",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 11.01,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'low-rank'",
+              "wall_s": 10.94,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 183,
+              "completion_tokens": 857,
+              "cost_usd": 0.0,
+              "answer_preview": "LoRA fine-tuning involves freezing all parameters of the base transformer model during training, meaning their gradients are not updated, while only a low-rank matrix factorization of the weight updates is learned. This contrasts with full-parameter fine-tuning, where every weight in the model\u2019s attention mechanisms, feed-forward networks, and other components is explicitly trained, updating all parameters through gradient descent. In LoRA, the learned deltas are represented as two smaller matrices, typically applied to the weight matrices of the transformer\u2019s attention layers, such as the que",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'low-rank'",
+              "wall_s": 10.94,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 183,
+              "completion_tokens": 855,
+              "cost_usd": 0.0,
+              "answer_preview": "LoRA fine-tuning involves freezing all parameters of the base transformer model during training, meaning their gradients are not updated, while only a low-rank matrix factorization of the weight updates is learned. This factorization decomposes the original weight matrix into two smaller matrices of rank r, where r is a hyperparameter much smaller than the original dimensions. These low-rank matrices, which represent the \"deltas\" from the base model, are trained explicitly, while the base model\u2019s original weights remain fixed. In contrast, full-parameter fine-tuning updates all weights in the ",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'low-rank'",
+              "wall_s": 11.14,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 183,
+              "completion_tokens": 855,
+              "cost_usd": 0.0,
+              "answer_preview": "LoRA fine-tuning involves freezing all parameters of the base transformer model during training, meaning their gradients are not updated, while only a low-rank matrix factorization of the weight updates is learned. This factorization decomposes the original weight matrix into two smaller matrices of rank r, where r is a hyperparameter much smaller than the original dimensions. These low-rank matrices, which represent the \"deltas\" from the base model, are trained explicitly, while the base model\u2019s original weights remain fixed. In contrast, full-parameter fine-tuning updates all weights in the ",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c09_prove_odd_sum",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 15.54,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 15.84,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, so I need to prove that the sum of the first n positive odd integers equals n squared. The problem asks for both a geometric/visual intuition, like the L-shaped gnomon argument, and a formal proof by mathematical induction with the base case and inductive step clearly labeled. Also, I have to name the technique. Let me start by recalling what I know about this.\n\nFirst, the sum of the first n odd numbers. Let me write down the first few to see the pattern. The first odd number is 1, then 1 + 3 = 4, then 1 + 3 + 5 = 9, then 1 + 3 + 5 + 7 = 16. Oh, those are 1\u00b2, 2\u00b2, 3\u00b2, 4\u00b2. So it se",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 15.22,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, so I need to prove that the sum of the first n positive odd integers equals n squared. The problem asks for both a geometric/visual intuition, like the L-shaped gnomon argument, and a formal proof by mathematical induction with the base case and inductive step labeled. Also, I have to name the technique. Let me start with the geometric part first.\n\nHmm, I remember something about L-shaped gnomons. Gnomon is like a shape that, when added to a figure, forms a larger similar figure. So maybe if I think of squares, each time adding an odd number to get the next square? Let me visuali",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 15.56,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 72,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, so I need to prove that the sum of the first n positive odd integers equals n squared. The problem asks for both a geometric/visual intuition, like the L-shaped gnomon argument, and a formal proof by mathematical induction with the base case and inductive step labeled. Also, I have to name the technique. Let me start with the geometric part first.\n\nHmm, I remember something about L-shaped gnomons. Gnomon is like a shape that, when added to a figure, forms a larger similar figure. So maybe if I think of squares, each time adding an odd number to get the next square? Let me visuali",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c10_derive_kv_cache",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 0,
+          "pass_rate": 0.0,
+          "task_success": false,
+          "wall_s_mean": 15.47,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": false,
+              "why": "missing required ['KV cache:']",
+              "wall_s": 15.73,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 137,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out the KV cache memory footprint for the Qwen3-30B-A3B model. The user wants this in GB for a 64K context length using FP16. Let me start by recalling what the KV cache is. In transformer models, the key-value (KV) cache stores the keys and values for each attention head during inference, especially for autoregressive generation. This is important for maintaining the context as the model generates tokens one by one.\n\nFirst, I need to get the actual configuration parameters from the Qwen3-30B-A3B model card. Since I don't have access to the internet, I'll have",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['KV cache:']",
+              "wall_s": 15.29,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 137,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out the KV cache memory footprint for the Qwen3-30B-A3B model. The user wants this in GB for a 64K context length using FP16. Let me start by recalling what the KV cache is. In transformer models, the key-value (KV) cache stores the keys and values for each attention head during inference, especially for autoregressive generation. This is important for maintaining the context as the model generates tokens one by one.\n\nFirst, I need to get the actual configuration parameters from the Qwen3-30B-A3B model card. Since I don't have access to the internet, I'll have",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['KV cache:']",
+              "wall_s": 15.38,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 137,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out the KV cache memory footprint for the Qwen3-30B-A3B model. The user wants this in GB for a 64K context length using FP16. Let me start by recalling what the KV cache is. In transformer models, the key-value (KV) cache stores the keys and values for each attention head during inference, especially for autoregressive generation. This is important for maintaining the context as the model generates tokens one by one.\n\nFirst, I need to get the actual configuration parameters from the Qwen3-30B-A3B model card. Since I don't have access to the internet, I'll have",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c11_multi_step_planning",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 0,
+          "pass_rate": 0.0,
+          "task_success": false,
+          "wall_s_mean": 15.78,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": false,
+              "why": "missing required ['Verdict:']",
+              "wall_s": 15.95,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 167,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out which model to use here. The user has a DGX Spark with 128 GB of unified memory and three models: 70B Q4_K_M (40 GB), 30B-A3B-MoE Q4_K_M (18 GB), and 8B Q5_K_M (5 GB). The requirements are general reasoning, sustained ~10K token output, and a 64K context window.\n\nFirst, I need to consider the context window. The 64K context window is a big one. The models' sizes are 70B, 30B, and 8B. But the context window isn't directly related to the model's parameter count. However, the model's ability to handle a large context might depend on its architecture. The 70B ",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['Verdict:']",
+              "wall_s": 15.56,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 167,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out which model to use here. The user has a DGX Spark with 128 GB of unified memory and three models: 70B Q4_K_M (40 GB), 30B-A3B-MoE Q4_K_M (18 GB), and 8B Q5_K_M (5 GB). The requirements are general reasoning, sustained ~10K token output, and a 64K context window.\n\nFirst, I need to consider the context window. The 64K context window is a big number. The models' sizes are 70B, 30B, and 8B. But the context window isn't directly related to the model's parameter count. However, the model's ability to handle a large context is important. The 70B model is the larg",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['Verdict:']",
+              "wall_s": 15.84,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 167,
+              "completion_tokens": 1200,
+              "cost_usd": 0.0,
+              "answer_preview": "<think>\nOkay, let's try to figure out which model to use here. The user has a DGX Spark with 128 GB of unified memory and three models: 70B Q4_K_M (40 GB), 30B-A3B-MoE Q4_K_M (18 GB), and 8B Q5_K_M (5 GB). The requirements are general reasoning, sustained ~10K token output, and a 64K context window.\n\nFirst, I need to consider the context window. The 64K context window is a big number. The models' sizes are 70B, 30B, and 8B. But the context window isn't directly related to the model's parameter count. However, the model's ability to handle a large context is important. The 70B model is the larg",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c12_long_context_extract",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.72,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.8,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 4397,
+              "completion_tokens": 470,
+              "cost_usd": 0.0,
+              "answer_preview": "- (1) Commercial pillars: **Desirability**, **Viability**, **Feasibility**  \n- (2) Unified-memory budget: **128 GB**  \n- (3) Keystone article: **H4**  \n- (4) Risk: **[[feedback_vllm_engine_core_orphan]]**  \n- (5) SERIES name: **Harnesses**",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.69,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 4397,
+              "completion_tokens": 470,
+              "cost_usd": 0.0,
+              "answer_preview": "- (1) Commercial pillars: **Desirability**, **Viability**, **Feasibility**  \n- (2) Unified-memory budget: **128 GB**  \n- (3) Keystone article: **H4**  \n- (4) Risk: **[[feedback_vllm_engine_core_orphan]]**  \n- (5) SERIES name: **Harnesses**",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.67,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 4397,
+              "completion_tokens": 470,
+              "cost_usd": 0.0,
+              "answer_preview": "- (1) Commercial pillars: **Desirability**, **Viability**, **Feasibility**  \n- (2) Unified-memory budget: **128 GB**  \n- (3) Keystone article: **H4**  \n- (4) Risk: **[[feedback_vllm_engine_core_orphan]]**  \n- (5) SERIES name: **Harnesses**",
+              "error": null
+            }
+          ]
+        }
+      ]
+    },
+    "cost-routed": {
+      "strategy": "cost-routed",
+      "n_prompts_completed": 12,
+      "n_prompts_partial": 0,
+      "n_calls_made": 36,
+      "cap_tripped": false,
+      "cap_tripped_at": null,
+      "attempt_pass_rate": 0.8889,
+      "majority_pass_count": 11,
+      "majority_pass_rate": 0.9167,
+      "total_cost_usd": 0.7894,
+      "per_prompt": [
+        {
+          "id": "s01_gguf_acronym",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 2,
+          "pass_rate": 0.6667,
+          "task_success": true,
+          "wall_s_mean": 9.41,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": false,
+              "why": "none of ['GPT-Generated Unified Format', 'GGML Unified Format', 'Generic GGML Unified Format'] in answer",
+              "wall_s": 11.02,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 802,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Universal Format\" in the llama.cpp ecosystem.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 8.66,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 626,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format\" in the llama.cpp ecosystem.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 8.55,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 28,
+              "completion_tokens": 626,
+              "cost_usd": 0.0,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format\" in the llama.cpp ecosystem.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s02_json_output",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 9.87,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 11.32,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 866,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 9.2,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 704,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 9.1,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 54,
+              "completion_tokens": 704,
+              "cost_usd": 0.0,
+              "answer_preview": "{\"name\": \"NVIDIA GB10\", \"unified_memory_gb\": 0, \"gpu_arch\": \"unknown\"}",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s03_python_translate",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 0,
+          "pass_rate": 0.0,
+          "task_success": false,
+          "wall_s_mean": 5.26,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 6.39,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 489,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 4.74,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 354,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            },
+            {
+              "passed": false,
+              "why": "missing required ['count']",
+              "wall_s": 4.66,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 354,
+              "cost_usd": 0.0,
+              "answer_preview": "The number of positive elements in the items.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s04_three_uses",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 3.44,
+          "cost_usd_total": 0.0,
+          "tiers_used": [
+            "simple"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 3.97,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 297,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts.  \nTests different Python versions or library versions without affecting the global environment.  \nMaintains separate dependency sets for multiple projects on the same machine.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 3.15,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 244,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts with other projects.  \nProvides a clean environment for testing code changes without affecting the global Python installation.  \nEnables management of different Python versions for separate projects.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 3.19,
+              "tier": "simple",
+              "model": "Qwen3-30B-A3B-Q4_K_M.gguf",
+              "prompt_tokens": 35,
+              "completion_tokens": 244,
+              "cost_usd": 0.0,
+              "answer_preview": "Isolates project-specific dependencies to avoid conflicts with other projects.  \nProvides a clean environment for testing code changes without affecting the global Python installation.  \nEnables management of different Python versions for separate projects.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t05_summarize_quant",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 6.88,
+          "cost_usd_total": 0.000272,
+          "tiers_used": [
+            "standard"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 7.02,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 71,
+              "completion_tokens": 134,
+              "cost_usd": 9.1e-05,
+              "answer_preview": "The trade-off between Q4_K_M and Q5_K_M GGUF quantization for an 8B parameter language model on a DGX Spark involves a notable file size delta, with Q5_K_M typically resulting in larger file sizes compared to Q4_K_M due to its higher precision. In terms of decode throughput, Q4_K_M generally offers better performance, allowing for faster inference times, while Q5_K_M may introduce some latency due to its increased complexity. However, the typical quality delta on benchmarks shows that Q5_K_M often achieves superior performance in terms of accuracy and coherence, making it a preferable choice f",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 7.02,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 71,
+              "completion_tokens": 131,
+              "cost_usd": 8.9e-05,
+              "answer_preview": "The trade-off between Q4_K_M and Q5_K_M GGUF quantization for an 8B parameter language model on a DGX Spark shows that Q5_K_M typically results in a larger file size compared to Q4_K_M, which can impact storage and memory usage. In terms of decode throughput, Q4_K_M generally offers better performance, allowing for faster inference times, while Q5_K_M may introduce some latency due to its more complex quantization scheme. However, on typical benchmarks, Q5_K_M often achieves slightly improved quality metrics, providing a better balance between performance and output fidelity compared to Q4_K_M",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 6.59,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 71,
+              "completion_tokens": 136,
+              "cost_usd": 9.2e-05,
+              "answer_preview": "The trade-off between Q4_K_M and Q5_K_M GGUF quantization for an 8B parameter language model on a DGX Spark involves a notable file size delta, with Q5_K_M typically resulting in larger files compared to Q4_K_M due to its higher precision. In terms of decode throughput, Q4_K_M generally offers better performance, allowing for faster inference times, while Q5_K_M may introduce some latency due to its increased complexity. However, on typical benchmarks, Q5_K_M often achieves superior quality, providing more accurate and nuanced outputs compared to Q4_K_M, making it a preferable choice for appli",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t06_compare_memory",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.41,
+          "cost_usd_total": 0.000304,
+          "tiers_used": [
+            "standard"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 8.26,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 64,
+              "completion_tokens": 151,
+              "cost_usd": 0.0001,
+              "answer_preview": "- **Unified Memory vs. Discrete Memory**: DGX Spark's unified memory allows seamless data sharing between CPU and GPU, enhancing efficiency for large models like 8B. \n\n- **Capacity**: DGX Spark's 128 GB memory supports larger batch sizes and more extensive datasets, improving throughput for serving 8B models compared to H100's 80 GB.\n\n- **Memory Bandwidth**: H100's HBM3 offers higher memory bandwidth, enabling faster data access and processing speeds, which can benefit real-time inference for 8B models.\n\n- **Scalability**: DGX Spark's architecture is designed for multi-GPU setups, facilitating",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 7.11,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 64,
+              "completion_tokens": 152,
+              "cost_usd": 0.000101,
+              "answer_preview": "- **Unified Memory vs. Discrete Memory**: DGX Spark's unified memory allows seamless data sharing between CPU and GPU, enhancing efficiency for model serving compared to H100's discrete memory.\n\n- **Capacity**: DGX Spark's 128 GB memory supports larger batch sizes and more extensive data processing, beneficial for serving larger models like an 8B parameter model.\n\n- **Memory Bandwidth**: H100's HBM3 offers higher memory bandwidth, improving data transfer speeds, which can enhance inference times for the 8B model under heavy workloads.\n\n- **Scalability**: DGX Spark's architecture supports multi",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 6.85,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 64,
+              "completion_tokens": 155,
+              "cost_usd": 0.000103,
+              "answer_preview": "- **Unified Memory vs. Discrete Memory**: DGX Spark's unified memory allows seamless data sharing between CPU and GPU, enhancing efficiency for large model serving compared to H100's discrete memory.\n\n- **Capacity**: DGX Spark's 128 GB memory supports larger batch sizes and more extensive data processing, beneficial for serving 8B models, while H100's 80 GB may limit scalability.\n\n- **Memory Bandwidth**: H100's HBM3 offers higher bandwidth, improving data transfer speeds for intensive computations, which can enhance performance for real-time inference of large models.\n\n- **Latency**: DGX Spark",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t07_analyze_csv",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 6.27,
+          "cost_usd_total": 0.00036,
+          "tiers_used": [
+            "standard"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 7.56,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 57,
+              "completion_tokens": 186,
+              "cost_usd": 0.00012,
+              "answer_preview": "To compute the mean age from the provided CSV data, we first need to extract the ages and then calculate the mean.\n\nHere are the ages from the CSV:\n\n- Alice: 30\n- Bob: 25\n- Carol: 40\n- Dan: 35\n- Eve: 28\n\nNow, we will sum these ages:\n\n\\[\n30 + 25 + 40 + 35 + 28 = 158\n\\]\n\nNext, we count the number of entries (people):\n\nThere are 5 entries.\n\nNow, we calculate the mean age by dividing the total sum of ages by the number of entries:\n\n\\[\n\\text{Mean Age} = \\frac{\\text{Total Sum of Ages}}{\\text{Number of Entries}} = \\frac{158}{5} = 31.6\n\\]\n\nFinally, we present the mean age with two decimal places:\n\n31.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 7.47,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 57,
+              "completion_tokens": 186,
+              "cost_usd": 0.00012,
+              "answer_preview": "To compute the mean age from the provided CSV data, we first need to extract the ages and then calculate the mean.\n\nHere are the ages from the CSV:\n\n- Alice: 30\n- Bob: 25\n- Carol: 40\n- Dan: 35\n- Eve: 28\n\nNow, we will sum these ages:\n\n\\[\n30 + 25 + 40 + 35 + 28 = 158\n\\]\n\nNext, we count the number of entries (people):\n\nThere are 5 entries.\n\nNow, we calculate the mean age by dividing the total sum of ages by the number of entries:\n\n\\[\n\\text{Mean Age} = \\frac{\\text{Total Sum of Ages}}{\\text{Number of Entries}} = \\frac{158}{5} = 31.6\n\\]\n\nFinally, we present the mean age with two decimal places:\n\n31.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 3.77,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 57,
+              "completion_tokens": 186,
+              "cost_usd": 0.00012,
+              "answer_preview": "To compute the mean age from the provided CSV data, we first need to extract the ages and then calculate the mean.\n\nHere are the ages from the CSV:\n\n- Alice: 30\n- Bob: 25\n- Carol: 40\n- Dan: 35\n- Eve: 28\n\nNow, we will sum these ages:\n\n\\[\n30 + 25 + 40 + 35 + 28 = 158\n\\]\n\nNext, we count the number of entries (people):\n\nThere are 5 entries.\n\nNow, we calculate the mean age by dividing the total sum of ages by the number of entries:\n\n\\[\n\\text{Mean Age} = \\frac{\\text{Total Sum of Ages}}{\\text{Number of Entries}} = \\frac{158}{5} = 31.6\n\\]\n\nFinally, we present the mean age with two decimal places:\n\n31.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t08_compare_lora",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.0,
+          "cost_usd_total": 0.000731,
+          "tiers_used": [
+            "standard"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 9.05,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 185,
+              "completion_tokens": 371,
+              "cost_usd": 0.00025,
+              "answer_preview": "LoRA (Low-Rank Adaptation) fine-tuning is a method that allows for efficient adaptation of large pre-trained transformer models by introducing low-rank matrices that modify the model's weights without altering the original parameters. In LoRA, the base model's parameters remain frozen, meaning their gradients are not updated during training, while low-rank matrices, typically denoted as \\( A \\) and \\( B \\), are trained. These matrices are inserted into the architecture at specific points, usually after the linear transformations in the attention layers, where they effectively capture the neces",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 8.54,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 185,
+              "completion_tokens": 363,
+              "cost_usd": 0.000246,
+              "answer_preview": "LoRA (Low-Rank Adaptation) fine-tuning and full-parameter fine-tuning differ fundamentally in how they handle the parameters of a pre-trained transformer model. In full-parameter fine-tuning, all parameters of the model are trainable, meaning that gradients are computed and updated for every weight during backpropagation. This approach allows for maximum flexibility and adaptation to the specific task but can be computationally expensive and prone to overfitting, especially with limited data. In contrast, LoRA freezes the original parameters of the base model, meaning that their gradients are ",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 3.41,
+              "tier": "standard",
+              "model": "openai/gpt-4o-mini",
+              "prompt_tokens": 185,
+              "completion_tokens": 346,
+              "cost_usd": 0.000235,
+              "answer_preview": "LoRA (Low-Rank Adaptation) fine-tuning is a method that allows for efficient adaptation of large pre-trained transformer models by introducing low-rank matrices that modify the model's weights without altering the original parameters. In LoRA, the base model's parameters remain frozen, meaning their gradients are not updated during training; only the low-rank matrices, which are typically added to the weight matrices of specific layers, are trained. This approach leverages matrix factorization, where the low-rank matrices are designed to capture the essential adaptations needed for a specific ",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c09_prove_odd_sum",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 40.18,
+          "cost_usd_total": 0.1872,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 42.52,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 38.47,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 39.54,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c10_derive_kv_cache",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 41.74,
+          "cost_usd_total": 0.157995,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 40.16,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 42.52,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 42.54,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c11_multi_step_planning",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 48.6,
+          "cost_usd_total": 0.19818,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 51.51,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 862,
+              "cost_usd": 0.067335,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 46.48,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 862,
+              "cost_usd": 0.067335,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 47.81,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 811,
+              "cost_usd": 0.06351,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c12_long_context_extract",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.9,
+          "cost_usd_total": 0.24435,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 8.27,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.89,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.53,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            }
+          ]
+        }
+      ]
+    },
+    "frontier-only": {
+      "strategy": "frontier-only",
+      "n_prompts_completed": 12,
+      "n_prompts_partial": 0,
+      "n_calls_made": 36,
+      "cap_tripped": false,
+      "cap_tripped_at": null,
+      "attempt_pass_rate": 1.0,
+      "majority_pass_count": 12,
+      "majority_pass_rate": 1.0,
+      "total_cost_usd": 1.0568,
+      "per_prompt": [
+        {
+          "id": "s01_gguf_acronym",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 5.2,
+          "cost_usd_total": 0.009765,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 6.13,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 32,
+              "completion_tokens": 37,
+              "cost_usd": 0.003255,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format,\" which is a file format used in llama.cpp for storing quantized large language models.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 4.82,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 32,
+              "completion_tokens": 37,
+              "cost_usd": 0.003255,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format,\" which is a file format used in llama.cpp for storing quantized large language models.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GPT-Generated Unified Format'",
+              "wall_s": 4.66,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 32,
+              "completion_tokens": 37,
+              "cost_usd": 0.003255,
+              "answer_preview": "GGUF stands for \"GPT-Generated Unified Format,\" which is a file format used in llama.cpp for storing quantized large language models.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s02_json_output",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 5.63,
+          "cost_usd_total": 0.01305,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 5.25,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 60,
+              "completion_tokens": 46,
+              "cost_usd": 0.00435,
+              "answer_preview": "```json\n{\n  \"name\": \"NVIDIA GB10\",\n  \"unified_memory_gb\": 64,\n  \"gpu_arch\": \"Blackwell\"\n}\n```",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 6.5,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 60,
+              "completion_tokens": 46,
+              "cost_usd": 0.00435,
+              "answer_preview": "```json\n{\n  \"name\": \"NVIDIA GB10\",\n  \"unified_memory_gb\": 64,\n  \"gpu_arch\": \"Blackwell\"\n}\n```",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 5.13,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 60,
+              "completion_tokens": 46,
+              "cost_usd": 0.00435,
+              "answer_preview": "```json\n{\n  \"name\": \"NVIDIA GB10\",\n  \"unified_memory_gb\": 64,\n  \"gpu_arch\": \"Blackwell\"\n}\n```",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s03_python_translate",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 5.26,
+          "cost_usd_total": 0.005175,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'greater than zero'",
+              "wall_s": 3.93,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 16,
+              "cost_usd": 0.001725,
+              "answer_preview": "This counts how many items in the list are greater than zero.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'greater than zero'",
+              "wall_s": 7.49,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 16,
+              "cost_usd": 0.001725,
+              "answer_preview": "This counts how many items in the list are greater than zero.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'greater than zero'",
+              "wall_s": 4.36,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 16,
+              "cost_usd": 0.001725,
+              "answer_preview": "This counts how many items in the list are greater than zero.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "s04_three_uses",
+          "expected_tier": "simple",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 6.11,
+          "cost_usd_total": 0.01095,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 7.21,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 43,
+              "cost_usd": 0.00375,
+              "answer_preview": "Isolating project dependencies to avoid version conflicts between different projects\nTesting code with different package versions without affecting the system-wide Python installation\nCreating reproducible development environments that can be shared across team members",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 6.67,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 43,
+              "cost_usd": 0.00375,
+              "answer_preview": "Isolating project dependencies to avoid version conflicts between different projects\nTesting code with different package versions without affecting the system-wide Python installation\nCreating reproducible development environments that can be shared across team members",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "ok",
+              "wall_s": 4.45,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 35,
+              "completion_tokens": 39,
+              "cost_usd": 0.00345,
+              "answer_preview": "Isolating project dependencies to avoid version conflicts between different projects\nTesting code with different Python versions without affecting the system installation\nCreating reproducible development environments that can be shared across teams",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t05_summarize_quant",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 13.71,
+          "cost_usd_total": 0.03861,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 13.55,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 83,
+              "completion_tokens": 155,
+              "cost_usd": 0.01287,
+              "answer_preview": "Q5_K_M quantization results in approximately 15-20% larger file sizes compared to Q4_K_M for an 8B parameter model, translating to roughly 5.4GB vs 4.6GB respectively. The decode throughput difference is minimal on DGX Spark hardware (typically <5% variance), as the high memory bandwidth and compute capabilities minimize the impact of the slightly larger Q5_K_M weights. Q5_K_M generally shows 0.5-1.5 percentage points better performance on common benchmarks like MMLU and HellaSwag, with the quality gap being most noticeable in tasks requiring precise factual recall or mathematical reasoning.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 14.08,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 83,
+              "completion_tokens": 155,
+              "cost_usd": 0.01287,
+              "answer_preview": "Q5_K_M quantization results in approximately 15-20% larger file sizes compared to Q4_K_M for an 8B parameter model, translating to roughly 5.4GB vs 4.6GB respectively. The decode throughput difference is minimal on DGX Spark hardware (typically <5% variance), as the high memory bandwidth and compute capabilities minimize the impact of the slightly larger Q5_K_M weights. Q5_K_M generally shows 0.5-1.5 percentage points better performance on common benchmarks like MMLU and HellaSwag, with the quality gap being most noticeable in tasks requiring precise factual recall or mathematical reasoning.",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'quality'",
+              "wall_s": 13.49,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 83,
+              "completion_tokens": 155,
+              "cost_usd": 0.01287,
+              "answer_preview": "Q5_K_M quantization results in approximately 15-20% larger file sizes compared to Q4_K_M for an 8B parameter model, translating to roughly 5.4GB vs 4.6GB respectively. The decode throughput difference is minimal on DGX Spark hardware (typically <5% variance), as the high memory bandwidth and compute capabilities minimize the impact of the slightly larger Q5_K_M weights. Q5_K_M generally shows 0.5-1.5 percentage points better performance on common benchmarks like MMLU and HellaSwag, with the quality gap being most noticeable in tasks requiring precise factual recall or mathematical reasoning.",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t06_compare_memory",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 13.27,
+          "cost_usd_total": 0.04473,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 9.34,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 74,
+              "completion_tokens": 182,
+              "cost_usd": 0.01476,
+              "answer_preview": "\u2022 **Memory Capacity**: DGX Spark's 128GB unified memory allows loading multiple 8B model instances (~32GB each), while H100's 80GB fits fewer copies, limiting batch processing flexibility.\n\n\u2022 **Memory Type**: H100's HBM3 delivers ~3TB/s bandwidth for faster token generation, while Spark's unified LPDDR5X (~500GB/s) trades speed for CPU-GPU memory sharing efficiency.\n\n\u2022 **Memory Sharing**: Spark eliminates CPU-GPU memory copies with unified architecture, reducing latency for preprocessing. H100 requires explicit transfers between system RAM and HBM3.\n\n\u2022 **Cost Efficiency**: Spark's unified memo",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 14.95,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 74,
+              "completion_tokens": 185,
+              "cost_usd": 0.014985,
+              "answer_preview": "\u2022 **Memory Capacity**: DGX Spark's 128GB unified memory allows loading multiple 8B model instances (~32GB each), while H100's 80GB fits fewer copies, limiting batch processing flexibility.\n\n\u2022 **Memory Type**: H100's HBM3 delivers ~3TB/s bandwidth for faster token generation, while Spark's unified LPDDR5X (~500GB/s) trades speed for CPU-GPU memory sharing efficiency.\n\n\u2022 **Memory Sharing**: Spark eliminates CPU-GPU memory copies with unified architecture, reducing latency for preprocessing. H100 requires explicit transfers between system RAM and HBM3.\n\n\u2022 **Cost Efficiency**: Spark's unified memo",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'unified'",
+              "wall_s": 15.53,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 74,
+              "completion_tokens": 185,
+              "cost_usd": 0.014985,
+              "answer_preview": "\u2022 **Memory Capacity**: DGX Spark's 128GB unified memory allows loading multiple 8B model instances (~32GB each), while H100's 80GB fits fewer copies, limiting batch processing flexibility.\n\n\u2022 **Memory Type**: H100's HBM3 delivers ~3TB/s bandwidth for faster token generation, while Spark's unified LPDDR5X (~500GB/s) trades speed for CPU-GPU memory sharing efficiency.\n\n\u2022 **Memory Sharing**: Spark eliminates CPU-GPU memory copies with unified architecture, reducing latency for preprocessing. H100 requires explicit transfers between system RAM and HBM3.\n\n\u2022 **Cost Efficiency**: Spark's unified memo",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t07_analyze_csv",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 8.73,
+          "cost_usd_total": 0.026055,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 7.96,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 59,
+              "completion_tokens": 104,
+              "cost_usd": 0.008685,
+              "answer_preview": "I'll analyze the CSV data and calculate the mean age.\n\nThe ages are: 30, 25, 40, 35, 28\n\n**Calculating the mean:**\n\nSum of ages = 30 + 25 + 40 + 35 + 28 = 158\n\nNumber of people = 5\n\nMean = Sum \u00f7 Count = 158 \u00f7 5 = 31.6\n\n31.60",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 10.63,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 59,
+              "completion_tokens": 104,
+              "cost_usd": 0.008685,
+              "answer_preview": "I'll analyze the CSV data and calculate the mean age.\n\nThe ages are: 30, 25, 40, 35, 28\n\n**Calculating the mean:**\n\nSum of ages = 30 + 25 + 40 + 35 + 28 = 158\n\nNumber of people = 5\n\nMean = Sum \u00f7 Count = 158 \u00f7 5 = 31.6\n\n31.60",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '31.60'",
+              "wall_s": 7.61,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 59,
+              "completion_tokens": 104,
+              "cost_usd": 0.008685,
+              "answer_preview": "I'll analyze the CSV data and calculate the mean age.\n\nThe ages are: 30, 25, 40, 35, 28\n\n**Calculating the mean:**\n\nSum of ages = 30 + 25 + 40 + 35 + 28 = 158\n\nNumber of people = 5\n\nMean = Sum \u00f7 Count = 158 \u00f7 5 = 31.6\n\n31.60",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "t08_compare_lora",
+          "expected_tier": "standard",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 31.72,
+          "cost_usd_total": 0.12078,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 36.94,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 199,
+              "completion_tokens": 517,
+              "cost_usd": 0.04176,
+              "answer_preview": "LoRA (Low-Rank Adaptation) fine-tuning exploits the observation that weight updates during fine-tuning often have low intrinsic rank, allowing us to represent the change to a weight matrix W as the product of two much smaller matrices. During training, the original pre-trained weights W remain frozen (their gradients are not computed and they receive no updates via backpropagation), while we instead learn two new matrices A and B such that the weight update \u0394W = BA, where B has shape (d \u00d7 r) and A has shape (r \u00d7 k) for an original weight matrix of shape (d \u00d7 k). The rank r is a hyperparameter ",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 36.4,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 199,
+              "completion_tokens": 517,
+              "cost_usd": 0.04176,
+              "answer_preview": "LoRA (Low-Rank Adaptation) fine-tuning exploits the observation that weight updates during fine-tuning often have low intrinsic rank, allowing us to represent the change to a weight matrix W as the product of two much smaller matrices. During training, the original pre-trained weights W remain frozen (their gradients are not computed and they receive no updates via backpropagation), while we instead learn two new matrices A and B such that the weight update \u0394W = BA, where B has shape (d \u00d7 r) and A has shape (r \u00d7 k) for an original weight matrix of shape (d \u00d7 k). The rank r is a hyperparameter ",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'frozen'",
+              "wall_s": 21.83,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 199,
+              "completion_tokens": 457,
+              "cost_usd": 0.03726,
+              "answer_preview": "LoRA fine-tuning decomposes weight updates into low-rank matrix factorizations during training, then adds these updates to the original weights at inference. In full-parameter fine-tuning, all model parameters receive gradient updates during backpropagation\u2014nothing is frozen\u2014so a 7B parameter model requires storing and updating all 7B parameters throughout training. In contrast, LoRA freezes the entire pretrained model (zero gradients flow through the original weights) and instead trains pairs of low-rank matrices A and B for selected weight matrices, typically the query, key, value, and outpu",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c09_prove_odd_sum",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 39.94,
+          "cost_usd_total": 0.1872,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 38.29,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 41.89,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'n\u00b2'",
+              "wall_s": 39.63,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 75,
+              "completion_tokens": 817,
+              "cost_usd": 0.0624,
+              "answer_preview": "## Proof that the sum of the first n positive odd integers equals n\u00b2\n\n### Part 1: Geometric/Visual Intuition (Gnomon Argument)\n\nThe **gnomon** is an L-shaped figure that, when added to a square, creates a larger square. This provides a beautiful visual proof:\n\nConsider building squares of increasing size:\n- Start with a 1\u00d71 square (area = 1)\n- Add an L-shaped layer of 3 unit squares to get a 2\u00d72 square (area = 4)\n- Add an L-shaped layer of 5 unit squares to get a 3\u00d73 square (area = 9)\n- Add an L-shaped layer of 7 unit squares to get a 4\u00d74 square (area = 16)\n\n```\nn=1:  \u25a0           (1 square)\n\nn",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c10_derive_kv_cache",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 37.33,
+          "cost_usd_total": 0.157995,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 40.08,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 36.97,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'GB'",
+              "wall_s": 34.93,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 146,
+              "completion_tokens": 673,
+              "cost_usd": 0.052665,
+              "answer_preview": "I'll derive the KV cache memory footprint for Qwen3-30B-A3B step by step.\n\nFrom the Qwen3 model documentation, I need to identify the architecture parameters. However, I should note that \"Qwen3-30B-A3B\" appears to be a hypothetical or misspecified model name - the actual Qwen3 series includes models like Qwen2.5-32B, but not a \"30B-A3B\" variant. I'll work with what would be reasonable estimates for a ~30B parameter model in the Qwen architecture family.\n\nBased on Qwen2/Qwen2.5 32B architecture patterns, here are the likely values:\n\n**Step 1: Model Architecture Parameters**\n- Number of transfor",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c11_multi_step_planning",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 50.19,
+          "cost_usd_total": 0.19818,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 53.48,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 862,
+              "cost_usd": 0.067335,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 48.32,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 862,
+              "cost_usd": 0.067335,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched '30B'",
+              "wall_s": 48.76,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 179,
+              "completion_tokens": 811,
+              "cost_usd": 0.06351,
+              "answer_preview": "I'll analyze each model's viability for this agent session requiring general reasoning, ~10K token output, and 64K context support.\n\n## Step 1: Calculate KV-Cache Requirements at 64K Context\n\n**70B Q4_K_M Model:**\n- KV-cache per token \u2248 2 * num_layers * hidden_dim * 2 bytes (fp16)\n- For 70B (assuming 80 layers, 8192 hidden dim): 2 * 80 * 8192 * 2 = 5.24 MB/1K tokens\n- At 64K context: 5.24 * 64 = 335 GB\n- Total memory: 40 GB (weights) + 335 GB (KV) = 375 GB\n- **Result: Exceeds 128 GB memory - IMPOSSIBLE**\n\n**30B-A3B-MoE Model:**\n- MoE architecture with sparse activation reduces KV-cache\n- Assum",
+              "error": null
+            }
+          ]
+        },
+        {
+          "id": "c12_long_context_extract",
+          "expected_tier": "complex",
+          "n_attempts": 3,
+          "pass_count": 3,
+          "pass_rate": 1.0,
+          "task_success": true,
+          "wall_s_mean": 7.91,
+          "cost_usd_total": 0.24435,
+          "tiers_used": [
+            "complex"
+          ],
+          "attempts": [
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.83,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 8.38,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            },
+            {
+              "passed": true,
+              "why": "matched 'Desirability'",
+              "wall_s": 7.51,
+              "tier": "complex",
+              "model": "anthropic/claude-opus-4.1",
+              "prompt_tokens": 5210,
+              "completion_tokens": 44,
+              "cost_usd": 0.08145,
+              "answer_preview": "\u2022 Desirability, Viability, Feasibility\n\u2022 128 GB\n\u2022 H4\n\u2022 EngineCore orphan (no ID provided)\n\u2022 Harnesses",
+              "error": null
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "summary": {
+    "router_accuracy": 1.0,
+    "n_prompts": 12,
+    "n_runs_per_prompt": 3,
+    "cap_usd": 5.0,
+    "total_spend_usd": 1.8462,
+    "majority_pass_rates": {
+      "local-only": 0.6667,
+      "cost-routed": 0.9167,
+      "frontier-only": 1.0
+    },
+    "total_cost_usd_per_strategy": {
+      "local-only": 0.0,
+      "cost-routed": 0.7894,
+      "frontier-only": 1.0568
+    },
+    "leak_rate": {
+      "n_prompts_compared": 12,
+      "n_leaks": 4,
+      "leak_rate": 0.3333,
+      "leak_prompts": [
+        {
+          "id": "c10_derive_kv_cache",
+          "local_pass_rate": 0.0,
+          "frontier_pass_rate": 1.0
+        },
+        {
+          "id": "c11_multi_step_planning",
+          "local_pass_rate": 0.0,
+          "frontier_pass_rate": 1.0
+        },
+        {
+          "id": "s03_python_translate",
+          "local_pass_rate": 0.0,
+          "frontier_pass_rate": 1.0
+        },
+        {
+          "id": "t05_summarize_quant",
+          "local_pass_rate": 0.3333,
+          "frontier_pass_rate": 1.0
+        }
+      ]
+    }
+  }
+}
