@@ -875,6 +875,8 @@ narrative spine. `customer_linked: true` (the cockpit landing cross-links to it)
 | `fieldkit v0.14.1` | Telemetry + compare polish | Lane-swap UX edge cases (concurrent streams); rubric reuse promotion of any 2nd-reuse rubrics; mirror exporter performance on full-leaderboard exports. |
 | `fieldkit v0.15.0` | v0.2 surface (eval runner + HF publish gate + cost-routed chat) | `arq` worker green; `Orionfold/spark-arena-leaderboard-v0.1` HF dataset live; A2 + A3 articles published. |
 | `fieldkit v0.16.0` | **M8 control plane** (§12 — Phase 1 / Bet 3) | `jobs`/`job_triggers` schema migrates (`user_version` 2→3); an `eval_rerun` job dispatches **end-to-end through the MCP harness** and writes back an `eval_runs` row + rebuilds the leaderboard; leaderboard-regression trigger fires on a seeded regression; `/arena/jobs/` paints; `jobs` is OUT of the mirror allowlist and the leak regression test (R13) is green; `audit-docs arena/N` clean; the Phase-1 `product-writer` launch published. **No cron / no auto-push** (that is Phase 2). |
+| ~`fieldkit v0.17.0` | **M9 cost plane** (§13 — Bet 6) — *spec written, unbuilt* | Schema `user_version` 4→5 (first ALTER migration, R18) round-trips a seeded v4 db; compare/chat completions INSERT `cost_usd`; `leaderboard_rows` carries `mean_cost_usd` + `cost_per_quality_point`; `openrouter_price_snapshot` seeded from the version-controlled H6 evidence + added to `PUBLISHABLE_TABLES`; cockpit shows `$/task` + `$/quality-point`; session spend survives restart; `audit-docs cost` clean. **Ledger only — `fieldkit.budget` enforcement is Phase 2.** |
+| ~`fieldkit v0.18.0` | **M10 recall layer** (§14 — Bet 5) — *spec written, unbuilt* | Schema `user_version` 5→6 (`reindex_runs` + `rag_eval_runs`) + pgvector `blog_chunks` provenance columns; `reindex`/`rag_eval`/`scout_ingest` promoted to `DISPATCHABLE`; multi-source ingest under one provenance card via `fieldkit.memory` over `fieldkit.rag`; a `rag_eval` job tracks recall@k + gates promotion; `/arena/knowledge/` pane paints coverage (`article_index`⋈index) + the RAG-eval trend; single query backend behind both MCP surfaces; `rag_eval_runs` aggregates mirror, chunk text never; external assets version-controlled (M10-12); `audit-docs memory` clean. **Pane only — the publish-hook + scheduled sweep are Phase 2.** |
 
 ## 12. M8 — Arena as the control plane (Phase 1 of the MTBM roadmap)
 
@@ -1195,9 +1197,180 @@ M9 is a **cross-cutting price signal**, not a sequential phase — it threads th
 
 - **Phase 2 (`autonomous-harness-v1.md`)** — `fieldkit.budget` reads M9's persisted ledger before the dispatcher launches a job; it encodes the **`LOCAL_CEILING = 33%`** failure-mode escalation (escalate when local *gives up*, not on a token ceiling alone) and emits a **spend digest** (today's $ by lane / by bench vs cap) into the morning standup. M9-9 is the seam.
 - **Phase 3 (`rlvr-loop-v1.md`)** — **$/quality-point ROI**: a `compare_loss` trigger consults measured $/quality *before* the governor approves an `rl_run`, declining RL when frontier escalation is cheaper at equal quality — generalizing the $0.0004/failed-trial inversion to "cheaper to RLVR a local model to threshold, or pay frontier per call?" (mirrors Bet 5's pre-flight gate).
-- **Bet 5 (`second-brain-pipeline-v1.md`, Arena M10)** — the next milestone to write; shares the M8 `jobs` table + this $/quality discipline (a `rag_eval` job can carry its own cost row).
+- **Bet 5 (Arena M10, §14)** — **now written**; shares the M8 `jobs` table + this $/quality discipline (a `rag_eval` job can carry its own cost row from this ledger).
 
-## 14. Change log
+## 14. M10 — Recall layer (Bet 5 of the MTBM roadmap)
+
+> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Bet 5 ("the recall layer —
+> the Second Brain as a control-plane-managed knowledge pipeline")** as the **Arena M10**
+> milestone, the second cross-cutting bet to extend the M8 control plane (priority recorded
+> in `_SPECS/index.md` Planned queue + `HANDOFF.md` ▶ NEXT UP — it rides the *now-shipped*
+> M8 pane, its grounding is *freshest* after the 2026-06-02 re-index, and it is the cleanest
+> dogfood: the machine managing its own memory). It is grounded against Spark-measured
+> evidence in [`roadmap-reconciliation.md`](roadmap-reconciliation.md) (the 12/63 staleness
+> finding) + `_FLOWS` §3 "Bet 5" (the shipped retrieval-stack article corpus). **Like M8/M9,
+> M10 is connective tissue, not greenfield** — the RAG stack, the eval harness, the query
+> tool, and the *job-kind sockets themselves* already exist; M10 *promotes + consolidates +
+> makes multi-source* what is today a manual, prose-only, externally-scripted index. The
+> autonomous freshness arm (re-index-on-publish hook + scheduled scout sweep) is explicitly
+> out of scope (Phase 2, `autonomous-harness-v1.md`); M10 ships the **operator-driven pane +
+> the managed index** that arm later automates.
+>
+> **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/` + the
+> on-disk RAG stack).** Seven facts shape the decisions: **(1)** the **job-kind sockets are
+> already drilled** — `arena/jobs.py` declares `JobKind.REINDEX`/`RAG_EVAL`/`SCOUT_INGEST` as
+> **named stubs** (in `ALL`, excluded from `DISPATCHABLE`), commented `→ Bet-5
+> second-brain-pipeline-v1`; M10 promotes them, the exact move M8 made for `eval_rerun`.
+> **(2)** **`fieldkit.rag` exists** (`Pipeline.ingest()/retrieve()`, `Document`/`Chunk`,
+> pgvector cosine), so `fieldkit.memory` is a **provenance/multi-source layer over it**, not a
+> new RAG stack. **(3)** But there is an **ingest fork** — the *live* `blog_chunks` index was
+> built by the **external** `/home/nvidia/rag-eval-work/ingest_blog.py` (word-based 900w/150-
+> overlap, `(slug, chunk_idx)` PK, DROP+rebuild), **not** by `fieldkit.rag.Pipeline` (token-
+> based chunking, different `cid` scheme); M10-2 adopts the `Pipeline` as canonical and
+> converges the scheme on one re-index. **(4)** `blog_chunks` is `(id, slug, chunk_idx, text,
+> embedding)` — **no provenance columns**; trust-filtered multi-source recall needs the
+> `source·kind·date·claims·verdict·link` card added to the vector table (M10-3/4). **(5)** the
+> **RAG-eval harness is real but stale-pointed** — `rag-eval-work/{retrieve,grade,analyze}.py`
+> + `nemo_evaluator_config.yaml` produce real metrics (`summary.json`: rerank lane
+> `p_chunk_at_k`=**0.955**, `p_slug_at_k`=0.977, faithfulness 0.477, vs cosine-only 0.659) but
+> `retrieve.py` reads its `qa-eval.jsonl` gold set from the **retired `/home/nvidia/nvidia-
+> learn/` path**. **(6)** arena.db **already has an `article_index`** table (metadata-only,
+> store.py) distinct from the pgvector index, so coverage/freshness = `article_index` ⋈
+> indexed-slug set — the silent 12/63 staleness becomes a computed number. **(7)** **two
+> stores + a version dependency** — the index lives in pgvector, the jobs/scores in arena.db
+> (at `USER_VERSION = 4`; M9 takes it to 5), so M10 migrates **5→6**, contingent on M9 shipping
+> first. **The drift M10 closes (the M9-10 analog):** `ingest_blog.py`, the `qa-eval` gold set,
+> the eval config, and the `second-brain-mcp` query server **all live outside the repo, none
+> version-controlled** — precisely why the index sat stale at 12/63 (its external script still
+> pointed at the retired `nvidia-learn` path until the 2026-06-02 re-index repointed it).
+
+### 14.1 M10 locked decisions (signed off 2026-06-02)
+
+| # | Decision | Value | Grounding |
+|---|---|---|---|
+| M10-1 | **Promote the pre-drilled job kinds** | `reindex` / `rag_eval` / `scout_ingest` move from `JobKind` named stubs into `JobKind.DISPATCHABLE`; the dispatcher gains a handler per kind, executing **through the same MCP harness surface** M8 established (single execution surface, inherited safety rails). Lowest-marginal-effort core: the sockets, dedup index, and lifecycle already exist. | recon #1 — `arena/jobs.py:76–78` stubs tagged for this spec; mirrors M8-2. |
+| M10-2 | **`fieldkit.memory` over `fieldkit.rag`** (ingest fork resolved) | New module `fieldkit.memory` wraps the existing `rag.Pipeline` with multi-source ingest + provenance + a managed-index registry. **The `Pipeline` is adopted as the canonical ingest** — `ingest_blog.py`'s multi-source logic ports onto it and one re-index converges the divergent chunk scheme; the external word-based script is retired. One version-controlled ingest path. | recon #2, #3; **signed-off open call A.** |
+| M10-3 | **Multi-source, one provenance card** | Ingest extends from `articles/*` to **three source classes**: (i) **published prose** (articles + Book sections), (ii) **internal experiment memory** (`fieldkit.lineage` trials, `eval_runs`, future `rl_run` cards, `evidence/` summaries), (iii) **external research** (`frontier-scout` `papers.json` + Spark-feasibility verdicts, `deep-research` cited reports). Every chunk carries `source · kind · date · claims · verdict · link`. | `_FLOWS` §3 Bet 5 (three source classes); recon #4; **signed-off open call C.** |
+| M10-4 | **Provenance is a retrieval filter** (in pgvector) | The card lives as **columns on `blog_chunks`** so retrieval filters by **trust tier** in the vector SQL itself — a Spark-*measured* number and an external-*claimed* one are not interchangeable. `ask_second_brain` gains a `provenance` filter arg; the harvest's confirms / sharpens / **complicates** discipline is baked into the index. | recon #4; **signed-off open call C** (columns-on-`blog_chunks`). |
+| M10-5 | **Two stores, explicit** | Vector + provenance rows stay in **pgvector `blog_chunks`** (extended with the provenance columns). The **bookkeeping** lands in **arena.db (`user_version 5→6`)**: a **`reindex_runs`** table (run provenance — when, source-set, chunk delta, index version) + a **`rag_eval_runs`** table (the harness metrics per index version). Honest note: `5→6` assumes M9's `4→5` shipped first (else these are the `4→5` adds). | recon #6, #7; M9 §13.1/M9-2 schema precedent. |
+| M10-6 | **Wrap the existing eval harness as the `rag_eval` job** | `rag-eval-work/{retrieve,grade,analyze}.py` + `nemo_evaluator_config.yaml` become a recurring dispatcher job emitting a tracked score into `rag_eval_runs`. **Index promotion gates on it** — a rebuild that drops `recall@k` below the prior index does not get promoted (don't ship a regression). | recon #5 — real metrics in `summary.json`; `_FLOWS` §3 Bet 5 ("index promotion can gate on it"). |
+| M10-7 | **Rerank-off is the measured baseline; rerank is bounded drift** | The eval + query run **cosine-only on GB10** (no reranker profile — NGC 410-dead, local NIM has no `-dgx-spark` build). Every `rag_eval_runs` row stamps `rerank=0`; the pane labels it "cosine-only"; the `RERANK_URL` env-override (already baked into both query servers) self-enables a `-dgx-spark`/frontier reranker. A bounded known-drift bullet carries the measured gap (`p_chunk_at_k` 0.659 → 0.955 under rerank). | recon #5 + `[[reference_second_brain_reindex]]` (GB10 reranker gap); mirrors M9 R19 snapshot-drift discipline. |
+| M10-8 | **Coverage = `article_index` ⋈ index** | The pane's coverage/freshness number is the join of arena.db `article_index` (what *should* be indexed) against the set of indexed slugs in pgvector (what *is*) — chunk counts, stale-since, missing. The silent 12/63 staleness that bit the harvest becomes a visible, actionable number. | recon #6 — `article_index` exists; `_FLOWS` §7 (the 12/63 lag was invisible). |
+| M10-9 | **Single canonical query backend** | `fieldkit.memory` is the **one backend** behind *both* the standalone `second-brain-mcp` server and the harness `ask_second_brain` tool — provenance filter + rerank policy defined once, never diverging. | recon #2; **signed-off open call B.** |
+| M10-10 | **Mirror safety (two-list discipline)** | `rag_eval_runs` *scores* (recall@k, faithfulness — aggregates, no prompts) are **public-safe** ⇒ added to `PUBLISHABLE_TABLES` for a public "RAG-eval trend". `reindex_runs` and **any chunk-text path** (the query/inspect console returns chunk text, which is prompt-like) stay **out**, in `FORBIDDEN_TABLES`. Extend `test_mirror_does_not_leak.py` with a sentinel on the knowledge path. | M8-8 / M9-7 two-list precedent (R13 family). |
+| M10-11 | **Scope boundary — ship the pane, not the autonomous hands** | M10 ships the operator-driven **knowledge pane** + the three dispatcher job types + `fieldkit.memory` + the **eval-gated manual re-index**. It does **NOT** ship the **re-index-on-publish hook** or the **scheduled freshness monitor + scout sweep** — those live in **`autonomous-harness-v1.md` (Phase 2)**, which *consumes* this pane's re-index button + eval gate. | §12.6 / M9-9 ledger-not-governor pattern; `_FLOWS` §3 Bet 5 cross-phase wiring. |
+| M10-12 | **Version-control the external assets** | Commit `ingest_blog.py` (as the seed for `fieldkit.memory`'s ingest), the `qa-eval.jsonl` gold set, `nemo_evaluator_config.yaml`, and the `second-brain-mcp` server into the monorepo (under `fieldkit/` + the relevant article's `evidence/`) as the canonical seed — closing the `_FLOWS` §7 "external / manually re-indexed" drift in the same milestone. | recon (the drift); **signed-off open call D**; the M9-10 analog. |
+
+### 14.2 Deliverables
+
+| Artifact | Surface | Gate |
+|---|---|---|
+| Schema `user_version` **5 → 6** — `ALTER`/`CREATE` adds `reindex_runs` + `rag_eval_runs` to arena.db; pgvector `blog_chunks` += `source`/`kind`/`doc_date`/`verdict`/`link` provenance columns (re-ingest backfills, R21) | `~/.fieldkit/arena.db` + pgvector `vectors` | M10 migration gate (round-trips a `user_version=5` db); provenance-backfill smoke |
+| **New module `fieldkit.memory`** — `MemoryIndex` (managed multi-source ingest over `rag.Pipeline`) + `KnowledgeCard`/`Provenance` + `coverage_report()` + provenance-aware `query()` | `fieldkit` PyPI | `audit-docs memory` clean |
+| Dispatcher handlers for `reindex` / `rag_eval` / `scout_ingest` (promoted into `JobKind.DISPATCHABLE`) | `arena/jobs.py` | a `reindex` job rebuilds the index + writes a `reindex_runs` row; a `rag_eval` job scores it; `scout_ingest` folds a `frontier-scout` verdict in |
+| Multi-source ingest — prose + lineage/eval + scout/deep-research, one provenance card | `fieldkit.memory` | ingest smoke across all three source classes; provenance column populated |
+| RAG-eval harness wired as the `rag_eval` job (qa-eval gold repointed to the monorepo) | `fieldkit.memory` + `rag_eval_runs` | recall@k tracked; promotion-gate test (a recall-dropping rebuild is blocked) |
+| **Arena knowledge/RAG pane** — coverage·freshness (the `article_index`⋈index diff) · re-index button · RAG-eval trend chart · provenance-filtered query console | source site `/arena/knowledge/` | paints offline-safe (only `rag_eval_runs` aggregates on the mirror; no chunk text) |
+| Single query backend — `fieldkit.memory` behind both the standalone server + harness tool | `second-brain-mcp/server.py` + `harness/mcp.py` | both call one backend; provenance filter works through both |
+| Mirror: `rag_eval_runs` → `PUBLISHABLE_TABLES`; `reindex_runs` + chunk-text path → `FORBIDDEN_TABLES`; leak sentinel | `mirror.py` + `tests/arena/test_mirror_does_not_leak.py` | **hard gate** (R13 family) |
+| External assets committed (M10-12) | `fieldkit/` + `articles/<rag-eval-article>/evidence/` | `git ls-files` non-empty for the seed set |
+| Docs `docs/api/arena.md` §"M10" + `docs/api/memory.md` | `fieldkit` docs | `audit-docs` gate |
+| Release `~fieldkit v0.18.0` | PyPI + tag | `fieldkit-curator` action (separate); follows M9's v0.17.0 |
+
+### 14.3 Architecture
+
+**Schema (arena.db `user_version 5→6`)** — the run-bookkeeping tables; the index itself stays in pgvector:
+
+```sql
+-- M10 (arena.db, user_version 5→6; assumes M9's 4→5 shipped — else 4→5):
+CREATE TABLE IF NOT EXISTS reindex_runs (   -- provenance of each index rebuild (private)
+  id            TEXT PRIMARY KEY,
+  source_set    TEXT NOT NULL,              -- 'articles' | 'lineage' | 'scout' | 'all'
+  index_version TEXT NOT NULL,              -- content-hash / monotonic tag of the resulting index
+  chunks_before INTEGER,
+  chunks_after  INTEGER,
+  articles_n    INTEGER,                    -- distinct source docs ingested
+  status        TEXT NOT NULL,              -- queued|running|done|failed
+  started_at    TEXT NOT NULL,
+  finished_at   TEXT,
+  error         TEXT
+);
+CREATE TABLE IF NOT EXISTS rag_eval_runs (  -- scores per index version (aggregates → public)
+  id               TEXT PRIMARY KEY,
+  reindex_run_id   TEXT REFERENCES reindex_runs(id),
+  qa_set           TEXT NOT NULL,           -- which gold set (versioned in-repo)
+  recall_at_k      REAL,                    -- p_chunk_at_k
+  slug_recall_at_k REAL,                    -- p_slug_at_k
+  faithfulness     REAL,
+  mean_correctness REAL,
+  refusal_rate     REAL,
+  rerank           INTEGER NOT NULL DEFAULT 0,  -- 0 = cosine-only (GB10 default, R22)
+  status           TEXT NOT NULL,
+  created_at       TEXT NOT NULL
+);
+
+-- M10 (pgvector `blog_chunks`, provenance card — trust-filterable at query time):
+ALTER TABLE blog_chunks ADD COLUMN source   text;  -- 'article'|'lineage'|'eval'|'scout'|'deep_research'
+ALTER TABLE blog_chunks ADD COLUMN kind     text;  -- doc kind within the source class
+ALTER TABLE blog_chunks ADD COLUMN doc_date text;
+ALTER TABLE blog_chunks ADD COLUMN verdict  text;  -- e.g. scout feasibility ('feasible'|'infeasible:X')
+ALTER TABLE blog_chunks ADD COLUMN link     text;
+```
+
+**Recall flow** — ingest multi-source → eval-gate → promote → query-with-provenance:
+
+```
+reindex job (dispatcher, through fieldkit.memory):
+  for source_class in {articles, lineage, scout}:           [M10-3]
+    docs ← collect(source_class) with provenance card        [M10-3/4]
+    rag.Pipeline.ingest(docs)  → blog_chunks (+ provenance)   [M10-2/4]
+  → reindex_runs row (chunks_before/after, index_version)     [M10-5]
+
+rag_eval job (dispatcher):
+  retrieve.py + grade.py over the in-repo qa-eval gold set    [M10-6]
+  → rag_eval_runs row (recall@k, faithfulness, rerank=0)      [M10-5/7]
+  PROMOTE iff recall_at_k ≥ prior index's recall_at_k         [M10-6]
+
+query (ask_second_brain, single backend):
+  qvec ← embed(query)                                         [M10-9]
+  hits ← blog_chunks ORDER BY embedding <=> qvec
+         [WHERE source IN (trust filter)]                     [M10-4]
+  → provenance-tagged, cited answer
+
+mirror export:
+  rag_eval_runs (aggregates) → PUBLISHABLE_TABLES (public)    [M10-10]
+  reindex_runs + chunk text → FORBIDDEN_TABLES (never)
+```
+
+**`fieldkit.memory` `__all__` (M10):** `MemoryIndex`, `KnowledgeCard`, `Provenance`, `ingest_sources`, `coverage_report`, `MemoryError`.
+
+**Cockpit UX.** A new `/arena/knowledge/` pane: **(a)** a coverage/freshness panel (the `article_index`⋈index diff — indexed/stale/missing with chunk counts, M10-8); **(b)** a **Re-index** button (full or per-source-class) that enqueues a `reindex` job; **(c)** a **RAG-eval trend** chart over `rag_eval_runs` (recall@k by index version, "cosine-only" labelled, R22); **(d)** a provenance-filtered **query console** (the operator's own cited `ask_second_brain`, with a trust-tier toggle). Offline-safe: the public mirror renders only the `rag_eval_runs` aggregate trend — never chunk text or a `reindex_runs` row.
+
+### 14.4 Grounding (from `_FLOWS` §3 "Bet 5" + the on-disk RAG stack)
+
+- **The retrieval stack is shipped + measured, not theoretical** — `naive-rag-on-spark`, `pgvector-on-spark`, `nemo-retriever-embeddings-local`, `rerank-fusion-retrieval-on-spark`, `guardrails-on-the-retrieval-path`, `bigger-generator-grounding-on-spark` build the stack; `rag-eval-ragas-and-nemo-evaluator` (+ the on-disk `rag-eval-work/` harness) is the eval half; `mcp-second-brain-in-claude-code` is the query surface. M10 **consolidates these producers into one managed, evaluated, operator-driven index**, not invents them.
+- **The measured eval ceiling is on disk** — `rag-eval-work/summary.json`: the `rerank_8b` lane scores `p_chunk_at_k`=**0.955** / `p_slug_at_k`=0.977 / faithfulness 0.477 / refusal 0.0, vs cosine-only `naive_8b` at 0.659 / 0.864 / 0.432 / 0.182. ⇒ M10-7's bounded-drift gap is a real number, and the GB10 cosine-only baseline (M10-6's gate) is the honest floor until a `-dgx-spark` reranker lands.
+- **Staleness was invisible and bit the last harvest** — the Second Brain held **12/63 articles** at the 2026-06-02 harvest (its external `ingest_blog.py` still pointed at the retired `nvidia-learn` path), so the roadmap-reconciliation harvest fell back to a disk-read fan-out. ⇒ M10-8 makes coverage a standing number; M10-12 version-controls the script so it can't silently rot again.
+- **Re-scouting amnesia has both an internal and external cure** — `autoresearch-agent-loop`'s 72%-repeat finding (the internal cure baked into M8-4) has an external twin: a scouted-but-rejected paper persists in the index as *"evaluated, infeasible because X"* (M10-3's external source class), so the system stops re-scouting what it already judged.
+
+### 14.5 M10 risk additions (extend §10)
+
+| ID | Risk | Likelihood | Impact | Mitigation | Fallback |
+|---|---|---|---|---|---|
+| R21 | **Provenance backfill** — adding columns to a populated `blog_chunks` leaves existing rows with NULL provenance, so trust-filtering silently drops legacy chunks | med | recall gap | the ingest is already a DROP+rebuild (idempotent), so M10's first re-index backfills every row; a `provenance_backfilled` coverage check in the pane gates the trust filter until 100% | run the trust filter only over backfilled slugs; NULL-provenance = treat as lowest tier, never drop |
+| R22 | **Cosine-only ceiling mistaken for the index's true recall** — a `rag_eval_runs` score looks worse than a historical rerank-capable run, mis-reading the index as regressed | med | misleading trend | every row stamps `rerank=0`; the pane labels "cosine-only"; the promotion gate (M10-6) compares **like-for-like** (`rerank=0` vs `rerank=0` only), never across rerank modes | re-enable rerank via `RERANK_URL` when a `-dgx-spark` reranker arrives; old rows keep their `rerank` flag |
+| R23 | **Eval-gate blocks a legitimately-different rebuild** — adding lineage/scout chunks changes the corpus, so article-only `recall@k` can move for a good reason; a naive gate blocks it | med | stalled re-index | gate **per-source-class** (the article qa-eval set gates only the article slice; lineage/scout get their own gold sets as they mature) + an explicit operator override logged on the `reindex_runs` row | operator-confirm promotion; widen the qa-eval set to cover the new source classes before gating them |
+
+### 14.6 Sequencing — what M10 feeds
+
+M10 is a **cross-cutting recall surface**, not a sequential phase — it threads pane/hands/engine the same way M8's `jobs` table and M9's cost ledger do:
+
+- **Phase 2 (`autonomous-harness-v1.md`)** — the **re-index-on-publish hook** + a **scheduled freshness monitor** automate M10's manual re-index button, and a scheduled `frontier-scout` sweep lands back through M10's `scout_ingest` job — finally realizing Ch-11's named-but-unbuilt "Freshness Monitoring" box. M10-11 is the seam (it ships the pane the hooks later drive).
+- **Phase 3 (`rlvr-loop-v1.md`)** — the index ingests `rl_run`/`lineage` cards (M10-3's internal class), and a `compare_loss` trigger **queries the Second Brain before the governor approves an `rl_run`** — returning the internal `t2po` finding (47.7% per-assertion ceiling, +33% wall for nothing) *and* any external paper verdict, so a doomed RL run is declined or redirected. Mirrors M9's pre-flight cost gate.
+- **`autonomous-harness-v1.md` (Phase 2) is the next stub to write** — with both cross-cutting bets now specced (M9 cost ✅, M10 recall ✅), Phase 2 can reference both defined contracts (the budget governor reads M9's ledger; the freshness monitor drives M10's re-index) instead of dangling them. Then `rlvr-loop-v1.md` (Phase 3) last.
+
+## 15. Change log
 
 | Date | Change | Author |
 |---|---|---|
@@ -1205,8 +1378,9 @@ M9 is a **cross-cutting price signal**, not a sequential phase — it threads th
 | 2026-06-02 | **M8 control-plane milestone authored (§12).** Extends the locked v0.1+v0.2 spec with `_FLOWS` §3 **Phase 1 / Bet 3** — promote Arena recorder → dispatcher: new `jobs`/`job_triggers` tables, a single-lane dispatcher executing **through the MCP harness**, `eval_rerun` as the first (and only real) M8 job type, a leaderboard-regression trigger producer, `/arena/jobs/` cockpit surface, and the mirror-allowlist extension (R13). 8 locked decisions (M8-1…8, confirm before build), 5 new risks (R13–R17), grounded against `roadmap-reconciliation.md` §"Phase 1" (CONFIRMED, operational). Phases 2/3 + Bets 5/6 sequenced to extend this `jobs` table. **Spec only — unbuilt.** | Manav (with Claude) |
 | 2026-06-02 | **M8 BUILT** (all 8 decisions green-lit as written). `fieldkit.arena.jobs` dispatcher + `jobs`/`job_triggers` schema (`user_version` 2→3) + `JobStore` methods; two harness MCP tools (`run_vertical_eval` — first `fieldkit.eval` wiring — + `measure_variants`); `/api/jobs` CRUD + SSE drain (BackgroundTasks primary, R14); `jobs`/`job_triggers` on the mirror denylist + leak sentinel (R13); `/arena/jobs/` route + `<JobsBoard>` island (builds into preview + wheel bundle). Tests: `test_jobs.py` (17) + `test_jobs_api.py` (9) + extended `test_mirror_does_not_leak.py`; full suite **1118 passed**, `audit-docs` clean. As-built map in §12.7. **Not yet: the `fieldkit v0.16.0` tag/publish + the Phase-1 launch article + a live-sidecar human-eye pass.** | Manav (with Claude) |
 | 2026-06-02 | **M9 cost-plane milestone authored (§13).** Realizes `_FLOWS` §3 **Bet 6** as the first cross-cutting Arena milestone after M8 (priority locked in `_SPECS/index.md` Planned queue). 10 locked decisions (M9-1…10, **signed off** — persist the already-computed `_compare_cost_usd()`; per-side cost on `compare_responses` + `tokens_in`; aggregate `$/quality-point` on the public `leaderboard_rows`; `openrouter_price_snapshot` pinned from the H6 evidence JSON; real `usage` tokens w/ heuristic fallback; ledger-not-governor scope boundary; version-control the untracked H6 evidence). Schema `user_version` **4→5** — the first ALTER-based migration (R18). 3 new risks (R18–R20). New abstraction `fieldkit.cost`. Grounded against `roadmap-reconciliation.md` §"Bet 6" (`hermes-cost-routing`: 25% spend cut at 8.3% quality cost, 33% leak). **Spec only — unbuilt;** release gate ~`fieldkit v0.17.0`. | Manav (with Claude) |
+| 2026-06-02 | **M10 recall-layer milestone authored (§14).** Realizes `_FLOWS` §3 **Bet 5** as the second cross-cutting Arena milestone (priority locked in `_SPECS/index.md` Planned queue; rides the shipped M8 pane, freshest grounding post-re-index). 12 locked decisions (M10-1…12, **signed off** — promote the pre-drilled `reindex`/`rag_eval`/`scout_ingest` job stubs to dispatchable; `fieldkit.memory` over the existing `fieldkit.rag.Pipeline` w/ the Pipeline adopted as canonical ingest; multi-source [prose · lineage/eval · scout/deep-research] under one provenance card on `blog_chunks`; trust-filtered retrieval; arena.db `5→6` + pgvector provenance cols; wrap the on-disk `rag-eval-work/` harness as the eval-gated `rag_eval` job; cosine-only GB10 baseline w/ rerank as bounded drift; coverage = `article_index`⋈index; single query backend behind both MCP surfaces; two-list mirror; version-control the external `ingest_blog.py`/`qa-eval`/eval-config/SB-server). 4 open calls signed off "recommended" (ingest fork → Pipeline canonical; query backend → `fieldkit.memory`; provenance → `blog_chunks` columns; VC the external assets). Schema `user_version` **5→6** (contingent on M9's 4→5). 3 new risks (R21–R23). New abstraction `fieldkit.memory`. Code-reconciled against the built `arena/jobs.py` (sockets pre-drilled), `fieldkit.rag`, the on-disk `rag-eval-work/` + `second-brain-mcp/`. **Spec only — unbuilt;** release gate ~`fieldkit v0.18.0`. **Next stub: `autonomous-harness-v1.md` (Phase 2).** | Manav (with Claude) |
 
-## 15. References
+## 16. References
 
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`
