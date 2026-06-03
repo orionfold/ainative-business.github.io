@@ -457,6 +457,52 @@ What changed inside `fieldkit.arena`:
   `article_index` ⋈ index diff, M10-8), a per-source-class Re-index button, the
   RAG-eval trend (cosine-only labelled, M10-7), and the trust-tier query console.
 
+## M11 — autonomous harness + cron (Phase 2)
+
+The **hands** in the `pane → hands → engine` sequence
+(`_SPECS/spark-arena-v1.md` §15): the missing *trigger* that turns M8's
+button-driven dispatcher into a self-operating overnight loop with a human-review
+gate. M11 reimplements **no dispatch** — it schedules the already-built
+`drain_jobs()` + `check_and_enqueue_regressions()`, gated by the new
+**[`fieldkit.budget`](budget.md)** governor (`BudgetGovernor`, `BudgetDecision`,
+`SpendDigest`, `EscalationReason`, `MemoryEnvelope`, `check_budget`) — a
+sibling top-level module, because the governor spans more than `fieldkit.arena`.
+**No schema, no `user_version` bump (AH-9)** — the schema stays at M10's `6`;
+schedules live in version-controlled config, the standup is an ephemeral render.
+
+What changed inside `fieldkit.arena`:
+
+- **`scheduler.py` (new)** — the cron glue (AH-1). `run_drain_cycle(store, *,
+  governor=None, …)` is one tick: acquire the one-drain-at-a-time `DrainLock`
+  (the `scheduled_tasks.lock` pattern with stale-pid stealing — never stacks a
+  second GPU lane, R24), `drain_jobs` with the governor in the loop, the
+  `check_and_enqueue_regressions` freshness sweep (AH-6 — emits the next tick's
+  triggers), then `build_standup`. Returns `{skipped, drained, sweep, standup}`;
+  **no push path exists by construction** (R26). `build_standup(store, *,
+  governor, sweep, cap_usd)` is the AH-3 render — **Ran / Regressed / Queued /
+  Spend** over the existing `jobs` / `leaderboard_baseline` / M9 cost rows,
+  aggregate + operator-private (it projects `id/kind/status`, never
+  `payload_json`).
+- **`jobs.py`** — `drain_jobs` gains an optional `governor` (duck-typed —
+  anything with `.check_budget(job) -> BudgetDecision`). Each claimed job is
+  checked **before** dispatch: an *allow* dispatches; an *escalate* / *defer*
+  releases the claim back to `queued`, records a `budget_<action>` audit row in
+  `job_triggers`, and stops the pass (the budget brake). The drain never
+  escalates or pushes itself — it *stages* the decision (AH-3/AH-8).
+- **`server.py`** — `GET /api/standup` renders the standup snapshot (the cost
+  ledger is read via a `BudgetGovernor(ledger=store)`; the Spend row degrades to
+  "—" pre-M9, AH-5). Read-only — it never drains (an HTTP GET never launches a
+  GPU lane; the cron owns dispatch). Empty (not 404) on a fresh box.
+- **Cockpit** — a new `/arena/standup/` pane (the morning-review gate): the Spend
+  rail + the Ran / Regressed / Failed / Queued buckets, stage-only ("the loop has
+  no push path").
+- **Hook battery (`.claude/`)** — the lone `SessionStart` hook expands into a
+  battery (AH-2, deterministic shell only, invariant #4): `pre_commit_guard.sh`
+  (PreToolUse — secret-scan **hard-blocks** a planted secret, the render verifiers
+  run **advisory** per R25), `post_publish.sh` (PostToolUse — stats nudge +
+  freshness-trigger enqueue on an articles/products commit), and `stop_feedback.sh`
+  (the §6.5 Stop loop, finally wired — nudges on uncommitted artifact work).
+
 ## v0.2 surfaces (Lab + distribution)
 
 ### v0.2 — Lab notes (`lab_notes` table + `/api/lab/notes`)

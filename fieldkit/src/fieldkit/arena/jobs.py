@@ -542,6 +542,35 @@ def dispatch_job(
     return {k: row[k] for k in row.keys()}
 
 
+def _release_and_audit(
+    store: Any, job: Mapping[str, Any], decision: Any, now: str
+) -> None:
+    """Return a governor-held job to ``queued`` + record why (M11, AH-4).
+
+    The drain claimed (``dispatched``) the job before consulting the governor;
+    a non-``allow`` verdict releases that claim back to ``queued`` (so the *next*
+    cron tick reconsiders it once spend resets / a frontier lane is approved)
+    and writes a ``job_triggers`` audit row (``budget_<action>``) carrying the
+    decision detail. No schedule state is persisted (AH-9) — the trigger row +
+    the still-queued job ARE the state.
+    """
+    store.update_job(str(job["id"]), status=JobStatus.QUEUED, dispatched_at=None)
+    store.record_job_trigger(
+        JobTriggerRecord(
+            job_id=str(job["id"]),
+            source=f"budget_{getattr(decision, 'action', 'defer')}",
+            detail_json=json.dumps(
+                {
+                    "reason": getattr(decision, "reason", "unknown"),
+                    **getattr(decision, "detail", {}),
+                },
+                sort_keys=True,
+            ),
+            created_at=now,
+        )
+    )
+
+
 def drain_jobs(
     store: Any,
     *,
@@ -549,14 +578,26 @@ def drain_jobs(
     max_jobs: Optional[int] = None,
     now_fn: Callable[[], str] = _utc_now_iso,
     on_error: str = "record",
+    governor: Optional[Any] = None,
 ) -> list[dict[str, Any]]:
     """Drain the queue one job at a time until empty (M8-5, sequential).
 
     Claims the oldest ``queued`` job, dispatches it, repeats. ``max_jobs``
-    caps a single drain pass (the Phase-2 cron will call this on a schedule).
-    ``on_error='record'`` (default) keeps draining past a failed job (it's
-    already marked ``failed``); ``on_error='raise'`` stops at the first failure.
-    Returns the updated row dict for every job it touched.
+    caps a single drain pass (the **M11 cron calls this on a schedule** via
+    :func:`fieldkit.arena.scheduler.run_drain_cycle`). ``on_error='record'``
+    (default) keeps draining past a failed job (it's already marked ``failed``);
+    ``on_error='raise'`` stops at the first failure.
+
+    ``governor`` (M11, AH-4) is an optional duck-typed budget governor — anything
+    with ``.check_budget(job) -> BudgetDecision`` (the :class:`fieldkit.budget.
+    BudgetGovernor`). When wired, each claimed job is checked **before** dispatch:
+    an *allow* dispatches as usual; an *escalate* / *defer* releases the claim
+    back to ``queued``, records a ``budget_<action>`` audit row, and **stops the
+    pass** (the budget brake — a daily-cap defer holds all remaining work; an
+    escalate leaves the job for the operator to promote to a frontier lane from
+    the standup). The drain never escalates or pushes itself (AH-3 / AH-8): it
+    *stages* the decision for the human-review gate. Returns the updated row dict
+    for every job it actually dispatched.
     """
     done: list[dict[str, Any]] = []
     while max_jobs is None or len(done) < max_jobs:
@@ -564,6 +605,11 @@ def drain_jobs(
         if claimed is None:
             break
         job = {k: claimed[k] for k in claimed.keys()}
+        if governor is not None:
+            decision = governor.check_budget(job)
+            if not getattr(decision, "allowed", False):
+                _release_and_audit(store, job, decision, now_fn())
+                break  # budget brake — leave the rest queued for the next tick
         try:
             done.append(dispatch_job(store, job, runner=runner, now_fn=now_fn))
         except JobDispatchError:

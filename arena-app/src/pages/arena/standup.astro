@@ -1,0 +1,43 @@
+---
+// Standup — /arena/standup/
+//
+// M11 autonomous harness (Phase 2, spec §15). The morning-review gate (AH-3):
+// the overnight cron drains the M8 queue, sweeps for regressions, and STAGES
+// this standup — it never pushes. The operator reads "what ran / what regressed
+// / what's queued / today's $ by lane" and promotes manually (invariants #1/#3).
+// The <StandupPane> island carries the live state; this page is the cockpit shell.
+//
+// Stage-only + operator-private: the render reads the FORBIDDEN jobs /
+// compare_responses rows but emits aggregate-only (id/kind/status, never a
+// per-run prompt or per-run $; R26). On the public mirror there is no sidecar,
+// so the island renders a static note. The Spend row degrades to "—" when the
+// M9 cost plane is absent (AH-5).
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import StandupPane from '../../components/arena/StandupPane.jsx';
+
+const title = 'Orionfold Arena — Standup';
+const description =
+  'The morning-review gate of the autonomous harness — what the overnight cron ran, what regressed, what is queued, and today’s spend by lane vs cap. Stage-only: the loop never pushes; the operator reviews and promotes.';
+---
+<ArenaAppLayout title={title} description={description} active="standup">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Morning&nbsp;standup</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">cron drain · budget governor · review gate</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          stage-only — never pushed
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* Ran / Regressed / Queued + the M9 Spend rail (AH-3). The overnight cron
+          (run_drain_cycle) does the dispatch; this page only renders — an HTTP
+          GET never launches a GPU lane. */}
+      <StandupPane client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>

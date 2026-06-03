@@ -1873,6 +1873,51 @@ def create_app(
         return {"query": body.query, "provenance": body.provenance, "hits": hits}
 
     # ------------------------------------------------------------------
+    # M11 (autonomous harness) — the morning-standup render (AH-3).
+    # ------------------------------------------------------------------
+
+    @app.get("/api/standup")
+    async def api_standup(
+        cap_usd: Optional[float] = Query(default=None, ge=0.0),
+    ) -> dict[str, Any]:
+        """The morning-standup snapshot: **Ran / Regressed / Queued / Spend** (AH-3).
+
+        A read-only render over the existing ``jobs`` / ``leaderboard_baseline`` /
+        M9 cost rows — it does NOT drain (the overnight cron owns dispatch; an
+        HTTP GET never launches a GPU lane). Stage-only by construction: no push
+        path, no per-run prompt, no per-run cost (R26). The Spend row degrades to
+        "—" when the M9 cost plane is absent (AH-5). Empty (not 404) on a fresh
+        box so the pane paints a clean standup. Declared before the static mount
+        so ``/arena/standup`` (the page) and ``/api/standup`` (this) stay distinct.
+        """
+        from fieldkit.arena.scheduler import build_standup
+        from fieldkit.arena.store import ArenaStore
+        from fieldkit.budget import BudgetGovernor
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            return {
+                "generated_at": None,
+                "ran": [],
+                "failed": [],
+                "regressed": [],
+                "queued": [],
+                "spend": {"display": "—", "has_cost_plane": False},
+                "counts": {"ran": 0, "failed": 0, "regressed": 0, "queued": 0},
+                "staged_only": True,
+                "note": "arena.db not initialized",
+            }
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            # The cost ledger reads the same db (M9 soft prereq, AH-5); the
+            # governor supplies the Spend row's $/cap. No drain, no dispatch.
+            governor = BudgetGovernor(ledger=store)
+            return build_standup(store, governor=governor, cap_usd=cap_usd)
+        finally:
+            store.close()
+
+    # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
     # API (page + sidecar both on :7866), so the islands' resolveSidecarUrl()
