@@ -216,6 +216,10 @@ const artifacts = defineCollection({
     civitai_id: z.number().int().optional(),
     download_count: z.number().int().optional(),
     published_at: z.string().optional(),
+    // Catalog-only artifact — `hf_repo` reserved but nothing pushed to the Hub
+    // (mirrors src/content.config.ts; detail pages branch on this to show the
+    // local install path instead of a `snapshot_download`). Default false.
+    catalog_only: z.boolean().optional(),
     // Customer-problem positioning. Surfaces above the measurement table on
     // the catalog page so a visitor sees the value prop before the data.
     // Mirrors `ModelCard.positioning` / `ArtifactManifest.positioning` in
