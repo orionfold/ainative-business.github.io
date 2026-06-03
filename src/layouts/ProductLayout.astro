@@ -24,6 +24,10 @@ interface Props {
 
 const { entry, title, description, ogImage, ogImageAlt, jsonLd } = Astro.props;
 const d = entry.data;
+// An `upcoming` placeholder is a commitment preview, not a launch: it has no
+// real build session and no feature tour yet, so it skips the "What it took to
+// build" infographic + the feature gallery (mirrors ProductCard's isUpcoming).
+const isUpcoming = d.status === 'upcoming';
 const dateIso = d.date.toISOString().slice(0, 10);
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(d.date);
 const seriesHref = d.series ? `/field-notes/series/${SERIES_SLUGS[d.series]}/` : null;
@@ -72,8 +76,8 @@ const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numer
         </div>
       </header>
 
-      <BuildMetricsInfographic build={d.build} />
-      <FeatureGallery features={d.features} slug={entry.id} />
+      {!isUpcoming && <BuildMetricsInfographic build={d.build} />}
+      {!isUpcoming && <FeatureGallery features={d.features} slug={entry.id} />}
 
       <div class="product-body fn-prose">
         <slot />
