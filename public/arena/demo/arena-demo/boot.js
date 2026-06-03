@@ -239,8 +239,65 @@
     document.head.appendChild(s);
     (document.body || document.documentElement).appendChild(el);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ribbon, { once: true });
-  else ribbon();
+  // ----- demo coach: a Discord-style pulse on the next interactive target ---
+  // The sidecar-less demo is self-guiding: a blurple "ping" ring pulses on the
+  // element to click next (rebuild → query on Cortex; a suggested prompt on
+  // chat/compare) and clears the moment the visitor interacts with it.
+  function coachFind(sel, txt) {
+    var t = (txt || '').toLowerCase();
+    var els = [].slice.call(document.querySelectorAll(sel));
+    for (var k = 0; k < els.length; k++) {
+      if (!t || (els[k].textContent || '').trim().toLowerCase().indexOf(t) >= 0) return els[k];
+    }
+    return null;
+  }
+  function demoCoach() {
+    if (!document.getElementById('arena-demo-coach-style')) {
+      var s = document.createElement('style');
+      s.id = 'arena-demo-coach-style';
+      s.textContent =
+        '@keyframes arena-coach-ping{' +
+        '0%{box-shadow:0 0 0 0 rgba(124,140,255,.55),0 0 0 2px rgba(124,140,255,.95)}' +
+        '70%{box-shadow:0 0 0 12px rgba(124,140,255,0),0 0 0 2px rgba(124,140,255,.95)}' +
+        '100%{box-shadow:0 0 0 0 rgba(124,140,255,0),0 0 0 2px rgba(124,140,255,.95)}}' +
+        '.arena-demo-coach{animation:arena-coach-ping 1.5s ease-out infinite;border-radius:8px;position:relative;z-index:2}' +
+        '@media (prefers-reduced-motion:reduce){.arena-demo-coach{animation:none;outline:2px solid rgba(124,140,255,.9);outline-offset:2px}}';
+      document.head.appendChild(s);
+    }
+    // Ordered steps per screen: find the target, the event that completes it,
+    // and a settle delay before pulsing the next one (lets async state land).
+    var plans = {
+      cortex: [
+        { get: function () { return coachFind('button.kp__go', 'rebuild'); }, done: 'click', settle: 3400 },
+        { get: function () { return document.querySelector('.kp__input'); },  done: 'focus', settle: 0 }
+      ],
+      chat:    [{ get: function () { return document.querySelector('.chat-prompt-chip'); }, done: 'click', settle: 0 }],
+      compare: [{ get: function () { return document.querySelector('.chat-prompt-chip'); }, done: 'click', settle: 0 }]
+    };
+    var page = location.pathname.replace(/\/+$/, '');
+    var key = null, ks = Object.keys(plans);
+    for (var n = 0; n < ks.length; n++) { if (page.slice(-(ks[n].length + 1)) === '/' + ks[n]) { key = ks[n]; break; } }
+    if (!key) return;
+    var steps = plans[key], i = 0, cur = null;
+    function clear() { if (cur) { cur.el.classList.remove('arena-demo-coach'); try { cur.el.removeEventListener(cur.ev, cur.fn); } catch (e) {} cur = null; } }
+    function run() {
+      clear();
+      if (i >= steps.length) return;
+      var step = steps[i];
+      if (!step._deadline) step._deadline = performance.now() + 9000;
+      var el = step.get();
+      if (!el || el.disabled) { if (performance.now() < step._deadline) setTimeout(run, 350); return; }
+      el.classList.add('arena-demo-coach');
+      var fn = function () { el.classList.remove('arena-demo-coach'); try { el.removeEventListener(step.done, fn); } catch (e) {} cur = null; i++; setTimeout(run, step.settle || 300); };
+      el.addEventListener(step.done, fn, { once: true });
+      cur = { el: el, ev: step.done, fn: fn };
+    }
+    setTimeout(run, 900); // let the Preact islands hydrate first
+  }
+
+  function onReady() { ribbon(); demoCoach(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady, { once: true });
+  else onReady();
 
   // ----- load fixtures (async; shims read the mutable ref) ------------------
   (realFetch || fetch)(FIXTURE_URL)
