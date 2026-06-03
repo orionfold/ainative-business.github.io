@@ -57,6 +57,9 @@ __all__ = [
     "reindex_memory",
     "rag_eval_index",
     "scout_ingest",
+    # Phase 3 (rlvr-loop-v1) — closed-loop RLVR job-execution tools.
+    "run_rl_loop",
+    "requant_checkpoint",
 ]
 
 MCP_SERVER_NAME = "fieldkit"
@@ -178,6 +181,18 @@ MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         "scout_ingest",
         "memory",
         "Fold a frontier-scout papers.json (feasibility verdicts) into the index as scout-class memory.",
+        False,
+    ),
+    MCPToolSpec(
+        "run_rl_loop",
+        "rl",
+        "Run one closed-loop RLVR run — verifier-as-reward GRPO with a held-out-only checkpoint gate.",
+        False,
+    ),
+    MCPToolSpec(
+        "requant_checkpoint",
+        "rl",
+        "Re-quantize a held-out-winning RLVR checkpoint to the GGUF variant ladder (dry-run by default).",
         False,
     ),
 )
@@ -713,6 +728,116 @@ def scout_ingest(
     )
 
 
+# --- Phase 3 (rlvr-loop-v1) — the closed-loop RLVR engine ------------------
+
+#: The vertical-bench scorers `run_rl_loop` can use as its verifier-reward.
+#: Mirrors the deterministic `fieldkit.eval` scorers + the patent-strategist set
+#: (`RewardAdapter` wraps any of them); judge-backed scorers need a warm NIM and
+#: are passed by the caller via the run config, not this string map.
+_RL_SCORERS = (
+    "mcq_letter", "numeric_match", "irac_structure",
+    "prior_art_relevance", "exact_match", "contains",
+)
+
+
+def run_rl_loop(
+    base: str,
+    vertical: str = "patent-strategist",
+    *,
+    bench_path: Optional[str] = None,
+    scorer: str = "mcq_letter",
+    lane: Optional[str] = None,
+    bench_id: Optional[str] = None,
+    config: Optional[dict[str, Any]] = None,
+) -> dict[str, Any]:
+    """Run one closed-loop RLVR run (Phase 3 ``rl_run`` body — RV-1/2/4).
+
+    Assembles the `fieldkit.rl.RLLoop` over a vertical bench: the verifier
+    (`fieldkit.eval` scorer) becomes the reward via `fieldkit.reward.
+    RewardAdapter`, and the GPU seams (pinned-vLLM rollout, REINFORCE-with-KL
+    LoRA step + kill-and-restart, the held-out gate) come from `fieldkit.rl.
+    gpu_seams`. Returns the run's aggregate digest (`RLLoop.summary` — the
+    held-out-selected checkpoint, the held-out vs pool trajectories) plus the
+    rendered ``rl_run`` lineage card; the Arena dispatcher persists the digest
+    to ``jobs.result_json``.
+
+    **Real GPU work, overnight-only** — the 8.5 h GRPO loop runs under the M11
+    single-lane cron, never a synchronous click (RV-6). `gpu_seams` raises until
+    the pinned-vLLM backend is vendored into `fieldkit[rl]`
+    (`[[project_verl_atgpo_vllm_gap]]`); callers driving the loop today inject
+    their own seams into `RLLoop` directly. The orchestration — split, reward,
+    group-relative advantage, held-out-only checkpoint selection, lineage card —
+    is the part this build ships and tests.
+    """
+    from fieldkit.eval import (
+        VerticalBench, contains, exact_match, irac_structure,
+        mcq_letter, numeric_match, prior_art_relevance,
+    )
+    from fieldkit.reward import RewardAdapter
+    from fieldkit.rl import GRPOConfig, RLLoop, gpu_seams
+
+    if scorer not in _RL_SCORERS:
+        raise ValueError(f"unknown scorer {scorer!r}; choose one of {_RL_SCORERS}")
+    if not bench_path:
+        raise ValueError(
+            "run_rl_loop needs `bench_path` — the bench gold JSONL the corpus "
+            "and the held-out split are carved from (≥100 rows, RV-10). The "
+            "Arena dispatcher resolves it from the bench registry."
+        )
+    path = Path(bench_path).expanduser()
+    if not path.exists():
+        raise FileNotFoundError(f"Bench JSONL not found: {bench_path}")
+
+    scorer_fn = {
+        "mcq_letter": mcq_letter, "numeric_match": numeric_match,
+        "irac_structure": irac_structure, "prior_art_relevance": prior_art_relevance,
+        "exact_match": exact_match, "contains": contains,
+    }[scorer]
+
+    cfg_kwargs = dict(config or {})
+    pass_threshold = cfg_kwargs.pop("pass_threshold", 1.0)
+    cfg_kwargs.setdefault("vllm_pin", os.environ.get("ARENA_RL_VLLM_PIN", ""))
+    cfg = GRPOConfig(base=base, **cfg_kwargs)
+    reward = RewardAdapter(scorer_fn, pass_threshold=pass_threshold)
+    bench = VerticalBench.from_jsonl(path, name=vertical, scorer=scorer_fn)
+
+    sampler, trainer, heldout_eval = gpu_seams(cfg)
+    loop = RLLoop(
+        cfg, reward, bench,
+        sampler=sampler, trainer=trainer, heldout_eval=heldout_eval, domain=vertical,
+    )
+    snap = loop.run()
+    summary = loop.summary()
+    summary["lineage_card"] = snap.rendered_prompt
+    summary["lane"] = lane
+    summary["bench_id"] = bench_id
+    return summary
+
+
+def requant_checkpoint(
+    manifest_slug: str,
+    checkpoint: str,
+    variants: Optional[list[str]] = None,
+    dry_run: bool = True,
+) -> dict[str, Any]:
+    """Re-quantize a held-out-winning RLVR checkpoint to GGUF (``requant`` body).
+
+    The fast-follow after an `rl_run` lifts the held-out bench: re-quantize the
+    merged LoRA checkpoint so the lifted model ships as the same GGUF variant
+    ladder the original quant did. Thin wrapper over :func:`quantize_gguf`
+    (dry-run by default, same envelope guard), keyed by the manifest it
+    republishes. RV-9 keeps the *publish* deferred — this produces the variants;
+    promotion to a `kind: quant` manifest is a separate, human-gated step.
+    """
+    report = quantize_gguf(
+        model_path=checkpoint,
+        outdir=os.path.expanduser(f"~/.fieldkit/arena/requant/{manifest_slug}"),
+        variants=variants,
+        dry_run=dry_run,
+    )
+    return {"manifest_slug": manifest_slug, "checkpoint": checkpoint, **report}
+
+
 # --- Server assembly -------------------------------------------------------
 
 _READ_ONLY = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
@@ -845,6 +970,27 @@ def build_mcp_server(name: str = MCP_SERVER_NAME) -> Any:
         ),
         annotations=_WRITES,
     )(scout_ingest)
+
+    server.tool(
+        description=(
+            "Run one closed-loop RLVR run (Phase 3): a vertical-bench verifier is "
+            "the reward, GRPO/REINFORCE-with-KL takes LoRA steps over a pinned "
+            "vLLM, and a frozen held-out split gates checkpoint selection (never "
+            "the training pool). Real GPU work, overnight-only — backs the Arena "
+            "`rl_run` job. Returns the held-out-selected checkpoint + lineage card."
+        ),
+        annotations=_WRITES,
+    )(run_rl_loop)
+
+    server.tool(
+        description=(
+            "Re-quantize a held-out-winning RLVR checkpoint to the GGUF variant "
+            "ladder (dry-run by default, same envelope guard as quantize_gguf). "
+            "The fast-follow after an `rl_run` lift. Backs the Arena `requant` "
+            "job; publishing the lifted model stays a separate human-gated step."
+        ),
+        annotations=_WRITES,
+    )(requant_checkpoint)
 
     return server
 

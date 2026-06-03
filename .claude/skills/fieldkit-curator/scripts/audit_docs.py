@@ -52,7 +52,7 @@ DOCS = REPO / "fieldkit" / "docs" / "api"
 MODULES = [
     "capabilities", "nim", "rag", "eval", "training",
     "lineage", "quant", "publish", "cli", "viz", "notebook", "harness",
-    "arena", "cost", "memory", "budget",
+    "arena", "cost", "memory", "budget", "reward", "rl",
 ]
 
 # Visual output toggles
