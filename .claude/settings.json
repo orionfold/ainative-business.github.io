@@ -11,6 +11,41 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nvidia/ainative-business.github.io/.claude/hooks/pre_commit_guard.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nvidia/ainative-business.github.io/.claude/hooks/post_publish.sh",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nvidia/ainative-business.github.io/.claude/hooks/stop_feedback.sh",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

@@ -1441,7 +1441,8 @@ deploy.
 
 ## 15. M11 — Autonomous harness + cron (Phase 2 of the MTBM roadmap)
 
-> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> **Status: BUILT 2026-06-02 (as-built map in §15.7).** Decisions signed off +
+> built same session; release gate `fieldkit v0.19.0`. This section
 > realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Phase 2 / Bet 2 ("the
 > autonomous harness — hooks + a scheduled loop that the control plane governs")** as the
 > **Arena M11** milestone — the **hands** in the `pane → hands → engine` sequence. Placement
@@ -1571,6 +1572,28 @@ M11 is the **hands** that operate the pane (M8) using the cost (M9) and recall (
 - **Phase 3 (`rlvr-loop-v1.md`)** — the cron **drains `rl_run` jobs overnight** (Phase 3's compute is too long for a synchronous click; the M11 scheduler is its execution home, single-lane); the budget governor's **$/quality gate decides RL-vs-frontier** *before* approving an `rl_run` (cheaper to RLVR a local model to threshold, or pay frontier per call?); and **held-out eval becomes a scheduled job** (the held-out-every-10-steps hard gate from `t2po` runs as an M11-scheduled `eval_rerun`, not a manual step). RLVR without M11 is a loop with no overnight home and no budget brake.
 - **Closes the autonomous loop over M8/M9/M10** — M8's queue gets **drained autonomously**, M9's ledger gets **enforced** (not just displayed), M10's index gets **refreshed on schedule** (AH-6 ⇒ M10-11's freshness arm). After M11, the operator's posture is *review the standup + promote*, not *run the scripts* — the thesis the whole roadmap is about.
 - **The §5 series gets its Phase-2 launch** — the `product-writer` "autonomous harness" launch (morning-standup · cron queue · budget governor) cross-linking the existing H4 deep-dive, per the HANDOFF editorial overlay, becomes promotable once M11 ships.
+
+### 15.7 As-built map (BUILT 2026-06-02)
+
+M11 crossed spec → build in one session. Every decision AH-1…9 landed as written; the one reconciliation is recorded inline. **No schema, no `user_version` bump (AH-9) — the arena.db stays at M10's `6`.**
+
+| Decision | As built |
+|---|---|
+| AH-1 scheduler over the built drain | New **`fieldkit.arena.scheduler`** — `run_drain_cycle(store, *, governor, …)` calls the *unchanged* `drain_jobs()` + `check_and_enqueue_regressions()` behind a `DrainLock` (one-drain-at-a-time, stale-pid stealing — the `scheduled_tasks.lock` pattern, NOT that file). Single-lane, `max_jobs`-capped. Reimplements no dispatch. |
+| AH-2 hook battery 1→N | `.claude/hooks/` + `.claude/settings.json`: `pre_commit_guard.sh` (PreToolUse·Bash → secret-scan + advisory verifiers), `post_publish.sh` (PostToolUse·Bash → stats nudge + freshness `eval_rerun` enqueue), `stop_feedback.sh` (Stop → §6.5 loop), plus the shared `secret_scan.sh`. Deterministic shell only (invariant #4). The lone `SessionStart` deploy-check is preserved. |
+| AH-3 standup = render, no push | `scheduler.build_standup()` + `GET /api/standup` + the `/arena/standup/` pane. **Ran / Regressed / Failed / Queued + Spend** over `jobs` / `leaderboard_baseline` / M9 cost rows. Projects `id/kind/status` only (never `payload_json`); `staged_only: True` — no push path exists by construction (R26). |
+| AH-4 `fieldkit.budget` governor | New module (`__all__` = `BudgetGovernor`, `BudgetDecision`, `SpendDigest`, `EscalationReason`, `MemoryEnvelope`, `check_budget`, `BudgetError`). `LOCAL_CEILING = 0.33` + `LOCAL_CEILING_TRIGGERS` (the failure classes that mean *local gave up*). Generalizes the weekly-`/usage` gate + the OOM-envelope check into one `check_budget(job)`. |
+| AH-5 M9 = soft prerequisite | `BudgetGovernor(ledger=…)` enables the `$/task` + 33% branch; `ledger=None` degrades to the token + `MemoryEnvelope` guard. `SpendDigest`/`_has_cost_plane` probe `compare_responses.cost_usd` and render "—" on a pre-M9 db. No hard M9↔M11 build ordering. |
+| AH-6 freshness monitor emits triggers | `run_drain_cycle(freshness=True)` calls the built `check_and_enqueue_regressions()` each tick (the next tick's `eval_rerun` triggers); `post_publish.sh` enqueues an articles/products freshness trigger. |
+| AH-7 autonomy layer, not new kinds | `JobKind.DISPATCHABLE` is **untouched** — M11 drains + schedules what M8/M10 already dispatch; it promotes no new kind. |
+| AH-8 containment carries forward | The drain dispatches through the same `default_runner` → `fieldkit.harness` MCP surface + sandbox M8 built; M11 adds the budget ceiling + the standup gate *on top*, never relaxes them. |
+| AH-9 no new arena.db table / no bump | Confirmed — schedules live in `fieldkit.budget` config + the `/schedule` routine; the standup is an ephemeral render; budget decisions persist as `job_triggers` `budget_<action>` audit rows on the existing table. Schema stays at `6`. |
+
+**Drain governor wiring (the one cross-module change).** `drain_jobs` gained an optional duck-typed `governor`; a non-`allow` verdict releases the claim back to `queued`, writes the `budget_<action>` audit row, and **breaks the pass** (non-looping by construction — the released job is not re-claimed because the pass ends). `governor=None` is the exact M8/M10 behavior (back-compatible).
+
+**Operator actions left** (the live cron is a deliberate non-default): the `run_drain_cycle` glue + `fieldkit.budget` ship, but **no cron is registered** — wiring `/schedule` (or a `~/.claude` routine) to call `run_drain_cycle` overnight is an explicit operator opt-in (the autonomy gate stays human-armed). The hook battery is wired into the **repo** `.claude/settings.json`, so it is live for this repo's sessions immediately; `secret_scan` hard-blocks, the rest are advisory.
+
+**Verified:** new `test_budget.py` + `test_scheduler.py`; full suite green; `audit-docs budget 7/7 + arena` clean; `astro build` adds `/fieldkit/api/budget/` + `/arena/standup/`; both verifiers green; cockpit `_webui` rebaked (the standup pane bakes). **Release gate: `fieldkit v0.19.0`** (separate `fieldkit-curator` action). **Next build: `rlvr-loop-v1` (Phase 3 — the engine).**
 
 ## 16. Change log
 

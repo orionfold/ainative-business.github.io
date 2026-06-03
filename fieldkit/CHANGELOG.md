@@ -6,6 +6,59 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The **Arena M11 autonomous harness — the hands** in the `pane → hands → engine`
+sequence (`_SPECS/spark-arena-v1.md` §15). M11 turns the M8 button-driven
+dispatcher into a self-operating overnight loop with a human-review gate. It
+reimplements **no dispatch** — it schedules the already-built `drain_jobs()` +
+`check_and_enqueue_regressions()`, gated by a new budget governor, behind a
+one-drain-at-a-time lock, and stages a morning standup it **never pushes**
+(invariants #1/#3). **No schema change** (AH-9): the arena.db stays at
+`user_version 6`.
+
+### Added
+
+- **`fieldkit.budget` — the Arena M11 budget governor (new module, Phase 2)**
+  (`__all__` = 7 symbols: `BudgetGovernor`, `BudgetDecision`, `SpendDigest`,
+  `EscalationReason`, `MemoryEnvelope`, `check_budget`, `BudgetError`). The
+  **brake** the autonomous drain consults before each job, returning *allow /
+  escalate / defer*. Escalation is the **`LOCAL_CEILING = 33%`**
+  *failure-mode-driven* contract (escalate when local *gives up* — a multi-step
+  planning / KV-cache-derivation failure class — not on a token ceiling alone,
+  AH-4, grounded in H6). M9's cost plane is a **soft prerequisite** (AH-5): with
+  a `CostLedger` wired the governor reads the persisted `$/task` + the 33%
+  ceiling; without it it degrades to a token + OOM-envelope guard.
+  `MemoryEnvelope.fits()` is the OOM guard (the 2026-04-22 box-hang landmine,
+  one lane at a time). `SpendDigest` is the standup's Spend row (today's $ by
+  lane vs cap, "—" pre-M9). Store-agnostic by duck-typing — never imports
+  `fieldkit.arena`. **Governor, not meter** — it consumes M9's ledger (M9-9).
+- **`fieldkit.arena.scheduler` — the cron glue (new)** (`__all__` = `DrainLock`,
+  `DrainLockHeld`, `run_drain_cycle`, `build_standup`, `DEFAULT_LOCK_PATH`).
+  `run_drain_cycle` is one cron tick — acquire the one-drain-at-a-time
+  `DrainLock` (the `scheduled_tasks.lock` pattern with stale-pid stealing, R24),
+  drain with the governor in the loop, run the freshness sweep (AH-6), stage the
+  standup. `build_standup` renders **Ran / Regressed / Queued / Spend** over the
+  existing tables (aggregate, operator-private, no push path — R26).
+- **`GET /api/standup`** — the morning-standup snapshot (read-only; never drains
+  — an HTTP GET launches no GPU lane). Empty (not 404) on a fresh box; the Spend
+  row degrades to "—" when the M9 cost plane is absent.
+- **`/arena/standup/` cockpit pane** — the morning-review gate: the M9 Spend rail
+  + the Ran / Regressed / Failed / Queued buckets, stage-only.
+- **Hook battery (`.claude/`)** — the lone `SessionStart` hook expands into a
+  battery (AH-2, deterministic shell only): `pre_commit_guard.sh` (PreToolUse —
+  secret-scan **hard-blocks** a planted secret; the render verifiers run
+  **advisory**, R25), `post_publish.sh` (PostToolUse — stats nudge +
+  freshness-trigger enqueue on an articles/products commit), `stop_feedback.sh`
+  (the §6.5 Stop loop, finally wired). `secret_scan.sh` is the shared
+  privacy-gated-publish scanner (invariant #3).
+
+### Changed
+
+- **`fieldkit.arena.jobs.drain_jobs`** gains an optional `governor` (duck-typed
+  `.check_budget(job) -> BudgetDecision`). A claimed job is checked **before**
+  dispatch: an *allow* dispatches; an *escalate* / *defer* releases the claim
+  back to `queued`, records a `budget_<action>` audit row, and stops the pass
+  (the budget brake). Back-compatible — `governor=None` is the M8/M10 behavior.
+
 ## [0.18.0] — 2026-06-02
 
 The **two cross-cutting Arena bets — M9 cost plane + M10 recall layer** — ship

@@ -36,7 +36,7 @@ interface Props {
   title: string;
   description?: string;
   /** Which top-nav tab is active. */
-  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'knowledge' | 'lab';
+  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'knowledge' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
 }
@@ -53,6 +53,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   chat: 'Chat',
   compare: 'Compare',
   jobs: 'Jobs',
+  standup: 'Standup',
   knowledge: 'Knowledge',
   lab: 'Lab',
 };
@@ -227,6 +228,7 @@ try {
         <a href={href('arena/chat/')}        class:list={["arena-app__tab", active === 'chat'        && 'is-active']}>Chat</a>
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
         <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
+        <a href={href('arena/standup/')}     class:list={["arena-app__tab", active === 'standup'     && 'is-active']}>Standup</a>
         <a href={href('arena/knowledge/')}   class:list={["arena-app__tab", active === 'knowledge'   && 'is-active']}>Knowledge</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
       </nav>
@@ -3380,6 +3382,82 @@ try {
       .arena-app .kp__runs-ver { color: var(--arena-text-dim); opacity: 0.7; }
       .arena-app .kp__runs-status[data-status="done"] { color: var(--arena-ok); }
       .arena-app .kp__runs-status[data-status="failed"] { color: var(--arena-warn); }
+
+      /* ---------------------------------------------------------------
+       *  Standup — autonomous harness (/arena/standup/) — M11
+       * --------------------------------------------------------------- */
+      .arena-app .standup { display: flex; flex-direction: column; gap: 1rem; }
+      .arena-app .standup__offline {
+        display: flex; align-items: flex-start; gap: 0.7rem; padding: 1rem 1.1rem;
+        border: 1px dashed var(--arena-border); border-radius: 0.5rem;
+        color: var(--arena-text-mute); font-size: 0.8rem; line-height: 1.5;
+      }
+      .arena-app .standup__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
+      .arena-app .standup__offline strong { color: var(--arena-text); }
+      .arena-app .standup__offline-dot {
+        flex: 0 0 auto; width: 0.5rem; height: 0.5rem; margin-top: 0.35rem;
+        border-radius: 50%; background: var(--arena-text-dim);
+      }
+      /* Spend rail — the M9 SpendDigest, "—" when the cost plane is absent */
+      .arena-app .standup__spend {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 1.1rem;
+        padding: 0.8rem 1rem; border: 1px solid var(--arena-border);
+        border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .standup__spend[data-over="true"] { border-color: var(--arena-warn); }
+      .arena-app .standup__spend-total {
+        font-family: var(--arena-mono); font-size: 1.05rem; font-weight: 700; color: var(--arena-text);
+      }
+      .arena-app .standup__spend[data-over="true"] .standup__spend-total { color: var(--arena-warn); }
+      .arena-app .standup__spend-label {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.16em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .standup__spend-lanes { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-left: auto; }
+      .arena-app .standup__spend-lane {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-mute);
+        padding: 0.1rem 0.4rem; border: 1px solid var(--arena-border); border-radius: 0.3rem;
+      }
+      .arena-app .standup__spend-lane b { color: var(--arena-text); font-weight: 600; }
+      /* Four buckets */
+      .arena-app .standup__cols {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem;
+      }
+      .arena-app .standup__col {
+        border: 1px solid var(--arena-border); border-radius: 0.5rem;
+        background: var(--arena-panel); padding: 0.8rem 0.9rem; min-height: 6rem;
+      }
+      .arena-app .standup__col-head {
+        display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.6rem;
+      }
+      .arena-app .standup__col-title {
+        font-family: var(--arena-mono); font-size: 0.7rem; font-weight: 700;
+        letter-spacing: 0.12em; text-transform: uppercase; color: var(--arena-text);
+      }
+      .arena-app .standup__col-count {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-dim);
+      }
+      .arena-app .standup__col[data-warn="true"] .standup__col-title { color: var(--arena-warn); }
+      .arena-app .standup__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+      .arena-app .standup__row {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.72rem; color: var(--arena-text-mute);
+      }
+      .arena-app .standup__row code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
+      .arena-app .standup__row-status {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.08em;
+        text-transform: uppercase; margin-left: auto;
+      }
+      .arena-app .standup__row-status[data-status="done"] { color: var(--arena-ok); }
+      .arena-app .standup__row-status[data-status="failed"] { color: var(--arena-warn); }
+      .arena-app .standup__row-status[data-status="queued"] { color: var(--arena-text-dim); }
+      .arena-app .standup__row-reg code { color: var(--arena-warn); }
+      .arena-app .standup__empty { font-size: 0.72rem; color: var(--arena-text-dim); font-style: italic; }
+      .arena-app .standup__staged {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-dim);
+        letter-spacing: 0.04em;
+      }
+      .arena-app .standup__staged b { color: var(--arena-ok); }
 
       /* Built-together timeline */
       .arena-app .lab-timeline { margin: 1.75rem 0 1rem; }
