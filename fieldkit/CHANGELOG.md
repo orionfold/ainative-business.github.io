@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+
+- **`fieldkit.harness.mcp.rag_eval_index` raised `NameError: name 'json' is not
+  defined` on the real Arena `rag_eval` dispatch path.** The function parses the
+  in-repo qa-eval gold set with `json.loads` but the module shipped without a
+  module-level `import json` (the only `json.` reference in the file). The
+  mock-injected `rag_eval` job tests never executed the real tool, so the M10
+  recall-eval path was broken on a live cockpit drain since it landed. Added the
+  import + a regression test (`test_rag_eval_index_parses_gold_jsonl`) that
+  exercises the gold-set parse infra-free. Surfaced by the end-to-end
+  local-knowledge-appliance dogfood (a real Arena reindex+rag_eval drain).
+
 ## [0.20.0] — 2026-06-03
 
 The **closed-loop RLVR engine — the *engine*** in the `pane → hands → engine`

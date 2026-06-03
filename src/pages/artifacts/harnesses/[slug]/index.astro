@@ -101,6 +101,23 @@ const jsonLd = [
       </section>
     )}
 
+    {a.vertical_eval && Object.keys(a.vertical_eval).length > 0 && (
+      <section class="hd__section">
+        <h2 class="hd__section-title">Measured</h2>
+        {a.vertical_eval_name && (
+          <p class="hd__section-blurb">{a.vertical_eval_name}</p>
+        )}
+        <dl class="hd__drift">
+          {Object.entries(a.vertical_eval).map(([k, v]) => (
+            <>
+              <dt>{k}</dt>
+              <dd>{typeof v === 'number' ? v.toFixed(4) : v}</dd>
+            </>
+          ))}
+        </dl>
+      </section>
+    )}
+
     {lanes.length > 0 && (
       <section class="hd__section">
         <h2 class="hd__section-title">Lane variants</h2>

@@ -171,3 +171,43 @@ def test_require_fastmcp_returns_class_when_available():
     pytest.importorskip("mcp")
     cls = fkmcp._require_fastmcp()
     assert cls.__name__ == "FastMCP"
+
+
+def test_rag_eval_index_parses_gold_jsonl(tmp_path, monkeypatch):
+    # Regression: rag_eval_index parses the gold set with json.loads but the
+    # module shipped without `import json`, so the real dispatch path raised
+    # NameError("name 'json' is not defined") — invisible to the mock-injected
+    # job tests, surfaced only by an end-to-end Arena reindex+rag_eval drain.
+    import fieldkit.memory as mem
+
+    gold = tmp_path / "qa.jsonl"
+    gold.write_text(
+        '{"question": "q1", "source": "slug-a", "chunk": 0}\n'
+        '{"question": "q2", "source": "slug-b", "chunk": 1}\n'
+    )
+    monkeypatch.setattr(mem, "resolve_qa_set", lambda qa=None: str(gold))
+
+    class _FakeIndex:
+        def query(self, q, top_k=5):
+            # q1's gold (slug-a, chunk 0) is retrieved; q2 hits slug-b but the
+            # wrong chunk → slug-recall 2/2, chunk-recall 1/2.
+            return [
+                {"slug": "slug-a", "chunk_idx": 0},
+                {"slug": "slug-b", "chunk_idx": 9},
+            ]
+
+    monkeypatch.setattr(mem, "MemoryIndex", _FakeIndex)
+
+    out = fkmcp.rag_eval_index()
+    assert out["qa_set"] == "qa.jsonl"
+    assert out["n"] == 2
+    assert out["rerank"] == 0
+    assert out["recall_at_k"] == 0.5
+    assert out["slug_recall_at_k"] == 1.0
+    assert out["faithfulness"] is None  # cosine-only lane — no generator NIM
+
+
+def test_rag_eval_index_rerank_true_raises():
+    # R22 — rerank has no GB10 profile, so a score is never silently mislabelled.
+    with pytest.raises(ValueError, match="rerank=True is unsupported"):
+        fkmcp.rag_eval_index(rerank=True)
