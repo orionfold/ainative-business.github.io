@@ -16,6 +16,17 @@ skills, `src/content.config.ts`, and the `fieldkit` package source).
 | [`spark-arena-v1.md`](spark-arena-v1.md) | ACTIVE | The Orionfold Arena operator cockpit (M1–M7 + v0.2 leap) — sidecar, chat, compare, leaderboard, leak-proof mirror. **§12 adds the M8 control-plane milestone** (`_FLOWS` §3 Phase 1: recorder → dispatcher, `jobs` table + MCP-harness dispatcher; spec-only, unbuilt). Governs `fieldkit.arena`. |
 | [`hermes-harness-v1.md`](hermes-harness-v1.md) | ACTIVE | The Harnesses content line — install / serve / harden / route / eval an agent harness (Hermes first) on the Spark. Governs `fieldkit.harness`. |
 
+### Planned (named in `_FLOWS` §3, not yet written — prioritized 2026-06-02)
+
+Phase 1 (Arena M8 control plane) **shipped** (`fieldkit v0.16.0`), so the four remaining roadmap stubs are now prioritized. Write in this order; spec-feedable numbers per stub are in [`roadmap-reconciliation.md`](roadmap-reconciliation.md) §"Spec-feedable facts", and `spark-arena-v1.md` §12.6 names how each extends the M8 `jobs` table. Bets 5/6 are **Arena milestones** — likely land as `spark-arena-v1.md` §13+ (mirroring the §12 M8 pattern), not standalone files. Each opens with "locked decisions — confirm before build"; writing one is **user-green-lit**.
+
+| Order | Stub | Roadmap | Why here |
+|---|---|---|---|
+| 1 | `cost-plane-v1` | Bet 6 → Arena M9 | Lowest marginal effort (persist what `_compare_cost_usd()` computes); prerequisite for the Phase-2 budget governor; closes the §7 un-version-controlled-evidence drift. |
+| 2 | `second-brain-pipeline-v1` | Bet 5 → Arena M10 | Rides shipped M8; freshest grounding (Second Brain re-indexed 12→50 articles 2026-06-02); feeds the Phase-2 freshness monitor. |
+| 3 | `autonomous-harness-v1` | Phase 2 (hands) | Written *after* Bets 5/6 — the budget governor + freshness monitor reference their contracts; drains the M8 queue overnight. |
+| 4 | `rlvr-loop-v1` | Phase 3 (engine) | Last: deepest/most-uncertain; the payload that lands into everything above. |
+
 ### Rendering companions
 
 | Spec | Status | Scope |
