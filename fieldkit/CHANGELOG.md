@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.19.0] — 2026-06-03
+
 The **Arena M11 autonomous harness — the hands** in the `pane → hands → engine`
 sequence (`_SPECS/spark-arena-v1.md` §15). M11 turns the M8 button-driven
 dispatcher into a self-operating overnight loop with a human-review gate. It
@@ -58,6 +60,26 @@ one-drain-at-a-time lock, and stages a morning standup it **never pushes**
   dispatch: an *allow* dispatches; an *escalate* / *defer* releases the claim
   back to `queued`, records a `budget_<action>` audit row, and stops the pass
   (the budget brake). Back-compatible — `governor=None` is the M8/M10 behavior.
+
+### Test suite
+
+- **1183 passed / 16 skipped** offline (`pytest tests/`) — +30 over the v0.18.0
+  baseline (`tests/test_budget.py` for the `BudgetGovernor` allow/escalate/defer
+  contract, the `LOCAL_CEILING` failure-mode trigger, and the `MemoryEnvelope`
+  OOM guard; `tests/arena/test_scheduler.py` for `DrainLock` stale-pid stealing,
+  `run_drain_cycle`, `build_standup`, and the `drain_jobs(governor=...)` claim
+  release). The 16 skips are the pre-existing `--spark` (live NIM / pgvector) +
+  optional-dep (torch, matplotlib, great_tables, jupytext) suites. `audit-docs`
+  15/16 PASS (`budget` 7/7 + arena clean; cli SKIP — no explicit `__all__`; the
+  3-kwarg `ArenaStore` WARN is pre-existing and non-blocking); `audit-landing`
+  4/4 PASS (`budget` tagline added). **No schema change** — arena.db stays at
+  `user_version 6` (AH-9).
+
+### Articles in this release
+
+- None — M11 is package-only. The Phase-2 cockpit launch article (`product-writer`
+  for the morning-standup / cron-queue / budget-governor surface, cross-linking
+  the H4 deep-dive) remains gated on Phase 2 shipping.
 
 ## [0.18.0] — 2026-06-02
 
