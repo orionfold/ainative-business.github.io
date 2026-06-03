@@ -54,7 +54,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   compare: 'Compare',
   jobs: 'Jobs',
   standup: 'Standup',
-  knowledge: 'Knowledge',
+  knowledge: 'Cortex',
   lab: 'Lab',
 };
 const activeLabel = ACTIVE_LABELS[active] ?? '';
@@ -229,7 +229,7 @@ try {
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
         <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
         <a href={href('arena/standup/')}     class:list={["arena-app__tab", active === 'standup'     && 'is-active']}>Standup</a>
-        <a href={href('arena/knowledge/')}   class:list={["arena-app__tab", active === 'knowledge'   && 'is-active']}>Knowledge</a>
+        <a href={href('arena/knowledge/')}   class:list={["arena-app__tab", active === 'knowledge'   && 'is-active']}>Cortex</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
       </nav>
 

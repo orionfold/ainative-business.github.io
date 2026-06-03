@@ -26,7 +26,14 @@ const { artifact } = Astro.props;
 const d = artifact.data;
 
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
-const href = (p) => `${base}${p}`.replace(/\/+/g, '/');
+// When the bundle is baked at `…/arena` (wheel + demo), the base already ends
+// in /arena, so an `arena/…` path must drop its leading segment or it doubles
+// to /arena/arena/… (a 404). Mirrors the layout's href() helper.
+const bakedArena = base.replace(/\/$/, '').endsWith('/arena');
+const href = (p) => {
+  const rel = bakedArena && p.startsWith('arena/') ? p.slice('arena/'.length) : p;
+  return `${base}${rel}`.replace(/\/+/g, '/');
+};
 
 const title = `Orionfold Arena — ${d.positioning?.headline || d.slug}`;
 const description = d.positioning?.problem || `${d.slug} — ${d.base_model} (${d.kind}).`;
