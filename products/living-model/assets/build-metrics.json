@@ -1,0 +1,55 @@
+{
+  "build_window": {
+    "since": "2026-06-03T02:50:00+00:00",
+    "until": "2026-06-03T03:16:00+00:00"
+  },
+  "tokens": {
+    "by_model": {
+      "claude-opus-4-8": {
+        "input_tokens": 27733,
+        "output_tokens": 101391,
+        "cache_creation_input_tokens": 373242,
+        "cache_read_input_tokens": 13025393,
+        "turns": 111
+      }
+    },
+    "totals": {
+      "input_tokens": 27733,
+      "output_tokens": 101391,
+      "cache_creation_input_tokens": 373242,
+      "cache_read_input_tokens": 13025393,
+      "total_all": 13527759,
+      "fresh_in_out": 129124
+    },
+    "assistant_turns": 111,
+    "sessions_touched": 3
+  },
+  "loc": {
+    "by_ext": {
+      ".py": {
+        "files": 2,
+        "lines": 624
+      }
+    },
+    "total_lines": 624,
+    "total_files": 2
+  },
+  "tests": {
+    "test_files": 2,
+    "test_cases": 21
+  },
+  "wall_clock": {
+    "first_commit": {
+      "hash": "161389910",
+      "time": "2026-06-03T03:14:49-07:00",
+      "subject": "feat(rl): build rlvr-loop-v1 \u2014 the closed-loop RLVR engine (Phase 3)"
+    },
+    "last_commit": {
+      "hash": "161389910",
+      "time": "2026-06-03T03:14:49-07:00",
+      "subject": "feat(rl): build rlvr-loop-v1 \u2014 the closed-loop RLVR engine (Phase 3)"
+    },
+    "commit_count": 1,
+    "elapsed_hours": 0.0
+  }
+}
