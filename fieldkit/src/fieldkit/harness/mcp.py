@@ -802,7 +802,7 @@ def run_rl_loop(
     reward = RewardAdapter(scorer_fn, pass_threshold=pass_threshold)
     bench = VerticalBench.from_jsonl(path, name=vertical, scorer=scorer_fn)
 
-    sampler, trainer, heldout_eval = gpu_seams(cfg)
+    sampler, trainer, heldout_eval = gpu_seams(cfg, reward=reward)
     loop = RLLoop(
         cfg, reward, bench,
         sampler=sampler, trainer=trainer, heldout_eval=heldout_eval, domain=vertical,

@@ -83,6 +83,23 @@ arena = [
   "huggingface_hub>=0.24",
   "pyyaml>=6.0",
 ]
+# Closed-loop RLVR GPU backend (rlvr-loop-v1 — the engine of pane→hands→engine).
+# `fieldkit.rl.gpu_seams` wires the vendored `clawgym-on-spark-grpo` REINFORCE-
+# with-KL LoRA step (`fieldkit._rl_gpu_trainer`) + the torch-free HTTP rollout
+# sampler / vLLM serve lane (`fieldkit._rl_gpu_serve`). Heaviest + most
+# operator-gated of the extras: `import fieldkit.rl` stays stdlib-cheap; ONLY a
+# live `gpu_seams()` call imports the torch trainer. The trainer deps below are
+# pip-installable; the rollout/serve lane needs a **pinned vLLM served as a
+# separate process** — there is NO aarch64+CUDA-13 vLLM wheel to depend on yet
+# (`project_verl_atgpo_vllm_gap`), so vLLM is deliberately NOT a dependency here.
+# Bring it up on the box separately (see fieldkit/docs/api/rl.md "Operator run").
+rl = [
+  "torch>=2.4",
+  "peft>=0.12",
+  "transformers>=4.44",
+  "safetensors>=0.4",
+  "accelerate>=0.33",  # peft device_map="auto" needs it
+]
 
 [project.scripts]
 fieldkit = "fieldkit.cli:app"

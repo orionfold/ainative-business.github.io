@@ -164,7 +164,156 @@ def test_missing_seam_raises():
         loop.run()
 
 
-def test_gpu_seams_not_yet_vendored():
-    # v1 ships the orchestration; the real GPU backend is a documented fast-follow.
-    with pytest.raises(RLLoopError, match="vLLM|fieldkit\\[rl\\]"):
+def test_gpu_seams_requires_rl_extra():
+    # The backend is vendored, but a live run needs the fieldkit[rl] extra
+    # (torch+peft+transformers) installed. Absent it, gpu_seams raises a
+    # friendly RLLoopError pointing at the extra — never a bare ImportError.
+    with pytest.raises(RLLoopError, match="fieldkit\\[rl\\]"):
         gpu_seams(GRPOConfig(base="x"))
+
+
+def test_import_fieldkit_rl_stays_torch_free():
+    # The load-bearing invariant: `import fieldkit.rl` (and the torch-free serve
+    # half) must NOT drag in torch — only a live gpu_seams() trainer call does.
+    import sys
+
+    import fieldkit._rl_gpu_serve as _serve  # torch-free half
+    import fieldkit.rl as _rl
+
+    assert _serve and _rl  # touch the names — the point is the import side-effect
+    assert "torch" not in sys.modules
+
+
+# ---------------------------------------------------------------------------
+# Vendored GPU backend — the torch-FREE serve/sampler half (fieldkit[rl])
+# ---------------------------------------------------------------------------
+
+
+class _FakeClient:
+    """A NIMClient-shaped fake: records calls, returns a fixed completion."""
+
+    def __init__(self, answer="B"):
+        self.answer = answer
+        self.calls = []
+
+    def chat(self, messages, *, max_tokens, temperature):
+        self.calls.append((messages, max_tokens, temperature))
+        return {"choices": [{"message": {"content": self.answer}}]}
+
+    def close(self):
+        pass
+
+
+def test_gpu_sampler_builds_rollouts_and_single_turn_messages():
+    from fieldkit._rl_gpu_serve import RLBackendConfig, _GpuRollout, _make_sampler
+
+    cfg = RLBackendConfig(system_prompt="SYS")
+    client = _FakeClient("B")
+    sampler = _make_sampler(cfg, 0.8, lambda: client)
+    tasks = [VerticalQA(qid="q1", question="Q1?", expected="B")]
+
+    groups = sampler(tasks, 3)
+    assert len(groups) == 1 and len(groups[0]) == 3
+    r = groups[0][0]
+    assert isinstance(r, _GpuRollout)
+    assert (r.prediction, r.expected, r.task_id, r.prompt) == ("B", "B", "q1", "Q1?")
+
+    msgs, _max_tokens, temp = client.calls[0]
+    assert msgs[0] == {"role": "system", "content": "SYS"}
+    assert msgs[1] == {"role": "user", "content": "Q1?"}
+    assert temp == 0.8
+
+    # _GpuRollout duck-types straight into the reward adapter (RV-2/RV-3).
+    assert RewardAdapter(mcq_letter).score(r).success is True
+
+
+def test_gpu_heldout_eval_scores_via_reward_and_requires_it():
+    from fieldkit._rl_gpu_serve import RLBackendConfig, _make_heldout_eval, _make_sampler
+
+    sampler = _make_sampler(RLBackendConfig(), 0.2, lambda: _FakeClient("B"))
+    tasks = [VerticalQA(qid=f"q{i}", question=f"Q{i}?", expected="B") for i in range(4)]
+
+    he = _make_heldout_eval(sampler, RewardAdapter(mcq_letter))
+    assert he(0, tasks) == pytest.approx(1.0)  # all "B" → all pass
+
+    # The gate is the verifier's score on the frozen split — it needs the reward.
+    he_noreward = _make_heldout_eval(sampler, None)
+    with pytest.raises(RuntimeError, match="reward"):
+        he_noreward(0, tasks)
+
+
+def test_serve_command_is_a_pure_lora_enabled_argv():
+    from fieldkit._rl_gpu_serve import RLBackendConfig, serve_command
+
+    cfg = RLBackendConfig(
+        vllm_url="http://localhost:8000/v1",
+        base_model="Qwen/Qwen2.5-7B-Instruct",
+        lora_name="policy",
+        max_lora_rank=16,
+    )
+    argv = serve_command(cfg, "/work/step-001/adapter")
+    assert "vllm.entrypoints.openai.api_server" in argv
+    assert "--enable-lora" in argv
+    assert "policy=/work/step-001/adapter" in argv  # served LoRA == chat model
+    assert "16" in argv  # --max-lora-rank
+    assert "8000" in argv  # port parsed from the url
+
+
+def test_serve_command_override_substitutes_placeholders():
+    from fieldkit._rl_gpu_serve import RLBackendConfig, serve_command
+
+    cfg = RLBackendConfig(
+        vllm_url="http://h:8000/v1",
+        serve_cmd_override="docker exec C bash -c 'serve {name} {adapter} {port}'",
+    )
+    joined = " ".join(serve_command(cfg, "/a/b"))
+    assert "policy" in joined and "/a/b" in joined and "8000" in joined
+
+
+def test_stop_command_is_engine_core_aware():
+    # RV-R4 / feedback_vllm_engine_core_orphan: the bare vllm.entrypoints pattern
+    # orphans the ~108 GB EngineCore worker — the teardown must catch it.
+    from fieldkit._rl_gpu_serve import RLBackendConfig, stop_command
+
+    assert "EngineCore" in stop_command(RLBackendConfig())
+
+
+def test_backend_config_from_env(monkeypatch):
+    monkeypatch.setenv("FK_RL_VLLM_URL", "http://h:9000/v1")
+    monkeypatch.setenv("FK_RL_MAX_TOKENS", "256")
+    monkeypatch.setenv("FK_RL_LORA_NAME", "pol2")
+    from fieldkit._rl_gpu_serve import RLBackendConfig
+
+    cfg = RLBackendConfig.from_env(GRPOConfig(base="x", lora_rank=32))
+    assert cfg.vllm_url == "http://h:9000/v1"
+    assert cfg.max_tokens == 256
+    assert cfg.lora_name == "pol2"
+    assert cfg.max_lora_rank == 32  # falls back to GRPOConfig.lora_rank when unset
+
+
+def test_lane_ensure_started_needs_an_initial_adapter():
+    from fieldkit._rl_gpu_serve import RLBackendConfig, VLLMLane
+
+    lane = VLLMLane(RLBackendConfig(adapter_init=""))
+    assert lane.is_running is False
+    with pytest.raises(RuntimeError, match=r"FK_RL_ADAPTER_INIT|initial LoRA"):
+        lane.ensure_started("")
+
+
+def test_build_serve_seams_wires_three_callables_torch_free():
+    # The torch trainer is injected, so the wiring is exercisable without torch.
+    from fieldkit._rl_gpu_serve import build_serve_seams
+
+    sentinel = object()
+
+    def fake_make_trainer(cfg, lane, gcfg):
+        return sentinel
+
+    sampler, trainer, heldout = build_serve_seams(
+        GRPOConfig(base="x"),
+        fake_make_trainer,
+        reward=RewardAdapter(mcq_letter),
+        client_factory=lambda cfg: _FakeClient(),
+    )
+    assert trainer is sentinel
+    assert callable(sampler) and callable(heldout)
