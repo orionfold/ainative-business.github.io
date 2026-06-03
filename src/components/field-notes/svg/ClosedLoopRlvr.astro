@@ -1,0 +1,91 @@
+---
+// Signature figure for "the-machine-improves-itself".
+// The closed RLVR loop as a ring of four beats — SAMPLE → SCORE → STEP → GATE,
+// closing back on itself (self-improvement). The accent is SCORE, because the
+// thesis is "the eval harness IS the reward": the verifier-as-reward node is
+// the one that replaces the learned reward model the rest of RL depends on.
+// Center carries the claim in two words. Distinct from T2poPoolVsHeldout (the
+// inversion bars) and the in-article fn-diagram (which accents the held-out
+// gate); this one owns the closed-loop / eval=reward thesis.
+---
+
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="The closed RLVR loop as a ring of four beats — sample, score, step, gate — closing back on itself. The score beat is the accent: the verifier is the reward, with no learned reward model."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rlvr-sig-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="rlvr-sig-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="15" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.2em">CLOSED-LOOP RLVR</text>
+  </g>
+
+  <!-- the loop ring -->
+  <path class="line-draw svg-reveal-d2"
+        d="M 150 52 A 60 60 0 1 1 150 172 A 60 60 0 1 1 150 52 Z"
+        fill="none" stroke="var(--svg-connector)" stroke-width="1.5"/>
+
+  <!-- clockwise chevrons on the ring -->
+  <g class="svg-reveal svg-reveal-d6" fill="var(--svg-text-faint)">
+    <polygon points="195.9,73.1 188.9,70.3 193.1,66.1"/>
+    <polygon points="188.9,157.9 191.7,150.9 195.9,155.1"/>
+    <polygon points="104.1,150.9 111.1,153.7 106.9,157.9"/>
+    <polygon points="111.1,66.1 108.3,73.1 104.1,68.9"/>
+  </g>
+
+  <!-- center claim -->
+  <g class="svg-reveal svg-reveal-d6">
+    <text x="150" y="108" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-sans)"
+          font-size="16" font-weight="600">RLVR</text>
+    <text x="150" y="122" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.1em">eval = reward</text>
+  </g>
+
+  <!-- SAMPLE (top) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="123" y="39" width="54" height="26" rx="6"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="150" y="55" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" font-weight="500">SAMPLE</text>
+  </g>
+
+  <!-- SCORE (right, accent — verifier = reward) -->
+  <g class="svg-reveal svg-reveal-d4">
+    <rect x="183" y="99" width="54" height="26" fill="url(#rlvr-sig-halo)" stroke="none"/>
+    <rect x="183" y="99" width="54" height="26" rx="6"
+          fill="url(#rlvr-sig-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="210" y="115" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">SCORE</text>
+  </g>
+
+  <!-- STEP (bottom) -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="123" y="159" width="54" height="26" rx="6"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="150" y="175" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" font-weight="500">STEP</text>
+  </g>
+
+  <!-- GATE (left) -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="63" y="99" width="54" height="26" rx="6"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="90" y="115" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="8" font-weight="500">GATE</text>
+  </g>
+</svg>
