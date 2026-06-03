@@ -155,6 +155,23 @@ PUBLISHABLE_TABLES: dict[str, tuple[str, ...]] = {
         "source",
         "captured_at",
     ),
+    # M10 (Bet 5 recall layer): the RAG-eval trend. PUBLIC-SAFE — pure
+    # aggregate scores (recall@k, faithfulness) per index version, no prompts
+    # and no chunk text (M10-10). ``reindex_runs`` (which can name internal
+    # slugs) and any chunk-text path stay OFF — in FORBIDDEN_TABLES below.
+    "rag_eval_runs": (
+        "id",
+        "reindex_run_id",
+        "qa_set",
+        "recall_at_k",
+        "slug_recall_at_k",
+        "faithfulness",
+        "mean_correctness",
+        "refusal_rate",
+        "rerank",
+        "status",
+        "created_at",
+    ),
 }
 
 
@@ -175,6 +192,7 @@ FORBIDDEN_TABLES: tuple[str, ...] = (
     "jobs",  # M8 — control-plane queue; payload_json carries operator prompts/lanes/benches. Served live via /api/jobs, never the static mirror (R13).
     "job_triggers",  # M8 — job audit trail (regression deltas, operator notes); operator-private alongside jobs.
     "leaderboard_baseline",  # M8 — regression-detector prev-snapshot; derived from forbidden eval_scores, operator-internal control-plane state.
+    "reindex_runs",  # M10 — index-rebuild provenance; source_set can name internal (lineage) slugs. Control-plane state, never mirrored (M10-10).
 )
 
 #: Columns inside otherwise-publishable tables that the exporter must never
@@ -657,6 +675,9 @@ def export_publishable_slice(
         "openrouter_price_snapshot": table_rows.get(
             "openrouter_price_snapshot", []
         ),
+        # M10 (Bet 5): the public RAG-eval trend (aggregate recall@k/faithfulness
+        # per index version — no prompts, no chunk text; M10-10).
+        "rag_eval_runs": table_rows.get("rag_eval_runs", []),
     }
 
     # Atomic staged write. _staging/ → final path under os.replace.

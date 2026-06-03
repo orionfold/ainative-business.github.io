@@ -49,7 +49,7 @@ export const SERIES_BY_SLUG: Record<string, (typeof SERIES)[number]> =
     Object.entries(SERIES_SLUGS).map(([name, slug]) => [slug, name as (typeof SERIES)[number]]),
   );
 
-const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena', 'cost'] as const;
+const fieldkitModules = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena', 'cost', 'memory'] as const;
 export const FIELDKIT_MODULES = fieldkitModules;
 
 // Articles live at ./articles/<slug>/article.{md,mdx} so the local clone

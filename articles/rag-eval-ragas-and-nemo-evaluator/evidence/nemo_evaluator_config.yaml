@@ -1,0 +1,107 @@
+# NeMo Evaluator workflow for the Second Brain RAG stack.
+#
+# This is the configuration you'd hand the Evaluator service to have it run
+# the same harness this article builds by hand — against the live RAG
+# endpoint, on a cron, with results in a durable database instead of a
+# JSONL file. Equivalent to docs.nvidia.com/nemo/microservices/latest/
+# evaluator/ user guide examples, adapted to our local Spark stack.
+#
+# Run (once the NeMo Evaluator microservice is deployed on the Spark):
+#   curl -X POST http://localhost:7331/v1/evaluations \
+#     -H "Content-Type: application/yaml" \
+#     --data-binary @nemo_evaluator_config.yaml
+
+name: second-brain-rag-eval
+description: >
+  Nightly Ragas-style eval of the Second Brain RAG chain (naive, rerank, and
+  rag_lora variants) against the 44-question held-out set first produced for
+  the LoRA-on-your-own-qa-pairs article.
+
+# Target: the RAG endpoint we want to score.
+# In production you'd point this at the MCP-wrapped Second Brain service
+# exposed by the article S4; for now, it's the naive_8b pipeline served as
+# an OpenAI-compatible chat endpoint.
+target:
+  type: openai_chat
+  base_url: http://localhost:8000/v1
+  model: meta/llama-3.1-8b-instruct
+  # Evaluator posts {question, context, reference} and receives {answer}.
+  # The RAG stack is assumed to do retrieval itself — here we also pass
+  # contexts as a separate field so the faithfulness judge can see them.
+  retrieval_sidecar:
+    type: pgvector
+    table: blog_chunks
+    embed_endpoint: http://localhost:8001/v1
+    embed_model: nvidia/llama-nemotron-embed-1b-v2
+    top_k: 3
+
+# Test set: questions + reference answers + ground-truth source chunks.
+dataset:
+  path: /data/qa-eval.jsonl
+  fields:
+    question: question
+    reference: answer
+    gold_doc_id: source    # slug
+    gold_chunk: chunk
+
+# Metric suite. Ragas-style, with a local judge.
+metrics:
+  # --- retrieval metrics (reference-based) ---
+  - type: context_precision_at_k
+    k: 5
+  - type: context_recall_at_k
+    k: 5
+  - type: document_recall          # slug-level; forgives chunk-boundary drift
+    k: 5
+
+  # --- generation metrics (judge-based, no reference required for these) ---
+  - type: ragas.faithfulness
+    judge: &judge
+      type: openai_chat
+      base_url: http://localhost:8000/v1
+      model: meta/llama-3.1-8b-instruct
+      temperature: 0.0
+  - type: ragas.answer_relevance
+    judge: *judge
+
+  # --- correctness (reference-based judge 0-5) ---
+  - type: llm_rubric
+    name: correctness_0_5
+    rubric: |
+      5=exactly correct; 4=essentially correct with wording diff; 3=partial;
+      2=mostly wrong with a correct fragment; 1=confidently wrong; 0=refusal.
+    judge: *judge
+
+  # --- descriptive (no judge) ---
+  - type: refusal_rate
+    patterns:
+      - "(?i)context does not contain"
+      - "(?i)\\bnot (mentioned|specified|provided)\\b"
+      - "(?i)i (do not|don't) (know|have)"
+  - type: latency
+  - type: token_usage
+
+# Run plan: how many samples, how many variants, how often.
+run:
+  samples: all         # all 44
+  repeats: 1           # deterministic, no sampling
+  variants:
+    - name: naive_8b
+      retrieval: {top_k: 5, rerank: false}
+    - name: rerank_8b
+      retrieval: {top_k: 20, rerank: nvidia/llama-3.2-nv-rerankqa-1b-v2, rerank_top_k: 5}
+    - name: rag_lora
+      target_override:
+        type: openai_chat
+        base_url: http://localhost:8080/v1        # vLLM --enable-lora adapter
+        model: qwen2.5-3b-instruct+voice-lora
+      retrieval: {top_k: 5, rerank: false}
+  schedule: "0 4 * * *"   # 04:00 UTC nightly
+  retention_days: 30
+
+# Where results land. NeMo Evaluator writes to PostgreSQL + a blob store
+# for the raw prompts/responses, and exposes a REST endpoint for dashboards.
+output:
+  postgres: postgres://spark@pgvector:5432/eval
+  blob: file:///var/lib/nemo-evaluator/runs/
+  dashboard: true

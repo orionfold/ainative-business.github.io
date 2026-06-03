@@ -379,3 +379,82 @@ def test_scan_no_regression_when_stable(store):
     _seed_score(store, "b", "patent-q4km", 0.82, qid="q2", scored_at="2026-06-02T00:00:00Z")
     out = jobs.check_and_enqueue_regressions(store, now_fn=lambda: _NOW)
     assert out["enqueued"] == []
+
+
+# ---------------------------------------------------------------------------
+# M10 (Bet 5 recall layer) — the promoted recall-pipeline job kinds
+# ---------------------------------------------------------------------------
+
+
+def _fake_memory_runner(recall=0.659):
+    def runner(kind, payload):
+        if kind == JobKind.REINDEX:
+            return {
+                "source_set": payload.get("source_set", "articles"),
+                "chunks_before": 100,
+                "chunks_after": 313,
+                "articles_n": 50,
+                "by_source": {"article": 300, "scout": 13},
+                "index_version": "idx-50d-313c-deadbeef",
+            }
+        if kind == JobKind.RAG_EVAL:
+            return {
+                "qa_set": "qa-eval.jsonl",
+                "n": 44,
+                "top_k": 5,
+                "rerank": 0,
+                "recall_at_k": recall,
+                "slug_recall_at_k": 0.864,
+                "faithfulness": None,
+                "mean_correctness": None,
+                "refusal_rate": None,
+            }
+        if kind == JobKind.SCOUT_INGEST:
+            return {
+                "source_set": "scout",
+                "chunks_before": 313,
+                "chunks_after": 320,
+                "articles_n": 3,
+                "by_source": {"scout": 7},
+                "index_version": "idx-53d-320c-cafe",
+            }
+        raise AssertionError(kind)
+
+    return runner
+
+
+def test_reindex_is_dispatchable_and_persists(store):
+    """M10-1 — reindex is promoted into DISPATCHABLE; M10-5 — writes a row."""
+    assert JobKind.REINDEX in JobKind.DISPATCHABLE
+    jobs.enqueue_job(store, JobKind.REINDEX, {"source_set": "all"})
+    done = jobs.drain_jobs(store, runner=_fake_memory_runner(), now_fn=lambda: _NOW)
+    assert done[0]["status"] == JobStatus.DONE
+    runs = store.reindex_runs()
+    assert len(runs) == 1
+    assert runs[0]["source_set"] == "all"
+    assert runs[0]["chunks_after"] == 313
+
+
+def test_scout_ingest_dispatchable_writes_reindex_row(store):
+    jobs.enqueue_job(store, JobKind.SCOUT_INGEST, {"papers_json": "/tmp/p.json"})
+    done = jobs.drain_jobs(store, runner=_fake_memory_runner(), now_fn=lambda: _NOW)
+    assert done[0]["status"] == JobStatus.DONE
+    assert store.reindex_runs()[0]["source_set"] == "scout"
+
+
+def test_rag_eval_promotion_gate(store):
+    """M10-6 — a recall-dropping rebuild is flagged promote=False (like-for-like)."""
+    # First eval establishes the baseline.
+    jobs.enqueue_job(store, JobKind.RAG_EVAL, {}, dedup_key="")
+    r1 = jobs.drain_jobs(store, runner=_fake_memory_runner(recall=0.659), now_fn=lambda: _NOW)
+    s1 = json.loads(r1[0]["result_json"])
+    assert s1["promote"] is True and s1["prior_recall_at_k"] is None
+
+    # A regressed rebuild does not get promoted.
+    jobs.enqueue_job(store, JobKind.RAG_EVAL, {}, dedup_key="")
+    r2 = jobs.drain_jobs(store, runner=_fake_memory_runner(recall=0.50), now_fn=lambda: _NOW)
+    s2 = json.loads(r2[0]["result_json"])
+    assert s2["promote"] is False
+    assert s2["prior_recall_at_k"] == 0.659
+    assert s2["delta"] == -0.159
+    assert len(store.rag_eval_runs()) == 2

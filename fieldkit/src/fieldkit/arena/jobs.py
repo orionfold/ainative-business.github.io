@@ -61,23 +61,26 @@ __all__ = [
 class JobKind:
     """The job kinds the queue understands.
 
-    M8 dispatches only :data:`EVAL_RERUN` and :data:`MEASURE_VARIANTS`
-    (:data:`DISPATCHABLE`); the rest are **named stubs** — enqueueable as a
-    forward marker but rejected by the dispatcher until their phase lands
-    (`rl_run`/`requant` → Phase 3 `rlvr-loop-v1`; `reindex`/`rag_eval`/
-    `scout_ingest` → Bet-5 `second-brain-pipeline-v1`).
+    M8 dispatched :data:`EVAL_RERUN` + :data:`MEASURE_VARIANTS`; **M10 (Bet 5
+    recall layer) promotes** :data:`REINDEX` / :data:`RAG_EVAL` /
+    :data:`SCOUT_INGEST` into :data:`DISPATCHABLE` (the same move M8 made for
+    `eval_rerun`). The remaining stubs (`rl_run`/`requant` → Phase 3
+    `rlvr-loop-v1`) stay enqueueable-but-not-dispatchable until their phase lands.
     """
 
     EVAL_RERUN = "eval_rerun"
     MEASURE_VARIANTS = "measure_variants"
-    # Named stubs (not dispatchable in M8):
-    REQUANT = "requant"
-    RL_RUN = "rl_run"
+    # M10 (Bet 5) — the recall-pipeline kinds, now dispatchable:
     REINDEX = "reindex"
     RAG_EVAL = "rag_eval"
     SCOUT_INGEST = "scout_ingest"
+    # Named stubs (not dispatchable until Phase 3):
+    REQUANT = "requant"
+    RL_RUN = "rl_run"
 
-    DISPATCHABLE: frozenset[str] = frozenset({EVAL_RERUN, MEASURE_VARIANTS})
+    DISPATCHABLE: frozenset[str] = frozenset(
+        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST}
+    )
     ALL: frozenset[str] = frozenset(
         {EVAL_RERUN, MEASURE_VARIANTS, REQUANT, RL_RUN, REINDEX, RAG_EVAL, SCOUT_INGEST}
     )
@@ -308,8 +311,27 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             manifest_slug=payload["manifest_slug"],
             gguf_paths=payload.get("gguf_paths"),
         )
+    # M10 (Bet 5 recall layer) — the recall-pipeline kinds, through the same surface.
+    if kind == JobKind.REINDEX:
+        return mcp.reindex_memory(
+            source_set=payload.get("source_set", "articles"),
+            articles_dir=payload.get("articles_dir"),
+            papers_json=payload.get("papers_json"),
+            lineage_cards=payload.get("lineage_cards"),
+        )
+    if kind == JobKind.RAG_EVAL:
+        return mcp.rag_eval_index(
+            qa_set=payload.get("qa_set"),
+            top_k=int(payload.get("top_k", 5)),
+            rerank=bool(payload.get("rerank", False)),
+        )
+    if kind == JobKind.SCOUT_INGEST:
+        return mcp.scout_ingest(
+            papers_json=payload["papers_json"],
+            articles_dir=payload.get("articles_dir"),
+        )
     raise UnknownJobKind(
-        f"job kind {kind!r} is a named stub, not dispatchable in M8 "
+        f"job kind {kind!r} is a named stub, not dispatchable "
         f"(dispatchable: {sorted(JobKind.DISPATCHABLE)})"
     )
 
@@ -382,6 +404,88 @@ def _persist_eval_rerun(
     return summary
 
 
+def _persist_reindex(
+    store: Any, payload: Mapping[str, Any], result: Mapping[str, Any], now: str
+) -> dict[str, Any]:
+    """Write a ``reindex_runs`` row from a ``reindex`` / ``scout_ingest`` result
+    (M10-5). Records the source set, chunk delta, and ``index_version`` so the
+    coverage pane can show what each rebuild did. Operator-private (the row
+    never mirrors). Returns a compact summary for ``jobs.result_json``."""
+    run_id = uuid.uuid4().hex
+    store.insert_reindex_run(
+        {
+            "id": run_id,
+            "source_set": str(result.get("source_set", payload.get("source_set", "articles"))),
+            "index_version": str(result.get("index_version", "")),
+            "chunks_before": result.get("chunks_before"),
+            "chunks_after": result.get("chunks_after"),
+            "articles_n": result.get("articles_n"),
+            "status": "done",
+            "started_at": now,
+            "finished_at": now,
+            "error": None,
+        }
+    )
+    return {
+        "reindex_run_id": run_id,
+        "source_set": result.get("source_set"),
+        "index_version": result.get("index_version"),
+        "chunks_before": result.get("chunks_before"),
+        "chunks_after": result.get("chunks_after"),
+        "articles_n": result.get("articles_n"),
+        "by_source": result.get("by_source"),
+    }
+
+
+def _persist_rag_eval(
+    store: Any, payload: Mapping[str, Any], result: Mapping[str, Any], now: str
+) -> dict[str, Any]:
+    """Write a ``rag_eval_runs`` row and apply the **promotion gate** (M10-6).
+
+    Compares the new ``recall_at_k`` against the prior *done* score for the same
+    ``qa_set`` **at the same rerank mode** (like-for-like, R22). A rebuild that
+    drops recall below the prior index is flagged ``promote=False`` — the index
+    is already physically rebuilt (single store), so the verdict + delta are
+    recorded for the operator / Phase-2 monitor to act on (roll back / override).
+    The score row itself is the public RAG-eval trend (aggregates only, M10-10).
+    """
+    run_id = uuid.uuid4().hex
+    qa_set = str(result.get("qa_set", payload.get("qa_set", "qa-eval.jsonl")))
+    rerank = int(result.get("rerank", 0))
+    recall = result.get("recall_at_k")
+    prior = store.last_rag_eval(qa_set, rerank=rerank)
+    prior_recall = float(prior["recall_at_k"]) if prior is not None else None
+    promote = True
+    if prior_recall is not None and recall is not None:
+        promote = float(recall) >= prior_recall
+    store.insert_rag_eval_run(
+        {
+            "id": run_id,
+            "reindex_run_id": payload.get("reindex_run_id"),
+            "qa_set": qa_set,
+            "recall_at_k": recall,
+            "slug_recall_at_k": result.get("slug_recall_at_k"),
+            "faithfulness": result.get("faithfulness"),
+            "mean_correctness": result.get("mean_correctness"),
+            "refusal_rate": result.get("refusal_rate"),
+            "rerank": rerank,
+            "status": "done",
+            "created_at": now,
+        }
+    )
+    return {
+        "rag_eval_run_id": run_id,
+        "qa_set": qa_set,
+        "recall_at_k": recall,
+        "slug_recall_at_k": result.get("slug_recall_at_k"),
+        "rerank": rerank,
+        "prior_recall_at_k": prior_recall,
+        "promote": promote,
+        "delta": (round(float(recall) - prior_recall, 4)
+                  if prior_recall is not None and recall is not None else None),
+    }
+
+
 def dispatch_job(
     store: Any,
     job: Mapping[str, Any],
@@ -402,10 +506,10 @@ def dispatch_job(
         store.update_job(
             job_id,
             status=JobStatus.FAILED,
-            error=f"kind {kind!r} not dispatchable in M8",
+            error=f"kind {kind!r} not dispatchable",
             finished_at=now_fn(),
         )
-        raise UnknownJobKind(f"job kind {kind!r} is not dispatchable in M8")
+        raise UnknownJobKind(f"job kind {kind!r} is not dispatchable")
 
     payload = json.loads(job["payload_json"])
     store.update_job(job_id, status=JobStatus.RUNNING)
@@ -414,6 +518,10 @@ def dispatch_job(
         now = now_fn()
         if kind == JobKind.EVAL_RERUN:
             summary = _persist_eval_rerun(store, payload, result, now)
+        elif kind in (JobKind.REINDEX, JobKind.SCOUT_INGEST):
+            summary = _persist_reindex(store, payload, result, now)
+        elif kind == JobKind.RAG_EVAL:
+            summary = _persist_rag_eval(store, payload, result, now)
         else:
             summary = dict(result)
         store.update_job(

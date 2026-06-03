@@ -49,6 +49,10 @@ def test_tool_specs_shape():
         # M8 — Arena dispatcher job-execution tools (added by demand, M8-7)
         "run_vertical_eval",
         "measure_variants",
+        # M10 — Arena recall-pipeline job-execution tools (Bet 5)
+        "reindex_memory",
+        "rag_eval_index",
+        "scout_ingest",
     ]
     by_name = {s.name: s for s in fkmcp.MCP_TOOL_SPECS}
     # the two capability tools + the RAG bridge are read-only; the rest write
@@ -61,12 +65,17 @@ def test_tool_specs_shape():
     # M8 eval/measure tools both touch the GPU → not read-only
     assert by_name["run_vertical_eval"].read_only is False
     assert by_name["measure_variants"].read_only is False
+    # M10 recall-pipeline tools write the index → not read-only
+    assert by_name["reindex_memory"].read_only is False
+    assert by_name["rag_eval_index"].read_only is False
+    assert by_name["scout_ingest"].read_only is False
     assert {s.surface for s in fkmcp.MCP_TOOL_SPECS} == {
         "capabilities",
         "quant",
         "publish",
         "rag",
         "eval",  # M8 — run_vertical_eval is mcp.py's first fieldkit.eval wiring
+        "memory",  # M10 — the recall-pipeline tools (Bet 5)
     }
 
 

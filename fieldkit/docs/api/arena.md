@@ -415,6 +415,48 @@ What changed inside `fieldkit.arena`:
   allowlist, and the per-run cost columns inherit their host tables' exclusion
   (M9-7, anchored by `test_mirror_does_not_leak.py`).
 
+## M10 — recall layer (Bet 5)
+
+The Second Brain promoted from a manual, prose-only, externally-scripted index
+into a **managed, multi-source, evaluated, provenance-tagged** one the operator
+drives from the cockpit (`_SPECS/spark-arena-v1.md` §14). The full ingest /
+query / coverage API lives in its own module — **[`fieldkit.memory`](memory.md)**
+(`MemoryIndex`, `KnowledgeCard`, `Provenance`, `ingest_sources`,
+`coverage_report`, `resolve_qa_set`) — because it spans pgvector `blog_chunks`,
+not just `fieldkit.arena`. It ships the **operator-driven pane + managed index**;
+the autonomous re-index-on-publish hook + scheduled freshness monitor are Phase 2
+(Arena M11, §15), which *consumes* this pane's re-index button + eval gate.
+
+What changed inside `fieldkit.arena`:
+
+- **Schema `user_version` 5 → 6** — additive `CREATE TABLE IF NOT EXISTS` for
+  `reindex_runs` (per-rebuild provenance — operator-private) and `rag_eval_runs`
+  (eval scores per index version — public-safe aggregates). The pgvector
+  provenance ALTER lives in `fieldkit.memory.MemoryIndex.ensure_schema` (R21),
+  not the arena store. Store readers/writers: `insert_reindex_run` /
+  `update_reindex_run` / `reindex_runs` and `insert_rag_eval_run` /
+  `rag_eval_runs` / `last_rag_eval` (the promotion-gate baseline).
+- **`jobs.py`** — `reindex` / `rag_eval` / `scout_ingest` promoted from `JobKind`
+  named stubs into `JobKind.DISPATCHABLE` (M10-1, the move M8 made for
+  `eval_rerun`). `default_runner` dispatches each through the `fieldkit.harness`
+  MCP surface (`reindex_memory` / `rag_eval_index` / `scout_ingest`);
+  `_persist_reindex` writes a `reindex_runs` row, `_persist_rag_eval` writes a
+  `rag_eval_runs` row and applies the **promotion gate** (M10-6 — a recall-
+  dropping rebuild is flagged `promote=False`, like-for-like per R22).
+- **`server.py`** — the `/api/knowledge` pane API: a degraded-safe coverage +
+  trend + run-history snapshot (`GET`), `POST /api/knowledge/reindex` (+ chained
+  `rag_eval`), `POST /api/knowledge/rag-eval`, and the operator-private
+  `POST /api/knowledge/query` (provenance-filtered chunk text — 503 when the
+  live index is unreachable). The jobs-board `kind` pattern widens to accept the
+  three new dispatchable kinds.
+- **`mirror.py`** — `rag_eval_runs` aggregates join `PUBLISHABLE_TABLES` for the
+  public RAG-eval trend (no prompts, no chunk text); `reindex_runs` joins
+  `FORBIDDEN_TABLES` (its `source_set` can name internal slugs). A knowledge-path
+  sentinel anchors `test_mirror_does_not_leak.py` (M10-10).
+- **Cockpit** — a new `/arena/knowledge/` pane: coverage/freshness (the
+  `article_index` ⋈ index diff, M10-8), a per-source-class Re-index button, the
+  RAG-eval trend (cosine-only labelled, M10-7), and the trust-tier query console.
+
 ## v0.2 surfaces (Lab + distribution)
 
 ### v0.2 — Lab notes (`lab_notes` table + `/api/lab/notes`)

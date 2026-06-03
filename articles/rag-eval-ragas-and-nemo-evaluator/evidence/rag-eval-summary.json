@@ -1,0 +1,54 @@
+{
+  "lora_only": {
+    "n": 44,
+    "mean_correctness_0_5": 1.7,
+    "correctness_ge_4": 9,
+    "correctness_eq_5": 3,
+    "mean_relevance_0_1": 0.455,
+    "mean_faithfulness_0_1": null,
+    "refusal_rate": 0.0,
+    "mean_wall_s": 0.439,
+    "mean_new_tokens": 9,
+    "p_chunk_at_k": null,
+    "p_slug_at_k": null
+  },
+  "naive_8b": {
+    "n": 44,
+    "mean_correctness_0_5": 3.3,
+    "correctness_ge_4": 29,
+    "correctness_eq_5": 20,
+    "mean_relevance_0_1": 0.67,
+    "mean_faithfulness_0_1": 0.432,
+    "refusal_rate": 0.182,
+    "mean_wall_s": 2.75,
+    "mean_new_tokens": 49.4,
+    "p_chunk_at_k": 0.659,
+    "p_slug_at_k": 0.864
+  },
+  "rerank_8b": {
+    "n": 44,
+    "mean_correctness_0_5": 4.27,
+    "correctness_ge_4": 39,
+    "correctness_eq_5": 25,
+    "mean_relevance_0_1": 0.739,
+    "mean_faithfulness_0_1": 0.477,
+    "refusal_rate": 0.0,
+    "mean_wall_s": 2.959,
+    "mean_new_tokens": 55.8,
+    "p_chunk_at_k": 0.955,
+    "p_slug_at_k": 0.977
+  },
+  "rag_lora": {
+    "n": 44,
+    "mean_correctness_0_5": 3.39,
+    "correctness_ge_4": 28,
+    "correctness_eq_5": 21,
+    "mean_relevance_0_1": 0.398,
+    "mean_faithfulness_0_1": 0.314,
+    "refusal_rate": 0.0,
+    "mean_wall_s": 2.073,
+    "mean_new_tokens": 7.1,
+    "p_chunk_at_k": 0.568,
+    "p_slug_at_k": 0.75
+  }
+}
