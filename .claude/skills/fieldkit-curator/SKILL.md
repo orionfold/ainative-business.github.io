@@ -5,7 +5,7 @@ description: Cut releases of the `fieldkit` Python package at `/home/nvidia/aina
 
 # fieldkit-curator
 
-Cut releases of the `fieldkit` Python package that lives in the same repo as the ai-field-notes blog at `/home/nvidia/ainative-business.github.io/fieldkit/`. The package's release cadence is *editorial* — every 3–4 articles cuts a minor version (~2/quarter), per the maintenance budget decision in `ideas/fieldkit.md`.
+Cut releases of the `fieldkit` Python package that lives in the Spark-owned monorepo (build workspace + `ainative.business` website) at `/home/nvidia/ainative-business.github.io/fieldkit/`. The package's release cadence is *editorial* — every 3–4 articles cuts a minor version (~2/quarter), per the maintenance budget decision in `ideas/fieldkit.md`.
 
 The fieldkit package itself is the second deliverable of the publication pipeline (the blog is the first). It's a standalone product with its own version, CHANGELOG, and tags — distinct from the blog's article-publication events. This skill keeps the release process sharp without making it ceremonial.
 
@@ -82,19 +82,19 @@ Once the inputs are confirmed:
 
 2b. **Audit docs drift (new gate).** Run the bundled audit before tests so missing API pages stop the release before the heavier work runs:
    ```bash
-   python3 ~/.claude/skills/fieldkit-curator/scripts/audit_docs.py
+   python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_docs.py
    ```
    Hard-stops on any FAIL — most commonly, a `[Unreleased]` entry added a module (e.g. `fieldkit.publish`) without a corresponding `fieldkit/docs/api/publish.md`, or a new public class in an existing module's `__all__` that the docs page doesn't mention. SKIP rows (module has no explicit `__all__`, like `fieldkit.cli`) don't fail. Fix by writing or extending the markdown page (model the shape after `fieldkit/docs/api/lineage.md`), then re-run. See **Mode: audit-docs** below for the standalone flow and what the script checks.
 
    **Kwarg drift (v0.4.1 catch-up — soft WARN by default).** The audit now also flags keyword-only args on public functions / methods that aren't mentioned in the corresponding docs page. As of 2026-05-14 there are 26 pre-existing kwarg-drift items across `rag` / `eval` / `quant` / `publish` (added before the check existed); they surface as `WARN` lines under each module's PASS line and don't block release. **For any release whose `[Unreleased]` block mentions kwargs / params / defaults on existing public methods**, add `--strict-kwargs` to elevate kwarg drift to FAIL:
    ```bash
-   python3 ~/.claude/skills/fieldkit-curator/scripts/audit_docs.py --strict-kwargs
+   python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_docs.py --strict-kwargs
    ```
    This catches the v0.4.1-class drift where `VerticalBench.from_jsonl` gained `open_book` + `subset` kwargs and shipped undocumented. Once the existing 26 items are documented across passes, flip the default to `--strict-kwargs` for every release.
 
 2c. **Audit landing-page drift (new gate).** The `audit-docs` gate proves `__all__` symbols are documented; this one proves the marketing surface — `src/pages/fieldkit/index.astro` and `src/components/sections/fieldkit/*.astro` — didn't drift. Stale module counts ("7 / seven"), missing taglines for new modules, hardcoded version literals, and `docs/api/<module>.md` `order:` collisions all silently survive `astro build` because nothing in TypeScript or Zod enforces "in sync with `_version.py` and `FIELDKIT_MODULES`".
    ```bash
-   python3 ~/.claude/skills/fieldkit-curator/scripts/audit_landing.py
+   python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_landing.py
    ```
    Hard-stops on any FAIL. The four checks are documented under **Mode: audit-landing** below. Common fixes: thread a new module's tagline into `FieldkitModules.astro`, bump a doc page's `order:` to its 1-based `FIELDKIT_MODULES` index, swap a hardcoded `0.X.Y` literal for the `version` prop. Re-run after each fix; aim for 4/4 PASS before tagging.
 
@@ -131,7 +131,7 @@ Once the inputs are confirmed:
 7. **Verify install in a fresh venv (git source).** This is the gate that catches packaging mistakes (missing `MANIFEST.in` entries, wrong import paths, etc.) before a reader hits them. Use a temp directory each time so caches don't mask issues.
    ```bash
    python3 -m venv /tmp/fk0XY && /tmp/fk0XY/bin/pip install -q \
-     "git+https://github.com/manavsehgal/ai-field-notes.git@fieldkit/v0.X.Y#subdirectory=fieldkit"
+     "git+https://github.com/manavsehgal/ainative-business.github.io.git@fieldkit/v0.X.Y#subdirectory=fieldkit"
    /tmp/fk0XY/bin/fieldkit version          # → 0.X.Y
    /tmp/fk0XY/bin/fieldkit envelope "70B params fp8"
    /tmp/fk0XY/bin/fieldkit feasibility llama-3.1-70b --ctx 4096 --batch 32 --dtype fp8
@@ -160,7 +160,7 @@ Once the inputs are confirmed:
 
 10. **Refresh project-stats.** The home-page "At a glance" infographic reads `src/data/field-notes/project-stats.json`; the LOC count includes `fieldkit/src/` and `fieldkit/tests/` (excluding the gitignored `_webui/` baked bundle), so any release that adds modules / tests will move the number. Per `feedback_refresh_stats_on_publish`:
    ```bash
-   python3 ~/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py
+   python3 /home/nvidia/ainative-business.github.io/.claude/skills/nvidia-learn-stats/scripts/compute_stats.py
    ```
    Stage + commit:
    ```bash
@@ -197,14 +197,14 @@ The bundled script (`scripts/audit_docs.py`) parses each module's `__all__` via 
 
 ```bash
 # Human-readable (default)
-python3 ~/.claude/skills/fieldkit-curator/scripts/audit_docs.py
+python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_docs.py
 
 # Machine-readable — used by `release` flow + any CI hook
-python3 ~/.claude/skills/fieldkit-curator/scripts/audit_docs.py --json
+python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_docs.py --json
 
 # Strict kwarg-drift mode — elevates kwarg WARN lines to FAIL (use for releases
 # that add kwargs / params / defaults on existing public methods)
-python3 ~/.claude/skills/fieldkit-curator/scripts/audit_docs.py --strict-kwargs
+python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_docs.py --strict-kwargs
 ```
 
 Exit code = number of FAIL verdicts (symbol coverage; also kwarg drift when `--strict-kwargs`). 0 = ready to release; ≥1 = drift, fix before tagging. Standalone invocation is read-only — never edits files.
@@ -251,10 +251,10 @@ The bundled script (`scripts/audit_landing.py`) reads `FIELDKIT_MODULES` directl
 
 ```bash
 # Human-readable (default)
-python3 ~/.claude/skills/fieldkit-curator/scripts/audit_landing.py
+python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_landing.py
 
 # Machine-readable — used by `release` flow + any CI hook
-python3 ~/.claude/skills/fieldkit-curator/scripts/audit_landing.py --json
+python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_landing.py --json
 ```
 
 Exit code = number of FAIL verdicts. 0 = clean; ≥1 = drift, fix before tagging. Standalone invocation is read-only.
