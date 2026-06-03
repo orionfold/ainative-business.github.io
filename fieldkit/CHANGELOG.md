@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.20.0] — 2026-06-03
+
 The **closed-loop RLVR engine — the *engine*** in the `pane → hands → engine`
 sequence (`_SPECS/rlvr-loop-v1.md`, the fourth and final roadmap stub). It closes
 the loop the first four milestones were built to land: **eval → reward →
@@ -70,6 +72,26 @@ held-out scores ride `eval_runs`.
 - Publishable `verifier` / `reward` / `rl_run` artifact kinds are **deferred to
   second-vertical reuse** (RV-9, `feedback_keep_scorer_local_until_reuse`):
   `ARTIFACT_KINDS` stays at 8. v1 ships the engine, not the storefront.
+
+### Test suite
+
+- **1222 passed / 5 skipped** offline (`pytest tests/`) — +28 collected over the
+  v0.19.0 baseline (`tests/test_reward.py` for the `RewardAdapter` scorer-kwarg
+  filtering + the `(success, failure_class, auxiliary)` tuple over
+  `fieldkit.lineage.FailureLabel` + `group_advantage`'s degenerate-group zero
+  vector; `tests/test_rl.py` for the GPU-free orchestration with injected
+  `sampler` / `trainer` / `heldout_eval` seams, the held-out-ONLY checkpoint
+  selection against a monotonically-climbing pool (the `t2po` inversion defense),
+  the ≥100-row corpus floor + frozen split, and `gpu_seams` raising; plus the
+  `tests/arena/test_jobs.py` extension for the `rl_run` / `requant` dispatch and
+  the no-schema-bump assertion). The 5 skips are `torch` (the GPU training path)
+  + the 4 pre-existing `--spark` (live NIM / pgvector) integration tests.
+
+### Articles in this release
+
+- None — this is a **package-only** release. The Phase-3 editorial launch (the
+  MTBM RLVR `tech-writer` installment + the first §5 "living-model"
+  `product-writer` piece) is the gated follow-on, not part of this cut.
 
 ## [0.19.0] — 2026-06-03
 
