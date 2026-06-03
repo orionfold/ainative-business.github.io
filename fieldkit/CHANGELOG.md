@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.20.1] — 2026-06-03
+
+A one-line bug-fix patch for the M10 recall-eval path, surfaced by the
+end-to-end local-knowledge-appliance dogfood. No API change, no schema change
+(arena.db stays at `user_version 6`).
+
 ### Fixed
 
 - **`fieldkit.harness.mcp.rag_eval_index` raised `NameError: name 'json' is not
@@ -17,6 +23,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   import + a regression test (`test_rag_eval_index_parses_gold_jsonl`) that
   exercises the gold-set parse infra-free. Surfaced by the end-to-end
   local-knowledge-appliance dogfood (a real Arena reindex+rag_eval drain).
+
+### Test suite
+
+- **1224 passed, 5 skipped** offline (`pytest tests/`). The 5 skips are the
+  `torch` GPU training path + 4 `--spark` live-NIM/pgvector integration tests.
+
+### Articles in this release
+
+- None — package-only patch. (The `the-machine-improves-itself` deep-dive
+  assumes the v0.20.0 RLVR surface, not this fix.)
 
 ## [0.20.0] — 2026-06-03
 
