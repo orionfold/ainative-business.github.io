@@ -27,6 +27,10 @@
 
   var fixtures = { chat: [], compare: [], telemetry: null, stubs: {} };
   var bus = { inflight: false, tokPerS: null, laneId: null, until: 0 };
+  // Knowledge pane (Orionfold Cortex) replay state. The pane polls /api/knowledge
+  // every 5s, so a "rebuild" is a before→after flip: clicking it backfills
+  // provenance + scores recall, and the next poll renders the green state.
+  var kb = { rebuilt: false };
 
   // ----- helpers ------------------------------------------------------------
   function pathOf(url) {
@@ -104,6 +108,27 @@
     });
   }
 
+  // ----- knowledge (Cortex) replay helpers ----------------------------------
+  function knowledgeState() {
+    var k = fixtures.knowledge;
+    if (!k) return {};                         // no fixtures → pane shows degraded
+    return kb.rebuilt ? (k.after || {}) : (k.before || k.after || {});
+  }
+  function knowledgeQuery(body) {
+    var k = fixtures.knowledge || {};
+    var qlist = k.queries || [];
+    if (!qlist.length) return { query: (body && body.query) || '', provenance: null, hits: [] };
+    // reuse the chat/compare prompt matcher by exposing each query as `.prompt`
+    var chosen = bestMatch(qlist.map(function (x) {
+      return { prompt: x.query, query: x.query, hits: x.hits || [], provenance: x.provenance || null };
+    }), body && body.query) || { query: qlist[0].query, hits: qlist[0].hits || [] };
+    return {
+      query: (body && body.query) || chosen.query,
+      provenance: (body && body.provenance) || null,
+      hits: chosen.hits || []
+    };
+  }
+
   // ----- fetch shim ---------------------------------------------------------
   var realFetch = window.fetch ? window.fetch.bind(window) : null;
   window.fetch = function (input, init) {
@@ -121,6 +146,24 @@
       var cbody = {}; try { cbody = init.body ? JSON.parse(init.body) : {}; } catch (e) {}
       var cc = bestMatch(fixtures.compare, cbody.prompt);
       return Promise.resolve(sseResponse(cc ? cc.events : fallbackChatEvents(), init.signal));
+    }
+
+    // knowledge pane (Cortex) — poll-driven before→after + query replay
+    if (/\/api\/knowledge\/reindex$/.test(path)) {
+      kb.rebuilt = false;                       // restart the before→after transition
+      setTimeout(function () { kb.rebuilt = true; }, 2600); // next poll renders green
+      return Promise.resolve(jsonResponse({ ok: true, job_id: 'demo-reindex', status: 'queued', demo: true }));
+    }
+    if (/\/api\/knowledge\/rag-eval$/.test(path)) {
+      kb.rebuilt = true;                         // scoring implies a stamped, evaluated index
+      return Promise.resolve(jsonResponse({ ok: true, job_id: 'demo-rageval', status: 'queued', demo: true }));
+    }
+    if (/\/api\/knowledge\/query$/.test(path)) {
+      var qb = {}; try { qb = init.body ? JSON.parse(init.body) : {}; } catch (e) {}
+      return Promise.resolve(jsonResponse(knowledgeQuery(qb)));
+    }
+    if (/\/api\/knowledge$/.test(path)) {
+      return Promise.resolve(jsonResponse(knowledgeState()));
     }
 
     // canned read-only stubs (exact path)

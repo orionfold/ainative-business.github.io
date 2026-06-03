@@ -28,10 +28,12 @@ const isProd = process.env.NODE_ENV === 'production';
 const isArenaBuild = process.env.ARENA_BUILD === '1';
 
 // Demo bundle build. `ARENA_DEMO=1` builds the SAME `/arena` cockpit but the
-// islands boot a fetch/EventSource shim (src/lib/arena/demo-mode.mjs) that
+// islands boot a fetch/EventSource shim (public/arena-demo/boot.js) that
 // replays a static fixture bundle instead of the FastAPI sidecar — the public,
 // sidecar-less web preview. Emitted to `./dist-arena-demo/` so it never clobbers
 // the wheel bundle. The `__ARENA_DEMO__` define gates the shim in sidecar.mjs.
+// scripts/deploy_arena_demo.mjs flattens the `arena/` subtree to `/arena/demo/`
+// and rewrites the base — that's where the demo's final path shape is set.
 const isArenaDemo = process.env.ARENA_DEMO === '1';
 const isArena = isArenaBuild || isArenaDemo;
 const base = isArena ? '/arena' : isProd ? '/field-notes' : '/';
