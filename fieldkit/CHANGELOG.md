@@ -6,6 +6,71 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The **closed-loop RLVR engine — the *engine*** in the `pane → hands → engine`
+sequence (`_SPECS/rlvr-loop-v1.md`, the fourth and final roadmap stub). It closes
+the loop the first four milestones were built to land: **eval → reward →
+fine-tune → re-eval**, with the Spark's own `fieldkit.eval` verifiers as the
+reward function. Two new top-level modules + the promotion of the pre-drilled
+`rl_run` / `requant` job kinds to dispatchable. **No schema change** (RV-8): the
+arena.db stays at `user_version 6` — the trajectory rides `fieldkit.lineage`, the
+held-out scores ride `eval_runs`.
+
+### Added
+
+- **`fieldkit.reward` — the verifier→reward adapter (new module, Phase 3)**
+  (`__all__` = `Reward`, `RewardAdapter`, `group_advantage`, `RewardError`). The
+  scorer half of RLVR: **the eval harness *is* the reward model** (RV-2). A thin
+  adapter that turns any `fieldkit.eval` verifier (the seven shipped scorers +
+  `exact_match` / `contains`) into a reward — **no learned reward model, no new
+  scoring logic**. The reward is a `(success, failure_class, auxiliary)` tuple
+  (RV-3), and `failure_class` **reuses the built `fieldkit.lineage.FailureLabel`**
+  10-class enum (no new enum) so the loop's per-step `Trial` label *is* the reward
+  signal. `auxiliary` carries the partial-credit score so the gradient sees more
+  than a keep/revert bit (binary reward mode-collapsed: 0/8 held-out from 42
+  rows). `group_advantage` is GRPO's value-network-free baseline — standardize
+  within the rollout group; a degenerate group yields a zero advantage vector.
+- **`fieldkit.rl` — the closed-loop RLVR driver (new module, the engine)**
+  (`__all__` = `GRPOConfig`, `RLLoop`, `RLLoopError`). Wraps the **proven
+  hand-rolled ~280-LOC REINFORCE-with-KL + kill-and-restart-vLLM** loop from
+  `clawgym-on-spark-grpo` — **not** Unsloth-GRPO / NeMo-RL (neither drove the
+  working single-GB10 run; a documented fallback lane, RV-1). Owns the
+  orchestration (split → sample → reward → group-relative step → held-out gate →
+  checkpoint selection → lineage card); the three GPU-touching seams (sampler,
+  trainer, heldout_eval) **inject** — torch / vLLM never import at module load
+  (the `dispatch_job(runner=…)` pattern), so the orchestration is GPU-free
+  testable. Three grounding corrections are encoded structurally: the **held-out
+  gate is a hard gate with held-out-ONLY checkpoint selection** (RV-4 — `t2po`
+  hit an 81.8 pp pool↔held-out inversion at step 45; the loop selects on held-out,
+  never pool); **pinned vLLM** (`GRPOConfig.vllm_pin`, RV-5 — 6 API drifts / 2
+  minor versions); a **≥100-row corpus floor** carved into a frozen held-out
+  split before step 0 (RV-10). `gpu_seams` raises until the pinned-vLLM backend is
+  vendored into `fieldkit[rl]` (`project_verl_atgpo_vllm_gap`); v1 ships the loop,
+  not a re-implemented GPU trainer.
+- **`rl_run` / `requant` promoted to `DISPATCHABLE`** (RV-6) — the last two
+  pre-drilled `fieldkit.arena.jobs.JobKind` stubs join the dispatcher (the
+  M8-`eval_rerun` / M10-`reindex` pattern); `DISPATCHABLE == ALL` now. The RLVR
+  run is **async/overnight only** — the 8.5 h GRPO loop can't be a synchronous
+  cockpit click, so the `server.py` `POST /api/jobs` allowlist stays narrow and
+  `rl_run` reaches the dispatcher via `enqueue_job` (a compare-loss trigger, a CLI
+  enqueue), draining under the M11 single-lane cron behind the budget governor.
+  `_persist_rl_run` writes an aggregate digest (held-out-selected step, held-out
+  vs pool trajectories) to `jobs.result_json` — no new table (RV-8).
+- **Two harness MCP tools** — `run_rl_loop` (assembles `RLLoop` over a vertical
+  bench, returns the held-out-selected checkpoint + lineage card) and
+  `requant_checkpoint` (re-quantize a held-out-winning checkpoint to the GGUF
+  variant ladder, dry-run by default). Curated into `build_mcp_server` +
+  `MCP_TOOL_SPECS`. Real GPU work, overnight-only.
+- **Docs** — new `docs/api/rl.md` (`order:18`) + `docs/api/reward.md`
+  (`order:17`); `rl` + `reward` added to both `content.config.ts`
+  `FIELDKIT_MODULES` enums, `audit_docs.py MODULES`, and the
+  `FieldkitModules.astro` taglines.
+
+### Notes
+
+- Publishable `verifier` / `reward` / `rl_run` artifact kinds are **deferred to
+  second-vertical reuse** (RV-9, `feedback_keep_scorer_local_until_reuse`):
+  `ARTIFACT_KINDS` stays at 8. v1 ships the engine, not the storefront.
+
 ## [0.19.0] — 2026-06-03
 
 The **Arena M11 autonomous harness — the hands** in the `pane → hands → engine`

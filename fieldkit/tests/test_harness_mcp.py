@@ -53,6 +53,9 @@ def test_tool_specs_shape():
         "reindex_memory",
         "rag_eval_index",
         "scout_ingest",
+        # Phase 3 (rlvr-loop-v1) — closed-loop RLVR job-execution tools
+        "run_rl_loop",
+        "requant_checkpoint",
     ]
     by_name = {s.name: s for s in fkmcp.MCP_TOOL_SPECS}
     # the two capability tools + the RAG bridge are read-only; the rest write
@@ -69,6 +72,9 @@ def test_tool_specs_shape():
     assert by_name["reindex_memory"].read_only is False
     assert by_name["rag_eval_index"].read_only is False
     assert by_name["scout_ingest"].read_only is False
+    # Phase 3 RLVR tools do real GPU work / quantize → not read-only
+    assert by_name["run_rl_loop"].read_only is False
+    assert by_name["requant_checkpoint"].read_only is False
     assert {s.surface for s in fkmcp.MCP_TOOL_SPECS} == {
         "capabilities",
         "quant",
@@ -76,6 +82,7 @@ def test_tool_specs_shape():
         "rag",
         "eval",  # M8 — run_vertical_eval is mcp.py's first fieldkit.eval wiring
         "memory",  # M10 — the recall-pipeline tools (Bet 5)
+        "rl",  # Phase 3 — the closed-loop RLVR tools (rlvr-loop-v1)
     }
 
 

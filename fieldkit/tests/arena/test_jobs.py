@@ -176,13 +176,62 @@ def test_eval_rerun_dispatch_end_to_end(store):
     assert lb[0]["mean_normalized"] == pytest.approx(0.5)
 
 
-def test_non_dispatchable_stub_fails_loudly(store):
-    # A named stub can be enqueued (forward marker) but never dispatched in M8.
-    jid = jobs.enqueue_job(store, JobKind.RL_RUN, {"lane_id": "patent-q4km", "bench_id": "b"})
+def test_unknown_kind_dispatch_fails_loudly(store):
+    # Phase 3 promoted the last stubs (rl_run/requant), so DISPATCHABLE == ALL —
+    # there's no named-but-undispatchable kind left. A *truly* unknown kind (one
+    # never enqueued through the validated path) must still fail loudly on
+    # dispatch, not run silently. Synthesize a claimed row with a bad kind.
+    jobs.enqueue_job(store, JobKind.MEASURE_VARIANTS, {"manifest_slug": "x"})
     claimed = store.claim_next_job(dispatched_at=_NOW)
+    job = {k: claimed[k] for k in claimed.keys()}
+    job["kind"] = "teleport"  # not in DISPATCHABLE
     with pytest.raises(UnknownJobKind):
-        jobs.dispatch_job(store, {k: claimed[k] for k in claimed.keys()}, now_fn=lambda: _NOW)
-    assert store.get_job(jid)["status"] == JobStatus.FAILED
+        jobs.dispatch_job(store, job, now_fn=lambda: _NOW)
+    assert store.get_job(job["id"])["status"] == JobStatus.FAILED
+
+
+def test_rl_run_and_requant_promoted_to_dispatchable():
+    # RV-6 — the last two pre-drilled stubs join the dispatcher; ALL == DISPATCHABLE.
+    assert JobKind.RL_RUN in JobKind.DISPATCHABLE
+    assert JobKind.REQUANT in JobKind.DISPATCHABLE
+    assert JobKind.DISPATCHABLE == JobKind.ALL
+
+
+def test_rl_run_dispatches_and_persists_heldout_digest(store):
+    # RV-6/RV-7/RV-8 — an rl_run drains end-to-end through an injected runner
+    # (the harness `run_rl_loop` in production) and persists the aggregate digest
+    # to jobs.result_json, with NO new arena.db table. The selection metric is
+    # held-out, never pool.
+    def _rl_runner(kind, payload):
+        assert kind == JobKind.RL_RUN
+        return {
+            "base": payload["base"],
+            "domain": "patent-strategist",
+            "n_steps": 4,
+            "selected_step": 1,
+            "selected_heldout_score": 0.9,
+            "heldout_scores": {0: 0.3, 1: 0.9},
+            "pool_scores": {0: 0.25, 1: 0.5, 2: 0.75, 3: 1.0},
+            "selected_on": "heldout",
+            "lineage_card": "# rl_run card",
+        }
+
+    user_version_before = store.user_version
+    jid = jobs.enqueue_job(
+        store,
+        JobKind.RL_RUN,
+        {"base": "patent-Q4_K_M", "bench_path": "/tmp/b.jsonl", "lane_id": "patent-q4km", "bench_id": "b"},
+    )
+    jobs.drain_jobs(store, runner=_rl_runner)
+
+    row = store.get_job(jid)
+    assert row["status"] == JobStatus.DONE
+    summary = json.loads(row["result_json"])
+    assert summary["selected_step"] == 1
+    assert summary["selected_on"] == "heldout"  # RV-4 — never pool
+    assert summary["pool_scores"]["3"] > summary["pool_scores"]["0"]
+    # RV-8 — no schema churn.
+    assert store.user_version == user_version_before
 
 
 def test_runner_failure_marks_job_failed(store):

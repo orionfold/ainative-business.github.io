@@ -1,7 +1,7 @@
 ---
 project: rlvr-loop
 version: v1.0
-status: locked (decisions signed off 2026-06-02) — UNBUILT
+status: BUILT 2026-06-03 (decisions signed off 2026-06-02) — staged for fieldkit v0.20.0
 created: 2026-06-02
 authoritative: Spark
 ---
@@ -292,7 +292,37 @@ promotion lands with its `arena/jobs.py` tests. **v1 ships the loop; the publish
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-03 | **BUILT** — all 10 decisions landed (§10.1 as-built map). New modules `fieldkit.reward` (RewardAdapter over the 7 eval scorers + `group_advantage`, reward tuple reusing `lineage.FailureLabel`) + `fieldkit.rl` (`GRPOConfig`/`RLLoop`, injected GPU seams, held-out-only checkpoint selection, ≥100-row floor); `rl_run`/`requant` promoted to `DISPATCHABLE` (overnight-only, `server.py` POST allowlist stays narrow) + `run_rl_loop`/`requant_checkpoint` harness tools; no arena.db schema change (RV-8). Suite 1211 pass, audit-docs reward 4/4 + rl 3/3 clean, build 497 pages, audit-landing 4/4, cockpit rebaked. Staged in `[Unreleased]` for `fieldkit v0.20.0`. | Manav (with Claude) |
 | 2026-06-02 | **Initial spec authored — v1.0 locked, UNBUILT.** Realizes `_FLOWS` §3 **Phase 3 / Bet 1** (closed-loop RLVR) as the **last** of the four roadmap stubs; **standalone** placement user-confirmed (the engine spans the new `fieldkit.rl`/`fieldkit.reward`, mostly outside `fieldkit.arena`). 10 locked decisions (RV-1…10, signed off — wrap the hand-rolled REINFORCE-with-KL loop not a library; verifier-is-the-reward thin adapter; `(success, failure_class, auxiliary)` tuple **reusing the built `lineage.FailureLabel`**; held-out-every-≤10-steps **hard gate** w/ held-out-only checkpoint selection; pin vLLM + restart-elimination as the top win; promote `rl_run`/`requant` to `DISPATCHABLE`, async/overnight only; lineage rides `fieldkit.lineage` — no new store; **no arena.db table / no `user_version` bump**; publishable kinds deferred to second reuse; ≥100-row corpus + one-lane envelope). 5 risks (RV-R1…R5: pool↔held-out inversion · vLLM restart/drift · reward mode-collapse · overnight OOM · synth-noise ceiling). New abstractions `fieldkit.rl` + `fieldkit.reward`. Code-reconciled against the built `fieldkit/src/fieldkit/`: **`fieldkit.rl`/`fieldkit.reward` absent** (the two new modules); the reward's `failure_class` + the `rl_run` card **already modeled** in `fieldkit.lineage` (`FailureLabel` 9-class enum + `Trial`/`LineageStore`); the `rl_run`/`requant` job kinds **pre-drilled** in `arena/jobs.py` (tagged "→ Phase 3 `rlvr-loop-v1`"); the 7 verifiers + agent-trajectory primitives present in `fieldkit.eval`; `ARTIFACT_KINDS` still 8. Grounded against `roadmap-reconciliation.md` §"Phase 3" (the richest correction set). **Spec only — unbuilt;** release gate ~`fieldkit v0.20.0`. **This is the fourth and final `_FLOWS` §3 spec stub — all four are now written.** | Manav (with Claude) |
+
+## 10.1 As-built (BUILT 2026-06-03)
+
+All 10 decisions landed as written; the build is staged in `[Unreleased]` for the
+`fieldkit v0.20.0` cut.
+
+| Decision | As-built |
+|---|---|
+| RV-1 | **`fieldkit.rl`** (new module) wraps the proven loop as **orchestration with injected GPU seams** — `GRPOConfig` + `RLLoop` drive split→sample→reward→group-relative step→held-out gate→checkpoint-select→lineage; `sampler` / `trainer` / `heldout_eval` inject (the `dispatch_job(runner=…)` pattern), so torch/vLLM never import at module load. `gpu_seams` raises until the pinned-vLLM backend is vendored into `fieldkit[rl]` (`project_verl_atgpo_vllm_gap`) — v1 ships the loop, not a re-implemented GPU trainer. |
+| RV-2 | **`fieldkit.reward`** (new module) — `RewardAdapter` is a thin layer over any `fieldkit.eval` scorer (7 shipped + `exact_match`/`contains`), kwargs filtered to each scorer's signature (judge / `rel_tolerance` / `strip_think`). `group_advantage` = the value-network-free GRPO baseline; degenerate group → zero vector. |
+| RV-3 | `Reward(success, failure_class, auxiliary)` — `failure_class` **reuses `fieldkit.lineage.FailureLabel`** (`KEEP`/`DISCARD`/`CRASH`, no new enum); `auxiliary["score"]` is the dense partial-credit `.scalar`. A raising verifier → caught `CRASH` reward (one bad rollout never sinks the group). |
+| RV-4 | **Held-out gate + held-out-ONLY checkpoint selection** — `RLLoop` evaluates the frozen split every `heldout_every` steps; `_select_checkpoint` is `argmax` over **held-out** scores; `summary()["selected_on"] == "heldout"`. Test proves it picks the held-out-best step while the pool climbs monotonically past it. `heldout_patience` is the RV-R1 early-stop. |
+| RV-5 | `GRPOConfig.vllm_pin` records the pinned version; the trainer seam owns the kill-and-restart (the eliminable quarter); hot-LoRA-swap noted as the fast-follow. |
+| RV-6 | `JobKind.RL_RUN` + `REQUANT` promoted into `DISPATCHABLE` (now `== ALL`); `default_runner` branches call the new `run_rl_loop` / `requant_checkpoint` harness MCP tools; `_persist_rl_run` writes the aggregate digest. **Async/overnight only** — the `server.py` `POST /api/jobs` allowlist stays narrow (no synchronous 8.5 h click); `rl_run` enqueues programmatically + drains under the M11 cron. |
+| RV-7 | The loop writes one `Trial` (`FailureLabel`-labelled) per step + a `heldout-gate` Trial per eval into a `LineageStore`; `RLLoop.run` returns the `rl_run` `LineageSnapshot`. **No new store.** |
+| RV-8 | **No new arena.db table, no `user_version` bump** — verified by a test (`user_version` unchanged across an `rl_run` dispatch). |
+| RV-9 | `ARTIFACT_KINDS` stays at 8; publishable `verifier`/`reward`/`rl_run` kinds deferred to second-vertical reuse. |
+| RV-10 | `RLLoop.run` refuses a corpus below `corpus_min` (`RLLoopError`); `_split_corpus` carves the frozen held-out split before step 0 from a seeded shuffle. |
+
+**Verified:** suite **1211 pass / 16 skip** (+28: `test_reward.py` + `test_rl.py` +
+the `test_jobs.py` extension); `audit-docs reward 4/4 + rl 3/3 + arena` clean;
+`astro build` **497 pages** (new `/fieldkit/api/rl/` + `/fieldkit/api/reward/`);
+both rendering verifiers green; `audit-landing` 4/4; cockpit `_webui` **rebaked**.
+**Operator action left** (deliberate non-default): the real GPU backend
+(`gpu_seams`) is a documented fast-follow — vendor a pinned vLLM with an
+aarch64+CUDA-13 wheel + the `clawgym` REINFORCE loop into `fieldkit[rl]`; until
+then callers inject their own seams (the orchestration is fully functional).
+**Release:** staged in `[Unreleased]`; the `fieldkit v0.20.0` cut is a separate
+`fieldkit-curator` action.
 
 ## 11. References
 

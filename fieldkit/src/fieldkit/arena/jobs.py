@@ -62,24 +62,30 @@ class JobKind:
     """The job kinds the queue understands.
 
     M8 dispatched :data:`EVAL_RERUN` + :data:`MEASURE_VARIANTS`; **M10 (Bet 5
-    recall layer) promotes** :data:`REINDEX` / :data:`RAG_EVAL` /
-    :data:`SCOUT_INGEST` into :data:`DISPATCHABLE` (the same move M8 made for
-    `eval_rerun`). The remaining stubs (`rl_run`/`requant` → Phase 3
-    `rlvr-loop-v1`) stay enqueueable-but-not-dispatchable until their phase lands.
+    recall layer) promoted** :data:`REINDEX` / :data:`RAG_EVAL` /
+    :data:`SCOUT_INGEST`; **Phase 3 (`rlvr-loop-v1`, RV-6) promotes the last two
+    stubs** — :data:`RL_RUN` (the closed-loop RLVR run) + :data:`REQUANT` (the
+    re-quantize of a held-out-winning checkpoint) — into :data:`DISPATCHABLE`.
+    With that, every enqueueable kind is now dispatchable (``DISPATCHABLE ==
+    ALL``). The RLVR run is **async/overnight only** (the 8.5 h GRPO loop can't
+    be a synchronous cockpit click — RV-6): the `server.py` ``POST /api/jobs``
+    allowlist stays narrow, so `rl_run` reaches the dispatcher via
+    :func:`enqueue_job` (a compare-loss trigger, a manual CLI enqueue) and runs
+    under the M11 single-lane cron drain, not a button.
     """
 
     EVAL_RERUN = "eval_rerun"
     MEASURE_VARIANTS = "measure_variants"
-    # M10 (Bet 5) — the recall-pipeline kinds, now dispatchable:
+    # M10 (Bet 5) — the recall-pipeline kinds:
     REINDEX = "reindex"
     RAG_EVAL = "rag_eval"
     SCOUT_INGEST = "scout_ingest"
-    # Named stubs (not dispatchable until Phase 3):
+    # Phase 3 (rlvr-loop-v1, RV-6) — the closed-loop RLVR engine, overnight-only:
     REQUANT = "requant"
     RL_RUN = "rl_run"
 
     DISPATCHABLE: frozenset[str] = frozenset(
-        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST}
+        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST, REQUANT, RL_RUN}
     )
     ALL: frozenset[str] = frozenset(
         {EVAL_RERUN, MEASURE_VARIANTS, REQUANT, RL_RUN, REINDEX, RAG_EVAL, SCOUT_INGEST}
@@ -330,6 +336,23 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             papers_json=payload["papers_json"],
             articles_dir=payload.get("articles_dir"),
         )
+    # Phase 3 (rlvr-loop-v1) — the closed-loop RLVR engine, through the same surface.
+    if kind == JobKind.RL_RUN:
+        return mcp.run_rl_loop(
+            base=payload["base"],
+            vertical=payload.get("vertical", "patent-strategist"),
+            bench_path=payload["bench_path"],
+            scorer=payload.get("scorer", "mcq_letter"),
+            lane=payload.get("lane_id"),
+            bench_id=payload.get("bench_id"),
+            config=payload.get("config"),
+        )
+    if kind == JobKind.REQUANT:
+        return mcp.requant_checkpoint(
+            manifest_slug=payload["manifest_slug"],
+            checkpoint=payload["checkpoint"],
+            variants=payload.get("variants"),
+        )
     raise UnknownJobKind(
         f"job kind {kind!r} is a named stub, not dispatchable "
         f"(dispatchable: {sorted(JobKind.DISPATCHABLE)})"
@@ -486,6 +509,34 @@ def _persist_rag_eval(
     }
 
 
+def _persist_rl_run(
+    store: Any, payload: Mapping[str, Any], result: Mapping[str, Any], now: str
+) -> dict[str, Any]:
+    """Summarize an ``rl_run`` result for ``jobs.result_json`` (RV-7/RV-8).
+
+    **No new arena.db table** (RV-8): the per-step trajectory already rode
+    `fieldkit.lineage` (the ``rl_run`` card is the run's ``LineageSnapshot``) and
+    the held-out checkpoint scores rode the ``eval_runs`` / leaderboard path via
+    the loop's dispatched ``eval_rerun`` gate. This persists only the aggregate
+    digest the standup + the Phase-3 "living-model" delta chart read: the
+    held-out-selected step, the held-out vs pool trajectories, and the base. The
+    selection metric is **held-out, never pool** (RV-4) — echoed as
+    ``selected_on`` so a downstream consumer can't misread it.
+    """
+    return {
+        "kind": JobKind.RL_RUN,
+        "base": result.get("base", payload.get("base")),
+        "vertical": result.get("domain", payload.get("vertical")),
+        "n_steps": result.get("n_steps"),
+        "selected_step": result.get("selected_step"),
+        "selected_heldout_score": result.get("selected_heldout_score"),
+        "heldout_scores": result.get("heldout_scores"),
+        "pool_scores": result.get("pool_scores"),
+        "selected_on": result.get("selected_on", "heldout"),
+        "lineage_card": result.get("lineage_card"),
+    }
+
+
 def dispatch_job(
     store: Any,
     job: Mapping[str, Any],
@@ -522,6 +573,8 @@ def dispatch_job(
             summary = _persist_reindex(store, payload, result, now)
         elif kind == JobKind.RAG_EVAL:
             summary = _persist_rag_eval(store, payload, result, now)
+        elif kind == JobKind.RL_RUN:
+            summary = _persist_rl_run(store, payload, result, now)
         else:
             summary = dict(result)
         store.update_job(
