@@ -1066,15 +1066,147 @@ Every §12 decision landed as specified. Where the spec described "already exist
 
 **Gates green:** full `fieldkit` suite **1118 passed / 16 skipped** (skips = optional heavy deps + `--spark`-only); `audit-docs` 12/13 PASS (the lone SKIP is `cli`, no `__all__`; the 2 residual kwarg-WARNs are pre-existing v0.2/v0.3 methods, not M8). **Not done (deliberately):** the `fieldkit v0.16.0` tag + PyPI publish (a `fieldkit-curator` action), the Phase-1 `product-writer` launch article (gated on M8 shipping — now unblocked), and a live human-eye/Lighthouse pass of `/arena/jobs/` with the sidecar up (the cockpit is currently DOWN).
 
-## 13. Change log
+## 13. M9 — Cost plane (Bet 6 of the MTBM roadmap)
+
+> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Bet 6 ("the cost plane —
+> token economics as a first-class decision axis")** as the **Arena M9** milestone, the
+> first of the two cross-cutting bets to extend the M8 control plane (the priority is
+> recorded in `_SPECS/index.md` Planned queue + `HANDOFF.md` ▶ NEXT UP). It is grounded
+> against Spark-measured evidence in [`roadmap-reconciliation.md`](roadmap-reconciliation.md)
+> §"Bet 6" / `hermes-cost-routing-local-and-openrouter`. **Like M8, M9 is connective
+> tissue, not greenfield** — the cost is already *computed*, just discarded; M9 *persists +
+> surfaces* it. The `fieldkit.budget` **enforcement** arm is explicitly out of scope (Phase 2,
+> `autonomous-harness-v1.md`); M9 ships the **ledger + read API** that governor consumes.
+>
+> **Code reconciliation (2026-06-02, verified against the built `fieldkit/src/fieldkit/`).**
+> Five facts shape the decisions: **(1)** `_compare_cost_usd()` is **real but DB-ephemeral** —
+> `arena/server.py` computes `cost_usd` for OpenRouter lanes only, feeds it to the in-memory
+> `hub.add_openrouter_cost()` accumulator (`_openrouter_cost_usd`) + the SSE `done` payload,
+> and **never INSERTs it**; the accumulator resets on every sidecar restart. **(2)** The store
+> is already at `USER_VERSION = 4` (M8's 2→3 jobs + the side-by-side 3→4 `leaderboard_baseline`),
+> so M9 migrates **4→5**. **(3)** `compare_responses` has `tokens_out` but **no `tokens_in`**;
+> `compare_runs` carries the prompt but zero token columns; only `chat_turns` has both — so
+> per-side input cost needs a new column. **(4)** Token counts are the **4-char heuristic**
+> (`approx_tokens = int(len(full)/4)`) — today's `$` is doubly approximate. **(5)** The H6
+> evidence (`evidence/openrouter_prices.json`, `cost_router_results.json`) the code declares
+> canonical (`RouteTier` docstring + `_OR_FALLBACK_MODELS` both say "keep canonical with the
+> article evidence JSON") is **not version-controlled** — `git ls-files` of that dir is empty
+> (the `_FLOWS` §7 drift bullet). **M9 is the first milestone that ALTERs existing tables** —
+> M8 only added new tables (idempotent `CREATE TABLE IF NOT EXISTS` sufficed); M9 needs a real
+> `ALTER TABLE ADD COLUMN` migration guarded on `PRAGMA user_version` (R18).
+
+### 13.1 M9 locked decisions (signed off 2026-06-02)
+
+| # | Decision | Value | Grounding |
+|---|---|---|---|
+| M9-1 | **Persist what's already computed** | The compare/chat completion path **INSERTs** the `cost_usd` it currently throws away, at the exact point it calls `add_openrouter_cost()`. Local lanes write `0.0`. Lowest-marginal-effort core: no new arithmetic, just persistence. | recon #1 — `_compare_cost_usd()` exists + is ephemeral. |
+| M9-2 | **Where cost lands (per-run, private)** | `user_version 4→5`. Add `cost_usd` to **`chat_turns`** (per turn) + **`compare_responses`** (**per side**) and add the missing **`tokens_in`** to `compare_responses` — per-side because each lane bills the shared prompt at *its own* input price. These tables are **never mirrored** (absent from `PUBLISHABLE_TABLES`), so per-run cost is private by construction. | recon #2, #3; mirror allowlist. |
+| M9-3 | **Aggregate cost (public)** | Add `mean_cost_usd` + derived **`cost_per_quality_point`** to **`leaderboard_rows`** (already in `PUBLISHABLE_TABLES`), computed in `rebuild_leaderboard()`/`_split_leaderboard_rows` where `mean_score` already lands. The only cost surface that goes public. | `leaderboard_rows` is the mirrored aggregate. |
+| M9-4 | **`$/quality-point` definition** | `cost_per_quality_point = mean_cost_usd / mean_score` (guard `mean_score > 0`). Local-lane $0 renders **"$0 (local)"**, not a divide-by-zero "—". | roadmap UX (three-axis ranking). |
+| M9-5 | **Price snapshot, pinned at import** | New **`openrouter_price_snapshot`** table seeded at store-init from the **baked H6 evidence JSON** (the source the code already declares canonical), **NOT** the live `_openrouter_catalog()`. Each cost row stamps the `snapshot_id` it was priced against ⇒ a comparison stays reproducible as live prices drift. The live catalog still drives the model dropdown only. | R7 reproducible-by-snapshot (`CostRouterConfig.render_yaml`); recon #5; signed-off call #2. |
+| M9-6 | **Real token counts, heuristic fallback** | Use the OpenAI-compat response `usage.{prompt_tokens, completion_tokens}` when present; fall back to the 4-char heuristic when the endpoint omits `usage`. Persist a `tokens_estimated` flag so an approximate `$/task` is visibly marked, never silently trusted. | recon #4. |
+| M9-7 | **Mirror safety (two-list discipline)** | `openrouter_price_snapshot` is **public-safe** (no prompts) ⇒ added to `PUBLISHABLE_TABLES` so the public leaderboard's `$/task` is reconstructable. Per-run cost columns inherit their host tables' exclusion. Extend `test_mirror_does_not_leak.py` with a sentinel asserting no prompt text rides a cost path. | mirror two-list pattern + R13 precedent (§12.5/M8-8). |
+| M9-8 | **Persisted session spend (fix the reset)** | The live spend rail's session total is **read back from the persisted rows**, surviving a sidecar restart instead of resetting from `_openrouter_cost_usd = 0.0`. | recon #1 — accumulator resets. |
+| M9-9 | **Scope boundary — ship the ledger, not the governor** | M9 ships `fieldkit.cost` (per-run ledger + price snapshot + `$/quality` read API) + the cockpit cost axis. It does **NOT** ship enforcement: `fieldkit.budget`, the `LOCAL_CEILING = 33%` escalation contract, and the standup spend digest live in **`autonomous-harness-v1.md` (Phase 2)**, which *consumes* this ledger. | §12.6 sequencing; cross-bet-feeds-Phase-2 dependency. |
+| M9-10 | **Version-control the H6 evidence** | Commit `evidence/openrouter_prices.json` + `cost_router_results.json` to the `hermes-cost-routing-local-and-openrouter` article (currently untracked) as the canonical seed for M9-5 — closing the `_FLOWS` §7 drift in the same milestone. | recon #5; signed-off call #3. |
+
+### 13.2 Deliverables
+
+| Artifact | Surface | Gate |
+|---|---|---|
+| Schema `user_version` **4 → 5** — `ALTER TABLE` adds `cost_usd`/`tokens_estimated` to `chat_turns`; `tokens_in`/`cost_usd`/`tokens_estimated`/`price_snapshot_id` to `compare_responses`; `mean_cost_usd`/`cost_per_quality_point` to `leaderboard_rows`; new `openrouter_price_snapshot` table (first ALTER-based migration, R18) | `~/.fieldkit/arena.db` | M9 migration gate (round-trips a `user_version=4` db) |
+| **New module `fieldkit.cost`** — `CostLedger` (per-run rows) + `PriceSnapshot` (seed/lookup) + `cost_per_quality(bench, lane)` read API | `fieldkit` PyPI | `audit-docs cost` clean |
+| `_compare_cost_usd()` INSERT wiring + `usage`-token parse + heuristic fallback | sidecar `server.py` | cost-persisted smoke (compare → row carries `cost_usd` > 0 + `tokens_estimated=0`) |
+| Leaderboard `mean_cost_usd` + `cost_per_quality_point` compute | `arena/store.py` `rebuild_leaderboard()` | unit test on seeded cost rows |
+| Cockpit cost cells — compare view + leaderboard `$/task` & `$/quality-point`; persisted session spend rail | source site | paints offline-safe (aggregate $ only on mirror) |
+| Mirror: `openrouter_price_snapshot` → `PUBLISHABLE_TABLES`; leak-test sentinel on the cost path | `mirror.py` + `tests/arena/test_mirror_does_not_leak.py` | **hard gate** (R13 family) |
+| H6 evidence committed (M9-10) | `articles/hermes-cost-routing-local-and-openrouter/evidence/` | `git ls-files` non-empty |
+| Docs `docs/api/arena.md` §"M9" + `docs/api/cost.md` | `fieldkit` docs | `audit-docs` gate |
+| Release `~fieldkit v0.17.0` | PyPI + tag | `fieldkit-curator` action (separate) |
+
+### 13.3 Architecture
+
+**Schema (`user_version 4→5`)** — the new price-snapshot table + the per-run/aggregate column adds:
+
+```sql
+-- M9 ALTERs (guarded on PRAGMA user_version=4 → 5; R18):
+ALTER TABLE chat_turns        ADD COLUMN cost_usd REAL;
+ALTER TABLE chat_turns        ADD COLUMN tokens_estimated INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE compare_responses ADD COLUMN tokens_in INTEGER;
+ALTER TABLE compare_responses ADD COLUMN cost_usd REAL;
+ALTER TABLE compare_responses ADD COLUMN tokens_estimated INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE compare_responses ADD COLUMN price_snapshot_id TEXT;  -- which snapshot priced this row
+ALTER TABLE leaderboard_rows  ADD COLUMN mean_cost_usd REAL;            -- aggregate, public
+ALTER TABLE leaderboard_rows  ADD COLUMN cost_per_quality_point REAL;   -- mean_cost_usd / mean_score
+
+CREATE TABLE openrouter_price_snapshot (       -- public-safe (no prompts); seeded from H6 evidence JSON
+  snapshot_id            TEXT NOT NULL,          -- batch id (content-hash of seed JSON | 'h6-baseline')
+  model_id               TEXT NOT NULL,          -- 'anthropic/claude-opus-4.1'
+  price_per_m_input_usd  REAL NOT NULL,
+  price_per_m_output_usd REAL NOT NULL,
+  source                 TEXT NOT NULL,          -- 'h6_evidence'|'fallback'
+  captured_at            TEXT NOT NULL,
+  PRIMARY KEY (snapshot_id, model_id)
+);
+```
+
+**Cost flow** — persist at completion, aggregate at leaderboard rebuild:
+
+```
+compare/chat completion (server.py, OpenRouter lane):
+  tokens_in, tokens_out ← response.usage  (fallback: len/4 heuristic, tokens_estimated=1)
+  snapshot ← active openrouter_price_snapshot row for the model      [M9-5]
+  cost_usd ← _compare_cost_usd(tokens_in, tokens_out, snapshot)      [M9-1]
+  → INSERT cost_usd + tokens_in + tokens_estimated + price_snapshot_id onto the row  [M9-2]
+  → hub.add_openrouter_cost(cost_usd)  (live rail; now also rehydrated from rows on restart, M9-8)
+
+rebuild_leaderboard():
+  mean_cost_usd ← AVG(cost_usd) over the bench×lane runs                 [M9-3]
+  cost_per_quality_point ← mean_cost_usd / mean_score  (guard >0)        [M9-4]
+  → leaderboard_rows (mirrored, public)
+
+mirror export:
+  openrouter_price_snapshot → PUBLISHABLE_TABLES (public, no prompts)    [M9-7]
+  per-run cost_usd stays on chat_turns/compare_responses (never mirrored)
+```
+
+**`fieldkit.cost` `__all__` (M9):** `CostLedger`, `PriceSnapshot`, `seed_price_snapshot`, `cost_per_quality`, `CostError`.
+
+**Cockpit UX.** The compare view's per-lane result cell and the leaderboard each gain a **`$/task`** + **`$/quality-point`** column beside `median_tok_per_s` + quality — "hosted SOTA or local?" answered on three axes. The live spend rail shows a session total that survives restart (M9-8). Offline-safe: the public mirror renders the aggregate `$/task` (from `leaderboard_rows` + `openrouter_price_snapshot`) but never a per-run figure.
+
+### 13.4 Grounding (from `roadmap-reconciliation.md` §"Bet 6")
+
+- **The economics are published, not theoretical** — `hermes-cost-routing-local-and-openrouter`: local-only 8/12 at **$0.00**, cost-routed 11/12 at **$2.19/100 tasks**, frontier-only 12/12 at **$2.94/100** behind a `--cap-usd` hard stop ⇒ a **25% spend cut at an 8.3% quality cost**, with a **33% leak** (a third genuinely needs frontier). ⇒ M9-3/M9-4 make this the standing third axis; the 33% leak is the constant M9-9 hands to the Phase-2 governor.
+- **The cost-to-failure inversion** — `autoresearch-agent-loop`: **~$0.0004/failed trial** on the Spark ⇒ wide local exploration is effectively free; the $/quality axis is what makes the hosted-vs-local call legible.
+- **Reproducible-by-snapshot is the established discipline** — the harness already bakes `spark-hermes-cost-router.yaml` rather than live-querying (R7). ⇒ M9-5 pins the snapshot table the same way.
+
+### 13.5 M9 risk additions (extend §10)
+
+| ID | Risk | Likelihood | Impact | Mitigation | Fallback |
+|---|---|---|---|---|---|
+| R18 | **First ALTER-based migration corrupts a live `user_version=4` db** | low-med | data loss | guarded `ALTER TABLE ADD COLUMN` (additive, non-destructive) inside a `user_version` check; a migration round-trip test on a seeded v4 db; columns nullable / defaulted | restore from the `_staging/` db copy; ADD COLUMN is reversible by ignoring the columns |
+| R19 | **Snapshot staleness vs live drift** (a baked price diverges far from live, mis-ranking $/quality) | med | misleading rank | `captured_at` + a cockpit "prices as of <date>" stamp; an operator-triggered `reseed_price_snapshot` (not auto — reproducibility is the point) | re-seed from a fresh H6 evidence capture; old rows keep their `price_snapshot_id` |
+| R20 | **Estimated tokens inflate/deflate $** when `usage` is absent | med | soft $/task error | `tokens_estimated=1` flag surfaced in the UI as a "~" prefix; prefer endpoints that return `usage` | accept the ~ marker; never publish an estimated figure as exact |
+
+### 13.6 Sequencing — what M9 feeds
+
+M9 is a **cross-cutting price signal**, not a sequential phase — it threads the pane/hands/engine the same way M8's `jobs` table does:
+
+- **Phase 2 (`autonomous-harness-v1.md`)** — `fieldkit.budget` reads M9's persisted ledger before the dispatcher launches a job; it encodes the **`LOCAL_CEILING = 33%`** failure-mode escalation (escalate when local *gives up*, not on a token ceiling alone) and emits a **spend digest** (today's $ by lane / by bench vs cap) into the morning standup. M9-9 is the seam.
+- **Phase 3 (`rlvr-loop-v1.md`)** — **$/quality-point ROI**: a `compare_loss` trigger consults measured $/quality *before* the governor approves an `rl_run`, declining RL when frontier escalation is cheaper at equal quality — generalizing the $0.0004/failed-trial inversion to "cheaper to RLVR a local model to threshold, or pay frontier per call?" (mirrors Bet 5's pre-flight gate).
+- **Bet 5 (`second-brain-pipeline-v1.md`, Arena M10)** — the next milestone to write; shares the M8 `jobs` table + this $/quality discipline (a `rag_eval` job can carry its own cost row).
+
+## 14. Change log
 
 | Date | Change | Author |
 |---|---|---|
 | 2026-05-28 | Initial spec landed (v1.0 locked). Decisions §3.1 #1–#10 confirmed in the planning session (hybrid Astro + FastAPI · rubric-deterministic compare · anchor MVP scope · public-mirror distribution · new Cockpit series · `arena_run` artifact kind · Qwen3-30B-A3B brain as the resident lane · OpenRouter via H6 CostRouterConfig as default compare B-lane · deterministic generation boundary · scorer-reuse discipline). Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`. | Manav (with Claude planning session) |
 | 2026-06-02 | **M8 control-plane milestone authored (§12).** Extends the locked v0.1+v0.2 spec with `_FLOWS` §3 **Phase 1 / Bet 3** — promote Arena recorder → dispatcher: new `jobs`/`job_triggers` tables, a single-lane dispatcher executing **through the MCP harness**, `eval_rerun` as the first (and only real) M8 job type, a leaderboard-regression trigger producer, `/arena/jobs/` cockpit surface, and the mirror-allowlist extension (R13). 8 locked decisions (M8-1…8, confirm before build), 5 new risks (R13–R17), grounded against `roadmap-reconciliation.md` §"Phase 1" (CONFIRMED, operational). Phases 2/3 + Bets 5/6 sequenced to extend this `jobs` table. **Spec only — unbuilt.** | Manav (with Claude) |
 | 2026-06-02 | **M8 BUILT** (all 8 decisions green-lit as written). `fieldkit.arena.jobs` dispatcher + `jobs`/`job_triggers` schema (`user_version` 2→3) + `JobStore` methods; two harness MCP tools (`run_vertical_eval` — first `fieldkit.eval` wiring — + `measure_variants`); `/api/jobs` CRUD + SSE drain (BackgroundTasks primary, R14); `jobs`/`job_triggers` on the mirror denylist + leak sentinel (R13); `/arena/jobs/` route + `<JobsBoard>` island (builds into preview + wheel bundle). Tests: `test_jobs.py` (17) + `test_jobs_api.py` (9) + extended `test_mirror_does_not_leak.py`; full suite **1118 passed**, `audit-docs` clean. As-built map in §12.7. **Not yet: the `fieldkit v0.16.0` tag/publish + the Phase-1 launch article + a live-sidecar human-eye pass.** | Manav (with Claude) |
+| 2026-06-02 | **M9 cost-plane milestone authored (§13).** Realizes `_FLOWS` §3 **Bet 6** as the first cross-cutting Arena milestone after M8 (priority locked in `_SPECS/index.md` Planned queue). 10 locked decisions (M9-1…10, **signed off** — persist the already-computed `_compare_cost_usd()`; per-side cost on `compare_responses` + `tokens_in`; aggregate `$/quality-point` on the public `leaderboard_rows`; `openrouter_price_snapshot` pinned from the H6 evidence JSON; real `usage` tokens w/ heuristic fallback; ledger-not-governor scope boundary; version-control the untracked H6 evidence). Schema `user_version` **4→5** — the first ALTER-based migration (R18). 3 new risks (R18–R20). New abstraction `fieldkit.cost`. Grounded against `roadmap-reconciliation.md` §"Bet 6" (`hermes-cost-routing`: 25% spend cut at 8.3% quality cost, 33% leak). **Spec only — unbuilt;** release gate ~`fieldkit v0.17.0`. | Manav (with Claude) |
 
-## 14. References
+## 15. References
 
 ### Internal
 - Plan workspace: `/home/nvidia/.claude/plans/let-s-plan-for-2-curious-thacker.md`
