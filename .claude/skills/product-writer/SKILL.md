@@ -130,6 +130,18 @@ Capture (or refresh) the feature screenshots.
 3. Update the frontmatter `features:` list (name + benefit + screenshot path)
    and the tour section of `product.md`. Write benefit-led captions, not labels
    — see `references/feature-tour.md`.
+4. **Sync the shots to `public/` — the page is served from there.** A product
+   page renders from `public/products/<slug>/`, so a screenshot that lives only
+   in the authored `products/<slug>/screenshots/` source dir is a broken image
+   at runtime (both the FeatureGallery and the inline body `![](screenshots/…)`
+   resolve to the public copy). Screenshots are **dual-located** — author dir +
+   public copy, both git-tracked:
+   ```
+   mkdir -p public/products/<slug>/screenshots
+   cp products/<slug>/screenshots/*.png public/products/<slug>/screenshots/
+   ```
+   Re-run after every `tour` capture/refresh. `verify_product_article.sh` hard-
+   FAILs on any referenced shot missing from public/, so don't skip this.
 
 ### polish
 
@@ -144,16 +156,21 @@ Capture (or refresh) the feature screenshots.
 
 ### publish
 
-1. Run `scripts/verify_product_article.sh <slug>` — frontmatter, filled metrics
-   block, screenshots resolve, no leftover placeholders, secret scan. Fix any
-   `FAIL` before proceeding.
-2. Refresh project stats if the repo's stats pipeline counts products
+1. **Sync screenshots to `public/`** (the `tour` step 4 `cp`) if not already
+   done — the most common silent break is shots that render in the author dir
+   but 404 on the live page.
+2. Run `scripts/verify_product_article.sh <slug>` — frontmatter, filled metrics
+   block, screenshots resolve **in both source and public/**, no leftover
+   placeholders, secret scan. Fix any `FAIL` before proceeding.
+3. Refresh project stats if the repo's stats pipeline counts products
    (check whether `src/data/field-notes/project-stats.json` has a products bucket; if so run
    the stats refresh — coordinate via `_GUIDES/product-articles.md`, since the
    destination owns the home infographic).
-3. Stage `products/<slug>/` (and any refreshed stats) and commit with a
-   descriptive message: `Add product launch: <Product Name>`.
-4. **Do not push.** Report the commit hash; the user pushes when ready. The
+4. Stage `products/<slug>/` **and `public/products/<slug>/`** (and any refreshed
+   stats) and commit with a descriptive message: `Add product launch: <Product
+   Name>`. The public screenshot copies are git-tracked — don't leave them
+   unstaged.
+5. **Do not push.** Report the commit hash; the user pushes when ready. The
    destination repo picks up the new `products/<slug>/` via the normal sync.
 
 ## Relationship to the other skills

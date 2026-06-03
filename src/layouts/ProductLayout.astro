@@ -53,6 +53,13 @@ const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numer
           {d.product_url && (
             <a class="product-cta product-cta--primary" href={d.product_url}>Try the live preview →</a>
           )}
+          {d.download_url && (
+            <a
+              class={`product-cta ${d.product_url ? 'product-cta--ghost' : 'product-cta--primary'}`}
+              href={d.download_url}
+              rel="noopener"
+            >Download ↓</a>
+          )}
           {d.repo_url && (
             <a class="product-cta product-cta--ghost" href={d.repo_url} rel="noopener">View source</a>
           )}

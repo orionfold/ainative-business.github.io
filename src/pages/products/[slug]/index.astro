@@ -49,6 +49,7 @@ const jsonLd = [
     url: productUrl,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
     ...(d.repo_url ? { codeRepository: d.repo_url } : {}),
+    ...(d.download_url ? { downloadUrl: d.download_url } : {}),
   },
   {
     '@context': 'https://schema.org',

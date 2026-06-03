@@ -48,18 +48,36 @@ else
   fi
 fi
 
-# --- feature tour: every referenced screenshot must exist ----------------------
+# --- feature tour: every referenced screenshot must exist in BOTH locations ----
+# A product page is served from public/products/<slug>/, so a screenshot that
+# lives only in the authored products/<slug>/screenshots/ source dir renders as
+# a broken image at runtime. Both the FeatureGallery (/products/<slug>/<path>)
+# and the inline body images resolve to the public copy. Check both — the
+# source-only false-green is exactly what shipped a launch with broken shots.
+pub="$REPO/public/products/$slug"
 missing=0
 while IFS= read -r ref; do
   [[ -z "$ref" ]] && continue
   if [[ ! -f "$dir/$ref" ]]; then
-    note "screenshot referenced but missing: $ref"
+    note "screenshot referenced but missing from source: $ref"
+    missing=$((missing+1))
+  fi
+  if [[ ! -f "$pub/$ref" ]]; then
+    note "screenshot not published to public/products/$slug/$ref — it will 404; run the publish step's screenshot sync"
     missing=$((missing+1))
   fi
 done < <(grep -oE 'screenshots/[A-Za-z0-9._-]+\.(png|jpg|jpeg|webp)' "$md" | sort -u)
 shots=$(find "$dir/screenshots" -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.webp' \) 2>/dev/null | grep -vc '/\._' || true)
 if [[ "${shots:-0}" -eq 0 ]]; then
   warn "no screenshots present — a product launch piece needs a feature tour"
+fi
+# Any source shot not yet mirrored to public/ (even if unreferenced) — nudge so
+# the sync is run before commit, matching the dual-located precedent.
+if [[ -d "$dir/screenshots" ]]; then
+  while IFS= read -r src; do
+    base="${src#"$dir/"}"
+    [[ -f "$pub/$base" ]] || warn "source screenshot not yet synced to public/: $base"
+  done < <(find "$dir/screenshots" -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.webp' \) ! -name '._*')
 fi
 
 # --- leftover template scaffolding --------------------------------------------

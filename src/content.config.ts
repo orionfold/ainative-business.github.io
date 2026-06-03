@@ -252,7 +252,15 @@ const products = defineCollection({
     series: z.enum(SERIES).optional(),
     tags: z.array(z.string()),
     signature: z.string().optional(),
+    // CTA wiring (rendered in ProductLayout, in this order):
+    //   product_url  → "Try the live preview →" (a hosted/simulated demo, e.g.
+    //                  Arena's /arena/demo/). Omit for products with no demo.
+    //   download_url → "Download ↓" (a package/registry, e.g. PyPI). Primary
+    //                  when there's no product_url, ghost alongside one.
+    //   repo_url     → "View source" (a code host). Omit for pip-distributed
+    //                  products that lead with Download instead.
     product_url: z.string().optional(),
+    download_url: z.string().optional(),
     repo_url: z.string().optional(),
     fieldkit_modules: z.array(z.enum(fieldkitModules)).default([]),
 
