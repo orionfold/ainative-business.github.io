@@ -9,8 +9,9 @@ hardware: NVIDIA DGX Spark
 status: published
 series: Cockpit
 tags: [arena, cockpit, recall, rag, second-brain, provenance, pgvector, embeddings, local-llm, dgx-spark, fieldkit, agentic-coding]
-product_url: "/artifacts/harnesses/local-knowledge-appliance/"
-repo_url: "https://pypi.org/project/fieldkit/"
+# No hosted demo (unlike Arena's /arena/demo/) — the appliance is a pip package
+# you run on-box. Lead the hero with Download → PyPI, not a live-preview CTA.
+download_url: "https://pypi.org/project/fieldkit/"
 fieldkit_modules: [memory, arena, harness, eval]
 build:
   window: "one launch session (~4 hours) driving + measuring the Arena M10 recall layer"

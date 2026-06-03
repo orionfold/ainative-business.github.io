@@ -46,13 +46,25 @@ which lives in `.claude/skills/product-writer/` on the Spark source side.
 products/
 └── <slug>/
     ├── product.md        # frontmatter + launch body (the essay)
-    ├── screenshots/      # NN-feature.png — the feature tour, numbered in tour order
+    ├── screenshots/      # NN-feature.png — the feature tour, numbered in tour order (AUTHOR copy)
     └── assets/           # build-metrics.json (mined), diagrams, snippets
+
+public/
+└── products/
+    └── <slug>/
+        └── screenshots/  # SERVED copy — `cp` of the author screenshots above; the page
+                          # renders from here. Both copies are git-tracked (dual-located).
 ```
 
 Slugs are kebab-case, the product's short name (e.g. `orionfold-arena`). Spark
 owns everything under `products/**` as editorial content, exactly as it owns
-`articles/**`.
+`articles/**`. **Screenshots are dual-located:** the page is served from
+`public/products/<slug>/`, so the FeatureGallery (`/products/<slug>/<path>`) and
+the inline `![](screenshots/…)` images both resolve to the *public* copy. After
+every `tour` capture, `cp products/<slug>/screenshots/*.png
+public/products/<slug>/screenshots/` and commit both — a shot that lives only in
+the author dir is a broken image at runtime. `verify_product_article.sh` hard-
+FAILs on a referenced shot missing from public/.
 
 ## Proposed `products` collection (for `src/content.config.ts`)
 
@@ -79,8 +91,18 @@ const products = defineCollection({
     series: z.enum(SERIES).optional(),          // reuse the existing SERIES enum (e.g. 'Cockpit')
     tags: z.array(z.string()),
     signature: z.string().optional(),           // card-thumbnail SVG under src/components/svg/
-    product_url: z.string().optional(),
-    repo_url: z.string().optional(),
+    // Hero CTAs — rendered by ProductLayout in this order. Set only the ones
+    // that point at something real; a CTA that 404s or misleads is worse than
+    // its absence.
+    product_url: z.string().optional(),   // → "Try the live preview →" — a HOSTED/SIMULATED demo
+                                          //   (e.g. Arena's /arena/demo/ record→replay). Do NOT
+                                          //   set it to an artifact card or docs page — that
+                                          //   renders a "live preview" button that shows no demo.
+    download_url: z.string().optional(),  // → "Download ↓" — a package/registry (e.g. PyPI). Primary
+                                          //   button when there's no product_url; ghost beside one.
+                                          //   Use for pip-distributed products (no hosted demo).
+    repo_url: z.string().optional(),      // → "View source" — a code host. Omit when leading with
+                                          //   Download instead of source.
     fieldkit_modules: z.array(z.enum(FIELDKIT_MODULES)).default([]),
 
     // The build-metrics block — the infographic's data source. Every figure
