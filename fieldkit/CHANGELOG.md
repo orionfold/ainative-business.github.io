@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.18.0] — 2026-06-02
+
+The **two cross-cutting Arena bets — M9 cost plane + M10 recall layer** — ship
+together (v0.17.0 was never cut; M9 staged behind M10 and both land here). Two
+new modules: **`fieldkit.cost`** (the per-run cost ledger + `$/quality` ranking
+axis, Bet 6) and **`fieldkit.memory`** (the managed, multi-source,
+provenance-aware Second Brain recall layer, Bet 5). Schema advances `4 → 6` (the
+first ALTER-based migration for cost, then two new control-plane tables for
+recall). Both are **connective tissue** — they persist + manage what the cockpit
+already computed but discarded, and they keep the dispatcher's single-execution-
+surface + leak-proof-mirror disciplines.
+
 ### Added
 
 - **`fieldkit.cost` — the Arena M9 cost plane (new module, Bet 6)** (`__all__` =
@@ -72,6 +84,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   The external RAG assets (the qa-eval gold set, `ingest_blog.py`, the eval
   config, the SB server) are version-controlled under the eval article's
   `evidence/` (M10-12), closing the external-script drift.
+
+### Test suite
+
+- **1153 passed / 16 skipped** offline (`pytest tests/`) — +24 over the v0.16.0
+  baseline (10 `tests/test_cost.py`, 8 `tests/test_memory.py`, 3 M10 dispatch
+  tests in `test_jobs.py`, 4 new mirror leak anchors, 1 allowlist test extended,
+  2 cost version assertions retargeted to `USER_VERSION`). The 16 skips are the
+  pre-existing `--spark` (live NIM / pgvector) + optional-dep (torch, matplotlib,
+  great_tables, jupytext) suites. `audit-docs` 14/15 PASS (cost 5/5 + memory 7/7
+  + arena clean; cli SKIP — no explicit `__all__`); `audit-landing` 4/4 PASS.
+
+### Articles in this release
+
+- `articles/hermes-cost-routing-local-and-openrouter/` — the H6 evidence
+  (`openrouter_prices.json`, `cost_router_results.json`) that seeds the M9 price
+  snapshot, version-controlled here (M9-10).
+- `articles/rag-eval-ragas-and-nemo-evaluator/` — the M10 recall layer's
+  version-controlled seed set (qa-eval gold set, `ingest_blog.py`, the NeMo
+  Evaluator config, the eval summary, the `fieldkit.memory`-backed SB server),
+  committed under `evidence/` (M10-12).
 
 ## [0.16.0] — 2026-06-02
 
