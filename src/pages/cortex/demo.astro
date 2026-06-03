@@ -1,0 +1,30 @@
+---
+// /cortex/demo/ — the Orionfold Cortex live preview.
+//
+// Per the "shared Arena bundle" decision, Cortex's demo IS the Arena cockpit's
+// knowledge tab in the sidecar-less demo bundle (public/arena/demo/, base
+// /arena/demo/). This route is a thin redirect to that tab so /cortex/demo/
+// reads as a first-class product route paralleling /arena/demo/. Static-host
+// safe (meta-refresh + JS), noindex so it isn't crawled as a thin page.
+const target = '/arena/demo/knowledge/';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Orionfold Cortex — live preview</title>
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+    <link rel="canonical" href={target} />
+    <meta name="robots" content="noindex" />
+    <script is:inline>
+      window.location.replace('/arena/demo/knowledge/');
+    </script>
+    <style>
+      body { background: #0b0d12; color: #c9d1e0; font-family: ui-monospace, monospace; display: grid; place-items: center; height: 100vh; margin: 0; }
+      a { color: #8ea2ff; }
+    </style>
+  </head>
+  <body>
+    <p>Opening the <a href={target}>Orionfold Cortex live preview</a>…</p>
+  </body>
+</html>

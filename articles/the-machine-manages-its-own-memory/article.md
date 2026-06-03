@@ -28,7 +28,7 @@ The fraction of gold questions whose correct source is found in the top-`k` retr
 
 ## Architectural context: the loop is the product
 
-The recall layer is a milestone of the [Orionfold Arena](/products/local-knowledge-appliance/) cockpit — the `fieldkit.memory` module plus a knowledge pane — but the architecture that matters here is the *loop*, not the module. A rebuild is not done when it finishes; it is done when it has scored itself and proven it didn't regress. Four stages chain through the control plane: re-index the corpus, score the fresh index against a held-out gold set, gate the result against the prior score, and serve provenance-filtered queries off the index that passed.
+The recall layer — shipped as [Orionfold Cortex](/products/orionfold-cortex/) — is a milestone of the [Orionfold Arena](/products/orionfold-arena/) cockpit, the `fieldkit.memory` module plus a knowledge pane — but the architecture that matters here is the *loop*, not the module. A rebuild is not done when it finishes; it is done when it has scored itself and proven it didn't regress. Four stages chain through the control plane: re-index the corpus, score the fresh index against a held-out gold set, gate the result against the prior score, and serve provenance-filtered queries off the index that passed.
 
 <figure class="fn-diagram" aria-label="The recall loop: re-index, score, gate, query — dispatched through the Arena control plane. Re-index re-embeds the corpus and stamps provenance; score computes recall@k against a 44-question gold set; the gate compares against the prior index and refuses to promote a regression; query serves provenance-filtered retrieval. A dashed edge runs the gate's verdict down to a staged morning standup, never an auto-push.">
   <svg viewBox="0 0 900 260" role="img" aria-label="Four-stage pipeline: re-index to score to gate to query. The gate node is the thesis-critical accent. A dashed edge drops from the gate to a ghost standup node, indicating the verdict is staged for human review, never pushed." preserveAspectRatio="xMidYMid meet">
@@ -170,7 +170,7 @@ On the Spark the drain is sequential — one model lane at a time inside 128 GB 
 :::
 
 :::deeper
-- [Local-Knowledge Appliance launch](/products/local-knowledge-appliance/) — the product this loop ships as, with the measured recall@k on its card.
+- [Orionfold Cortex launch](/products/orionfold-cortex/) — the product this loop ships as, with the measured recall@k on its card.
 - [Ragas, Reranked](/field-notes/rag-eval-ragas-and-nemo-evaluator/) — the sibling piece that built the 44-question gold set and showed retrieval is where the points come from.
 - [Book Ch. 10 — The World Model](/book/) and [Ch. 11 — The Machine That Builds Machines](/book/) — the world-model thesis this recall layer is the read-back half of.
 :::
