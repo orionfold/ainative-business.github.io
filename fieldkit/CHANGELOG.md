@@ -22,6 +22,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   aggregate off `leaderboard_rows` with the local-lane `$0 (local)` render
   (M9-4). **Ledger, not governor** — enforcement (`fieldkit.budget`) is Phase 2
   (Arena M11, §15).
+- **`fieldkit.memory` — the Arena M10 recall layer (new module, Bet 5)**
+  (`__all__` = 7 symbols: `MemoryIndex`, `KnowledgeCard`, `Provenance`,
+  `ingest_sources`, `coverage_report`, `resolve_qa_set`, `MemoryError`). A
+  managed, **multi-source, provenance-aware** index over the Second Brain
+  (`_SPECS/spark-arena-v1.md` §14) — the cure for the silent 12/63 staleness that
+  bit the roadmap harvest. `MemoryIndex` owns the canonical pgvector
+  `blog_chunks` shape (+ the `source · kind · doc_date · verdict · link`
+  provenance card, M10-4) with a single provenance-filtered `query()` backend
+  (M10-9, cosine-only on GB10, M10-7); `ingest_sources` + the `collect_article_/
+  scout_/lineage_sources` readers are the one version-controlled ingest path
+  (M10-2, replacing the retired external `ingest_blog.py`, ported verbatim);
+  `coverage_report` is the `article_index` ⋈ index freshness number (M10-8);
+  `resolve_qa_set` resolves the now-version-controlled qa-eval gold set (M10-12).
+  Ships the **operator pane + managed index**; the autonomous re-index hook +
+  freshness monitor are Phase 2 (Arena M11, §15).
+- **`fieldkit.harness.mcp` — three M10 recall-pipeline tools** (`reindex_memory`,
+  `rag_eval_index`, `scout_ingest`) on the new `memory` surface, the dispatcher's
+  execution surface for the promoted job kinds. `ask_second_brain` rewired to
+  retrieve through the single `fieldkit.memory` backend with a `provenance`
+  trust-tier filter (M10-9).
 
 ### Changed
 
@@ -37,6 +57,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `openrouter_price_snapshot` joins `PUBLISHABLE_TABLES` (public — no prompts),
   the per-run cost columns stay off it (M9-7, anchored by
   `test_mirror_does_not_leak.py`).
+- **`fieldkit.arena` schema `user_version` 5 → 6 (Arena M10, Bet 5).** Additive
+  `CREATE TABLE IF NOT EXISTS` for `reindex_runs` (per-rebuild provenance —
+  operator-private) and `rag_eval_runs` (eval scores per index version —
+  public-safe aggregates); the pgvector provenance ALTER lives in
+  `fieldkit.memory.MemoryIndex.ensure_schema` (R21), not the store. `jobs.py`
+  promotes `reindex` / `rag_eval` / `scout_ingest` into `JobKind.DISPATCHABLE`
+  (M10-1) with per-kind persist + a recall@k **promotion gate** (M10-6,
+  like-for-like per R22). `server.py` adds the `/api/knowledge` pane API
+  (coverage · re-index · RAG-eval · provenance query console). Mirror:
+  `rag_eval_runs` aggregates join `PUBLISHABLE_TABLES` (the public RAG-eval
+  trend), `reindex_runs` joins `FORBIDDEN_TABLES`, sentinel-anchored in
+  `test_mirror_does_not_leak.py` (M10-10). New cockpit `/arena/knowledge/` pane.
+  The external RAG assets (the qa-eval gold set, `ingest_blog.py`, the eval
+  config, the SB server) are version-controlled under the eval article's
+  `evidence/` (M10-12), closing the external-script drift.
 
 ## [0.16.0] — 2026-06-02
 

@@ -1,0 +1,44 @@
+{"question": "What is the purpose of the `classify_block` function?", "answer": "A three-line check against the canonical refusal strings each arc emits", "source": "guardrails-on-the-retrieval-path", "chunk": 2}
+{"question": "What is the size of the AG News corpus used in the benchmark?", "answer": "1000 rows", "source": "rerank-fusion-retrieval-on-spark", "chunk": 0}
+{"question": "What is the command to fix Docker's cgroup namespace?", "answer": "sudo printf '[Service]\nEnvironment=\"OLLAMA_HOST=0.0.0.0\"\n' | sudo tee /etc/systemd/system/ollama.service.d/override.conf && sudo systemctl daemon-reload && sudo systemctl restart ollama", "source": "nemoclaw-vs-openclaw-dgx-spark", "chunk": 2}
+{"question": "What is the median wall time including retrieval for the 8B local NIM on article #7's rerank mode?", "answer": "2.0 seconds", "source": "bigger-generator-grounding-on-spark", "chunk": 3}
+{"question": "What is the name of the CLI shipped with TRT-LLM 1.1 for serving a single-model OpenAI-compatible endpoint?", "answer": "trtllm-serve", "source": "trtllm-and-triton-on-spark", "chunk": 2}
+{"question": "What is the size of the resulting relation for 1000 rows?", "answer": "six megabytes", "source": "pgvector-on-spark", "chunk": 2}
+{"question": "What was the instruction-following layer of the 49B model doing in the case of the question 'How did Tiger Woods finish the 2004 PGA Championship?'?", "answer": "err on the side of caution", "source": "bigger-generator-grounding-on-spark", "chunk": 2}
+{"question": "What is the number of queries in the benchmark?", "answer": "30", "source": "rerank-fusion-retrieval-on-spark", "chunk": 0}
+{"question": "What is the mean tokens per second for the four non-streaming chat completions?", "answer": "24.84 tokens per second", "source": "nim-first-inference-dgx-spark", "chunk": 3}
+{"question": "What is the name of the service that the script calls to stream the completion?", "answer": "not explicitly mentioned in the passage", "source": "naive-rag-on-spark", "chunk": 1}
+{"question": "What is the name of the architecture that the model ships with?", "answer": "arm64", "source": "nemo-retriever-embeddings-local", "chunk": 1}
+{"question": "What is the command to free port 18789?", "answer": "openclaw gateway stop", "source": "nemoclaw-vs-openclaw-dgx-spark", "chunk": 2}
+{"question": "How many times does the loop in the third row repeat overnight?", "answer": "a hundred times", "source": "one-substrate-three-apps", "chunk": 1}
+{"question": "What is the single-request latency on an 8B FP8 model?", "answer": "not memory-bound", "source": "nim-first-inference-dgx-spark", "chunk": 4}
+{"question": "How long does it take to load the Nemotron Retriever 1B embedding NIM?", "answer": "52 seconds cold", "source": "nemo-retriever-embeddings-local", "chunk": 0}
+{"question": "What is the port number of the `pgvector` container?", "answer": ":5432", "source": "naive-rag-on-spark", "chunk": 0}
+{"question": "What is the approximate number of milliseconds it takes for the inference hop itself to complete on the host OpenClaw path?", "answer": "p50 ~680 ms", "source": "nemoclaw-vs-openclaw-dgx-spark", "chunk": 5}
+{"question": "What was installed to make agents safe to automate?", "answer": "NemoClaw \u2014 NVIDIA Nemotron-backed agent sandboxes running on `k3s` inside OpenShell containers", "source": "dgx-spark-day-one-access-first", "chunk": 1}
+{"question": "What is the size of the GPU used in the three arcs?", "answer": "128 GB", "source": "one-substrate-three-apps", "chunk": 1}
+{"question": "What is the minimum cosine similarity to color the output green?", "answer": "0.3", "source": "nemo-retriever-embeddings-local", "chunk": 4}
+{"question": "What is the reusable method the author built for absorbing product docs into a Claude Code skill?", "answer": "the method is not explicitly stated, but it is mentioned as a reusable method that the author built", "source": "nemoclaw-vs-openclaw-dgx-spark", "chunk": 0}
+{"question": "What is the name of the agent sandboxing system mentioned in the passage?", "answer": "NemoClaw", "source": "dgx-spark-day-one-access-first", "chunk": 2}
+{"question": "What is the size of each vector in the `pgvector` container?", "answer": "1024-d", "source": "naive-rag-on-spark", "chunk": 0}
+{"question": "What is the default size of shared_buffers in the container image?", "answer": "128 MB", "source": "pgvector-on-spark", "chunk": 4}
+{"question": "What is the time-to-first-token for a cold-prompt?", "answer": "80 milliseconds", "source": "naive-rag-on-spark", "chunk": 2}
+{"question": "How many articles are in the Autoresearch track from the current article to an agent that runs overnight against a training loop?", "answer": "nine", "source": "one-substrate-three-apps", "chunk": 2}
+{"question": "What does the access layer determine?", "answer": "how much of your work an agent can take off your plate", "source": "dgx-spark-day-one-access-first", "chunk": 0}
+{"question": "What is the name of the model that is actively maintained by NVIDIA?", "answer": "llama-nemotron-embed-1b-v2", "source": "nemo-retriever-embeddings-local", "chunk": 1}
+{"question": "What is the size of the FP8 engine?", "answer": "8.6 GB", "source": "trtllm-and-triton-on-spark", "chunk": 2}
+{"question": "What is the initial time taken by NemoClaw sandbox at turn 1?", "answer": "140 seconds", "source": "nemoclaw-vs-openclaw-dgx-spark", "chunk": 4}
+{"question": "What is the recall@10 value for the rerank top-10 on the Phelps 200m freestyle question?", "answer": "96.8%", "source": "rerank-fusion-retrieval-on-spark", "chunk": 3}
+{"question": "What is the constraint on iteration count for an overnight experiment agent on an 8B driver?", "answer": "The only constraint is wall-clock.", "source": "nim-first-inference-dgx-spark", "chunk": 5}
+{"question": "What is the recommended dimensionality for a personal-scale corpus according to the article?", "answer": "1024", "source": "pgvector-on-spark", "chunk": 1}
+{"question": "What is the name of the policy gate in the Second Brain?", "answer": "policy gate", "source": "guardrails-on-the-retrieval-path", "chunk": 4}
+{"question": "What is the average end-to-end latency for clean queries in the benchmark set?", "answer": "400\u2013650 ms", "source": "guardrails-on-the-retrieval-path", "chunk": 2}
+{"question": "What is the topic precision for Sports queries in the exact seq-scan configuration?", "answer": "0.90", "source": "pgvector-on-spark", "chunk": 3}
+{"question": "What is the memory usage of the 8B generator after optimization?", "answer": "2.5 GiB", "source": "trtllm-and-triton-on-spark", "chunk": 4}
+{"question": "What is the size of the cached weights for the model at this precision?", "answer": "8.5 GB", "source": "nim-first-inference-dgx-spark", "chunk": 0}
+{"question": "What is the value of NIM_GPU_MEM_FRACTION by default?", "answer": "0.5", "source": "nim-first-inference-dgx-spark", "chunk": 3}
+{"question": "What is the name of the grammar used in the `rails.co` files?", "answer": "Colang", "source": "guardrails-on-the-retrieval-path", "chunk": 1}
+{"question": "What is the next topic the author will cover in the next article?", "answer": "NIM deployment and on-device inference economics vs. the cloud API", "source": "dgx-spark-day-one-access-first", "chunk": 4}
+{"question": "What is the recall@5 of naive retrieval with a strong embedder on a clean corpus?", "answer": "92%", "source": "rerank-fusion-retrieval-on-spark", "chunk": 4}
+{"question": "What is the size of the engine file for the NVFP4 run?", "answer": "5.7 GB", "source": "trtllm-and-triton-on-spark", "chunk": 0}
+{"question": "What was the score of Tiger Woods in the 2004 PGA Championship?", "answer": "three-under-par 69", "source": "bigger-generator-grounding-on-spark", "chunk": 2}

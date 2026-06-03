@@ -56,8 +56,11 @@ __all__ = [
 #: ``openrouter_price_snapshot`` table. Unlike M8 (new tables only, idempotent
 #: ``CREATE TABLE IF NOT EXISTS``), M9 ALTERs existing tables, so
 #: :meth:`ArenaStore._migrate` runs guarded ``ALTER TABLE ADD COLUMN`` on a
-#: live ``user_version=4`` db (R18).
-USER_VERSION = 5
+#: live ``user_version=4`` db (R18). **6 at M10** (the recall layer, §14 /
+#: Bet 5): adds the ``reindex_runs`` + ``rag_eval_runs`` control-plane tables
+#: (additive + idempotent ``CREATE TABLE IF NOT EXISTS`` — no ALTER; the M10
+#: ALTER lives in pgvector, ``fieldkit.memory.MemoryIndex.ensure_schema``).
+USER_VERSION = 6
 
 #: Expanded ``~/.fieldkit/arena.db``. Importable so tests can override the
 #: env var without forcing a CLI roundtrip.
@@ -358,6 +361,43 @@ CREATE TABLE IF NOT EXISTS openrouter_price_snapshot (
     captured_at            TEXT NOT NULL,           -- upstream capture instant (NOT seed time)
     PRIMARY KEY (snapshot_id, model_id)
 );
+
+-- M10 (Bet 5 recall layer, user_version 5→6) — the index-rebuild bookkeeping.
+-- The vector index itself lives in pgvector ``blog_chunks`` (managed by
+-- ``fieldkit.memory``); these two tables hold the *runs over it*. ``reindex_runs``
+-- is the provenance of each rebuild (what source-set, the chunk delta) — it is
+-- OPERATOR-PRIVATE control-plane state (a rebuild can name internal slugs), kept
+-- off the mirror in ``FORBIDDEN_TABLES``. ``rag_eval_runs`` is the eval score per
+-- index version — pure aggregates (recall@k, faithfulness), no prompts/chunk
+-- text — so it is PUBLIC-SAFE and lands in ``PUBLISHABLE_TABLES`` for the public
+-- "RAG-eval trend" (M10-10). The promotion gate (M10-6) compares like-for-like
+-- (``rerank=0`` vs ``rerank=0`` only, R22).
+CREATE TABLE IF NOT EXISTS reindex_runs (   -- provenance of each index rebuild (private)
+    id            TEXT PRIMARY KEY,
+    source_set    TEXT NOT NULL,            -- 'articles' | 'lineage' | 'scout' | 'all'
+    index_version TEXT NOT NULL,            -- content-hash / monotonic tag of the resulting index
+    chunks_before INTEGER,
+    chunks_after  INTEGER,
+    articles_n    INTEGER,                  -- distinct source docs ingested
+    status        TEXT NOT NULL,            -- queued|running|done|failed
+    started_at    TEXT NOT NULL,
+    finished_at   TEXT,
+    error         TEXT
+);
+CREATE TABLE IF NOT EXISTS rag_eval_runs (  -- scores per index version (aggregates → public)
+    id               TEXT PRIMARY KEY,
+    reindex_run_id   TEXT REFERENCES reindex_runs(id),
+    qa_set           TEXT NOT NULL,         -- which gold set (versioned in-repo)
+    recall_at_k      REAL,                  -- p_chunk_at_k
+    slug_recall_at_k REAL,                  -- p_slug_at_k
+    faithfulness     REAL,
+    mean_correctness REAL,
+    refusal_rate     REAL,
+    rerank           INTEGER NOT NULL DEFAULT 0,  -- 0 = cosine-only (GB10 default, R22)
+    status           TEXT NOT NULL,
+    created_at       TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_rag_eval_runs_set ON rag_eval_runs(qa_set, rerank, created_at);
 """
 
 
@@ -802,6 +842,98 @@ class ArenaStore:
                 ],
             )
         return len(rows)
+
+    # ---- M10 (Bet 5 recall layer) — reindex / rag-eval run bookkeeping ----
+
+    def insert_reindex_run(self, row: Mapping[str, Any]) -> None:
+        """Insert a ``reindex_runs`` row (a rebuild's provenance). Operator-
+        private control-plane state — never mirrored (M10-10)."""
+        self.connect().execute(
+            "INSERT INTO reindex_runs "
+            "(id, source_set, index_version, chunks_before, chunks_after, "
+            " articles_n, status, started_at, finished_at, error) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                row["id"],
+                row["source_set"],
+                row["index_version"],
+                row.get("chunks_before"),
+                row.get("chunks_after"),
+                row.get("articles_n"),
+                row["status"],
+                row["started_at"],
+                row.get("finished_at"),
+                row.get("error"),
+            ),
+        )
+        self.connect().commit()
+
+    def update_reindex_run(self, run_id: str, **fields: Any) -> None:
+        """Patch a ``reindex_runs`` row by id (status/finished_at/chunk deltas)."""
+        if not fields:
+            return
+        cols = ", ".join(f"{k}=?" for k in fields)
+        self.connect().execute(
+            f"UPDATE reindex_runs SET {cols} WHERE id=?",
+            (*fields.values(), run_id),
+        )
+        self.connect().commit()
+
+    def reindex_runs(self, *, limit: int = 50) -> list[sqlite3.Row]:
+        """Recent ``reindex_runs`` rows, newest first (operator-private)."""
+        return list(
+            self.connect().execute(
+                "SELECT * FROM reindex_runs ORDER BY started_at DESC LIMIT ?",
+                (int(limit),),
+            )
+        )
+
+    def insert_rag_eval_run(self, row: Mapping[str, Any]) -> None:
+        """Insert a ``rag_eval_runs`` row (eval score for an index version).
+        Aggregates only — public-safe, mirrored under the allowlist (M10-10)."""
+        self.connect().execute(
+            "INSERT INTO rag_eval_runs "
+            "(id, reindex_run_id, qa_set, recall_at_k, slug_recall_at_k, "
+            " faithfulness, mean_correctness, refusal_rate, rerank, status, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                row["id"],
+                row.get("reindex_run_id"),
+                row["qa_set"],
+                row.get("recall_at_k"),
+                row.get("slug_recall_at_k"),
+                row.get("faithfulness"),
+                row.get("mean_correctness"),
+                row.get("refusal_rate"),
+                int(row.get("rerank", 0)),
+                row["status"],
+                row["created_at"],
+            ),
+        )
+        self.connect().commit()
+
+    def rag_eval_runs(self, *, limit: int = 100) -> list[sqlite3.Row]:
+        """Recent ``rag_eval_runs`` rows, newest first — the RAG-eval trend."""
+        return list(
+            self.connect().execute(
+                "SELECT * FROM rag_eval_runs ORDER BY created_at DESC LIMIT ?",
+                (int(limit),),
+            )
+        )
+
+    def last_rag_eval(
+        self, qa_set: str, *, rerank: int = 0
+    ) -> sqlite3.Row | None:
+        """The most recent *done* ``rag_eval_runs`` row for a gold set at a
+        given rerank mode — the prior-index baseline the promotion gate compares
+        against, like-for-like (M10-6 / R22)."""
+        cur = self.connect().execute(
+            "SELECT * FROM rag_eval_runs "
+            "WHERE qa_set=? AND rerank=? AND status='done' AND recall_at_k IS NOT NULL "
+            "ORDER BY created_at DESC LIMIT 1",
+            (qa_set, int(rerank)),
+        )
+        return cur.fetchone()
 
     def leaderboard_live(self, *, include_chat: bool = True) -> list[dict[str, Any]]:
         """Live cockpit leaderboard rows, computed on-the-fly (no rebuild).

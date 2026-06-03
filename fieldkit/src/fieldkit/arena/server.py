@@ -684,11 +684,37 @@ def create_app(
         served + the `harness` extra; on a box without them the job is marked
         ``failed`` with the import/connection error, never silently dropped."""
 
-        kind: str = Field(pattern="^(eval_rerun|measure_variants)$")
+        kind: str = Field(
+            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest)$"
+        )
         payload: dict = Field(default_factory=dict)
         trigger: str = Field(default="manual", max_length=40)
         priority: int = Field(default=0, ge=0, le=100)
         dispatch: bool = True
+
+    class KnowledgeReindexRequest(BaseModel):
+        """``POST /api/knowledge/reindex`` — enqueue an M10 ``reindex`` job.
+
+        ``source_set`` ∈ ``{articles, scout, lineage, all}``; the drain runs
+        ``fieldkit.memory`` through the harness surface and writes a
+        ``reindex_runs`` row. ``rag_eval`` (default True) chains a scoring job
+        after the rebuild so the RAG-eval trend + promotion gate stay current."""
+
+        source_set: str = Field(
+            default="articles", pattern="^(articles|scout|lineage|all)$"
+        )
+        papers_json: Optional[str] = Field(default=None, max_length=500)
+        rag_eval: bool = True
+        dispatch: bool = True
+
+    class KnowledgeQueryRequest(BaseModel):
+        """``POST /api/knowledge/query`` — the operator's provenance-filtered
+        query console (M10-4/9). Returns chunk text — OPERATOR-PRIVATE, served
+        live only, never mirrored. ``provenance`` filters by trust tier."""
+
+        query: str = Field(min_length=1, max_length=2000)
+        top_k: int = Field(default=5, ge=1, le=20)
+        provenance: Optional[list[str]] = Field(default=None)
 
     db_path = str(db or DEFAULT_ARENA_DB)
     root = Path(repo_root or Path.cwd()).resolve()
@@ -1716,6 +1742,135 @@ def create_app(
             return {"ok": True, "job_id": job_id, "status": "skipped"}
         finally:
             store.close()
+
+    # ------------------------------------------------------------------
+    # M10 (Bet 5 recall layer) — the knowledge / RAG pane API.
+    # ------------------------------------------------------------------
+
+    @app.get("/api/knowledge")
+    async def api_knowledge(
+        limit: int = Query(default=50, ge=1, le=200),
+    ) -> dict[str, Any]:
+        """The knowledge-pane snapshot: coverage · RAG-eval trend · recent
+        re-index runs · source classes (M10-8/6).
+
+        Degraded-safe: the coverage join needs pgvector (the live index) — if
+        it's unreachable the ``coverage`` field is ``null`` with an ``index_note``,
+        and the arena.db-backed trend + run history still render. The public
+        mirror has no sidecar, so the island falls back to the static
+        ``rag_eval_runs`` trend only (M10-10)."""
+        from fieldkit.arena.store import ArenaStore
+        from fieldkit.memory import SOURCE_CLASSES
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            return {
+                "coverage": None,
+                "index_note": "arena.db not initialized",
+                "rag_eval_runs": [],
+                "reindex_runs": [],
+                "source_classes": list(SOURCE_CLASSES),
+            }
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            rag_rows = [dict(r) for r in store.rag_eval_runs(limit=limit)]
+            reindex_rows = [dict(r) for r in store.reindex_runs(limit=limit)]
+            coverage: Optional[dict[str, Any]] = None
+            index_note: Optional[str] = None
+            backfilled: Optional[dict[str, int]] = None
+            try:
+                from fieldkit.memory import MemoryIndex, coverage_report
+
+                index = MemoryIndex()
+                coverage = coverage_report(store, index)
+                done, total = index.provenance_backfilled()
+                backfilled = {"with_provenance": done, "total": total}
+            except Exception as exc:  # noqa: BLE001 — degrade, never 500
+                index_note = f"live index unavailable: {exc}"
+            return {
+                "coverage": coverage,
+                "provenance_backfilled": backfilled,
+                "index_note": index_note,
+                "rag_eval_runs": rag_rows,
+                "reindex_runs": reindex_rows,
+                "source_classes": list(SOURCE_CLASSES),
+            }
+        finally:
+            store.close()
+
+    @app.post("/api/knowledge/reindex")
+    async def api_knowledge_reindex(
+        body: KnowledgeReindexRequest, background_tasks: BackgroundTasks
+    ) -> dict[str, Any]:
+        """Enqueue a ``reindex`` job (+ an optional chained ``rag_eval``), then
+        drain in the background (M10-1). Returns the enqueued ids."""
+        from fieldkit.arena import jobs as _jobs
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            payload: dict[str, Any] = {"source_set": body.source_set}
+            if body.papers_json:
+                payload["papers_json"] = body.papers_json
+            reindex_id = _jobs.enqueue_job(
+                store, _jobs.JobKind.REINDEX, payload, trigger="operator"
+            )
+            rag_id = None
+            if body.rag_eval:
+                rag_id = _jobs.enqueue_job(
+                    store, _jobs.JobKind.RAG_EVAL, {}, trigger="operator",
+                    dedup_key="", priority=0,
+                )
+        finally:
+            store.close()
+        if body.dispatch:
+            background_tasks.add_task(_drain_jobs_background, str(db_file))
+        return {"ok": True, "reindex_job_id": reindex_id, "rag_eval_job_id": rag_id}
+
+    @app.post("/api/knowledge/rag-eval")
+    async def api_knowledge_rag_eval(
+        background_tasks: BackgroundTasks, dispatch: bool = Query(default=True)
+    ) -> dict[str, Any]:
+        """Enqueue a standalone ``rag_eval`` scoring job over the live index
+        (M10-6). The promotion gate compares it like-for-like against the prior
+        cosine-only score."""
+        from fieldkit.arena import jobs as _jobs
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            job_id = _jobs.enqueue_job(
+                store, _jobs.JobKind.RAG_EVAL, {}, trigger="operator", dedup_key=""
+            )
+        finally:
+            store.close()
+        if dispatch:
+            background_tasks.add_task(_drain_jobs_background, str(db_file))
+        return {"ok": True, "rag_eval_job_id": job_id}
+
+    @app.post("/api/knowledge/query")
+    async def api_knowledge_query(body: KnowledgeQueryRequest) -> dict[str, Any]:
+        """The operator's provenance-filtered query console (M10-4/9).
+
+        Returns chunk text + provenance — OPERATOR-PRIVATE (served live only,
+        never mirrored). Needs the live index (pgvector + embedder); 503 if the
+        index is unreachable so the pane can show a clear 'index offline' state."""
+        from fieldkit.memory import MemoryError as _MemErr
+        from fieldkit.memory import MemoryIndex
+
+        try:
+            index = MemoryIndex()
+            hits = index.query(
+                body.query, top_k=body.top_k, sources=body.provenance
+            )
+        except _MemErr as exc:
+            raise HTTPException(status_code=503, detail=f"index unavailable: {exc}")
+        return {"query": body.query, "provenance": body.provenance, "hits": hits}
 
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena

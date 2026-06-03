@@ -79,6 +79,13 @@ def seeded_store_with_sentinels(store):
         # reaches the mirror (the cost columns are off the allowlist, M9-7).
         "compare_responses_snapshot_id_A": _new_sentinel("RESPONSE_A_SNAPSHOT"),
         "compare_responses_snapshot_id_B": _new_sentinel("RESPONSE_B_SNAPSHOT"),
+        # M10 (Bet 5 recall layer): the index-rebuild provenance path. Proves a
+        # ``reindex_runs`` row — whose ``source_set`` can name internal (lineage)
+        # slugs and whose ``error`` is freeform — never reaches the mirror
+        # (reindex_runs is on FORBIDDEN_TABLES; only the rag_eval_runs aggregate
+        # scores are publishable, M10-10).
+        "reindex_runs_source_set": _new_sentinel("REINDEX_SOURCE_SET"),
+        "reindex_runs_error": _new_sentinel("REINDEX_ERROR"),
     }
 
     # Resident-brain + frontier lanes
@@ -222,6 +229,39 @@ def seeded_store_with_sentinels(store):
             "detail_json": json.dumps(
                 {"operator_note": sentinels["job_triggers_detail"]}
             ),
+            "created_at": now,
+        }
+    )
+
+    # --- M10 reindex_runs (control-plane provenance; operator-private — the
+    # exporter must never touch it; M10-10) + a rag_eval_runs row (PUBLIC-safe
+    # aggregate score — proves the publishable knowledge path stays scores-only) ---
+    store.insert_reindex_run(
+        {
+            "id": "reindex-leak",
+            "source_set": sentinels["reindex_runs_source_set"],
+            "index_version": "idx-leak",
+            "chunks_before": 100,
+            "chunks_after": 313,
+            "articles_n": 50,
+            "status": "done",
+            "started_at": now,
+            "finished_at": now,
+            "error": sentinels["reindex_runs_error"],
+        }
+    )
+    store.insert_rag_eval_run(
+        {
+            "id": "rageval-pub",
+            "reindex_run_id": "reindex-leak",
+            "qa_set": "qa-eval.jsonl",
+            "recall_at_k": 0.659,
+            "slug_recall_at_k": 0.864,
+            "faithfulness": None,
+            "mean_correctness": None,
+            "refusal_rate": None,
+            "rerank": 0,
+            "status": "done",
             "created_at": now,
         }
     )

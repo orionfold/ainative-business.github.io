@@ -1,0 +1,42 @@
+---
+// Knowledge — /arena/knowledge/
+//
+// M10 recall layer (Bet 5, spec §14). Arena manages its own Second Brain: the
+// operator sees coverage/freshness (the article_index ⋈ live-index diff — the
+// silent 12/63 staleness becomes a standing number), re-indexes multi-source
+// with provenance, watches the RAG-eval trend (cosine-only on GB10), and runs a
+// provenance-filtered query console. The <KnowledgePane> island carries the
+// live state; this page is the cockpit shell.
+//
+// Operator-private + offline-safe: reindex_runs + chunk text are on
+// mirror.FORBIDDEN_TABLES (M10-10); only rag_eval_runs aggregates publish. On
+// the public mirror there is no sidecar, so the island renders a static note.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import KnowledgePane from '../../components/arena/KnowledgePane.jsx';
+
+const title = 'Orionfold Arena — Knowledge';
+const description =
+  'The recall layer — manage the Second Brain as an evaluated, multi-source, provenance-tagged index. Coverage, re-index, RAG-eval trend, and a trust-filtered query console. Operator-private; only the eval trend is mirrored.';
+---
+<ArenaAppLayout title={title} description={description} active="knowledge">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Recall&nbsp;layer</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">multi-source · provenance · eval-gated</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          chunk text — never mirrored
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* Coverage (article_index ⋈ index, M10-8) · re-index (M10-1) · RAG-eval
+          trend (cosine-only, M10-7) · provenance query console (M10-4/9). The
+          eval-gated re-index promotes only a non-regressing rebuild (M10-6). */}
+      <KnowledgePane client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>

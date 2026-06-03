@@ -105,7 +105,8 @@ def test_migration_v4_to_v5_round_trip(tmp_path):
     store.initialize()
     conn = store.connect()
 
-    assert store.user_version == USER_VERSION == 5
+    # Migrates to the current pin (M9's 4→5 cost ALTER + M10's 5→6 new tables).
+    assert store.user_version == USER_VERSION
 
     # New columns exist on every altered table.
     cr_cols = {r[1] for r in conn.execute("PRAGMA table_info(compare_responses)")}
@@ -134,7 +135,7 @@ def test_initialize_is_idempotent(store):
     """Re-running initialize() over a v5 db is a no-op (no dup columns / rows)."""
     before = store.count("openrouter_price_snapshot")
     store.initialize()
-    assert store.user_version == 5
+    assert store.user_version == USER_VERSION
     assert store.count("openrouter_price_snapshot") == before == 2
 
 

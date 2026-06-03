@@ -53,6 +53,10 @@ __all__ = [
     # M8 — Arena dispatcher job-execution tools (also callable plainly).
     "run_vertical_eval",
     "measure_variants",
+    # M10 — Arena recall-pipeline job-execution tools.
+    "reindex_memory",
+    "rag_eval_index",
+    "scout_ingest",
 ]
 
 MCP_SERVER_NAME = "fieldkit"
@@ -153,6 +157,27 @@ MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         "measure_variants",
         "quant",
         "Single-stream tok/s across a manifest's GGUF variants via llama-bench.",
+        False,
+    ),
+    # M10 (Bet 5 recall layer) — the recall-pipeline job-execution tools.
+    # Promoted from named stubs (M10-1): the dispatcher runs them through this
+    # same MCP surface, inheriting the M8 containment posture.
+    MCPToolSpec(
+        "reindex_memory",
+        "memory",
+        "Rebuild the Second-Brain index multi-source (articles/lineage/scout) with provenance.",
+        False,
+    ),
+    MCPToolSpec(
+        "rag_eval_index",
+        "memory",
+        "Score the live index against the in-repo qa-eval gold set (cosine-only recall@k).",
+        False,
+    ),
+    MCPToolSpec(
+        "scout_ingest",
+        "memory",
+        "Fold a frontier-scout papers.json (feasibility verdicts) into the index as scout-class memory.",
         False,
     ),
 )
@@ -336,47 +361,74 @@ def publish_quant_dry_run(
     }
 
 
+#: The grounded-answer system prompt (shared with the standalone SB server, so
+#: the one backend gives one answer contract, M10-9).
+_SB_SYS_PROMPT = (
+    "You are a careful assistant answering questions about the ai-field-notes "
+    "project (articles by Manav Sehgal on running AI locally on the NVIDIA DGX "
+    "Spark). Answer using ONLY the provided context passages, each labeled with "
+    "its source article slug and chunk index like [slug #N]. Answer concisely "
+    "and concretely. Cite the passages you used in a trailing line: 'Sources: "
+    "[slug #N, slug #N]'. If the context does not contain the answer, reply with "
+    "exactly one sentence: 'The provided context does not contain the answer.'"
+)
+
+
 def ask_second_brain(
-    query: str, retrieve_k: int = 5, rerank_k: int = 3, max_tokens: int = 256
+    query: str,
+    retrieve_k: int = 5,
+    rerank_k: int = 3,
+    max_tokens: int = 256,
+    provenance: Optional[list[str]] = None,
 ) -> dict[str, Any]:
     """Ask the ai-field-notes Second-Brain RAG corpus (read-only).
 
-    Builds a `rag.Pipeline` from env — `SECOND_BRAIN_PG_DSN`, `EMBED_URL`,
-    `LLM_URL`, `LLM_MODEL` — so the same MCP tool serves both the Hermes harness
-    and a Claude Code session (the `mcp-second-brain-in-claude-code` bridge).
-    Requires the embedder + generator NIMs and pgvector to be up.
+    **M10-9: retrieval goes through the single ``fieldkit.memory`` backend** —
+    the same provenance-aware index the standalone ``second-brain-mcp`` server
+    uses, so the trust filter + rerank policy are defined once. ``provenance``
+    (a subset of ``fieldkit.memory.SOURCE_CLASSES`` — ``article`` / ``lineage`` /
+    ``scout`` / …) restricts the trust tier in the vector SQL itself (M10-4); a
+    Spark-measured number and an external claim are not interchangeable.
+    Generation uses the local Llama NIM. Requires the embedder NIM + pgvector
+    (and, for the answer, the generator NIM) up. Cosine-only on GB10 (M10-7);
+    ``rerank_k`` is retained for API stability but rerank is off until a
+    ``-dgx-spark`` reranker lands.
     """
+    from fieldkit.memory import MemoryIndex
     from fieldkit.nim import NIMClient
-    from fieldkit.rag import Pipeline
 
-    pg_dsn = os.environ.get(
-        "SECOND_BRAIN_PG_DSN",
-        "host=127.0.0.1 port=5432 dbname=vectors user=spark password=spark",
-    )
-    embed_url = os.environ.get("EMBED_URL", "http://127.0.0.1:8001/v1/embeddings")
     llm_url = os.environ.get("LLM_URL", "http://127.0.0.1:8000/v1")
     llm_model = os.environ.get("LLM_MODEL", "meta/llama-3.1-8b-instruct")
-    rerank_url = os.environ.get("RERANK_URL") or None
-    rerank_key = os.environ.get("NGC_API_KEY") or None
 
+    index = MemoryIndex()  # reads SECOND_BRAIN_PG_DSN / EMBED_URL from env
+    hits = index.query(query, top_k=retrieve_k, sources=provenance)
+
+    context = "\n\n".join(
+        f"[{h['slug']} #{h['chunk_idx']}]\n{h['text']}" for h in hits
+    )
+    user = (
+        f"Context passages:\n\n{context}\n\nQuestion: {query}\n\nAnswer:"
+    )
     generator = NIMClient(base_url=llm_url, model=llm_model)
-    pipeline = Pipeline(
-        embed_url=embed_url,
-        pgvector_dsn=pg_dsn,
-        generator=generator,
-        rerank_url=rerank_url,
-        rerank_api_key=rerank_key,
-        table=os.environ.get("SECOND_BRAIN_TABLE", "blog_chunks"),
+    resp = generator.chat(
+        [
+            {"role": "system", "content": _SB_SYS_PROMPT},
+            {"role": "user", "content": user},
+        ],
+        max_tokens=max_tokens,
     )
-    out = pipeline.ask(
-        query, retrieve_k=retrieve_k, rerank_k=rerank_k, max_tokens=max_tokens
-    )
+    answer = resp["choices"][0]["message"]["content"].strip()
     return {
         "query": query,
-        "answer": out["answer"],
+        "answer": answer,
         "sources": [
-            {"slug": getattr(c, "slug", None), "chunk_idx": getattr(c, "chunk_idx", None)}
-            for c in out.get("chunks", [])
+            {
+                "slug": h["slug"],
+                "chunk_idx": h["chunk_idx"],
+                "source": h["source"],
+                "verdict": h["verdict"],
+            }
+            for h in hits
         ],
     }
 
@@ -514,6 +566,153 @@ def measure_variants(
     }
 
 
+# --- M10 (Bet 5 recall layer) — recall-pipeline tools ----------------------
+
+#: Default articles tree for `reindex_memory` — env-overridable so a non-Spark
+#: checkout (or a test) can point elsewhere.
+_DEFAULT_ARTICLES_DIR = os.environ.get(
+    "ARENA_ARTICLES_DIR", "/home/nvidia/ainative-business.github.io/articles"
+)
+
+
+def _index_version(chunk_counts: dict[str, int]) -> str:
+    """A short content tag for an index state — stable for a given (slug→count)
+    map, so two identical rebuilds carry the same ``index_version`` and the
+    promotion gate compares like-for-like. Deterministic (no clock)."""
+    import hashlib
+
+    payload = ";".join(f"{s}:{n}" for s, n in sorted(chunk_counts.items()))
+    digest = hashlib.sha1(payload.encode()).hexdigest()[:12]
+    total = sum(chunk_counts.values())
+    return f"idx-{len(chunk_counts)}d-{total}c-{digest}"
+
+
+def reindex_memory(
+    source_set: str = "articles",
+    articles_dir: Optional[str] = None,
+    papers_json: Optional[str] = None,
+    lineage_cards: Optional[list[dict[str, Any]]] = None,
+) -> dict[str, Any]:
+    """Rebuild the Second-Brain index multi-source with provenance (M10 ``reindex``).
+
+    ``source_set`` ∈ ``{articles, scout, lineage, all}`` selects which source
+    classes to (re)ingest. Collects :class:`KnowledgeCard`s, runs the one
+    version-controlled ingest (``fieldkit.memory.ingest_sources`` — the retired
+    ``ingest_blog.py``'s replacement, M10-2), and returns the chunk delta +
+    ``index_version`` for the ``reindex_runs`` row. Requires pgvector + the
+    embedder NIM up.
+    """
+    from fieldkit.memory import (
+        MemoryIndex,
+        collect_article_sources,
+        collect_lineage_sources,
+        collect_scout_sources,
+        ingest_sources,
+    )
+
+    valid = {"articles", "scout", "lineage", "all"}
+    if source_set not in valid:
+        raise ValueError(f"source_set must be one of {sorted(valid)}; got {source_set!r}")
+
+    index = MemoryIndex()
+    index.ensure_schema()
+    before = sum(index.chunk_counts().values())
+
+    cards: list[Any] = []
+    if source_set in ("articles", "all"):
+        cards += collect_article_sources(articles_dir or _DEFAULT_ARTICLES_DIR)
+    if source_set in ("scout", "all") and papers_json:
+        cards += collect_scout_sources(papers_json)
+    if source_set in ("lineage", "all") and lineage_cards:
+        cards += collect_lineage_sources(lineage_cards)
+
+    res = ingest_sources(index, cards)
+    counts = index.chunk_counts()
+    after = sum(counts.values())
+    return {
+        "source_set": source_set,
+        "chunks_before": before,
+        "chunks_after": after,
+        "articles_n": len(res["slugs"]),
+        "by_source": res["by_source"],
+        "index_version": _index_version(counts),
+    }
+
+
+def rag_eval_index(
+    qa_set: Optional[str] = None,
+    top_k: int = 5,
+    rerank: bool = False,
+) -> dict[str, Any]:
+    """Score the live index against the in-repo qa-eval gold set (M10 ``rag_eval``).
+
+    Computes **chunk-recall@k** (``p_chunk_at_k``) and **slug-recall@k**
+    (``p_slug_at_k``) — the fraction of gold questions whose ``(source, chunk)``
+    / ``source`` appears in the cosine top-k. This is the GB10 **cosine-only
+    measured baseline** (M10-7): faithfulness/correctness need the generator NIM
+    and are left ``None`` here (the rerank lane is bounded drift). ``rerank`` is
+    accepted but unsupported on GB10 (no ``-dgx-spark`` profile) — passing
+    ``True`` raises so a score is never silently mislabelled (R22). Requires
+    pgvector + the embedder.
+    """
+    from fieldkit.memory import MemoryIndex, resolve_qa_set
+
+    if rerank:
+        raise ValueError(
+            "rerank=True is unsupported on GB10 (no -dgx-spark reranker profile); "
+            "the cosine-only score is the measured baseline (M10-7). Re-enable via "
+            "RERANK_URL when a compatible reranker lands."
+        )
+    gold_path = resolve_qa_set(qa_set)
+    gold = [json.loads(line) for line in Path(gold_path).read_text().splitlines() if line.strip()]
+    if not gold:
+        raise ValueError(f"qa-eval gold set at {gold_path} is empty")
+
+    index = MemoryIndex()
+    n = len(gold)
+    chunk_hits = 0
+    slug_hits = 0
+    for q in gold:
+        hits = index.query(q["question"], top_k=top_k)
+        gold_slug = q["source"]
+        gold_chunk = q.get("chunk")
+        retrieved = {(h["slug"], h["chunk_idx"]) for h in hits}
+        retrieved_slugs = {h["slug"] for h in hits}
+        if gold_slug in retrieved_slugs:
+            slug_hits += 1
+        if (gold_slug, gold_chunk) in retrieved:
+            chunk_hits += 1
+    return {
+        "qa_set": Path(gold_path).name,
+        "n": n,
+        "top_k": top_k,
+        "rerank": 0,
+        "recall_at_k": round(chunk_hits / n, 4),
+        "slug_recall_at_k": round(slug_hits / n, 4),
+        "faithfulness": None,
+        "mean_correctness": None,
+        "refusal_rate": None,
+    }
+
+
+def scout_ingest(
+    papers_json: str,
+    articles_dir: Optional[str] = None,
+) -> dict[str, Any]:
+    """Fold a ``frontier-scout`` papers.json into the index as scout memory (M10
+    ``scout_ingest``).
+
+    Each scouted paper persists as ``"evaluated, <feasibility verdict>"`` (the
+    lowest trust tier, M10-3) so the system stops re-scouting what it already
+    judged — the external twin of M8-4's re-scouting-amnesia cure. Thin wrapper
+    over :func:`reindex_memory` with ``source_set='scout'`` so it shares the one
+    ingest path + writes a ``reindex_runs`` row.
+    """
+    return reindex_memory(
+        source_set="scout", papers_json=papers_json, articles_dir=articles_dir
+    )
+
+
 # --- Server assembly -------------------------------------------------------
 
 _READ_ONLY = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
@@ -618,6 +817,34 @@ def build_mcp_server(name: str = MCP_SERVER_NAME) -> Any:
         ),
         annotations=_WRITES,
     )(measure_variants)
+
+    server.tool(
+        description=(
+            "Rebuild the Second-Brain index multi-source (articles/lineage/scout) "
+            "with a provenance card on every chunk. Talks to pgvector + the "
+            "embedder NIM. Backs the Arena `reindex` job (M10). source_set ∈ "
+            "{articles, scout, lineage, all}."
+        ),
+        annotations=_WRITES,
+    )(reindex_memory)
+
+    server.tool(
+        description=(
+            "Score the live Second-Brain index against the in-repo qa-eval gold "
+            "set: chunk-recall@k + slug-recall@k (cosine-only, the GB10 measured "
+            "baseline). Backs the Arena `rag_eval` job + its promotion gate (M10)."
+        ),
+        annotations=_WRITES,
+    )(rag_eval_index)
+
+    server.tool(
+        description=(
+            "Fold a frontier-scout papers.json (feasibility verdicts) into the "
+            "index as scout-class memory, so the system stops re-scouting what it "
+            "already judged. Backs the Arena `scout_ingest` job (M10)."
+        ),
+        annotations=_WRITES,
+    )(scout_ingest)
 
     return server
 

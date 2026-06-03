@@ -1227,7 +1227,8 @@ marketing-site deploy.
 
 ## 14. M10 — Recall layer (Bet 5 of the MTBM roadmap)
 
-> **Status: LOCKED (decisions signed off 2026-06-02) — UNBUILT.** This section
+> **Status: BUILT 2026-06-02** (all 12 decisions M10-1…12 landed — see the
+> **§14.7 as-built map**; staged for `fieldkit v0.18.0`, not yet released). This section
 > realizes `_FLOWS/the-machine-that-builds-machines.md` §3 **Bet 5 ("the recall layer —
 > the Second Brain as a control-plane-managed knowledge pipeline")** as the **Arena M10**
 > milestone, the second cross-cutting bet to extend the M8 control plane (priority recorded
@@ -1395,6 +1396,48 @@ M10 is a **cross-cutting recall surface**, not a sequential phase — it threads
 - **Phase 2 (M11, §15)** — the **re-index-on-publish hook** + a **scheduled freshness monitor** automate M10's manual re-index button, and a scheduled `frontier-scout` sweep lands back through M10's `scout_ingest` job — finally realizing Ch-11's named-but-unbuilt "Freshness Monitoring" box. M10-11 is the seam (it ships the pane the hooks later drive).
 - **Phase 3 (`rlvr-loop-v1.md`)** — the index ingests `rl_run`/`lineage` cards (M10-3's internal class), and a `compare_loss` trigger **queries the Second Brain before the governor approves an `rl_run`** — returning the internal `t2po` finding (47.7% per-assertion ceiling, +33% wall for nothing) *and* any external paper verdict, so a doomed RL run is declined or redirected. Mirrors M9's pre-flight cost gate.
 - **Phase 2 (M11, §15) — now written** — with both cross-cutting bets specced (M9 cost ✅, M10 recall ✅), the autonomous harness references both defined contracts (the budget governor reads M9's ledger; the freshness monitor drives M10's re-index) instead of dangling them. Authored as **§15 (Arena M11)** 2026-06-02 (placement chosen consistent with M8/M9/M10). Then `rlvr-loop-v1.md` (Phase 3) last.
+
+### 14.7 As-built map (2026-06-02)
+
+All 12 decisions landed; the build matched the spec with one honest grounding
+reconciliation (recorded below). Verified: full fieldkit suite **1153 passed /
+16 skipped** (+11 over the M9 baseline — 8 new `tests/test_memory.py`, 3 new M10
+dispatch tests in `test_jobs.py`, the mirror leak gate extended with a knowledge
+sentinel, two M9 version assertions retargeted to `USER_VERSION`), `audit-docs`
+**memory 7/7 + arena clean**, main `astro build` **494 pages** (the new
+`/fieldkit/api/memory/` route), both rendering verifiers green, the arena cockpit
+bundle **rebakes** (the `/arena/knowledge/` pane compiles into `_webui`).
+
+| Decision | As-built |
+|---|---|
+| M10-1 | `JobKind.REINDEX`/`RAG_EVAL`/`SCOUT_INGEST` moved into `DISPATCHABLE`; `default_runner` dispatches each via three new `fieldkit.harness.mcp` tools (`reindex_memory`/`rag_eval_index`/`scout_ingest`, the new `memory` surface); `dispatch_job` routes to `_persist_reindex` / `_persist_rag_eval`. |
+| M10-2 | New module **`fieldkit/src/fieldkit/memory.py`** (`__all__` = 7). The 900w/150-overlap chunker + the multi-source ingest are ported into `ingest_sources`; the retired `ingest_blog.py` is committed as the seed (M10-12). **Reconciliation:** `rag.Pipeline`'s default table is the `id`-keyed `chunks` shape, incompatible with the `(slug, chunk_idx)`-keyed `blog_chunks` the eval gold set + SB server need — so `MemoryIndex` *owns* the canonical `blog_chunks` schema and reuses `rag`'s embed convention rather than the `Pipeline` write path. One version-controlled ingest, eval continuity preserved. |
+| M10-3 | `collect_article_sources` / `collect_scout_sources` / `collect_lineage_sources` — the three source classes, each emitting `KnowledgeCard`s with a `Provenance` card. |
+| M10-4 | `Provenance` (`source · kind · doc_date · verdict · link`) → columns on `blog_chunks` via `MemoryIndex.ensure_schema` (idempotent `ALTER … ADD COLUMN IF NOT EXISTS`); `query(*, sources=…)` filters trust tier in the vector SQL. `ask_second_brain` + the SB server gain the `provenance` arg. |
+| M10-5 | arena.db `user_version` **5 → 6**: `reindex_runs` + `rag_eval_runs` via `CREATE TABLE IF NOT EXISTS` (new tables, no ALTER); store readers/writers added. **Round-trip tested** on a seeded `user_version=5` db (the new tables dropped + version pinned → re-init restores them at v6). |
+| M10-6 | `rag_eval_index` computes chunk-recall@k + slug-recall@k over the in-repo gold set; `_persist_rag_eval` compares against `last_rag_eval(qa_set, rerank=0)` and flags `promote=False` on a drop (the index is one physical store, so the verdict + delta are recorded for the operator/Phase-2 to act on). |
+| M10-7 / R22 | Cosine-only on GB10; every `rag_eval_runs` row stamps `rerank=0`; `rag_eval_index` raises if `rerank=True` (never a silently-mislabelled score); the pane labels "cosine-only · GB10". |
+| M10-8 | `coverage_report` joins `ArenaStore.articles()` (minus `upcoming`) against `MemoryIndex.indexed_slugs()` → coverage% + stale/orphan lists + per-slug chunk counts + the `provenance_backfilled` fraction (R21 gate). The pane renders it. |
+| M10-9 | `MemoryIndex.query` is the one backend behind both the rewired `ask_second_brain` harness tool and the version-controlled `second-brain-server.py`. |
+| M10-10 | `rag_eval_runs` → `PUBLISHABLE_TABLES` (+ emitted in the mirror payload); `reindex_runs` → `FORBIDDEN_TABLES`; a `reindex_runs.source_set`/`error` sentinel added to `test_mirror_does_not_leak.py`. |
+| M10-11 | Scope held — pane + 3 dispatcher kinds + `fieldkit.memory` + eval-gated *manual* re-index. No publish hook / no scheduled monitor (Phase 2 / M11). |
+| M10-12 | `articles/rag-eval-ragas-and-nemo-evaluator/evidence/{qa-eval.jsonl, ingest_blog.py, nemo_evaluator_config.yaml, rag-eval-summary.json, second-brain-server.py}` committed (were untracked / outside the repo). |
+| R21 | The provenance ALTER is `ADD COLUMN IF NOT EXISTS` + the ingest is a clean per-slug replace, so the first re-index backfills every row; `provenance_backfilled()` surfaces the fraction so the pane can gate the trust filter. |
+
+**Operator actions (not done by the build — guard-denied or live-infra):**
+- **Live pgvector provenance backfill** — `MemoryIndex.ensure_schema()` against the
+  shared `vectors` db (the ALTER + the first re-index) runs on the operator's
+  first `/api/knowledge/reindex` click; until then the query console degrades to a
+  clean 503 and the pane shows an `index_note`. (The build's classifier declined
+  to mutate the shared index directly — correct: it's the Re-index button's job.)
+- **Deploy the version-controlled SB server** — copy
+  `…/evidence/second-brain-server.py` over `/home/nvidia/second-brain-mcp/server.py`
+  and `pip install -e fieldkit` in its `.venv` so it imports `fieldkit.memory`.
+
+**Staged, not released:** the v0.18.0 bump + tag + PyPI push are a separate
+`fieldkit-curator` action (CHANGELOG `[Unreleased]` written). The cockpit's
+`_webui` was rebaked; the public `dist/` is unchanged until a marketing-site
+deploy.
 
 ## 15. M11 — Autonomous harness + cron (Phase 2 of the MTBM roadmap)
 
