@@ -1,0 +1,55 @@
+{
+  "_note": "The local-knowledge-appliance IS the Arena M10 recall layer (fieldkit.memory + the /arena/knowledge pane), shipped 2026-06-02 in commit ebe6425. This launch documents the session that DROVE it end-to-end on the repo's own corpus, measured its recall, and fixed a bug. The agentic-effort numbers (sessions/turns/tokens/wall-clock) are that launch session; lines_of_code + test_cases describe the appliance's recall-layer code surface (authored at M10), credited as substrate in the prose.",
+  "build_window": {
+    "label": "one launch session (~4 hours) driving + measuring the Arena M10 recall layer",
+    "since": "2026-06-03T10:35:47Z",
+    "until": "2026-06-03T14:47:16Z"
+  },
+  "tokens": {
+    "by_model": {
+      "claude-opus-4-8": { "turns": 146, "total": 33232797 }
+    },
+    "totals": {
+      "input_tokens": 23363,
+      "output_tokens": 133451,
+      "cache_creation_input_tokens": 739003,
+      "cache_read_input_tokens": 32336980,
+      "total_all": 33232797,
+      "fresh_in_out": 156814
+    },
+    "cache_ratio_pct": 97.3,
+    "assistant_turns": 146,
+    "sessions_touched": 2
+  },
+  "loc": {
+    "_scope": "the appliance's recall-layer code surface (Arena M10, 2026-06-02)",
+    "by_ext": {
+      ".py": { "files": 1, "lines": 674, "what": "fieldkit/src/fieldkit/memory.py" },
+      ".jsx": { "files": 1, "lines": 300, "what": "arena-app KnowledgePane.jsx" },
+      ".astro": { "files": 1, "lines": 39, "what": "arena-app knowledge.astro" }
+    },
+    "total_lines": 1013,
+    "total_files": 3
+  },
+  "tests": {
+    "test_files": 1,
+    "test_cases": 8,
+    "_scope": "fieldkit/tests/test_memory.py (the module's own suite); this session also added 2 regression tests for the rag_eval json fix"
+  },
+  "wall_clock_hours": 4.2,
+  "feature_count": 4,
+  "models": ["Claude Opus 4.8"],
+  "daily_driver": "Claude Opus 4.8",
+  "harness": "Claude Code",
+  "measured_result": {
+    "qa_set": "qa-eval.jsonl",
+    "questions": 44,
+    "chunk_recall_at_5": 0.4091,
+    "slug_recall_at_5": 0.7273,
+    "lane": "cosine-only · GB10",
+    "index_version": "idx-50d-313c",
+    "chunks": 313,
+    "articles": 49
+  },
+  "bug_fixed": "fieldkit.harness.mcp.rag_eval_index NameError: name 'json' is not defined — missing module import, surfaced only by a real Arena rag_eval drain"
+}

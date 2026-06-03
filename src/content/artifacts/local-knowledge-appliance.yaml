@@ -16,7 +16,7 @@ vertical_eval:
 license:
   tier: free
   model: apache-2.0
-article: articles/rag-eval-ragas-and-nemo-evaluator/
+article: products/local-knowledge-appliance/
 published_at: "2026-06-03T11:09:00Z"
 positioning:
   headline: A local-knowledge appliance that gates its own recall
