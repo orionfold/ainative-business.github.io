@@ -95,6 +95,7 @@ function makeEmptySide() {
     base_url: null,
     no_key: false,
     cost_usd: null,
+    tokens_estimated: 1, // M9 (Bet 6, R20): 1 = heuristic token count → "~" cost marker
     loadStatus: null, // { phase, model, detail } while an on-demand lane loads
     score: null, // { total, checks } — deterministic rubric (free-prompt mode)
     evalScore: null, // { scored, score, max, normalized, scorer_kind, why } — eval mode
@@ -353,6 +354,7 @@ export default function CompareDuel() {
             ttft_ms: payload.ttft_ms ?? null,
             tokens_out: payload.tokens_out ?? null,
             cost_usd: payload.cost_usd ?? null,
+            tokens_estimated: payload.tokens_estimated ?? 1,
           };
           setA((prev) => ({
             ...prev,
@@ -362,6 +364,7 @@ export default function CompareDuel() {
             tokens_out: payload.tokens_out ?? null,
             finish_reason: payload.finish_reason ?? null,
             cost_usd: payload.cost_usd ?? null,
+            tokens_estimated: payload.tokens_estimated ?? 1,
           }));
         } else if (ev.event === 'start_b') {
           setB((prev) => ({
@@ -387,6 +390,7 @@ export default function CompareDuel() {
             ttft_ms: payload.ttft_ms ?? null,
             tokens_out: payload.tokens_out ?? null,
             cost_usd: payload.cost_usd ?? null,
+            tokens_estimated: payload.tokens_estimated ?? 1,
           };
           setB((prev) => ({
             ...prev,
@@ -396,6 +400,7 @@ export default function CompareDuel() {
             tokens_out: payload.tokens_out ?? null,
             finish_reason: payload.finish_reason ?? null,
             cost_usd: payload.cost_usd ?? null,
+            tokens_estimated: payload.tokens_estimated ?? 1,
           }));
         } else if (ev.event === 'score') {
           setResolvedRubricId(payload.rubric_id);
@@ -982,7 +987,9 @@ function MetricCards({ a, b, evalMode, history }) {
     { key: 'tok_per_s', label: 'tok/s', lowerBetter: false, av: a.tok_per_s, bv: b.tok_per_s, fmt: (v) => v.toFixed(1) },
     { key: 'ttft_ms', label: 'TTFT', lowerBetter: true, av: a.ttft_ms, bv: b.ttft_ms, fmt: (v) => `${v.toFixed(0)} ms` },
     { key: 'tokens_out', label: 'Tokens', lowerBetter: false, av: a.tokens_out, bv: b.tokens_out, fmt: (v) => v.toLocaleString() },
-    { key: 'cost_usd', label: 'Cost', lowerBetter: true, av: a.cost_usd, bv: b.cost_usd, fmt: (v) => `$${v.toFixed(4)}` },
+    // M9 (Bet 6, R20): a "~" prefix marks a cost computed from estimated
+    // (heuristic) token counts — never silently trusted as exact.
+    { key: 'cost_usd', label: 'Cost', lowerBetter: true, av: a.cost_usd, bv: b.cost_usd, fmt: (v) => `${(a.tokens_estimated || b.tokens_estimated) ? '~' : ''}$${v.toFixed(4)}` },
   ].filter((s) => num(s.av) || num(s.bv) || history.some((h) => num(h.a?.[s.key]) || num(h.b?.[s.key])));
 
   return (

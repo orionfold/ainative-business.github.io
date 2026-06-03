@@ -90,6 +90,10 @@ PUBLISHABLE_TABLES: dict[str, tuple[str, ...]] = {
         "mean_ttft_ms",
         "human_pref_winrate",
         "last_run_at",
+        # M9 (Bet 6): the aggregate cost axis. Public-safe — derived means, no
+        # prompts. Per-run cost stays on the private host tables (M9-2/M9-7).
+        "mean_cost_usd",
+        "cost_per_quality_point",
     ),
     "compare_runs": (
         "id",
@@ -139,6 +143,17 @@ PUBLISHABLE_TABLES: dict[str, tuple[str, ...]] = {
         "recommended",
         # NOTE: ``port`` / ``base_url`` / ``start_script`` / ``stop_script``
         # are operator-host-specific and skipped on principle.
+    ),
+    # M9 (Bet 6): the price snapshot the public $/task is reconstructable from.
+    # PUBLIC-SAFE — pinned per-million prices keyed by model id, no prompts
+    # (M9-7). Per-run cost columns inherit their host tables' exclusion.
+    "openrouter_price_snapshot": (
+        "snapshot_id",
+        "model_id",
+        "price_per_m_input_usd",
+        "price_per_m_output_usd",
+        "source",
+        "captured_at",
     ),
 }
 
@@ -371,7 +386,7 @@ def _aggregate_cockpit_rows(
     """
     by_pair: dict[tuple[str, str], list[dict[str, Any]]] = {}
 
-    def _push(bench_id, lane_id, *, score, tok, ttft, wins, n_prefs, ts):
+    def _push(bench_id, lane_id, *, score, tok, ttft, wins, n_prefs, ts, cost=None):
         by_pair.setdefault((bench_id, lane_id), []).append(
             {
                 "score": score,
@@ -380,6 +395,7 @@ def _aggregate_cockpit_rows(
                 "wins": wins,
                 "n_prefs": n_prefs,
                 "ts": ts,
+                "cost": cost,  # M9 (Bet 6): per-run cost_usd, None when unpriced
             }
         )
 
@@ -400,7 +416,7 @@ def _aggregate_cockpit_rows(
                 # the row appears once its score lands.
                 continue
             resp_row = conn.execute(
-                "SELECT tok_per_s, ttft_ms FROM compare_responses "
+                "SELECT tok_per_s, ttft_ms, cost_usd FROM compare_responses "
                 "WHERE compare_run_id=? AND side=?",
                 (run["id"], side),
             ).fetchone()
@@ -418,6 +434,7 @@ def _aggregate_cockpit_rows(
                 score=float(score_row["total"]),
                 tok=float(resp_row["tok_per_s"]) if resp_row and resp_row["tok_per_s"] is not None else None,
                 ttft=float(resp_row["ttft_ms"]) if resp_row and resp_row["ttft_ms"] is not None else None,
+                cost=float(resp_row["cost_usd"]) if resp_row and resp_row["cost_usd"] is not None else None,
                 wins=wins,
                 n_prefs=len(prefs),
                 ts=max([t for t in (run["created_at"], score_row["scored_at"]) if t] or [run["created_at"]]),
@@ -429,6 +446,7 @@ def _aggregate_cockpit_rows(
         turns = conn.execute(
             "SELECT t.id AS turn_id, t.tok_per_s AS tok_per_s, "
             "       t.ttft_ms AS ttft_ms, t.created_at AS created_at, "
+            "       t.cost_usd AS cost_usd, "
             "       s.lane_id AS lane_id "
             "FROM chat_turns t JOIN chat_sessions s ON s.id = t.session_id "
             "WHERE t.role='assistant'"
@@ -453,6 +471,7 @@ def _aggregate_cockpit_rows(
                 score=score,
                 tok=float(t["tok_per_s"]) if t["tok_per_s"] is not None else None,
                 ttft=float(t["ttft_ms"]) if t["ttft_ms"] is not None else None,
+                cost=float(t["cost_usd"]) if t["cost_usd"] is not None else None,
                 wins=0.0,
                 n_prefs=0,
                 ts=ts,
@@ -469,17 +488,30 @@ def _aggregate_cockpit_rows(
         if total_prefs >= 5:  # spec §4.4 — render only after ≥5 prefs
             winrate = total_wins / total_prefs
         ts_vals = [e["ts"] for e in entries if e["ts"]]
+        # M9 (Bet 6): aggregate cost + the $/quality-point third axis. Cost
+        # rows that are None (local/unpriced runs) drop out of the AVG; a pair
+        # with no priced runs gets mean_cost_usd=None. ``cost_per_quality_point``
+        # = mean_cost_usd / mean_score, guarded on mean_score>0 (M9-4); a local
+        # lane lands 0.0 here and renders "$0 (local)" via fieldkit.cost.
+        costs = [e["cost"] for e in entries if e["cost"] is not None]
+        mean_score_val = (sum(scores) / len(scores)) if scores else None
+        mean_cost_usd = (sum(costs) / len(costs)) if costs else None
+        cost_per_quality_point: float | None = None
+        if mean_cost_usd is not None and mean_score_val and mean_score_val > 0:
+            cost_per_quality_point = mean_cost_usd / mean_score_val
         rows.append(
             {
                 "bench_id": bench_id,
                 "lane_id": lane_id,
                 "manifest_slug": None,
                 "n_runs": len(entries),
-                "mean_score": (sum(scores) / len(scores)) if scores else None,
+                "mean_score": mean_score_val,
                 "median_tok_per_s": _median(tokps) if tokps else None,
                 "mean_ttft_ms": (sum(ttfts) / len(ttfts)) if ttfts else None,
                 "human_pref_winrate": winrate,
                 "last_run_at": max(ts_vals) if ts_vals else None,
+                "mean_cost_usd": mean_cost_usd,
+                "cost_per_quality_point": cost_per_quality_point,
             }
         )
     return rows
@@ -498,8 +530,9 @@ def _rebuild_cockpit_runs(conn: sqlite3.Connection, *, fetched_at: str) -> int:
         conn.execute(
             "INSERT OR REPLACE INTO leaderboard_rows "
             "(bench_id, lane_id, manifest_slug, n_runs, mean_score, "
-            " median_tok_per_s, mean_ttft_ms, human_pref_winrate, last_run_at) "
-            "VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+            " median_tok_per_s, mean_ttft_ms, human_pref_winrate, last_run_at, "
+            " mean_cost_usd, cost_per_quality_point) "
+            "VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 r["bench_id"],
                 r["lane_id"],
@@ -509,6 +542,8 @@ def _rebuild_cockpit_runs(conn: sqlite3.Connection, *, fetched_at: str) -> int:
                 r["mean_ttft_ms"],
                 r["human_pref_winrate"],
                 fetched_at,
+                r.get("mean_cost_usd"),  # M9 (Bet 6) — aggregate cost
+                r.get("cost_per_quality_point"),
             ),
         )
     conn.commit()
@@ -618,6 +653,10 @@ def export_publishable_slice(
         "rubric_scores": table_rows.get("rubric_scores", []),
         "human_prefs": table_rows.get("human_prefs", []),
         "lanes": table_rows.get("lanes", []),
+        # M9 (Bet 6): the price snapshot so the public $/task is reconstructable.
+        "openrouter_price_snapshot": table_rows.get(
+            "openrouter_price_snapshot", []
+        ),
     }
 
     # Atomic staged write. _staging/ → final path under os.replace.

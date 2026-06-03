@@ -234,6 +234,10 @@ class ChatTurnRecord:  # M4
     ttft_ms: Optional[float] = None
     tok_per_s: Optional[float] = None
     finish_reason: Optional[str] = None
+    # M9 (Bet 6 cost plane): per-turn OpenRouter spend (0.0 on local lanes) +
+    # the estimate flag (1 = heuristic token count, no usage block — UI "~").
+    cost_usd: Optional[float] = None
+    tokens_estimated: int = 1
 
 
 @dataclass(frozen=True)
@@ -279,6 +283,13 @@ class CompareResponseRecord:  # M5
     ttft_ms: Optional[float] = None
     tok_per_s: Optional[float] = None
     unified_peak_gb: Optional[float] = None
+    # M9 (Bet 6 cost plane): per-SIDE input tokens + spend — each lane bills the
+    # shared prompt at its own input price. ``tokens_estimated`` 1 = heuristic
+    # count (UI "~"); ``price_snapshot_id`` pins the prices used (M9-5).
+    tokens_in: Optional[int] = None
+    cost_usd: Optional[float] = None
+    tokens_estimated: int = 1
+    price_snapshot_id: Optional[str] = None
 
 
 @dataclass(frozen=True)

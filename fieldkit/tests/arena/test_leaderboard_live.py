@@ -33,6 +33,9 @@ ALLOWLIST = {
     "mean_ttft_ms",
     "human_pref_winrate",
     "last_run_at",
+    # M9 (Bet 6): the aggregate cost axis — derived means, public-safe.
+    "mean_cost_usd",
+    "cost_per_quality_point",
 }
 
 

@@ -6,6 +6,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **`fieldkit.cost` — the Arena M9 cost plane (new module, Bet 6)** (`__all__` =
+  5 symbols: `CostLedger`, `PriceSnapshot`, `seed_price_snapshot`,
+  `cost_per_quality`, `CostError`). Persists the per-run OpenRouter cost the
+  cockpit already *computed and threw away*, and surfaces **$/task +
+  $/quality-point** as the third ranking axis (`_SPECS/spark-arena-v1.md` §13).
+  `PriceSnapshot` + `seed_price_snapshot` own the `openrouter_price_snapshot`
+  table, seeded at store-init from the baked H6 evidence
+  (`articles/hermes-cost-routing-local-and-openrouter/evidence/`, now
+  version-controlled — M9-10) so a comparison stays reproducible as live prices
+  drift (R19). `CostLedger.session_spend()` rehydrates the live spend rail
+  across a sidecar restart (M9-8); `cost_per_quality()` reads the public
+  aggregate off `leaderboard_rows` with the local-lane `$0 (local)` render
+  (M9-4). **Ledger, not governor** — enforcement (`fieldkit.budget`) is Phase 2
+  (Arena M11, §15).
+
+### Changed
+
+- **`fieldkit.arena` schema `user_version` 4 → 5 — the first ALTER-based
+  migration** (`ArenaStore._migrate` / `_add_column_if_missing`, R18; prior
+  bumps only added whole tables). Adds the per-run cost columns to
+  `chat_turns` / `compare_responses` (per side — each lane bills the shared
+  prompt at its own input price) + the aggregate `mean_cost_usd` /
+  `cost_per_quality_point` to `leaderboard_rows`. The compare/chat server paths
+  persist `cost_usd` / `tokens_in` / `tokens_estimated` / `price_snapshot_id`;
+  `rebuild_leaderboard` computes the aggregates; the cockpit gains the cost
+  cells (compare + leaderboard + a restart-surviving spend rail). Mirror:
+  `openrouter_price_snapshot` joins `PUBLISHABLE_TABLES` (public — no prompts),
+  the per-run cost columns stay off it (M9-7, anchored by
+  `test_mirror_does_not_leak.py`).
+
 ## [0.16.0] — 2026-06-02
 
 The **Arena content line, M1 → M8** — the operator cockpit (`fieldkit.arena`,

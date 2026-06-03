@@ -17,7 +17,7 @@ import { glob } from 'astro/loaders';
 // FastAPI + SSE + SQLite under `fieldkit.arena.server`; sibling to `harness`
 // (Arena drives the box from the operator's side; Hermes drives it from the
 // agent's). See _SPECS/spark-arena-v1.md §4.7.
-export const FIELDKIT_MODULES = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena'] as const;
+export const FIELDKIT_MODULES = ['capabilities', 'nim', 'rag', 'eval', 'training', 'lineage', 'quant', 'publish', 'cli', 'viz', 'notebook', 'harness', 'arena', 'cost'] as const;
 
 // Articles live at ../articles/<slug>/article.md and are authored via the
 // tech-writer skill. We keep that authoring workflow by loading articles

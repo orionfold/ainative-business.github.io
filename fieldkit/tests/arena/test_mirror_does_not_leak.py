@@ -74,6 +74,11 @@ def seeded_store_with_sentinels(store):
         "lab_notes_body": _new_sentinel("LAB_NOTE_BODY"),
         "jobs_payload_json": _new_sentinel("JOBS_PAYLOAD"),
         "job_triggers_detail": _new_sentinel("JOB_TRIGGER_DETAIL"),
+        # M9 (Bet 6): the per-run cost path's free TEXT column. Proves no
+        # prompt-like string riding ``compare_responses.price_snapshot_id``
+        # reaches the mirror (the cost columns are off the allowlist, M9-7).
+        "compare_responses_snapshot_id_A": _new_sentinel("RESPONSE_A_SNAPSHOT"),
+        "compare_responses_snapshot_id_B": _new_sentinel("RESPONSE_B_SNAPSHOT"),
     }
 
     # Resident-brain + frontier lanes
@@ -130,18 +135,20 @@ def seeded_store_with_sentinels(store):
             "redacted_prompt": "[redacted public-safe prompt]",
         }
     )
-    for side, lane, content, reasoning in (
+    for side, lane, content, reasoning, snapshot in (
         (
             "A",
             "resident-brain",
             sentinels["compare_responses_content_A"],
             sentinels["compare_responses_reasoning_A"],
+            sentinels["compare_responses_snapshot_id_A"],
         ),
         (
             "B",
             "openrouter-frontier",
             sentinels["compare_responses_content_B"],
             sentinels["compare_responses_reasoning_B"],
+            sentinels["compare_responses_snapshot_id_B"],
         ),
     ):
         store.upsert_compare_response(
@@ -155,6 +162,11 @@ def seeded_store_with_sentinels(store):
                 "ttft_ms": 100.0,
                 "tok_per_s": 50.0,
                 "unified_peak_gb": 35.0,
+                # M9 (Bet 6): per-run cost path — must NOT reach the mirror.
+                "tokens_in": 20,
+                "cost_usd": 0.0042,
+                "tokens_estimated": 1,
+                "price_snapshot_id": snapshot,
             }
         )
     for side in ("A", "B"):
@@ -337,3 +349,45 @@ def test_leaderboard_baseline_is_forbidden():
     (derived from forbidden ``eval_scores``); off the mirror alongside ``jobs``."""
     assert "leaderboard_baseline" in FORBIDDEN_TABLES
     assert "leaderboard_baseline" not in PUBLISHABLE_TABLES
+
+
+def test_compare_responses_per_run_cost_columns_not_published():
+    """M9 anchor (Bet 6, M9-2/M9-7) — the per-run cost columns on
+    ``compare_responses`` are operator-private (each is keyed to a specific
+    prompt) and must stay OFF the allowlist. Only the aggregate
+    (``leaderboard_rows.mean_cost_usd`` / ``cost_per_quality_point``) goes
+    public."""
+    cols = PUBLISHABLE_TABLES["compare_responses"]
+    for private in ("cost_usd", "tokens_in", "tokens_estimated", "price_snapshot_id"):
+        assert private not in cols, (
+            f"per-run cost column {private!r} leaked onto the compare_responses "
+            f"allowlist — it is operator-private (M9-7)."
+        )
+
+
+def test_price_snapshot_is_publishable_and_public_safe():
+    """M9 anchor (Bet 6, M9-7) — ``openrouter_price_snapshot`` IS publishable
+    (the public $/task is reconstructable from it), but it carries only pinned
+    prices keyed by model id — no prompt/content column."""
+    assert "openrouter_price_snapshot" in PUBLISHABLE_TABLES
+    cols = set(PUBLISHABLE_TABLES["openrouter_price_snapshot"])
+    assert cols == {
+        "snapshot_id",
+        "model_id",
+        "price_per_m_input_usd",
+        "price_per_m_output_usd",
+        "source",
+        "captured_at",
+    }
+    # Defensive: nothing prompt-like.
+    for forbidden in ("prompt", "content", "reasoning", "payload_json"):
+        assert forbidden not in cols
+
+
+def test_leaderboard_aggregate_cost_columns_are_published():
+    """M9 anchor (Bet 6, M9-3) — the aggregate cost axis is the ONLY cost
+    surface that goes public; both columns live on the mirrored
+    ``leaderboard_rows``."""
+    cols = PUBLISHABLE_TABLES["leaderboard_rows"]
+    assert "mean_cost_usd" in cols
+    assert "cost_per_quality_point" in cols
