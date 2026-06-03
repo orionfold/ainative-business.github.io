@@ -1,5 +1,5 @@
 ---
-// Knowledge — /arena/knowledge/
+// Cortex — /arena/cortex/ (the recall layer; the data API stays /api/knowledge).
 //
 // M10 recall layer (Bet 5, spec §14). Arena manages its own Second Brain: the
 // operator sees coverage/freshness (the article_index ⋈ live-index diff — the
@@ -18,7 +18,7 @@ const title = 'Orionfold Arena — Cortex';
 const description =
   'Orionfold Cortex — the recall layer. Manage the Second Brain as an evaluated, multi-source, provenance-tagged index: coverage, re-index, RAG-eval trend, and a trust-filtered query console. Operator-private; only the eval trend is mirrored.';
 ---
-<ArenaAppLayout title={title} description={description} active="knowledge">
+<ArenaAppLayout title={title} description={description} active="cortex">
 
   <div class="arena-pane">
     <header class="arena-pane__head">

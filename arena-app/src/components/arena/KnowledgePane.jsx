@@ -1,5 +1,5 @@
 /** @jsxImportSource preact */
-// KnowledgePane — `<KnowledgePane>` Preact island for /arena/knowledge/.
+// KnowledgePane — `<KnowledgePane>` Preact island for /arena/cortex/ (data API stays /api/knowledge).
 //
 // M10 recall layer (Bet 5, spec §14). Four blocks fed by GET /api/knowledge:
 //   (a) coverage/freshness — the article_index ⋈ live-index diff (M10-8): the

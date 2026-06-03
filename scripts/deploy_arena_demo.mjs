@@ -71,10 +71,13 @@ async function main() {
   }
 
   const pages = (await fs.readdir(DEST, { withFileTypes: true })).filter((e) => e.isDirectory() || e.name.endsWith('.html')).length;
-  const hasKnowledge = await exists(path.join(DEST, 'knowledge', 'index.html'));
+  // The Cortex recall pane is the demo's headline surface — fail loudly if the
+  // bundle was built without it (the route is /arena/cortex/, data API stays
+  // /api/knowledge).
+  const hasCortex = await exists(path.join(DEST, 'cortex', 'index.html'));
   console.log(`[deploy-arena-demo] deployed → ${path.relative(REPO, DEST)}`);
-  console.log(`[deploy-arena-demo] top-level entries: ${pages} · rebased files: ${rewritten} · knowledge route: ${hasKnowledge ? 'YES' : 'MISSING'}`);
-  if (!hasKnowledge) { console.error('[deploy-arena-demo] knowledge route missing — aborting signal'); process.exit(2); }
+  console.log(`[deploy-arena-demo] top-level entries: ${pages} · rebased files: ${rewritten} · cortex route: ${hasCortex ? 'YES' : 'MISSING'}`);
+  if (!hasCortex) { console.error('[deploy-arena-demo] cortex route missing — aborting signal'); process.exit(2); }
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

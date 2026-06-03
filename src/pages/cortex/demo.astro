@@ -6,7 +6,7 @@
 // /arena/demo/). This route is a thin redirect to that tab so /cortex/demo/
 // reads as a first-class product route paralleling /arena/demo/. Static-host
 // safe (meta-refresh + JS), noindex so it isn't crawled as a thin page.
-const target = '/arena/demo/knowledge/';
+const target = '/arena/demo/cortex/';
 ---
 <!doctype html>
 <html lang="en">
@@ -17,7 +17,7 @@ const target = '/arena/demo/knowledge/';
     <link rel="canonical" href={target} />
     <meta name="robots" content="noindex" />
     <script is:inline>
-      window.location.replace('/arena/demo/knowledge/');
+      window.location.replace('/arena/demo/cortex/');
     </script>
     <style>
       body { background: #0b0d12; color: #c9d1e0; font-family: ui-monospace, monospace; display: grid; place-items: center; height: 100vh; margin: 0; }

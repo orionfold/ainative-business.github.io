@@ -36,7 +36,7 @@ interface Props {
   title: string;
   description?: string;
   /** Which top-nav tab is active. */
-  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'knowledge' | 'lab';
+  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'cortex' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
 }
@@ -54,7 +54,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   compare: 'Compare',
   jobs: 'Jobs',
   standup: 'Standup',
-  knowledge: 'Cortex',
+  cortex: 'Cortex',
   lab: 'Lab',
 };
 const activeLabel = ACTIVE_LABELS[active] ?? '';
@@ -229,7 +229,7 @@ try {
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
         <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
         <a href={href('arena/standup/')}     class:list={["arena-app__tab", active === 'standup'     && 'is-active']}>Standup</a>
-        <a href={href('arena/knowledge/')}   class:list={["arena-app__tab", active === 'knowledge'   && 'is-active']}>Cortex</a>
+        <a href={href('arena/cortex/')}      class:list={["arena-app__tab", active === 'cortex'      && 'is-active']}>Cortex</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
       </nav>
 
@@ -3272,7 +3272,7 @@ try {
       .arena-app .jobs__cancel:hover { color: var(--arena-warn); border-color: var(--arena-warn); }
       .arena-app .jobs__cancel:disabled { opacity: 0.4; cursor: default; }
 
-      /* M10 (Bet 5 recall layer) — /arena/knowledge/ pane */
+      /* M10 (Bet 5 recall layer) — /arena/cortex/ pane */
       .arena-app .kp { display: flex; flex-direction: column; gap: 1rem; }
       .arena-app .kp__offline {
         display: flex; align-items: flex-start; gap: 0.7rem;
