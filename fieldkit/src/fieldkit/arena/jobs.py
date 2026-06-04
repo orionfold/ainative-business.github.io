@@ -343,6 +343,7 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             vertical=payload.get("vertical", "patent-strategist"),
             bench_path=payload["bench_path"],
             scorer=payload.get("scorer", "mcq_letter"),
+            scorer_path=payload.get("scorer_path"),
             lane=payload.get("lane_id"),
             bench_id=payload.get("bench_id"),
             config=payload.get("config"),

@@ -36,6 +36,33 @@ def test_unknown_harness_attr_still_raises():
         h.does_not_exist  # noqa: B018
 
 
+def test_load_scorer_callable_from_file(tmp_path):
+    # the rl_run `scorer_path` hook: load a verifier from a "file.py:func" ref,
+    # with the module's parent on sys.path so its sibling imports resolve (the
+    # astrodynamics `verifier.py` → `from units import …` case).
+    (tmp_path / "helper.py").write_text("def bonus():\n    return 0.0\n")
+    mod = tmp_path / "myverifier.py"
+    mod.write_text(
+        "from helper import bonus\n"
+        "def score(predicted, expected, *, rel_tolerance=0.02):\n"
+        "    return 1.0 if predicted == expected else bonus()\n"
+    )
+    fn = fkmcp._load_scorer_callable(f"{mod}:score")
+    assert fn("A", "A") == 1.0
+    assert fn("A", "B") == 0.0
+
+
+def test_load_scorer_callable_rejects_bad_refs(tmp_path):
+    with pytest.raises(ValueError):  # no "module:function" colon
+        fkmcp._load_scorer_callable("no_colon_here")
+    with pytest.raises(FileNotFoundError):
+        fkmcp._load_scorer_callable(f"{tmp_path / 'missing.py'}:f")
+    mod = tmp_path / "m2.py"
+    mod.write_text("notcallable = 3\n")
+    with pytest.raises(ValueError):  # resolves, but isn't callable
+        fkmcp._load_scorer_callable(f"{mod}:notcallable")
+
+
 def test_tool_specs_shape():
     names = [s.name for s in fkmcp.MCP_TOOL_SPECS]
     assert names == [
