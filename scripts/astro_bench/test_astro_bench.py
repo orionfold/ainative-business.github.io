@@ -150,6 +150,89 @@ def test_wrong_computation_is_caught():
     assert misses >= 9, f"verifier too loose: only {misses}/10 wrong answers rejected"
 
 
+# ---- C1 SFT corpus (build + gate) -----------------------------------------
+
+import build_sft_corpus as B  # noqa: E402
+from verify_sft import check_row  # noqa: E402
+
+
+def _queue_rows(n=64, seed=4242):
+    """A held-out-disjoint worklist, mirroring sft_queue.py."""
+    import json
+    heldout = os.path.join(
+        os.path.dirname(__file__), "..", "..", "evidence", "astrodynamics",
+        "astro-bench-v0.1.heldout.jsonl",
+    )
+    excl = set()
+    if os.path.exists(heldout):
+        with open(heldout, encoding="utf-8") as fh:
+            excl = {json.loads(line)["prompt"] for line in fh if line.strip()}
+    problems = generate(n, seed, exclude=excl)
+    rows = []
+    for i, p in enumerate(problems):
+        rows.append({
+            "task_id": f"astro-sft-{i:04d}", "topic": p.topic, "subtopic": p.subtopic,
+            "tier": p.tier, "prompt": p.prompt, "answer": p.answer,
+            "gold_value_si": p.gold_value_si, "gold_unit": p.gold_unit, "params": p.params,
+        })
+    return rows, excl
+
+
+def test_build_every_row_clears_the_gate():
+    queue_rows, _ = _queue_rows()
+    queue = {q["task_id"]: q for q in queue_rows}
+    for i, q in enumerate(queue_rows):
+        row = B.build_row(q, i)
+        errs = check_row(row, queue)
+        assert not errs, f"{q['subtopic']}: {errs}"
+
+
+def test_build_covers_all_16_subtopics():
+    # the dispatch must have a template for every formula family the generator emits.
+    queue_rows, _ = _queue_rows(n=200)
+    seen = {q["subtopic"] for q in queue_rows}
+    missing = seen - set(B._DISPATCH)
+    assert not missing, f"no template for: {missing}"
+
+
+def test_built_completion_is_a_real_chain_with_boxed():
+    queue_rows, _ = _queue_rows(n=16)
+    q = queue_rows[0]
+    row = B.build_row(q, 0)
+    c = row["completion"]
+    assert "<think>" in c and "</think>" in c
+    assert extract_boxed(c) is not None
+    chain = c[c.index("<think>") + 7 : c.index("</think>")].strip()
+    assert len(chain) >= 40 and not chain.startswith("<think>")
+
+
+def test_gate_rejects_corrupted_box():
+    # the gate must reject a row whose boxed answer is wrong (corpus poison).
+    queue_rows, _ = _queue_rows(n=8)
+    q = queue_rows[0]
+    queue = {q["task_id"]: q}
+    row = B.build_row(q, 0)
+    row["completion"] = row["completion"].rsplit("\\boxed{", 1)[0] + "\\boxed{999999 km}"
+    assert check_row(row, queue), "gate accepted a wrong boxed answer"
+
+
+def test_gate_rejects_empty_think():
+    queue_rows, _ = _queue_rows(n=8)
+    q = queue_rows[0]
+    queue = {q["task_id"]: q}
+    row = B.build_row(q, 0)
+    row["completion"] = "<think>\n \n</think>\n\n\\boxed{" + q["answer"] + "}"
+    assert any("empty <think>" in e for e in check_row(row, queue))
+
+
+def test_queue_disjoint_from_heldout():
+    queue_rows, excl = _queue_rows(n=128)
+    if not excl:
+        return  # held-out split absent in this checkout; nothing to assert
+    qprompts = {q["prompt"] for q in queue_rows}
+    assert qprompts.isdisjoint(excl), "RV-10: worklist overlaps held-out"
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
