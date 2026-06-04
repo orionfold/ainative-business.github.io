@@ -1,0 +1,41 @@
+---
+// SFT — /arena/sft/
+//
+// Dogfood AF (astrodynamics-vertical-v1 §1 goal 2). The live SFT-training feed:
+// the NeMo p65 LoRA SFT-init run (C2(b)) made visible — iter progress, the loss
+// curve, ETA, peak GPU memory, checkpoints. Closes the AF-2 blind spot for the
+// SFT stage (the pre-RLVR vertical-build spine the job-centric cockpit never saw)
+// and is the training-stage analogue of the rl_run progress strip.
+//
+// Read-only by construction: the island polls GET /api/sft-progress, which parses
+// a NeMo driver log — an HTTP GET never launches a GPU lane. On the public mirror
+// there is no sidecar, so the island renders a static note.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import SftProgressPane from '../../components/arena/SftProgressPane.jsx';
+
+const title = 'Orionfold Arena — SFT';
+const description =
+  'The live SFT-training feed — iter progress, the LoRA loss curve, ETA, and the peak-memory watch over the NeMo SFT-init run. The format-conditioning warm-start the RLVR loop begins from; read-only.';
+---
+<ArenaAppLayout title={title} description={description} active="sft">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">SFT&nbsp;training</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">NeMo p65 LoRA · format-conditioning warm-start · OOM watch</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          read-only — never dispatches
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* iter progress / loss curve / ETA / peak-mem / checkpoints, polled from
+          /api/sft-progress. Parses a NeMo driver log; an HTTP GET never launches
+          a GPU lane. */}
+      <SftProgressPane client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>

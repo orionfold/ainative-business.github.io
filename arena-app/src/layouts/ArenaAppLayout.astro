@@ -36,7 +36,7 @@ interface Props {
   title: string;
   description?: string;
   /** Which top-nav tab is active. */
-  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'reward' | 'cortex' | 'lab';
+  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'sft' | 'reward' | 'cortex' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
 }
@@ -54,6 +54,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   compare: 'Compare',
   jobs: 'Jobs',
   standup: 'Standup',
+  sft: 'SFT',
   reward: 'Reward',
   cortex: 'Cortex',
   lab: 'Lab',
@@ -230,6 +231,7 @@ try {
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
         <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
         <a href={href('arena/standup/')}     class:list={["arena-app__tab", active === 'standup'     && 'is-active']}>Standup</a>
+        <a href={href('arena/sft/')}         class:list={["arena-app__tab", active === 'sft'         && 'is-active']}>SFT</a>
         <a href={href('arena/reward/')}      class:list={["arena-app__tab", active === 'reward'      && 'is-active']}>Reward</a>
         <a href={href('arena/cortex/')}      class:list={["arena-app__tab", active === 'cortex'      && 'is-active']}>Cortex</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
@@ -3708,6 +3710,123 @@ try {
       }
       .arena-app .reward__foot b { color: var(--arena-accent); }
       .arena-app .reward__foot code { color: var(--arena-text-mute); }
+
+      /* ---------------------------------------------------------------
+       *  SFT training feed — live NeMo p65 LoRA SFT (/arena/sft/) — AF
+       * --------------------------------------------------------------- */
+      .arena-app .sft { display: flex; flex-direction: column; gap: 1rem; }
+      .arena-app .sft__offline, .arena-app .sft__empty {
+        display: flex; align-items: flex-start; gap: 0.7rem; padding: 1rem 1.1rem;
+        border: 1px dashed var(--arena-border); border-radius: 0.5rem;
+        color: var(--arena-text-mute); font-size: 0.8rem; line-height: 1.5;
+      }
+      .arena-app .sft__offline code, .arena-app .sft__empty code {
+        font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em;
+      }
+      .arena-app .sft__offline strong, .arena-app .sft__empty strong { color: var(--arena-text); }
+      .arena-app .sft__offline-dot {
+        flex: 0 0 auto; width: 0.5rem; height: 0.5rem; margin-top: 0.35rem;
+        border-radius: 50%; background: var(--arena-text-dim);
+      }
+      /* Run-history selector */
+      .arena-app .sft__history { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.7rem; }
+      .arena-app .sft__history-label {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .sft__history-select {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text);
+        background: var(--arena-panel); border: 1px solid var(--arena-border);
+        border-radius: 0.4rem; padding: 0.3rem 0.5rem; cursor: pointer; max-width: 100%;
+      }
+      .arena-app .sft__history-select:hover { border-color: var(--arena-accent); }
+      .arena-app .sft__history-now { font-size: 0.62rem; color: var(--arena-text-mute); }
+      .arena-app .sft__history-now code { font-family: var(--arena-mono); color: var(--arena-text-dim); }
+      /* Live strip — phase + iter progress bar + ETA */
+      .arena-app .sft__live {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.8rem;
+        padding: 0.55rem 0.9rem; border: 1px solid var(--arena-border);
+        border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .sft__live[data-running="true"] { border-color: var(--arena-accent); }
+      .arena-app .sft__live-dot {
+        width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--arena-text-dim); flex: none;
+      }
+      .arena-app .sft__live-dot[data-running="true"] {
+        background: var(--arena-accent); animation: sft-live-pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes sft-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+      @media (prefers-reduced-motion: reduce) { .arena-app .sft__live-dot[data-running="true"] { animation: none; } }
+      .arena-app .sft__live-label {
+        font-family: var(--arena-mono); font-size: 0.66rem; font-weight: 700;
+        letter-spacing: 0.14em; color: var(--arena-text-dim);
+      }
+      .arena-app .sft__live[data-running="true"] .sft__live-label { color: var(--arena-accent); }
+      .arena-app .sft__live-count { font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text); }
+      .arena-app .sft__live-bar {
+        flex: 1; min-width: 120px; height: 0.4rem; border-radius: 0.3rem;
+        background: var(--arena-line); overflow: hidden;
+      }
+      .arena-app .sft__live-fill {
+        height: 100%; background: var(--arena-accent); border-radius: 0.3rem; transition: width 0.4s ease;
+      }
+      .arena-app .sft__live-fill[data-done="true"] { background: var(--arena-ok); }
+      .arena-app .sft__live-eta { font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-mute); }
+      /* Headline gauges */
+      .arena-app .sft__gauges {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem;
+      }
+      .arena-app .sft__gauge {
+        display: flex; flex-direction: column; gap: 0.15rem; padding: 0.9rem 1rem;
+        border: 1px solid var(--arena-border); border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .sft__gauge--accent { border-color: var(--arena-accent); }
+      .arena-app .sft__gauge[data-alarm="true"] { border-color: var(--arena-warn); }
+      .arena-app .sft__gauge-val {
+        font-family: var(--arena-mono); font-size: 1.6rem; font-weight: 700; color: var(--arena-text); line-height: 1;
+      }
+      .arena-app .sft__gauge[data-alarm="true"] .sft__gauge-val { color: var(--arena-warn); }
+      .arena-app .sft__gauge-unit { font-size: 0.8rem; font-weight: 400; color: var(--arena-text-dim); margin-left: 0.15rem; }
+      .arena-app .sft__gauge-label {
+        font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .sft__gauge-sub { font-size: 0.64rem; color: var(--arena-text-mute); }
+      /* Loss curve */
+      .arena-app .sft__curve {
+        display: flex; flex-direction: column; gap: 0.5rem; padding: 0.9rem 1rem;
+        border: 1px solid var(--arena-border); border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .sft__curve-head { display: flex; align-items: baseline; justify-content: space-between; gap: 0.6rem; flex-wrap: wrap; }
+      .arena-app .sft__curve-title {
+        font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .sft__curve-meta { font-size: 0.62rem; color: var(--arena-text-mute); }
+      .arena-app .sft__curve-meta code { font-family: var(--arena-mono); color: var(--arena-text-dim); }
+      .arena-app .sft__spark { width: 100%; height: 96px; display: block; }
+      .arena-app .sft__spark-area { fill: var(--arena-accent); opacity: 0.10; }
+      .arena-app .sft__spark-line { fill: none; stroke: var(--arena-accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+      .arena-app .sft__spark-dot { fill: var(--arena-accent); }
+      /* Checkpoints */
+      .arena-app .sft__ckpts { display: flex; align-items: center; flex-wrap: wrap; gap: 0.4rem 0.6rem; }
+      .arena-app .sft__ckpts-label {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .sft__ckpt {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text);
+        background: var(--arena-panel); border: 1px solid var(--arena-border);
+        border-radius: 0.3rem; padding: 0.15rem 0.45rem;
+      }
+      .arena-app .sft__ckpts-none { font-size: 0.62rem; color: var(--arena-text-mute); }
+      .arena-app .sft__foot {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-dim); letter-spacing: 0.03em; line-height: 1.6;
+      }
+      .arena-app .sft__foot b { color: var(--arena-accent); }
+      .arena-app .sft__foot code { color: var(--arena-text-mute); }
+      .arena-app .sft__foot a { color: var(--arena-accent); text-decoration: none; }
+      .arena-app .sft__foot a:hover { text-decoration: underline; }
 
       /* Built-together timeline */
       .arena-app .lab-timeline { margin: 1.75rem 0 1rem; }

@@ -45,6 +45,17 @@ addition this cycle; schema unchanged.
   shows which `source` is on screen. No arena.db read, no schema bump (AH-9/RV-8);
   a report without a `status` field still renders the gate verdict exactly as
   before. (Ships in the baked `_webui` + `server.py`.)
+- **Live SFT-training feed** (dogfood AF — closes the AF-2 blind spot for the SFT
+  stage) — a new `/arena/sft/` cockpit pane + `GET /api/sft-progress` read-only
+  endpoint that parses a NeMo `p65` LoRA-SFT driver log + run-dir into iter/max, the
+  loss curve (sparkline), iter/s, ETA, peak GPU memory, and checkpoints written —
+  the training-stage analogue of the `rl_run` progress strip, so the operator can
+  watch a `TrainRecipe(backend="nemo")` SFT-init run side-by-side instead of tailing
+  a log. The run-root is env-anchored (`FK_ARENA_SFT_DIR`, default the astrodynamics
+  run-root) since the trainer writes outside the repo; history + auto-follow mirror
+  the reward gauge (newest training log by mtime, `?source=` selector,
+  merge/export logs excluded). Read-only (an HTTP GET parses a log; never launches a
+  lane), no arena.db read, no schema bump. (Ships in the baked `_webui` + `server.py`.)
 
 ## [0.22.0] — 2026-06-03
 
