@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.21.0] — 2026-06-03
+
+The **closed-loop RLVR engine grows its GPU hands.** `rlvr-loop-v1` shipped the
+orchestration in `v0.20.0` with `gpu_seams` raising a "not vendored" stub; this
+release vendors the real backend (the ported `clawgym-on-spark-grpo` loop) behind
+a new `fieldkit[rl]` extra. No schema change (arena.db stays `user_version 6`);
+the live run stays operator-armed (no aarch64+CUDA-13 vLLM wheel, ~8.5 h overnight
+drain).
+
 ### Added
 
 - **Vendored the real GPU backend for `fieldkit.rl.gpu_seams`** — the closing
@@ -52,6 +61,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `RLBackendConfig.from_env` reads the knobs, and `gpu_seams` raises the
   `fieldkit[rl]` pointer when torch is absent. The 5 skips are the `torch` GPU
   training path + 4 `--spark` live integration tests.
+
+### Articles in this release
+
+- None — package-only (the operator follow-on to `rlvr-loop-v1`). The
+  `the-machine-improves-itself` deep-dive already assumes the `v0.20.0` RLVR
+  surface; this release makes its `gpu_seams` gap real, but the prose is honest
+  that the live run is still operator-armed.
 
 ## [0.20.1] — 2026-06-03
 
