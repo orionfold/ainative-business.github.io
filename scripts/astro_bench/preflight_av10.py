@@ -45,11 +45,47 @@ from verifier import astro_numeric_match, extract_boxed  # noqa: E402
 _REPO = _HERE.parent.parent
 _HELDOUT = _REPO / "evidence" / "astrodynamics" / "astro-bench-v0.1.heldout.jsonl"
 _REPORT = _REPO / "evidence" / "astrodynamics" / "av10-preflight.json"
+_CORPUS = _REPO / "evidence" / "astrodynamics" / "astro-sft-corpus.jsonl"
 
 
 def load_heldout(path: Path, n: int | None) -> list[dict]:
     rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     return rows if n is None else rows[:n]
+
+
+def load_fewshot(corpus_path: Path, k: int) -> list[dict]:
+    """Pick ``k`` terse worked-solution exemplars from the SFT corpus.
+
+    The conditioning probe (AV-10 follow-on): the AV-10 zero-shot read showed
+    Qwen3-8B over-thinks past the budget without boxing. SFT-init conditions it to
+    the terse ``<think>…</think>\\boxed{}`` format (corpus mean ~282 chars) — this
+    prepends a few of those exemplars in-context as a cheap proxy for *will SFT
+    fix it?* Picks the shortest completion per distinct subtopic (so the model
+    sees brevity), then the ``k`` shortest overall — deterministic, no RNG. The
+    corpus is held-out-disjoint by construction (RV-10), so no leakage."""
+    rows = [json.loads(line) for line in corpus_path.read_text().splitlines() if line.strip()]
+    by_sub: dict[str, dict] = {}
+    for r in rows:
+        st = r["subtopic"]
+        if st not in by_sub or len(r["completion"]) < len(by_sub[st]["completion"]):
+            by_sub[st] = r
+    return sorted(by_sub.values(), key=lambda r: len(r["completion"]))[:k]
+
+
+def build_fewshot_content(exemplars: list[dict], question_prompt: str) -> str:
+    """Wrap the held-out question with terse in-context exemplars.
+
+    Embedded as text in the user turn (not prior chat turns) so the Qwen3 chat
+    template can't strip the ``<think>`` history — the whole point is to show the
+    model the *brief reasoning → boxed answer* shape it should imitate."""
+    parts = [
+        "Here are worked examples in the required format. Reason concisely, then "
+        "end with the final answer as \\boxed{value unit}.\n",
+    ]
+    for i, ex in enumerate(exemplars, 1):
+        parts.append(f"### Example {i}\n{ex['prompt']}\n{ex['completion']}\n")
+    parts.append(f"### Now solve\n{question_prompt}")
+    return "\n".join(parts)
 
 
 def summarize(
@@ -60,6 +96,7 @@ def summarize(
     max_new_tokens: int,
     rel_tol: float,
     status: str,
+    fewshot: int = 0,
 ) -> dict:
     """Build the reward-signal report over the rows scored *so far*.
 
@@ -86,6 +123,7 @@ def summarize(
         "status": status,   # AF-9: "running" | "done"
         "scored": n,        # AF-9: rows scored so far
         "total": n_target,  # AF-9: rows in the held-out slice
+        "fewshot": fewshot,  # 0 = zero-shot base read; >0 = SFT-format conditioning probe
         "boxed_rate": round(boxed_rate, 4),
         "extract_rate": round(extract_rate, 4),
         "reward_rate_step0": round(reward_rate, 4),
@@ -119,19 +157,27 @@ def main() -> int:
     ap.add_argument("--rel-tol", type=float, default=0.02)
     ap.add_argument("--seed", type=int, default=0, help="reproducible sampling")
     ap.add_argument("--report", default=str(_REPORT))
+    ap.add_argument("--fewshot", type=int, default=0,
+                    help="prepend K terse SFT-corpus exemplars (conditioning probe; "
+                         "0 = zero-shot base read)")
+    ap.add_argument("--corpus", default=str(_CORPUS),
+                    help="SFT corpus to draw --fewshot exemplars from")
     args = ap.parse_args()
 
     rows = load_heldout(_HELDOUT, args.n)
+    exemplars = load_fewshot(Path(args.corpus), args.fewshot) if args.fewshot > 0 else []
+    mode = (f"fewshot={args.fewshot} ({','.join(e['subtopic'] for e in exemplars)})"
+            if exemplars else "zero-shot")
     print(f"[av10] {len(rows)} held-out rows · model={args.model} "
-          f"· max_new_tokens={args.max_new_tokens}", flush=True)
+          f"· max_new_tokens={args.max_new_tokens} · {mode}", flush=True)
 
     report_path = Path(args.report)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     # AF-9: paint a running 0/total shell before the (slow) model load + first
     # generation, so the cockpit reward gauge shows the run is live immediately.
     report_path.write_text(json.dumps(summarize(
-        [], model=args.model, n_target=len(rows),
-        max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="running",
+        [], model=args.model, n_target=len(rows), max_new_tokens=args.max_new_tokens,
+        rel_tol=args.rel_tol, status="running", fewshot=args.fewshot,
     ), indent=2))
 
     import torch  # lazy — only needed for the live run
@@ -152,7 +198,9 @@ def main() -> int:
 
     results = []
     for i, row in enumerate(rows):
-        messages = [{"role": "user", "content": row["prompt"]}]
+        content = (build_fewshot_content(exemplars, row["prompt"])
+                   if exemplars else row["prompt"])
+        messages = [{"role": "user", "content": content}]
         text = tok.apply_chat_template(
             messages, tokenize=False, add_generation_prompt=True,
             enable_thinking=True,  # Qwen3 native thinking mode (AV-6 — keep it on)
@@ -187,12 +235,14 @@ def main() -> int:
         # run live (scored/total bar + running rates) instead of waiting for exit.
         report_path.write_text(json.dumps(summarize(
             results, model=args.model, n_target=len(rows),
-            max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="running",
+            max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol,
+            status="running", fewshot=args.fewshot,
         ), indent=2))
 
     summary = summarize(
         results, model=args.model, n_target=len(rows),
-        max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="done",
+        max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol,
+        status="done", fewshot=args.fewshot,
     )
     boxed_rate = summary["boxed_rate"]
     reward_rate = summary["reward_rate_step0"]
