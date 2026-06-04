@@ -11,6 +11,11 @@
 // static "Cockpit offline" state — there is nothing to leak.
 import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
 import JobsBoard from '../../components/arena/JobsBoard.jsx';
+import { loadCurriculum } from '../../lib/arena/curriculum.mjs';
+
+// Bake the shared operator curriculum (rl-lane-autonomy LA-12) into the island
+// as a prop — the client:only board can't call getCollection itself.
+const curriculum = await loadCurriculum();
 
 const title = 'Orionfold Arena — Jobs';
 const description =
@@ -33,7 +38,7 @@ const description =
       {/* Sequential single-lane drain through the fieldkit.harness MCP surface
           (M8-1/M8-5). eval_rerun is the first/only real M8 job type; the queue
           coalesces duplicate triggers while in flight (R15). */}
-      <JobsBoard client:only="preact" />
+      <JobsBoard curriculum={curriculum} client:only="preact" />
     </div>
   </div>
 

@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —
+the deferred fast-follow to the v0.22.0 self-driving backend). Site/cockpit-only:
+**no `fieldkit` Python, schema, or module change** — the wheel carries it via the
+rebaked baked `_webui` bundle. One canonical operator curriculum (a new
+`explainers` content collection, single-sourced and drift-guarded against the
+deep-dive's `:::` blocks) surfaces contextually in the live cockpit.
+
+### Added
+
+- **Cockpit education layer (LA-12..16)** — per-phase "what / why / watch" guide
+  cards + a live pool-vs-held-out interpreter (the t2po inversion read in real
+  time) on the Jobs board's `rl_run` progress strip; guided decision-gate copy
+  (consequence + reversal) on the Standup autonomy banner and the RLVR-enqueue
+  form; and a compounding post-run debrief with an editorial-promotable flag. The
+  curriculum is a new `explainers` content collection shared byte-for-byte by the
+  cockpit and the site, with `scripts/verify_explainers.mjs` asserting every
+  teach_key + deep-dive backlink resolves. (Ships in the baked `_webui`.)
+
 ## [0.22.0] — 2026-06-03
 
 The **RLVR engine becomes self-driving** (`rl-lane-autonomy-v1`, LA-1..11 — the

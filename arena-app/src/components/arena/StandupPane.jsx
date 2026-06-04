@@ -36,7 +36,7 @@ function JobRow({ job }) {
   );
 }
 
-export default function StandupPane() {
+export default function StandupPane({ curriculum = {} }) {
   const [online, setOnline] = useState(false);
   const [data, setData] = useState(null);
   const baseRef = useRef(null);
@@ -91,6 +91,7 @@ export default function StandupPane() {
   const lanes = (spend && spend.by_lane) || [];
   const autonomy = (data && data.autonomy) || { enabled: false };
   const rl = (data && data.rl) || { n_rl_run: 0, display: '—' };
+  const gate = curriculum['gate-autonomy']; // LA-15 guided-gate copy
 
   return (
     <div class="standup">
@@ -109,6 +110,19 @@ export default function StandupPane() {
         )}
         {rl.n_rl_run > 0 && (
           <span class="standup__autonomy-rl" data-oom={rl.oom_deferred > 0}>RL {rl.display}</span>
+        )}
+        {/* LA-15 — guided gate: state the consequence + the one-command reversal
+            before arming. Sourced from the shared curriculum (gate-autonomy). */}
+        {gate && (
+          <details class="standup__gate" data-kind={gate.kind}>
+            <summary>
+              <span class="standup__gate-eyebrow">{autonomy.enabled ? 'what’s armed' : 'before you arm'}</span>
+              <span class="standup__gate-term">{gate.term}</span>
+            </summary>
+            <p class="standup__gate-what">{gate.what}</p>
+            {gate.why && <p class="standup__gate-why"><b>cost</b> {gate.why}</p>}
+            {gate.watch && <p class="standup__gate-watch"><b>reversal</b> {gate.watch}</p>}
+          </details>
         )}
       </div>
 

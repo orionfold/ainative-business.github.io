@@ -3246,6 +3246,63 @@ try {
       .arena-app .jobs__rl-warn {
         margin-top: 0.3rem; font-size: 0.58rem; line-height: 1.3; color: var(--arena-warn);
       }
+      /* rl-lane-autonomy education layer (LA-13/14/16) — the live interpreter,
+         the per-phase guide cards, and the post-run debrief. */
+      .arena-app .jobs__rl-interp {
+        margin-top: 0.35rem; padding: 0.3rem 0.4rem; border-radius: 0.3rem;
+        border-left: 2px solid var(--arena-text-dim); background: rgba(255,255,255,0.02);
+        display: flex; flex-direction: column; gap: 0.1rem;
+      }
+      .arena-app .jobs__rl-interp[data-kind="pitfall"] { border-left-color: var(--arena-warn); }
+      .arena-app .jobs__rl-interp[data-kind="define"] { border-left-color: var(--arena-ok); }
+      .arena-app .jobs__rl-interp[data-kind="math"] { border-left-color: var(--arena-accent); }
+      .arena-app .jobs__rl-interp-term {
+        font-family: var(--arena-mono); font-size: 0.56rem; letter-spacing: 0.06em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__rl-interp[data-kind="pitfall"] .jobs__rl-interp-term { color: var(--arena-warn); }
+      .arena-app .jobs__rl-interp-watch { font-size: 0.6rem; line-height: 1.35; color: var(--arena-text-mute); }
+      .arena-app .jobs__rl-guide, .arena-app .jobs__rl-debrief, .arena-app .standup__gate {
+        margin-top: 0.35rem; font-size: 0.6rem; line-height: 1.4;
+      }
+      .arena-app .jobs__rl-guide > summary, .arena-app .jobs__rl-debrief > summary,
+      .arena-app .standup__gate > summary {
+        cursor: pointer; list-style: none; display: flex; gap: 0.4rem; align-items: baseline;
+        color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__rl-guide > summary::-webkit-details-marker,
+      .arena-app .jobs__rl-debrief > summary::-webkit-details-marker,
+      .arena-app .standup__gate > summary::-webkit-details-marker { display: none; }
+      .arena-app .jobs__rl-guide-eyebrow, .arena-app .standup__gate-eyebrow {
+        font-family: var(--arena-mono); font-size: 0.52rem; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__rl-guide-eyebrow::before, .arena-app .standup__gate-eyebrow::before { content: '▸ '; }
+      .arena-app details[open] .jobs__rl-guide-eyebrow::before,
+      .arena-app details[open] .standup__gate-eyebrow::before { content: '▾ '; }
+      .arena-app .jobs__rl-guide-term, .arena-app .standup__gate-term {
+        font-size: 0.62rem; color: var(--arena-text-mute); font-weight: 600;
+      }
+      .arena-app .jobs__rl-guide p, .arena-app .jobs__rl-debrief p, .arena-app .standup__gate p {
+        margin: 0.25rem 0 0; color: var(--arena-text-mute);
+      }
+      .arena-app .jobs__rl-guide-why b, .arena-app .jobs__rl-guide-watch b,
+      .arena-app .standup__gate-why b, .arena-app .standup__gate-watch b {
+        font-family: var(--arena-mono); font-size: 0.52rem; letter-spacing: 0.06em;
+        text-transform: uppercase; color: var(--arena-text-dim); font-weight: 600;
+      }
+      .arena-app .jobs__rl-guide-link {
+        display: inline-block; margin-top: 0.3rem; font-size: 0.58rem;
+        color: var(--arena-accent); text-decoration: none;
+      }
+      .arena-app .jobs__rl-guide-link:hover { text-decoration: underline; }
+      .arena-app .jobs__rl-debrief[data-promotable="true"] > summary .jobs__rl-guide-term { color: var(--arena-ok); }
+      .arena-app .jobs__rl-promote {
+        margin-top: 0.3rem !important; padding: 0.25rem 0.4rem; border-radius: 0.3rem;
+        background: rgba(110,231,183,0.08); color: var(--arena-ok) !important; font-size: 0.58rem;
+      }
+      .arena-app .jobs__rl-promote a { color: var(--arena-ok); }
+      .arena-app .standup__gate { padding-top: 0.2rem; }
       .arena-app .jobs__card-result[data-aborted="true"] { color: var(--arena-warn); }
       .arena-app .jobs__note { font-size: 0.66rem; color: var(--arena-text-dim); }
       .arena-app .jobs__board {

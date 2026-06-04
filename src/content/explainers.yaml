@@ -1,0 +1,136 @@
+# Arena operator curriculum — the single canonical source for the cockpit's
+# education layer (rl-lane-autonomy LA-12..16). Consumed by BOTH the arena-app
+# cockpit (baked into the Jobs + Standup islands as props) and the main site.
+#
+# Each entry is one explainer keyed by `id` (the cockpit's teach_key):
+#   phase-*    LA-13  per-phase "what / why / watch" guide cards
+#   interp-*   LA-14  the live pool-vs-held-out interpreter states
+#   concept-*  define/pitfall/math tooltips, backlinked to the deep-dive
+#   gate-*     LA-15  guided decision-gate consequence + reversal copy
+#
+# `source_term` + `source_kind` (when set) name the `:::<kind>[<term>]` block in
+# `articles/<source_article>/article.md` that is the reader-facing canonical
+# prose. scripts/verify_explainers.mjs asserts every such term still resolves in
+# that article (LA-R8 drift guard) and that every cockpit teach_key has an entry.
+
+# ── LA-13 — per-phase guide cards (keyed to fieldkit.rl phase strings) ────────
+
+- id: phase-lane-bringup
+  term: Lane bring-up
+  kind: phase
+  what: Tearing down the resident chat brain to free the one serving lane, then starting a pinned vLLM on the base model plus the SFT-init adapter.
+  why: The Spark holds one model in 128 GB of shared memory — the training lane only fits once the chat brain is gone. This is the one-lane envelope, enforced before any spawn.
+  watch: Unified memory should fall (~40 GB freed) then rise as vLLM loads. If headroom stays low the arbiter defers cleanly instead of OOM-ing the box.
+  source_article: the-machine-improves-itself
+  source_kind: hardware
+  source_term: The same loop, frontier coefficients
+
+- id: phase-sampling
+  term: Sampling — the rollouts
+  kind: phase
+  what: For each prompt the lane samples a group of K answers; the verifier scores them against each other (the group mean is GRPO's baseline).
+  why: Rollouts are roughly 13 of every 15 minutes per step — this is where the wall-clock goes, not the gradient.
+  watch: A steady step cadence. A stalled sampling phase usually means the vLLM lane died — the memory watchdog and the standup will say so.
+  source_article: the-machine-improves-itself
+  source_kind: define
+  source_term: GRPO
+
+- id: phase-training
+  term: Training — REINFORCE + KL
+  kind: phase
+  what: One REINFORCE-with-KL gradient step over the group-standardized advantages — no value network, the group mean is the baseline.
+  why: The trainer step is about 22 seconds, a rounding error against the rollouts. Speeding it up buys nothing; the eliminable cost is the vLLM restart.
+  watch: The pool score ticks up here — but a climbing pool is not success on its own. The held-out gate decides what ships (see the interpreter).
+  source_article: the-machine-improves-itself
+  source_kind: pitfall
+  source_term: The trainer is not the bottleneck — the vLLM restart is
+
+- id: phase-heldout-gate
+  term: Held-out gate
+  kind: phase
+  what: Every ≤10 steps the frozen held-out split is scored as an Arena eval_rerun job; the published checkpoint is argmax over THIS line only.
+  why: Pool and held-out can invert — T²PO measured 87.5% pool vs 5.7% held-out at the same step. Selecting on the pool ships the regression while the loop reports a triumph.
+  watch: The held-out line, never the pool. The run keeps the held-out-best step even as the pool climbs past it.
+  source_article: the-machine-improves-itself
+  source_kind: pitfall
+  source_term: The loop reliably lies if you select the checkpoint on the training pool
+
+- id: phase-teardown
+  term: Teardown
+  kind: phase
+  what: Stop the vLLM lane (EngineCore-aware kill) and restore the prior resident lane; write the memory trace into the lineage card.
+  why: Always-restore-on-exit means a failed run still leaves the box with a serving lane, not a dead one.
+  watch: The standup's RL digest — peak memory and any OOM-defer. A clean teardown returns the chat brain.
+  source_article: the-machine-improves-itself
+  source_kind: hardware
+  source_term: The same loop, frontier coefficients
+
+# ── LA-14 — the live pool-vs-held-out interpreter ────────────────────────────
+
+- id: interp-generalizing
+  term: Both lines climbing
+  kind: define
+  what: Pool and held-out both rising — genuine generalization. This is the healthy shape; the held-out gate will keep pushing the selected step forward.
+  watch: Keep going. The selected checkpoint advances with the held-out line.
+
+- id: interp-inversion
+  term: Pool up, held-out flat
+  kind: pitfall
+  what: The pool is climbing while held-out is flat or falling — the inversion the article warns about. The loop will publish the held-out-best step, not the current one.
+  why: A climbing pool with a stuck held-out line is overfitting the rollout sampler, not improving the model.
+  watch: Trust the held-out line. Do not stop on the pool number — that is exactly the trap.
+  source_article: the-machine-improves-itself
+  source_kind: pitfall
+  source_term: The loop reliably lies if you select the checkpoint on the training pool
+
+- id: interp-plateau
+  term: Both lines flat
+  kind: math
+  what: Pool and held-out both flat, well below the noise floor — a corpus signal, not an RL target. More steps optimize against label noise.
+  why: When the held-out curve flattens far below the ceiling, the gap is bounded by how noisy the gold labels are — that is the corpus's to-do list, not the loop's.
+  watch: Improve the corpus — better synthesis, curation, a cleaner gold set — not the step count. The held-out peak is the stop signal.
+  source_article: the-machine-improves-itself
+  source_kind: math
+  source_term: A 47.7% ceiling against an ~80% floor is a corpus signal, not an RL target
+
+# ── concept tooltips — short cockpit reads, backlinked to the deep-dive ───────
+
+- id: concept-rlvr
+  term: RLVR
+  kind: define
+  what: Reinforcement Learning from Verifiable Rewards — a deterministic verifier you wrote supplies the reward directly, no learned reward model. On the Spark the verifier is a function you can cat.
+  source_article: the-machine-improves-itself
+  source_kind: define
+  source_term: RLVR
+
+- id: concept-grpo
+  term: GRPO
+  kind: define
+  what: Group Relative Policy Optimization — sample K rollouts per prompt, score each, take the advantage as score minus the group mean. The group is the baseline, so the learned critic is dropped — which is what makes RL fit in 128 GB.
+  source_article: the-machine-improves-itself
+  source_kind: define
+  source_term: GRPO
+
+- id: concept-heldout
+  term: Held-out split
+  kind: define
+  what: A subset carved off before step 0 and never used for a gradient — used only to measure generalization. Frozen so it can't drift into the training signal; checkpoint selection reads this and nothing else.
+  source_article: the-machine-improves-itself
+  source_kind: define
+  source_term: Held-out split
+
+# ── LA-15 — guided decision-gate copy (consequence + reversal before the click) ─
+
+- id: gate-autonomy
+  term: Arm overnight autonomy
+  kind: gate
+  what: "`fieldkit arena autonomy on` registers the overnight cron that drains the queue one lane at a time, behind the budget governor."
+  why: Up to the governor's $/day cap; the lane is torn down and the chat brain restored per run; a regressing run early-stops on the held-out gate.
+  watch: Reversible with `fieldkit arena autonomy off`. The standup shows the armed state, the spend, and any OOM-defer every morning.
+
+- id: gate-enqueue
+  term: Enqueue an RLVR run
+  kind: gate
+  what: Queues an rl_run — it never runs in this request (async-only). It drains under the autonomy cron behind the governor, an ~8.5 h overnight job, not a synchronous click.
+  why: The run needs a pinned aarch64+CUDA-13 vLLM lane present; absent one the arbiter defers it cleanly rather than crashing.
+  watch: The job sits in Queued until the cron and the lane arbiter pick it up. A LANE_BIN_ABSENT defer in the standup means install a pinned vLLM first.

@@ -1,5 +1,5 @@
 import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { glob, file } from 'astro/loaders';
 import { ARTIFACT_KINDS } from './lib/artifacts';
 
 // Editorial taxonomy — ported up from ai-field-notes during the May 2026
@@ -103,6 +103,29 @@ const fieldkitDocs = defineCollection({
     title: z.string(),
     summary: z.string(),
     order: z.number().int(),
+  }),
+});
+
+// Arena operator curriculum — the single canonical source for the cockpit's
+// education layer (rl-lane-autonomy LA-12). One YAML array (file() loader),
+// read by BOTH this site and the arena-app cockpit (which bakes it into the
+// Jobs + Standup islands as props). `source_term`/`source_kind` name the
+// `:::<kind>[<term>]` block in articles/<source_article>/article.md that is the
+// reader-facing canonical prose; scripts/verify_explainers.mjs asserts those
+// still resolve (LA-R8 drift guard).
+const EXPLAINER_KINDS = ['define', 'why', 'deeper', 'pitfall', 'math', 'hardware', 'phase', 'interp', 'gate'] as const;
+const explainers = defineCollection({
+  loader: file('./src/content/explainers.yaml'),
+  schema: z.object({
+    id: z.string(),
+    term: z.string(),
+    kind: z.enum(EXPLAINER_KINDS),
+    what: z.string(),
+    why: z.string().optional(),
+    watch: z.string().optional(),
+    source_article: z.string().optional(),
+    source_kind: z.enum(EXPLAINER_KINDS).optional(),
+    source_term: z.string().optional(),
   }),
 });
 
@@ -288,4 +311,4 @@ const products = defineCollection({
   }),
 });
 
-export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs, artifacts, products };
+export const collections = { 'field-notes': fieldNotes, fieldkit_docs: fieldkitDocs, artifacts, products, explainers };

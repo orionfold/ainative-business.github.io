@@ -35,11 +35,117 @@ function fmtEta(s) {
   return `${(s / 3600).toFixed(1)}h`;
 }
 
-// Live rl_run progress (rl-lane-autonomy LA-9) — rendered inline on a running
-// card from the throttled result_json the loop writes (LA-8). The pool-vs-
-// held-out read makes the t2po inversion visible AS IT HAPPENS (RV-4): a pool
-// climbing while held-out is flat is the loop about to publish an earlier step.
-function RlProgress({ result }) {
+// Classify the pool-vs-held-out shape over a short rolling history (LA-14). The
+// teach_keys map to the interp-* explainers in the shared curriculum, so the
+// one-line read is the SAME source as the deep-dive's :::pitfall. Inversion is
+// checked first — it's the dangerous one (RV-4): a pool climbing while held-out
+// is flat is the loop about to publish an earlier step.
+function classifyInterp(hist) {
+  if (!hist || hist.length < 2) return null;
+  const last = hist[hist.length - 1];
+  const first = hist[0];
+  const pool = last.pool;
+  const held = last.held;
+  if (pool == null || held == null) return null;
+  const dPool = pool - (first.pool ?? pool);
+  const dHeld = held - (first.held ?? held);
+  const eps = 0.01;
+  if ((dPool > eps && dHeld <= eps) || pool - held > 0.15) return 'interp-inversion';
+  if (dPool > eps && dHeld > eps) return 'interp-generalizing';
+  if (Math.abs(dPool) <= eps && Math.abs(dHeld) <= eps && held < 0.6) return 'interp-plateau';
+  return null;
+}
+
+// A "what / why / watch" guide card (LA-13) drawn from a curriculum entry. Plain
+// language first; the optional deep-dive backlink opens the canonical :::block.
+function GuideCard({ entry, label }) {
+  if (!entry) return null;
+  return (
+    <details class="jobs__rl-guide" data-kind={entry.kind}>
+      <summary>
+        <span class="jobs__rl-guide-eyebrow">{label || 'what’s happening'}</span>
+        <span class="jobs__rl-guide-term">{entry.term}</span>
+      </summary>
+      <p class="jobs__rl-guide-what">{entry.what}</p>
+      {entry.why && <p class="jobs__rl-guide-why"><b>why</b> {entry.why}</p>}
+      {entry.watch && <p class="jobs__rl-guide-watch"><b>watch</b> {entry.watch}</p>}
+      {entry.source && (
+        <a class="jobs__rl-guide-link" href={entry.source.url} target="_blank" rel="noopener">
+          read the deep-dive →
+        </a>
+      )}
+    </details>
+  );
+}
+
+// A compounding post-run debrief (LA-16) on a completed rl_run — what it did,
+// which pitfall it dodged (held-out selection over the pool), or why it aborted,
+// and a flag when the held-out lift is notable enough to draw the living-model
+// delta chart (the §5 editorial flywheel). Backlinks the shared curriculum.
+function RlDebrief({ result, curriculum }) {
+  if (!result) return null;
+  const held = Array.isArray(result.heldout_scores) ? result.heldout_scores.filter((v) => v != null) : [];
+  const lift =
+    held.length >= 2 && result.selected_heldout_score != null
+      ? result.selected_heldout_score - held[0]
+      : null;
+  const promotable = !result.aborted && lift != null && lift >= 0.1;
+  const heldoutEntry = curriculum['concept-heldout'];
+  const oomEntry = curriculum['phase-teardown'];
+  return (
+    <details class="jobs__rl-debrief" data-promotable={promotable}>
+      <summary>
+        <span class="jobs__rl-guide-eyebrow">debrief</span>
+        <span class="jobs__rl-guide-term">{result.aborted ? 'OOM-aborted run' : 'what this run taught'}</span>
+      </summary>
+      <p class="jobs__rl-guide-what">
+        RLVR on <code>{result.base || '—'}</code>
+        {result.vertical ? <> → <code>{result.vertical}</code></> : null}
+        {result.n_steps != null ? `, ${result.n_steps} steps.` : '.'}
+      </p>
+      {result.aborted ? (
+        <p class="jobs__rl-guide-why">
+          The memory watchdog tore the run down before the kernel could OOM the box. Check the standup's RL
+          digest for the peak and the headroom at trip
+          {oomEntry && oomEntry.source && (
+            <>
+              {' '}— <a href={oomEntry.source.url} target="_blank" rel="noopener">the lane envelope</a>
+            </>
+          )}
+          .
+        </p>
+      ) : (
+        <>
+          <p class="jobs__rl-guide-watch">
+            Shipped <b>held-out step {result.selected_step ?? '—'}</b>
+            {result.selected_heldout_score != null ? ` @ ${Number(result.selected_heldout_score).toFixed(3)}` : ''}
+            {lift != null ? ` · held-out lift ${lift >= 0 ? '+' : ''}${lift.toFixed(3)} over the first gate` : ''}. Selected
+            on <b>{result.selected_on || 'heldout'}</b>, never the pool
+            {heldoutEntry && heldoutEntry.source && (
+              <>
+                {' '}— <a href={heldoutEntry.source.url} target="_blank" rel="noopener">why</a>
+              </>
+            )}
+            .
+          </p>
+          {promotable && (
+            <p class="jobs__rl-promote">
+              📈 editorial-promotable — a held-out-winning run can draw the{' '}
+              <a href="https://ainative.business/products/living-model/" target="_blank" rel="noopener">living-model</a>{' '}
+              delta chart.
+            </p>
+          )}
+        </>
+      )}
+    </details>
+  );
+}
+
+// Live rl_run progress (rl-lane-autonomy LA-9) — the throttled result_json the
+// loop writes (LA-8), now with the education layer: a per-phase guide card
+// (LA-13) and a live pool-vs-held-out interpreter (LA-14), both sourced from the
+// shared `explainers` curriculum passed in as a prop.
+function RlProgress({ result, curriculum, hist }) {
   if (!result || !result.phase) return null;
   const step = result.step ?? 0;
   const max = result.max_steps ?? 0;
@@ -48,6 +154,11 @@ function RlProgress({ result }) {
   const held = result.last_heldout;
   const mem = result.mem || {};
   const inversion = pool != null && held != null && pool - held > 0.15;
+
+  const phaseEntry = curriculum[`phase-${result.phase}`];
+  const interpKey = classifyInterp(hist);
+  const interp = interpKey ? curriculum[interpKey] : null;
+
   return (
     <div class="jobs__rl" data-phase={result.phase}>
       <div class="jobs__rl-head">
@@ -64,11 +175,28 @@ function RlProgress({ result }) {
         <span class="jobs__rl-held">held-out {held != null ? Number(held).toFixed(3) : '—'}</span>
         {mem.peak_used_gb != null && <span class="jobs__rl-mem">peak {Math.round(mem.peak_used_gb)} GB</span>}
       </div>
-      {inversion && (
-        <div class="jobs__rl-warn">
-          pool &gt; held-out — the published checkpoint is chosen on the held-out line, never the pool.
+
+      {/* LA-14 — the live interpreter: a one-line read of the two curves that
+          updates as they move. Falls back to the static inversion warn if the
+          curriculum prop didn't bake (offline / older shell). */}
+      {interp ? (
+        <div class="jobs__rl-interp" data-kind={interp.kind}>
+          <span class="jobs__rl-interp-term">{interp.term}</span>
+          <span class="jobs__rl-interp-watch">{interp.watch || interp.what}</span>
         </div>
+      ) : (
+        inversion && (
+          <div class="jobs__rl-interp" data-kind="pitfall">
+            <span class="jobs__rl-interp-term">Pool up, held-out flat</span>
+            <span class="jobs__rl-interp-watch">
+              the published checkpoint is chosen on the held-out line, never the pool.
+            </span>
+          </div>
+        )
       )}
+
+      {/* LA-13 — the per-phase guide card. */}
+      <GuideCard entry={phaseEntry} />
     </div>
   );
 }
@@ -80,7 +208,7 @@ function confirmPhrase(status) {
   return 'is queued to confirm'; // queued / dispatched
 }
 
-export default function JobsBoard() {
+export default function JobsBoard({ curriculum = {} }) {
   const [online, setOnline] = useState(false);
   const [jobs, setJobs] = useState([]);
   const [lane, setLane] = useState('');
@@ -91,6 +219,10 @@ export default function JobsBoard() {
   const [note, setNote] = useState('');
   const baseRef = useRef(null);
   const esRef = useRef(null);
+  // Per-rl_run rolling (pool, held-out) history for the LA-14 interpreter. Keyed
+  // by job id; one sample per distinct step (the result_json is throttled), last
+  // ~8 kept. The interpreter reads the trend, not just the latest point.
+  const histRef = useRef({});
 
   useEffect(() => {
     if (isPublicMirrorHost()) return; // public mirror — static offline board
@@ -110,7 +242,21 @@ export default function JobsBoard() {
     es.addEventListener('jobs', (ev) => {
       try {
         const data = JSON.parse(ev.data);
-        setJobs(Array.isArray(data.jobs) ? data.jobs : []);
+        const next = Array.isArray(data.jobs) ? data.jobs : [];
+        // Append a (pool, held) sample per running rl_run when its step advances,
+        // so the LA-14 interpreter has a trend to read (cap the window at 8).
+        const hist = histRef.current;
+        for (const j of next) {
+          if (j.kind !== 'rl_run' || j.status !== 'running' || !j.result) continue;
+          const r = j.result;
+          const series = hist[j.id] || (hist[j.id] = []);
+          const last = series[series.length - 1];
+          if (!last || last.step !== r.step) {
+            series.push({ step: r.step ?? 0, pool: r.pool_score ?? null, held: r.last_heldout ?? null });
+            if (series.length > 8) series.shift();
+          }
+        }
+        setJobs(next);
       } catch (_e) {
         /* ignore malformed frame */
       }
@@ -319,6 +465,8 @@ export default function JobsBoard() {
         >
           {busy ? '…' : 'queue (async)'}
         </button>
+        {/* LA-15 — guided gate: consequence + reversal before the click. */}
+        <GuideCard entry={curriculum['gate-enqueue']} label="before you queue" />
       </form>
 
       <div class="jobs__board">
@@ -339,7 +487,9 @@ export default function JobsBoard() {
                       <span class="jobs__card-trigger">{j.trigger}</span>
                     </div>
                     <div class="jobs__card-target">{laneBench(j)}</div>
-                    {j.status === 'running' && j.kind === 'rl_run' && <RlProgress result={j.result} />}
+                    {j.status === 'running' && j.kind === 'rl_run' && (
+                      <RlProgress result={j.result} curriculum={curriculum} hist={histRef.current[j.id]} />
+                    )}
                     {j.status === 'done' && j.result && j.result.mean_normalized != null && (
                       <div class="jobs__card-result">
                         acc {Number(j.result.mean_normalized).toFixed(2)} · n {j.result.n_scored ?? '—'}
@@ -358,6 +508,9 @@ export default function JobsBoard() {
                           ? ` · peak ${Math.round(j.result.mem_trace.peak_used_gb)} GB`
                           : ''}
                       </div>
+                    )}
+                    {j.status === 'done' && j.kind === 'rl_run' && j.result && (
+                      <RlDebrief result={j.result} curriculum={curriculum} />
                     )}
                     {j.status === 'failed' && j.error && (
                       <div class="jobs__card-error" title={j.error}>{j.error}</div>
