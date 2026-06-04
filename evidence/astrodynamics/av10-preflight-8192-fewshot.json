@@ -1,0 +1,112 @@
+{
+  "model": "Qwen/Qwen3-8B",
+  "n": 8,
+  "max_new_tokens": 8192,
+  "rel_tol": 0.02,
+  "status": "done",
+  "scored": 8,
+  "total": 8,
+  "fewshot": 3,
+  "boxed_rate": 0.75,
+  "extract_rate": 0.75,
+  "reward_rate_step0": 0.75,
+  "truncation_rate": 0.125,
+  "av_r1_clear": true,
+  "gate_pass": true,
+  "buckets": {
+    "correct": 5,
+    "boxed_wrong": 1,
+    "no_answer": 1,
+    "truncated_think": 1
+  },
+  "rows": [
+    {
+      "task_id": "astro-ap-parallax_distance-10000",
+      "subtopic": "parallax_distance",
+      "tier": 1,
+      "answer": "4.348 pc",
+      "score": 1.0,
+      "bucket": "correct",
+      "boxed": "4.35 pc",
+      "n_chars": 236,
+      "wall_s": 11.6
+    },
+    {
+      "task_id": "astro-orb-specific_orbital_energy-10001",
+      "subtopic": "specific_orbital_energy",
+      "tier": 1,
+      "answer": "-10.77 MJ/kg",
+      "score": 1.0,
+      "bucket": "correct",
+      "boxed": "-10.8 MJ/kg",
+      "n_chars": 8930,
+      "wall_s": 430.5
+    },
+    {
+      "task_id": "astro-orb-kepler_third_law-10002",
+      "subtopic": "kepler_third_law",
+      "tier": 1,
+      "answer": "14.15 hr",
+      "score": 0.0,
+      "bucket": "truncated_think",
+      "boxed": "",
+      "n_chars": 16873,
+      "wall_s": 866.2
+    },
+    {
+      "task_id": "astro-orb-leo_period-10003",
+      "subtopic": "leo_period",
+      "tier": 2,
+      "answer": "121.6 min",
+      "score": 1.0,
+      "bucket": "correct",
+      "boxed": "121.6 \\text{ minutes}",
+      "n_chars": 17281,
+      "wall_s": 761.3
+    },
+    {
+      "task_id": "astro-orb-circular_velocity-10004",
+      "subtopic": "circular_velocity",
+      "tier": 1,
+      "answer": "3.419 km/s",
+      "score": 1.0,
+      "bucket": "correct",
+      "boxed": "3.42 km/s",
+      "n_chars": 1473,
+      "wall_s": 51.9
+    },
+    {
+      "task_id": "astro-orb-altitude_from_period-10005",
+      "subtopic": "altitude_from_period",
+      "tier": 3,
+      "answer": "2.382e+04 km",
+      "score": 0.0,
+      "bucket": "boxed_wrong",
+      "boxed": "value unit",
+      "n_chars": 17322,
+      "wall_s": 837.2
+    },
+    {
+      "task_id": "astro-orb-leo_period-10006",
+      "subtopic": "leo_period",
+      "tier": 2,
+      "answer": "125 min",
+      "score": 1.0,
+      "bucket": "correct",
+      "boxed": "125.1 \\text{ minutes}",
+      "n_chars": 17346,
+      "wall_s": 757.0
+    },
+    {
+      "task_id": "astro-orb-altitude_from_period-10007",
+      "subtopic": "altitude_from_period",
+      "tier": 3,
+      "answer": "8867 km",
+      "score": 1.0,
+      "bucket": "no_answer",
+      "boxed": "",
+      "n_chars": 16650,
+      "wall_s": 838.0
+    }
+  ]
+}
