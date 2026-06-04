@@ -1977,6 +1977,42 @@ def create_app(
             "report": report, "source": report_path.name, "runs": runs,
         }
 
+    @app.get("/api/sft-progress")
+    async def api_sft_progress(
+        source: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        """Live SFT-training feed (dogfood AF — closes the AF-2 blind spot for the
+        SFT stage). Parses a NeMo ``p65`` driver log + run-dir and renders
+        iter/max, the loss curve, iter/s, ETA, and peak GPU memory — the
+        training-stage analogue of the ``rl_run`` progress strip, so the operator
+        can watch a ``TrainRecipe(backend="nemo")`` run (astrodynamics C2(b))
+        side-by-side instead of tailing a log.
+
+        Read-only: an HTTP GET parses a log; it never launches a lane. The SFT
+        run-root is OUTSIDE the repo (the trainer writes to ``/home/nvidia/data``)
+        so it is anchored by ``FK_ARENA_SFT_DIR`` (default the astrodynamics
+        run-root). History + auto-follow mirror ``/api/reward-signal``: every
+        response carries ``runs`` (the driver logs found, newest-first); the shown
+        log is ``?source=`` (traversal-sanitized) → else newest by mtime, so with
+        no selection the feed tracks the live run. ``{available: false}`` (still
+        with ``runs``) paints a clean empty state. Declared before the static
+        mount so ``/arena/sft`` (page) and ``/api/sft-progress`` stay distinct.
+        No arena.db read, no schema bump."""
+        sft_dir = _sft_run_dir()
+        runs = _list_sft_runs(sft_dir)
+        log_path = (
+            _resolve_sft_log(sft_dir, source) if source else _newest_sft_log(sft_dir)
+        )
+        if log_path is None or not log_path.is_file():
+            return {"available": False, "kind": "sft", "runs": runs}
+        report = _parse_sft_log(log_path, sft_dir)
+        if report is None:
+            return {"available": False, "kind": "sft", "runs": runs}
+        return {
+            "available": True, "kind": "sft",
+            "report": report, "source": log_path.name, "runs": runs,
+        }
+
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
@@ -2063,6 +2099,177 @@ def _list_reward_reports(root: Path) -> list:
         except (OSError, ValueError):
             item["status"] = "unreadable"
         out.append(item)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# SFT-progress feed (dogfood AF — live NeMo p65 training feed; AF-2 blind spot)
+# ---------------------------------------------------------------------------
+
+# One Megatron iter line, e.g.:
+#   iteration  7/  100 | consumed samples: 112 | elapsed time per iteration
+#   (ms): 4190.1 | learning rate: ... | global batch size: 16 | lm loss:
+#   9.79E-01 | ...
+# `.` doesn't cross newlines, so each match stays within a single iter line.
+_SFT_ITER_RE = re.compile(
+    r"iteration\s+(\d+)/\s*(\d+).*?elapsed time per iteration \(ms\):\s*"
+    r"([\d.]+).*?lm loss:\s*([\d.eE+-]+)"
+)
+_SFT_MEM_RE = re.compile(r"mem-max-reserved-gigabytes:\s*([\d.]+)")
+
+# Driver logs that are NOT training runs (no iter lines) — the merge/export
+# stage shares the run-root's logs/ dir but isn't an SFT-feed run, so it's kept
+# out of the auto-follow + history dropdown.
+_SFT_SKIP_LOGS = frozenset({"merge-driver.log"})
+
+
+def _sft_training_logs(base: Path) -> list[Path]:
+    """All training driver logs in ``base``, newest-first (merge logs excluded)."""
+    try:
+        cands = [p for p in base.glob("*-driver.log") if p.name not in _SFT_SKIP_LOGS]
+    except OSError:
+        return []
+    return sorted(cands, key=lambda p: p.stat().st_mtime, reverse=True)
+
+
+def _sft_run_dir() -> Path:
+    """Run-root holding the NeMo SFT driver logs + ``runs-*`` checkpoints.
+
+    External to the repo (the trainer writes to ``/home/nvidia/data``), so it is
+    env-anchored via ``FK_ARENA_SFT_DIR`` with the astrodynamics default."""
+    return Path(
+        os.path.expanduser(
+            os.environ.get(
+                "FK_ARENA_SFT_DIR",
+                "/home/nvidia/data/astro-train-lora/p65-nemo",
+            )
+        )
+    )
+
+
+def _sft_logs_dir(sft_dir: Path) -> Path:
+    return sft_dir / "logs"
+
+
+def _newest_sft_log(sft_dir: Path) -> Path | None:
+    """Most-recent training driver log by mtime (auto-follow the live run)."""
+    cands = _sft_training_logs(_sft_logs_dir(sft_dir))
+    return cands[0] if cands else None
+
+
+def _resolve_sft_log(sft_dir: Path, source: str) -> Path | None:
+    """Resolve a dropdown-selected driver log, traversal-safe."""
+    name = Path(source).name
+    if not name.endswith("-driver.log") or name in _SFT_SKIP_LOGS:
+        return None
+    p = _sft_logs_dir(sft_dir) / name
+    return p if p.is_file() else None
+
+
+def _sft_run_subdir(log_name: str) -> str:
+    """``full-driver.log`` → ``runs-full``; ``smoke-driver.log`` → ``runs-smoke``."""
+    stem = log_name[: -len("-driver.log")]
+    return f"runs-{stem}"
+
+
+def _sft_checkpoints(log_path: Path, sft_dir: Path) -> list[int]:
+    run_dir = sft_dir / _sft_run_subdir(log_path.name)
+    out: list[int] = []
+    try:
+        for d in run_dir.glob("iter_*"):
+            parts = d.name.split("_")
+            if d.is_dir() and len(parts) == 2 and parts[1].isdigit():
+                out.append(int(parts[1]))
+    except OSError:
+        pass
+    return sorted(out)
+
+
+def _parse_sft_log(log_path: Path, sft_dir: Path) -> dict[str, Any] | None:
+    """Parse one NeMo driver log into the SFT-progress report shape.
+
+    Returns iter/max, the loss curve (downsampled), recent iter/s, ETA, and peak
+    GPU memory. Before the first iter line it returns an ``init``/``starting``
+    status so the pane can paint the setup phase (model load + optimizer setup
+    take ~40 s on the GB10). ``None`` only on unreadable file."""
+    try:
+        text = log_path.read_text(errors="replace")
+    except OSError:
+        return None
+    label = f"NeMo p65 LoRA SFT — {log_path.name[: -len('-driver.log')]}"
+    iters: list[tuple[int, int, float, float]] = []
+    for m in _SFT_ITER_RE.finditer(text):
+        iters.append(
+            (int(m.group(1)), int(m.group(2)), float(m.group(3)), float(m.group(4)))
+        )
+    peak_mem = 0.0
+    for mm in _SFT_MEM_RE.finditer(text):
+        peak_mem = max(peak_mem, float(mm.group(1)))
+    checkpoints = _sft_checkpoints(log_path, sft_dir)
+
+    if not iters:
+        started = "Starting training loop" in text
+        return {
+            "status": "starting" if started else "init",
+            "latest_iter": 0,
+            "max_iters": 0,
+            "first_loss": None,
+            "last_loss": None,
+            "loss_series": [],
+            "iter_per_s": None,
+            "eta_s": None,
+            "peak_mem_gb": round(peak_mem, 1),
+            "checkpoints": checkpoints,
+            "run_label": label,
+        }
+
+    max_iters = iters[-1][1]
+    latest_iter = iters[-1][0]
+    first_loss = iters[0][3]
+    last_loss = iters[-1][3]
+    # iter/s + ETA from the last ~10 iters (the first carries warmup cost).
+    recent = iters[-10:] if len(iters) > 1 else iters
+    recent_ms = [e for (_i, _m, e, _l) in recent if e > 0]
+    mean_ms = sum(recent_ms) / len(recent_ms) if recent_ms else None
+    iter_per_s = (1000.0 / mean_ms) if mean_ms else None
+    remaining = max(0, max_iters - latest_iter)
+    eta_s = (remaining * mean_ms / 1000.0) if mean_ms else None
+    done = "[after training is done]" in text
+    status = "done" if (done or latest_iter >= max_iters) else "running"
+    series = [{"iter": i, "loss": round(loss, 4)} for (i, _m, _e, loss) in iters]
+    if len(series) > 60:
+        step = len(series) // 60 + 1
+        series = series[::step] + [series[-1]]
+    return {
+        "status": status,
+        "latest_iter": latest_iter,
+        "max_iters": max_iters,
+        "first_loss": round(first_loss, 4),
+        "last_loss": round(last_loss, 4),
+        "loss_series": series,
+        "iter_per_s": round(iter_per_s, 3) if iter_per_s else None,
+        "eta_s": round(eta_s, 1) if eta_s is not None else None,
+        "peak_mem_gb": round(peak_mem, 1),
+        "checkpoints": checkpoints,
+        "run_label": label,
+    }
+
+
+def _list_sft_runs(sft_dir: Path) -> list:
+    """Newest-first summaries of every SFT training driver log (dropdown)."""
+    out: list = []
+    paths = _sft_training_logs(_sft_logs_dir(sft_dir))
+    for p in paths:
+        rep = _parse_sft_log(p, sft_dir) or {}
+        out.append(
+            {
+                "source": p.name,
+                "status": rep.get("status"),
+                "latest_iter": rep.get("latest_iter"),
+                "max_iters": rep.get("max_iters"),
+                "last_loss": rep.get("last_loss"),
+            }
+        )
     return out
 
 
