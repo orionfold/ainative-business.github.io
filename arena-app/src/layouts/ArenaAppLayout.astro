@@ -3632,6 +3632,20 @@ try {
       .arena-app .reward__verdict-meta code { font-family: var(--arena-mono); color: var(--arena-text); }
       .arena-app .reward__verdict[data-running="true"] { border-color: var(--arena-border); }
       .arena-app .reward__verdict[data-running="true"] .reward__verdict-badge { color: var(--arena-text-dim); }
+      /* AF-9 run-history selector */
+      .arena-app .reward__history { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.7rem; }
+      .arena-app .reward__history-label {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .reward__history-select {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text);
+        background: var(--arena-panel); border: 1px solid var(--arena-border);
+        border-radius: 0.4rem; padding: 0.3rem 0.5rem; cursor: pointer; max-width: 100%;
+      }
+      .arena-app .reward__history-select:hover { border-color: var(--arena-accent); }
+      .arena-app .reward__history-now { font-size: 0.62rem; color: var(--arena-text-mute); }
+      .arena-app .reward__history-now code { font-family: var(--arena-mono); color: var(--arena-text-dim); }
       /* AF-9 live run strip — eval/preflight streaming mid-flight */
       .arena-app .reward__live {
         display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.8rem;

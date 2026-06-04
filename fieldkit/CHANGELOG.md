@@ -32,14 +32,19 @@ addition this cycle; schema unchanged.
   arena.db, bumps no schema. Surfaces in the new `/arena/reward/` cockpit pane; the
   report shape is reused by the RLVR per-step gauge. (Dogfood AF-3; ships in the
   baked `_webui` + `server.py`.)
-- **Live reward gauge** (dogfood AF-9) — the `/arena/reward/` pane now **streams a
-  multi-row eval/preflight while it runs**, not only after exit: a `status:running`
-  report (with `scored`/`total`, written incrementally by the producer) renders a
-  RUNNING strip — progress bar + live partial rates + a neutral "GATE · pending" —
-  and updates on the pane's existing 5 s poll. The `GET /api/reward-signal`
-  endpoint is **unchanged** (it passes the report through verbatim, so no schema or
-  API change); a finished report — or any report without a `status` field — renders
-  the gate verdict exactly as before. (Ships in the baked `_webui`.)
+- **Live reward gauge + run history** (dogfood AF-9) — the `/arena/reward/` pane now
+  **streams a multi-row eval/preflight while it runs** (not only after exit) and
+  **browses prior runs**. A `status:running` report (with `scored`/`total`, written
+  incrementally by the producer) renders a RUNNING strip — progress bar + live
+  partial rates + a neutral "GATE · pending" — on the pane's existing 5 s poll.
+  `GET /api/reward-signal` gains a `runs` history list (newest-first summaries of
+  every `av10-preflight*.json`) and an optional `?source=<file>` selector
+  (traversal-sanitized); with no selection it **auto-follows the newest report by
+  mtime**, so the gauge tracks a live run and any later run with no manual
+  repointing. The pane gains a "run" dropdown (default *Latest (auto-follow)*) and
+  shows which `source` is on screen. No arena.db read, no schema bump (AH-9/RV-8);
+  a report without a `status` field still renders the gate verdict exactly as
+  before. (Ships in the baked `_webui` + `server.py`.)
 
 ## [0.22.0] — 2026-06-03
 
