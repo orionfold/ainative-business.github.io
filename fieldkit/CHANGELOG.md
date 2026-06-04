@@ -32,6 +32,14 @@ addition this cycle; schema unchanged.
   arena.db, bumps no schema. Surfaces in the new `/arena/reward/` cockpit pane; the
   report shape is reused by the RLVR per-step gauge. (Dogfood AF-3; ships in the
   baked `_webui` + `server.py`.)
+- **Live reward gauge** (dogfood AF-9) — the `/arena/reward/` pane now **streams a
+  multi-row eval/preflight while it runs**, not only after exit: a `status:running`
+  report (with `scored`/`total`, written incrementally by the producer) renders a
+  RUNNING strip — progress bar + live partial rates + a neutral "GATE · pending" —
+  and updates on the pane's existing 5 s poll. The `GET /api/reward-signal`
+  endpoint is **unchanged** (it passes the report through verbatim, so no schema or
+  API change); a finished report — or any report without a `status` field — renders
+  the gate verdict exactly as before. (Ships in the baked `_webui`.)
 
 ## [0.22.0] — 2026-06-03
 

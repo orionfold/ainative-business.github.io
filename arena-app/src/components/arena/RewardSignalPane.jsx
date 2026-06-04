@@ -98,9 +98,30 @@ export default function RewardSignalPane() {
   const buckets = rep.buckets || {};
   const trunc = Number(rep.truncation_rate || 0);
   const gatePass = rep.gate_pass === true;
+  // AF-9 live mode — a report with status:"running" streams while the eval/
+  // preflight is mid-flight (the script drops a heartbeat per row). A finished
+  // report (or the legacy 4096 baseline, which has no status field) renders the
+  // gate verdict exactly as before.
+  const isRunning = rep.status === 'running';
+  const total = rep.total ?? rep.n ?? rows.length;
+  const scored = rep.scored ?? rows.length;
+  const progressPct = total ? Math.min(100, Math.round((scored / total) * 100)) : 0;
 
   return (
     <div class="reward">
+      {/* AF-9: live run strip — only while a run is mid-flight. */}
+      {isRunning && (
+        <div class="reward__live" role="status">
+          <span class="reward__live-dot" aria-hidden="true" />
+          <span class="reward__live-label">RUNNING</span>
+          <span class="reward__live-count">{scored}/{total} scored</span>
+          <div class="reward__live-bar" aria-hidden="true">
+            <div class="reward__live-fill" style={`width:${progressPct}%`} />
+          </div>
+          <span class="reward__live-eta">live · streaming each held-out row · refreshes every 5s</span>
+        </div>
+      )}
+
       {/* Three headline gauges — the eval-is-reward signal at a glance. */}
       <div class="reward__gauges">
         <div class="reward__gauge">
@@ -120,9 +141,10 @@ export default function RewardSignalPane() {
         </div>
       </div>
 
-      {/* Gate verdict + the run's knobs. */}
-      <div class="reward__verdict" data-pass={gatePass}>
-        <span class="reward__verdict-badge">{gatePass ? 'GATE · PASS' : 'GATE · HOLD'}</span>
+      {/* Gate verdict + the run's knobs. While running the gate is partial, so
+          it reads "pending" (neutral) until the final row lands. */}
+      <div class="reward__verdict" data-pass={gatePass} data-running={isRunning}>
+        <span class="reward__verdict-badge">{isRunning ? 'GATE · pending' : (gatePass ? 'GATE · PASS' : 'GATE · HOLD')}</span>
         <span class="reward__verdict-rule">boxed&gt;0 ∧ truncation&lt;50%</span>
         <span class="reward__verdict-meta">
           <code>{rep.model || '—'}</code> · n={rep.n ?? '—'} · max_new_tokens={rep.max_new_tokens ?? '—'} · ±{((rep.rel_tol ?? 0.02) * 100).toFixed(0)}%
