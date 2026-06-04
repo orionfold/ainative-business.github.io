@@ -36,7 +36,7 @@ interface Props {
   title: string;
   description?: string;
   /** Which top-nav tab is active. */
-  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'cortex' | 'lab';
+  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'reward' | 'cortex' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
 }
@@ -54,6 +54,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   compare: 'Compare',
   jobs: 'Jobs',
   standup: 'Standup',
+  reward: 'Reward',
   cortex: 'Cortex',
   lab: 'Lab',
 };
@@ -229,6 +230,7 @@ try {
         <a href={href('arena/compare/')}     class:list={["arena-app__tab", active === 'compare'     && 'is-active']}>Compare</a>
         <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
         <a href={href('arena/standup/')}     class:list={["arena-app__tab", active === 'standup'     && 'is-active']}>Standup</a>
+        <a href={href('arena/reward/')}      class:list={["arena-app__tab", active === 'reward'      && 'is-active']}>Reward</a>
         <a href={href('arena/cortex/')}      class:list={["arena-app__tab", active === 'cortex'      && 'is-active']}>Cortex</a>
         <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
       </nav>
@@ -3574,6 +3576,97 @@ try {
         letter-spacing: 0.04em;
       }
       .arena-app .standup__staged b { color: var(--arena-ok); }
+
+      /* ---------------------------------------------------------------
+       *  Reward signal — eval-is-reward gauge (/arena/reward/) — AF-3
+       * --------------------------------------------------------------- */
+      .arena-app .reward { display: flex; flex-direction: column; gap: 1rem; }
+      .arena-app .reward__offline, .arena-app .reward__empty {
+        display: flex; align-items: flex-start; gap: 0.7rem; padding: 1rem 1.1rem;
+        border: 1px dashed var(--arena-border); border-radius: 0.5rem;
+        color: var(--arena-text-mute); font-size: 0.8rem; line-height: 1.5;
+      }
+      .arena-app .reward__offline code, .arena-app .reward__empty code {
+        font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em;
+      }
+      .arena-app .reward__offline strong, .arena-app .reward__empty strong { color: var(--arena-text); }
+      .arena-app .reward__offline-dot {
+        flex: 0 0 auto; width: 0.5rem; height: 0.5rem; margin-top: 0.35rem;
+        border-radius: 50%; background: var(--arena-text-dim);
+      }
+      /* Three headline gauges */
+      .arena-app .reward__gauges {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.9rem;
+      }
+      .arena-app .reward__gauge {
+        display: flex; flex-direction: column; gap: 0.15rem; padding: 0.9rem 1rem;
+        border: 1px solid var(--arena-border); border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .reward__gauge--reward { border-color: var(--arena-accent); }
+      .arena-app .reward__gauge[data-alarm="true"] { border-color: var(--arena-warn); }
+      .arena-app .reward__gauge-val {
+        font-family: var(--arena-mono); font-size: 1.6rem; font-weight: 700; color: var(--arena-text); line-height: 1;
+      }
+      .arena-app .reward__gauge[data-alarm="true"] .reward__gauge-val { color: var(--arena-warn); }
+      .arena-app .reward__gauge-label {
+        font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .reward__gauge-sub { font-size: 0.64rem; color: var(--arena-text-mute); }
+      /* Gate verdict */
+      .arena-app .reward__verdict {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.9rem;
+        padding: 0.6rem 0.9rem; border: 1px solid var(--arena-border);
+        border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .reward__verdict[data-pass="true"] { border-color: var(--arena-ok); }
+      .arena-app .reward__verdict[data-pass="false"] { border-color: var(--arena-warn); }
+      .arena-app .reward__verdict-badge {
+        font-family: var(--arena-mono); font-size: 0.68rem; font-weight: 700;
+        letter-spacing: 0.1em; color: var(--arena-text-dim);
+      }
+      .arena-app .reward__verdict[data-pass="true"] .reward__verdict-badge { color: var(--arena-ok); }
+      .arena-app .reward__verdict[data-pass="false"] .reward__verdict-badge { color: var(--arena-warn); }
+      .arena-app .reward__verdict-rule { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-dim); }
+      .arena-app .reward__verdict-meta { margin-left: auto; font-size: 0.64rem; color: var(--arena-text-mute); }
+      .arena-app .reward__verdict-meta code { font-family: var(--arena-mono); color: var(--arena-text); }
+      /* Bucket breakdown */
+      .arena-app .reward__buckets {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem;
+      }
+      .arena-app .reward__bucket {
+        display: flex; flex-direction: column; gap: 0.1rem; padding: 0.6rem 0.8rem;
+        border: 1px solid var(--arena-border); border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .reward__bucket[data-warn="true"] { border-color: var(--arena-warn); }
+      .arena-app .reward__bucket-n {
+        font-family: var(--arena-mono); font-size: 1.1rem; font-weight: 700; color: var(--arena-text);
+      }
+      .arena-app .reward__bucket[data-warn="true"] .reward__bucket-n { color: var(--arena-warn); }
+      .arena-app .reward__bucket-label {
+        font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.08em; color: var(--arena-text-dim);
+      }
+      .arena-app .reward__bucket-hint { font-size: 0.6rem; color: var(--arena-text-mute); }
+      /* Per-row detail table */
+      .arena-app .reward__rows { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+      .arena-app .reward__rows th {
+        text-align: left; font-family: var(--arena-mono); font-size: 0.58rem;
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--arena-text-dim);
+        padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--arena-border);
+      }
+      .arena-app .reward__rows td {
+        padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--arena-line); color: var(--arena-text-mute);
+      }
+      .arena-app .reward__rows td code { font-family: var(--arena-mono); color: var(--arena-accent); }
+      .arena-app .reward__rows-boxed { font-family: var(--arena-mono); color: var(--arena-text); }
+      .arena-app .reward__rows tr[data-bucket="truncated_think"] td { color: var(--arena-warn); }
+      .arena-app .reward__rows-score { font-family: var(--arena-mono); text-align: right; color: var(--arena-text-dim); }
+      .arena-app .reward__rows-score[data-hit="true"] { color: var(--arena-ok); font-weight: 700; }
+      .arena-app .reward__foot {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-dim); letter-spacing: 0.03em;
+      }
+      .arena-app .reward__foot b { color: var(--arena-accent); }
+      .arena-app .reward__foot code { color: var(--arena-text-mute); }
 
       /* Built-together timeline */
       .arena-app .lab-timeline { margin: 1.75rem 0 1rem; }

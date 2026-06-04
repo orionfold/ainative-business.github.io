@@ -1,0 +1,41 @@
+---
+// Reward — /arena/reward/
+//
+// Dogfood AF-3 (astrodynamics-vertical-v1 §1 goal 2). The eval-is-reward gauge:
+// the verifier's signal made visible so the operator can SEE whether the model
+// produces scorable output. Today it renders the AV-10 preflight baseline (the
+// step-0 zero of the RLVR lineage delta); the same shape is what the C5 per-step
+// RLVR gauge emits, so the <RewardSignalPane> island is reusable.
+//
+// Read-only by construction: the island polls GET /api/reward-signal, which
+// reads a report JSON — an HTTP GET never launches a GPU lane. On the public
+// mirror there is no sidecar, so the island renders a static note.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import RewardSignalPane from '../../components/arena/RewardSignalPane.jsx';
+
+const title = 'Orionfold Arena — Reward';
+const description =
+  'The eval-is-reward gauge — boxed-rate, zero-shot held-out reward, and the AV-R1 truncation check over the latest verifier run. The step-0 baseline of the RLVR lineage delta; read-only.';
+---
+<ArenaAppLayout title={title} description={description} active="reward">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Reward&nbsp;signal</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">eval-is-reward · verifier gauge · AV-R1 watch</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          read-only — never dispatches
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* boxed-rate / reward@step-0 / truncation + buckets + per-row detail,
+          polled from /api/reward-signal. The verifier IS the reward; this page
+          only renders — an HTTP GET never launches a GPU lane. */}
+      <RewardSignalPane client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>
