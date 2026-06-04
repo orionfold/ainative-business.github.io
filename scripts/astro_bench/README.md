@@ -16,7 +16,11 @@ both the SFT-init corpus and the RLVR held-out gate.
 | `units.py` | Stdlib SI unit-normalization (no `pint`): parse a quantity, convert to SI, compare dimensions. |
 | `verifier.py` | `astro_numeric_match(predicted, expected, *, rel_tolerance=0.02)` → 1.0/0.0. `\boxed{}` → "final answer:" → last-quantity extraction; unit-normalized, **binary**, relative-tolerance. Conforms to the `fieldkit.eval` verifier signature so `fieldkit.reward.RewardAdapter` wraps it unchanged. |
 | `generate.py` | Emits the train/eval pool + a frozen held-out split (different seed, RV-10 no-leakage `exclude`, + 4 computed off-template "curveballs"). Self-checks every gold through the verifier before write. |
-| `test_astro_bench.py` | 20 real tests (no mocks): unit conversion, dimension-mismatch rejection, tolerance edges, boxed/last extraction, generator determinism, 70/30 mix, tier spread, **every-gold-self-verifies**, pool↔held-out disjointness, and a "wrong-method solver is rejected" guard. |
+| `build_sft_corpus.py` / `sft_queue.py` / `verify_sft.py` | The **C1** SFT-init corpus pipeline: 16 authored worked-solution templates → deterministic substitution → 600-row `<think>…\boxed{}` corpus, every row gated through the verifier (`feedback_llm_skill_pattern`). |
+| `preflight_av10.py` | The **C2(a)** AV-10 conditioning/behavioral preflight on `Qwen3-8B` FP (boxed-rate · reward@step-0 · truncation; `--fewshot K` prepends terse exemplars — the "will SFT fix the over-think?" probe). Writes `av10-preflight*.json` the cockpit reward gauge follows. |
+| `loader.py` | **C3** glue: bench JSONL → `AstroTask` / `AstroBench` (the `.questions` shape `fieldkit.rl.RLLoop` reads) + `make_rollout(task, gen)` (prediction ← gen, expected ← `answer`, RV-2) + `astro_reward()` (the `astro_numeric_match` → `fieldkit.reward.RewardAdapter` wrap, `rel_tolerance=0.02`). |
+| `smoke_rl.py` | **C3** CPU smoke: a ≤2-step `fieldkit.rl.RLLoop` with **injected fake seams** (no GPU) scripted into a pool↔held-out inversion — pool climbs, held-out peaks early — proving the loop selects its checkpoint on **held-out only** (RV-4, the t2po defense). Run it: `… smoke_rl.py`. |
+| `test_astro_bench.py` | 39 real tests (no mocks): the 20 bench/verifier tests + 6 C1 corpus-gate tests + 9 C3 tests (loader round-trip, RewardAdapter grading + tolerance forwarding, the held-out-only-selection proof, the ≥100-row RV-10 floor). |
 
 ## Grading policy (decided 2026-06-04)
 
@@ -37,14 +41,20 @@ both the SFT-init corpus and the RLVR held-out gate.
 /tmp/fk/bin/python -m pytest scripts/astro_bench/test_astro_bench.py -q
 ```
 
-Wiring into the RLVR engine (next step — needs the pinned-vLLM lane):
+Wiring into the RLVR engine (C3 — built; the GPU seams still need the pinned-vLLM lane):
 
 ```python
-from fieldkit.reward import RewardAdapter, Rollout
-from verifier import astro_numeric_match
-adapter = RewardAdapter(astro_numeric_match, scorer_kwargs={"rel_tolerance": 0.02})
-reward  = adapter.score(Rollout(prediction=rollout_text, expected=row["answer"]))
+from loader import load_bench, astro_reward, make_rollout
+bench  = load_bench()                       # 120-row AstroBench (.questions)
+reward = astro_reward()                      # astro_numeric_match → RewardAdapter
+reward.score(make_rollout(bench.questions[0], rollout_text))   # → Reward(success, …)
+
+# CPU smoke — RLLoop orchestration with fake seams, proves held-out-only selection:
+#   /tmp/fk/bin/python scripts/astro_bench/smoke_rl.py
 ```
+
+The real run swaps the fake seams for `fieldkit.rl.gpu_seams(config, reward=…)`
+(needs the `fieldkit[rl]` extra + a pinned aarch64+CUDA-13 vLLM — C4, operator-owned).
 
 ## Bench row schema (`evidence/astrodynamics/astro-bench-v0.1.jsonl`)
 
@@ -59,4 +69,4 @@ reward  = adapter.score(Rollout(prediction=rollout_text, expected=row["answer"])
 
 - `transit_radius` can emit super-Jupiter radii (the math is exact; realism isn't enforced — fine for a *numeric* bench).
 - Single global `rel_tol=0.02`; per-subtopic tolerances are a v0.2 refinement.
-- SFT-init worked-solution corpus is **not** generated here — that's the `claude-corpus-synth`-pattern step (session-model writes CoT; deterministic scripts only), gated next.
+- The SFT-init corpus (`build_sft_corpus.py`) uses an **authored-template** builder (16 session-written CoT chains → deterministic substitution), not free-form `claude-corpus-synth` generation — the physics is deterministic, the verifier gates correctness (operator-chosen 2026-06-04).

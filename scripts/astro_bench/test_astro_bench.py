@@ -20,7 +20,21 @@ sys.path.insert(0, os.path.dirname(__file__))
 import formulas as F  # noqa: E402
 import units as U  # noqa: E402
 from generate import REL_TOL, curveballs, generate  # noqa: E402
+from loader import (  # noqa: E402
+    DEFAULT_HELDOUT,
+    DEFAULT_POOL,
+    AstroBench,
+    astro_reward,
+    load_bench,
+    load_heldout,
+    load_tasks,
+    make_rollout,
+)
+from smoke_rl import _InversionSampler, run_inversion_smoke  # noqa: E402
 from verifier import astro_numeric_match, extract_boxed  # noqa: E402
+
+from fieldkit.reward import RewardAdapter  # noqa: E402
+from fieldkit.rl import GRPOConfig, RLLoop, RLLoopError  # noqa: E402
 
 
 # ---- units ----------------------------------------------------------------
@@ -293,6 +307,111 @@ def test_fewshot_exemplars_terse_distinct_deterministic():
     # the fewshot count rides the report for provenance + dropdown disambiguation
     assert summarize([], model="m", n_target=8, max_new_tokens=8192,
                      rel_tol=0.02, status="running", fewshot=3)["fewshot"] == 3
+
+
+# ---- C3: loader glue + RewardAdapter wrap --------------------------------
+
+def test_loader_parses_pool_rows():
+    tasks = load_tasks(DEFAULT_POOL)
+    assert len(tasks) == 120
+    t = tasks[0]
+    # question ← prompt, expected ← answer (the RV-2 field mapping)
+    assert t.question and "\\boxed" in t.question
+    assert t.expected and t.expected == tasks[0].expected
+    assert t.rel_tol == 0.02
+    # every task exposes the (.question/.expected) contract the GPU sampler reads
+    assert all(q.question and q.expected for q in tasks)
+
+
+def test_astro_bench_from_jsonl_exposes_questions():
+    bench = load_bench(DEFAULT_POOL)
+    assert isinstance(bench, AstroBench)
+    assert len(bench) == 120
+    assert hasattr(bench, "questions") and len(bench.questions) == 120
+
+
+def test_loader_heldout_disjoint_from_pool():
+    pool_ids = {t.task_id for t in load_bench(DEFAULT_POOL).questions}
+    heldout_ids = {t.task_id for t in load_heldout(DEFAULT_HELDOUT).questions}
+    assert len(heldout_ids) == 44
+    assert pool_ids.isdisjoint(heldout_ids)  # RV-10 frozen-split disjointness
+
+
+def test_make_rollout_maps_prediction_and_expected():
+    task = load_bench(DEFAULT_POOL).questions[0]
+    roll = make_rollout(task, "some model text")
+    assert roll.prediction == "some model text"
+    assert roll.expected == task.expected
+    assert roll.task_id == task.task_id
+
+
+def test_astro_reward_grades_correct_and_wrong():
+    reward = astro_reward()
+    assert isinstance(reward, RewardAdapter)
+    task = load_bench(DEFAULT_POOL).questions[0]
+    correct = make_rollout(task, f"<think>x</think>\\boxed{{{task.expected}}}")
+    wrong = make_rollout(task, "<think>x</think>\\boxed{0}")
+    assert reward.score(correct).success is True
+    assert reward.score(correct).scalar == 1.0
+    assert reward.score(wrong).success is False
+    assert reward.score(wrong).scalar == 0.0
+
+
+def test_astro_reward_forwards_rel_tolerance():
+    # gold "7.53 km/s": +0.9% passes the default 2% band, +3.6% fails.
+    from loader import AstroTask
+
+    t = AstroTask(task_id="x", question="q", expected="7.53 km/s", topic="", subtopic="", tier=1)
+    assert astro_reward().score(make_rollout(t, "\\boxed{7.6 km/s}")).success is True  # +0.9%
+    assert astro_reward().score(make_rollout(t, "\\boxed{7.8 km/s}")).success is False  # +3.6%
+    # a tighter adapter (forwarding rel_tolerance=0.005) rejects the +0.9% miss
+    assert astro_reward(rel_tolerance=0.005).score(make_rollout(t, "\\boxed{7.6 km/s}")).success is False
+
+
+# ---- C3: ≤2-step RLLoop with fake seams — held-out-only selection (RV-4) ---
+
+def test_smoke_selects_on_heldout_not_pool():
+    loop = run_inversion_smoke()
+    # pool climbs (best = last step); held-out peaks early (best = step 0).
+    pool_best = max(loop.pool_scores, key=lambda s: loop.pool_scores[s])
+    assert loop.pool_scores[0] < loop.pool_scores[1]  # the overfitting trajectory
+    assert loop.heldout_scores[0] > loop.heldout_scores[1]  # the inversion
+    assert pool_best == 1
+    assert loop.selected_step == 0  # RV-4: selection ignores the pool-best step
+    assert loop.selected_step != pool_best
+    assert loop.summary()["selected_on"] == "heldout"
+    assert loop.selected_heldout_score == 0.90
+
+
+def test_smoke_reward_path_is_real():
+    # The fake sampler emits genuine \boxed{} strings the real reward grades:
+    # at frac=1.0 every rollout is correct → pool score 1.0 (not a stubbed number).
+    loop = run_inversion_smoke(pool_fracs=(1.0, 1.0), heldout_traj={0: 0.5, 1: 0.5})
+    assert loop.pool_scores[0] == 1.0
+    # a degenerate all-correct group yields zero advantage — no spurious gradient.
+    sampler = _InversionSampler([0.0])
+    groups = sampler(load_bench(DEFAULT_POOL).questions[:2], 4)
+    rewards = astro_reward().score_group(groups[0])
+    assert all(r.scalar == 0.0 for r in rewards)  # frac 0.0 → all wrong
+
+
+def test_loop_refuses_subfloor_corpus():
+    # RV-10: the ≥100-row floor. A 42-row bench is rejected before step 0.
+    tiny = AstroBench(load_bench(DEFAULT_POOL).questions[:42])
+    loop = RLLoop(
+        config=GRPOConfig(base="Qwen/Qwen3-8B", max_steps=1, heldout_every=1),
+        reward=astro_reward(),
+        bench=tiny,
+        sampler=_InversionSampler([1.0]),
+        trainer=lambda r, a, s: {},
+        heldout_eval=lambda s, t: 1.0,
+    )
+    try:
+        loop.run()
+    except RLLoopError as exc:
+        assert "corpus_min" in str(exc)
+    else:
+        raise AssertionError("RLLoop accepted a 42-row corpus below the RV-10 floor")
 
 
 def _run_standalone() -> int:
