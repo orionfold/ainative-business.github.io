@@ -11,7 +11,9 @@ the deferred fast-follow to the v0.22.0 self-driving backend). Site/cockpit-only
 **no `fieldkit` Python, schema, or module change** — the wheel carries it via the
 rebaked baked `_webui` bundle. One canonical operator curriculum (a new
 `explainers` content collection, single-sourced and drift-guarded against the
-deep-dive's `:::` blocks) surfaces contextually in the live cockpit.
+deep-dive's `:::` blocks) surfaces contextually in the live cockpit. Also lands a
+small read-only **reward-signal endpoint** (dogfood AF-3) — the one `server.py`
+addition this cycle; schema unchanged.
 
 ### Added
 
@@ -23,6 +25,13 @@ deep-dive's `:::` blocks) surfaces contextually in the live cockpit.
   curriculum is a new `explainers` content collection shared byte-for-byte by the
   cockpit and the site, with `scripts/verify_explainers.mjs` asserting every
   teach_key + deep-dive backlink resolves. (Ships in the baked `_webui`.)
+- **Reward-signal gauge** (`GET /api/reward-signal`) — a read-only endpoint that
+  renders the eval-is-reward signal (boxed-rate / reward-rate / AV-R1 truncation +
+  per-row buckets) from a report JSON under `repo_root` (override
+  `FK_ARENA_REWARD_SIGNAL`); returns `{available: false}` on a fresh box, reads no
+  arena.db, bumps no schema. Surfaces in the new `/arena/reward/` cockpit pane; the
+  report shape is reused by the RLVR per-step gauge. (Dogfood AF-3; ships in the
+  baked `_webui` + `server.py`.)
 
 ## [0.22.0] — 2026-06-03
 

@@ -1932,6 +1932,35 @@ def create_app(
         finally:
             store.close()
 
+    @app.get("/api/reward-signal")
+    async def api_reward_signal() -> dict[str, Any]:
+        """The eval-is-reward gauge (dogfood AF-3): extract-rate / reward-rate /
+        AV-R1 truncation over the latest verifier run.
+
+        A read-only render of a reward-signal report JSON — today the **AV-10
+        preflight baseline** (`scripts/astro_bench/preflight_av10.py` →
+        ``evidence/astrodynamics/av10-preflight.json``), the step-0 zero of the
+        RLVR lineage delta. The same shape (boxed/extract/reward/truncation +
+        per-row buckets) is what the C5 per-step RLVR gauge will emit, so the pane
+        is reusable. Path overridable via ``FK_ARENA_REWARD_SIGNAL``. No arena.db
+        read, no schema bump (AH-9/RV-8); ``{available: false}`` when no report
+        exists yet so the pane paints a clean empty state. Declared before the
+        static mount so ``/arena/reward`` (page) and ``/api/reward-signal`` stay
+        distinct."""
+        override = os.environ.get("FK_ARENA_REWARD_SIGNAL")
+        report_path = (
+            Path(os.path.expanduser(override))
+            if override
+            else root / "evidence" / "astrodynamics" / "av10-preflight.json"
+        )
+        if not report_path.is_file():
+            return {"available": False, "kind": "preflight"}
+        try:
+            report = json.loads(report_path.read_text())
+        except (OSError, ValueError):
+            return {"available": False, "kind": "preflight"}
+        return {"available": True, "kind": "preflight", "report": report}
+
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
