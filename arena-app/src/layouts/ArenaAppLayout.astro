@@ -3213,6 +3213,40 @@ try {
       }
       .arena-app .jobs__scan:hover:not(:disabled) { color: var(--arena-accent); border-color: var(--arena-accent); }
       .arena-app .jobs__scan:disabled { opacity: 0.4; cursor: default; }
+      /* RLVR async-enqueue affordance (rl-lane-autonomy LA-4) */
+      .arena-app .jobs__dispatch--rl { border-style: dashed; }
+      .arena-app .jobs__dispatch--rl .jobs__go {
+        color: var(--arena-text); background: transparent;
+        border: 1px solid var(--arena-accent);
+      }
+      /* Live rl_run progress (rl-lane-autonomy LA-9) */
+      .arena-app .jobs__rl {
+        margin-top: 0.4rem; padding: 0.4rem 0.5rem; border-radius: 0.35rem;
+        background: rgba(255,255,255,0.025); border: 1px solid var(--arena-line);
+      }
+      .arena-app .jobs__rl-head {
+        display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
+      }
+      .arena-app .jobs__rl-phase {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--arena-accent);
+      }
+      .arena-app .jobs__rl-step { font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-dim); }
+      .arena-app .jobs__rl-bar {
+        height: 4px; margin: 0.35rem 0; border-radius: 2px;
+        background: var(--arena-line); overflow: hidden;
+      }
+      .arena-app .jobs__rl-fill { display: block; height: 100%; background: var(--arena-accent); transition: width 0.4s ease; }
+      .arena-app .jobs__rl-metrics {
+        display: flex; gap: 0.6rem; flex-wrap: wrap;
+        font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-mute);
+      }
+      .arena-app .jobs__rl-metrics[data-inversion="true"] .jobs__rl-held { color: var(--arena-warn); font-weight: 600; }
+      .arena-app .jobs__rl-mem { margin-left: auto; }
+      .arena-app .jobs__rl-warn {
+        margin-top: 0.3rem; font-size: 0.58rem; line-height: 1.3; color: var(--arena-warn);
+      }
+      .arena-app .jobs__card-result[data-aborted="true"] { color: var(--arena-warn); }
       .arena-app .jobs__note { font-size: 0.66rem; color: var(--arena-text-dim); }
       .arena-app .jobs__board {
         display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem;
@@ -3419,6 +3453,31 @@ try {
         padding: 0.1rem 0.4rem; border: 1px solid var(--arena-border); border-radius: 0.3rem;
       }
       .arena-app .standup__spend-lane b { color: var(--arena-text); font-weight: 600; }
+      /* Autonomy policy banner + RL memory digest (rl-lane-autonomy LA-5/11) */
+      .arena-app .standup__autonomy {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.8rem;
+        padding: 0.55rem 0.9rem; border: 1px solid var(--arena-border);
+        border-radius: 0.5rem; background: var(--arena-panel); margin-bottom: 0.7rem;
+      }
+      .arena-app .standup__autonomy[data-armed="true"] { border-color: var(--arena-ok); }
+      .arena-app .standup__autonomy-dot {
+        width: 0.5rem; height: 0.5rem; border-radius: 50%;
+        background: var(--arena-text-dim); flex: none;
+      }
+      .arena-app .standup__autonomy[data-armed="true"] .standup__autonomy-dot {
+        background: var(--arena-ok); box-shadow: 0 0 0 3px rgba(80,200,120,0.15);
+      }
+      .arena-app .standup__autonomy-label {
+        font-family: var(--arena-mono); font-size: 0.7rem; font-weight: 600; color: var(--arena-text);
+      }
+      .arena-app .standup__autonomy-hint { font-size: 0.62rem; color: var(--arena-text-dim); }
+      .arena-app .standup__autonomy-hint code { font-family: var(--arena-mono); color: var(--arena-text-mute); }
+      .arena-app .standup__autonomy-rl {
+        margin-left: auto; font-family: var(--arena-mono); font-size: 0.64rem;
+        color: var(--arena-text-mute); padding: 0.1rem 0.45rem;
+        border: 1px solid var(--arena-border); border-radius: 0.3rem;
+      }
+      .arena-app .standup__autonomy-rl[data-oom="true"] { color: var(--arena-warn); border-color: var(--arena-warn); }
       /* Four buckets */
       .arena-app .standup__cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.9rem;

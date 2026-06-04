@@ -35,7 +35,7 @@ import json
 import os
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Mapping, Optional
 
 from fieldkit.arena.jobs import (
     DEFAULT_REGRESSION_TAU,
@@ -50,6 +50,11 @@ __all__ = [
     "run_drain_cycle",
     "build_standup",
     "DEFAULT_LOCK_PATH",
+    "DEFAULT_AUTONOMY_PATH",
+    "read_autonomy_state",
+    "write_autonomy_state",
+    "clear_autonomy_state",
+    "autonomy_cron_line",
 ]
 
 #: The drain lock lives beside arena.db (NOT ``.claude/scheduled_tasks.lock`` —
@@ -57,8 +62,66 @@ __all__ = [
 #: file). Override with ``$ARENA_DRAIN_LOCK``.
 DEFAULT_LOCK_PATH = "~/.fieldkit/arena/drain.lock"
 
+#: The autonomy *policy* record (LA-5): ``{enabled, interval_min, cap_usd,
+#: armed_at, db}`` written by ``fieldkit arena autonomy on``. NOT schedule
+#: *state* (AH-9) — it records that the operator armed the overnight cron + the
+#: knobs the standup echoes back; the cron line itself lives in the user's
+#: crontab. Override with ``$ARENA_AUTONOMY_STATE``.
+DEFAULT_AUTONOMY_PATH = "~/.fieldkit/arena/autonomy.json"
+
 #: How many done/queued rows the standup surfaces per bucket (newest first).
 STANDUP_LIMIT = 50
+
+
+# ---------------------------------------------------------------------------
+# Autonomy policy record (LA-5) — the one reversible "arm the cron" step
+# ---------------------------------------------------------------------------
+
+
+def _autonomy_path(path: Optional[str] = None) -> Path:
+    return Path(
+        os.path.expanduser(path or os.environ.get("ARENA_AUTONOMY_STATE", DEFAULT_AUTONOMY_PATH))
+    )
+
+
+def read_autonomy_state(path: Optional[str] = None) -> dict[str, Any]:
+    """The current autonomy policy (LA-5), or ``{"enabled": False}`` when unarmed."""
+    p = _autonomy_path(path)
+    try:
+        data = json.loads(p.read_text())
+        if isinstance(data, dict):
+            data.setdefault("enabled", False)
+            return data
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {"enabled": False}
+
+
+def write_autonomy_state(state: Mapping[str, Any], path: Optional[str] = None) -> Path:
+    """Persist the autonomy policy record (LA-5). Returns the path written."""
+    p = _autonomy_path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(dict(state), sort_keys=True, indent=2))
+    return p
+
+
+def clear_autonomy_state(path: Optional[str] = None) -> bool:
+    """Remove the autonomy policy record (``autonomy off``). True if one existed."""
+    p = _autonomy_path(path)
+    existed = p.exists()
+    p.unlink(missing_ok=True)
+    return existed
+
+
+def autonomy_cron_line(db: str, interval_min: int) -> str:
+    """The crontab line that arms the overnight drain (LA-5).
+
+    Calls ``fieldkit arena drain`` every ``interval_min`` minutes against the
+    operator-private ``db``; the drain is single-lane + lock-guarded, so two
+    ticks can never stack a second GPU lane (R24). Emitted for the operator to
+    install (or installed by ``autonomy on --install-cron``)."""
+    every = max(1, int(interval_min))
+    return f"*/{every} * * * * fieldkit arena drain --db {db}  # fieldkit-arena-autonomy"
 
 
 def _utc_now_iso() -> str:
@@ -168,6 +231,54 @@ def _job_brief(row: Any) -> dict[str, Any]:
     return out
 
 
+def _rl_mem_digest(ran: list[dict[str, Any]]) -> dict[str, Any]:
+    """Roll up the rl-lane memory traces (LA-11) from this cycle's done jobs.
+
+    Scans the ``ran`` briefs for ``rl_run`` results carrying a ``mem_trace`` and
+    summarizes peak unified-mem + OOM-defer count into the standup's ``rl`` row —
+    so an OOM becomes "RAN 1 · peak 119 GB · 1 OOM-deferred at bring-up", never a
+    silent hang. Aggregate-only (no payloads), stage-safe.
+    """
+    n_rl = 0
+    peak = None
+    oom = 0
+    aborted = 0
+    for brief in ran:
+        rj = brief.get("result_json")
+        if not isinstance(rj, str) or not rj:
+            continue
+        try:
+            res = json.loads(rj)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(res, dict) or res.get("kind") != "rl_run":
+            continue
+        n_rl += 1
+        if res.get("aborted"):
+            aborted += 1
+        trace = res.get("mem_trace")
+        if isinstance(trace, dict):
+            p = trace.get("peak_used_gb")
+            if isinstance(p, (int, float)) and (peak is None or p > peak):
+                peak = p
+            if trace.get("oom_deferred"):
+                oom += 1
+    parts: list[str] = [f"RAN {n_rl}"]
+    if peak is not None:
+        parts.append(f"peak {peak:.0f} GB")
+    if oom:
+        parts.append(f"{oom} OOM-deferred")
+    if aborted:
+        parts.append(f"{aborted} aborted")
+    return {
+        "n_rl_run": n_rl,
+        "peak_used_gb": peak,
+        "oom_deferred": oom,
+        "aborted": aborted,
+        "display": " · ".join(parts) if n_rl else "—",
+    }
+
+
 def build_standup(
     store: Any,
     *,
@@ -213,6 +324,10 @@ def build_standup(
         "regressed": regressed,
         "queued": queued,
         "spend": digest.as_dict(),
+        # rl-lane-autonomy LA-5/11 — the armed-policy state + the memory digest
+        # over any rl_run that drained ("RAN 1 · peak 119 GB · 1 OOM-deferred").
+        "autonomy": read_autonomy_state(),
+        "rl": _rl_mem_digest(ran),
         "counts": {
             "ran": len(ran),
             "failed": len(failed),
@@ -233,6 +348,7 @@ def run_drain_cycle(
     tau: float = DEFAULT_REGRESSION_TAU,
     cap_usd: Optional[float] = None,
     lock: Optional[DrainLock] = None,
+    rl_lane: Optional[Any] = None,
     now_fn: Callable[[], str] = _utc_now_iso,
 ) -> dict[str, Any]:
     """One cron tick (the §15.3 scheduler flow) — drain, sweep, stage the standup.
@@ -261,11 +377,20 @@ def run_drain_cycle(
             "standup": None,
         }
     try:
+        # rl-lane-autonomy: arbiter an rl_run when it drains (envelope pre-flight
+        # → resident-brain teardown → OOM watchdog → live progress). Default-built
+        # from the governor so the autonomous cron runs the engine safely; inert
+        # for every non-rl_run kind (LA-1..11). Pass rl_lane=False to opt out.
+        if rl_lane is None:
+            from fieldkit.arena.lane import RLLaneContext
+
+            rl_lane = RLLaneContext(governor=governor)
         drained = drain_jobs(
             store,
             runner=runner,
             max_jobs=max_jobs,
             governor=governor,
+            rl_lane=rl_lane or None,
             now_fn=now_fn,
         )
         sweep = (

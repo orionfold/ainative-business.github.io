@@ -66,11 +66,31 @@ def test_create_coalesces_inflight_duplicate(client):
     assert len(c.get("/api/jobs").json()["jobs"]) == 1
 
 
-def test_create_rejects_non_m8_kind(client):
+def test_create_rejects_non_allowlisted_kind(client):
     c, _ = client
-    # Pattern-validated to the two dispatchable kinds; a stub kind is a 422.
-    r = c.post("/api/jobs", json={"kind": "rl_run", "payload": {}, "dispatch": False})
+    # The enqueue allowlist is pattern-validated; `requant` stays out of it
+    # (still a non-enqueueable kind) → a 422.
+    r = c.post("/api/jobs", json={"kind": "requant", "payload": {}, "dispatch": False})
     assert r.status_code == 422
+
+
+def test_create_rl_run_is_async_only(client):
+    c, _ = client
+    # rl-lane-autonomy LA-4 / RV-6: rl_run IS enqueue-allowed, but the route
+    # forces async-only — it never drains the 8.5 h loop in a request, even with
+    # dispatch=True. The response advertises async_only + the autonomy note.
+    r = c.post(
+        "/api/jobs",
+        json={"kind": "rl_run", "payload": {"base": "Q", "bench_path": "/x"}, "dispatch": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["coalesced"] is False and body["job_id"]
+    assert body["async_only"] is True
+    assert "autonomy" in (body["note"] or "")
+    # It is queued, not dispatched — the cron + arbiter own it.
+    jobs = c.get("/api/jobs").json()["jobs"]
+    assert any(j["id"] == body["job_id"] and j["status"] == "queued" for j in jobs)
 
 
 def test_status_filter(client):

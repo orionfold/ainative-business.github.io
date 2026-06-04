@@ -85,6 +85,18 @@ GPU stack is touched only on a live call:
   dispatcher persists to `jobs.result_json`.
 - **`RLLoopError`** — raised on a corpus below `corpus_min`, an invalid
   `GRPOConfig`, or a `.run()` with a missing GPU seam.
+- **`rl_hooks(progress_cb=None, should_abort=None)`** — a context manager that
+  binds **live-progress** + **OOM-abort** hooks for any `RLLoop` run in its scope
+  (rl-lane-autonomy LA-8/10). The Arena `rl_run` dispatch enters it around the
+  loop so an unmodified `run_rl_loop` still reports live step state (into
+  `jobs.result_json`) and respects a watchdog abort — the hooks ride a
+  `contextvars.ContextVar`, so they are thread-/task-local and flow **arena → rl**
+  only (`fieldkit.rl` never imports `fieldkit.arena`). Explicit `RLLoop(progress_cb=…,
+  should_abort=…)` injection wins; otherwise the loop falls back to the ambient
+  hooks. A bare `import fieldkit.rl` leaves them unset → zero overhead.
+- **`current_rl_hooks()`** — the ambient `(progress_cb, should_abort)` for the
+  current scope (`(None, None)` when no `rl_hooks` is active). `RLLoop.run` reads
+  this when its own hook fields are unset.
 
 ## How Arena dispatches it
 
@@ -132,6 +144,38 @@ the rollout/train loop needs the GPU stack on the box:
 Until those are in place, inject your own `sampler` / `trainer` / `heldout_eval`
 into `RLLoop` directly — the orchestration is fully functional and tested with
 fakes.
+
+## Operator: full autonomy (rl-lane-autonomy v1)
+
+Once a pinned vLLM is installed, the hand-driven overnight session becomes one
+armed policy. `fieldkit.arena.lane` (LA-1..11) wraps the dispatchable `rl_run`
+so it is **self-driving, observable, and self-defending**:
+
+1. **Arm the cron once** — `fieldkit arena autonomy on --interval-min 30
+   --cap-usd 5` records the policy + prints the crontab line that runs
+   `fieldkit arena drain` on a cadence (`--install-cron` writes it for you).
+   `fieldkit arena autonomy status` reports it; `fieldkit arena autonomy off`
+   is the one-command reversal.
+2. **Each drain tick** acquires the single-drain lock and, for an `rl_run`,
+   enters the `LaneArbiter`: a **3-way pre-flight** (governor *allow* ∧ envelope
+   *fits* ∧ a vLLM binary present — else a clean `defer` with `LANE_BIN_ABSENT`,
+   never a crash), then it frees the resident chat brain (`FK_RL_RESIDENT_STOP_CMD`
+   / `FK_RL_RESIDENT_START_CMD`), runs under a `MemoryWatchdog`, and **always**
+   restores the prior lane on exit.
+3. **It reports live** — the loop writes throttled `{step, phase, pool_score,
+   last_heldout, eta_s, mem}` into `jobs.result_json` (LA-8); the cockpit Jobs
+   board renders an inline progress strip with the **pool-vs-held-out** read, so
+   the t2po inversion (RV-4) is visible *as it happens*.
+4. **It defends the box** — the `MemoryWatchdog` enforces a unified-memory
+   headroom floor (`FK_RL_OOM_FLOOR_GB`, default 4; warn at `FK_RL_OOM_WARN_GB`,
+   default 8). A breach that persists ~2 s touches an abort sentinel the loop
+   polls between steps → the run tears down *before* the kernel OOM-kills
+   (`[[project_spark_unified_memory_oom]]`). Every run attaches a `mem_trace`
+   (peak / headroom / per-phase) to its lineage + the morning standup ("RAN 1 ·
+   peak 119 GB · 1 OOM-deferred").
+
+The autonomy gate stays **operator-armed** — one `autonomy on`, not per run —
+and the `$/day` governor cap + the single-lane lock still bound every tick.
 
 ## What it is not
 
