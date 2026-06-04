@@ -1933,33 +1933,49 @@ def create_app(
             store.close()
 
     @app.get("/api/reward-signal")
-    async def api_reward_signal() -> dict[str, Any]:
-        """The eval-is-reward gauge (dogfood AF-3): extract-rate / reward-rate /
-        AV-R1 truncation over the latest verifier run.
+    async def api_reward_signal(
+        source: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        """The eval-is-reward gauge (dogfood AF-3/AF-9): extract-rate / reward-rate
+        / AV-R1 truncation over a verifier run, with a run-history selector.
 
         A read-only render of a reward-signal report JSON — today the **AV-10
-        preflight baseline** (`scripts/astro_bench/preflight_av10.py` →
-        ``evidence/astrodynamics/av10-preflight.json``), the step-0 zero of the
+        preflight** (`scripts/astro_bench/preflight_av10.py` →
+        ``evidence/astrodynamics/av10-preflight*.json``), the step-0 zero of the
         RLVR lineage delta. The same shape (boxed/extract/reward/truncation +
         per-row buckets) is what the C5 per-step RLVR gauge will emit, so the pane
-        is reusable. Path overridable via ``FK_ARENA_REWARD_SIGNAL``. No arena.db
-        read, no schema bump (AH-9/RV-8); ``{available: false}`` when no report
+        is reusable.
+
+        **History + auto-follow (AF-9):** every response carries ``runs`` — a
+        newest-first summary of all ``av10-preflight*.json`` reports (source,
+        mtime, model, budget, status, gate) — so the pane renders a dropdown. The
+        displayed report is chosen by precedence: an explicit ``?source=<file>``
+        (a prior run picked from the dropdown, traversal-sanitized to the evidence
+        dir) → the ``FK_ARENA_REWARD_SIGNAL`` env pin → else the **newest by
+        mtime** (so with no selection the gauge tracks a live run, which rewrites
+        its file every row, and any later run automatically). The chosen file's
+        name is returned as ``source``. No arena.db read, no schema bump
+        (AH-9/RV-8); ``{available: false}`` (still with ``runs``) when no report
         exists yet so the pane paints a clean empty state. Declared before the
         static mount so ``/arena/reward`` (page) and ``/api/reward-signal`` stay
         distinct."""
-        override = os.environ.get("FK_ARENA_REWARD_SIGNAL")
-        report_path = (
-            Path(os.path.expanduser(override))
-            if override
-            else root / "evidence" / "astrodynamics" / "av10-preflight.json"
-        )
-        if not report_path.is_file():
-            return {"available": False, "kind": "preflight"}
+        runs = _list_reward_reports(root)
+        if source:
+            report_path = _resolve_reward_report(root, source)  # None if invalid
+        elif os.environ.get("FK_ARENA_REWARD_SIGNAL"):
+            report_path = Path(os.path.expanduser(os.environ["FK_ARENA_REWARD_SIGNAL"]))
+        else:
+            report_path = _newest_reward_report(root)
+        if report_path is None or not report_path.is_file():
+            return {"available": False, "kind": "preflight", "runs": runs}
         try:
             report = json.loads(report_path.read_text())
         except (OSError, ValueError):
-            return {"available": False, "kind": "preflight"}
-        return {"available": True, "kind": "preflight", "report": report}
+            return {"available": False, "kind": "preflight", "runs": runs}
+        return {
+            "available": True, "kind": "preflight",
+            "report": report, "source": report_path.name, "runs": runs,
+        }
 
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
@@ -1972,6 +1988,82 @@ def create_app(
     _mount_packaged_webui(app)
 
     return app
+
+
+def _reward_reports_dir(root: Path) -> Path:
+    """Directory holding the reward-signal report JSONs (AF-3/AF-9)."""
+    return root / "evidence" / "astrodynamics"
+
+
+def _newest_reward_report(root: Path) -> Path:
+    """The most-recent ``av10-preflight*.json`` by mtime (AF-9 auto-follow).
+
+    A live run rewrites its file after every row, so it stays freshest while
+    running and after it finishes; a later run to a new filename becomes newest
+    automatically — no manual repointing. Falls back to the canonical
+    ``av10-preflight.json`` when nothing matches (fresh box)."""
+    base = _reward_reports_dir(root)
+    canonical = base / "av10-preflight.json"
+    try:
+        candidates = sorted(
+            base.glob("av10-preflight*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return canonical
+    return candidates[0] if candidates else canonical
+
+
+def _resolve_reward_report(root: Path, source: str) -> Path | None:
+    """Resolve a dropdown-selected report filename to a path, traversal-safe.
+
+    ``Path(source).name`` strips any directory components, and the name must be
+    an ``av10-preflight*.json`` that actually exists in the evidence dir — so a
+    crafted ``../../`` source can never escape it. Returns None if invalid."""
+    name = Path(source).name
+    if not name.startswith("av10-preflight") or not name.endswith(".json"):
+        return None
+    p = _reward_reports_dir(root) / name
+    return p if p.is_file() else None
+
+
+def _list_reward_reports(root: Path) -> list:
+    """Newest-first summaries of every reward report (AF-9 history dropdown).
+
+    One small dict per ``av10-preflight*.json`` — enough to label the dropdown
+    (budget · status · gate) without the caller fetching each full report."""
+    base = _reward_reports_dir(root)
+    out: list = []
+    try:
+        paths = sorted(
+            base.glob("av10-preflight*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return out
+    for p in paths:
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        item: dict[str, Any] = {"source": p.name, "mtime": mtime}
+        try:
+            r = json.loads(p.read_text())
+            item.update({
+                "model": r.get("model"),
+                "max_new_tokens": r.get("max_new_tokens"),
+                "status": r.get("status", "done"),
+                "scored": r.get("scored"),
+                "total": r.get("total", r.get("n")),
+                "gate_pass": r.get("gate_pass"),
+                "boxed_rate": r.get("boxed_rate"),
+            })
+        except (OSError, ValueError):
+            item["status"] = "unreadable"
+        out.append(item)
+    return out
 
 
 def _mount_packaged_webui(app: Any) -> bool:

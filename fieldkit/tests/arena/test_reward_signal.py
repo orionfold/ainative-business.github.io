@@ -80,12 +80,71 @@ def test_reward_signal_passes_through_running_status(tmp_path: Path) -> None:
 
 
 def test_reward_signal_absent_is_clean_empty(tmp_path: Path) -> None:
-    # No report on a fresh box → available:false, not a 404/500.
+    # No report on a fresh box → available:false, not a 404/500. The history
+    # list (AF-9) is present but empty.
     app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
     with TestClient(app) as client:
         r = client.get("/api/reward-signal")
         assert r.status_code == 200
-        assert r.json() == {"available": False, "kind": "preflight"}
+        assert r.json() == {"available": False, "kind": "preflight", "runs": []}
+
+
+def _write_named(repo_root: Path, name: str, mtime: float, **over: object) -> Path:
+    p = repo_root / "evidence" / "astrodynamics" / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps({**_FIXTURE, **over}))
+    import os
+    os.utime(p, (mtime, mtime))
+    return p
+
+
+def test_reward_signal_prefers_newest_run(tmp_path: Path) -> None:
+    # AF-9 auto-follow: with no selection, the newest report by mtime wins.
+    _write_named(tmp_path, "av10-preflight.json", 1000.0, max_new_tokens=4096)
+    _write_named(tmp_path, "av10-preflight-8192.json", 2000.0, max_new_tokens=8192)
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/reward-signal").json()
+        assert body["available"] is True
+        assert body["source"] == "av10-preflight-8192.json"
+        assert body["report"]["max_new_tokens"] == 8192
+
+
+def test_reward_signal_history_and_source_select(tmp_path: Path) -> None:
+    # AF-9 history dropdown: runs is newest-first with summaries, and ?source=
+    # serves a specific prior run.
+    _write_named(tmp_path, "av10-preflight.json", 1000.0, max_new_tokens=4096,
+                 gate_pass=False)
+    _write_named(tmp_path, "av10-preflight-8192.json", 2000.0, max_new_tokens=8192,
+                 status="running", scored=3, total=8)
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/reward-signal").json()
+        runs = body["runs"]
+        assert [r["source"] for r in runs] == [
+            "av10-preflight-8192.json", "av10-preflight.json"]  # newest first
+        assert runs[0]["status"] == "running" and runs[0]["scored"] == 3
+        assert runs[1]["max_new_tokens"] == 4096
+        # pick the older run explicitly
+        picked = client.get("/api/reward-signal",
+                            params={"source": "av10-preflight.json"}).json()
+        assert picked["source"] == "av10-preflight.json"
+        assert picked["report"]["max_new_tokens"] == 4096
+
+
+def test_reward_signal_source_traversal_rejected(tmp_path: Path) -> None:
+    # A crafted ../ source can't escape the evidence dir → available:false.
+    _write_named(tmp_path, "av10-preflight.json", 1000.0)
+    (tmp_path / "secret.json").write_text(json.dumps({"leak": True}))
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/reward-signal",
+                          params={"source": "../../secret.json"}).json()
+        assert body["available"] is False  # name doesn't match av10-preflight*
+        # an unknown but well-formed name is also rejected (file absent)
+        body2 = client.get("/api/reward-signal",
+                           params={"source": "av10-preflight-nope.json"}).json()
+        assert body2["available"] is False
 
 
 def test_reward_signal_malformed_degrades(tmp_path: Path) -> None:

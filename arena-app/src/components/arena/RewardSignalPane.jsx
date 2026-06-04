@@ -33,17 +33,35 @@ const BUCKETS = [
   ['truncated_think', 'truncated', 'AV-R1 — raise max_new_tokens'],
 ];
 
+// AF-9 history dropdown: a one-line label per prior run (budget · verdict).
+const runOptLabel = (run, i) => {
+  const tok = run.max_new_tokens != null ? `${run.max_new_tokens}tok` : '?tok';
+  let state;
+  if (run.status === 'running') state = `running ${run.scored ?? '?'}/${run.total ?? '?'}`;
+  else if (run.gate_pass === true) state = 'PASS';
+  else if (run.gate_pass === false) state = 'HOLD';
+  else state = run.status || 'done';
+  return `${tok} · ${state}${i === 0 ? ' · latest' : ''} — ${run.source}`;
+};
+
 export default function RewardSignalPane() {
   const [online, setOnline] = useState(false);
   const [data, setData] = useState(null);
+  // '' = auto-follow the newest run; a filename pins a specific prior run.
+  const [selected, setSelected] = useState('');
   const baseRef = useRef(null);
   const pollRef = useRef(null);
+  const selectedRef = useRef('');
 
   async function refresh() {
     const base = baseRef.current;
     if (!base) return;
+    const sel = selectedRef.current;
+    const url = sel
+      ? `${base}/api/reward-signal?source=${encodeURIComponent(sel)}`
+      : `${base}/api/reward-signal`;
     try {
-      const r = await fetch(`${base}/api/reward-signal`);
+      const r = await fetch(url);
       if (r.ok) {
         setData(await r.json());
         setOnline(true);
@@ -51,6 +69,13 @@ export default function RewardSignalPane() {
     } catch (_e) {
       setOnline(false);
     }
+  }
+
+  function onPick(e) {
+    const v = e.target.value;
+    selectedRef.current = v;
+    setSelected(v);
+    refresh();
   }
 
   useEffect(() => {
@@ -106,9 +131,30 @@ export default function RewardSignalPane() {
   const total = rep.total ?? rep.n ?? rows.length;
   const scored = rep.scored ?? rows.length;
   const progressPct = total ? Math.min(100, Math.round((scored / total) * 100)) : 0;
+  // AF-9 history — every response carries the newest-first run list; the
+  // dropdown defaults to "Latest (auto-follow)" and can pin any prior run.
+  const runs = (data && data.runs) || [];
+  const source = data && data.source;
 
   return (
     <div class="reward">
+      {/* AF-9: run-history selector — default latest, look up prior runs. */}
+      {runs.length > 0 && (
+        <div class="reward__history">
+          <label class="reward__history-label" for="reward-run-select">run</label>
+          <select id="reward-run-select" class="reward__history-select"
+                  value={selected} onChange={onPick}>
+            <option value="">Latest (auto-follow)</option>
+            {runs.map((run, i) => (
+              <option value={run.source} key={run.source}>{runOptLabel(run, i)}</option>
+            ))}
+          </select>
+          {source && (
+            <span class="reward__history-now">showing <code>{source}</code></span>
+          )}
+        </div>
+      )}
+
       {/* AF-9: live run strip — only while a run is mid-flight. */}
       {isRunning && (
         <div class="reward__live" role="status">
