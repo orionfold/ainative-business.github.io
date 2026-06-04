@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.22.0] — 2026-06-03
+
 The **RLVR engine becomes self-driving** (`rl-lane-autonomy-v1`, LA-1..11 — the
 self-driving + safety backend; the education layer LA-12..16 is a tracked
 fast-follow). The shipped Phase-3 engine drained as an operator-armed `rl_run`;
@@ -58,6 +60,20 @@ aarch64+CUDA-13 vLLM the operator installs); absent it the arbiter `defer`s clea
   throttle + gate, the full arbitered drain (progress + mem-trace + defer brake +
   bare fallback), `user_version` stays 6, autonomy round-trip; `test_jobs_api.py`
   updated for the async-only `rl_run` enqueue contract.
+
+### Test suite
+
+- Offline `pytest tests/` → **1253 passed, 5 skipped** (the 5 are `--spark` /
+  `torch` integration tests). LA-1..11 is GPU-free-testable connective tissue —
+  the lane arbiter, watchdog, progress conduit, and defer brake all run with
+  fakes; no live NIM / pgvector / vLLM path is touched, so no `--spark` run.
+
+### Articles in this release
+
+- None — package-only release (the editorial launch of the engine shipped in the
+  `v0.20.0` / `v0.21.0` window: `articles/the-machine-improves-itself` +
+  `products/living-model`). LA-1..11's reader-facing layer is the deferred
+  education fast-follow (LA-12..16).
 
 ## [0.21.0] — 2026-06-03
 
