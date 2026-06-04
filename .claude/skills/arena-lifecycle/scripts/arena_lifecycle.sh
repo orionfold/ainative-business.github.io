@@ -142,6 +142,14 @@ do_status() {
     ok "browser UP   CDP :${CDP_PORT} (pid ${pid:-?})"
   else
     say "browser DOWN CDP :${CDP_PORT}"
+    # Self-diagnose the recurring trap: a plain Chromium is running but exposes no
+    # CDP (no --remote-debugging-port, or it forwarded the flag to an existing
+    # default-profile instance). Fine for WATCHING, useless for connectOverCDP.
+    if pgrep -f 'snap/chromium|snap/bin/chromium' >/dev/null 2>&1; then
+      warn "a non-debug Chromium IS running (no --remote-debugging-port) — OK to watch, but"
+      warn "CDP browser-use needs a debug instance on its own profile. Run:"
+      warn "  $0 up --browser"
+    fi
   fi
 }
 

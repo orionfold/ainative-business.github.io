@@ -41,7 +41,16 @@ expect to resolve.
   already healthy).
 - **down** — stop the cockpit. Add `--browser` to also close the Chromium;
   without it, a running browser is left alone (cheap to keep around).
-- **status** — read-only: are `:7866` and `:9222` answering, and which pids.
+- **status** — read-only: are `:7866` and `:9222` answering, and which pids. If
+  CDP is down but a plain Chromium is running, it flags the trap + the fix command.
+
+> **Launching `--browser` from Claude Code's Bash tool is safe.** The script
+> fully detaches the Chromium (`setsid --fork … </dev/null > log 2>&1`), so it
+> survives the tool-call boundary (verified 2026-06-04 — the old "exit-144 reap,
+> launch only from a Spark terminal" caveat is superseded). **Do NOT** hand-launch
+> a plain `chromium` for CDP: with no `--remote-debugging-port` it exposes nothing,
+> and a 2nd instance on the *default* profile just forwards the flag to the running
+> window. Always use `up --browser` (it owns its own `/tmp/arena-chrome-profile`).
 
 ## Reading the result
 
