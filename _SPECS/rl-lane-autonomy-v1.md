@@ -1,7 +1,7 @@
 ---
 project: rl-lane-autonomy
 version: v1.0
-status: PARTIAL — LA-1..11 (self-driving + safety backend) BUILT 2026-06-03; education layer LA-12..16 = fast-follow
+status: BUILT — LA-1..11 (self-driving + safety backend) + LA-12..16 (education layer) both BUILT 2026-06-03
 created: 2026-06-03
 authoritative: Spark
 ---
@@ -325,10 +325,36 @@ held-out-plot interpreter + guided decision gates + the post-run debrief).
 **Operator action left (unchanged):** install a pinned aarch64+CUDA-13 vLLM; until
 then the arbiter `defer`s `LANE_BIN_ABSENT` and the machinery is GPU-free-testable.
 
+## 8.2 As-built (LA-12..16 — the education layer, BUILT 2026-06-03)
+
+The education layer landed as a **site/cockpit-only build** — no `fieldkit` Python
+change. One canonical curriculum, three renderers, drift-guarded.
+
+| Decision | As-built |
+|---|---|
+| LA-12 | **New `explainers` content collection** (`src/content/explainers.yaml`, 13 entries, `file()` loader) registered in **both** `content.config.ts` copies. **Single source:** the arena-app build reaches it via a symlink (`arena-app/src/content/explainers.yaml` → repo file, the `articles` precedent), so the cockpit + the main site read the *same bytes*. `arena-app/src/lib/arena/curriculum.mjs` loads it into a teach_key map (computing each deep-dive anchor via a byte-faithful copy of `remark-explainers.mjs` `slugify`) and the `.astro` pages bake it into the `client:only` islands as a prop. **Build check** `scripts/verify_explainers.mjs` (LA-R8): every cockpit teach_key resolves **and** every `source_term` still names a live `:::<kind>[<term>]` block in `articles/the-machine-improves-itself/article.md` (10/10 backlinks resolve). |
+| LA-13 | **Per-phase "what / why / watch" guide cards** on the JobsBoard `RlProgress` strip — `phase-${result.phase}` (`lane-bringup`/`sampling`/`training`/`heldout-gate`/`teardown`) → an expandable `GuideCard` with the deep-dive backlink. |
+| LA-14 | **Live pool-vs-held-out interpreter** — a per-rl_run rolling (pool, held) history (last 8 samples, one per step) classified into `interp-generalizing` / `interp-inversion` / `interp-plateau`; inversion checked first (RV-4). Falls back to the static inversion line at history < 2. |
+| LA-15 | **Guided decision-gate copy** (consequence + reversal before the click) — `gate-autonomy` on the StandupPane autonomy banner (cost = governor cap + per-run lane churn; reversal = `autonomy off`) and `gate-enqueue` on the JobsBoard RLVR-enqueue form. The interactive ping-ring coach stays **demo-only** (LA-1..11 as-built precedent — it doesn't bake into the wheel). |
+| LA-16 | **Compounding post-run debrief** on the done-`rl_run` card — what it did, the held-out lift over the first gate, "selected on held-out, never the pool" with a backlink, and an **editorial-promotable** flag (held-out lift ≥ 0.1) linking `products/living-model/`. Reads the persisted `heldout_scores`/`selected_step`/`mem_trace`/`aborted` — no new API. |
+
+**Verified (GPU-free + live side-by-side):** `astro build` **514 pages** (the
+collection adds no route); `verify_explainers.mjs` 13 explainers / 10 keys / 10
+backlinks clean; both render verifiers green; cockpit `_webui` rebaked (curriculum
+baked into `JobsBoard`/`StandupPane` islands). **Operator + Playwright side-by-side
+vibe pass** (`[[feedback_side_by_side_review_after_major_features]]`): seeded a
+synthetic running + done `rl_run` into a live sidecar and confirmed the phase card,
+the interpreter, the gate cards, and the debrief (incl. the `+0.210` lift + the
+editorial-promotable flag) all render with correct content + resolving deep-dive
+anchors; db cleaned back afterward. **No `fieldkit` Python / schema / module change**
+— the wheel carries it via the rebaked `_webui` on the next cut. **The whole
+`rl-lane-autonomy-v1` spec (LA-1..16) is now BUILT.**
+
 ## 9. Change log
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-03 | **LA-12..16 BUILT** (the education layer) — site/cockpit-only, no `fieldkit` Python change. New `explainers` content collection (single-sourced via symlink, drift-guarded by `scripts/verify_explainers.mjs`); per-phase guide cards + live pool-vs-held-out interpreter on the JobsBoard; guided gate copy on the StandupPane autonomy banner + the RLVR enqueue form; the compounding post-run debrief with the editorial-promotable flag. `astro build` 514 pages; both render verifiers green; `_webui` rebaked; live operator + Playwright side-by-side vibe pass against seeded `rl_run` rows (db cleaned after). **The whole spec (LA-1..16) is now BUILT.** See §8.2 as-built. | Manav (with Claude) |
 | 2026-06-03 | **LA-1..11 BUILT** (self-driving + safety backend) — new submodule `fieldkit.arena.lane` (`LaneArbiter`/`MemoryWatchdog`/`mem_trace`/`RLLaneContext` + helpers), `fieldkit.rl` observability hooks, `EscalationReason.LANE_BIN_ABSENT` + the `rl_lane` dispatch brake, async-only `rl_run` enqueue, the `autonomy`/`drain` CLI, the cockpit progress strip + standup autonomy/RL surfacing. No schema change (`user_version 6`); no new top-level module (documents under `arena`); suite 1253 pass; `audit-landing` 4/4. The education layer (LA-12..16) is the tracked fast-follow. See §8.1 as-built + `fieldkit/CHANGELOG.md` [Unreleased]. | Manav (with Claude) |
 | 2026-06-03 | **Initial spec authored — v1.0 DRAFT, decisions PROPOSED, UNBUILT.** The post-roadmap follow-on that makes the shipped Phase-3 engine self-driving: closes the two operator-armed chokepoints (managed vLLM lane + one-step cron arming), adds live step reporting + telemetry-correlated OOM defense for the multi-hour unattended run, and surfaces the published RLVR curriculum contextually so Arena teaches the operator at every step. 16 decisions across four layers (LA-1…7 arbiter / LA-8…9 live progress / LA-10…11 telemetry+OOM / LA-12…16 education). 8 risks (LA-R1…R8). One new Arena submodule `fieldkit.arena.lane` (`LaneArbiter`/`MemoryWatchdog`/`mem_trace`) + one new site content collection `src/content/explainers/`. Code-reconciled against the **shipped** `fieldkit/src/fieldkit/`: the memory envelope (`budget.MemoryEnvelope`), lane lifecycle (`_rl_gpu_serve.VLLMLane`), drain lock + standup (`arena.scheduler`), telemetry sampler (`server.TelemetryHub`), progress column (`jobs.result_json`), and curriculum (`articles/the-machine-improves-itself`) **all already exist** — v1 is overwhelmingly connective tissue. No arena.db schema change (`user_version 6`, LA-7); no new top-level module (documents under `arena.md`, `audit-landing` stays 4/4); no new `ARTIFACT_KINDS`. Release gate ~`fieldkit v0.22.0`. **Status: spec only, awaiting green-light** (the M9/M10/M11/RLVR "locked decisions — confirm before build" discipline). | Manav (with Claude) |
 

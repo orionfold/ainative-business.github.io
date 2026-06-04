@@ -1,5 +1,5 @@
 import { defineCollection, z } from 'astro:content';
-import { glob } from 'astro/loaders';
+import { glob, file } from 'astro/loaders';
 
 // fieldkit module reference markdown lives outside src/ in the package
 // directory so the Python repo and the docs site stay in sync. Order
@@ -257,4 +257,23 @@ const artifacts = defineCollection({
   }),
 });
 
-export const collections = { articles, fieldkit_docs, artifacts };
+// Arena operator curriculum — single canonical source for the cockpit education
+// layer (rl-lane-autonomy LA-12). Same YAML the main site reads; baked into the
+// Jobs + Standup islands as props. Mirror of src/content.config.ts `explainers`.
+const EXPLAINER_KINDS = ['define', 'why', 'deeper', 'pitfall', 'math', 'hardware', 'phase', 'interp', 'gate'] as const;
+const explainers = defineCollection({
+  loader: file('./src/content/explainers.yaml'),
+  schema: z.object({
+    id: z.string(),
+    term: z.string(),
+    kind: z.enum(EXPLAINER_KINDS),
+    what: z.string(),
+    why: z.string().optional(),
+    watch: z.string().optional(),
+    source_article: z.string().optional(),
+    source_kind: z.enum(EXPLAINER_KINDS).optional(),
+    source_term: z.string().optional(),
+  }),
+});
+
+export const collections = { articles, fieldkit_docs, artifacts, explainers };

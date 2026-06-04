@@ -14,6 +14,11 @@
 // M9 cost plane is absent (AH-5).
 import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
 import StandupPane from '../../components/arena/StandupPane.jsx';
+import { loadCurriculum } from '../../lib/arena/curriculum.mjs';
+
+// Bake the shared operator curriculum (rl-lane-autonomy LA-12/15) into the
+// island so the autonomy gate can state its consequence + reversal.
+const curriculum = await loadCurriculum();
 
 const title = 'Orionfold Arena — Standup';
 const description =
@@ -36,7 +41,7 @@ const description =
       {/* Ran / Regressed / Queued + the M9 Spend rail (AH-3). The overnight cron
           (run_drain_cycle) does the dispatch; this page only renders — an HTTP
           GET never launches a GPU lane. */}
-      <StandupPane client:only="preact" />
+      <StandupPane curriculum={curriculum} client:only="preact" />
     </div>
   </div>
 
