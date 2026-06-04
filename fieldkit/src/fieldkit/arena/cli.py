@@ -330,6 +330,198 @@ def up(
     _serve(host=host, port=port, db=db, repo_root=repo_root or None, log_level=log_level)
 
 
+@app.command("autonomy")
+def autonomy(
+    action: str = typer.Argument(
+        ..., help="on | off | status — arm/disarm/report the overnight drain cron."
+    ),
+    db: str = typer.Option(DEFAULT_ARENA_DB, help="Operator-private SQLite path."),
+    interval_min: int = typer.Option(
+        30, "--interval-min", help="Cron cadence in minutes (single-lane, lock-guarded)."
+    ),
+    cap_usd: float = typer.Option(
+        5.0, "--cap-usd", help="Daily $ ceiling the governor enforces under autonomy."
+    ),
+    install_cron: bool = typer.Option(
+        False,
+        "--install-cron/--no-install-cron",
+        help="Also write the line into your crontab (default: just print it).",
+    ),
+    json_out: bool = typer.Option(False, "--json", help="Emit the state as JSON."),
+) -> None:
+    """Arm the overnight drain as one reversible step (rl-lane-autonomy LA-5).
+
+    ``on`` records the autonomy policy (and prints/installs the crontab line that
+    runs ``fieldkit arena drain`` on a cadence); ``off`` removes both; ``status``
+    reports the armed state. "Human-armed per run" becomes "human-*policy*-armed,
+    once" — the governor's ``$/day`` cap + the single-lane lock still bound every
+    tick, and ``autonomy off`` is the one-command reversal.
+    """
+    from fieldkit.arena.scheduler import (
+        autonomy_cron_line,
+        clear_autonomy_state,
+        read_autonomy_state,
+        write_autonomy_state,
+    )
+
+    act = action.strip().lower()
+    if act not in {"on", "off", "status"}:
+        raise typer.BadParameter("action must be one of: on | off | status")
+
+    line = autonomy_cron_line(db, interval_min)
+
+    if act == "status":
+        state = read_autonomy_state()
+        present = _autonomy_cron_present()
+        if json_out:
+            typer.echo(_json.dumps({**state, "cron_installed": present}, indent=2))
+        else:
+            if state.get("enabled"):
+                typer.echo(
+                    f"autonomy ON — every {state.get('interval_min', '?')} min, "
+                    f"cap ${state.get('cap_usd', '?')} (armed {state.get('armed_at', '?')}); "
+                    f"crontab line {'present' if present else 'MISSING — re-run `autonomy on --install-cron`'}"
+                )
+            else:
+                typer.echo("autonomy OFF — no overnight drain armed.")
+        return
+
+    if act == "off":
+        existed = clear_autonomy_state()
+        removed = _remove_autonomy_cron() if install_cron or _autonomy_cron_present() else False
+        typer.echo(
+            f"autonomy OFF — policy {'removed' if existed else 'was not set'}"
+            + (f"; crontab line {'removed' if removed else 'left as-is'}" if removed or install_cron else "")
+        )
+        return
+
+    # act == "on"
+    from datetime import datetime, timezone
+
+    state = {
+        "enabled": True,
+        "interval_min": int(interval_min),
+        "cap_usd": float(cap_usd),
+        "db": db,
+        "armed_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    write_autonomy_state(state)
+    installed = _install_autonomy_cron(line) if install_cron else False
+    if json_out:
+        typer.echo(_json.dumps({**state, "cron_line": line, "cron_installed": installed}, indent=2))
+        return
+    typer.echo(
+        f"autonomy ON — every {interval_min} min under a ${cap_usd:.2f}/day governor cap, "
+        "single-lane + lock-guarded. Reversible: `fieldkit arena autonomy off`."
+    )
+    if installed:
+        typer.echo("  crontab line installed.")
+    else:
+        typer.echo("  install this crontab line (or re-run with --install-cron):")
+        typer.echo(f"    {line}")
+
+
+_AUTONOMY_CRON_MARK = "# fieldkit-arena-autonomy"
+
+
+def _crontab_lines() -> list[str]:
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["crontab", "-l"], capture_output=True, text=True, check=False
+        )
+    except FileNotFoundError:
+        return []
+    if out.returncode != 0:
+        return []
+    return [ln for ln in out.stdout.splitlines()]
+
+
+def _write_crontab(lines: list[str]) -> bool:
+    import subprocess
+
+    try:
+        proc = subprocess.run(
+            ["crontab", "-"], input="\n".join(lines) + "\n", text=True, check=False
+        )
+    except FileNotFoundError:
+        return False
+    return proc.returncode == 0
+
+
+def _autonomy_cron_present() -> bool:
+    return any(_AUTONOMY_CRON_MARK in ln for ln in _crontab_lines())
+
+
+def _install_autonomy_cron(line: str) -> bool:
+    kept = [ln for ln in _crontab_lines() if _AUTONOMY_CRON_MARK not in ln]
+    return _write_crontab(kept + [line])
+
+
+def _remove_autonomy_cron() -> bool:
+    lines = _crontab_lines()
+    kept = [ln for ln in lines if _AUTONOMY_CRON_MARK not in ln]
+    if len(kept) == len(lines):
+        return False
+    return _write_crontab(kept)
+
+
+@app.command("drain")
+def drain(
+    db: str = typer.Option(DEFAULT_ARENA_DB, help="Operator-private SQLite path."),
+    cap_usd: float = typer.Option(
+        5.0, "--cap-usd", help="Daily $ ceiling the governor enforces this tick."
+    ),
+    max_jobs: int = typer.Option(
+        0, "--max-jobs", help="Cap jobs this tick (0 = drain until empty/braked)."
+    ),
+    no_freshness: bool = typer.Option(
+        False, "--no-freshness", help="Skip the leaderboard freshness sweep."
+    ),
+    json_out: bool = typer.Option(False, "--json", help="Emit the standup as JSON."),
+) -> None:
+    """One autonomy drain tick — the cron target (rl-lane-autonomy LA-5).
+
+    Acquires the single-drain lock, drains the queue one lane at a time behind
+    the budget governor + the RL-lane arbiter (envelope pre-flight, OOM watchdog,
+    live progress for any ``rl_run``), runs the freshness sweep, and stages the
+    morning standup. **Never pushes** (AH-3 / R26) — it stages the review.
+    """
+    from fieldkit.arena.scheduler import run_drain_cycle
+    from fieldkit.arena.store import ArenaStore
+    from fieldkit.budget import BudgetGovernor
+
+    store = ArenaStore(db)
+    store.initialize()
+    try:
+        governor = BudgetGovernor(ledger=store, daily_cap_usd=cap_usd)
+        result = run_drain_cycle(
+            store,
+            governor=governor,
+            max_jobs=max_jobs or None,
+            freshness=not no_freshness,
+            cap_usd=cap_usd,
+        )
+    finally:
+        store.close()
+    if json_out:
+        typer.echo(_json.dumps(result, indent=2, sort_keys=True))
+        return
+    if result.get("skipped"):
+        typer.echo(f"[skipped] {result.get('reason', 'a drain is already in progress')}")
+        return
+    standup = result.get("standup") or {}
+    counts = standup.get("counts", {})
+    rl = standup.get("rl", {})
+    typer.echo(
+        f"[drained {result.get('n_drained', 0)}] ran={counts.get('ran', 0)} "
+        f"failed={counts.get('failed', 0)} queued={counts.get('queued', 0)} "
+        f"regressed={counts.get('regressed', 0)} · spend {standup.get('spend', {}).get('display', '—')}"
+        + (f" · RL {rl.get('display')}" if rl.get("n_rl_run") else "")
+    )
+
+
 @app.command("memcheck")
 def memcheck() -> None:
     """Print the current unified-memory envelope + warm-lane footprint

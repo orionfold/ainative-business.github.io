@@ -1,7 +1,7 @@
 ---
 project: rl-lane-autonomy
 version: v1.0
-status: DRAFT — decisions PROPOSED 2026-06-03 (confirm before build); UNBUILT
+status: PARTIAL — LA-1..11 (self-driving + safety backend) BUILT 2026-06-03; education layer LA-12..16 = fast-follow
 created: 2026-06-03
 authoritative: Spark
 ---
@@ -296,10 +296,40 @@ subjective output → per `[[feedback_testing_cadence]]` they close with an **op
 side-by-side vibe pass** (`[[feedback_side_by_side_review_after_major_features]]`), not a formal eval.
 The arbiter/watchdog logic is objectively-verifiable → GPU-free unit tests with fakes.
 
+## 8.1 As-built (LA-1..11 — BUILT 2026-06-03)
+
+The self-driving + safety backend landed as specified; the education layer
+(LA-12..16) is the tracked fast-follow. Surface as shipped:
+
+| Decision | As-built |
+|---|---|
+| LA-1/2/6 | **`fieldkit.arena.lane.LaneArbiter`** — the 3-way pre-flight (`preflight()` = governor *allow* ∧ `MemoryEnvelope.fits` ∧ `lane_binary_present`) raises `LaneDeferred` before any teardown; `__enter__` frees the resident brain + starts the watchdog; `__exit__` stops the watchdog, `VLLMLane.stop()`s (EngineCore-aware, global `pkill`), and **always** restores the prior lane. Composes inside `DrainLock` (drain-level brake, never replaces it). |
+| LA-3 | **`lane_binary_present(cfg)`** — `FK_RL_VLLM_BIN` / `FK_RL_SERVE_CMD` launcher / `vllm` on PATH; absent → `LANE_BIN_ABSENT` defer (clean, never a crash). vLLM stays an out-of-tree managed process. |
+| LA-4 | **`POST /api/jobs` accepts `rl_run`, forces `dispatch=False`** (`async_only: true` + autonomy note); cockpit "Enqueue RLVR run" affordance. The 8.5 h loop never runs in a request. |
+| LA-5 | **`fieldkit arena autonomy on\|off\|status`** (reversible policy record via `scheduler.{read,write,clear}_autonomy_state` + crontab line install/print) + **`fieldkit arena drain`** (the cron target = one `run_drain_cycle` tick). Standup surfaces the armed state. |
+| LA-7 | **No arena.db schema change** — `user_version` stays `6` (test-pinned). Lane state is process-runtime; the abort signal rides a filesystem sentinel; the run rides `fieldkit.lineage`. |
+| LA-8 | **`fieldkit.rl.rl_hooks` / `current_rl_hooks`** (a `contextvars` conduit, arena → rl only — `run_rl_loop` unchanged); `RLLoop` emits throttled `{step, phase, pool_score, last_heldout, eta_s}` + polls an abort between steps. `rl_progress_writer` = the single-writer `result_json` patch (throttle: phase-change/gate, else ≤ `throttle_s`); `server._jobs_signature` gains a progress nonce. |
+| LA-9 | The existing `GET /api/jobs/{id}` already surfaces parsed `result`; the **cockpit Jobs board** renders an inline progress strip from the SSE stream — phase · step/max · **pool-vs-held-out** (the t2po inversion flagged live) · ETA · peak mem. |
+| LA-10 | **`MemoryWatchdog`** (arena-wide) over `/proc/meminfo` headroom — warn `FK_RL_OOM_WARN_GB` (8), abort below `FK_RL_OOM_FLOOR_GB` (4) after `persist_n` (~2 s) breaches; touches an abort sentinel; never trips on a stale sample (R7). |
+| LA-11 | **`mem_trace` / `MemTrace`** (thread-safe) — peak / headroom-at-spawn / per-phase / abort sample → `jobs.result_json` + `_persist_rl_run` + the standup `rl` digest ("RAN 1 · peak 119 GB · 1 OOM-deferred"). |
+
+**Verified (GPU-free):** suite **1253 pass / 5 skip** (+20: `test_lane.py` + the
+async-only API test); `audit-docs` 17/18 (`rl` + `arena` PASS, `rl_lane` kwargs
+documented, only pre-existing kwarg-drift WARNs remain), `audit-landing` **4/4**;
+`astro build` **514 pages**; both render verifiers green; cockpit `_webui`
+rebaked; `mypy` + `ruff` clean on the new source. **No schema change**
+(`user_version 6`); **no new top-level module**; **no new `ARTIFACT_KINDS`**.
+**Deferred (fast-follow):** the education layer LA-12..16 (the shared
+`src/content/explainers/` collection + "what/why/watch" guide cards + the live
+held-out-plot interpreter + guided decision gates + the post-run debrief).
+**Operator action left (unchanged):** install a pinned aarch64+CUDA-13 vLLM; until
+then the arbiter `defer`s `LANE_BIN_ABSENT` and the machinery is GPU-free-testable.
+
 ## 9. Change log
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-03 | **LA-1..11 BUILT** (self-driving + safety backend) — new submodule `fieldkit.arena.lane` (`LaneArbiter`/`MemoryWatchdog`/`mem_trace`/`RLLaneContext` + helpers), `fieldkit.rl` observability hooks, `EscalationReason.LANE_BIN_ABSENT` + the `rl_lane` dispatch brake, async-only `rl_run` enqueue, the `autonomy`/`drain` CLI, the cockpit progress strip + standup autonomy/RL surfacing. No schema change (`user_version 6`); no new top-level module (documents under `arena`); suite 1253 pass; `audit-landing` 4/4. The education layer (LA-12..16) is the tracked fast-follow. See §8.1 as-built + `fieldkit/CHANGELOG.md` [Unreleased]. | Manav (with Claude) |
 | 2026-06-03 | **Initial spec authored — v1.0 DRAFT, decisions PROPOSED, UNBUILT.** The post-roadmap follow-on that makes the shipped Phase-3 engine self-driving: closes the two operator-armed chokepoints (managed vLLM lane + one-step cron arming), adds live step reporting + telemetry-correlated OOM defense for the multi-hour unattended run, and surfaces the published RLVR curriculum contextually so Arena teaches the operator at every step. 16 decisions across four layers (LA-1…7 arbiter / LA-8…9 live progress / LA-10…11 telemetry+OOM / LA-12…16 education). 8 risks (LA-R1…R8). One new Arena submodule `fieldkit.arena.lane` (`LaneArbiter`/`MemoryWatchdog`/`mem_trace`) + one new site content collection `src/content/explainers/`. Code-reconciled against the **shipped** `fieldkit/src/fieldkit/`: the memory envelope (`budget.MemoryEnvelope`), lane lifecycle (`_rl_gpu_serve.VLLMLane`), drain lock + standup (`arena.scheduler`), telemetry sampler (`server.TelemetryHub`), progress column (`jobs.result_json`), and curriculum (`articles/the-machine-improves-itself`) **all already exist** — v1 is overwhelmingly connective tissue. No arena.db schema change (`user_version 6`, LA-7); no new top-level module (documents under `arena.md`, `audit-landing` stays 4/4); no new `ARTIFACT_KINDS`. Release gate ~`fieldkit v0.22.0`. **Status: spec only, awaiting green-light** (the M9/M10/M11/RLVR "locked decisions — confirm before build" discipline). | Manav (with Claude) |
 
 ## 10. References

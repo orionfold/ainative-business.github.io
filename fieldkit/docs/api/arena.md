@@ -503,6 +503,57 @@ What changed inside `fieldkit.arena`:
   freshness-trigger enqueue on an articles/products commit), and `stop_feedback.sh`
   (the §6.5 Stop loop, finally wired — nudges on uncommitted artifact work).
 
+## RL-lane autonomy (`lane.py`, rl-lane-autonomy v1 — LA-1..11)
+
+The self-driving layer for the Phase-3 engine — the connective tissue that turns
+a dispatchable `rl_run` (RV-6) into a run that is **self-driving, observable, and
+self-defending**, without re-implementing any GPU physics. `import
+fieldkit.arena.lane` stays stdlib-cheap (torch/vLLM only enter inside the lane
+factory). **No schema change** (LA-7 — `user_version` stays `6`); **no new
+top-level module** (it documents here, under `arena`).
+
+- **`LaneArbiter`** (LA-1/2/6) — the envelope-gated single serving slot, a
+  context manager the GPU-kind runner enters. `__enter__` runs the **3-way
+  pre-flight** (governor *allow* ∧ `MemoryEnvelope.fits` ∧ a vLLM binary present
+  — any failure raises `LaneDeferred` *before* anything is torn down), frees the
+  resident chat brain (`stop_resident`), and starts the `MemoryWatchdog`.
+  `__exit__` stops the watchdog, tears down the vLLM lane (`VLLMLane.stop`,
+  EngineCore-aware — its process-pattern `pkill` reaps the seam-started server
+  too), and **always** restores the prior lane (R1: never leave the box with no
+  serving lane). It composes *inside* the M11 `DrainLock`, never replaces it (LA-2).
+- **`MemoryWatchdog`** (LA-10, arena-wide) — enforces a unified-memory headroom
+  floor off the same `/proc/meminfo` source `TelemetryHub` samples. Warns below
+  `FK_RL_OOM_WARN_GB` (8); on a breach that **persists `persist_n` samples**
+  (~2 s — the R6 anti-transient guard) it touches an abort sentinel the loop
+  polls between steps and records the trip on the trace. It **never** trips on a
+  missing sample (R7). Reusable by every GPU kind.
+- **`mem_trace` / `MemTrace`** (LA-11) — the per-run memory recorder (peak,
+  headroom-at-spawn, per-phase deltas, abort sample). Thread-safe; rides
+  `jobs.result_json` + the standup ("RAN 1 · peak 119 GB · 1 OOM-deferred").
+- **`RLLaneContext`** — the one optional object dispatch consults for an `rl_run`.
+  `dispatch_job(store, job, *, rl_lane=…)` and `drain_jobs(store, *, rl_lane=…)`
+  take it; when wired **and** the kind is `rl_run` the run is arbitered (pre-flight
+  → resident-brain teardown → watchdog → live progress → mem-trace) and a failed
+  pre-flight releases the claim back to `queued` + audits (`budget_<action>`,
+  never *fails*); when `None` (the M8 default) every kind runs bare, byte-for-byte
+  RV-6 behavior. Defaults read `FK_RL_OOM_*` + `FK_RL_RESIDENT_{STOP,START}_CMD`.
+- **Live progress (LA-8)** — `rl_progress_writer(store, job_id, …)` builds the
+  throttled single-writer callback the loop pushes `{step, phase, pool_score,
+  last_heldout, eta_s, mem}` through (a write per phase-change/held-out-gate, else
+  ≤ once per `throttle_s`). `_jobs_signature` gains a progress nonce so the
+  `/api/jobs/stream` board re-emits while a run is `running`.
+- **Async-enqueue (LA-4)** — `POST /api/jobs` now accepts `rl_run` but forces
+  `dispatch=False` (RV-6): the 8.5 h loop never runs in a request's
+  BackgroundTask. The response carries `async_only: true` + an autonomy note.
+- **Autonomy CLI (LA-5)** — `fieldkit arena autonomy on|off|status` writes the
+  reversible policy record (`fieldkit.arena.scheduler.read_autonomy_state`) and
+  prints/installs the crontab line; `fieldkit arena drain` is the cron target
+  (one `run_drain_cycle` tick). The standup surfaces the armed state + the RL
+  memory digest. The external blocker is unchanged (a pinned aarch64+CUDA-13
+  vLLM); absent it the arbiter `defer`s cleanly (`LANE_BIN_ABSENT`), so the whole
+  surface ships + is GPU-free-testable now. See `docs/api/rl.md` →
+  "Operator: full autonomy" + `_SPECS/rl-lane-autonomy-v1.md`.
+
 ## v0.2 surfaces (Lab + distribution)
 
 ### v0.2 — Lab notes (`lab_notes` table + `/api/lab/notes`)

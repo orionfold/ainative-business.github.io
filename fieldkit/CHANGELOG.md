@@ -6,6 +6,59 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The **RLVR engine becomes self-driving** (`rl-lane-autonomy-v1`, LA-1..11 — the
+self-driving + safety backend; the education layer LA-12..16 is a tracked
+fast-follow). The shipped Phase-3 engine drained as an operator-armed `rl_run`;
+this build closes the two chokepoints (a control-plane-managed vLLM lane + one-step
+cron arming) and adds the two things a multi-hour unattended GPU job must have:
+**live step reporting** + a **telemetry-correlated OOM defense**. Mostly connective
+tissue over shipped primitives (`budget.MemoryEnvelope`, `_rl_gpu_serve.VLLMLane`,
+`arena.scheduler`, `server.TelemetryHub`, `jobs.result_json`). **No schema change**
+(arena.db stays `user_version 6`, LA-7); **no new top-level module** (the one new
+submodule `fieldkit.arena.lane` documents under `arena`, so `audit-landing` stays
+4/4); **no new `ARTIFACT_KINDS`**. The external blocker is unchanged (a pinned
+aarch64+CUDA-13 vLLM the operator installs); absent it the arbiter `defer`s cleanly
+(`LANE_BIN_ABSENT`), so the whole surface ships + is GPU-free-testable now.
+
+### Added
+
+- **New submodule `fieldkit.arena.lane`** — `LaneArbiter` (the envelope-gated
+  single serving slot: a 3-way pre-flight *governor allow ∧ envelope fits ∧ vLLM
+  binary present* → resident-brain teardown → watchdog → always-restore-on-exit,
+  LA-1/2/6), `MemoryWatchdog` (the telemetry-correlated OOM defense — a persistent
+  headroom-floor breach touches an abort sentinel the loop polls between steps,
+  *before* the kernel OOM-kills; arena-wide, LA-10), `mem_trace`/`MemTrace` (the
+  per-run memory report → lineage + standup, LA-11), `RLLaneContext` (the one
+  optional object dispatch consults for an `rl_run`), plus `rl_progress_writer`
+  (LA-8) / `abort_poller` / `lane_binary_present` / `LaneError` / `LaneDeferred`.
+- **Live `rl_run` progress (LA-8)** — `fieldkit.rl` gains `rl_hooks(progress_cb,
+  should_abort)` (a `contextvars` conduit, arena → rl only) + `current_rl_hooks`;
+  `RLLoop` emits throttled `{step, phase, pool_score, last_heldout, eta_s}` and
+  polls an abort between steps. The arbiter wires these to a single-writer
+  `result_json` patch; `server._jobs_signature` gains a progress nonce so the
+  `/api/jobs/stream` board re-emits while a run is `running`. The cockpit Jobs
+  board renders an inline progress strip with the pool-vs-held-out read (the t2po
+  inversion made visible as it happens, RV-4).
+- **One-step autonomy (LA-5)** — `fieldkit arena autonomy on|off|status` writes a
+  reversible policy record + prints/installs the crontab line; `fieldkit arena
+  drain` is the cron target (one `run_drain_cycle` tick). The morning standup
+  surfaces the armed state + the RL memory digest.
+- **Async-enqueue `rl_run` (LA-4)** — `POST /api/jobs` accepts `rl_run` but forces
+  `dispatch=False` (RV-6): the 8.5 h loop never runs in a request BackgroundTask;
+  the response advertises `async_only` + the autonomy note. New cockpit affordance.
+- **`EscalationReason.LANE_BIN_ABSENT`** (`fieldkit.budget`) — the defer reason for
+  a GPU lane with no serving binary; `dispatch_job` / `drain_jobs` gain an optional
+  `rl_lane` (the RL-lane brake releases + audits + stops the pass, the AH-4 pattern).
+
+### Tests
+
+- `tests/arena/test_lane.py` (+19) — spawn-gate, restore-on-failure, refuse-on-
+  unmanaged, governor-veto-first, watchdog floor-breach-after-N + transient-no-fire
+  + stale-never-trips + warn-non-destructive, mem-trace round-trip, progress
+  throttle + gate, the full arbitered drain (progress + mem-trace + defer brake +
+  bare fallback), `user_version` stays 6, autonomy round-trip; `test_jobs_api.py`
+  updated for the async-only `rl_run` enqueue contract.
+
 ## [0.21.0] — 2026-06-03
 
 The **closed-loop RLVR engine grows its GPU hands.** `rlvr-loop-v1` shipped the

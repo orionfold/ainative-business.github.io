@@ -48,11 +48,14 @@ orchestration tests run with no GPU.
 
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import random
 import tempfile
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Mapping, Optional, Sequence
+from typing import Any, Callable, Iterator, Mapping, Optional, Sequence
 
 from fieldkit.lineage import FailureLabel, LineageSnapshot, LineageStore, Trial
 from fieldkit.reward import RewardAdapter, Rollout
@@ -61,7 +64,48 @@ __all__ = [
     "GRPOConfig",
     "RLLoop",
     "RLLoopError",
+    "rl_hooks",
+    "current_rl_hooks",
 ]
+
+
+# Observability seams (rl-lane-autonomy-v1 LA-8/10). The arena dispatcher pushes
+# a (progress_cb, should_abort) pair down here via :func:`rl_hooks` so the loop
+# can report live step state + poll an abort sentinel **without** fieldkit.rl
+# importing anything from fieldkit.arena (the conduit flows arena → rl, never
+# back). A bare ``import fieldkit.rl`` leaves the hooks unset → zero overhead.
+ProgressCb = Callable[[Mapping[str, Any]], None]
+ShouldAbort = Callable[[], bool]
+_RL_HOOKS: contextvars.ContextVar[Optional[tuple[Optional[ProgressCb], Optional[ShouldAbort]]]] = (
+    contextvars.ContextVar("fk_rl_hooks", default=None)
+)
+
+
+@contextlib.contextmanager
+def rl_hooks(
+    progress_cb: Optional[ProgressCb] = None,
+    should_abort: Optional[ShouldAbort] = None,
+) -> Iterator[None]:
+    """Bind live-progress + abort hooks for any :class:`RLLoop` run in this scope.
+
+    The Arena `rl_run` dispatch enters this around the loop so an unmodified
+    :func:`fieldkit.harness.mcp.run_rl_loop` — which builds the loop without
+    knowing about progress — still reports live and respects an OOM abort. The
+    hooks ride a :class:`contextvars.ContextVar`, so they are thread- and
+    task-local and auto-reset on exit.
+    """
+    token = _RL_HOOKS.set((progress_cb, should_abort))
+    try:
+        yield
+    finally:
+        _RL_HOOKS.reset(token)
+
+
+def current_rl_hooks() -> tuple[Optional[ProgressCb], Optional[ShouldAbort]]:
+    """The ambient ``(progress_cb, should_abort)`` for this scope (``(None, None)``
+    when no :func:`rl_hooks` is active)."""
+    hooks = _RL_HOOKS.get()
+    return hooks if hooks is not None else (None, None)
 
 
 class RLLoopError(Exception):
@@ -186,12 +230,17 @@ class RLLoop:
     heldout_eval: Optional[HeldoutEval] = None
     lineage_store: Optional[LineageStore] = None
     domain: str = "patent-strategist"
+    # Observability seams (LA-8/10) — explicit injection wins; when left None the
+    # loop falls back to the ambient :func:`rl_hooks` so run_rl_loop needs no edit.
+    progress_cb: Optional[ProgressCb] = None
+    should_abort: Optional[ShouldAbort] = None
 
     # Populated by run().
     heldout_scores: dict[int, float] = field(default_factory=dict, init=False)
     pool_scores: dict[int, float] = field(default_factory=dict, init=False)
     selected_step: Optional[int] = field(default=None, init=False)
     selected_heldout_score: Optional[float] = field(default=None, init=False)
+    aborted: bool = field(default=False, init=False)
 
     def _store(self) -> LineageStore:
         if self.lineage_store is not None:
@@ -235,12 +284,31 @@ class RLLoop:
         store = self._store()
         store.append(_baseline_trial(self.config, self.domain, len(train_pool), len(heldout)))
 
+        # Resolve the observability seams (LA-8/10): explicit injection wins,
+        # else the ambient rl_hooks bound by the Arena dispatcher.
+        progress_cb = self.progress_cb
+        should_abort = self.should_abort
+        if progress_cb is None or should_abort is None:
+            amb_progress, amb_abort = current_rl_hooks()
+            progress_cb = progress_cb or amb_progress
+            should_abort = should_abort or amb_abort
+
         draw_rng = random.Random(self.config.seed + 1)
         prev_exp = "baseline"
         best_heldout = float("-inf")
         stale = 0
+        step_durations: list[float] = []
+        self._emit(progress_cb, phase="lane-bringup", step=0, durations=step_durations)
 
         for step in range(self.config.max_steps):
+            # Abort check BETWEEN steps (LA-10): the watchdog has touched the
+            # sentinel → tear down cleanly rather than walk into the OOM kill.
+            if should_abort is not None and should_abort():
+                self.aborted = True
+                store.append(_aborted_trial(self.config, self.domain, prev_exp, step))
+                break
+            t_step = time.monotonic()
+            self._emit(progress_cb, phase="sampling", step=step, durations=step_durations)
             k_tasks = min(self.config.tasks_per_step, len(train_pool))
             tasks = draw_rng.sample(list(train_pool), k_tasks)
             groups = self.sampler(tasks, self.config.group_k)
@@ -267,6 +335,11 @@ class RLLoop:
                 else 0.0
             )
             self.pool_scores[step] = pool_mean
+            step_durations.append(time.monotonic() - t_step)
+            self._emit(
+                progress_cb, phase="training", step=step, pool=pool_mean,
+                durations=step_durations,
+            )
             exp_id = f"rl-{step:03d}"
             store.append(
                 Trial(
@@ -294,8 +367,16 @@ class RLLoop:
             prev_exp = exp_id
 
             if step % self.config.heldout_every == 0:
+                self._emit(
+                    progress_cb, phase="heldout-gate", step=step,
+                    pool=pool_mean, durations=step_durations,
+                )
                 ho = float(self.heldout_eval(step, heldout))
                 self.heldout_scores[step] = ho
+                self._emit(
+                    progress_cb, phase="heldout-gate", step=step, pool=pool_mean,
+                    heldout=ho, gate=True, durations=step_durations,
+                )
                 store.append(
                     Trial(
                         exp_id=f"heldout-{step:03d}",
@@ -330,8 +411,50 @@ class RLLoop:
                     ):
                         break
 
+        self._emit(progress_cb, phase="teardown", step=len(self.pool_scores), durations=step_durations)
         self._select_checkpoint()
         return store.render_prompt("rl_run", session_timestamp="")
+
+    def _emit(
+        self,
+        progress_cb: Optional[ProgressCb],
+        *,
+        phase: str,
+        step: int,
+        pool: Optional[float] = None,
+        heldout: Optional[float] = None,
+        gate: bool = False,
+        durations: Optional[list[float]] = None,
+    ) -> None:
+        """Push one live-progress blob (LA-8) — best-effort, never fails the run.
+
+        Carries the step counter, the phase, the latest pool + held-out scalars,
+        and a steps-remaining ETA from the running mean step duration. The writer
+        downstream throttles + folds in a memory sample; here we only describe
+        *where the loop is*.
+        """
+        if progress_cb is None:
+            return
+        eta_s: Optional[float] = None
+        if durations:
+            avg = sum(durations) / len(durations)
+            eta_s = round(avg * max(0, self.config.max_steps - step - 1), 1)
+        try:
+            progress_cb(
+                {
+                    "step": step,
+                    "max_steps": self.config.max_steps,
+                    "phase": phase,
+                    "pool_score": (round(pool, 6) if pool is not None else None),
+                    "last_heldout": (round(heldout, 6) if heldout is not None else None),
+                    "gate": gate,
+                    "eta_s": eta_s,
+                    "base": self.config.base,
+                    "domain": self.domain,
+                }
+            )
+        except Exception:  # noqa: BLE001 — progress is observational, not load-bearing
+            pass
 
     def _select_checkpoint(self) -> None:
         """Pick the published checkpoint on **held-out** score only (RV-4)."""
@@ -364,6 +487,7 @@ class RLLoop:
             "heldout_scores": {s: round(v, 6) for s, v in sorted(self.heldout_scores.items())},
             "pool_scores": {s: round(v, 6) for s, v in sorted(self.pool_scores.items())},
             "selected_on": "heldout",  # RV-4 — never pool
+            "aborted": self.aborted,  # LA-10 — watchdog tore the run down early
         }
 
 
@@ -388,6 +512,30 @@ def _baseline_trial(cfg: GRPOConfig, domain: str, n_train: int, n_heldout: int) 
         snapshot_path="",
         notes=f"corpus_min={cfg.corpus_min} heldout_every={cfg.heldout_every} "
         f"vllm_pin={cfg.vllm_pin}",
+    )
+
+
+def _aborted_trial(cfg: GRPOConfig, domain: str, parent_exp: str, step: int) -> Trial:
+    """A lineage row recording an OOM-watchdog abort (LA-10) before ``step``."""
+    return Trial(
+        exp_id=f"aborted-{step:03d}",
+        timestamp="",
+        specialist="oom-watchdog",
+        parent_exp=parent_exp,
+        baseline_exp="baseline",
+        domain=domain,
+        hypothesis=f"run aborted before step {step} — memory watchdog tripped the "
+        "headroom floor (LA-10), torn down before the kernel OOM-kill",
+        expected_delta="",
+        status=FailureLabel.DISCARD,
+        core_metric=None,
+        val_bpb=None,
+        delta_vs_best=None,
+        train_s=None,
+        total_s=None,
+        job_name=f"rl_run:{cfg.base}",
+        snapshot_path="",
+        notes="oom_envelope abort (rl-lane-autonomy LA-10)",
     )
 
 

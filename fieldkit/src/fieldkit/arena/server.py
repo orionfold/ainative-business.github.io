@@ -685,7 +685,7 @@ def create_app(
         ``failed`` with the import/connection error, never silently dropped."""
 
         kind: str = Field(
-            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest)$"
+            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest|rl_run)$"
         )
         payload: dict = Field(default_factory=dict)
         trigger: str = Field(default="manual", max_length=40)
@@ -1646,9 +1646,24 @@ def create_app(
             store.close()
         if job_id is None:
             return {"ok": True, "coalesced": True, "job_id": None}
-        if body.dispatch:
+        # rl_run is async-only (LA-4 / RV-6): never drain the 8.5 h GRPO loop in
+        # a request BackgroundTask — it drains under the M11 cron + RL arbiter.
+        async_only = body.kind == "rl_run"
+        if body.dispatch and not async_only:
             background_tasks.add_task(_drain_jobs_background, str(db_file))
-        return {"ok": True, "coalesced": False, "job_id": job_id}
+        note = (
+            "queued — drains under the autonomy cron (one lane at a time); "
+            "arm it with `fieldkit arena autonomy on`"
+            if async_only
+            else None
+        )
+        return {
+            "ok": True,
+            "coalesced": False,
+            "job_id": job_id,
+            "async_only": async_only,
+            "note": note,
+        }
 
     @app.get("/api/jobs/stream")
     async def api_jobs_stream(request: Request) -> Any:
@@ -2050,8 +2065,30 @@ def _job_to_public(row: Any) -> dict[str, Any]:
 
 
 def _jobs_signature(jobs: list[dict[str, Any]]) -> tuple:
-    """Cheap change-detector for the SSE feed — id × status × finished_at."""
-    return tuple((j["id"], j["status"], j.get("finished_at")) for j in jobs)
+    """Cheap change-detector for the SSE feed — id × status × finished_at × progress.
+
+    The progress nonce (rl-lane-autonomy LA-8) makes the board re-emit while a
+    long ``rl_run`` is ``running`` — a step/phase advance in ``result_json``
+    changes the signature even though status + finished_at don't, so the live
+    progress pane updates without waiting for the job to finish.
+    """
+
+    def _nonce(j: dict[str, Any]) -> Any:
+        if j.get("status") != "running":
+            return None
+        res = j.get("result")
+        if not isinstance(res, dict):
+            raw = j.get("result_json")
+            if isinstance(raw, str) and raw:
+                try:
+                    res = json.loads(raw)
+                except (json.JSONDecodeError, TypeError):
+                    res = None
+        if isinstance(res, dict):
+            return (res.get("step"), res.get("phase"))
+        return None
+
+    return tuple((j["id"], j["status"], j.get("finished_at"), _nonce(j)) for j in jobs)
 
 
 def _drain_jobs_background(db_path_str: str) -> None:

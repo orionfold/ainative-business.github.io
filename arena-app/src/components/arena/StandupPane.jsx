@@ -89,9 +89,29 @@ export default function StandupPane() {
   const queued = (data && data.queued) || [];
   const spend = (data && data.spend) || { display: '—', has_cost_plane: false };
   const lanes = (spend && spend.by_lane) || [];
+  const autonomy = (data && data.autonomy) || { enabled: false };
+  const rl = (data && data.rl) || { n_rl_run: 0, display: '—' };
 
   return (
     <div class="standup">
+      {/* Autonomy policy + RL memory digest (rl-lane-autonomy LA-5/11) */}
+      <div class="standup__autonomy" data-armed={autonomy.enabled === true}>
+        <span class="standup__autonomy-dot" aria-hidden="true" />
+        <span class="standup__autonomy-label">
+          {autonomy.enabled
+            ? `autonomy ON — every ${autonomy.interval_min ?? '?'} min · cap $${autonomy.cap_usd ?? '?'}`
+            : 'autonomy OFF — overnight drain not armed'}
+        </span>
+        {autonomy.enabled ? (
+          <span class="standup__autonomy-hint">single-lane · lock-guarded · `autonomy off` to disarm</span>
+        ) : (
+          <span class="standup__autonomy-hint">arm with <code>fieldkit arena autonomy on</code></span>
+        )}
+        {rl.n_rl_run > 0 && (
+          <span class="standup__autonomy-rl" data-oom={rl.oom_deferred > 0}>RL {rl.display}</span>
+        )}
+      </div>
+
       {/* (a) Spend rail — M9 SpendDigest (AH-3), "—" when cost plane absent (AH-5) */}
       <div class="standup__spend" data-over={spend.over_cap === true}>
         <span class="standup__spend-total">{spend.display}</span>

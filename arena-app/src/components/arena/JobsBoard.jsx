@@ -28,6 +28,51 @@ function laneBench(job) {
   return [p.lane_id, p.bench_id || p.manifest_slug].filter(Boolean).join(' × ') || job.kind;
 }
 
+function fmtEta(s) {
+  if (s == null) return '—';
+  if (s < 90) return `${Math.round(s)}s`;
+  if (s < 5400) return `${Math.round(s / 60)}m`;
+  return `${(s / 3600).toFixed(1)}h`;
+}
+
+// Live rl_run progress (rl-lane-autonomy LA-9) — rendered inline on a running
+// card from the throttled result_json the loop writes (LA-8). The pool-vs-
+// held-out read makes the t2po inversion visible AS IT HAPPENS (RV-4): a pool
+// climbing while held-out is flat is the loop about to publish an earlier step.
+function RlProgress({ result }) {
+  if (!result || !result.phase) return null;
+  const step = result.step ?? 0;
+  const max = result.max_steps ?? 0;
+  const pct = max > 0 ? Math.min(100, Math.round((step / max) * 100)) : 0;
+  const pool = result.pool_score;
+  const held = result.last_heldout;
+  const mem = result.mem || {};
+  const inversion = pool != null && held != null && pool - held > 0.15;
+  return (
+    <div class="jobs__rl" data-phase={result.phase}>
+      <div class="jobs__rl-head">
+        <span class="jobs__rl-phase">{result.phase}</span>
+        <span class="jobs__rl-step">
+          step {step}/{max} · ETA {fmtEta(result.eta_s)}
+        </span>
+      </div>
+      <div class="jobs__rl-bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+        <span class="jobs__rl-fill" style={`width:${pct}%`} />
+      </div>
+      <div class="jobs__rl-metrics" data-inversion={inversion}>
+        <span>pool {pool != null ? Number(pool).toFixed(3) : '—'}</span>
+        <span class="jobs__rl-held">held-out {held != null ? Number(held).toFixed(3) : '—'}</span>
+        {mem.peak_used_gb != null && <span class="jobs__rl-mem">peak {Math.round(mem.peak_used_gb)} GB</span>}
+      </div>
+      {inversion && (
+        <div class="jobs__rl-warn">
+          pool &gt; held-out — the published checkpoint is chosen on the held-out line, never the pool.
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Banner verb phrase per confirm-job status — reads as prose, not "is failed".
 function confirmPhrase(status) {
   if (status === 'failed') return 'failed to confirm — needs a look';
@@ -40,6 +85,8 @@ export default function JobsBoard() {
   const [jobs, setJobs] = useState([]);
   const [lane, setLane] = useState('');
   const [bench, setBench] = useState('');
+  const [rlBase, setRlBase] = useState('');
+  const [rlBench, setRlBench] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const baseRef = useRef(null);
@@ -101,6 +148,41 @@ export default function JobsBoard() {
       const j = await r.json();
       if (j.coalesced) setNote(`already queued for ${l} × ${b}`);
       else { setLane(''); setBench(''); }
+    } catch (_e) {
+      setNote('sidecar unreachable');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Enqueue an RLVR run (rl-lane-autonomy LA-4). Async-only by contract (RV-6):
+  // the server forces dispatch=False, so this NEVER runs the 8.5 h loop in the
+  // request — the job waits for the autonomy cron + the RL-lane arbiter.
+  async function enqueueRl(e) {
+    e.preventDefault();
+    const base = rlBase.trim();
+    const bp = rlBench.trim();
+    if (!base || !bp || busy) return;
+    setBusy(true);
+    setNote('');
+    try {
+      const r = await fetch(`${baseRef.current}/api/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'rl_run',
+          payload: { base, bench_path: bp, vertical: 'patent-strategist' },
+          trigger: 'manual',
+          dispatch: false,
+        }),
+      });
+      const j = await r.json();
+      if (j.coalesced) setNote('an rl_run is already queued');
+      else {
+        setRlBase('');
+        setRlBench('');
+        setNote(j.note || 'rl_run queued — drains under the autonomy cron');
+      }
     } catch (_e) {
       setNote('sidecar unreachable');
     } finally {
@@ -207,6 +289,38 @@ export default function JobsBoard() {
         {note && <span class="jobs__note">{note}</span>}
       </form>
 
+      <form class="jobs__dispatch jobs__dispatch--rl" onSubmit={enqueueRl}>
+        <span class="jobs__dispatch-label" title="Enqueue a closed-loop RLVR run — async-only, drains under the autonomy cron (never a synchronous 8.5 h click)">
+          Enqueue&nbsp;RLVR&nbsp;run
+        </span>
+        <input
+          class="jobs__input"
+          type="text"
+          value={rlBase}
+          placeholder="base model (e.g. Qwen/Qwen2.5-7B-Instruct)"
+          maxLength={200}
+          disabled={!online}
+          onInput={(e) => setRlBase(e.currentTarget.value)}
+        />
+        <input
+          class="jobs__input"
+          type="text"
+          value={rlBench}
+          placeholder="bench path (gold JSONL, ≥100 rows)"
+          maxLength={300}
+          disabled={!online}
+          onInput={(e) => setRlBench(e.currentTarget.value)}
+        />
+        <button
+          type="submit"
+          class="jobs__go"
+          disabled={!online || busy || !rlBase.trim() || !rlBench.trim()}
+          title="Async-only — queued for the overnight single-lane drain, never run in this request (RV-6)"
+        >
+          {busy ? '…' : 'queue (async)'}
+        </button>
+      </form>
+
       <div class="jobs__board">
         {COLUMNS.map((col) => {
           const cards = jobs.filter((j) => col.match(j.status));
@@ -225,9 +339,24 @@ export default function JobsBoard() {
                       <span class="jobs__card-trigger">{j.trigger}</span>
                     </div>
                     <div class="jobs__card-target">{laneBench(j)}</div>
+                    {j.status === 'running' && j.kind === 'rl_run' && <RlProgress result={j.result} />}
                     {j.status === 'done' && j.result && j.result.mean_normalized != null && (
                       <div class="jobs__card-result">
                         acc {Number(j.result.mean_normalized).toFixed(2)} · n {j.result.n_scored ?? '—'}
+                      </div>
+                    )}
+                    {j.status === 'done' && j.kind === 'rl_run' && j.result && (
+                      <div class="jobs__card-result" data-aborted={j.result.aborted === true}>
+                        {j.result.aborted
+                          ? 'OOM-aborted'
+                          : `held-out step ${j.result.selected_step ?? '—'} · ${
+                              j.result.selected_heldout_score != null
+                                ? Number(j.result.selected_heldout_score).toFixed(3)
+                                : '—'
+                            }`}
+                        {j.result.mem_trace && j.result.mem_trace.peak_used_gb != null
+                          ? ` · peak ${Math.round(j.result.mem_trace.peak_used_gb)} GB`
+                          : ''}
                       </div>
                     )}
                     {j.status === 'failed' && j.error && (

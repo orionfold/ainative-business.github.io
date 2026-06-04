@@ -82,6 +82,7 @@ class EscalationReason:
     OVER_DAILY_CAP = "over_daily_cap"  # defer — M9 present, $ cap hit
     OVER_USAGE_CAP = "over_usage_cap"  # defer — M9 absent, weekly /usage cap
     OOM_ENVELOPE = "oom_envelope"  # defer — lane won't fit the resident envelope
+    LANE_BIN_ABSENT = "lane_bin_absent"  # defer — no serving binary for a GPU lane (LA-6)
 
 
 #: ``failure_class`` values that mean *the local model gave up* → escalate to a

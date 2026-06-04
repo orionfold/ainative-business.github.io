@@ -534,7 +534,55 @@ def _persist_rl_run(
         "pool_scores": result.get("pool_scores"),
         "selected_on": result.get("selected_on", "heldout"),
         "lineage_card": result.get("lineage_card"),
+        # rl-lane-autonomy (LA-10/11) — the memory trace + whether the watchdog
+        # tore the run down early. Present only when the run drained under an
+        # RLLaneContext; absent (bare M8/RV-6 run) leaves these None/False.
+        "mem_trace": result.get("mem_trace"),
+        "aborted": bool(result.get("aborted", False)),
     }
+
+
+def _run_rl_arbitered(
+    store: Any,
+    job_id: str,
+    job: Mapping[str, Any],
+    payload: Mapping[str, Any],
+    runner: Callable[[str, Mapping[str, Any]], dict[str, Any]],
+    now_fn: Callable[[], str],
+    rl_lane: Any,
+) -> dict[str, Any]:
+    """Run one ``rl_run`` under the RL-lane arbiter (rl-lane-autonomy LA-1..11).
+
+    Sets up the live-progress writer (LA-8) + an OOM abort sentinel (LA-10) +
+    the per-run memory trace (LA-11), enters the :class:`fieldkit.arena.lane.
+    LaneArbiter` (the 3-way pre-flight → resident-brain teardown → watchdog),
+    binds the loop's observability hooks, and runs the same ``runner`` the bare
+    path uses — so `run_rl_loop` is untouched. A pre-flight failure raises
+    :class:`~fieldkit.arena.lane.LaneDeferred` (caught by :func:`dispatch_job`,
+    which releases the claim + audits, never *fails* the job). The returned dict
+    is the runner result augmented with ``mem_trace`` + ``aborted``.
+    """
+    from fieldkit.arena import lane as _lane
+    from fieldkit.rl import rl_hooks
+
+    mem = _lane.mem_trace()
+    sentinel = rl_lane.sentinel_for(job_id)
+    sentinel.unlink(missing_ok=True)  # fresh — no stale abort from a prior run
+    progress_cb = _lane.rl_progress_writer(
+        store, job_id, mem=mem, min_interval=rl_lane.throttle_s, used_sampler=_lane.unified_used_gb
+    )
+    should_abort = _lane.abort_poller(sentinel)
+    arbiter = rl_lane.arbiter_for(job, mem, sentinel)
+    try:
+        with arbiter:  # __enter__ raises LaneDeferred on a failed pre-flight (LA-6)
+            with rl_hooks(progress_cb, should_abort):
+                result = dict(runner(JobKind.RL_RUN, payload))
+    finally:
+        aborted = sentinel.exists()
+        sentinel.unlink(missing_ok=True)
+    result["mem_trace"] = mem.as_dict()
+    result["aborted"] = aborted
+    return result
 
 
 def dispatch_job(
@@ -543,6 +591,7 @@ def dispatch_job(
     *,
     runner: Callable[[str, Mapping[str, Any]], dict[str, Any]] = default_runner,
     now_fn: Callable[[], str] = _utc_now_iso,
+    rl_lane: Optional[Any] = None,
 ) -> dict[str, Any]:
     """Run one claimed job end-to-end; return the updated job row as a dict.
 
@@ -550,6 +599,14 @@ def dispatch_job(
     Flips it ``running`` → executes via ``runner`` (the harness surface) →
     ``done`` (persisting through the existing scorer path for ``eval_rerun``)
     or ``failed`` (stamping ``jobs.error`` + re-raising :class:`JobDispatchError`).
+
+    ``rl_lane`` (rl-lane-autonomy, LA-1..11) is an optional
+    :class:`fieldkit.arena.lane.RLLaneContext`. When wired **and** ``kind`` is
+    ``rl_run`` the run is arbitered (envelope pre-flight → resident-brain
+    teardown → OOM watchdog → live progress → mem-trace); a pre-flight defer
+    releases the claim back to ``queued`` + audits (never *fails*). When ``None``
+    (the M8 default) every kind — `rl_run` included — runs bare, byte-for-byte
+    RV-6 behavior, so existing callers/tests are unaffected.
     """
     job_id = str(job["id"])
     kind = str(job["kind"])
@@ -565,7 +622,22 @@ def dispatch_job(
     payload = json.loads(job["payload_json"])
     store.update_job(job_id, status=JobStatus.RUNNING)
     try:
-        result = runner(kind, payload)
+        if kind == JobKind.RL_RUN and rl_lane is not None:
+            from fieldkit.arena.lane import LaneDeferred
+
+            try:
+                result = _run_rl_arbitered(
+                    store, job_id, job, payload, runner, now_fn, rl_lane
+                )
+            except LaneDeferred as deferred:
+                # A failed 3-way pre-flight (LA-6): release the claim back to
+                # queued + audit (the AH-4 path), leave the job for the next
+                # tick — it is deferred, NOT failed.
+                _release_and_audit(store, job, deferred.decision, now_fn())
+                row = store.get_job(job_id)
+                return {k: row[k] for k in row.keys()}
+        else:
+            result = runner(kind, payload)
         now = now_fn()
         if kind == JobKind.EVAL_RERUN:
             summary = _persist_eval_rerun(store, payload, result, now)
@@ -632,6 +704,7 @@ def drain_jobs(
     now_fn: Callable[[], str] = _utc_now_iso,
     on_error: str = "record",
     governor: Optional[Any] = None,
+    rl_lane: Optional[Any] = None,
 ) -> list[dict[str, Any]]:
     """Drain the queue one job at a time until empty (M8-5, sequential).
 
@@ -651,6 +724,11 @@ def drain_jobs(
     the standup). The drain never escalates or pushes itself (AH-3 / AH-8): it
     *stages* the decision for the human-review gate. Returns the updated row dict
     for every job it actually dispatched.
+
+    ``rl_lane`` (rl-lane-autonomy) is an optional
+    :class:`fieldkit.arena.lane.RLLaneContext` passed straight to
+    :func:`dispatch_job`; it only affects ``rl_run`` jobs (arbiter + watchdog +
+    live progress) and is inert for every other kind. ``None`` = bare M8 behavior.
     """
     done: list[dict[str, Any]] = []
     while max_jobs is None or len(done) < max_jobs:
@@ -663,8 +741,18 @@ def drain_jobs(
             if not getattr(decision, "allowed", False):
                 _release_and_audit(store, job, decision, now_fn())
                 break  # budget brake — leave the rest queued for the next tick
+        if rl_lane is not None and str(job.get("kind")) == JobKind.RL_RUN:
+            # rl-lane brake (LA-6): a failed 3-way pre-flight (no vLLM binary, or
+            # the lane won't fit) releases the claim + audits + stops the pass —
+            # so an undispatchable rl_run can't spin the drain re-claiming itself.
+            lane_decision = rl_lane.preflight(job)
+            if lane_decision is not None:
+                _release_and_audit(store, job, lane_decision, now_fn())
+                break
         try:
-            done.append(dispatch_job(store, job, runner=runner, now_fn=now_fn))
+            done.append(
+                dispatch_job(store, job, runner=runner, now_fn=now_fn, rl_lane=rl_lane)
+            )
         except JobDispatchError:
             if on_error == "raise":
                 raise
