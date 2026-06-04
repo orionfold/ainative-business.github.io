@@ -63,6 +63,22 @@ def test_reward_signal_present(tmp_path: Path) -> None:
         assert body["report"]["buckets"]["correct"] == 1
 
 
+def test_reward_signal_passes_through_running_status(tmp_path: Path) -> None:
+    # AF-9 live mode: a mid-flight report carries status/scored/total — the
+    # endpoint returns the report verbatim, so the pane can stream the run.
+    running = dict(_FIXTURE, status="running", scored=1, total=8)
+    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(json.dumps(running))
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/reward-signal").json()
+        assert body["available"] is True
+        assert body["report"]["status"] == "running"
+        assert body["report"]["scored"] == 1
+        assert body["report"]["total"] == 8
+
+
 def test_reward_signal_absent_is_clean_empty(tmp_path: Path) -> None:
     # No report on a fresh box → available:false, not a 404/500.
     app = create_app(repo_root=tmp_path, telemetry_interval=2.0)

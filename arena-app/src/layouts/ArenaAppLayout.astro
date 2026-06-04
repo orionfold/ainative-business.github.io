@@ -3630,6 +3630,33 @@ try {
       .arena-app .reward__verdict-rule { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-dim); }
       .arena-app .reward__verdict-meta { margin-left: auto; font-size: 0.64rem; color: var(--arena-text-mute); }
       .arena-app .reward__verdict-meta code { font-family: var(--arena-mono); color: var(--arena-text); }
+      .arena-app .reward__verdict[data-running="true"] { border-color: var(--arena-border); }
+      .arena-app .reward__verdict[data-running="true"] .reward__verdict-badge { color: var(--arena-text-dim); }
+      /* AF-9 live run strip — eval/preflight streaming mid-flight */
+      .arena-app .reward__live {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem 0.8rem;
+        padding: 0.55rem 0.9rem; border: 1px solid var(--arena-accent);
+        border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .reward__live-dot {
+        width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--arena-accent);
+        animation: reward-live-pulse 1.4s ease-in-out infinite; flex: none;
+      }
+      @keyframes reward-live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+      @media (prefers-reduced-motion: reduce) { .arena-app .reward__live-dot { animation: none; } }
+      .arena-app .reward__live-label {
+        font-family: var(--arena-mono); font-size: 0.66rem; font-weight: 700;
+        letter-spacing: 0.14em; color: var(--arena-accent);
+      }
+      .arena-app .reward__live-count { font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text); }
+      .arena-app .reward__live-bar {
+        flex: 1; min-width: 120px; height: 0.4rem; border-radius: 0.3rem;
+        background: var(--arena-line); overflow: hidden;
+      }
+      .arena-app .reward__live-fill {
+        height: 100%; background: var(--arena-accent); border-radius: 0.3rem; transition: width 0.4s ease;
+      }
+      .arena-app .reward__live-eta { font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-mute); }
       /* Bucket breakdown */
       .arena-app .reward__buckets {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.7rem;

@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -51,6 +50,52 @@ _REPORT = _REPO / "evidence" / "astrodynamics" / "av10-preflight.json"
 def load_heldout(path: Path, n: int | None) -> list[dict]:
     rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
     return rows if n is None else rows[:n]
+
+
+def summarize(
+    results: list[dict],
+    *,
+    model: str,
+    n_target: int,
+    max_new_tokens: int,
+    rel_tol: float,
+    status: str,
+) -> dict:
+    """Build the reward-signal report over the rows scored *so far*.
+
+    Called after every row so the cockpit reward gauge can stream live (dogfood
+    AF-9 — the eval-time twin of the shipped rl_run progress strip). ``status``
+    is ``"running"`` mid-run and ``"done"`` on the final write; ``scored``/
+    ``total`` drive the pane's progress bar. The rates are computed over the
+    rows present, so an empty ``results`` paints a clean ``0/total`` shell before
+    the first (slow) generation lands. torch-free — unit-testable without a GPU.
+    """
+    n = len(results)
+    extract_rate = sum(1 for r in results if r["bucket"] not in
+                       ("no_answer", "truncated_think")) / n if n else 0.0
+    boxed_rate = sum(1 for r in results if r["boxed"]) / n if n else 0.0
+    reward_rate = sum(r["score"] for r in results) / n if n else 0.0
+    trunc_rate = sum(1 for r in results if r["bucket"] == "truncated_think") / n if n else 0.0
+    # AV-10 gate: the base CAN box (so SFT can format-condition it) AND AV-R1 is
+    # not dominating at this token budget. Step-0 reward is allowed to be low.
+    av_r1_clear = trunc_rate < 0.5
+    gate_pass = boxed_rate > 0.0 and av_r1_clear
+    return {
+        "model": model, "n": n_target, "max_new_tokens": max_new_tokens,
+        "rel_tol": rel_tol,
+        "status": status,   # AF-9: "running" | "done"
+        "scored": n,        # AF-9: rows scored so far
+        "total": n_target,  # AF-9: rows in the held-out slice
+        "boxed_rate": round(boxed_rate, 4),
+        "extract_rate": round(extract_rate, 4),
+        "reward_rate_step0": round(reward_rate, 4),
+        "truncation_rate": round(trunc_rate, 4),
+        "av_r1_clear": av_r1_clear,
+        "gate_pass": gate_pass,
+        "buckets": {b: sum(1 for r in results if r["bucket"] == b)
+                    for b in ("correct", "boxed_wrong", "no_answer", "truncated_think")},
+        "rows": results,
+    }
 
 
 def classify(completion: str, score: float) -> str:
@@ -79,6 +124,15 @@ def main() -> int:
     rows = load_heldout(_HELDOUT, args.n)
     print(f"[av10] {len(rows)} held-out rows · model={args.model} "
           f"· max_new_tokens={args.max_new_tokens}", flush=True)
+
+    report_path = Path(args.report)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    # AF-9: paint a running 0/total shell before the (slow) model load + first
+    # generation, so the cockpit reward gauge shows the run is live immediately.
+    report_path.write_text(json.dumps(summarize(
+        [], model=args.model, n_target=len(rows),
+        max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="running",
+    ), indent=2))
 
     import torch  # lazy — only needed for the live run
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -129,33 +183,22 @@ def main() -> int:
         print(f"[av10] {i+1}/{len(rows)} {row['subtopic']:<28} "
               f"{bucket:<16} score={score:.0f} boxed={results[-1]['boxed'][:32]!r}",
               flush=True)
+        # AF-9: heartbeat after each row → the cockpit reward gauge streams the
+        # run live (scored/total bar + running rates) instead of waiting for exit.
+        report_path.write_text(json.dumps(summarize(
+            results, model=args.model, n_target=len(rows),
+            max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="running",
+        ), indent=2))
 
-    n = len(results)
-    extract_rate = sum(1 for r in results if r["bucket"] != "no_answer"
-                       and r["bucket"] != "truncated_think") / n if n else 0.0
-    boxed_rate = sum(1 for r in results if r["boxed"]) / n if n else 0.0
-    reward_rate = sum(r["score"] for r in results) / n if n else 0.0
-    trunc_rate = sum(1 for r in results if r["bucket"] == "truncated_think") / n if n else 0.0
-
-    # AV-10 gate: the base CAN box (so SFT can format-condition it) AND AV-R1 is
-    # not dominating at this token budget. Step-0 reward is allowed to be low.
-    av_r1_clear = trunc_rate < 0.5
-    gate_pass = boxed_rate > 0.0 and av_r1_clear
-
-    summary = {
-        "model": args.model, "n": n, "max_new_tokens": args.max_new_tokens,
-        "rel_tol": args.rel_tol,
-        "boxed_rate": round(boxed_rate, 4),
-        "extract_rate": round(extract_rate, 4),
-        "reward_rate_step0": round(reward_rate, 4),
-        "truncation_rate": round(trunc_rate, 4),
-        "av_r1_clear": av_r1_clear,
-        "gate_pass": gate_pass,
-        "buckets": {b: sum(1 for r in results if r["bucket"] == b)
-                    for b in ("correct", "boxed_wrong", "no_answer", "truncated_think")},
-        "rows": results,
-    }
-    Path(args.report).write_text(json.dumps(summary, indent=2))
+    summary = summarize(
+        results, model=args.model, n_target=len(rows),
+        max_new_tokens=args.max_new_tokens, rel_tol=args.rel_tol, status="done",
+    )
+    boxed_rate = summary["boxed_rate"]
+    reward_rate = summary["reward_rate_step0"]
+    trunc_rate = summary["truncation_rate"]
+    gate_pass = summary["gate_pass"]
+    report_path.write_text(json.dumps(summary, indent=2))
 
     print("\n===== AV-10 PREFLIGHT =====", flush=True)
     print(f"boxed_rate       {boxed_rate:.2%}  (does the base emit \\boxed{{}} at all?)")

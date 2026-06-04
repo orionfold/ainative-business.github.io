@@ -233,6 +233,49 @@ def test_queue_disjoint_from_heldout():
     assert qprompts.isdisjoint(excl), "RV-10: worklist overlaps held-out"
 
 
+# ---- AF-9 live preflight summary -----------------------------------------
+
+def _row(bucket, score, boxed):
+    return {"task_id": "t", "subtopic": "x", "tier": 1, "answer": "1",
+            "score": score, "bucket": bucket, "boxed": boxed,
+            "n_chars": 10, "wall_s": 1.0}
+
+
+def test_preflight_summarize_running_shell():
+    # AF-9: an empty results list paints a clean 0/total running shell.
+    from preflight_av10 import summarize
+    s = summarize([], model="Qwen/Qwen3-8B", n_target=8,
+                  max_new_tokens=8192, rel_tol=0.02, status="running")
+    assert s["status"] == "running"
+    assert s["scored"] == 0 and s["total"] == 8
+    assert s["rows"] == []
+    assert s["boxed_rate"] == 0.0 and s["truncation_rate"] == 0.0
+
+
+def test_preflight_summarize_partial_rates():
+    # AF-9: running rates are computed over the rows scored so far.
+    from preflight_av10 import summarize
+    rows = [_row("correct", 1.0, "4.35"), _row("truncated_think", 0.0, "")]
+    s = summarize(rows, model="m", n_target=8, max_new_tokens=8192,
+                  rel_tol=0.02, status="running")
+    assert s["scored"] == 2 and s["total"] == 8
+    assert s["boxed_rate"] == 0.5 and s["truncation_rate"] == 0.5
+    assert s["buckets"]["correct"] == 1 and s["buckets"]["truncated_think"] == 1
+
+
+def test_preflight_summarize_done_gate():
+    # AF-9: the final write is status:"done"; the gate is boxed>0 ∧ trunc<50%.
+    from preflight_av10 import summarize
+    clean = summarize([_row("correct", 1.0, "4.35"), _row("boxed_wrong", 0.0, "x")],
+                      model="m", n_target=2, max_new_tokens=8192, rel_tol=0.02,
+                      status="done")
+    assert clean["status"] == "done"
+    assert clean["gate_pass"] is True  # boxed_rate 1.0 > 0, truncation 0 < 0.5
+    held = summarize([_row("truncated_think", 0.0, "")] * 2, model="m", n_target=2,
+                     max_new_tokens=4096, rel_tol=0.02, status="done")
+    assert held["gate_pass"] is False  # truncation 1.0 → av_r1 not clear
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
