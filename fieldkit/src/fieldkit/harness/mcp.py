@@ -42,7 +42,7 @@ import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 __all__ = [
     "MCP_SERVER_NAME",
@@ -741,12 +741,53 @@ _RL_SCORERS = (
 )
 
 
+def _load_scorer_callable(ref: str) -> Callable[..., float]:
+    """Resolve a reward scorer from a ``"module-or-file:function"`` reference.
+
+    The `rl_run` payload's optional ``scorer_path`` (RV-2 custom-scorer hook) lets
+    a vertical drive the dispatcher with its own local verifier instead of one of
+    the built-in :data:`_RL_SCORERS` — so a domain scorer kept local (per
+    `feedback_keep_scorer_local_until_reuse`) never has to be promoted into
+    `fieldkit.eval` just to run through the Arena. Accepts either an absolute
+    ``*.py`` file path (``"…/verifier.py:astro_numeric_match"`` — its parent dir
+    is prepended to ``sys.path`` so the module's sibling imports resolve) or a
+    dotted module (``"pkg.mod:func"``). The callable must match the scorer
+    signature ``(predicted, expected, **kw) -> float``.
+    """
+    import importlib
+    import importlib.util
+    import sys
+
+    mod_ref, sep, fn_name = ref.partition(":")
+    if not sep or not fn_name:
+        raise ValueError(f"scorer_path {ref!r} must be 'module-or-file:function'")
+    if mod_ref.endswith(".py") or "/" in mod_ref or os.sep in mod_ref:
+        file_path = Path(mod_ref).expanduser().resolve()
+        if not file_path.exists():
+            raise FileNotFoundError(f"scorer_path file not found: {file_path}")
+        parent = str(file_path.parent)
+        if parent not in sys.path:
+            sys.path.insert(0, parent)
+        spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
+        if spec is None or spec.loader is None:
+            raise ImportError(f"could not load scorer module from {file_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    else:
+        module = importlib.import_module(mod_ref)
+    fn = getattr(module, fn_name, None)
+    if not callable(fn):
+        raise ValueError(f"scorer_path {ref!r}: {fn_name!r} is not a callable scorer")
+    return fn
+
+
 def run_rl_loop(
     base: str,
     vertical: str = "patent-strategist",
     *,
     bench_path: Optional[str] = None,
     scorer: str = "mcq_letter",
+    scorer_path: Optional[str] = None,
     lane: Optional[str] = None,
     bench_id: Optional[str] = None,
     config: Optional[dict[str, Any]] = None,
@@ -777,7 +818,7 @@ def run_rl_loop(
     from fieldkit.reward import RewardAdapter
     from fieldkit.rl import GRPOConfig, RLLoop, gpu_seams
 
-    if scorer not in _RL_SCORERS:
+    if not scorer_path and scorer not in _RL_SCORERS:
         raise ValueError(f"unknown scorer {scorer!r}; choose one of {_RL_SCORERS}")
     if not bench_path:
         raise ValueError(
@@ -789,11 +830,18 @@ def run_rl_loop(
     if not path.exists():
         raise FileNotFoundError(f"Bench JSONL not found: {bench_path}")
 
-    scorer_fn = {
-        "mcq_letter": mcq_letter, "numeric_match": numeric_match,
-        "irac_structure": irac_structure, "prior_art_relevance": prior_art_relevance,
-        "exact_match": exact_match, "contains": contains,
-    }[scorer]
+    if scorer_path:
+        # A vertical can inject its own verifier (e.g. the astrodynamics boxed +
+        # SI-unit scorer kept local per `feedback_keep_scorer_local_until_reuse`)
+        # without promoting it into `fieldkit.eval` — the reward stays the
+        # verifier (RV-2), just resolved from an operator-supplied callable.
+        scorer_fn = _load_scorer_callable(scorer_path)
+    else:
+        scorer_fn = {
+            "mcq_letter": mcq_letter, "numeric_match": numeric_match,
+            "irac_structure": irac_structure, "prior_art_relevance": prior_art_relevance,
+            "exact_match": exact_match, "contains": contains,
+        }[scorer]
 
     cfg_kwargs = dict(config or {})
     pass_threshold = cfg_kwargs.pop("pass_threshold", 1.0)

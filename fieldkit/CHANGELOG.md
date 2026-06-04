@@ -7,15 +7,27 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —
-the deferred fast-follow to the v0.22.0 self-driving backend). Site/cockpit-only:
-**no `fieldkit` Python, schema, or module change** — the wheel carries it via the
-rebaked baked `_webui` bundle. One canonical operator curriculum (a new
-`explainers` content collection, single-sourced and drift-guarded against the
-deep-dive's `:::` blocks) surfaces contextually in the live cockpit. Also lands a
-small read-only **reward-signal endpoint** (dogfood AF-3) — the one `server.py`
-addition this cycle; schema unchanged.
+the deferred fast-follow to the v0.22.0 self-driving backend). Mostly
+site/cockpit-only — the wheel carries it via the rebaked `_webui` bundle. The
+`fieldkit` Python surface gains two small, backward-compatible additions this
+cycle: a read-only **reward-signal endpoint** (dogfood AF-3) and a generic
+**`scorer_path` custom-scorer hook** on `run_rl_loop` (both below). **No schema
+or module change.** One canonical operator curriculum (a new `explainers` content
+collection, single-sourced and drift-guarded against the deep-dive's `:::` blocks)
+surfaces contextually in the live cockpit.
 
 ### Added
+
+- **Custom-scorer hook for `rl_run`** — `run_rl_loop` (and the dispatcher's
+  `default_runner`) accept an optional `scorer_path` (`"module-or-file:function"`)
+  that loads a vertical's own verifier instead of one of the six built-in
+  `fieldkit.eval` scorers — so a domain reward kept local (per
+  `feedback_keep_scorer_local_until_reuse`) drives the Arena RLVR loop without
+  being promoted into `fieldkit.eval`. A `*.py` file ref puts the module's parent
+  on `sys.path` so its sibling imports resolve. Backward-compatible (defaults to
+  `None` → the named-scorer path is byte-for-byte unchanged). Unblocked the first
+  greenfield-vertical (astrodynamics) `rl_run`, whose boxed + SI-unit verifier the
+  built-in first-number `numeric_match` scores 0.0. Schema unchanged.
 
 - **Cockpit education layer (LA-12..16)** — per-phase "what / why / watch" guide
   cards + a live pool-vs-held-out interpreter (the t2po inversion read in real
