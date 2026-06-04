@@ -276,6 +276,25 @@ def test_preflight_summarize_done_gate():
     assert held["gate_pass"] is False  # truncation 1.0 → av_r1 not clear
 
 
+def test_fewshot_exemplars_terse_distinct_deterministic():
+    # AV-10 conditioning probe: exemplars are terse, distinct-subtopic, ordered
+    # shortest-first, and deterministic (no RNG) — held-out-disjoint by RV-10.
+    from preflight_av10 import _CORPUS, build_fewshot_content, load_fewshot, summarize
+    ex = load_fewshot(_CORPUS, 3)
+    assert len(ex) == 3
+    assert len({e["subtopic"] for e in ex}) == 3
+    lens = [len(e["completion"]) for e in ex]
+    assert lens == sorted(lens)  # shortest-first
+    assert [e["task_id"] for e in load_fewshot(_CORPUS, 3)] == [e["task_id"] for e in ex]
+    content = build_fewshot_content(ex, "SOLVE THIS Q")
+    assert content.rstrip().endswith("SOLVE THIS Q")
+    assert content.count("### Example") == 3
+    assert r"\boxed{value unit}" in content
+    # the fewshot count rides the report for provenance + dropdown disambiguation
+    assert summarize([], model="m", n_target=8, max_new_tokens=8192,
+                     rel_tol=0.02, status="running", fewshot=3)["fewshot"] == 3
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0
