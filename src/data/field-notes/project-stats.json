@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-05T21:59:00Z",
+  "generated_at": "2026-06-05T23:29:57Z",
   "articles": {
     "total": 53,
     "published": 53,
@@ -7,8 +7,8 @@
     "drafts": 0
   },
   "words": {
-    "total": 174407,
-    "mean_per_article": 3290,
+    "total": 174475,
+    "mean_per_article": 3291,
     "longest": {
       "slug": "clawgym-on-spark-grpo",
       "title": "ClawGym GRPO on Spark \u2014 Closing the Loop the SFT Adapter Couldn't",
@@ -17,11 +17,11 @@
   },
   "code": {
     "evidence_loc": 297,
-    "fieldkit_loc": 44388,
+    "fieldkit_loc": 44392,
     "vendored_loc": 0,
-    "total_loc": 44685,
+    "total_loc": 44689,
     "by_language": {
-      "python": 44685
+      "python": 44689
     },
     "data_lines": {
       "json": 2286,
