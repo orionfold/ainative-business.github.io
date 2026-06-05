@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.23.0] — 2026-06-05
+
 The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —
 the deferred fast-follow to the v0.22.0 self-driving backend). Mostly
 site/cockpit-only — the wheel carries it via the rebaked `_webui` bundle. The
@@ -83,6 +85,29 @@ surfaces contextually in the live cockpit.
   the reward gauge (newest training log by mtime, `?source=` selector,
   merge/export logs excluded). Read-only (an HTTP GET parses a log; never launches a
   lane), no arena.db read, no schema bump. (Ships in the baked `_webui` + `server.py`.)
+
+### Fixed
+
+- **`test_drain_arbiters_rl_run_with_progress_and_mem_trace` isolated from the host
+  autonomy state** — `build_standup` reads `~/.fieldkit/arena/autonomy.json`, so on a
+  box with autonomy armed (`enabled: true`) the test's unarmed-policy assertion failed.
+  The test now points `$ARENA_AUTONOMY_STATE` at a tmp path so it reads a clean state.
+  Test-only; no source change.
+
+### Test suite
+
+- Offline `pytest tests/` → **1271 passed, 5 skipped** (the 5 skips need `--spark` /
+  `torch`). The cycle's changes (the `scorer_path` eval/compare hook, the reward-signal
+  and SFT-progress endpoints, the education layer) are GPU-free connective tissue tested
+  with local scorers + fakes, so this release verified offline (v0.21.0/v0.22.0
+  precedent — warming NIMs adds no coverage and risks the unified-memory OOM landmine).
+
+### Articles in this release
+
+- [`the-gate-before-the-gpu`](https://ainative.business/field-notes/the-gate-before-the-gpu/)
+  — the SFT-vs-RL-vs-RLVR method-selection deep-dive (`fieldkit_modules: [rl, reward, eval]`),
+  built on the Kepler greenfield astrodynamics vertical whose cockpit `rl_run` the AF-15
+  `scorer_path` hook unblocked.
 
 ## [0.22.0] — 2026-06-03
 
