@@ -311,7 +311,11 @@ def _rl_runner_with_hooks(payload, *, should_abort=None, progress_cb=None):
 # --------------------------------------------------------------------------- #
 
 
-def test_drain_arbiters_rl_run_with_progress_and_mem_trace(tmp_path):
+def test_drain_arbiters_rl_run_with_progress_and_mem_trace(monkeypatch, tmp_path):
+    # Isolate the autonomy state file — build_standup reads it, and the box's
+    # real ~/.fieldkit/arena/autonomy.json may be armed (enabled), which would
+    # otherwise fail the unarmed-policy assertion below (LA-5/11).
+    monkeypatch.setenv("ARENA_AUTONOMY_STATE", str(tmp_path / "autonomy.json"))
     store = ArenaStore(tmp_path / "arena.db")
     store.initialize()
     fake = FakeLane()
