@@ -1,0 +1,20 @@
+{
+  "variant": "kepler-q8",
+  "model": null,
+  "max_tokens": 4096,
+  "n": 44,
+  "boxed_rate": 1.0,
+  "reward_rate": 0.8409090909090909,
+  "truncation_rate": 0.0,
+  "mean_tokens": 165.6590909090909,
+  "hf_bf16_baseline": 0.8636,
+  "misses": [
+    "altitude_from_period",
+    "altitude_from_period",
+    "hohmann_transfer",
+    "hohmann_transfer",
+    "hohmann_transfer",
+    "altitude_from_period",
+    "hubble_in_pc"
+  ]
+}

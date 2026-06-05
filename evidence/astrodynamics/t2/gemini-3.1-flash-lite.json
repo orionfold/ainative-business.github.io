@@ -1,0 +1,15 @@
+{
+  "variant": "gemini-3.1-flash-lite",
+  "model": "google/gemini-3.1-flash-lite",
+  "max_tokens": 4096,
+  "n": 44,
+  "boxed_rate": 1.0,
+  "reward_rate": 0.9545454545454546,
+  "truncation_rate": 0.0,
+  "mean_tokens": 464.3863636363636,
+  "hf_bf16_baseline": 0.8636,
+  "misses": [
+    "hohmann_transfer",
+    "hohmann_transfer"
+  ]
+}

@@ -16,6 +16,8 @@ import argparse
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -28,12 +30,13 @@ def ask(
     *,
     model: str | None = None,
     api_key: str | None = None,
+    max_tokens: int = 2048,
 ) -> tuple[str, str, int]:
     payload: dict = {
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.6,
         "top_p": 0.95,
-        "max_tokens": 2048,
+        "max_tokens": max_tokens,
     }
     if model:  # local llama-server ignores model; OpenRouter requires it
         payload["model"] = model
@@ -45,13 +48,34 @@ def ask(
         data=json.dumps(payload).encode(),
         headers=headers,
     )
-    d = json.load(urllib.request.urlopen(req, timeout=300))
-    c = d["choices"][0]
-    return (
-        c["message"]["content"] or "",
-        c.get("finish_reason", ""),
-        d.get("usage", {}).get("completion_tokens", 0),
-    )
+    # OpenRouter intermittently returns an empty body / 429 / 5xx under parallel
+    # load; retry transient failures with backoff rather than crashing the run.
+    last = ""
+    for attempt in range(5):
+        try:
+            raw = urllib.request.urlopen(req, timeout=300).read().decode().strip()
+            if not raw:
+                last = "empty body"
+                time.sleep(2 * (attempt + 1))
+                continue
+            d = json.loads(raw)
+            choices = d.get("choices") or []
+            if not choices:
+                last = f"no choices ({d.get('error', '')})"
+                time.sleep(2 * (attempt + 1))
+                continue
+            c = choices[0]
+            return (
+                c.get("message", {}).get("content") or "",
+                c.get("finish_reason", ""),
+                d.get("usage", {}).get("completion_tokens", 0),
+            )
+        except (urllib.error.HTTPError, urllib.error.URLError, json.JSONDecodeError) as e:
+            last = str(e)
+            time.sleep(2 * (attempt + 1))
+    # Exhausted retries — count as an empty completion (a miss), not a crash.
+    print(f"  [warn] giving up after retries: {last}", file=sys.stderr)
+    return "", "error", 0
 
 
 def main() -> None:
@@ -63,6 +87,7 @@ def main() -> None:
     ap.add_argument("--heldout", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--baseline", type=float, default=0.8636)
+    ap.add_argument("--max-tokens", type=int, default=2048, help="completion budget (reasoners need >=4096)")
     args = ap.parse_args()
     api_key = os.environ.get(args.api_key_env) if args.api_key_env else None
     if args.api_key_env and not api_key:
@@ -74,7 +99,9 @@ def main() -> None:
     toks: list[int] = []
     misses: list[str] = []
     for i, r in enumerate(rows):
-        comp, fin, t = ask(args.url, r["prompt"], model=args.model, api_key=api_key)
+        comp, fin, t = ask(
+            args.url, r["prompt"], model=args.model, api_key=api_key, max_tokens=args.max_tokens
+        )
         toks.append(t)
         has_box = extract_boxed(comp) is not None
         sc = astro_numeric_match(comp, r["answer"], rel_tolerance=r.get("rel_tol", 0.02))
@@ -87,6 +114,8 @@ def main() -> None:
 
     report = {
         "variant": args.variant,
+        "model": args.model,
+        "max_tokens": args.max_tokens,
         "n": n,
         "boxed_rate": boxed / n,
         "reward_rate": reward / n,
