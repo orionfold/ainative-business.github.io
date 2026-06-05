@@ -238,3 +238,86 @@ First real-world use case driving the completed `pane → hands → engine` arc 
 
 <!-- 2026-05-31 catalog-narrative entry (patent-strategist lanes + 4 older-quant positioning) pruned per "keep ~2 latest"; recover via `git log -p HANDOFF.md`. -->
 <!-- 2026-05-29 Orionfold LLC go-live entry pruned per "keep ~2 latest"; recover via `git log -p HANDOFF.md`. -->
+
+---
+
+## ▶ QUEUED INITIATIVE — Editorial Craft Pass (`_SPECS/editorial-craft-pass-v1.md`)
+
+**Spec DRAFT 2026-06-05** (the 4 scoping forks operator-confirmed; full decision set ECP-1…18 + risks
+ECP-R1…7 await a confirm-before-build green-light). A **site-wide craft pass** over all **42 published
+articles** + a permanent upgrade to `tech-writer` + `product-writer`: (A) read **human-written** — cut
+the high-signal LLM tells, rebalance punctuation off the em-dash default (**reduce & balance**, NOT a
+hard ban); (B) **layered readability** — body stays at full technical depth for researchers,
+first-time-learner on-ramps ride in the explainer sidebar + sentence-level clarity, soft Flesch report
+(advisory); (C) **visualization diversity** — add a **build-time static-chart lane** (no client JS)
+beside the hand-authored `fn-diagram` system, more chart types + the 9 `--svg-accent-*` hues; (D) fold
+all of it back into both skills; (E) **HARD SEO FREEZE** — never change slug / URL / folder / `title` /
+`date` / git-first-add identity (ECP-14 + a scripted frozen-field guard, ECP-16). Sequencing =
+**pilot 2–3 → operator gate → themed waves** (ECP-17). **Queued AFTER the astrodynamics ship-tasks
+(SHIP-TASK 1 drafted/committed; 2 + 3 pending).** Confirm the full spec before S0.
+
+**Session-by-session breakdown (spec §4 detail):**
+
+- **S0 — Foundations + tooling (gate before any article is touched).**
+  - Author `tech-writer/references/prose-craft.md` (the ECP-2 tell taxonomy + ECP-1 punctuation-variety
+    rules + the ECP-3 human-not-flattened guardrail + the ECP-6 readability rubric).
+  - Author `tech-writer/references/charts.md` (chart-vs-`fn-diagram`-vs-table decision rule + the chosen
+    library + the ECP-10 theming recipe + the chart-type catalog).
+  - Update `tech-writer/references/voice-and-style.md` + `visualizations.md` to cross-ref; mirror the
+    prose-craft + charts guidance into `product-writer` (+ `_GUIDES/product-articles.md`).
+  - Build `scripts/lint_prose.mjs` (ECP-2 tells + em-dash density + Flesch reading-ease; `--report`
+    corpus mode) and wire it **advisory** into `verify_article.sh`.
+  - **Chart-library spike (ECP-9):** evaluate Observable Plot (lean primary) / Vega-Lite / ECharts-SSR /
+    `fieldkit.viz` (matplotlib+great_tables, already on the box); prove ONE in-page chart renders a
+    **themed static SVG** in **both** dark + light, builds on aarch64 + CI, passes the extended
+    `verify_svg.sh` (no-hex + token-palette + role/aria).
+  - **Gate:** the two references + the lint tool exist; the chart spike is green in both themes.
+
+- **S1 — Pilot (3 articles) + operator gate.** Apply the full playbook to 3 representative pieces:
+  **`nim-first-inference-dgx-spark`** (Foundations install), **`the-meta-program-on-spark`** (MTBM
+  series-anchor essay), **`kv-cache-arithmetic-at-inference`** (Looking-Beyond arithmetic-heavy + a
+  natural chart candidate). **Operator side-by-side review gate** — the "after" must read human +
+  accessible + visually richer **without losing rigor**. Calibrate the S0 references/tooling from what
+  the pilot teaches. (These 3 are then done; exclude from their waves.)
+
+- **S2 — Wave: Foundations + preamble (~10).** The install chain `nim-first…`→`one-substrate-three-apps`
+  (`nim-first` done in S1) + `naive-rag` / `pgvector` / `nemo-retriever` / `rerank-fusion` /
+  `bigger-generator` / `guardrails-on-the-retrieval-path` + the 3 preamble/(none) pieces
+  (`dgx-spark-day-one-access-first`, `nemoclaw-vs-openclaw`, `patent-strategist-v1-baseline`).
+  High-traffic, set the bar.
+
+- **S3 — Wave: Machine that Builds Machines, part 1 (~9).** `auto-research-loop` · `autoresearch-agent-loop`
+  · `baseline-training-loop` · `nemo-framework-on-spark` · `nemo-curator-training-data-prep` ·
+  `fine-tune-data-prep-decisions` · `distill-architect-lora-from-trajectories` · `unsloth-on-spark-feasibility`
+  · `the-machine-improves-itself`. (`the-meta-program` done in S1; `the-gate-before-the-gpu` is fresh —
+  light-touch or skip.)
+
+- **S4 — Wave: Machine that Builds Machines, part 2 (~8).** The 4 curator pieces (`becoming-a-{cyber,legal,
+  medical}-curator`, `becoming-a-gguf-publisher`) · `a2tgpo-turn-clipping` · `guardrails-for-code-generation`
+  · `trajectory-eval-is-the-agent-flailing`. **NB: 4 of these are product-card-linked** (HF model cards) —
+  honor the customer-linked voice audit (`voice-and-style.md`) during the pass.
+
+- **S5 — Wave: Harnesses (7) + Second Brain (5).** Harnesses: `the-hermes-harness` · `picking-the-hermes-brain`
+  · `hardening-the-hermes-harness` · `hermes-serving-lane` · `hermes-vertical-router` · `hermes-cost-routing`
+  · `hermes-drives-the-spark-via-fieldkit-mcp`. Second Brain: `mcp-second-brain-in-claude-code` ·
+  `naive`-adjacent `rag-eval-ragas-and-nemo-evaluator` · `the-machine-manages-its-own-memory` ·
+  `trtllm-and-triton-on-spark` · `lora-on-your-own-qa-pairs`.
+
+- **S6 — Wave: Frontier Scout (7) + Looking Beyond Spark (5).** Frontier Scout: `clawgym-on-spark` ·
+  `clawgym-on-spark-grpo` · `t2po-uncertainty-guided-rl` · `pass-at-k-after-the-seventh-patch` ·
+  `runtime-frontier-six-patches` · `test-time-distilling-for-exploration` · `autoresearchbench-on-spark`.
+  Looking Beyond: `gpu-sizing-math` · `kv-cache-arithmetic` (done S1) · `what-the-agent-actually-built` ·
+  `derisk-cloud-pretraining` · `patent-strategist-bakeoff-unsloth-vs-nemo`. **Heavy chart candidates here**
+  (the arithmetic + bench pieces) — best showcase for the new chart lane.
+
+- **S7 — Corpus sweep + sign-off.** Run `lint_prose.mjs --report` site-wide (before/after table), the
+  **frozen-field audit** (`git diff` across the whole pass shows zero slug/title/date change), OG-regen
+  sanity (titles unchanged → OG stable), full `astro build` + both render verifiers, `compute_stats.py`
+  refresh, final operator review. Per-article before/after lint+readability numbers logged in each
+  `transcript.md` along the way (ECP-16).
+
+**Cross-cutting reminders:** each wave commits self-contained (per-wave `git log` = one editorial
+event); the **frozen-field guard runs per article** (ECP-16); product-card-linked articles get the
+customer-linked audit; the 11 `upcoming` placeholders are **out of scope** (inherit via the upgraded
+skills at promotion, ECP-18). Release/no-release: this is a content+skills change, **no `fieldkit` cut**
+— it deploys via the normal push-to-`main` → GitHub Pages on each wave commit (operator-gated push).
