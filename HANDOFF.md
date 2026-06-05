@@ -11,12 +11,15 @@
 
 ## Current state
 
-### ✅ 2026-06-05 — Kepler SHIPPED; repo clean + in sync; box idle
+### ✅ 2026-06-05 — Kepler SHIPPED + `fieldkit v0.23.0` RELEASED; repo clean + in sync; box idle
 
-> **The greenfield astrodynamics vertical (`Kepler`) is published end-to-end and the tree is clean.**
-> `origin/main` tip = **`be1ed2d`**, **branch up to date with `origin/main` (0 ahead)**, working tree clean except two
-> pre-existing untracked items to **leave alone** (`.claude/scheduled_tasks.lock` = runtime lock; `src/data/arena-mirror/leaderboard.json` = generated).
+> **The greenfield astrodynamics vertical (`Kepler`) is published end-to-end, `fieldkit v0.23.0` is on PyPI, and the tree is clean.**
+> `origin/main` tip = **`9885dc2`** (stats refresh post-v0.23.0), **branch up to date with `origin/main` (0 ahead)**, working tree clean
+> except two pre-existing untracked items to **leave alone** (`.claude/scheduled_tasks.lock` = runtime lock; `src/data/arena-mirror/leaderboard.json` = generated).
 > GitHub Pages auto-deploys on push to `main` → site is live at `ainative.business`.
+> **`fieldkit v0.23.0`** — tag `fieldkit/v0.23.0` + <https://pypi.org/project/fieldkit/0.23.0/> (both install-verifies green): ships the
+> LA-12..16 cockpit education layer in the baked `_webui` + the AF-15 `scorer_path`/`api_key_env` hooks on the eval/compare path +
+> AF-3/AF-9 reward-signal + SFT-progress endpoints. No schema/module change (`user_version` stays 6). The `[Unreleased]` CHANGELOG is now empty.
 
 **What's live:**
 - **Model** — <https://huggingface.co/Orionfold/Kepler-GGUF>: 4 GGUF variants (Q4_K_M / Q5_K_M / Q6_K / **Q8_0**=recommended),
@@ -46,13 +49,8 @@
 
 ## Open items (by swimlane)
 
-### 🪐 Kepler / astrodynamics — ship tail (small, optional)
-- **Add Kepler HF links to the article** — `articles/the-gate-before-the-gpu/` has no outbound `Orionfold/Kepler-GGUF` / `-bench` links yet; optional now both repos are live. Operator-gated push.
-- **Manual cleanup** — delete the stray byte-identical lowercase dup `model-f16.gguf` at `/home/nvidia/data/quants/Kepler/` (auto-classifier blocked the `rm`; safe by hand; the canonical `model-F16.gguf` reference variant stays).
-
-### 🚀 Release
-- **Optional `fieldkit v0.23.0` cut** — ships (a) the cockpit education layer **LA-12..16** in the wheel's baked `_webui` (site/cockpit-only, already committed at `27efc11`), and (b) the **AF-15 `scorer_path` hook** on the eval/compare path. The `[Unreleased]` CHANGELOG block carries these. `fieldkit-curator` release mode. ⚠️ The running cockpit's `/tmp/arena-venv` + the PyPI wheel still carry OLD source — in-cockpit `POST /api/jobs` eval needs a `pip install -e ./fieldkit` there (or this cut).
-- **1-line test fix** — pre-existing `test_drain_arbiters…mem_trace` failure: asserts `autonomy.enabled is False` but reads the box's armed `~/.fieldkit/arena/autonomy.json` without `path=` isolation. Unrelated to recent diffs.
+### ✅ Kepler ship-tail + Release — ALL DONE 2026-06-05
+- ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state). ⚠️ The running cockpit's `/tmp/arena-venv` still carries OLD source — in-cockpit `POST /api/jobs` eval needs a `pip install fieldkit==0.23.0` (or `-e ./fieldkit`) there to pick up the AF-15 hook.
 
 ### 🔧 Arena dogfood — `arena-enhancements-v1` (spec DRAFT, 16 decisions AE-1…16; confirm before build)
 The payoff from running Kepler's pipeline live through the cockpit. Spec `_SPECS/arena-enhancements-v1.md`; gitignored ledger `_IDEAS/arena-dogfood-feature-extraction.md`. **No arena.db churn** (everything lands in `result_json`/file-reports/panes/nav; `user_version` stays 6). Release gate ~`v0.23.0+`.
@@ -82,14 +80,15 @@ The payoff from running Kepler's pipeline live through the cockpit. Spec `_SPECS
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-05 (`fieldkit v0.23.0` CUT + on PyPI; Kepler ship-tail closed — HF links, dup delete, test fix)
+Closed the operator's "do 1, prioritize 3+4" queue. **Task 1:** added reader-facing `Orionfold/Kepler-GGUF` + `Orionfold/Kepler-bench` links to `articles/the-gate-before-the-gpu/` deliverable section (`871a654`; build green 518 pages, verifiers pass). **Task 4 (test fix):** `test_drain_arbiters_rl_run_with_progress_and_mem_trace` failed because `build_standup` reads the box's `~/.fieldkit/arena/autonomy.json` (armed `enabled:true`) → isolated it via `monkeypatch.setenv("ARENA_AUTONOMY_STATE", tmp)` (`a8acc1c`; test-only, 19/19 lane tests green). **Task 3 (release):** `fieldkit-curator` interactive — minor bump 0.22.0→**0.23.0** (new public kwargs + endpoint, backward-compatible, no schema/module change), offline test mode (GPU-free connective tissue; v0.21/v0.22 precedent). Gates: audit-docs 17/18 (1 pre-existing ArenaStore kwarg WARN, not this release) + audit-landing 4/4. Offline suite **1271 pass / 5 skip**. CHANGELOG `[Unreleased]`→`[0.23.0]` (+Fixed/Test-suite/Articles), commit **`3bda6df`**, tag `fieldkit/v0.23.0`, pushed. Both install-verifies green (git-source + PyPI). **PyPI upload user-authorized** → <https://pypi.org/project/fieldkit/0.23.0/>. Stats refreshed (`fieldkit` LOC 43,690→**44,392**; 53 articles) → `9885dc2`. The `[Unreleased]` block is now empty. (Task 2 — the F16 dup delete — done by operator.) | Manav (with Claude)
+
 ### 2026-06-05 (Kepler PUBLISHED — T1 article + T2 head-to-head + T3 GGUF/bench, both HF repos LIVE)
 Executed the operator's three STEP-2 ship-tasks for the astrodynamics vertical (named **Kepler**). **T1:** wrote + pushed the method-selection deep-dive `articles/the-gate-before-the-gpu/` (`cf132a4`; new signature `GateReadings.astro`; the SFT-vs-RL-vs-RLVR decision discipline as the spine — the 86% SFT was the right call, RLVR added 0, ran only as a control-plane stress-test). **T2:** scored Kepler-Q8_0 vs cloud frontier-small via `scripts/astro_bench/score_gguf_lane.py` (GGUF lane + OpenRouter, shared `astro_numeric_match`, new `--max-tokens`) → the model-card "how it stacks up" table (Kepler 84.1% local/$0 vs Haiku 97.7% / Gemini Flash-Lite 95.5%; dropped qwen3-8b + deepseek-r1 — slow OpenRouter providers stalled under the 4096 budget). **T3:** requant `merged-hf-bf16` → 4 GGUF variants (`9dce32a`), then `hf-publisher` → `Orionfold/Kepler-GGUF` (Q8=recommended, F16 dropped) + `Orionfold/Kepler-bench` (`kind: bench`). **AF-15 dogfood:** threaded the generic `scorer_path` hook through the eval/compare path (was rl_run-only) so a `\boxed{}` vertical scores correctly through the cockpit, not 0.0 via boxed-blind `numeric_match` — committed `9dce32a`, +2 tests, suite 250 pass (1 pre-existing mem_trace failure, see Open items). **All committed + pushed** (`be1ed2d` tip; tree clean). The `[Unreleased]` CHANGELOG carries the AF-15 hook for the next cut. | Manav (with Claude)
 
-### 2026-06-05 (C6 STEP-1.5 — the AV-12 RL-headroom gate RAN; bimodal result → ship SFT, branch 1)
-Built + ran the RL-headroom gate (AV-12/RV-11): `scripts/astro_bench/{transfer,gen_transfer,headroom_gate}.py` — 11 error-mined Tier-1 transfer templates (un-named formulas · new bodies μ_Mars/μ_Moon/μ_Jupiter · two-hop chains · e>1 hyperbolic), 48 candidates disjoint from pool+heldout+SFT corpus, all self-verify, 47 tests green. Scored the frozen SFT (`merged-hf-bf16`) in the NeMo container (~24 min): **agg reward 20.83% · boxed 100% · trunc 0%** — but the per-family read is **BIMODAL**: fully-generalizes some (`altitude→speed` 100%), **0%** on the target weak spots (new-body hohmann/circular, un-named altitude_from_period); only 4 families/15 rows in the productive (0,1) band. **Refines the C5 lesson:** 0% = the mirror of saturation (zero group-advantage) → an **SFT-coverage gap, not RL headroom**. **FORK RESOLVED (operator) = BRANCH 1: SHIP the 86%-generalizing SFT + tell the honest methodology story** (re-RL buys a thin lift of narrow value; expand-SFT is a later option). Memory `feedback_rlvr_headroom_gate` updated. Committed `a49dff6`. **→ became the 2026-06-05 publish work above.** | Manav (with Claude)
-
 <!--
   Older entries pruned 2026-06-05 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - C6 STEP-1.5: AV-12 RL-headroom gate RAN (scripts/astro_bench/{transfer,gen_transfer,headroom_gate}.py); SFT agg 20.83% but BIMODAL per-family (0% = SFT-coverage gap, not RL headroom) → operator BRANCH 1 = ship the 86% SFT + methodology story (feedback_rlvr_headroom_gate); a49dff6. Fed the publish work above.
   - C5 full RLVR run = clean null (selected_step=0, in-loop held-out flat 0.9583) + C6 STEP-1(a) generalization 86.36%; encoded the RL-headroom gate (AV-12/RV-11, feedback_rlvr_headroom_gate); 2 cockpit bugs → AE-15/AE-16.
   - C4 wiring-complete + C5 4-step smoke PASSED (scorer_path hook; enqueue_rl.py; reward REAL pool 0.75–0.875 / held-out 0.958).
   - C2(b) SFT-init GATE PASS (held-out 86.36% vs base 12.5%, NeMo p65, ~11 min not multi-hour) + AF-10 live SFT cockpit feed.
