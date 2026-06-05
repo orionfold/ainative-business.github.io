@@ -156,6 +156,9 @@ def main() -> int:
     ap.add_argument("--max-new-tokens", type=int, default=4096, help="AV-6: >=2048")
     ap.add_argument("--rel-tol", type=float, default=0.02)
     ap.add_argument("--seed", type=int, default=0, help="reproducible sampling")
+    ap.add_argument("--heldout", default=str(_HELDOUT),
+                    help="JSONL slice to score (default: the generalization held-out; "
+                         "the AV-12 headroom gate points this at the transfer candidates)")
     ap.add_argument("--report", default=str(_REPORT))
     ap.add_argument("--fewshot", type=int, default=0,
                     help="prepend K terse SFT-corpus exemplars (conditioning probe; "
@@ -164,7 +167,7 @@ def main() -> int:
                     help="SFT corpus to draw --fewshot exemplars from")
     args = ap.parse_args()
 
-    rows = load_heldout(_HELDOUT, args.n)
+    rows = load_heldout(Path(args.heldout), args.n)
     exemplars = load_fewshot(Path(args.corpus), args.fewshot) if args.fewshot > 0 else []
     mode = (f"fewshot={args.fewshot} ({','.join(e['subtopic'] for e in exemplars)})"
             if exemplars else "zero-shot")
