@@ -214,6 +214,8 @@ Zero lift. A clean null. And it was the most valuable run of the project, for tw
 
 The deliverable, then, is the SFT model — Kepler, 86% on both the in-distribution and the off-template generalization held-out, with the truncation failure mode fully eliminated. The decision rule was right at the top of the funnel; the gates confirmed it at each step; and the GPU run was the receipt, not the discovery.
 
+Both halves are public. The model ships as [`Orionfold/Kepler-GGUF`](https://huggingface.co/Orionfold/Kepler-GGUF) — four quantization variants (Q4_K_M / Q5_K_M / Q6_K / Q8_0, with Q8_0 recommended), runnable on a Spark at $0 and offline. And the benchmark that gated every decision above — the 120-row pool, the 44-row held-out, and the boxed-answer verifier that doubled as the RL reward — is released as [`Orionfold/Kepler-bench`](https://huggingface.co/datasets/Orionfold/Kepler-bench), so the gates in this piece are reproducible, not just narrated.
+
 ## What this unlocks
 
 If you're building a domain reasoner on your own hardware, three concrete things change on Monday. **First**, you can decide your training method in an afternoon of inference passes instead of a week of runs: score the base, ask whether you can author the demonstrations, and if you can and the output is enumerable, SFT and stop. **Second**, you can build the headroom gate into your pipeline as a hard prerequisite — score the SFT init on an error-mined, *per-family* held-out, and refuse to launch RL unless families sit strictly inside the (0,1) band — which turns "should we RL this?" from a gut call into a table you read. **Third**, you can adopt the spiral as a habit: for every expensive run, write down the cheapest proxy that would predict its outcome, and run that first.
