@@ -414,6 +414,89 @@ def test_loop_refuses_subfloor_corpus():
         raise AssertionError("RLLoop accepted a 42-row corpus below the RV-10 floor")
 
 
+# ---- transfer set (AV-12 / RV-11 RL-headroom gate) ------------------------
+
+def test_transfer_gold_self_verifies():
+    import transfer as TX
+    rng = __import__("random").Random(3)
+    for fn, _ in TX.TRANSFER_TEMPLATES:
+        for _ in range(5):
+            p = fn(rng)
+            assert astro_numeric_match(p.answer, p.answer, rel_tolerance=REL_TOL) == 1.0, p.subtopic
+            assert astro_numeric_match(
+                f"\\boxed{{{p.answer}}}", p.answer, rel_tolerance=REL_TOL
+            ) == 1.0, p.subtopic
+
+
+def test_transfer_generator_deterministic():
+    from gen_transfer import generate as gtx
+    a = gtx(48, 20260605, set())
+    b = gtx(48, 20260605, set())
+    assert [p.prompt for p in a] == [p.prompt for p in b]
+
+
+def test_transfer_disjoint_from_existing():
+    # AV-R6: the selection set must be separate from pool + generalization
+    # held-out + SFT corpus (no leakage either direction).
+    from gen_transfer import _existing_prompts
+    from gen_transfer import generate as gtx
+    existing = _existing_prompts()
+    cands = {p.prompt for p in gtx(48, 20260605, existing)}
+    assert cands.isdisjoint(existing), "transfer candidates overlap pool/heldout/SFT"
+
+
+def test_transfer_subtopics_are_namespaced():
+    # xfer_* names can never collide with the original bench/corpus subtopics.
+    import transfer as TX
+    rng = __import__("random").Random(1)
+    for fn, _ in TX.TRANSFER_TEMPLATES:
+        assert fn(rng).subtopic.startswith("xfer_")
+
+
+def test_transfer_error_mines_weak_spots():
+    # AV-R6: weighted HEAVY toward the C6 measured weak spots.
+    from gen_transfer import generate as gtx
+    cands = gtx(48, 20260605, set())
+    subs = [p.subtopic for p in cands]
+    hohmann = sum(1 for s in subs if "hohmann" in s)
+    altitude = sum(1 for s in subs if "altitude_from_period" in s)
+    assert hohmann >= 8, f"too few hohmann error-mine rows: {hohmann}"
+    assert altitude >= 5, f"too few altitude_from_period error-mine rows: {altitude}"
+
+
+def test_transfer_hyperbolic_is_unbound():
+    # mild extrapolation e>1: v_inf must be real and positive (v > escape speed).
+    import transfer as TX
+    rng = __import__("random").Random(7)
+    for _ in range(20):
+        p = TX.xfer_hyperbolic_excess(rng)
+        assert p.gold_value_si > 0.0, "hyperbolic excess speed must be positive (e>1)"
+
+
+def test_transfer_new_bodies_present():
+    # transfer shift: non-Earth central bodies appear in the prompts.
+    from gen_transfer import generate as gtx
+    cands = gtx(48, 20260605, set())
+    bodies = sum(1 for p in cands if any(b in p.prompt for b in ("Mars", "Moon", "Jupiter")))
+    assert bodies >= 10, f"too few new-body transfer rows: {bodies}"
+
+
+def test_headroom_per_subtopic_and_band():
+    from headroom_gate import per_subtopic
+    rows = (
+        [{"subtopic": "a", "score": 1.0}] * 5          # saturated 100%
+        + [{"subtopic": "b", "score": 0.0}] * 5        # too hard 0%
+        + [{"subtopic": "c", "score": 1.0}] * 2 + [{"subtopic": "c", "score": 0.0}] * 2  # 50% in-band
+    )
+    subs = per_subtopic(rows)
+    assert subs["a"] == (5, 5)
+    assert subs["b"] == (0, 5)
+    assert subs["c"] == (2, 4)
+    # the anti-degenerate-advantage criterion: keep families strictly in (0,1).
+    partial = {k for k, (c, t) in subs.items() if 0 < c < t}
+    assert partial == {"c"}, "only partial-competence families have RL headroom"
+
+
 def _run_standalone() -> int:
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     failed = 0

@@ -94,6 +94,31 @@ A fresh look at the cockpit IA surfaced three coupled problems:
   intuition lets us **leverage them better** (Standup already carries `rl.display` / `oom_deferred`;
   Reward should span SFT-eval + live RL, not just the AV-10 preflight; Lab could thread the live build).
 
+### Body 3 — two correctness defects found during astro C6 (2026-06-05)
+
+Driving the cockpit beside the C6 generalization eval surfaced two more dogfood finds — both
+**verified against shipped code + the live `:7866` board**, both within this spec's no-schema-change
+envelope:
+
+- **The telemetry "active lane" lies — it echoes the static Hermes config, not what's on the GPU.**
+  `_build_payload` sets `resident_lane = self._resident_model()` (`server.py:463`), which reads
+  `~/.hermes/config.yaml`'s `default` model (`_read_hermes_lane`, `server.py:108`) — pinned to
+  **Qwen3-30B-A3B MoE** (`[[project_hermes_brain_pinned_moe]]`). The telemetry rail labels the lane
+  `t.speed_model || t.lane_id || t.resident_lane` (`TelemetryRail.astro:309`), so **at idle, or while
+  an astro 8B / vLLM-rl / NeMo container holds the GPU, the rail still says Qwen3-30B** — the config
+  value, never reconciled against the actual process. The reader checks the file's mtime but never its
+  liveness; and a Phase-3 lane (a `vllm-rl`/`nemo:26.04` container Hermes doesn't manage) is wholly
+  invisible to it, even though the **lane arbiter (`fieldkit.arena.lane`) knows it tore the resident
+  brain down** to seat that lane. Verified live: board idle, GPU free, rail reads `Qwen3-30B`.
+- **Jobs "Done" cards read as repeats — distinct jobs lack any on-card identity.** Not data or DOM
+  duplication (verified: `list_jobs` is a plain `SELECT * FROM jobs`, no JOIN fan-out; live DOM = one
+  board, 5 distinct cards, no duplicate ids). The card face shows only kind + `laneBench(job)` (=
+  `[lane_id, bench_id||manifest_slug]`, `JobsBoard.jsx:28`) + a kind-specific result line — **no
+  timestamp, no short id, no run discriminator**. So the C5 4-step **smoke** and the full **34-step**
+  run render as two near-identical `RL_RUN · astro-rlvr × astro-bench-v0.1 · held-out step 0 · 0.958`
+  cards (differing only by `peak 104 GB` vs `106 GB`), and the two operator `rag_eval` jobs are
+  **byte-identical** (`RAG_EVAL · rag_eval`). Distinct work is indistinguishable on the board.
+
 ### Why now (and why gated after astro C6)
 
 The gaps were found *because* a real run finally exercised the plane; building the fixes before the
@@ -106,13 +131,13 @@ the new panes (S3+), so they slot into a reorganized nav rather than worsening t
 
 **In:**
 - **A — RL-run observability:** AF-11 reward-gauge wiring + degenerate-step visibility + per-step
-  history persistence + lineage step-indexing.
+  history persistence + lineage step-indexing + **Jobs-card identity** (AE-16, Body 3).
 - **B — build-pipeline spine:** AF-1 `/arena/build/` pane, AF-2 corpus feed, AF-5 build-gate cards.
 - **C — substrate / provenance:** AF-4 bench provenance card, AF-6 rl_run lineage threading.
 - **D — wiring quick-wins:** AF-7 scout-top-3 → Compare (+ lock-time behavioral gate), AF-8 bench
   preview via the existing Eval surface.
 - **E — information architecture:** flow-based nav regroup, data-flow routing audit + corrections,
-  Standup/Lab/Reward purpose redefinition.
+  Standup/Lab/Reward purpose redefinition, **telemetry lane-truth** (AE-15, Body 3).
 
 **Out:**
 - **AF-3 / AF-9 / AF-10** — already built (`/arena/reward/`, the live eval-run feed + run-history
@@ -158,6 +183,7 @@ executes in S2).
 | **AE-2** | **Make degenerate / no-op steps visible** *(new)* | Emit `keep_rate` · `n_used` · advantage-spread from `_emit` (`rl.py:418`) and render them in `<RlProgress>` (`JobsBoard.jsx:148`); an `n_used==0` step must read **visibly distinct** from a trained step (e.g. a "no update — zero advantage" badge). | Already computed at `rl.py:321`, just dropped. Tonight a degenerate step looked identical to a stall. |
 | **AE-3** | **Persist per-step history** *(new)* | `_persist_rl_run` (`jobs.py:516`) writes a bounded `step_history[]` of `{step, phase, pool_score, last_heldout, keep_rate, loss, kl, n_used, step_duration, trained}`, within the existing `result_json` column. | No migration (AE-R2 caps it). Reconstructs "which steps moved the policy" after the run. |
 | **AE-4** | **Lineage step-indexing** *(new)* | The final rl_run card points `selected_step → rl-<step>` (the lineage trial id), so a regression traces to the exact selected checkpoint. | `fieldkit.lineage` already writes `rl-<step>` trials; this adds the back-pointer. |
+| **AE-16** | **Jobs-card identity** *(new — Body 3)* | Every Jobs card carries a unique discriminator on its face: **relative enqueue time** (`enqueued_at` → "2 h ago") + a **short id** (`id[:8]`), and for `rl_run` a **run label** (`payload.run_label`/step-count) so the smoke vs the full run are distinguishable. Pure render — `enqueued_at`/`id` are already in the snapshot. | Verified live (Body 3): 5 distinct done jobs read as repeats — 2 `rl_run` differ only by peak-GB, 2 `rag_eval` byte-identical. Card face shows only kind + `laneBench` (`JobsBoard.jsx:28`); no time/id. Complements AE-4 (the `selected_step → rl-<step>` pointer disambiguates rl_run cards by outcome). |
 
 ### Cluster B — Build-pipeline spine
 
@@ -188,6 +214,7 @@ executes in S2).
 | **AE-12** | **Flow-based nav IA** *(new)* | Regroup the flat 11+ tabs by the model lifecycle, with responsive overflow handling (section labels / grouped dropdowns / two-tier), **URLs unchanged**, and reserved slots for the deferred Articles/Evals/Publish. Proposed grouping: **Build/Train** {Models · SFT · Reward · Build · Jobs · Standup} · **Serve/Infer** {Chat · Compare · Leaderboard} · **Review/Meta** {Cockpit · Lab · Cortex}. | Nav is a flat 11-item flex today (`ArenaAppLayout.astro:226`); overflows + reads as a list, not a lifecycle. Cortex is *infrastructure* supporting both flows → Review/Meta or a submenu. |
 | **AE-13** | **Data-flow routing audit + corrections** *(new)* | The spec carries the audit table below as the contract, and resolves each flag: Jobs (operator dispatch) vs Standup (overnight-cron staged) boundary made **visually explicit**; a Cockpit **training-flow summary card** (SFT → Reward → RL-job status chain); **Leaderboard row → producing-job link** (the `arq_job_id` socket exists, the UI doesn't surface it); a **cost badge** beyond Leaderboard (Chat/Compare). Corpus pane → AE-6; reward→RL wiring → AE-1 (cross-referenced, not duplicated). | 7 mis-routings flagged in the IA audit; grounded in `leaderboard.astro`, `standup.astro` vs `jobs.astro`, the telemetry rail. |
 | **AE-14** | **Pane-purpose redefinition (recent-intuition leverage)** *(new)* | Restate the role of three panes now that Phase-3 RLVR runs: **Standup** = the overnight RL-run digest + promote gate (leverage the existing `rl.display`/`oom_deferred` fields, surface the last drain's `step_history` summary); **Reward** = the cross-stage "is the model producing scorable output" gauge spanning SFT-eval + live RL (folds in AE-1), not just the AV-10 preflight; **Lab** = thread the live vertical-build (link Now/Next cards to the AE-5 `/arena/build/` stages). | The IA audit confirms all three are spec-aligned, not broken — this elevates leverage, it does not rebuild. If the operator wants a genuine rebuild of any, re-scope that row before build. |
+| **AE-15** | **Telemetry lane-truth** *(new — Body 3)* | The rail's lane label must reflect **what's actually serving**, not the static Hermes config. Three layers, cheapest first: (1) **liveness-gate** the `resident_lane` fallback — only label it "active" if a probe of the configured `base_url`/port answers; else show "idle / no warm lane". (2) **Surface the lane arbiter's truth** — when `fieldkit.arena.lane` has torn the resident brain down for an `rl_run`/external lane, the rail reads that lane (model + "RL lane / external") instead of the stale config. (3) **Relabel** the idle fallback as "configured lane", reserving "active lane" for a verified-live process. | Body 3 root cause: `resident_lane = _resident_model()` (`server.py:463`) → `~/.hermes/config.yaml` (`server.py:108`, pinned Qwen3-30B `[[project_hermes_brain_pinned_moe]]`); rail fallback `TelemetryRail.astro:309`; no liveness check, GB10 unified `nvidia-smi` shows N/A so per-process attribution is hard (`[[project_spark_unified_memory_oom]]`) → the arbiter state (layer 2) is the reliable signal. Updates the AE-13 audit "Live hardware telemetry" row from OK. |
 
 #### AE-13 data-flow audit — telemetry → correct tab
 
@@ -203,7 +230,7 @@ executes in S2).
 | Cost / $ per task | Leaderboard only | Eval/Infer | **Surface a cost badge** on Chat/Compare (AE-13) |
 | Chat / Compare | `/arena/chat/`, `/arena/compare/` | Infer | OK; Compare also hosts AE-10 scout duel |
 | Knowledge / recall | `/arena/cortex/` | Infra (both flows) | OK; place in Review/Meta group (AE-12) |
-| Live hardware telemetry | persistent rail | Infer | OK |
+| Live hardware telemetry | persistent rail | Infer | GPU/mem/temp OK; **lane label is stale** — echoes the Hermes config, not the live process → **fix via AE-15** (Body 3) |
 
 ## 5. Architecture
 
@@ -231,6 +258,7 @@ provenance, and wiring after.
 ```
 S1  RL-run observability        AE-1 reward-gauge → live rl_run  ·  AE-2 degenerate-step visibility
     (the gaps that bit)         AE-3 per-step step_history       ·  AE-4 lineage step-index
+                                AE-16 Jobs-card identity (time + short id + run label — pure render)
                                 all within result_json / file reports — NO schema change
                                 ▶ GATE: validate on the NEXT live rl_run (astro re-run / vertical #2),
                                   not a file test (AE-R1)
@@ -239,6 +267,7 @@ S2  Information architecture     AE-12 flow-based nav regroup (URLs unchanged)
     & flow (foundational)        AE-13 data-flow routing audit + corrections (Jobs↔Standup, training-flow
                                        card, leaderboard→job link, cost badge)
                                  AE-14 Standup/Lab/Reward purpose redefinition
+                                 AE-15 telemetry lane-truth (liveness-gate + arbiter-aware label)
                                  ▶ done before new panes so S3+ land into the reorganized nav
                                           │
 S3  Build-spine backbone         AE-5 /arena/build/ pane (into the new Build/Train group)
@@ -276,6 +305,7 @@ v0.23.0+`**. No arena.db migration in any session (`user_version` stays 6).
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-05 | **+2 decisions (now 16: AE-1…16), from two correctness defects found driving the cockpit during astro C6** (new §1 Body 3, both verified against shipped code + the live `:7866` board). **AE-16** (Cluster A → S1) Jobs-card identity: distinct done jobs render as repeats (C5 smoke vs full run; two `rag_eval`s byte-identical) — add relative time + short id + rl_run run-label (pure render, no schema). **AE-15** (Cluster E → S2) telemetry lane-truth: the rail's "active lane" echoes the static `~/.hermes/config.yaml` (pinned Qwen3-30B) not the live GPU process — liveness-gate the fallback + read the lane arbiter's actual lane. Updated §2 scope, the AE-13 audit "Live hardware telemetry" row, and §6 (S1/S2). Still **no arena.db schema change**; both land in render + existing payloads. | Manav (with Claude) |
 | 2026-06-04 | Spec authored (v1.0 DRAFT, PROPOSED). 14 decisions AE-1…14 across 5 clusters (A RL-observability · B build-spine · C provenance · D wiring · E information-architecture) + 5 risks AE-R1…5 + the §4 data-flow audit table; 6-session breakdown §6. Formalizes the gitignored `_IDEAS/arena-dogfood-feature-extraction.md` (AF-1/2/4/5/6/7/8/11; AF-3/9/10 already built) **plus** the cockpit IA refresh raised after the first live `rl_run`. Decisions confirmed in planning: standalone spec, full backlog, RL-observability first; build queued after astro C6. Plan workspace: `/home/nvidia/.claude/plans/while-we-wait-shall-polished-hummingbird.md`. | Manav (with Claude planning session) |
 
 ## 10. References
