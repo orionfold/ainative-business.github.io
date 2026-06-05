@@ -460,6 +460,8 @@ def run_vertical_eval(
     base_url: Optional[str] = None,
     model: Optional[str] = None,
     scorer: str = "exact_match",
+    scorer_path: Optional[str] = None,
+    api_key_env: Optional[str] = None,
     limit: Optional[int] = None,
     max_tokens: int = 512,
 ) -> dict[str, Any]:
@@ -479,7 +481,7 @@ def run_vertical_eval(
     from fieldkit.eval import VerticalBench, contains, exact_match, numeric_match
     from fieldkit.notebook import OpenAICompatClient
 
-    if scorer not in _VERTICAL_SCORERS:
+    if not scorer_path and scorer not in _VERTICAL_SCORERS:
         raise ValueError(
             f"unknown scorer {scorer!r}; choose one of {_VERTICAL_SCORERS}"
         )
@@ -495,17 +497,31 @@ def run_vertical_eval(
     if not path.exists():
         raise FileNotFoundError(f"Bench JSONL not found: {bench_path}")
 
-    scorer_fn = {
-        "exact_match": exact_match,
-        "contains": contains,
-        "numeric_match": numeric_match,
-    }[scorer]
+    if scorer_path:
+        # A vertical can inject its own verifier (e.g. the astrodynamics boxed +
+        # SI-unit scorer kept local per `feedback_keep_scorer_local_until_reuse`)
+        # without promoting it into `fieldkit.eval` — the same `scorer_path` hook
+        # the `rl_run` path already honors (RV-2), now on the eval/compare path so
+        # a custom-verifier vertical scores correctly through the cockpit (AF-15).
+        scorer_fn: Callable[..., float] = _load_scorer_callable(scorer_path)
+        scorer_kind = scorer_path
+    else:
+        scorer_fn = {
+            "exact_match": exact_match,
+            "contains": contains,
+            "numeric_match": numeric_match,
+        }[scorer]
+        scorer_kind = scorer
 
     endpoint = base_url or os.environ.get(
         "ARENA_EVAL_BASE_URL", "http://127.0.0.1:8080"
     )
     model_name = model or os.environ.get("ARENA_EVAL_MODEL", "resident")
-    client = OpenAICompatClient(endpoint=endpoint, model=model_name)
+    # `api_key_env` names the env var holding the bearer key (never the key itself
+    # in the persisted payload) — lets an OpenRouter baseline lane authenticate
+    # through the same path as a local llama-server lane (which needs none).
+    api_key = os.environ.get(api_key_env) if api_key_env else None
+    client = OpenAICompatClient(endpoint=endpoint, model=model_name, api_key=api_key)
 
     def model_fn(prompt: str) -> str:
         return client.chat(
@@ -539,7 +555,7 @@ def run_vertical_eval(
         "lane": lane,
         "bench": bench,
         "bench_path": str(path),
-        "scorer_kind": scorer,
+        "scorer_kind": scorer_kind,
         "n": len(calls),
         "mean_normalized": mean_normalized,
         "calls": calls,

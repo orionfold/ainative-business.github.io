@@ -11,6 +11,71 @@
 
 ## Current state
 
+### ⏸ SESSION PAUSED 2026-06-05 — Kepler publish pipeline (T3a done · T2 in flight · T3b queued) + AF-15 BUILT
+
+> **▶▶ FIX FIRST next session — Arena cockpit UI renders SMALLER than the browser container (regressed).**
+> The old "UI smaller than the window" bug is back. **Most likely cause is NOT a code change** — no
+> `arena-app/` CSS or `_webui` was touched this session (AF-15 was backend-only: `fieldkit/src/fieldkit/arena/jobs.py`
+> + `harness/mcp.py`). The probable culprit is the **puppeteer browser-driving** I did against the visible
+> Chromium (`:9222`): `page.screenshot({fullPage:true})` + connecting with `defaultViewport` leaves a **CDP
+> device-metrics / viewport override** on the page, and several of my drive scripts were **killed mid-run**
+> (a `pkill -f drive_compare` self-matched the bash wrapper), so the override never got cleared → the responsive
+> Arena UI paints at the emulated width, smaller than the window. **Quickest fix:** relaunch the visible browser
+> clean — `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart --browser` (or connect via
+> `puppeteer-core` and clear the override: `page.setViewport(null)` / CDP `Emulation.clearDeviceMetricsOverride`).
+> If it persists after a clean browser relaunch, then it IS a real CSS regression — bisect `arena-app/src/layouts/ArenaAppLayout.astro`
+> + the cockpit container CSS against `origin/main`'s `_webui`. Confirm the fix by eyeballing `/arena/jobs/` at full width.
+
+> **▶ NEXT TASK — finish the T2 head-to-head through Arena Compare in browser-use, then T3b publish.**
+> The operator's directive (2026-06-05): **use Arena Compare (`/arena/compare/`) driven in the visible browser**
+> for the head-to-head, NOT the scripted `eval_rerun` jobs path. The wiring is DONE + PROVEN — just re-run the
+> clean duel and screenshot for the record:
+> ```bash
+> cd /home/nvidia/ainative-business.github.io
+> # (after fixing the viewport bug above) drive Kepler vs stock Qwen3-8B in the visible browser:
+> LANE_B="openrouter:qwen/qwen3-8b" SHOT_OUT=/tmp/aifn-smoke/compare/duel.png \
+>   node scripts/astro_bench/drive_compare.mjs duel        # ⚠️ do NOT prefix with `pkill -f drive_compare` — it self-kills the wrapper
+> ```
+> **Kepler is a registered Compare lane** (`local:kepler::Q8_0`, resolves `/home/nvidia/data/quants/Kepler/model-Q8_0.gguf`,
+> boots on-demand on `:8091`). **OpenRouter works** (proven: a direct `/api/compare/stream` with `lane_b=openrouter:qwen/qwen3-8b`
+> streamed 32 `token_b` events clean). **AVOID `openrouter:deepseek/deepseek-r1-0528`** — it's flaky on long reasoning
+> (returns no `choices` / errors ~60s; fine on trivial prompts) and **`deepseek/deepseek-r1` is NOT in the Compare catalog**
+> (selecting it silently falls back to the unserved resident → `[Errno 111] Connection refused`). Use **`qwen/qwen3-8b`**
+> (fast, in-catalog, the apples-to-apples baseline). Then: pick the recommended Kepler variant (Q8_0), do **T3b**
+> (`hf-publisher` → `Orionfold/Kepler-GGUF` + `Orionfold/Kepler-bench`).
+
+**This session's work (all UNCOMMITTED — operator paused before commit):**
+- **T3a (requant) ✅ DONE.** `merged-hf-bf16` (86%-SFT) → **5 Orionfold GGUF variants** at `/home/nvidia/data/quants/Kepler/`
+  (Q4_K_M 4.7G · Q5_K_M 5.5G · Q6_K 6.3G · Q8_0 8.2G · F16 15.3G) via `fieldkit.quant.quantize_gguf` (convert ran in `/tmp/fk-rl`
+  after `pip install -e llama.cpp/gguf-py` + `sentencepiece`). **Per-variant fidelity** (44-row generalization held-out, `astro_numeric_match`,
+  all 100% boxed / 0% trunc): **Q8_0 88.6% (≈lossless vs bf16 86.36%) ← recommended** · Q6_K 84.1% · Q5_K_M 75.0% · Q4_K_M 75.0%
+  (Q4/Q5 lose ~11pp on borderline orbital-period/transfer rows). Reports: `/home/nvidia/data/quants/Kepler/q{4,5,6,8}-fidelity-heldout.json`.
+- **T2 (head-to-head) — IN FLIGHT.** Operator-chosen baselines = **stock Qwen3-8B + DeepSeek-R1**. The scored 44-row table exists
+  for Kepler-Q8_0 (88.6%); baselines pending a clean Compare run (see NEXT TASK). New reusable tool `scripts/astro_bench/score_gguf_lane.py`
+  (GGUF-lane + OpenRouter scorer, shared `astro_numeric_match`); `scripts/astro_bench/dispatch_t2_evals.py` (cockpit eval_rerun dispatch);
+  `scripts/astro_bench/drive_compare.mjs` (puppeteer browser-use Compare driver).
+- **AF-15 BUILT (dogfood, operator green-lit "why is arena not showing eval runs").** The `scorer_path` hook now threads through the
+  **eval/compare** path (was rl_run-only) so a `\boxed{}` vertical scores correctly through the cockpit, not 0.0 via the boxed-blind
+  built-in `numeric_match`. Files: `harness/mcp.py::run_vertical_eval` (+`scorer_path`/`api_key_env`), `arena/jobs.py` (`resolve_bench` meta
+  + `EVAL_RERUN` dispatch threads `base_url`/`model`/`scorer_path`/`api_key_env`), `CHANGELOG.md [Unreleased]`, +2 tests. **Arena+harness suite
+  250 pass** (1 PRE-EXISTING failure `test_drain_arbiters…mem_trace` — asserts `autonomy.enabled is False` but reads the box's armed
+  `~/.fieldkit/arena/autonomy.json` without `path=` isolation; unrelated to this diff, worth a 1-line test fix). **No `_webui` rebake**
+  (display reads the DB). **Bench registered** at `~/.fieldkit/arena/benches/kepler-astro.{jsonl,meta.json}` (dispatch registry); the
+  `benches.py BENCHES` catalog (Eval-dropdown half of AF-8) is deferred. Kepler eval **verified live**: `eval_runs` row `kepler-astro` ×
+  `kepler-q8-gguf` = **0.8636 / n=44**, shows on `/arena/jobs/` ("acc 0.86 · n 44") + `/api/eval/leaderboard`. Dogfood ledger
+  `_IDEAS/arena-dogfood-feature-extraction.md` (gitignored) updated: **AF-12/13/14** (publish-stage blind spots) + **AF-15 ✅** + the
+  finding that **NO cockpit page renders `/api/eval/leaderboard`** — eval runs only surface as Jobs-board cards (I mis-pointed the operator
+  at `/arena/leaderboard/`, which is the *rubric/compare* leaderboard). **⚠️ Operator action for in-UI eval dispatch:** the running cockpit's
+  fieldkit (`/tmp/arena-venv`) has the OLD source — my dispatch went through `/tmp/fk` + `PYTHONPATH=fieldkit/src`; in-cockpit `POST /api/jobs`
+  eval needs a fieldkit reinstall there (or the next cut).
+- **Uncommitted working tree:** `M fieldkit/{CHANGELOG.md, src/fieldkit/arena/jobs.py, src/fieldkit/harness/mcp.py, tests/arena/test_jobs.py}` +
+  `?? scripts/astro_bench/{dispatch_t2_evals.py, drive_compare.mjs, score_gguf_lane.py}` + the gitignored `_IDEAS/` ledger + evidence JSONs.
+  The Kepler GGUFs live OUTSIDE the repo (`/home/nvidia/data/quants/Kepler/`).
+
+**⚙️ Live services at pause:** Arena cockpit UP `:7866` · visible CDP Chromium UP `:9222` (**viewport override — see FIX FIRST**) ·
+Kepler Q8_0 `llama-server` UP `:8091` (on-demand Compare lane; `pkill -f 'llama-server.*Q8_0'` to free GPU) · pgvector `:5432`.
+Resident Qwen3-30B brain is **NOT** actually served (its lane is registered but no process) → a `local:resident` Compare side = connection-refused.
+
 - **⚠️ LOCAL IS ~20 COMMITS AHEAD OF `origin/main` — UNPUSHED** (count drifted across sessions; the enumeration below is stale — trust the Recent-decisions log for the true tip, latest = this session's C5-wiring commit).** `origin/main` is still at **`27efc11`** (the LA-12..16 education layer); local `main` tip = **`d158b4b`**. The unpushed set is the whole Phase-C planning + spec + bench build + C1 infra + CDP fix + **C1 LIVE corpus** (`5a3bcbb`) + **C2(a) AV-10 preflight + AF-3 reward gauge** (`62e6a65`) + dogfood **AF-9** (`6f5ffb6` live-streaming reward gauge → `35718bc` history-dropdown + auto-newest) + the **`--fewshot` conditioning probe** (`3afca5f`) + base-decision HANDOFF/evidence (`06b6cea` → `a74d020`) + **this session's C3** (`d158b4b` — bench→task/reward glue + fake-seam RLLoop CPU smoke; `scripts/` only). Touches docs + `scripts/` + `evidence/` + `.claude/` + `arena-app/` + `fieldkit/` (the AF-3/AF-9 `/api/reward-signal` endpoint + `/arena/reward/` pane, `_webui` rebaked — gitignored; **`fieldkit/CHANGELOG.md [Unreleased]` carries the AF-3 + AF-9 entries** for the next cut). No marketing-site (`src/`) change, so GitHub Pages has not redeployed. **Push when ready** (first push prompts the main-push gate) — the operator has **not** asked to push (confirmed: "hold here").
 - **Phase-C (first end-to-end greenfield RLVR vertical = astrodynamics) — A + B BUILT this session.** **A:** base scouted + LOCKED = **`Qwen/Qwen3-8B`** (`hf-model-scout`; no astro base exists → greenfield; report `/tmp/hf-scout/2026-06-04/astrodynamics-7B/report.md`). **B-design + B-build:** the bench generator + verifier-as-reward shipped at **`scripts/astro_bench/`** (16 formula templates 9 orbital + 7 astrophysics ~70/30 · `astro_numeric_match` = `\boxed{}`-extracting, SI-unit-normalized, binary, ±2% rel-tol, `RewardAdapter`-wrappable, kept local per `[[feedback_keep_scorer_local_until_reuse]]` · 20 real tests pytest-green, ruff clean) + the generated **v0.1 bench** at `evidence/astrodynamics/astro-bench-v0.1.jsonl` (**120 pool** + **44 held-out**, every gold self-verifies, pool↔held-out disjoint RV-10). Strategy + as-built: `_IDEAS/astrodynamics-rlvr-vertical.md` (gitignored). **C1 (SFT-init corpus) ✅ DONE this session** (`5a3bcbb`, committed not pushed). `/usage` preflight cleared (28% used / 72% headroom). Built the deterministic infra (`feedback_llm_skill_pattern`): `scripts/astro_bench/{sft_queue,verify_sft,build_sft_corpus}.py`. **600-row corpus** at `evidence/astrodynamics/astro-sft-corpus.jsonl` (+ `astro-sft-queue.jsonl`) — `<think>…\boxed{}` over the 16 families, 70/30, tiers 288/210/102, held-out-disjoint (RV-10), **ALL 600 self-verify** through `astro_numeric_match` ±2% (`verify_sft.py` green). **Method (operator-chosen): authored-template builder** — the 16 worked-solution chains in `build_sft_corpus.py` are session-authored; the script does only deterministic substitution + JSON serialize (no `anthropic`/SDK), the verifier gates correctness independently. pytest **26/26** (+6 C1 gate tests), ruff clean. **▶ Next = C2:** AV-10 preflight baseline on `Qwen3-8B` FP, then `TrainRecipe(backend="nemo")` SFT-init → merged-HF dir = `FK_RL_ADAPTER_INIT` (gate: SFT held-out > base). Then C3…C6 (RLVR through the cockpit) once the operator installs the pinned aarch64+CUDA-13 vLLM lane. **Dogfood directive (operator, this session):** keep the Arena visible side-by-side + extract operator-visibility features as C runs — ledger at `_IDEAS/arena-dogfood-feature-extraction.md` (AF-2 corpus-feed + AF-3 reward-gauge = the immediate wins; await green-light).
 - **This repo is the single Spark-owned monorepo** at `/home/nvidia/ainative-business.github.io` — build workspace *and* website. The old two-repo `ai-field-notes`→Mac sync model is **retired**; author directly here (do NOT use `sync-field-notes`).

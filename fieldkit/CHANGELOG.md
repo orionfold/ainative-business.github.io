@@ -18,6 +18,21 @@ surfaces contextually in the live cockpit.
 
 ### Added
 
+- **Custom-scorer hook for `eval_run`/Compare (dogfood AF-15)** — the same
+  `scorer_path` hook now threads through the **eval/compare** path, not just
+  `rl_run`: `run_vertical_eval` gains `scorer_path=` (loads a vertical's own
+  verifier via `_load_scorer_callable`, handed straight to
+  `VerticalBench.from_jsonl(scorer=…)`) and `api_key_env=` (names the env var
+  holding a bearer key so an OpenRouter baseline lane authenticates through the
+  same path as a local llama-server lane — the key is never put in the persisted
+  job payload). `arena.jobs.resolve_bench` surfaces a `scorer_path` from the
+  bench's `.meta.json` sidecar, and the `EVAL_RERUN` dispatch forwards
+  `base_url`/`model`/`scorer_path`/`api_key_env` per lane. Lets a custom-verifier
+  vertical (e.g. astrodynamics' boxed + SI-unit scorer) run a **fair head-to-head
+  through the cockpit** — the built-in first-number `numeric_match` scored a
+  correct `\boxed{}` answer 0.0. Backward-compatible (all default `None` → the
+  built-in-scorer path is unchanged). Schema unchanged.
+
 - **Custom-scorer hook for `rl_run`** — `run_rl_loop` (and the dispatcher's
   `default_runner`) accept an optional `scorer_path` (`"module-or-file:function"`)
   that loads a vertical's own verifier instead of one of the six built-in

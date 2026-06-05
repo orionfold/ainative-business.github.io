@@ -185,6 +185,7 @@ def resolve_bench(
     return {
         "bench_path": str(jsonl),
         "scorer": meta.get("scorer", "exact_match"),
+        "scorer_path": meta.get("scorer_path"),
         "max_tokens": int(meta.get("max_tokens", 512)),
         "limit": meta.get("limit"),
     }
@@ -287,6 +288,10 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
         # An explicit payload bench_path/scorer/limit still wins.
         bench_path = payload.get("bench_path")
         scorer = payload.get("scorer", "exact_match")
+        # A registered bench may carry a custom verifier (`scorer_path`) — the
+        # AF-15 hook that lets a `\boxed{}`-style vertical score correctly through
+        # the eval/compare path, not just the built-in scorers. Payload overrides.
+        scorer_path = payload.get("scorer_path")
         max_tokens = int(payload.get("max_tokens", 512))
         limit = payload.get("limit")
         if not bench_path:
@@ -302,13 +307,18 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
                 )
             bench_path = reg["bench_path"]
             scorer = payload.get("scorer", reg["scorer"])
+            scorer_path = payload.get("scorer_path", reg.get("scorer_path"))
             max_tokens = int(payload.get("max_tokens", reg["max_tokens"]))
             limit = payload.get("limit", reg["limit"])
         return mcp.run_vertical_eval(
             lane=payload["lane_id"],
             bench=bench_id,
             bench_path=bench_path,
+            base_url=payload.get("base_url"),
+            model=payload.get("model"),
             scorer=scorer,
+            scorer_path=scorer_path,
+            api_key_env=payload.get("api_key_env"),
             limit=limit,
             max_tokens=max_tokens,
         )
