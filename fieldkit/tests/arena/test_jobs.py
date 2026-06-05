@@ -342,6 +342,58 @@ def test_resolve_bench_unregistered_returns_none(tmp_path, monkeypatch):
     assert jobs.resolve_bench("nope") is None
 
 
+def test_resolve_bench_surfaces_scorer_path(tmp_path, monkeypatch):
+    # AF-15: a custom-verifier vertical registers a `scorer_path` in the meta
+    # sidecar so the eval/compare path scores with its own `\boxed{}` verifier.
+    bench_dir = tmp_path / "benches"
+    _write_bench(
+        bench_dir,
+        "kepler-astro",
+        meta={"scorer_path": "/abs/verifier.py:astro_numeric_match", "max_tokens": 2048},
+    )
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(bench_dir))
+    reg = jobs.resolve_bench("kepler-astro")
+    assert reg["scorer_path"] == "/abs/verifier.py:astro_numeric_match"
+    assert reg["max_tokens"] == 2048
+    # absent sidecar key → None, back-compatible with built-in-scorer benches
+    _write_bench(bench_dir, "plain")
+    assert jobs.resolve_bench("plain")["scorer_path"] is None
+
+
+def test_eval_rerun_threads_scorer_path_and_lane_endpoint(tmp_path, monkeypatch):
+    # AF-15/AF-7: the EVAL_RERUN dispatch forwards the registered scorer_path +
+    # the payload's per-lane base_url/model/api_key_env into run_vertical_eval,
+    # so a Kepler GGUF lane (local) and an OpenRouter baseline lane both run the
+    # SAME custom verifier through the cockpit. Capture the kwargs the dispatch
+    # hands the tool instead of touching a real lane.
+    bench_dir = tmp_path / "benches"
+    _write_bench(
+        bench_dir,
+        "kepler-astro",
+        meta={"scorer_path": "/abs/verifier.py:astro_numeric_match", "max_tokens": 2048},
+    )
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(bench_dir))
+    captured = {}
+    from fieldkit.harness import mcp
+
+    monkeypatch.setattr(mcp, "run_vertical_eval", lambda **kw: captured.update(kw) or {"calls": []})
+    jobs.default_runner(
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "deepseek-r1",
+            "bench_id": "kepler-astro",
+            "base_url": "https://openrouter.ai/api",
+            "model": "deepseek/deepseek-r1",
+            "api_key_env": "OPENROUTER_API_KEY",
+        },
+    )
+    assert captured["scorer_path"] == "/abs/verifier.py:astro_numeric_match"
+    assert captured["base_url"] == "https://openrouter.ai/api"
+    assert captured["model"] == "deepseek/deepseek-r1"
+    assert captured["api_key_env"] == "OPENROUTER_API_KEY"
+    assert captured["max_tokens"] == 2048
+
+
 def test_default_runner_raises_bench_not_registered(tmp_path, monkeypatch):
     # The exact gap the side-by-side walkthrough hit: eval_rerun with only a
     # bench_id and no registered gold set now fails LOUD + actionable, naming
