@@ -1,0 +1,22 @@
+slug: kepler-gguf
+kind: quant
+class: gguf
+base_model: Qwen/Qwen3-8B
+hf_repo: Orionfold/Kepler-GGUF
+variants:
+  - Q4_K_M
+  - Q5_K_M
+  - Q6_K
+  - Q8_0
+vertical_eval:
+  Q4_K_M: 0.75
+  Q5_K_M: 0.75
+  Q6_K: 0.8409
+  Q8_0: 0.8864
+vertical_eval_name: "astro-bench v0.1 held-out (n=44, \\boxed ±2%)"
+recommended_variant: Q8_0
+license:
+  tier: free
+  model: apache-2.0
+article: articles/the-gate-before-the-gpu/
+published_at: "2026-06-05T20:17:04Z"

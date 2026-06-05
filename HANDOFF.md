@@ -11,40 +11,42 @@
 
 ## Current state
 
-### ⏸ SESSION PAUSED 2026-06-05 — Kepler publish pipeline (T3a done · T2 in flight · T3b queued) + AF-15 BUILT
+### ✅ 2026-06-05 — Kepler publish pipeline COMPLETE (T1 + T2 + T3 all DONE; both HF repos LIVE)
 
-> **▶▶ FIX FIRST next session — Arena cockpit UI renders SMALLER than the browser container (regressed).**
-> The old "UI smaller than the window" bug is back. **Most likely cause is NOT a code change** — no
-> `arena-app/` CSS or `_webui` was touched this session (AF-15 was backend-only: `fieldkit/src/fieldkit/arena/jobs.py`
-> + `harness/mcp.py`). The probable culprit is the **puppeteer browser-driving** I did against the visible
-> Chromium (`:9222`): `page.screenshot({fullPage:true})` + connecting with `defaultViewport` leaves a **CDP
-> device-metrics / viewport override** on the page, and several of my drive scripts were **killed mid-run**
-> (a `pkill -f drive_compare` self-matched the bash wrapper), so the override never got cleared → the responsive
-> Arena UI paints at the emulated width, smaller than the window. **Quickest fix:** relaunch the visible browser
-> clean — `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart --browser` (or connect via
-> `puppeteer-core` and clear the override: `page.setViewport(null)` / CDP `Emulation.clearDeviceMetricsOverride`).
-> If it persists after a clean browser relaunch, then it IS a real CSS regression — bisect `arena-app/src/layouts/ArenaAppLayout.astro`
-> + the cockpit container CSS against `origin/main`'s `_webui`. Confirm the fix by eyeballing `/arena/jobs/` at full width.
+> **Kepler is SHIPPED.** The greenfield astrodynamics vertical is published end-to-end:
+> - **Model:** <https://huggingface.co/Orionfold/Kepler-GGUF> — 4 GGUF variants (Q4_K_M / Q5_K_M / Q6_K / **Q8_0**=recommended),
+>   apache-2.0, chat_format chatml, enriched card (positioning lead → Spark-tested ladder → T2 head-to-head → variants →
+>   how-to → known-drift → bench cross-link), 8/8 verify_stage. **F16 deliberately NOT published** (operator call — dropped
+>   the 16 GB reference variant; the source GGUF still exists at `/home/nvidia/data/quants/Kepler/model-F16.gguf`, and a stray
+>   byte-identical `model-f16.gguf` lowercase dup remains there too — `rm` was auto-classifier-blocked, safe to delete manually).
+> - **Dataset:** <https://huggingface.co/datasets/Orionfold/Kepler-bench> — `pool.jsonl` (120) + `heldout.jsonl` (44) +
+>   `verifier.py` + `units.py` + card (`kind: bench`, AV-11).
+> - **T1 article** `the-gate-before-the-gpu` already committed + pushed (`cf132a4`); it has NO outbound HF links yet — an
+>   optional enhancement now that both repos are live is to add the Kepler-GGUF/-bench links to the article.
+> - **FIX-FIRST viewport regression RESOLVED** — was a page-bound 800×600 puppeteer device-metrics override left by a killed
+>   drive script; fixed by swapping to a fresh tab (no browser relaunch). `drive_compare.mjs` already uses `defaultViewport:null`.
 
-> **▶ NEXT TASK — finish the T2 head-to-head through Arena Compare in browser-use, then T3b publish.**
-> The operator's directive (2026-06-05): **use Arena Compare (`/arena/compare/`) driven in the visible browser**
-> for the head-to-head, NOT the scripted `eval_rerun` jobs path. The wiring is DONE + PROVEN — just re-run the
-> clean duel and screenshot for the record:
-> ```bash
-> cd /home/nvidia/ainative-business.github.io
-> # (after fixing the viewport bug above) drive Kepler vs stock Qwen3-8B in the visible browser:
-> LANE_B="openrouter:qwen/qwen3-8b" SHOT_OUT=/tmp/aifn-smoke/compare/duel.png \
->   node scripts/astro_bench/drive_compare.mjs duel        # ⚠️ do NOT prefix with `pkill -f drive_compare` — it self-kills the wrapper
-> ```
-> **Kepler is a registered Compare lane** (`local:kepler::Q8_0`, resolves `/home/nvidia/data/quants/Kepler/model-Q8_0.gguf`,
-> boots on-demand on `:8091`). **OpenRouter works** (proven: a direct `/api/compare/stream` with `lane_b=openrouter:qwen/qwen3-8b`
-> streamed 32 `token_b` events clean). **AVOID `openrouter:deepseek/deepseek-r1-0528`** — it's flaky on long reasoning
-> (returns no `choices` / errors ~60s; fine on trivial prompts) and **`deepseek/deepseek-r1` is NOT in the Compare catalog**
-> (selecting it silently falls back to the unserved resident → `[Errno 111] Connection refused`). Use **`qwen/qwen3-8b`**
-> (fast, in-catalog, the apples-to-apples baseline). Then: pick the recommended Kepler variant (Q8_0), do **T3b**
-> (`hf-publisher` → `Orionfold/Kepler-GGUF` + `Orionfold/Kepler-bench`).
+**T2 head-to-head (the model-card "how it stacks up" numbers)** — 44-row external curveball held-out, matched **4096-token**
+budget, `astro_numeric_match` ±2% (`evidence/astrodynamics/t2/comparison.md` + per-lane JSONs):
+| Model | Where | Reward | Boxed | Trunc | Mean tok |
+|---|---|---:|---:|---:|---:|
+| **Kepler-Q8_0** (8B) | **local, $0** | 84.1% | 100% | 0% | **166** |
+| Claude Haiku 4.5 | cloud | 97.7% | 100% | 0% | 488 |
+| Gemini 3.1 Flash-Lite | cloud | 95.5% | 100% | 0% | 464 |
+- **Dropped (operator call):** `qwen/qwen3-8b` + `deepseek/deepseek-r1` — both stalled on slow OpenRouter providers under the
+  4096 thinking budget (qwen's process hung ~100 min on all-retries; the scorer's `ask()` was then hardened with retries +
+  graceful empty-response, but the two were dropped rather than re-run). NB dropping qwen3-8b removed the apples-to-apples
+  same-base contrast. **Honest read:** local 8B specialist ~11–14 pp below frontier *small* cloud models, but $0/offline + ~3×
+  more concise; format reliability matches frontier (100% boxed / 0% trunc).
+- **T2 method note:** ran via the scripted `scripts/astro_bench/score_gguf_lane.py` (GGUF lane + OpenRouter, shared
+  `astro_numeric_match`, new `--max-tokens` flag), NOT the browser Compare path. The browser Compare **duel** screenshot was
+  also captured (`/tmp/aifn-smoke/compare/duel.png`) for the record — Kepler missed that single 550 km-period prompt (consistent
+  with its weak spots); the scored table is the real story.
 
-**This session's work (all UNCOMMITTED — operator paused before commit):**
+**Per-variant fidelity (Spark-tested ladder, 44-row held-out, 2048-budget):** Q4 75% · Q5 75% · Q6 84.1% · **Q8 88.6%** · F16(ref) 86.4%.
+Weak spots across all quants (the honest `known_drift` on the card): `hohmann_transfer` + `altitude_from_period` (SFT-coverage gap).
+
+**This session's work (T3a was already committed as `9dce32a`, still UNPUSHED; T2/T3b work uncommitted at write time):**
 - **T3a (requant) ✅ DONE.** `merged-hf-bf16` (86%-SFT) → **5 Orionfold GGUF variants** at `/home/nvidia/data/quants/Kepler/`
   (Q4_K_M 4.7G · Q5_K_M 5.5G · Q6_K 6.3G · Q8_0 8.2G · F16 15.3G) via `fieldkit.quant.quantize_gguf` (convert ran in `/tmp/fk-rl`
   after `pip install -e llama.cpp/gguf-py` + `sentencepiece`). **Per-variant fidelity** (44-row generalization held-out, `astro_numeric_match`,

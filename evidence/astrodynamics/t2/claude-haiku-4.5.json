@@ -1,0 +1,14 @@
+{
+  "variant": "claude-haiku-4.5",
+  "model": "anthropic/claude-haiku-4.5",
+  "max_tokens": 4096,
+  "n": 44,
+  "boxed_rate": 1.0,
+  "reward_rate": 0.9772727272727273,
+  "truncation_rate": 0.0,
+  "mean_tokens": 488.02272727272725,
+  "hf_bf16_baseline": 0.8636,
+  "misses": [
+    "kepler_third_law"
+  ]
+}
