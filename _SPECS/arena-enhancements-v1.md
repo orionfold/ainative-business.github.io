@@ -15,11 +15,13 @@ authoritative: Spark
 > M1→M11 build; this one owns the **next layer of operator visibility + flow legibility** that fell
 > out of driving the live cockpit beside the astrodynamics RLVR run (2026-06-04).
 >
-> Two bodies of work, one spec: **(A–D) observability** — make the whole vertical build visible
+> Three bodies of work, one spec: **(A–D) observability** — make the whole vertical build visible
 > in the cockpit (the build spine, the corpus feed, the live `rl_run` reward, per-step RL internals,
 > bench provenance, scout/eval wiring); **(E) information architecture** — regroup the overflowing
 > flat nav by the model lifecycle, audit which telemetry lands in which tab, and redefine the role of
-> the Standup / Lab / Reward panes now that Phase-3 RLVR actually runs.
+> the Standup / Lab / Reward panes now that Phase-3 RLVR actually runs; **(F) cloud-run safety** —
+> bounded, configurable, tracked guardrails on metered cloud lanes (teardown / stall / cost), after a
+> baseline OpenRouter eval hung ~2.5 h holding the lane and accruing uncapped spend (2026-06-05).
 >
 > **Placement (user-confirmed 2026-06-04): standalone, full-backlog scope, RL-observability first.**
 > A new focused spec (the recent pattern — `rl-lane-autonomy-v1`, `rlvr-loop-v1` — over growing the
@@ -119,6 +121,27 @@ envelope:
   cards (differing only by `peak 104 GB` vs `106 GB`), and the two operator `rag_eval` jobs are
   **byte-identical** (`RAG_EVAL · rag_eval`). Distinct work is indistinguishable on the board.
 
+### Body 4 — cloud-run safety: the OpenRouter eval that hung ~2.5 h (2026-06-05)
+
+Driving the cockpit to verify the AF-15 eval dispatch (2026-06-05, after the `fieldkit v0.23.0` cut)
+surfaced a **safety / cost** gap orthogonal to observability. A baseline `eval_rerun` on the OpenRouter
+`qwen/qwen3-8b` lane ran **~2.5 hours** without completing — holding the single drain lane and accruing
+**uncapped** cloud spend — until the operator killed it by hand (bouncing the cockpit + deleting the job
+row). Three protections were missing, each verified against shipped code:
+
+- **No teardown shutdown.** The in-flight OpenRouter request only died because the whole cockpit
+  *process* was killed. Arena teardown has no clean abort for a running cloud eval: it executes
+  synchronously in a FastAPI `BackgroundTask` (`server.py:2422`) with **no abort sentinel** — the
+  `MemoryWatchdog` / `abort_poller` cancellation pattern is **RL-only** (`fieldkit/src/fieldkit/arena/lane.py:389`).
+- **No stall ceiling.** `OpenAICompatClient` sets a **per-request** 120 s httpx timeout
+  (`fieldkit/src/fieldkit/notebook/__init__.py:203`), but the per-row `VerticalBench.run` loop has **no
+  per-run wall-clock or no-progress ceiling**, so a chronically-slow provider drags the whole run for hours.
+- **No live cost cap.** Eval runs **don't capture per-row token `usage`** from the OpenRouter response,
+  so cost is invisible mid-run; the `BudgetGovernor.daily_cap_usd=5.0` (`fieldkit/src/fieldkit/budget.py:333`)
+  is a **per-job pre-dispatch** estimate check, not a live accumulator that can abort a run already crossing the cap.
+
+Metered cloud lanes need bounded, configurable, tracked guardrails. → **Cluster F / AE-17.**
+
 ### Why now (and why gated after astro C6)
 
 The gaps were found *because* a real run finally exercised the plane; building the fixes before the
@@ -138,6 +161,8 @@ the new panes (S3+), so they slot into a reorganized nav rather than worsening t
   preview via the existing Eval surface.
 - **E — information architecture:** flow-based nav regroup, data-flow routing audit + corrections,
   Standup/Lab/Reward purpose redefinition, **telemetry lane-truth** (AE-15, Body 3).
+- **F — cloud-run safety guardrails:** teardown-abort + stall-timeout + per-run cost-cap on metered
+  cloud lanes, env-configurable + tracked in `result_json` (AE-17, Body 4).
 
 **Out:**
 - **AF-3 / AF-9 / AF-10** — already built (`/arena/reward/`, the live eval-run feed + run-history
@@ -149,6 +174,9 @@ the new panes (S3+), so they slot into a reorganized nav rather than worsening t
   stay stable so deep links and the public mirror don't break (AE-R5).
 - **Any arena.db schema change** — every fix lands in `result_json` / file-polled reports / existing
   panes / nav markup (§3). `user_version` stays **6** (AH-9 / RV-8 discipline).
+- **Guardrails on cloud Compare / Chat** — AE-17 scopes the `EvalGuardrail` to **eval runs**; the same
+  watchdog + sentinel generalizes to other metered cloud calls, but that wiring is deferred to a second
+  reuse (`[[feedback_keep_scorer_local_until_reuse]]` discipline).
 
 ## 3. Code reconciliation (2026-06-04 — verified against the shipped `fieldkit/` + `arena-app/`)
 
@@ -166,6 +194,8 @@ write path, report file, pane, or the nav markup.
 | Compare / Eval surfaces | `/arena/compare/`, `GET /api/eval/benches` (+ `…/prompts`) | **AE-10** routes scout top-3 through Compare; **AE-11** registers `astro-bench v0.1` |
 | Standup / Lab | `/arena/standup/` (`build_standup` — Ran/Regressed/Queued/Spend + `rl.display`/`oom_deferred`); `/arena/lab/` (static Now/Next/Exploring + git-log timeline + `lab_notes`) | **AE-14** redefines their role; reuses fields already present |
 | Nav | `arena-app/src/layouts/ArenaAppLayout.astro:226` (flat 11-item flex, CSS 483–520) | **AE-12** regroups markup + CSS; routes unchanged |
+| Cloud eval lane | `run_vertical_eval` (`mcp.py:455`) → `OpenAICompatClient.chat` (per-request 120 s httpx timeout, **no `usage` capture**, `notebook/__init__.py:203`); runs in a `BackgroundTask` (`server.py:2422`) with **no abort sentinel** | **AE-17** wraps it in an `EvalGuardrail` (stall + cost watchdog) + a shared **eval-abort sentinel** the `vb.run` row-loop polls (mirroring `abort_poller`, `lane.py:389`), tripped by `_lifespan` shutdown; captures response `usage` → `run_cost_usd`; all in `result_json` + env config, **no migration** |
+| Cost pricing | `fieldkit.cost.PriceSnapshot.cost_usd(tokens_in,tokens_out)` (`cost.py`) — already the per-run USD math | **AE-17** reuses it to accumulate live per-row cost for the G3 cap (no change to `fieldkit.cost`) |
 | Schema | `fieldkit/src/fieldkit/arena/store.py:63` `USER_VERSION = 6` | **unchanged** — no migration (AH-9 / RV-8) |
 | Transport precedent | AF-9 (`av10-preflight*.json` + 5 s poll), AF-10 (`/arena/sft/` + 3 s poll over `FK_ARENA_SFT_DIR`) | the proven **file-polled-heartbeat** pattern AE-5/AE-6 reuse |
 
@@ -232,6 +262,12 @@ executes in S2).
 | Knowledge / recall | `/arena/cortex/` | Infra (both flows) | OK; place in Review/Meta group (AE-12) |
 | Live hardware telemetry | persistent rail | Infer | GPU/mem/temp OK; **lane label is stale** — echoes the Hermes config, not the live process → **fix via AE-15** (Body 3) |
 
+### Cluster F — Cloud-run safety & cost guardrails (the OpenRouter hang fix; executes its own session, may pull forward)
+
+| # | Decision | Value | Grounding |
+|---|---|---|---|
+| **AE-17** | **Bounded, configurable, tracked guardrails on metered cloud lanes** *(new — Body 4)* | A single **`EvalGuardrail`** wraps any cloud/metered lane run (OpenRouter today — detected by a non-loopback `base_url`) with **three trip conditions**, all writing a shared **eval-abort sentinel** that the `VerticalBench.run` row-loop polls between rows (mirroring the RL `abort_poller` / sentinel, `lane.py:389`): **(G1) teardown** — the cockpit `_lifespan` shutdown (`server.py:750`) **and** an explicit `arena down` hook trip the sentinel, so an in-flight cloud eval aborts cleanly instead of only dying with the process; **(G2) stall** — a **no-progress** watchdog trips when no row has completed within `FK_EVAL_STALL_TIMEOUT_S` (default **600 s / 10 min**), backstopped by the existing 120 s per-request httpx timeout; **(G3) cost** — capture per-row `usage` tokens from each response → accumulate via `fieldkit.cost.PriceSnapshot.cost_usd` → trip when the **per-run** total exceeds `FK_EVAL_RUN_COST_CAP_USD` (default **$5**), the per-run sibling of the governor's per-day cap. **Configure:** env-anchored thresholds (the AF-9/AF-10 convention); G1 is always-on. **Track:** every trip writes `result_json.{aborted_by ∈ teardown\|stall_timeout\|cost_cap, run_cost_usd, partial:true, n_scored}` + a `guardrail_<reason>` audit row, surfaced on the Jobs card (composes with **AE-16** card identity + **AE-2** abort visibility); the captured `run_cost_usd` also feeds the **AE-13** cost badge. | Body 4 root cause: eval runs synchronously in a `BackgroundTask` (`server.py:2422`) with **no abort sentinel** (RL-only today, `lane.py:389`); `OpenAICompatClient` timeout is **per-request** 120 s (`notebook/__init__.py:203`), no per-run ceiling; eval **doesn't capture `usage`** so cost is invisible; `BudgetGovernor.daily_cap_usd` (`budget.py:333`) is a **per-job pre-check**, not a live accumulator. **No schema change** — sentinel file + `result_json` fields + env config. Generalizes to cloud Compare/Chat (deferred, §2 Out). |
+
 ## 5. Architecture
 
 **Reused surfaces** (no new route): `/arena/reward/` (AE-1, AE-14), `/arena/jobs/` (AE-2),
@@ -240,6 +276,12 @@ executes in S2).
 
 **New surfaces:** `/arena/build/` (AE-5, in the Build/Train nav group); a `corpus_runs` file-polled
 heartbeat (AE-6); per-step `result_json` extensions (AE-2/AE-3) and lineage pointers (AE-4/AE-9).
+
+**Cloud-run guardrails (AE-17):** a new `EvalGuardrail` (a stall + cost watchdog, mirroring
+`MemoryWatchdog`) plus a shared **eval-abort sentinel** file the `VerticalBench.run` row-loop polls
+(mirroring `abort_poller`, `lane.py:389`), tripped by the `_lifespan`/`arena down` teardown and the
+three conditions; per-run cost is captured from each response's `usage` via `fieldkit.cost.PriceSnapshot`.
+No new route, no schema — the trip + per-run cost land in `result_json` and the thresholds are env-anchored.
 
 **Transport discipline:** every cross-process feed uses the **proven file-polled-heartbeat** pattern
 (AF-9's `av10-preflight*.json` + 5 s poll; AF-10's `FK_ARENA_SFT_DIR` + 3 s poll) — never importing
@@ -278,6 +320,13 @@ S5  Provenance / lineage         AE-8 bench provenance card  ·  AE-9 rl_run lin
                                           │
 S6  Wiring quick-wins            AE-10 scout top-3 → Compare (+ lock-time behavioral gate)
                                  AE-11 bench preview (register astro-bench v0.1 in Eval)
+                                          │
+S7  Cloud-run guardrails         AE-17 EvalGuardrail (G1 teardown · G2 stall · G3 cost) on metered
+    (safety; MAY pull forward)         cloud lanes — env-config thresholds + result_json trip-tracking
+                                 ▶ NB a safety/cost concern, NOT observability — may execute AHEAD of S1
+                                   if cloud eval runs continue before astro C6 (a hung run is a live cost leak)
+                                 ▶ GATE: validate by a deliberately-slow / capped cloud eval that trips
+                                   each condition + a teardown mid-run (not only a unit test)
 ```
 
 Each session closes its loop to the AF-3 bar (ledger "operating discipline" §5): tests + `_webui`
@@ -292,19 +341,22 @@ rebake + a live side-by-side over CDP. Never block an astro/vertical gate on an 
 | **AE-R3** | `/arena/build/` couples the cockpit to in-session skill internals | med | brittle pane that breaks when a skill changes | **file-polled heartbeat contracts only** (the AF-9/AF-10 transport); never import skill code | the pane degrades to "stage unknown" rather than erroring |
 | **AE-R4** | One-lane envelope blocks AF-7 head-to-head (`project_spark_unified_memory_oom`) | high | can't serve 3 candidate lanes at once | **sequential lane swaps / cached generations** for the Compare duel | run the behavioral gate as N single-lane preflights, compared offline |
 | **AE-R5** | Nav reorg churns muscle memory / breaks deep links / the public mirror | med | broken bookmarks, sidecar-less mirror nav breaks | keep route **URLs stable** (grouping + labels only); verify the public-mirror nav renders sidecar-less | revert to the flat nav (markup-only change, trivially reversible) |
+| **AE-R6** | An AE-17 guardrail **false-trips** and aborts a legitimately-slow-but-progressing cloud run | med | a valid eval is killed mid-run, the partial spend wasted | **no-progress** semantics for G2 (reset the timer on every completed row, never a wall-clock total) + generous env-tunable defaults (10 min / $5); G3 trips only on *accrued* cost from real `usage` | raise the env thresholds and re-run; the `partial` `result_json` (`n_scored`, `run_cost_usd`) records exactly what was spent so the re-run has context |
 
 ## 8. Release gate
 
 Site/cockpit-only sessions (AE-12 nav, AE-5/AE-6/AE-8 panes) rebake the `_webui` bundle
 (`fieldkit arena build --repo-root arena-app`, gitignored) — no Python version change required.
-Module-touching sessions (AE-1/AE-2/AE-3/AE-4 in `fieldkit.rl` / `fieldkit.arena`) get a `fieldkit`
-minor bump with CHANGELOG `[Unreleased]` entries. The cluster likely lands across **`fieldkit
-v0.23.0+`**. No arena.db migration in any session (`user_version` stays 6).
+Module-touching sessions (AE-1/AE-2/AE-3/AE-4 in `fieldkit.rl` / `fieldkit.arena`, and **AE-17** in
+`fieldkit.arena` / `fieldkit.harness` + the `fieldkit.cost` reuse) get a `fieldkit` minor bump with
+CHANGELOG `[Unreleased]` entries. The cluster likely lands across **`fieldkit v0.24.0+`** (v0.23.0
+already shipped). No arena.db migration in any session (`user_version` stays 6).
 
 ## 9. Change log
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-05 | **+1 decision (now 17: AE-1…17) + new Cluster F + §1 Body 4, from the OpenRouter eval that hung ~2.5 h during the AF-15 dispatch verification** (after the `fieldkit v0.23.0` cut). **AE-17** (Cluster F → S7) cloud-run safety & cost guardrails: an `EvalGuardrail` on metered cloud lanes with three trip conditions — **G1 teardown** (cockpit `_lifespan` / `arena down` abort an in-flight cloud eval cleanly), **G2 stall** (`FK_EVAL_STALL_TIMEOUT_S` default 600 s no-progress watchdog), **G3 cost** (capture response `usage` → `PriceSnapshot.cost_usd` → `FK_EVAL_RUN_COST_CAP_USD` default $5 per-run cap) — all env-configurable + tracked in `result_json` (`aborted_by` / `run_cost_usd` / `partial`), mirroring the RL `abort_poller`/sentinel pattern. + risk **AE-R6** (false-trip). Updated §1 intro (three bodies of work), §2 scope (In F / Out generalization), the §3 reconciliation (+2 rows), §5 architecture, §6 (S7, may pull forward), §8 release gate. **Build deferred — spec only (operator-confirmed "don't build yet").** Still **no arena.db schema change** (sentinel file + `result_json` + env config). | Manav (with Claude) |
 | 2026-06-05 | **+2 decisions (now 16: AE-1…16), from two correctness defects found driving the cockpit during astro C6** (new §1 Body 3, both verified against shipped code + the live `:7866` board). **AE-16** (Cluster A → S1) Jobs-card identity: distinct done jobs render as repeats (C5 smoke vs full run; two `rag_eval`s byte-identical) — add relative time + short id + rl_run run-label (pure render, no schema). **AE-15** (Cluster E → S2) telemetry lane-truth: the rail's "active lane" echoes the static `~/.hermes/config.yaml` (pinned Qwen3-30B) not the live GPU process — liveness-gate the fallback + read the lane arbiter's actual lane. Updated §2 scope, the AE-13 audit "Live hardware telemetry" row, and §6 (S1/S2). Still **no arena.db schema change**; both land in render + existing payloads. | Manav (with Claude) |
 | 2026-06-04 | Spec authored (v1.0 DRAFT, PROPOSED). 14 decisions AE-1…14 across 5 clusters (A RL-observability · B build-spine · C provenance · D wiring · E information-architecture) + 5 risks AE-R1…5 + the §4 data-flow audit table; 6-session breakdown §6. Formalizes the gitignored `_IDEAS/arena-dogfood-feature-extraction.md` (AF-1/2/4/5/6/7/8/11; AF-3/9/10 already built) **plus** the cockpit IA refresh raised after the first live `rl_run`. Decisions confirmed in planning: standalone spec, full backlog, RL-observability first; build queued after astro C6. Plan workspace: `/home/nvidia/.claude/plans/while-we-wait-shall-polished-hummingbird.md`. | Manav (with Claude planning session) |
 
