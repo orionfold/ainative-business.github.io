@@ -26,8 +26,8 @@
   apache-2.0, chat_format chatml, positioning-led card (Spark-tested ladder → T2 head-to-head → variants → how-to → known-drift → bench cross-link).
   **F16 deliberately NOT published** (operator call). Source GGUFs still at `/home/nvidia/data/quants/Kepler/`.
 - **Dataset** — <https://huggingface.co/datasets/Orionfold/Kepler-bench>: `pool.jsonl` (120) + `heldout.jsonl` (44) + `verifier.py` + `units.py` + card (`kind: bench`, AV-11).
-- **Article** — `articles/the-gate-before-the-gpu/` (`cf132a4`, pushed; `series: Machine that Builds Machines`, `book_chapters:[10,11,14]`,
-  `customer_linked: true`). The SFT-vs-RL-vs-RLVR method-selection deep-dive. **Has NO outbound HF links yet** (optional enhancement now both repos are live).
+- **Article** — `articles/the-gate-before-the-gpu/` (`cf132a4`; `series: Machine that Builds Machines`, `book_chapters:[10,11,14]`,
+  `customer_linked: true`). The SFT-vs-RL-vs-RLVR method-selection deep-dive. Now links `Orionfold/Kepler-GGUF` + `-bench` in the deliverable section (`871a654`, pushed).
 
 **Headline numbers (on disk under `evidence/astrodynamics/`):**
 - **T2 head-to-head** (44-row external curveball, 4096-token budget, `astro_numeric_match` ±2%): **Kepler-Q8_0 84.1% local/$0/166 mean-tok** · Claude Haiku 4.5 97.7% · Gemini 3.1 Flash-Lite 95.5% (both cloud, ~3× more verbose). Local 8B specialist ~11–14 pp below frontier *small* cloud, $0/offline, format reliability matches (100% boxed / 0% trunc).
@@ -36,11 +36,13 @@
 
 **The Kepler pipeline lessons are encoded as memories** (apply to the next vertical): `feedback_sft_vs_rlvr_decision` (the prior question — cheap-correct-trajectory + enumerable-output → SFT-only wins), `feedback_rlvr_headroom_gate` (the Goldilocks band + the bimodal-per-family refinement: 0% = SFT-coverage gap, not RL headroom), `feedback_preflight_bench_before_quant`, `feedback_smoke_projection_slack`.
 
-## ⚙️ Live runtime (mostly torn down — box is idle, GPU lane FREE)
+## ⚙️ Live runtime (cockpit UP in browser-use mode; GPU lane FREE, no OpenRouter activity)
 
-- **`pgvector` container UP** (`:5432`, db `vectors`, table `blog_chunks`) — backs the Second Brain index. The only thing running.
-- **DOWN:** Arena cockpit (`:7866`), Kepler Q8 `llama-server` (`:8091`), NIM embedder (`:8001`), visible CDP Chromium (`:9222`). No llama.cpp/vLLM process. **~115 GiB available** (one-lane envelope wide open).
-- **To bring the cockpit back:** `bash .claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh up --browser` (verbs `up|down|restart|status`; `--browser` is CC-Bash-safe; venv `/tmp/arena-venv`). After any `arena-app/` edit, rebake: `fieldkit arena build --repo-root arena-app`.
+- **Arena cockpit UP** (`:7866`, OpenRouter key loaded) + **visible CDP Chromium UP** (`:9222`, browser-use mode) — brought up 2026-06-05 to verify eval dispatch; **left up**. `arena.db` has **0 running/queued jobs** (the hung qwen OpenRouter eval was killed + its job row deleted — no cloud spend). Kepler eval results preserved on the board: `kepler-q8-gguf` **0.86/44**, `deepseek-r1` **0.84/37**.
+- **`pgvector` container UP** (`:5432`, db `vectors`, table `blog_chunks`) — backs the Second Brain index.
+- **DOWN:** Kepler Q8 `llama-server` (`:8091`), NIM embedder (`:8001`). No llama.cpp/vLLM process; **GPU lane FREE** (~115 GiB available, one-lane envelope wide open).
+- **`/tmp/arena-venv` fieldkit refreshed to 0.23.0** (editable `-e ./fieldkit`) — in-cockpit `POST /api/jobs` eval now dispatches through the AF-15 `scorer_path` (verified: built-in `numeric_match` scores a boxed Kepler completion 0.0, the bench `scorer_path` verifier scores it 1.0).
+- **Tear down when done:** `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh down --browser` (verbs `up|down|restart|status`; `--browser` is CC-Bash-safe). After any `arena-app/` edit, rebake: `fieldkit arena build --repo-root arena-app`.
 - **To serve a Kepler lane** (e.g. for Arena Compare): `spark-serve` the GGUF at `/home/nvidia/data/quants/Kepler/`, or the merged SFT `merged-hf-bf16` via the proven `vllm-node:latest` image.
 
 ## Build / verify
@@ -49,8 +51,11 @@
 
 ## Open items (by swimlane)
 
-### ✅ Kepler ship-tail + Release — ALL DONE 2026-06-05
-- ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state). ⚠️ The running cockpit's `/tmp/arena-venv` still carries OLD source — in-cockpit `POST /api/jobs` eval needs a `pip install fieldkit==0.23.0` (or `-e ./fieldkit`) there to pick up the AF-15 hook.
+### ✅ Kepler ship-tail + Release + eval-dispatch verify — ALL DONE 2026-06-05
+- ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state).
+- ✅ **`/tmp/arena-venv` fieldkit refreshed to 0.23.0** (was editable-linked at stale 0.13.0 metadata → `pip install -e ./fieldkit`) — the AF-15 caveat is **resolved**; in-cockpit eval now uses the `scorer_path` hook.
+- ✅ **In-cockpit eval dispatch VERIFIED** via browser-use mode (cockpit + CDP Chromium up): `resolve_bench` surfaces the bench `scorer_path`, `run_vertical_eval`/`_load_scorer_callable` load it (resolving the sibling `from units import` that breaks a naive load), and the Jobs board renders `kepler-q8-gguf` 0.86/44 + `deepseek-r1` 0.84/37. Decisive proof: same boxed completion → built-in `numeric_match` **0.0** vs bench `scorer_path` **1.0**.
+- ✅ **OpenRouter runs shut down** — the qwen3-8b eval that hung ~2.5 h was killed (cockpit bounce) + its job row deleted; no OpenRouter jobs running/queued. **This motivated AE-17** (cloud-run guardrails — see Arena dogfood S7 below).
 
 ### 🔧 Arena dogfood — `arena-enhancements-v1` (spec DRAFT, 17 decisions AE-1…17; confirm before build)
 The payoff from running Kepler's pipeline live through the cockpit. Spec `_SPECS/arena-enhancements-v1.md`; gitignored ledger `_IDEAS/arena-dogfood-feature-extraction.md`. **No arena.db churn** (everything lands in `result_json`/file-reports/panes/nav; `user_version` stays 6). Release gate ~`v0.24.0+`.
@@ -81,14 +86,15 @@ The payoff from running Kepler's pipeline live through the cockpit. Spec `_SPECS
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-05 (post-release: arena venv → 0.23.0 · in-cockpit eval-dispatch VERIFIED via browser-use · OpenRouter runs shut down · AE-17 guardrail spec)
+After the v0.23.0 cut, refreshed `/tmp/arena-venv` fieldkit (`pip install -e ./fieldkit` — was editable-linked at stale 0.13.0 metadata; runtime already current). Brought the cockpit up in **browser-use mode** (`arena_lifecycle.sh up --browser`; `:7866` + CDP Chromium `:9222`) and **verified in-cockpit eval dispatch through AF-15**: `resolve_bench` surfaces the bench `scorer_path` → `run_vertical_eval`/`_load_scorer_callable` load it (resolving the sibling `from units import` a naive load breaks on) → the Jobs board renders `kepler-q8-gguf` **0.86/44** + `deepseek-r1` **0.84/37**; decisive proof = same boxed completion scores **0.0** under built-in `numeric_match` vs **1.0** under the bench `scorer_path`. Bringing the cockpit up had drained two **queued** baseline OpenRouter evals — deepseek-r1 finished (0.84), but **qwen3-8b hung ~2.5 h** holding the lane with uncapped spend → **operator: "shutdown any openrouter runs"** → killed it (cockpit bounce) + deleted its job row; **0 OpenRouter jobs running/queued**. That incident → **operator: spec a guardrail** → added **AE-17 + new Cluster F** to `arena-enhancements-v1` (G1 teardown-abort · G2 stall-timeout `FK_EVAL_STALL_TIMEOUT_S`=600 s · G3 per-run cost cap `FK_EVAL_RUN_COST_CAP_USD`=$5; env-config + `result_json` tracking; mirrors the RL `abort_poller`/sentinel) + risk AE-R6; **spec only, not built** (operator hold). Commits `81b37b9` (AE-17) + this HANDOFF. Cockpit left **up** (browser-use). | Manav (with Claude)
+
 ### 2026-06-05 (`fieldkit v0.23.0` CUT + on PyPI; Kepler ship-tail closed — HF links, dup delete, test fix)
 Closed the operator's "do 1, prioritize 3+4" queue. **Task 1:** added reader-facing `Orionfold/Kepler-GGUF` + `Orionfold/Kepler-bench` links to `articles/the-gate-before-the-gpu/` deliverable section (`871a654`; build green 518 pages, verifiers pass). **Task 4 (test fix):** `test_drain_arbiters_rl_run_with_progress_and_mem_trace` failed because `build_standup` reads the box's `~/.fieldkit/arena/autonomy.json` (armed `enabled:true`) → isolated it via `monkeypatch.setenv("ARENA_AUTONOMY_STATE", tmp)` (`a8acc1c`; test-only, 19/19 lane tests green). **Task 3 (release):** `fieldkit-curator` interactive — minor bump 0.22.0→**0.23.0** (new public kwargs + endpoint, backward-compatible, no schema/module change), offline test mode (GPU-free connective tissue; v0.21/v0.22 precedent). Gates: audit-docs 17/18 (1 pre-existing ArenaStore kwarg WARN, not this release) + audit-landing 4/4. Offline suite **1271 pass / 5 skip**. CHANGELOG `[Unreleased]`→`[0.23.0]` (+Fixed/Test-suite/Articles), commit **`3bda6df`**, tag `fieldkit/v0.23.0`, pushed. Both install-verifies green (git-source + PyPI). **PyPI upload user-authorized** → <https://pypi.org/project/fieldkit/0.23.0/>. Stats refreshed (`fieldkit` LOC 43,690→**44,392**; 53 articles) → `9885dc2`. The `[Unreleased]` block is now empty. (Task 2 — the F16 dup delete — done by operator.) | Manav (with Claude)
 
-### 2026-06-05 (Kepler PUBLISHED — T1 article + T2 head-to-head + T3 GGUF/bench, both HF repos LIVE)
-Executed the operator's three STEP-2 ship-tasks for the astrodynamics vertical (named **Kepler**). **T1:** wrote + pushed the method-selection deep-dive `articles/the-gate-before-the-gpu/` (`cf132a4`; new signature `GateReadings.astro`; the SFT-vs-RL-vs-RLVR decision discipline as the spine — the 86% SFT was the right call, RLVR added 0, ran only as a control-plane stress-test). **T2:** scored Kepler-Q8_0 vs cloud frontier-small via `scripts/astro_bench/score_gguf_lane.py` (GGUF lane + OpenRouter, shared `astro_numeric_match`, new `--max-tokens`) → the model-card "how it stacks up" table (Kepler 84.1% local/$0 vs Haiku 97.7% / Gemini Flash-Lite 95.5%; dropped qwen3-8b + deepseek-r1 — slow OpenRouter providers stalled under the 4096 budget). **T3:** requant `merged-hf-bf16` → 4 GGUF variants (`9dce32a`), then `hf-publisher` → `Orionfold/Kepler-GGUF` (Q8=recommended, F16 dropped) + `Orionfold/Kepler-bench` (`kind: bench`). **AF-15 dogfood:** threaded the generic `scorer_path` hook through the eval/compare path (was rl_run-only) so a `\boxed{}` vertical scores correctly through the cockpit, not 0.0 via boxed-blind `numeric_match` — committed `9dce32a`, +2 tests, suite 250 pass (1 pre-existing mem_trace failure, see Open items). **All committed + pushed** (`be1ed2d` tip; tree clean). The `[Unreleased]` CHANGELOG carries the AF-15 hook for the next cut. | Manav (with Claude)
-
 <!--
   Older entries pruned 2026-06-05 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - Kepler PUBLISHED (the three STEP-2 ship-tasks): T1 article the-gate-before-the-gpu (cf132a4, GateReadings.astro); T2 head-to-head (Kepler-Q8_0 84.1% local/$0 vs Haiku 97.7% / Gemini Flash-Lite 95.5%); T3 requant→4 GGUF (9dce32a)→hf-publisher Orionfold/Kepler-GGUF + Kepler-bench; AF-15 scorer_path threaded through eval/compare. be1ed2d tip. Summarized in the Current state block + the v0.23.0 entry above.
   - C6 STEP-1.5: AV-12 RL-headroom gate RAN (scripts/astro_bench/{transfer,gen_transfer,headroom_gate}.py); SFT agg 20.83% but BIMODAL per-family (0% = SFT-coverage gap, not RL headroom) → operator BRANCH 1 = ship the 86% SFT + methodology story (feedback_rlvr_headroom_gate); a49dff6. Fed the publish work above.
   - C5 full RLVR run = clean null (selected_step=0, in-loop held-out flat 0.9583) + C6 STEP-1(a) generalization 86.36%; encoded the RL-headroom gate (AV-12/RV-11, feedback_rlvr_headroom_gate); 2 cockpit bugs → AE-15/AE-16.
   - C4 wiring-complete + C5 4-step smoke PASSED (scorer_path hook; enqueue_rl.py; reward REAL pool 0.75–0.875 / held-out 0.958).
