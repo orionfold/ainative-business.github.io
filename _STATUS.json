@@ -3,27 +3,27 @@
   "project": "spark",
   "updated": "2026-06-06",
   "health": "green",
-  "focus": "fieldkit v0.29.0 RELEASED — arena-enhancements v2 cut 2: Cluster G frontend (LaneTruth multi-lane + select/pin) + Cluster H run-context (run anchor, Run cell, provenance chips + prior-run dimming); fixed registry-blind lane resolution; offline 1419 pass",
+  "focus": "fieldkit v0.30.0 RELEASED — arena-enhancements v2 cut 3: Cluster I core (AE-26 inventory truth on disk, AE-27 corpus request handshake + liveness, AE-29 operator-armed sft_run dispatch, AE-30 runtime readiness); offline 1445 pass; all launch risk deferred to cut 4",
   "blockers": [],
   "next": [
-    "v2 cut 3: Cluster I (AE-26 inventory truth, AE-27 corpus handshake, AE-28 feed self-description, operator-armed sft_run dispatch, AF-20 runtime arming)",
-    "AE-22 launch half: deterministic guarded launch runner (AE-R13, own focused cut)",
-    "Operator-armed live gates: arena down mid-metered-eval, GS no-restart cap edit, run-anchor flow on a real Kepler serve",
+    "v2 cut 4 — the guarded LAUNCH cut (AE-R13): AE-22 launch runner + AF-20 arm/teardown, one-lane-aware",
+    "Operator-armed live gates: real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1), real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
+    "AE-28 feed self-description + operator brief (low priority)",
     "Arena launch-article refresh with the 11 curated 2x screenshots"
   ],
   "recent": [
-    "fieldkit v0.29.0 on PyPI (tag + both install-verifies green; 16 files, +845)",
-    "AE-23: GET /api/run-context + set_at run anchor + rail Run cell (honest unanchored)",
-    "AE-24: ProvenanceChip on SFT/Reward/Build + prior-run dimming on Jobs + leaderboard-live",
-    "AE-21/22: LaneTruth on Models (drift banner, demoted hermes hint) + select/pin anchors the run",
-    "Fixed: active-lane registry never fed _resolve_active_lane (selection was write-only)"
+    "fieldkit v0.30.0 on PyPI (tag + both install-verifies green; 17 files, +1761)",
+    "AE-26: manifest artifacts VERIFIED on disk at read — Kepler chips 600/600 ✓ 120/120 ✓ 8.7 GB ✓",
+    "AE-27: /api/corpus-request intent file + heartbeat-freshness liveness (live/stale/done/none)",
+    "AE-29: sft_run armed twice over (async-only + FK_SFT_RUN_ARMED drain brake + skip_ids no-starvation)",
+    "AE-30: /api/runtimes — lanes/containers/TCP observed; live roster matched the box exactly"
   ],
-  "session": "v2 cut 2 (G frontend + H run-context) — fieldkit v0.29.0",
+  "session": "v2 cut 3 (Cluster I core) — fieldkit v0.30.0",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 18,
+    "arena_features": 22,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,
