@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.24.0] — 2026-06-05
+
+The arena-enhancements dogfood cluster, sessions S1–S4 — the gaps the first live
+`rl_run` exposed, then the cockpit's information architecture, the vertical-build
+spine, and the corpus live feed + build-gate ledger. **No arena.db schema change**
+across the whole cluster (`user_version` stays 6); every signal lands in
+`result_json` / file-polled reports / panes / nav.
+
 ### Added
 
 - **Arena-enhancements S1 — RL-run observability** (`_SPECS/arena-enhancements-v1.md`
@@ -131,6 +139,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `388/600 rows · verify ✓ · ~5 batches left` + the six-family mix + the six-gate ledger
     — then deleted, reverting the spine to the real Kepler 7/8). The AE-6 feed lights
     end-to-end on the next live corpus-synth run.
+
+### Test suite
+
+- **1297 passed, 5 skipped** (offline `pytest`; the 5 skips are the `--spark`
+  live-NIM / pgvector + torch-dependent suites). +21 tests over v0.23.0 across the
+  four sessions: `test_rl.py` + `tests/arena/test_lane.py` (S1), `test_server.py`
+  (S2 AE-15), `tests/arena/test_build_spine.py` (S3 + S4 gates), and the new
+  `tests/arena/test_corpus_feed.py` (S4 AE-6 writer + endpoint + live corpus stage).
+
+### Verified on Spark
+
+- Every session closed with the pinned dogfood discipline — `_webui` rebaked +
+  the cockpit restarted in browser-use mode + a **live side-by-side browser smoke
+  over CDP** of the rebaked panes (S1 the RL strip identity + degenerate badge, S2
+  the two-tier nav + honest idle-lane rail, S3 the eight-stage build spine, S4 the
+  corpus strip + gate ledger). The live `rl_run` reward-gauge end-to-end (AE-R1)
+  and the AE-6 corpus feed end-to-end stay operator-armed for the next live run.
 
 ## [0.23.0] — 2026-06-05
 
