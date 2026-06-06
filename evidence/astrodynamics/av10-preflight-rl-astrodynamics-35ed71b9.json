@@ -1,0 +1,1 @@
+{"boxed_rate": null, "buckets": {}, "gate_pass": null, "kind": "rl_run", "model": "/home/nvidia/data/astro-train-lora/p65-nemo/merged-hf-bf16-fixed", "n": null, "reward_rate_step0": 0.958333, "rows": [], "scored": null, "status": "done", "step": 0, "total": null, "truncation_rate": 0.0, "vertical": "astrodynamics"}
