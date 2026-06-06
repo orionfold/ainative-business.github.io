@@ -1102,11 +1102,15 @@ function SideCard({ side, accent, state, streaming, title, needsLoad, onLoad }) 
               ≈{state.tokens_out.toLocaleString()} tok
             </span>
           )}
-          {state.cost_usd != null && state.cost_usd > 0 && (
+          {/* AE-13: cost legible on every duel — metered cloud spend, or an
+              explicit "$0 · local" so a free Spark lane reads as free, not blank. */}
+          {state.cost_usd != null && state.cost_usd > 0 ? (
             <span class="compare-side__chip compare-side__chip--cost">
               ${state.cost_usd < 0.01 ? state.cost_usd.toFixed(4) : state.cost_usd.toFixed(3)}
             </span>
-          )}
+          ) : state.tokens_out != null ? (
+            <span class="compare-side__chip compare-side__chip--muted">$0 · local</span>
+          ) : null}
           {state.finish_reason && (
             <span class="compare-side__chip compare-side__chip--muted">
               {state.finish_reason}

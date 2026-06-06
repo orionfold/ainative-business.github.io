@@ -22,7 +22,7 @@ const curriculum = await loadCurriculum();
 
 const title = 'Orionfold Arena — Standup';
 const description =
-  'The morning-review gate of the autonomous harness — what the overnight cron ran, what regressed, what is queued, and today’s spend by lane vs cap. Stage-only: the loop never pushes; the operator reviews and promotes.';
+  'The overnight RL-run digest + promote gate — what the cron drained (RL runs, peak memory, OOM-defers), what regressed, what is queued, and today’s spend by lane vs cap. Stage-only: the loop never pushes; the operator reviews and promotes.';
 ---
 <ArenaAppLayout title={title} description={description} active="standup">
 
@@ -38,6 +38,11 @@ const description =
       </span>
     </header>
     <div class="arena-pane__body">
+      {/* AE-13: make the Standup↔Jobs boundary explicit + navigable. */}
+      <p class="arena-pane__boundary">
+        <span>A <strong>read-only digest</strong> of what the overnight cron ran, regressed, and staged — the loop
+        never pushes, you review and promote. To dispatch a run yourself, go to <a href="../jobs/">Jobs&nbsp;→</a></span>
+      </p>
       {/* Ran / Regressed / Queued + the M9 Spend rail (AH-3). The overnight cron
           (run_drain_cycle) does the dispatch; this page only renders — an HTTP
           GET never launches a GPU lane. */}

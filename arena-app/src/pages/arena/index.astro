@@ -13,6 +13,7 @@
 import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
 import CurrentLane from '../../components/arena/CurrentLane.jsx';
 import ActivityFeed from '../../components/arena/ActivityFeed.jsx';
+import TrainingFlow from '../../components/arena/TrainingFlow.jsx';
 import EvidenceBand from '../../components/arena/EvidenceBand.astro';
 import LiveVsBaseline from '../../components/arena/LiveVsBaseline.jsx';
 
@@ -195,11 +196,15 @@ const fmtTok = (v: number | null) =>
       </footer>
     </article>
 
-    <!-- Active lane card (compact mode) -->
+    <!-- Resident-lane card (compact mode). AE-15: this card shows what
+         ~/.hermes/config.yaml is pointed at — the CONFIGURED resident — which
+         is not necessarily live. Labelled honestly ("Resident lane /
+         configured", cold tag) so it doesn't overclaim "active"; the telemetry
+         rail carries the liveness-probed truth. -->
     <article class="bezel bezel--lit cockpit-grid__lane">
       <header class="bezel__head">
-        <span class="bezel__head-title">Active lane</span>
-        <span class="bezel__head-tag bezel__head-tag--live">resident</span>
+        <span class="bezel__head-title">Resident lane</span>
+        <span class="bezel__head-tag bezel__head-tag--cold">configured</span>
       </header>
       <div class="bezel__body">
         <CurrentLane client:only="preact" compact />
@@ -209,6 +214,11 @@ const fmtTok = (v: number | null) =>
     <!-- Activity feed (NEW — operator-private, redacted by /api/activity) -->
     <ActivityFeed client:only="preact" limit={8} />
   </div>
+
+  <!-- AE-13: training-flow thread — SFT → Reward → RL as one legible chain so
+       an operator parked on the cockpit during a build sees the machine moving,
+       not "a static board of yesterday's jobs". -->
+  <TrainingFlow client:only="preact" />
 
   <!-- ============ Telemetry ↔ evidence bridge (P5) ============ -->
   <section class="cockpit-bridge">

@@ -152,6 +152,43 @@ def _read_hermes_lane(hermes_path: Path | None = None) -> dict[str, Any] | None:
     }
 
 
+def _read_active_gpu_lane(db_path: str) -> dict[str, Any] | None:
+    """The lane currently holding the GPU per a running job (AE-15 layer 2).
+
+    The lane arbiter (``fieldkit.arena.lane``) tears the resident chat brain down
+    and seats a vLLM RL lane for the duration of an ``rl_run`` — a lane Hermes
+    does not manage, so the static config can't see it. A running ``rl_run`` job
+    row IS that truth: its ``base`` is the model on the RL lane. Returns
+    ``{model, where}`` for the newest running GPU job, else ``None``. Best-effort
+    (a missing/cold db just yields ``None``); the telemetry hub caches the call.
+    """
+    try:
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(db_path).expanduser()
+        if not db_file.is_file():
+            return None
+        store = ArenaStore(db_file)
+        with store:
+            running = store.list_jobs(status="running", limit=20)
+        for row in running:
+            kind = row["kind"] if "kind" in row.keys() else None
+            if kind != "rl_run":
+                continue
+            payload: dict[str, Any] = {}
+            pj = row["payload_json"] if "payload_json" in row.keys() else None
+            if isinstance(pj, str) and pj:
+                try:
+                    payload = json.loads(pj) or {}
+                except json.JSONDecodeError:
+                    payload = {}
+            model = payload.get("base") or payload.get("lane_id") or "RL lane"
+            return {"model": str(model), "where": "rl"}
+    except Exception as exc:  # noqa: BLE001 — telemetry nicety, never fatal
+        _log.debug("active-gpu-lane read failed: %s", exc)
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Telemetry pump — one Telemetry instance shared across SSE subscribers.
 # ---------------------------------------------------------------------------
@@ -220,6 +257,20 @@ class TelemetryHub:
         self._resident_reader: Callable[[], Any] | None = None
         self._resident_cache_t: float = 0.0
         self._resident_cache_v: str | None = None
+        # AE-15 (telemetry lane-truth) — the rail's "active lane" must reflect a
+        # LIVE process, not the static ~/.hermes/config.yaml value (which
+        # persists at idle and while an rl_run has torn the resident brain down).
+        #   layer 1: liveness-gate — a TCP probe of the configured resident
+        #            base_url, cached so it never runs on the 0.5s pump tick.
+        self._lane_live_cache_t: float = 0.0
+        self._lane_live_cache_v: bool = False
+        #   layer 2: arbiter truth — an injected, store-decoupled reader that
+        #            returns the lane currently holding the GPU per a running
+        #            rl_run/external job (validated live on the next armed run,
+        #            AE-R1). Set by create_app; cached ~5s.
+        self._active_lane_reader: Callable[[], Any] | None = None
+        self._active_lane_cache_t: float = 0.0
+        self._active_lane_cache_v: dict[str, Any] | None = None
 
     # -- subscription contract --------------------------------------------
 
@@ -397,6 +448,62 @@ class TelemetryHub:
         self._resident_cache_v = val
         return val
 
+    def _resident_live(self) -> bool:
+        """True iff the configured resident lane's ``base_url`` answers (AE-15 l1).
+
+        The config (``~/.hermes/config.yaml``) names a pinned brain (Qwen3-30B)
+        whether or not anything is actually serving — so the rail used to claim
+        an idle box was running it, and an ``rl_run`` that tore the resident brain
+        down stayed invisible. A cheap TCP connect to the configured host:port is
+        the honest liveness signal. Cached ~8s — never run on the 0.5s pump tick.
+        """
+        now = time.monotonic()
+        if now - self._lane_live_cache_t < 8.0:
+            return self._lane_live_cache_v
+        live = False
+        reader = self._resident_reader
+        try:
+            lane = reader() if reader is not None else None
+            if lane:
+                base = str(lane.get("base_url") or "")
+                port = int(lane.get("port") or 0)
+                m = re.search(r"//([^:/]+)", base)
+                host = m.group(1) if m else "127.0.0.1"
+                if port:
+                    import socket
+
+                    with socket.create_connection((host, port), timeout=0.4):
+                        live = True
+        except Exception:  # noqa: BLE001 — liveness is best-effort
+            live = False
+        self._lane_live_cache_t = now
+        self._lane_live_cache_v = live
+        return live
+
+    def _active_lane(self) -> dict[str, Any] | None:
+        """The lane currently holding the GPU per the arbiter's truth (AE-15 l2).
+
+        When an ``rl_run``/external GPU job is running, the resident chat brain has
+        been torn down and a vLLM RL lane (which Hermes does not manage) holds the
+        slot. The injected ``_active_lane_reader`` surfaces ``{model, where}`` for
+        that job so the rail names the real lane instead of the stale config.
+        Store-decoupled (mirrors ``_resident_reader``); cached ~5s. Returns None
+        when nothing GPU-bound is running. Validated live on the next run (AE-R1).
+        """
+        reader = self._active_lane_reader
+        if reader is None:
+            return None
+        now = time.monotonic()
+        if now - self._active_lane_cache_t < 5.0:
+            return self._active_lane_cache_v
+        try:
+            val = reader()
+        except Exception:  # noqa: BLE001
+            val = None
+        self._active_lane_cache_t = now
+        self._active_lane_cache_v = val if isinstance(val, dict) else None
+        return self._active_lane_cache_v
+
     def _speed_label(self, lane_id: str | None) -> tuple[str | None, str | None]:
         """``lane_id`` → (friendly model name, where it runs).
 
@@ -436,6 +543,7 @@ class TelemetryHub:
         if self._telemetry is not None and self._telemetry.samples:
             # Last sample on the deque; copying keeps it append-safe.
             sample = dict(self._telemetry.samples[-1])
+        active_lane = self._active_lane()  # AE-15 layer 2 (None when idle)
         payload: dict[str, Any] = {
             "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "gpu_util": sample.get("gpu_util"),
@@ -461,6 +569,13 @@ class TelemetryHub:
                 )
             ),
             "resident_lane": self._resident_model(),
+            # AE-15 telemetry lane-truth: the rail reconciles the configured
+            # resident against what's actually serving. ``resident_live`` gates
+            # the "active vs configured" label (layer 1/3); ``active_lane_*`` name
+            # the real GPU lane during an rl_run/external job (layer 2).
+            "resident_live": self._resident_live(),
+            "active_lane_model": active_lane.get("model") if active_lane else None,
+            "active_lane_where": active_lane.get("where") if active_lane else None,
             "openrouter_cost_usd": round(self._openrouter_cost_usd, 6),
             "openrouter_calls": self._openrouter_calls,
             # Change signal for the live leaderboard (see bump_leaderboard).
@@ -721,6 +836,9 @@ def create_app(
     hub = TelemetryHub(interval=telemetry_interval)
     # Let the telemetry "Active Lane" cell show the warm resident at idle.
     hub._resident_reader = _read_hermes_lane  # noqa: SLF001
+    # AE-15 layer 2 — name the real GPU lane when an rl_run/external job is
+    # running (the resident brain is torn down then). Store-decoupled callable.
+    hub._active_lane_reader = lambda: _read_active_gpu_lane(db_path)  # noqa: SLF001
     # M9 (Bet 6): rehydrate the live spend rail from the persisted cost ledger
     # so the running OpenRouter total survives a sidecar restart (M9-8) instead
     # of resetting to $0. Best-effort — a cold/missing db just leaves $0.
