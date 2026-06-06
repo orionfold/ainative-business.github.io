@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "project": "spark",
+  "updated": "2026-06-06",
+  "health": "green",
+  "focus": "Released fieldkit v0.25.0 — arena-enhancements S5–S6 (bench provenance/lineage + scout→Compare & astro-bench preview)",
+  "blockers": [],
+  "next": [
+    "arena-enhancements S7 — AE-17 cloud-run guardrails (last open session)",
+    "Re-run /seo-monitor from a Google-signed-in browser for fresh GSC/GA4 (claude-in-chrome unavailable on Spark)",
+    "Verify seeded metrics: models / software_released / arena_features / ga4_users_7d"
+  ],
+  "recent": [
+    "fieldkit v0.25.0 on PyPI (S5–S6 cluster)",
+    "S6 AE-10 scout→Compare + AE-11 astro-bench preview (browser-smoked 13/13)",
+    "S5 AE-8 bench provenance + AE-9 rl_run lineage",
+    "fieldkit v0.24.0 (S1–S4 cluster)",
+    "Kepler vertical published (Orionfold/Kepler-GGUF + bench)"
+  ],
+  "session": "arena-enhancements S6 + fieldkit v0.25.0",
+  "metrics": {
+    "articles": 53,
+    "models": 6,
+    "software_released": 7,
+    "arena_features": 16,
+    "fieldkit_modules": 9,
+    "gsc_indexed": 12,
+    "gsc_submitted": 305,
+    "ga4_users_7d": 123,
+    "checked": "2026-05-30"
+  }
+}
