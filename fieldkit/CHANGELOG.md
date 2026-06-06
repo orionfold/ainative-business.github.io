@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Arena-enhancements S5 — provenance / lineage** (`_SPECS/arena-enhancements-v1.md`
+  §6 S5; AE-8/AE-9). Threads pedigree into the build spine and the rl_run card so a
+  regression traces to its substrate, not just a count or a step. **No arena.db schema
+  change** (`user_version` stays 6), **no new skill imports** (AE-R3); both are pure
+  projections over files/rows the cockpit already reads.
+  - **AE-8 — bench provenance card.** New `_bench_provenance()` projection (and
+    `GET /api/bench-provenance`) reads the on-disk pool + held-out JSONL (and the
+    SFT-init queue) and derives the bench's pedigree: version · pool/held-out counts ·
+    **RV-10 disjointness** (`pool ∩ held-out`, a real set check — not a label) ·
+    tier/topic mix · the count of golds carrying a precomputed SI value (the on-disk
+    evidence of the generator's self-verify invariant) · the **corpus held-out-exclusion
+    proof** (`SFT-queue ∩ held-out`). It rides the `/api/build` bench stage as
+    `provenance` (and lights the stage live off the JSONL even when the bench isn't
+    registered yet, pending AE-11); `<BuildSpine>` renders it as a card. Anchored by
+    `FK_ARENA_BENCH_DIR` (default the build/evidence dir). Folds into AE-11's Eval preview.
+  - **AE-9 — rl_run upstream lineage.** `_persist_rl_run` threads the inter-run upstream
+    lineage (corpus C1 · SFT-init C2 · bench version) into `result_json.upstream` — from
+    the loop summary first, else the enqueue payload (`scripts/astro_bench/enqueue_rl.py`
+    stamps `corpus_slug` / `sft_init`); `None` on a bare run. The Jobs board renders an
+    `↑ corpus · sft-init · bench` line under the held-out summary, so a regression traces
+    to its corpus, not just its step (complementing AE-4's `rl-<step>` pointer).
+
 ## [0.24.0] — 2026-06-05
 
 The arena-enhancements dogfood cluster, sessions S1–S4 — the gaps the first live

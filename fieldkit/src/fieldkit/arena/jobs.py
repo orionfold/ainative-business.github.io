@@ -533,7 +533,21 @@ def _persist_rl_run(
     held-out-selected step, the held-out vs pool trajectories, and the base. The
     selection metric is **held-out, never pool** (RV-4) — echoed as
     ``selected_on`` so a downstream consumer can't misread it.
+
+    **AE-9 (arena-enhancements S5) -- upstream lineage.** The card already carries
+    the *intra-run* lineage (``selected_exp_id`` -> the ``rl-<step>`` trial,
+    AE-4). This adds the *inter-run* lineage: the corpus (C1), SFT-init (C2), and
+    bench version this run grew from, so a regression traces to its corpus -- not
+    just its step. Pulled from the loop summary first, then the enqueue payload
+    (the operator's ``enqueue_rl`` stamps them); ``None`` when none is supplied (a
+    bare M8/RV-6 run). Pure passthrough into the existing ``result_json`` -- no
+    schema change (RV-8).
     """
+    _upstream = {
+        "corpus": result.get("corpus_slug", payload.get("corpus_slug")),
+        "sft_init": result.get("sft_init", payload.get("sft_init")),
+        "bench": result.get("bench_id", payload.get("bench_id")),
+    }
     return {
         "kind": JobKind.RL_RUN,
         "base": result.get("base", payload.get("base")),
@@ -551,6 +565,9 @@ def _persist_rl_run(
         "step_history": result.get("step_history"),
         "selected_exp_id": result.get("selected_exp_id"),
         "lineage_card": result.get("lineage_card"),
+        # AE-9 (arena-enhancements S5) — the inter-run upstream lineage (corpus /
+        # SFT-init / bench). None when nothing supplied them (bare M8/RV-6 run).
+        "upstream": _upstream if any(_upstream.values()) else None,
         # rl-lane-autonomy (LA-10/11) — the memory trace + whether the watchdog
         # tore the run down early. Present only when the run drained under an
         # RLLaneContext; absent (bare M8/RV-6 run) leaves these None/False.

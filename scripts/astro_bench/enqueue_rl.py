@@ -55,6 +55,15 @@ def build_payload() -> dict:
     if not SCORER_PATH.exists():
         raise SystemExit(f"scorer not found: {SCORER_PATH}")
     max_steps = int(os.environ.get("FK_RL_MAX_STEPS", "34"))
+    # AE-9 (arena-enhancements S5) — stamp the upstream lineage so the rl_run card
+    # links the corpus (C1) + SFT-init (C2) it grew from, not just its step. The
+    # SFT-init defaults to the basename of the adapter-init checkpoint the run
+    # warm-starts from (FK_RL_ADAPTER_INIT); the corpus to the synth that fed it.
+    adapter_init = os.environ.get("FK_RL_ADAPTER_INIT", "")
+    sft_init = os.environ.get("FK_RL_SFT_INIT") or (
+        Path(adapter_init).name if adapter_init else "p65-nemo-lora-r16"
+    )
+    corpus_slug = os.environ.get("FK_RL_CORPUS_SLUG", "astro-sft-corpus")
     return {
         "base": base,
         "vertical": VERTICAL,
@@ -63,6 +72,9 @@ def build_payload() -> dict:
         "scorer_path": f"{SCORER_PATH}:astro_numeric_match",
         "lane_id": LANE_ID,
         "bench_id": BENCH_ID,
+        # AE-9 upstream lineage (read by jobs._persist_rl_run → result_json.upstream)
+        "corpus_slug": corpus_slug,
+        "sft_init": sft_init,
         "config": {
             "max_steps": max_steps,
             "heldout_every": 10,   # hard held-out gate cadence (RV-4)

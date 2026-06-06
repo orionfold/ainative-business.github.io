@@ -253,3 +253,132 @@ def test_build_manifest_overrides_gate_consequence(
         stages = {s["key"]: s for s in client.get("/api/build").json()["stages"]}
         assert stages["publish"]["gate_state"] == "hold"
         assert stages["publish"]["gate_consequence"] == "Custom hold reason."
+
+
+# ---------------------------------------------------------------------------
+# AE-8 — bench provenance card (a pure projection over the on-disk bench JSONL)
+# ---------------------------------------------------------------------------
+
+
+def _bench_row(prompt: str, *, tier: int, topic: str, gold: float | None = 1.0) -> str:
+    row = {
+        "task_id": f"t-{abs(hash(prompt)) % 99999}",
+        "topic": topic,
+        "subtopic": "x",
+        "tier": tier,
+        "prompt": prompt,
+        "answer": "1.0 s",
+        "gold_unit": "s",
+        "rel_tol": 0.02,
+    }
+    if gold is not None:
+        row["gold_value_si"] = gold
+    return json.dumps(row)
+
+
+def _seed_bench(
+    bench_dir: Path,
+    *,
+    pool: list[str],
+    heldout: list[str],
+    queue: list[str] | None = None,
+    name: str = "astro-bench-v0.1",
+) -> None:
+    """Write a pool + held-out split (and optional SFT-init queue) into the bench
+    dir in the on-disk JSONL shape the projection reads."""
+    bench_dir.mkdir(parents=True, exist_ok=True)
+    (bench_dir / f"{name}.jsonl").write_text(
+        "\n".join(_bench_row(p, tier=2, topic="orbital_mechanics") for p in pool) + "\n"
+    )
+    (bench_dir / f"{name}.heldout.jsonl").write_text(
+        "\n".join(_bench_row(p, tier=1, topic="astrophysics") for p in heldout) + "\n"
+    )
+    if queue is not None:
+        (bench_dir / "astro-sft-queue.jsonl").write_text(
+            "\n".join(_bench_row(p, tier=2, topic="orbital_mechanics") for p in queue) + "\n"
+        )
+
+
+def test_bench_provenance_projection(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The standalone /api/bench-provenance derives the pedigree from the JSONL:
+    # version + counts + disjointness + self-verifying golds + corpus exclusion.
+    bench_dir = tmp_path / "bench"
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(bench_dir))
+    _seed_bench(
+        bench_dir,
+        pool=[f"pool prompt {i}" for i in range(5)],
+        heldout=[f"held prompt {i}" for i in range(3)],
+        queue=[f"corpus prompt {i}" for i in range(10)],
+    )
+    with TestClient(_app(tmp_path)) as client:
+        prov = client.get("/api/bench-provenance").json()
+        assert prov["available"] is True
+        assert prov["version"] == "v0.1"
+        assert prov["pool"] == 5 and prov["heldout"] == 3
+        assert prov["disjoint"] is True and prov["overlap"] == 0
+        # every seeded row carries a numeric gold → all self-verify
+        assert prov["golds_with_si"] == prov["rows_total"] == 8
+        assert prov["tier_mix"] == {"1": 3, "2": 5}
+        assert prov["topic_mix"]["orbital_mechanics"] == 5
+        assert prov["tolerance"] == "±2%"
+        assert prov["corpus"]["rows"] == 10 and prov["corpus"]["excluded"] is True
+
+
+def test_bench_provenance_detects_overlap(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # RV-10 is a real check, not a label: a prompt shared across pool + held-out
+    # flips disjoint to False and counts the overlap (so the card warns honestly).
+    bench_dir = tmp_path / "bench"
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(bench_dir))
+    _seed_bench(
+        bench_dir,
+        pool=["shared prompt", "pool only"],
+        heldout=["shared prompt", "held only"],
+        queue=["shared prompt", "corpus only"],  # corpus leak too
+    )
+    with TestClient(_app(tmp_path)) as client:
+        prov = client.get("/api/bench-provenance").json()
+        assert prov["disjoint"] is False and prov["overlap"] == 1
+        assert prov["corpus"]["excluded"] is False and prov["corpus"]["overlap"] == 1
+
+
+def test_bench_provenance_absent_is_clean_empty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # No bench pair on disk → {available: false}, never a 500.
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(tmp_path / "empty"))
+    with TestClient(_app(tmp_path)) as client:
+        r = client.get("/api/bench-provenance")
+        assert r.status_code == 200
+        assert r.json() == {"available": False, "kind": "bench"}
+
+
+def test_build_bench_stage_lit_by_provenance(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # AE-8 rides the build spine: an unregistered bench (astro-bench, pending
+    # AE-11) still lights the bench stage live off its JSONL — done state, a
+    # provenance-derived headline, and the full `provenance` object attached.
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    monkeypatch.setenv("FK_ARENA_CORPUS_DIR", str(tmp_path / "no-corpus"))
+    bench_dir = tmp_path / "bench"
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(bench_dir))
+    monkeypatch.setenv("FK_ARENA_BUILD_DIR", str(bench_dir))
+    _seed_bench(
+        bench_dir,
+        pool=[f"p{i}" for i in range(4)],
+        heldout=[f"h{i}" for i in range(2)],
+    )
+    (bench_dir / "build-manifest.json").write_text(json.dumps({"bench_id": "astro-bench"}))
+    with TestClient(_app(tmp_path)) as client:
+        stages = {s["key"]: s for s in client.get("/api/build").json()["stages"]}
+        bench = stages["bench"]
+        assert bench["state"] == "done"
+        assert "4 pool + 2 held-out" in bench["headline"]
+        assert bench["provenance"]["disjoint"] is True
+        assert bench["provenance"]["bench_id"] == "astro-bench"

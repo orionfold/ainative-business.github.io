@@ -2186,6 +2186,22 @@ def create_app(
         (page) and ``/api/build`` stay distinct."""
         return _assemble_build(root, db_path)
 
+    @app.get("/api/bench-provenance")
+    async def api_bench_provenance() -> dict[str, Any]:
+        """Bench provenance card (AE-8 / AF-4): version · pool/held-out counts ·
+        RV-10 disjointness · tier/topic mix · self-verifying golds · corpus
+        held-out-exclusion proof.
+
+        A pure projection over the bench JSONL the vertical ships
+        (``FK_ARENA_BENCH_DIR``, default the build-manifest/evidence dir) — no
+        bench registry, no skill import (AE-R3), no arena.db read. The same
+        provenance also rides the ``/api/build`` bench stage (lights the card);
+        this standalone route folds into AE-11's Eval preview. ``{available:
+        false}`` paints a clean empty state when no bench pair is on disk."""
+        manifest = _load_build_manifest(root)
+        prov = _bench_provenance(root, manifest)
+        return prov or {"available": False, "kind": "bench"}
+
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
@@ -2597,6 +2613,163 @@ def _load_build_manifest(root: Path) -> dict[str, Any]:
     return {}
 
 
+# ---------------------------------------------------------------------------
+# Bench provenance (AE-8 / AF-4) — the eval substrate's pedigree as a card
+# ---------------------------------------------------------------------------
+#
+# The Cortex-pane card pattern applied to the bench: version · pool/held-out
+# counts · RV-10 disjointness · tier/topic mix · self-verifying-gold count ·
+# corpus held-out-exclusion. A PURE read of the JSONL the bench already ships
+# (pool + held-out splits + the SFT-init queue) — no registry, no skill import
+# (AE-R3), no arena.db read. It threads into the build-spine bench stage (lights
+# the card live) and stands alone at /api/bench-provenance for AE-11's preview.
+
+
+def _bench_dir(root: Path) -> Path:
+    """Dir holding the bench pool + held-out JSONL (env ``FK_ARENA_BENCH_DIR``).
+
+    Defaults to the build-manifest dir (the evidence dir) so the bench splits sit
+    with the rest of the vertical's build signals (reward / SFT / corpus feeds)."""
+    env = os.environ.get("FK_ARENA_BENCH_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
+    return _build_manifest_dir(root)
+
+
+_BENCH_VERSION_RE = re.compile(r"v\d+(?:\.\d+)*")
+
+
+def _bench_split_files(d: Path) -> tuple[Path, Path] | None:
+    """The (pool, held-out) JSONL pair: the newest ``*.heldout.jsonl`` + its
+    sibling pool (same name, ``.heldout`` dropped). ``None`` when absent."""
+    try:
+        heldouts = sorted(
+            d.glob("*.heldout.jsonl"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    if not heldouts:
+        return None
+    heldout = heldouts[0]
+    pool = heldout.with_name(heldout.name.replace(".heldout.jsonl", ".jsonl"))
+    if not pool.is_file():
+        return None
+    return pool, heldout
+
+
+def _read_jsonl_prompts(path: Path) -> tuple[list[dict[str, Any]], set[str]]:
+    """Parse a bench/queue JSONL → (rows, prompt-set). Best-effort per line."""
+    rows: list[dict[str, Any]] = []
+    prompts: set[str] = set()
+    try:
+        text = path.read_text()
+    except OSError:
+        return rows, prompts
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            rows.append(obj)
+            p = obj.get("prompt")
+            if isinstance(p, str):
+                prompts.add(p)
+    return rows, prompts
+
+
+def _bench_provenance(
+    root: Path, manifest: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
+    """Provenance projection over the on-disk bench (AE-8).
+
+    Reads the pool + held-out splits (and the SFT-init queue, if present) and
+    derives: version, pool/held-out counts, RV-10 disjointness (pool ∩ held-out),
+    tier/topic mix, the count of golds carrying a precomputed SI value (the
+    on-disk evidence of the generator's self-verify invariant), and the corpus
+    held-out-exclusion proof (queue ∩ held-out). ``None`` when no bench pair is on
+    disk. No registry, no skill import (AE-R3)."""
+    d = _bench_dir(root)
+    pair = _bench_split_files(d)
+    if pair is None:
+        return None
+    pool_path, heldout_path = pair
+    pool_rows, pool_prompts = _read_jsonl_prompts(pool_path)
+    held_rows, held_prompts = _read_jsonl_prompts(heldout_path)
+    if not pool_rows and not held_rows:
+        return None
+    overlap = len(pool_prompts & held_prompts)
+    all_rows = pool_rows + held_rows
+    tier_mix: dict[str, int] = {}
+    topic_mix: dict[str, int] = {}
+    golds_with_si = 0
+    rel: float | None = None
+    for r in all_rows:
+        t = r.get("tier")
+        if t is not None:
+            tier_mix[str(t)] = tier_mix.get(str(t), 0) + 1
+        topic = r.get("topic")
+        if isinstance(topic, str):
+            topic_mix[topic] = topic_mix.get(topic, 0) + 1
+        gv = r.get("gold_value_si")
+        if isinstance(gv, (int, float)) and not isinstance(gv, bool) and gv == gv:
+            golds_with_si += 1
+        rt = r.get("rel_tol")
+        if rel is None and isinstance(rt, (int, float)) and not isinstance(rt, bool):
+            rel = float(rt)
+    # Corpus held-out-exclusion proof: the SFT-init queue's prompts must be
+    # disjoint from the held-out split (RV-10) — a wrong answer can't trace to a
+    # leaked train row. Best-effort; absent queue → no proof block (not a fail).
+    corpus: dict[str, Any] | None = None
+    try:
+        queues = sorted(
+            d.glob("*-sft-queue.jsonl"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        queues = []
+    if queues:
+        _qr, q_prompts = _read_jsonl_prompts(queues[0])
+        if q_prompts:
+            c_overlap = len(q_prompts & held_prompts)
+            corpus = {
+                "rows": len(q_prompts),
+                "overlap": c_overlap,
+                "excluded": c_overlap == 0,
+                "source": queues[0].name,
+            }
+    m = _BENCH_VERSION_RE.search(pool_path.stem)
+    bench_id = (manifest or {}).get("bench_id")
+    if not bench_id:
+        # Derive from the filename: strip the trailing ``-vN.N`` if present.
+        stem = pool_path.stem
+        bench_id = re.sub(r"-v\d+(?:\.\d+)*$", "", stem) or stem
+    return {
+        "available": True,
+        "kind": "bench",
+        "bench_id": bench_id,
+        "version": m.group(0) if m else None,
+        "pool": len(pool_rows),
+        "heldout": len(held_rows),
+        "rows_total": len(all_rows),
+        "overlap": overlap,
+        "disjoint": overlap == 0,
+        "golds_with_si": golds_with_si,
+        "tier_mix": tier_mix,
+        "topic_mix": topic_mix,
+        "tolerance": (f"±{rel * 100:g}%" if rel is not None else None),
+        "corpus": corpus,
+        "source": pool_path.name,
+        "heldout_source": heldout_path.name,
+    }
+
+
 def _newest_rl_run(db_path: str) -> dict[str, Any] | None:
     """The most-recent ``rl_run`` job row as a public dict, else ``None``.
 
@@ -2656,9 +2829,14 @@ def _build_scout_stage() -> dict[str, Any]:
     }
 
 
-def _build_bench_stage(bench_id: str | None, vertical: str) -> dict[str, Any]:
-    """C-B bench — the eval substrate, read live from the bench registry
-    (``benches.list_benches``). Picks the manifest's ``bench_id`` → else the
+def _build_bench_stage(
+    bench_id: str | None,
+    vertical: str,
+    provenance: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """C-B bench — the eval substrate. Read live from the bench registry
+    (``benches.list_benches``), then overlaid with the AE-8 provenance projection
+    when the bench JSONL is on disk. Picks the manifest's ``bench_id`` → else the
     first available bench for the vertical → else the first available."""
     base = {
         "key": "bench", "code": "B", "label": "Bench",
@@ -2673,24 +2851,22 @@ def _build_bench_stage(bench_id: str | None, vertical: str) -> dict[str, Any]:
         rows = _benches.list_benches()
     except Exception as exc:  # noqa: BLE001
         _log.debug("bench list for build spine failed: %s", exc)
-        return base
+        rows = []
     row = None
     if bench_id:
         # An explicit pin selects exactly that bench; if it isn't registered yet
-        # (e.g. astro-bench, pending AE-11/S6) leave the card blank so the
-        # manifest fills it rather than mislabeling it with an unrelated vertical.
+        # (e.g. astro-bench, pending AE-11/S6) the card stays blank from the
+        # registry — but the AE-8 provenance overlay below can still light it
+        # live off the on-disk JSONL.
         row = next((r for r in rows if r.get("bench_id") == bench_id), None)
         if row is None:
             base["state"] = "blank"
-            return base
     else:
         row = next(
             (r for r in rows if r.get("vertical") == vertical and r.get("available")),
             None,
         ) or next((r for r in rows if r.get("available")), None)
-    if row is None:
-        return base
-    if row.get("available"):
+    if row is not None and row.get("available"):
         fams = ", ".join(row.get("families", [])[:6])
         base["state"] = "done"
         base["headline"] = (
@@ -2698,9 +2874,33 @@ def _build_bench_stage(bench_id: str | None, vertical: str) -> dict[str, Any]:
         )
         if fams:
             base["detail"] = f"families: {fams}"
-    else:
+    elif row is not None:
         base["state"] = "blank"
         base["headline"] = f"{row.get('bench_id')} — files absent"
+    # AE-8 — overlay the on-disk provenance. When the bench JSONL exists this
+    # wins over the registry (the bench may not be registered yet, AE-11/S6): it
+    # lights the card live AND attaches the full provenance the island renders as
+    # a card (version · disjointness ✓ · self-verify · tier/topic mix · corpus
+    # exclusion). The card's headline/detail become a live read, not a manifest
+    # string.
+    if provenance and provenance.get("available"):
+        base["provenance"] = provenance
+        ver = provenance.get("version")
+        bid = provenance.get("bench_id") or "bench"
+        base["state"] = "done"
+        base["headline"] = (
+            f"{bid} {ver} · {provenance['pool']} pool + {provenance['heldout']} held-out"
+            if ver
+            else f"{bid} · {provenance['pool']} pool + {provenance['heldout']} held-out"
+        )
+        dj = (
+            "disjoint ✓ (RV-10)"
+            if provenance.get("disjoint")
+            else f"{provenance.get('overlap')} OVERLAP ✗ (RV-10)"
+        )
+        sv = f"{provenance.get('golds_with_si')}/{provenance.get('rows_total')} self-verify"
+        tol = provenance.get("tolerance")
+        base["detail"] = f"{dj} · {sv}" + (f" · {tol}" if tol else "")
     return base
 
 
@@ -2944,9 +3144,10 @@ def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
     vertical = manifest.get("vertical") or "astrodynamics"
     label = manifest.get("label") or "the current vertical"
     bench_id = manifest.get("bench_id")
+    provenance = _bench_provenance(root, manifest)
     auto = [
         _build_scout_stage(),
-        _build_bench_stage(bench_id, vertical),
+        _build_bench_stage(bench_id, vertical, provenance),
         _build_corpus_stage(root),
         _build_sft_stage(),
         _build_smoke_stage(root),

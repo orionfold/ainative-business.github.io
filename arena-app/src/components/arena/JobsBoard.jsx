@@ -573,6 +573,24 @@ export default function JobsBoard({ curriculum = {} }) {
                           : ''}
                       </div>
                     )}
+                    {/* AE-9 — inter-run upstream lineage: the corpus (C1) + SFT-init
+                        (C2) + bench version this run grew from, so a regression
+                        traces to its corpus, not just its step (AE-4). */}
+                    {j.status === 'done' && j.kind === 'rl_run' && j.result && j.result.upstream &&
+                      (j.result.upstream.corpus || j.result.upstream.sft_init || j.result.upstream.bench) && (
+                      <div class="jobs__card-lineage" title="upstream lineage — corpus · SFT-init · bench (AE-9)">
+                        <span class="jobs__lineage-arrow" aria-hidden="true">↑</span>
+                        {j.result.upstream.corpus && (
+                          <span class="jobs__lineage-item">corpus <code>{j.result.upstream.corpus}</code></span>
+                        )}
+                        {j.result.upstream.sft_init && (
+                          <span class="jobs__lineage-item">sft-init <code>{j.result.upstream.sft_init}</code></span>
+                        )}
+                        {j.result.upstream.bench && (
+                          <span class="jobs__lineage-item">bench <code>{j.result.upstream.bench}</code></span>
+                        )}
+                      </div>
+                    )}
                     {j.status === 'done' && j.kind === 'rl_run' && j.result && (
                       <RlDebrief result={j.result} curriculum={curriculum} />
                     )}

@@ -25,6 +25,12 @@
 //     preflight · held-out>base · AV-10 · promote · publish) render as a gate
 //     ledger with an allow/hold/pending state + the consequence of holding,
 //     reusing the Standup autonomy-banner pattern (advisory; read-only).
+//
+// S5 threads one more INTO this spine:
+//   • AE-8 bench provenance card — the bench stage's `provenance` projection
+//     (version · pool/held-out counts · RV-10 disjointness · self-verifying
+//     golds · tier/topic mix · corpus held-out-exclusion) renders as a card, so
+//     an eval result traces to its pedigree, not just a prompt count.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
@@ -107,6 +113,69 @@ function CorpusStrip({ feed }) {
           {famEntries.map(([k, v]) => (
             <span class="build__corpus-chip" key={k}>{k}<b>{v}</b></span>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// AE-8 — the bench provenance card. The Cortex-pane card pattern applied to the
+// eval substrate: version · pool/held-out counts · RV-10 disjointness ✓ ·
+// self-verifying golds · tier/topic mix · corpus held-out-exclusion proof. A
+// pure projection over the bench JSONL (it rides the /api/build bench stage as
+// `provenance`), so a wrong answer can be traced to its pedigree: which split,
+// disjoint from what, golds that self-verify, a corpus that excluded the held-out.
+function BenchProvenance({ prov }) {
+  if (!prov || prov.available === false) return null;
+  const disjoint = prov.disjoint;
+  const corpus = prov.corpus;
+  const tierEntries = Object.entries(prov.tier_mix || {}).sort((a, b) => a[0].localeCompare(b[0]));
+  const topicEntries = Object.entries(prov.topic_mix || {}).sort((a, b) => b[1] - a[1]);
+  return (
+    <div class="build__bench" role="status">
+      <div class="build__bench-head">
+        <span class="build__bench-label">BENCH PROVENANCE</span>
+        <span class="build__bench-id">
+          <code>{prov.bench_id}</code>{prov.version ? <> <b>{prov.version}</b></> : null}
+        </span>
+        {prov.tolerance && <span class="build__bench-tol">{prov.tolerance}</span>}
+      </div>
+      <div class="build__bench-counts">
+        <span class="build__bench-count">{prov.pool}<span class="build__bench-cap"> pool</span></span>
+        <span class="build__bench-plus">+</span>
+        <span class="build__bench-count">{prov.heldout}<span class="build__bench-cap"> held-out</span></span>
+        <span class="build__bench-fact" data-tone={disjoint ? 'pass' : 'hold'}>
+          {disjoint ? 'disjoint ✓ (RV-10)' : `${prov.overlap} overlap ✗ (RV-10)`}
+        </span>
+        <span class="build__bench-fact" data-tone={prov.golds_with_si === prov.rows_total ? 'pass' : 'hold'}>
+          {prov.golds_with_si}/{prov.rows_total} self-verify ✓
+        </span>
+      </div>
+      {(tierEntries.length > 0 || topicEntries.length > 0) && (
+        <div class="build__bench-mix">
+          {tierEntries.length > 0 && (
+            <>
+              <span class="build__bench-mix-label">tier</span>
+              {tierEntries.map(([k, v]) => (
+                <span class="build__bench-chip" key={`t${k}`}>T{k}<b>{v}</b></span>
+              ))}
+            </>
+          )}
+          {topicEntries.length > 0 && (
+            <>
+              <span class="build__bench-mix-label">topic</span>
+              {topicEntries.map(([k, v]) => (
+                <span class="build__bench-chip" key={k}>{k}<b>{v}</b></span>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+      {corpus && (
+        <div class="build__bench-corpus" data-tone={corpus.excluded ? 'pass' : 'hold'}>
+          <span class="build__bench-corpus-dot" data-tone={corpus.excluded ? 'pass' : 'hold'} aria-hidden="true" />
+          corpus held-out-{corpus.excluded ? 'excluded ✓' : `LEAK ✗ (${corpus.overlap})`}
+          <span class="build__bench-corpus-meta"> · {corpus.rows} SFT-init rows · {corpus.overlap} overlap</span>
         </div>
       )}
     </div>
@@ -279,6 +348,9 @@ export default function BuildSpine() {
       {/* AE-6 — the corpus-synth live strip; surfaces only with a heartbeat. */}
       <CorpusStrip feed={corpus} />
 
+      {/* AE-8 — the bench provenance card; rides the bench stage's projection. */}
+      <BenchProvenance prov={(stages.find((s) => s.key === 'bench') || {}).provenance} />
+
       <div class="build__grid">
         {stages.map((s) => <StageCard stage={s} key={s.key} />)}
       </div>
@@ -293,8 +365,10 @@ export default function BuildSpine() {
         <a href="../jobs/"> rl_run</a> rows, the lane arbiter — plus a manifest
         for the stages with no live feed. Read-only; <strong>no arena.db
         change</strong>. The <b>corpus live feed</b> (AE-6) lights the strip
-        above when an in-session synth is running; the <b>gate ledger</b> (AE-7)
-        surfaces each human decision point with the consequence of holding.
+        above when an in-session synth is running; the <b>bench provenance</b>
+        (AE-8) shows the eval substrate's pedigree (disjoint splits · self-
+        verifying golds · held-out-excluded corpus); the <b>gate ledger</b>
+        (AE-7) surfaces each human decision point with the consequence of holding.
       </p>
     </div>
   );
