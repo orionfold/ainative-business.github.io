@@ -295,6 +295,49 @@ def test_read_active_gpu_lane_missing_db_is_none(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# AE-17 (S7) / G1 — _lifespan trips the eval-abort sentinel on shutdown
+# ---------------------------------------------------------------------------
+
+
+def test_trip_running_eval_sentinels_missing_db_is_zero(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _trip_running_eval_sentinels
+
+    assert _trip_running_eval_sentinels(str(tmp_path / "nope.db")) == 0
+
+
+def test_trip_running_eval_sentinels_touches_running_eval(tmp_path: Path, monkeypatch) -> None:
+    """A shutdown trips the sentinel only for *running* eval jobs — the G1 hook
+    an in-flight cloud eval's row-loop polls so it aborts cleanly."""
+    from fieldkit.arena import jobs
+    from fieldkit.arena.guardrail import eval_sentinel_for
+    from fieldkit.arena.jobs import JobKind, JobStatus
+    from fieldkit.arena.server import _trip_running_eval_sentinels
+    from fieldkit.arena.store import ArenaStore
+
+    monkeypatch.setenv("FK_EVAL_SENTINEL_DIR", str(tmp_path / "sentinels"))
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    store.upsert_lane(
+        {"id": "cloud", "kind": "OpenRouterLane", "model": "m", "port": 0, "base_url": "", "recommended": 0}
+    )
+    running_id = jobs.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b1"})
+    queued_id = jobs.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b2"})
+    rl_id = jobs.enqueue_job(store, JobKind.RL_RUN, {"base": "x", "lane_id": "cloud", "bench_path": "p"})
+    store.update_job(running_id, status=JobStatus.RUNNING)
+    store.update_job(rl_id, status=JobStatus.RUNNING)  # a running RL job — NOT an eval, must be left alone
+    store.close()
+
+    n = _trip_running_eval_sentinels(str(db))
+    assert n == 1
+    assert eval_sentinel_for(running_id).exists()
+    assert not eval_sentinel_for(queued_id).exists()  # queued, not running
+    assert not eval_sentinel_for(rl_id).exists()  # rl_run, not eval
+    body = json.loads(eval_sentinel_for(running_id).read_text())
+    assert body["aborted_by"] == "teardown"
+
+
+# ---------------------------------------------------------------------------
 # create_app — endpoints
 # ---------------------------------------------------------------------------
 

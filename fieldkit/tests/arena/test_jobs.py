@@ -176,6 +176,118 @@ def test_eval_rerun_dispatch_end_to_end(store):
     assert lb[0]["mean_normalized"] == pytest.approx(0.5)
 
 
+# ---------------------------------------------------------------------------
+# AE-17 (S7) — the eval dispatch arms a cloud-run guardrail for metered lanes
+# ---------------------------------------------------------------------------
+
+
+def _capturing_eval_runner(captured):
+    """A fake runner that records the injected guardrail and, when armed,
+    simulates `run_vertical_eval` accounting (usage → cost, per-row progress)."""
+
+    def _run(kind, payload):
+        g = payload.get("_guardrail")
+        captured["guardrail"] = g
+        result = {
+            "scorer_kind": "exact_match",
+            "mean_normalized": 0.5,
+            "calls": [
+                {"qid": "q1", "score": 1.0, "normalized": 1.0, "max_score": 1.0},
+                {"qid": "q2", "score": 0.0, "normalized": 0.0, "max_score": 1.0},
+            ],
+        }
+        if g is not None:
+            g.record_usage({"prompt_tokens": 100, "completion_tokens": 100})
+            g.record_progress()
+            g.record_progress()
+            result["guardrail"] = g.result_fields()
+        return result
+
+    return _run
+
+
+def test_eval_cloud_lane_arms_guardrail(store):
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "patent-q4km",
+            "bench_id": "patent-bench",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "m",
+        },
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    row = jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    assert row["status"] == JobStatus.DONE
+    # Metered lane → a guardrail was armed and handed to the runner.
+    assert cap["guardrail"] is not None
+    # …and its accounting threads into the job's result_json (the Jobs-card surface).
+    summary = json.loads(row["result_json"])
+    assert "guardrail" in summary
+    assert summary["guardrail"]["n_scored"] == 2
+    assert summary["guardrail"]["aborted_by"] is None
+
+
+def test_eval_local_lane_runs_unguarded(store):
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "patent-q4km", "bench_id": "patent-bench", "base_url": "http://127.0.0.1:8080"},
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    row = jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    assert row["status"] == JobStatus.DONE
+    # Local lane → no guardrail, byte-for-byte the bare M8 behavior.
+    assert cap["guardrail"] is None
+    summary = json.loads(row["result_json"])
+    assert "guardrail" not in summary
+
+
+def test_eval_cloud_guardrail_resolves_price(store):
+    from fieldkit.cost import seed_price_snapshot
+
+    seed_price_snapshot(
+        store,
+        prices=[{"model_id": "m", "price_per_m_input_usd": 15.0, "price_per_m_output_usd": 75.0}],
+    )
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "patent-q4km",
+            "bench_id": "patent-bench",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "m",
+        },
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    g = cap["guardrail"]
+    assert g is not None and g.price is not None
+    # 100 in × $15/M + 100 out × $75/M = 0.009
+    assert g.run_cost_usd == pytest.approx(0.009)
+    assert g.result_fields()["priced"] is True
+
+
 def test_unknown_kind_dispatch_fails_loudly(store):
     # Phase 3 promoted the last stubs (rl_run/requant), so DISPATCHABLE == ALL —
     # there's no named-but-undispatchable kind left. A *truly* unknown kind (one

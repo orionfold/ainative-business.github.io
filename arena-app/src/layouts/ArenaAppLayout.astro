@@ -3557,6 +3557,23 @@ try {
       .arena-app .jobs__lineage-arrow { color: var(--arena-text-mute); }
       .arena-app .jobs__lineage-item { color: var(--arena-text-dim); }
       .arena-app .jobs__lineage-item code { color: var(--arena-text-mute); }
+      /* AE-17 — cloud-run guardrail: per-run cost chip + abort badge on a metered eval card */
+      .arena-app .jobs__card-guard {
+        display: flex; align-items: center; gap: 0.3rem 0.45rem; flex-wrap: wrap;
+        font-family: var(--arena-mono); font-size: 0.54rem; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__card-guard[data-aborted="true"] { color: var(--arena-warn); }
+      .arena-app .jobs__guard-flag { color: var(--arena-warn); font-weight: 600; }
+      .arena-app .jobs__guard-reason {
+        padding: 0.02rem 0.3rem; border-radius: 0.3rem;
+        background: rgba(255,180,80,0.12); color: var(--arena-warn);
+      }
+      .arena-app .jobs__guard-partial { color: var(--arena-text-mute); }
+      .arena-app .jobs__guard-ok { color: var(--arena-text-mute); opacity: 0.8; }
+      .arena-app .jobs__guard-cost {
+        margin-left: auto; padding: 0.02rem 0.3rem; border-radius: 0.3rem;
+        background: rgba(255,255,255,0.05); color: var(--arena-text-mute);
+      }
       .arena-app .jobs__card-error {
         font-size: 0.62rem; color: var(--arena-warn); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; display: -webkit-box;

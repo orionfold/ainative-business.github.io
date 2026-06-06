@@ -441,6 +441,8 @@ class VerticalBench:
         limit: int | None = None,
         on_error: str = "record",
         extra_tags: dict[str, Any] | None = None,
+        should_abort: Callable[[], bool] | None = None,
+        on_row: Callable[[], None] | None = None,
     ) -> Bench:
         """Run `model_fn(question.question)` per question; score against `expected`.
 
@@ -450,6 +452,14 @@ class VerticalBench:
         per-row metadata (company, doc_period, etc.) lands in `BenchCall.tags`
         alongside any `extra_tags` the caller supplies (e.g. the gguf variant
         being scored — useful when the caller does `for variant in variants:`).
+
+        ``should_abort`` (AE-17) is polled **between rows**; once it returns True
+        the loop stops cleanly and returns the partial `Bench` scored so far — the
+        eval-abort hook the cloud-run guardrail uses to honor a teardown / stall /
+        cost-cap trip (the eval-side sibling of the RL ``abort_poller``).
+        ``on_row`` fires after each completed row (success *or* recorded error) —
+        the guardrail uses it to reset the no-progress stall timer. Both default
+        to ``None`` so existing callers are byte-for-byte unchanged.
         """
         import time
 
@@ -461,6 +471,8 @@ class VerticalBench:
         takes_kwargs = _accepts_kwargs(self.scorer)
         with bench:
             for q in items:
+                if should_abort is not None and should_abort():
+                    break
                 tags = {"qid": q.qid, **q.tags, **(extra_tags or {})}
                 t0 = time.perf_counter()
                 try:
@@ -477,6 +489,8 @@ class VerticalBench:
                         error=f"{type(exc).__name__}: {exc}",
                         tags=tags,
                     )
+                    if on_row is not None:
+                        on_row()
                     continue
                 latency_ms = round((time.perf_counter() - t0) * 1000.0, 2)
                 if takes_kwargs:
@@ -493,6 +507,8 @@ class VerticalBench:
                     accuracy=acc,
                     refusal=refusal,
                 )
+                if on_row is not None:
+                    on_row()
         return bench
 
     def summary(self) -> dict[str, Any]:

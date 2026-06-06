@@ -464,6 +464,7 @@ def run_vertical_eval(
     api_key_env: Optional[str] = None,
     limit: Optional[int] = None,
     max_tokens: int = 512,
+    guardrail: Optional[Any] = None,
 ) -> dict[str, Any]:
     """Re-run a vertical bench against a served lane (M8 ``eval_rerun`` body).
 
@@ -475,8 +476,15 @@ def run_vertical_eval(
     lane (default the resident llama-server via env `ARENA_EVAL_BASE_URL` /
     `ARENA_EVAL_MODEL`); `bench_path` is the JSONL gold set.
 
+    `guardrail` (AE-17, optional) is a duck-typed cloud-run watchdog the arena
+    dispatcher arms for metered cloud lanes only (``EvalGuardrail``); when present
+    its ``record_usage`` / ``should_abort`` / ``record_progress`` hooks ride the
+    run and its ``result_fields()`` is returned under ``guardrail``. ``None`` (a
+    local lane, or a direct call) leaves the run byte-for-byte unchanged.
+
     Returns ``{lane, bench, scorer_kind, n, mean_normalized, calls: [...]}``
-    where each call is ``{qid, score, max_score, normalized}``.
+    (plus ``guardrail`` when one was armed) where each call is
+    ``{qid, score, max_score, normalized}``.
     """
     from fieldkit.eval import VerticalBench, contains, exact_match, numeric_match
     from fieldkit.notebook import OpenAICompatClient
@@ -523,15 +531,29 @@ def run_vertical_eval(
     api_key = os.environ.get(api_key_env) if api_key_env else None
     client = OpenAICompatClient(endpoint=endpoint, model=model_name, api_key=api_key)
 
+    # AE-17 — when the arena dispatcher arms a cloud-run guardrail (metered lane
+    # only), thread its hooks through the run: per-response `usage` → G3 cost,
+    # a between-rows `should_abort` → G1 teardown / G2 stall, and `record_progress`
+    # → G2 reset. `guardrail` is duck-typed (no harness→arena import); a local
+    # lane passes `None` and the run is byte-for-byte unchanged.
+    on_usage = guardrail.record_usage if guardrail is not None else None
+
     def model_fn(prompt: str) -> str:
         return client.chat(
-            [{"role": "user", "content": prompt}], max_tokens=max_tokens
+            [{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            on_usage=on_usage,
         )
 
     vb = VerticalBench.from_jsonl(
         path, name=bench, scorer=scorer_fn, limit=limit
     )
-    result = vb.run(model_fn, limit=limit)
+    result = vb.run(
+        model_fn,
+        limit=limit,
+        should_abort=(guardrail.should_abort if guardrail is not None else None),
+        on_row=(guardrail.record_progress if guardrail is not None else None),
+    )
 
     calls: list[dict[str, Any]] = []
     accs: list[float] = []
@@ -551,7 +573,7 @@ def run_vertical_eval(
         if acc is not None:
             accs.append(float(acc))
     mean_normalized = sum(accs) / len(accs) if accs else None
-    return {
+    out: dict[str, Any] = {
         "lane": lane,
         "bench": bench,
         "bench_path": str(path),
@@ -560,6 +582,11 @@ def run_vertical_eval(
         "mean_normalized": mean_normalized,
         "calls": calls,
     }
+    # AE-17 — surface the guardrail accounting (run cost + whether/why it aborted)
+    # so the dispatcher can thread it into `result_json` for the Jobs card.
+    if guardrail is not None:
+        out["guardrail"] = guardrail.result_fields()
+    return out
 
 
 def measure_variants(

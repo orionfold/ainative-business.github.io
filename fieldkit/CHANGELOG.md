@@ -6,6 +6,54 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.26.0] — 2026-06-06
+
+The arena-enhancements dogfood cluster's final session, S7 — bounded, configurable,
+**tracked** guardrails on metered cloud eval lanes, after a baseline OpenRouter eval
+hung ~2.5 h holding the lane and accruing uncapped spend (2026-06-05). This closes the
+arena-enhancements cluster (S1–S7 feature-complete). **No arena.db schema change**
+(`user_version` stays 6) — a sentinel file + `result_json` fields + env config; **no
+skill imports** (AE-R3); a local lane runs byte-for-byte unchanged.
+
+### Added
+
+- **Arena-enhancements S7 — cloud-run guardrails** (`_SPECS/arena-enhancements-v1.md`
+  §6 S7; AE-17). Bounded, configurable, **tracked** guardrails on *metered cloud* eval
+  lanes — the fix for the baseline OpenRouter eval that hung ~2.5 h holding the lane and
+  accruing uncapped spend (2026-06-05). A new `fieldkit.arena.guardrail.EvalGuardrail`
+  wraps any metered cloud eval (a non-loopback `base_url`) with three trip conditions,
+  all writing a shared **eval-abort sentinel** the `VerticalBench.run` row-loop polls
+  between rows (the eval-side sibling of the RL `abort_poller`/sentinel pattern):
+  - **G1 — teardown.** The cockpit `_lifespan` shutdown (and `arena down`) trip the
+    sentinel for every running `eval_rerun` job (`_trip_running_eval_sentinels`, a
+    deterministic-path-from-`job_id` reach), so an in-flight cloud eval aborts cleanly
+    instead of only dying with the process.
+  - **G2 — stall.** A **no-progress** watchdog trips when no row completes within
+    `FK_EVAL_STALL_TIMEOUT_S` (default 600 s), reset on every completed row (never a
+    wall-clock total — the AE-R6 false-trip guard), backstopped by the existing 120 s
+    per-request httpx timeout.
+  - **G3 — cost.** `OpenAICompatClient.chat` gains an `on_usage` hook → the guardrail
+    accumulates per-row `usage` tokens → `fieldkit.cost.PriceSnapshot.cost_usd` → trips
+    when the **per-run** total exceeds `FK_EVAL_RUN_COST_CAP_USD` (default $5), the
+    per-run sibling of the governor's per-day cap. Inert (tokens-only) when no price
+    snapshot resolves for the model.
+  - **Tracked** — every run threads `result_json.guardrail` (`aborted_by ∈
+    teardown|stall_timeout|cost_cap`, `run_cost_usd`, `partial`, `n_scored`, token
+    counts) through `_persist_eval_rerun`; the Jobs board renders a per-run cost chip +
+    an abort badge naming the trip condition (composes with AE-16 card identity + AE-2
+    abort visibility + the AE-13 cost chip). **No arena.db schema change**
+    (`user_version` stays 6) — a sentinel file + `result_json` fields + env config;
+    **no skill imports** (AE-R3). A **local** lane (loopback / docker-bridge / RFC-1918)
+    runs byte-for-byte unchanged — the dispatcher never arms a guardrail for it.
+
+### Test-suite
+
+- **+38 offline tests** (1315 → 1353 pass / 5 skip): `tests/arena/test_guardrail.py`
+  (G1/G2/G3 trips + reset semantics, cloud detection, env config, the
+  `VerticalBench.run` abort/progress hooks, and `run_vertical_eval` end-to-end with a
+  fake OpenAI-compat client) + 3 dispatch/persist tests in `test_jobs.py` + 2
+  `_lifespan` teardown tests in `test_server.py`.
+
 ## [0.25.0] — 2026-06-06
 
 The arena-enhancements dogfood cluster tail, sessions S5–S6 — provenance + lineage

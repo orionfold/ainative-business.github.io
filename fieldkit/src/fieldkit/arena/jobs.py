@@ -321,6 +321,11 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             api_key_env=payload.get("api_key_env"),
             limit=limit,
             max_tokens=max_tokens,
+            # AE-17 — the arena dispatcher arms a cloud-run guardrail for metered
+            # lanes (`_run_eval_guarded`), passed in-memory on the dispatch-time
+            # payload copy (never the persisted `payload_json`). `None` ⇒ local
+            # lane / direct enqueue ⇒ unguarded, RV-6 byte-for-byte behavior.
+            guardrail=payload.get("_guardrail"),
         )
     if kind == JobKind.MEASURE_VARIANTS:
         return mcp.measure_variants(
@@ -429,6 +434,12 @@ def _persist_eval_rerun(
         "n_scored": n_scored,
         "mean_normalized": result.get("mean_normalized"),
     }
+    # AE-17 — when a cloud-run guardrail was armed, thread its accounting (run
+    # cost + whether/why it aborted) into the job's result_json so the Jobs card
+    # can render the cost chip + abort badge (composes with AE-16 + AE-2).
+    guardrail = result.get("guardrail")
+    if guardrail:
+        summary["guardrail"] = guardrail
     store.update_eval_run(
         run_id,
         status="finished",
@@ -634,6 +645,62 @@ def _run_rl_arbitered(
     return result
 
 
+def _run_eval_guarded(
+    store: Any,
+    job_id: str,
+    payload: Mapping[str, Any],
+    runner: Callable[[str, Mapping[str, Any]], dict[str, Any]],
+) -> dict[str, Any]:
+    """Run an ``eval_rerun`` with an AE-17 cloud-run guardrail when metered.
+
+    Mirrors the RL ``_run_rl_arbitered`` precedent: a dedicated arena-layer
+    dispatch path that wraps the generic ``runner`` for one kind. For a **local**
+    lane (loopback / docker-bridge / RFC-1918 ``base_url``) it is a transparent
+    passthrough — the run is byte-for-byte the bare M8 behavior. For a **metered
+    cloud** lane it builds an :class:`fieldkit.arena.guardrail.EvalGuardrail`
+    (sentinel from ``job_id``, thresholds from env, price resolved from the M9
+    snapshot for the lane's model), clears any stale sentinel, and hands the live
+    object to the runner on an in-memory payload copy (never the persisted
+    ``payload_json``). The teardown (G1) is tripped externally by ``_lifespan``.
+    """
+    from fieldkit.arena.guardrail import (
+        EvalGuardrail,
+        eval_sentinel_for,
+        is_cloud_endpoint,
+    )
+
+    base_url = payload.get("base_url") or os.environ.get("ARENA_EVAL_BASE_URL", "")
+    if not is_cloud_endpoint(base_url):
+        return runner(JobKind.EVAL_RERUN, payload)
+
+    price = None
+    try:
+        from fieldkit.cost import CostLedger
+
+        model = payload.get("model")
+        if model:
+            price = CostLedger(store).price_for(str(model))
+    except Exception:  # noqa: BLE001 — no price ⇒ G3 best-effort (tokens only)
+        price = None
+
+    sentinel = eval_sentinel_for(job_id)
+    try:
+        sentinel.unlink()  # clear a stale sentinel before arming (defensive)
+    except FileNotFoundError:
+        pass
+    except OSError:
+        pass
+    guardrail = EvalGuardrail.from_env(sentinel, price=price)
+    result = runner(JobKind.EVAL_RERUN, {**payload, "_guardrail": guardrail})
+    # Best-effort cleanup so the sentinel dir doesn't accumulate per-run files
+    # (a teardown trip during shutdown may skip this — harmless, job_ids are uuid4).
+    try:
+        sentinel.unlink()
+    except OSError:
+        pass
+    return result
+
+
 def dispatch_job(
     store: Any,
     job: Mapping[str, Any],
@@ -685,6 +752,10 @@ def dispatch_job(
                 _release_and_audit(store, job, deferred.decision, now_fn())
                 row = store.get_job(job_id)
                 return {k: row[k] for k in row.keys()}
+        elif kind == JobKind.EVAL_RERUN:
+            # AE-17 — arm a cloud-run guardrail for metered lanes (local lanes
+            # pass straight through unchanged).
+            result = _run_eval_guarded(store, job_id, payload, runner)
         else:
             result = runner(kind, payload)
         now = now_fn()
