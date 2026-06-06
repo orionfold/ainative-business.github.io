@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-06",
   "health": "green",
-  "focus": "Arena e2e operator-smoke COMPLETE — both long-deferred AE-R1 gates fired on real runs (G3 cost-cap trip $0.0515 accrued; 4-step real RLVR lit gauge+card+lineage); 3 HIGH bugs root-caused",
+  "focus": "fieldkit v0.28.0 RELEASED \u2014 arena-enhancements v2 cut 1: Cluster G lane-truth + ALL 4 smoke-harvested HIGH bugs (BUG-1/2/3/4) + AF-27/28/29/30 fixed, each live-smoked; offline 1413 pass",
   "blockers": [],
   "next": [
-    "arena-enhancements v2 build: BUG-2 G1 signal-handler+reconciler, BUG-3/AF-29 price-refresh+loud G3-unarmed badge, BUG-4 pin the [rl] stack, AF-27 rubric integrity",
-    "Promote green-lit smoke findings (_IDEAS/arena-smoke-v2-features.md) into _SPECS/arena-enhancements-v2.md",
-    "Arena launch-article refresh with the 11 curated 2× screenshots"
+    "v2 cut 2: AE-21/22 multi-lane + select/launch UI, Cluster H run-context (AE-23/24), then Cluster I (inventory truth, corpus handshake, sft_run dispatch)",
+    "Operator-armed live gates: arena down mid-metered-eval (real-cloud rep), GS no-restart cap edit on a real cloud eval",
+    "Arena launch-article refresh with the 11 curated 2x screenshots"
   ],
   "recent": [
-    "e2e smoke S1 complete: A0–A6 · B0–B4 · C0–C6 walked live over CDP (resumed post-reboot)",
-    "Guardrail AE-R1 fired: real cost-cap abort ($0.0515/19 rows) + teardown-partial on a metered eval",
-    "RL-lane AE-R1 fired: real 4-step GRPO run — reward gauge auto-followed live, AE-9 lineage on the done card",
-    "Cluster G lane-truth verified across a cold reboot (discovery, no Hermes edit)",
-    "Harvest: BUG-2/3/4 (all HIGH, root-caused) + AF-27…30 in the smoke ledger"
+    "fieldkit v0.28.0 on PyPI (tag + both install-verifies green; 32 files, +2739)",
+    "BUG-2: signal-time G1 trip + startup orphan-reconciler + real-process SIGTERM test",
+    "BUG-3: live price refresh + price-at-dispatch capture + loud 'G3 unarmed' badge; real catalog capture corrected a stale manual price row",
+    "AF-27: format-scope rubric labels + free-prompt bench auto-match via scorer_path verifier",
+    "AF-28/30: leaderboard live eval group + eval spend folded into the budget governor"
   ],
-  "session": "e2e operator-smoke S1 complete (resumed) — both AE-R1 gates fired",
+  "session": "v2 cut 1 (bug-fix cluster) \u2014 fieldkit v0.28.0",
   "metrics": {
     "articles": 53,
     "models": 6,
