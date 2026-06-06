@@ -3,25 +3,25 @@
   "project": "spark",
   "updated": "2026-06-06",
   "health": "green",
-  "focus": "Released fieldkit v0.26.0 — arena-enhancements S7 (AE-17 cloud-run eval guardrails); cluster S1–S7 now complete",
+  "focus": "Released fieldkit v0.27.0 — arena-guardrail-settings (GS-1…6): a live Settings pane to view+edit the AE-17 cloud-eval guardrails, no restart",
   "blockers": [],
   "next": [
-    "AE-R1: live cloud-eval validation of the S7 guardrails (operator-armed)",
+    "AE-R1: live cloud-eval validation — edit a cap, confirm the next real metered cloud eval picks it up with no restart (operator-armed)",
     "Confirm canonical definitions for models / software_released / arena_features"
   ],
   "recent": [
-    "fieldkit v0.26.0 on PyPI (S7 / AE-17 cloud-run guardrails)",
-    "arena-enhancements cluster S1–S7 feature-complete",
-    "S7 EvalGuardrail: G1 teardown / G2 stall / G3 cost, Jobs-card badge (browser-smoked)",
-    "fieldkit v0.25.0 (S5–S6 cluster)",
+    "fieldkit v0.27.0 on PyPI (arena-guardrail-settings GS-1…6)",
+    "New /arena/settings/ pane: live-edit cost cap + stall window + enabled toggle (file>env>default provenance)",
+    "GS-6 Jobs-card badge shows the active cap (cap $X/Nm); live CDP smoke 11/11",
+    "fieldkit v0.26.0 (S7 / AE-17 cloud-run guardrails); arena-enhancements S1–S7 complete",
     "Kepler vertical published (Orionfold/Kepler-GGUF + bench)"
   ],
-  "session": "arena-enhancements S7 + fieldkit v0.26.0",
+  "session": "arena-guardrail-settings GS-1…6 + fieldkit v0.27.0",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 16,
+    "arena_features": 17,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,
