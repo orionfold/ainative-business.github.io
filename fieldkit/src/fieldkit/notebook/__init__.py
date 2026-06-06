@@ -45,7 +45,7 @@ import warnings
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterator, Optional, Sequence, Union
+from typing import Any, Callable, Iterator, Optional, Sequence, Union
 
 __all__ = [
     "Runtime",
@@ -201,7 +201,9 @@ class OpenAICompatClient(ChatClient):
         self.timeout = timeout
 
     def chat(self, messages: Sequence[dict[str, str]], *, temperature: float = 0.0,
-             max_tokens: int = 2048, **kwargs: Any) -> str:
+             max_tokens: int = 2048,
+             on_usage: Optional[Callable[[dict[str, Any]], None]] = None,
+             **kwargs: Any) -> str:
         import httpx
         payload = {
             "model": self.model,
@@ -218,6 +220,15 @@ class OpenAICompatClient(ChatClient):
         )
         resp.raise_for_status()
         data = resp.json()
+        # AE-17 — hand the per-response `usage` block to the cloud-run guardrail
+        # (G3 cost). A pure observability hook off the response we already parse;
+        # `on_usage` is a named kwarg (never forwarded into the request payload),
+        # so a local lane that passes none is byte-for-byte unchanged.
+        if on_usage is not None:
+            try:
+                on_usage(data.get("usage") or {})
+            except Exception:  # noqa: BLE001 — cost tracking never breaks a run
+                pass
         msg = data["choices"][0]["message"]
         content = msg.get("content") or ""
         # Reasoning models served with the server's default `--reasoning-format`

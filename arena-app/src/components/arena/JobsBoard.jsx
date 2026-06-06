@@ -112,6 +112,49 @@ function GuideCard({ entry, label }) {
   );
 }
 
+// AE-17 (S7) — cloud-run guardrail accounting on a metered eval card. Armed only
+// for cloud lanes (a non-loopback base_url), so `result.guardrail` is absent on a
+// local run and this renders nothing. Composes with AE-16 card identity + AE-2
+// abort visibility + the AE-13 cost chip: an abort badge naming the trip
+// condition + a per-run cost/token chip (the per-run sibling of the day cap).
+const GUARDRAIL_REASON = {
+  teardown: 'teardown',
+  stall_timeout: 'stalled',
+  cost_cap: 'cost cap',
+};
+function EvalGuardrailBadge({ result }) {
+  const g = result && result.guardrail;
+  if (!g) return null;
+  const cost = g.run_cost_usd != null ? Number(g.run_cost_usd) : null;
+  const toks = (g.tokens_in || 0) + (g.tokens_out || 0);
+  // A cost chip whenever the lane was priced (or any spend accrued) — $0.0000 on a
+  // zero-token run still tells the operator the guardrail was watching.
+  const costChip =
+    g.priced || cost ? (
+      <span class="jobs__guard-cost" title={`${toks} tokens (in ${g.tokens_in ?? 0} / out ${g.tokens_out ?? 0})`}>
+        ${cost != null ? cost.toFixed(4) : '0.0000'}
+        {toks ? ` · ${toks} tok` : ''}
+      </span>
+    ) : null;
+  if (g.aborted_by) {
+    return (
+      <div class="jobs__card-guard" data-aborted="true">
+        <span class="jobs__guard-flag">⚠ aborted</span>
+        <span class="jobs__guard-reason">{GUARDRAIL_REASON[g.aborted_by] || g.aborted_by}</span>
+        {g.partial && <span class="jobs__guard-partial">partial · {g.n_scored ?? '—'} scored</span>}
+        {costChip}
+      </div>
+    );
+  }
+  if (!costChip) return null;
+  return (
+    <div class="jobs__card-guard">
+      <span class="jobs__guard-ok" title="cloud-run guardrail: within stall + cost caps">guarded ✓</span>
+      {costChip}
+    </div>
+  );
+}
+
 // A compounding post-run debrief (LA-16) on a completed rl_run — what it did,
 // which pitfall it dodged (held-out selection over the pool), or why it aborted,
 // and a flag when the held-out lift is notable enough to draw the living-model
@@ -555,6 +598,11 @@ export default function JobsBoard({ curriculum = {} }) {
                       <div class="jobs__card-result">
                         acc {Number(j.result.mean_normalized).toFixed(2)} · n {j.result.n_scored ?? '—'}
                       </div>
+                    )}
+                    {/* AE-17 — cloud-run guardrail accounting (cost chip + abort
+                        badge) on a metered eval card; absent on a local run. */}
+                    {j.status === 'done' && j.kind === 'eval_rerun' && j.result && (
+                      <EvalGuardrailBadge result={j.result} />
                     )}
                     {j.status === 'done' && j.kind === 'rl_run' && j.result && (
                       <div class="jobs__card-result" data-aborted={j.result.aborted === true}>

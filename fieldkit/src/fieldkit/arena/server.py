@@ -189,6 +189,42 @@ def _read_active_gpu_lane(db_path: str) -> dict[str, Any] | None:
     return None
 
 
+def _trip_running_eval_sentinels(db_path: str) -> int:
+    """Touch the eval-abort sentinel for every running ``eval_rerun`` job (AE-17 / G1).
+
+    Called from ``_lifespan`` shutdown so an in-flight cloud eval aborts cleanly.
+    The guardrail's sentinel path is deterministic from ``job_id`` (no shared
+    memory with the dispatch task). Returns the count tripped. Best-effort — a
+    missing/cold db, or a job without a guardrail (local lane), simply trips
+    nothing harmful (the local-lane runner never polls the sentinel). Idempotent.
+    """
+    from fieldkit.arena.guardrail import eval_sentinel_for
+
+    tripped = 0
+    db_file = Path(db_path).expanduser()
+    if not db_file.is_file():
+        return 0
+    from fieldkit.arena.store import ArenaStore
+
+    store = ArenaStore(db_file)
+    with store:
+        running = store.list_jobs(status="running", limit=50)
+    for row in running:
+        kind = row["kind"] if "kind" in row.keys() else None
+        if kind != "eval_rerun":
+            continue
+        sentinel = eval_sentinel_for(str(row["id"]))
+        try:
+            sentinel.parent.mkdir(parents=True, exist_ok=True)
+            sentinel.write_text(
+                json.dumps({"aborted_by": "teardown", "tripped_at": _utc_now_iso()}, sort_keys=True)
+            )
+            tripped += 1
+        except OSError:
+            pass
+    return tripped
+
+
 # ---------------------------------------------------------------------------
 # Telemetry pump — one Telemetry instance shared across SSE subscribers.
 # ---------------------------------------------------------------------------
@@ -874,6 +910,15 @@ def create_app(
         try:
             yield
         finally:
+            # AE-17 / G1 — trip the eval-abort sentinel for any in-flight cloud
+            # eval so its row-loop stops cleanly instead of only dying with the
+            # process (the qwen3-8b OpenRouter hang motivation). Deterministic
+            # sentinel paths from job_id (the RL `sentinel_for` trick) mean we
+            # need share no memory with the dispatch BackgroundTask.
+            try:
+                _trip_running_eval_sentinels(db_path)
+            except Exception as exc:  # noqa: BLE001 — never block a clean shutdown
+                _log.warning("eval guardrail teardown on shutdown raised: %s", exc)
             # Tear down any on-demand local model so the process exits clean.
             try:
                 _LOCAL_SERVER_MANAGER.teardown()
