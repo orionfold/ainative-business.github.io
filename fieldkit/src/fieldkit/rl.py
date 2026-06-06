@@ -241,6 +241,9 @@ class RLLoop:
     selected_step: Optional[int] = field(default=None, init=False)
     selected_heldout_score: Optional[float] = field(default=None, init=False)
     aborted: bool = field(default=False, init=False)
+    # AE-3 — bounded per-step trajectory (one dict/step): which steps moved the
+    # policy, captured live in run() and surfaced through summary() → result_json.
+    step_history: list[dict[str, Any]] = field(default_factory=list, init=False)
 
     def _store(self) -> LineageStore:
         if self.lineage_store is not None:
@@ -323,6 +326,17 @@ class RLLoop:
                 flat_adv.extend(adv)
                 rewards_all.extend(rewards)
 
+            # AE-2 — degenerate-step telemetry. A GRPO step whose every group has
+            # uniform reward yields all-zero advantage → no gradient, no adapter,
+            # no lane restart (correct behavior with a strong SFT init, but it
+            # reads IDENTICAL to a stall on the board until surfaced). `n_used` =
+            # rollouts carrying a non-zero advantage (the ones that move the
+            # policy); `adv_spread` = the advantage range; `trained` flips False
+            # on a no-op step.
+            n_used = sum(1 for a in flat_adv if abs(a) > 1e-12)
+            adv_spread = (max(flat_adv) - min(flat_adv)) if flat_adv else 0.0
+            trained = n_used > 0
+
             metrics = dict(self.trainer(flat_rollouts, flat_adv, step) or {})
             pool_mean = (
                 sum(r.scalar for r in rewards_all) / len(rewards_all)
@@ -338,7 +352,8 @@ class RLLoop:
             step_durations.append(time.monotonic() - t_step)
             self._emit(
                 progress_cb, phase="training", step=step, pool=pool_mean,
-                durations=step_durations,
+                keep_rate=keep_rate, n_used=n_used, adv_spread=adv_spread,
+                trained=trained, durations=step_durations,
             )
             exp_id = f"rl-{step:03d}"
             store.append(
@@ -366,6 +381,25 @@ class RLLoop:
             )
             prev_exp = exp_id
 
+            # AE-3 — capture the step record now (before the inversion-guard can
+            # break the loop in the gate below), patched with the held-out score
+            # if this step runs a gate.
+            self.step_history.append(
+                {
+                    "step": step,
+                    "phase": "training",
+                    "pool_score": round(pool_mean, 6),
+                    "last_heldout": None,
+                    "keep_rate": round(keep_rate, 6),
+                    "loss": _as_float(metrics.get("loss")),
+                    "kl": _as_float(metrics.get("kl")),
+                    "n_used": n_used,
+                    "adv_spread": round(adv_spread, 6),
+                    "step_duration": round(step_durations[-1], 3),
+                    "trained": trained,
+                }
+            )
+
             if step % self.config.heldout_every == 0:
                 self._emit(
                     progress_cb, phase="heldout-gate", step=step,
@@ -373,6 +407,9 @@ class RLLoop:
                 )
                 ho = float(self.heldout_eval(step, heldout))
                 self.heldout_scores[step] = ho
+                if self.step_history:  # AE-3 — patch this step's gate score
+                    self.step_history[-1]["last_heldout"] = round(ho, 6)
+                    self.step_history[-1]["phase"] = "heldout-gate"
                 self._emit(
                     progress_cb, phase="heldout-gate", step=step, pool=pool_mean,
                     heldout=ho, gate=True, durations=step_durations,
@@ -424,14 +461,20 @@ class RLLoop:
         pool: Optional[float] = None,
         heldout: Optional[float] = None,
         gate: bool = False,
+        keep_rate: Optional[float] = None,
+        n_used: Optional[int] = None,
+        adv_spread: Optional[float] = None,
+        trained: Optional[bool] = None,
         durations: Optional[list[float]] = None,
     ) -> None:
         """Push one live-progress blob (LA-8) — best-effort, never fails the run.
 
         Carries the step counter, the phase, the latest pool + held-out scalars,
-        and a steps-remaining ETA from the running mean step duration. The writer
-        downstream throttles + folds in a memory sample; here we only describe
-        *where the loop is*.
+        a steps-remaining ETA from the running mean step duration, and (AE-2) the
+        degenerate-step signal — `keep_rate` / `n_used` / `adv_spread` / `trained`
+        — so the board can read a no-op zero-advantage step as distinct from a
+        stall. The writer downstream throttles + folds in a memory sample; here we
+        only describe *where the loop is*.
         """
         if progress_cb is None:
             return
@@ -451,6 +494,11 @@ class RLLoop:
                     "eta_s": eta_s,
                     "base": self.config.base,
                     "domain": self.domain,
+                    # AE-2 — degenerate-step visibility (None on non-training phases)
+                    "keep_rate": (round(keep_rate, 6) if keep_rate is not None else None),
+                    "n_used": n_used,
+                    "adv_spread": (round(adv_spread, 6) if adv_spread is not None else None),
+                    "trained": trained,
                 }
             )
         except Exception:  # noqa: BLE001 — progress is observational, not load-bearing
@@ -488,6 +536,14 @@ class RLLoop:
             "pool_scores": {s: round(v, 6) for s, v in sorted(self.pool_scores.items())},
             "selected_on": "heldout",  # RV-4 — never pool
             "aborted": self.aborted,  # LA-10 — watchdog tore the run down early
+            # AE-3 — the bounded per-step trajectory (reconstructs which steps
+            # moved the policy after the run); AE-R2 caps it at max_steps rows.
+            "step_history": list(self.step_history),
+            # AE-4 — back-pointer from the held-out-selected step to its lineage
+            # trial id (`rl-<step>`), so a regression traces to the exact ckpt.
+            "selected_exp_id": (
+                f"rl-{self.selected_step:03d}" if self.selected_step is not None else None
+            ),
         }
 
 

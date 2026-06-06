@@ -88,6 +88,55 @@ def test_selects_heldout_best_not_pool_best():
     assert loop.summary()["selected_on"] == "heldout"
 
 
+# ---------------------------------------------------------------------------
+# arena-enhancements S1 — AE-2/AE-3/AE-4 RL-run observability
+# ---------------------------------------------------------------------------
+
+
+def _obs_loop():
+    """A 4-step loop whose step 3 is all-correct (uniform reward → degenerate)."""
+    cfg = GRPOConfig(
+        base="patent-Q4", max_steps=4, heldout_every=1, corpus_min=100,
+        group_k=4, tasks_per_step=8, vllm_pin="vllm==0.10.2", seed=7,
+    )
+    sampler, trainer, heldout_eval = _seams({0: 0.30, 1: 0.90, 2: 0.50, 3: 0.40})
+    return RLLoop(
+        cfg, RewardAdapter(mcq_letter), _Bench(),
+        sampler=sampler, trainer=trainer, heldout_eval=heldout_eval,
+    )
+
+
+def test_step_history_captures_per_step_and_degenerate_no_op():
+    """AE-2/AE-3 — summary().step_history records the per-step trajectory, and a
+    uniform-reward step reads as a no-op (n_used==0, trained False, spread 0)."""
+    loop = _obs_loop()
+    loop.run()
+    hist = loop.summary()["step_history"]
+
+    assert len(hist) == 4
+    assert set(hist[0]) >= {
+        "step", "phase", "pool_score", "last_heldout", "keep_rate",
+        "loss", "kl", "n_used", "adv_spread", "step_duration", "trained",
+    }
+    # heldout_every=1 → every step ran a gate, so each record carries a held-out.
+    assert all(h["last_heldout"] is not None for h in hist)
+    assert all(h["phase"] == "heldout-gate" for h in hist)
+    # Step 0 is mixed (1/4 correct) → it moved the policy; step 3 is all-correct
+    # (uniform reward → zero advantage) → a no-op the board must read as distinct.
+    assert hist[0]["trained"] is True and hist[0]["n_used"] > 0
+    assert hist[3]["trained"] is False and hist[3]["n_used"] == 0
+    assert hist[3]["adv_spread"] == 0.0
+
+
+def test_summary_threads_selected_step_to_lineage_trial():
+    """AE-4 — the held-out-selected step back-points to its `rl-<step>` trial."""
+    loop = _obs_loop()
+    loop.run()
+    summary = loop.summary()
+    assert loop.selected_step == 1
+    assert summary["selected_exp_id"] == "rl-001"
+
+
 def test_lineage_trials_written_with_explicit_store(tmp_path):
     store = LineageStore(tmp_path / "lin", lower_is_better=False)
     cfg = GRPOConfig(base="x", max_steps=3, heldout_every=1, corpus_min=100)
