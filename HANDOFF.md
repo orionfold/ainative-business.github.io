@@ -70,6 +70,15 @@
 
 ## Open items (by swimlane)
 
+### 🔬 QUEUED — next session: Arena end-to-end operator smoke (build → serve → review)
+The whole Arena pipeline has been built + shipped feature-by-feature (M1–M11 · S1–S7 · GS-1…6 across `fieldkit v0.16.0→v0.27.0`) and each surface per-feature browser-smoked in isolation — but **never walked end-to-end as one operator session**. Next session: drive build→serve→review live over CDP with the operator on the GPU/cloud-armed steps while I guide/explain/watch/screenshot/log. **Runbook:** [`_GUIDES/arena-e2e-smoke-runbook.md`](_GUIDES/arena-e2e-smoke-runbook.md) — read it first; it has the per-step table (panes · operator commands · success criteria · shots), the arming checklist, and the close-out. **Compute tier = FULL (~80 min)** (real 10-step SFT smoke + a 4-step real RLVR run). **This fires BOTH long-deferred operator-armed gates:**
+- **Guardrail AE-R1** — a real metered cloud eval trips **G3 cost cap** ($0.05 → aborted+partial badge) + **G1 teardown** (`arena down` mid-run → sentinel). (Skipping G2 stall.) Cloud ceiling ≈ **$1 total**.
+- **RL-lane AE-R1** — a 4-step real `rl_run` lights the `/arena/reward/` gauge + the Jobs rl_run card (GRPO row + held-out + AE-9 lineage) end-to-end.
+
+**Operator arming before we start** (full list in the runbook): NeMo container up (SFT smoke) · `fieldkit[rl]` + pinned vLLM lane armed (RL run; **tear the Kepler llama.cpp lane down first** — one-lane envelope) · OpenRouter key loaded (cloud evals + compare) · pgvector up (Cortex) · `sudo chown` the root-owned container dirs if rewriting.
+
+**Harvest** (close-out): bug + v2-feature ledger → [`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md) (gitignored; promote green-lit items to `_SPECS/arena-enhancements-v2.md`, AE-18+); ≥18 curated 2× screenshots → **refresh `products/arena-control-plane/screenshots/`** (currently jobs-board-only) + stage the rest in `/tmp` for an article refresh. Vertical = **Kepler / astrodynamics** (all artifacts on disk).
+
 ### ✅ Kepler ship-tail + Release + eval-dispatch verify — ALL DONE 2026-06-05
 - ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state).
 - ✅ **`/tmp/arena-venv` fieldkit refreshed to 0.23.0** (was editable-linked at stale 0.13.0 metadata → `pip install -e ./fieldkit`) — the AF-15 caveat is **resolved**; in-cockpit eval now uses the `scorer_path` hook.

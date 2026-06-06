@@ -6,7 +6,7 @@
   "focus": "Released fieldkit v0.27.0 — arena-guardrail-settings (GS-1…6): a live Settings pane to view+edit the AE-17 cloud-eval guardrails, no restart",
   "blockers": [],
   "next": [
-    "AE-R1: live cloud-eval validation — edit a cap, confirm the next real metered cloud eval picks it up with no restart (operator-armed)",
+    "Arena end-to-end operator smoke (build→serve→review) — runbook _GUIDES/arena-e2e-smoke-runbook.md; fires both operator-armed gates (guardrail G3+G1, RL-lane reward gauge)",
     "Confirm canonical definitions for models / software_released / arena_features"
   ],
   "recent": [
