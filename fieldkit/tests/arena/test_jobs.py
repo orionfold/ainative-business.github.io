@@ -288,6 +288,80 @@ def test_eval_cloud_guardrail_resolves_price(store):
     assert g.result_fields()["priced"] is True
 
 
+def test_eval_unpriced_cloud_model_captures_price_at_dispatch(store, monkeypatch):
+    """BUG-3 — an unpriced cloud model triggers a one-shot catalog capture at
+    dispatch: the run is $-guarded AND the row persists for every run after."""
+    from fieldkit import cost as cost_mod
+
+    monkeypatch.setenv("FK_EVAL_PRICE_AT_DISPATCH", "1")  # conftest gates it off
+
+    def _fake_fetch(model_ids, **kwargs):
+        assert list(model_ids) == ["fresh/model"]
+        return [
+            {
+                "model_id": "fresh/model",
+                "price_per_m_input_usd": 1.0,
+                "price_per_m_output_usd": 5.0,
+            }
+        ]
+
+    monkeypatch.setattr(cost_mod, "fetch_openrouter_prices", _fake_fetch)
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "patent-q4km",
+            "bench_id": "patent-bench",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "fresh/model",
+        },
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    row = jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    g = cap["guardrail"]
+    assert g is not None and g.price is not None  # G3 armed via the capture
+    # 100 in × $1/M + 100 out × $5/M = 0.0006
+    assert g.run_cost_usd == pytest.approx(0.0006)
+    assert json.loads(row["result_json"])["guardrail"]["priced"] is True
+    # The captured row persisted with honest provenance — the NEXT run needs no fetch.
+    from fieldkit.cost import CostLedger
+
+    p = CostLedger(store).price_for("fresh/model")
+    assert p is not None and p.source == "openrouter-api"
+
+
+def test_eval_unpriced_cloud_model_falls_to_tokens_only_offline(store):
+    """Capture gated off (or failing) ⇒ the prior honest fallback: G1/G2 armed,
+    cost tracking tokens-only, and `priced: false` persists for the loud badge."""
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "patent-q4km",
+            "bench_id": "patent-bench",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "never/priced",
+        },
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    row = jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    g = cap["guardrail"]
+    assert g is not None and g.price is None
+    assert json.loads(row["result_json"])["guardrail"]["priced"] is False
+
+
 def test_eval_cloud_lane_unguarded_when_disabled(store, monkeypatch, tmp_path):
     # GS-1/GS-4 — the `enabled` master toggle off ⇒ a metered cloud lane runs
     # UNGUARDED (the operator opt-out), byte-for-byte the local-lane path.
@@ -438,6 +512,53 @@ def test_runner_failure_marks_job_failed(store):
         jobs.dispatch_job(store, {k: claimed[k] for k in claimed.keys()}, runner=boom, now_fn=lambda: _NOW)
     failed = store.list_jobs(status=JobStatus.FAILED)
     assert len(failed) == 1 and "unreachable" in failed[0]["error"]
+
+
+# ---------------------------------------------------------------------------
+# BUG-2 — owner stamp: written at the `running` flip, cleared when the row lands
+# ---------------------------------------------------------------------------
+
+
+def test_dispatch_stamps_owner_while_running(store):
+    """The dispatcher stamps its pid while the row is `running` (the startup
+    reconciler's live-sibling discriminator) and clears it once the row lands."""
+    import os
+
+    from fieldkit.arena.jobs import job_owner_path
+
+    jobs.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "patent-q4km", "bench_id": "b"})
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    job_id = str(claimed["id"])
+    seen = {}
+
+    def _runner(kind, payload):
+        # Captured mid-run: the stamp exists exactly while the row is running.
+        seen["stamp"] = json.loads(job_owner_path(job_id).read_text())
+        return _fake_eval_runner()(kind, payload)
+
+    jobs.dispatch_job(
+        store, {k: claimed[k] for k in claimed.keys()}, runner=_runner, now_fn=lambda: _NOW
+    )
+    assert seen["stamp"]["pid"] == os.getpid()
+    assert seen["stamp"]["kind"] == JobKind.EVAL_RERUN
+    assert not job_owner_path(job_id).exists()  # cleared once the row landed
+
+
+def test_dispatch_clears_owner_on_failure(store):
+    from fieldkit.arena.jobs import job_owner_path
+
+    jobs.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "patent-q4km", "bench_id": "b"})
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    job_id = str(claimed["id"])
+
+    def boom(kind, payload):
+        raise RuntimeError("kaput")
+
+    with pytest.raises(JobDispatchError):
+        jobs.dispatch_job(
+            store, {k: claimed[k] for k in claimed.keys()}, runner=boom, now_fn=lambda: _NOW
+        )
+    assert not job_owner_path(job_id).exists()
 
 
 def test_drain_processes_queue_sequentially(store):

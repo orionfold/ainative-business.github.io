@@ -38,6 +38,7 @@ module never imports ``fieldkit.arena`` (avoids the circular: the store seeds
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
@@ -46,6 +47,8 @@ __all__ = [
     "CostLedger",
     "PriceSnapshot",
     "seed_price_snapshot",
+    "fetch_openrouter_prices",
+    "refresh_prices",
     "cost_per_quality",
     "CostError",
 ]
@@ -178,6 +181,110 @@ def seed_price_snapshot(
 
 
 # ---------------------------------------------------------------------------
+# Live price refresh (BUG-3 / AF-29 — the snapshot table gains a refresh path)
+# ---------------------------------------------------------------------------
+
+
+def fetch_openrouter_prices(
+    model_ids: Sequence[str] | None = None,
+    *,
+    timeout: float = 10.0,
+) -> list[dict[str, Any]]:
+    """Read current per-million prices from the OpenRouter ``/models`` catalog.
+
+    Returns ``{model_id, price_per_m_input_usd, price_per_m_output_usd}`` rows —
+    the :func:`seed_price_snapshot` ``prices`` shape — for ``model_ids`` (or the
+    whole catalog when ``None``). The endpoint is public (the ``OPENROUTER_API_KEY``
+    header is attached when present, not required). Raises :class:`CostError` on
+    a network / HTTP / shape failure so callers can decide how loud to be; a
+    model absent from the catalog is simply omitted (the caller's unpriced
+    handling stays honest).
+    """
+    import os
+
+    try:
+        import httpx
+    except ImportError as exc:  # pragma: no cover — arena extra ships httpx
+        raise CostError("fetch_openrouter_prices requires httpx (fieldkit[arena])") from exc
+
+    key = os.environ.get("OPENROUTER_API_KEY")
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    want = {str(m) for m in model_ids} if model_ids is not None else None
+    try:
+        resp = httpx.get(
+            "https://openrouter.ai/api/v1/models", headers=headers, timeout=timeout
+        )
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+    except Exception as exc:  # noqa: BLE001 — surface as the module error
+        raise CostError(f"OpenRouter price fetch failed: {exc}") from exc
+
+    rows: list[dict[str, Any]] = []
+    for m in data if isinstance(data, list) else []:
+        mid = m.get("id")
+        if not mid or (want is not None and mid not in want):
+            continue
+        pricing = m.get("pricing") or {}
+        p_in = _per_m_usd(pricing.get("prompt"))
+        p_out = _per_m_usd(pricing.get("completion"))
+        if p_in is None or p_out is None:
+            continue  # un-priceable entry (image/embedding/router) — omit
+        rows.append(
+            {
+                "model_id": mid,
+                "price_per_m_input_usd": p_in,
+                "price_per_m_output_usd": p_out,
+            }
+        )
+    return rows
+
+
+def refresh_prices(
+    store_or_conn: Any,
+    model_ids: Sequence[str] | None = None,
+    *,
+    fetcher: Any = None,
+    now_iso: str | None = None,
+) -> list[dict[str, Any]]:
+    """Capture current OpenRouter prices into the snapshot table (BUG-3 fix).
+
+    The M9 snapshot previously had **no refresh path** — nothing ever populated
+    prices for the lanes actually being evaled, so ``price_for()`` returned
+    ``None`` for every current model and the G3 cost cap was silently inert
+    (e2e smoke C1). This fetches live prices (via ``fetcher``, default
+    :func:`fetch_openrouter_prices`) and seeds them under a dated snapshot id
+    (``or-refresh-<UTC date>``) with ``source='openrouter-api'`` — prior
+    snapshots keep their rows, and :meth:`CostLedger.price_for`'s newest-row
+    default makes the refresh effective on the very next dispatch. Returns the
+    rows written (the seed shape + ``snapshot_id``/``captured_at``).
+    """
+    from datetime import datetime, timezone
+
+    fetch = fetcher or fetch_openrouter_prices
+    rows = fetch(model_ids)
+    if not rows:
+        return []
+    captured = now_iso or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    snapshot_id = f"or-refresh-{captured[:10]}"
+    seed_price_snapshot(
+        store_or_conn,
+        prices=rows,
+        snapshot_id=snapshot_id,
+        source="openrouter-api",
+        captured_at=captured,
+    )
+    return [{**r, "snapshot_id": snapshot_id, "captured_at": captured} for r in rows]
+
+
+def _per_m_usd(token_price: Any) -> float | None:
+    """OpenRouter quotes USD-per-token as a string; convert to USD-per-million."""
+    try:
+        return round(float(token_price) * 1_000_000, 4)
+    except (TypeError, ValueError):
+        return None
+
+
+# ---------------------------------------------------------------------------
 # Per-run ledger
 # ---------------------------------------------------------------------------
 
@@ -200,6 +307,13 @@ class CostLedger:
         Survives a sidecar restart — the M9-8 fix for the in-memory accumulator
         that reset to ``0.0`` on every boot. Tables missing their cost column
         (a pre-M9 db) contribute zero rather than raising.
+
+        **AF-30 (e2e smoke C4):** also folds in **eval-job spend** — a metered
+        cloud eval persists its accrued cost in
+        ``jobs.result_json.guardrail.run_cost_usd`` (AE-17), which this read was
+        blind to: the smoke's Standup SPEND showed $0.0023 while the session's
+        real metered spend was ~$0.18, all in eval runs. The $5 autonomy cap
+        governed the wrong number.
         """
         total = 0.0
         calls = 0
@@ -215,21 +329,73 @@ class CostLedger:
             if row is not None:
                 total += float(row[0] or 0.0)
                 calls += int(row[1] or 0)
+        for cost, _lane in self._eval_job_spend():
+            total += cost
+            calls += 1
         return round(total, 6), calls
 
-    def price_for(
-        self, model_id: str, *, snapshot_id: str = H6_SNAPSHOT_ID
-    ) -> PriceSnapshot | None:
-        """The :class:`PriceSnapshot` for ``model_id`` under ``snapshot_id``,
-        or ``None`` if unpriced (a local lane / unknown model)."""
+    def _eval_job_spend(self) -> list[tuple[float, str]]:
+        """``(run_cost_usd, lane_id)`` per landed eval job that accrued spend (AF-30)."""
+        out: list[tuple[float, str]] = []
         try:
-            row = self._conn.execute(
-                "SELECT snapshot_id, model_id, price_per_m_input_usd, "
-                "       price_per_m_output_usd, source, captured_at "
-                "FROM openrouter_price_snapshot "
-                "WHERE snapshot_id=? AND model_id=?",
-                (snapshot_id, model_id),
-            ).fetchone()
+            rows = self._conn.execute(
+                "SELECT payload_json, result_json FROM jobs "
+                "WHERE kind='eval_rerun' AND result_json IS NOT NULL"
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return out  # no jobs table (a non-arena db)
+        for payload_json, result_json in rows:
+            try:
+                result = json.loads(result_json) if result_json else {}
+            except (ValueError, TypeError):
+                continue
+            guardrail = (result or {}).get("guardrail") or {}
+            try:
+                cost = float(guardrail.get("run_cost_usd") or 0.0)
+            except (TypeError, ValueError):
+                cost = 0.0
+            if cost <= 0:
+                continue
+            lane = "eval"
+            try:
+                payload = json.loads(payload_json) if payload_json else {}
+                lane = str(payload.get("lane_id") or payload.get("model") or "eval")
+            except (ValueError, TypeError):
+                pass
+            out.append((cost, lane))
+        return out
+
+    def price_for(
+        self, model_id: str, *, snapshot_id: str | None = None
+    ) -> PriceSnapshot | None:
+        """The :class:`PriceSnapshot` for ``model_id``, or ``None`` if unpriced.
+
+        With no ``snapshot_id`` (the default) the **freshest** row for the model
+        wins (newest ``captured_at`` across snapshots) — so a price captured at
+        dispatch / refreshed from the OpenRouter catalog takes effect on the
+        next run. The pre-BUG-3 default pinned every read to the baked H6
+        baseline, which is exactly how the G3 cost cap ran silently inert for
+        every current lane (e2e smoke C1, 2026-06-06). Pass ``snapshot_id`` to
+        pin a read to one snapshot — prior comparisons stay reproducible.
+        """
+        try:
+            if snapshot_id is not None:
+                row = self._conn.execute(
+                    "SELECT snapshot_id, model_id, price_per_m_input_usd, "
+                    "       price_per_m_output_usd, source, captured_at "
+                    "FROM openrouter_price_snapshot "
+                    "WHERE snapshot_id=? AND model_id=?",
+                    (snapshot_id, model_id),
+                ).fetchone()
+            else:
+                row = self._conn.execute(
+                    "SELECT snapshot_id, model_id, price_per_m_input_usd, "
+                    "       price_per_m_output_usd, source, captured_at "
+                    "FROM openrouter_price_snapshot "
+                    "WHERE model_id=? "
+                    "ORDER BY captured_at DESC, snapshot_id DESC LIMIT 1",
+                    (model_id,),
+                ).fetchone()
         except sqlite3.OperationalError:
             return None
         if row is None:

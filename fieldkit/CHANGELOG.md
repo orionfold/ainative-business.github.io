@@ -6,6 +6,109 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-06-06
+
+The first arena-enhancements **v2** cut (`_SPECS/arena-enhancements-v2.md`): **Cluster G
+lane-truth** (AE-18…22 — Arena becomes the system of record for the serving lane) plus the
+**v2 bug-fix cluster** — the four HIGH bugs + three integrity findings harvested by the e2e
+operator-smoke run S1 (2026-06-06), every one root-caused on a real run before it was fixed.
+
+### Added
+- **Cluster G — lane truth (AE-18…22, OBS-4).** Arena used to learn "what lane is
+  serving" from `~/.hermes/config.yaml` — a *foreign tool's assertion* — so a real
+  Kepler-Q8 lane on `:8091` rendered as `CONFIGURED LANE · Qwen3-30B · idle`. New
+  **`fieldkit.arena.lanes`**: `discover()` probes `FK_ARENA_LANE_PORTS` via
+  `/v1/models` + llama.cpp `/props` (cached ~8 s, best-effort); an Arena-owned
+  **active-lane registry** (`~/.fieldkit/arena/active-lane.json`, the GS-1 atomic
+  file pattern — no `arena.db` schema change) with `GET`/`POST /api/active-lane`;
+  `resolve_active_lane()` reconciles registry ∩ discovery with **explicit drift**
+  (never silently trusts a stale claim). Chat / compare / judge routing, the rail,
+  `/api/lanes`, and the build-spine Lane card all read the reconciled lane; the
+  Hermes config is demoted to an optional, labelled hint (removing it breaks
+  nothing). Verified live: the rail flipped to `ACTIVE LANE · model-Q8_0.gguf ·
+  resident · live` on a cold post-reboot re-serve with **no config edit**, and
+  honestly reverted to `configured · idle` after teardown.
+
+### Fixed
+- **BUG-2 / G1 circular wait** — `arena down`/SIGTERM could never abort an in-flight
+  cloud eval: uvicorn's graceful drain waits for the eval BackgroundTask *before*
+  lifespan shutdown, but the eval only aborts when lifespan writes the sentinel.
+  The G1 sentinels now trip from a **chained signal handler** at SIGTERM/SIGINT time
+  (`server._install_signal_teardown`), and a **startup reconciler**
+  (`server._reconcile_orphaned_jobs`) lands `running`/`dispatched` rows orphaned by a
+  dead process as `failed` with an honest error + teardown-shaped guardrail trail —
+  a live-pid **owner stamp** (`jobs.job_owner_path`, written at the `running` flip)
+  keeps a sibling cron-drain's genuinely-running jobs untouched. Covered by a
+  real-process SIGTERM test that holds the drain open exactly like a guarded eval.
+- **BUG-3 / G3 silently inert** — the M9 price snapshot had no refresh path, so
+  `price_for()` returned `None` for every current lane and the cost cap could never
+  trip. `CostLedger.price_for` now resolves the **freshest** capture by default
+  (pinned snapshot reads stay reproducible); `fieldkit.cost.fetch_openrouter_prices`
+  + `refresh_prices` capture live catalog prices under a dated snapshot id; the eval
+  dispatch does a **price-at-dispatch capture** for unpriced cloud models
+  (`FK_EVAL_PRICE_AT_DISPATCH=0` opts out); `GET /api/prices` +
+  `POST /api/prices/refresh` give the Settings pane a per-model **"G3 armed?"
+  disclosure** + refresh action; and an unpriced run renders a loud
+  `⚠ G3 unarmed · tokens-only` badge on its Jobs card (AF-29) instead of silence.
+- **BUG-4 / RL dependency drift** — the `[rl]` extra is **ceiling-pinned to the proven
+  GB10 stack** (`transformers>=4.51.3,<4.52` + `protobuf` + `sentencepiece` +
+  `peft<0.20`): transformers 5.x meta-crashes `device_map="auto"` on GB10, 4.5x
+  misses undeclared tokenizer deps, and no 4.x accepts NeMo's list-form
+  `extra_special_tokens` (the shadow-model-dir recipe is documented in
+  `docs/api/rl.md` "Operator run").
+- **BUG-1 / SFT misreporting (AE-25)** — `fieldkit.training.run` now stamps a
+  **canonical `sft-progress-*.json` heartbeat** (`sft_progress_dir(recipe)`) from its
+  checkpoint-liveness poll — `starting` → per-poll `running`/`done` → `failed` with
+  the error on a non-zero exit → `final` with wall seconds. `/api/sft-progress`
+  reads it as a first-class source (auto-follow spans heartbeats AND driver logs),
+  so a run launched through the canonical entrypoint renders truthfully instead of
+  `0/0 · starting` (the pane marks it `canonical feed`).
+- **AF-27 / "Dead heat while wrong"** — rubric verdicts are labelled by **what they
+  actually checked**: every default rubric carries `scope: "format"`
+  (`RubricSpec.scope`, threaded as `rubric_scope` on the compare `score` event), the
+  banner reads "Format check … says nothing about which value is right", the
+  head-to-head row says "Format" not "Quality", and live-leaderboard format-rubric
+  scores carry a `·fmt` qualifier. A free-typed prompt that **is** a registered
+  bench row now **auto-matches** (`benches.find_prompt_by_text`) and is scored by
+  the bench's own verifier — including astro rows, which now load their registered
+  `scorer_path` verifier (`benches._registry_scorer_callable`, the AF-15 loader)
+  instead of honest-skipping.
+- **AF-28 / leaderboard blind to eval runs** — the leaderboard page projects
+  **bench-anchored LIVE rows** from done `eval_rerun` jobs (`<EvalBenchLive>` over
+  the existing `GET /api/eval/leaderboard`), and the cached mirror tier carries an
+  explicit `cached tier · <generated date>` staleness stamp.
+- **AF-30 / budget governor blind to eval spend** — `CostLedger.session_spend` (and
+  the Standup `SpendDigest`, per-lane) folds in metered eval-job spend persisted at
+  `jobs.result_json.guardrail.run_cost_usd`, so the autonomy $ cap governs the real
+  number (the smoke showed $0.0023 while ~$0.18 of eval spend sat invisible).
+
+### Changed
+- `create_app(db=None)` resolves the `ARENA_DB` env before the packaged default
+  (the convention `serve()`/`_reload_target` already used) — and the test suite now
+  pins `ARENA_DB`/`FK_EVAL_SENTINEL_DIR`/`ARENA_BENCH_DIR`/`FK_ARENA_OWNER_DIR` to
+  per-test tmp dirs, so no TestClient lifespan can ever touch the operator's live
+  store or sentinels.
+
+### Verified on Spark
+- Every fix browser-smoked live in the running cockpit over CDP (the pinned v1
+  discipline): the BUG-2 reconciler landed a seeded orphan on a real cockpit
+  restart; `POST /api/prices/refresh` captured **real** OpenRouter prices for the
+  live eval roster (and corrected a stale operator-manual deepseek-r1 row); the
+  `⚠ G3 unarmed · tokens-only` badge rendered retroactively on the smoke's real
+  unpriced R1 teardown eval; the canonical SFT heartbeat won auto-follow over the
+  Jun-4 driver logs and rendered `DONE · iter 10/10 · canonical feed`; the
+  leaderboard's live bench-anchored group ranked the smoke's real eval evidence
+  (kepler-q8 0.85/54 · deepseek-r1 0.85/40 · claude-haiku 0.89/19); Standup SPEND
+  read `$0.0538` with the cost-cap-aborted eval leading the by-lane table.
+  Cluster G verified across a cold reboot (discovery found the re-served lane with
+  no config). **No `arena.db` schema change** (`user_version` stays 6).
+
+### Test suite
+- Offline: **1413 passed / 19 skipped** (+44 over v0.27.0), including a
+  real-process SIGTERM test (`tests/arena/test_signal_teardown_process.py`) that
+  reproduces the BUG-2 drain-hold topology end-to-end, +13 `test_lanes.py`
+  (Cluster G), and the AF-27 auto-match compare integration tests.
+
 ## [0.27.0] — 2026-06-06
 
 The operator-config surface over the AE-17 cloud-run eval guardrails

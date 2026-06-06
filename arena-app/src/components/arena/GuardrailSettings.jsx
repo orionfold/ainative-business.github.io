@@ -33,6 +33,108 @@ function detailText(j) {
   return '';
 }
 
+// BUG-3 / AF-29 — the G3-arming disclosure. The cost cap only protects a run
+// when a price row exists for the exact model_id; this makes that dependency
+// visible per roster model (priced? source? captured-at?) and maintainable
+// (one deterministic OpenRouter catalog capture). Without it, G3 can sit
+// silently inert — exactly what the e2e smoke caught.
+function PriceCoverage({ base }) {
+  const [data, setData] = useState(null); // {models, unpriced, enabled, cost_cap_usd}
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null); // {kind:'ok'|'err', msg}
+
+  async function load() {
+    try {
+      const r = await fetch(`${base}/api/prices`);
+      if (r.ok) setData(await r.json());
+    } catch (_e) {
+      /* the parent already renders the offline story */
+    }
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function refresh() {
+    if (busy) return;
+    setBusy(true);
+    setNote(null);
+    try {
+      const r = await fetch(`${base}/api/prices/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setNote({ kind: 'err', msg: detailText(j) || `refresh failed (${r.status})` });
+        return;
+      }
+      const n = (j.refreshed || []).length;
+      const miss = (j.still_unpriced || []).length;
+      setNote({
+        kind: miss ? 'err' : 'ok',
+        msg: j.note || `captured ${n} price${n === 1 ? '' : 's'}${miss ? ` · ${miss} still unpriced (not in the catalog)` : ''}`,
+      });
+      await load();
+    } catch (_e) {
+      setNote({ kind: 'err', msg: 'sidecar unreachable' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!data) return null;
+  const models = data.models || [];
+  return (
+    <section class="gsettings__prices">
+      <h2 class="gsettings__prices-title">G3 price coverage</h2>
+      <p class="gsettings__hint">
+        The $ cap arms only when the evaled model has a price row. Roster = cloud models from recent
+        eval jobs; unpriced ⇒ that model's next run is <b>tokens-only</b> (no $ cap can trip).
+      </p>
+      {data.unpriced > 0 && (
+        <div class="gsettings__banner" role="alert">
+          <span class="gsettings__banner-flag">⚠ G3 unarmed for {data.unpriced} model{data.unpriced === 1 ? '' : 's'}</span>
+          <span class="gsettings__banner-note">Refresh prices below, or the cost cap cannot trip for them.</span>
+        </div>
+      )}
+      {models.length === 0 ? (
+        <p class="gsettings__prices-empty">No cloud-eval models on the roster yet — dispatch a cloud eval and its model appears here.</p>
+      ) : (
+        <table class="gsettings__prices-table">
+          <thead>
+            <tr><th>model</th><th>armed</th><th>$/M in · out</th><th>source</th><th>captured</th></tr>
+          </thead>
+          <tbody>
+            {models.map((m) => (
+              <tr key={m.model_id} data-priced={m.priced ? 'true' : 'false'}>
+                <td><code>{m.model_id}</code></td>
+                <td>{m.priced ? '✓' : '✗ tokens-only'}</td>
+                <td>{m.priced ? `$${m.price_per_m_input_usd} · $${m.price_per_m_output_usd}` : '—'}</td>
+                <td>{m.priced ? m.source : '—'}</td>
+                <td>{m.priced ? String(m.captured_at).slice(0, 10) : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <div class="gsettings__actions">
+        <button type="button" class="gsettings__save" onClick={refresh} disabled={busy}>
+          {busy ? 'refreshing…' : 'Refresh prices'}
+        </button>
+        {note && (
+          <span class="gsettings__toast" data-kind={note.kind}>
+            {note.msg}
+          </span>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function GuardrailSettings() {
   const [status, setStatus] = useState('loading'); // loading | ready | offline
   const [cfg, setCfg] = useState(null); // {effective, sources, defaults, bounds}
@@ -246,6 +348,8 @@ export default function GuardrailSettings() {
         snapshot). Edits take effect with no restart. <code>file</code> beats <code>env</code> beats
         the built-in default, per field.
       </p>
+
+      <PriceCoverage base={baseRef.current} />
     </div>
   );
 }

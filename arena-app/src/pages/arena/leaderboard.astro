@@ -13,6 +13,7 @@
 import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
 import leaderboard from '../../data/arena-mirror/leaderboard.json';
 import { getCollection } from 'astro:content';
+import EvalBenchLive from '../../components/arena/EvalBenchLive.jsx';
 import FrontierScatter from '../../components/arena/FrontierScatter.jsx';
 import LiveLeaderboard from '../../components/arena/LiveLeaderboard.jsx';
 import { recommendedVariant } from '../../lib/arena/model-prompts.mjs';
@@ -193,8 +194,15 @@ const fmtTime = (iso: string) => {
   <!-- ===================== Bench-anchored leaderboard ===================== -->
   <section data-pane="bench" style="margin-bottom: 2rem;">
     <h2 style="font-family: var(--arena-mono); font-size: 0.7rem; letter-spacing: 0.22em; text-transform: uppercase; color: var(--arena-text-mute); margin: 0 0 0.85rem;">
-      ⬢ Bench-anchored — cached evidence
+      ⬢ Bench-anchored
+      <span class="lb-cached-stamp" title={`mirror snapshot generated ${fmtTime(generatedAt)} — the LIVE group above it (Spark-only) projects done eval_rerun jobs with no rebuild`}>
+        cached tier · {fmtTime(generatedAt)}
+      </span>
     </h2>
+    <!-- AF-28 — live eval-run projection (Spark-only; absent on the public
+         mirror). The newest real bench evidence ranks here the moment an
+         eval_rerun lands, instead of waiting for a mirror rebuild. -->
+    <EvalBenchLive client:only="preact" />
     {benchGroups.length === 0 ? (
       <div class="empty">
         <p>No bench rows yet — run <code>fieldkit arena mirror</code> on your Spark to seed the leaderboard.</p>

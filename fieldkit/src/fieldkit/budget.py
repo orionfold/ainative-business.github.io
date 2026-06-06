@@ -255,14 +255,24 @@ class SpendDigest:
         # Total + paid-run count via the M9 ledger (restart-surviving, M9-8).
         from fieldkit.cost import CostLedger  # lazy — M9 is a soft prereq (AH-5)
 
-        total, n_paid = CostLedger(conn).session_spend()
-        by_lane: list[tuple[str, float]] = []
+        ledger = CostLedger(conn)
+        total, n_paid = ledger.session_spend()
+        lane_totals: dict[str, float] = {}
         for row in conn.execute(
             "SELECT lane_id, COALESCE(SUM(cost_usd), 0.0) AS c "
             "FROM compare_responses GROUP BY lane_id "
             "HAVING c > 0 ORDER BY c DESC"
         ):
-            by_lane.append((str(row[0]), round(float(row[1]), 6)))
+            lane_totals[str(row[0])] = lane_totals.get(str(row[0]), 0.0) + float(row[1])
+        # AF-30 — eval-job spend rides the same table: the smoke's Standup SPEND
+        # showed compare/chat-only ($0.0023) while ~$0.18 of real metered eval
+        # spend sat invisible in jobs.result_json.guardrail.run_cost_usd.
+        for cost, lane in ledger._eval_job_spend():  # noqa: SLF001 — same module family
+            lane_totals[lane] = lane_totals.get(lane, 0.0) + cost
+        by_lane = [
+            (lane, round(c, 6))
+            for lane, c in sorted(lane_totals.items(), key=lambda kv: kv[1], reverse=True)
+        ]
         return cls(
             total_usd=total,
             by_lane=tuple(by_lane),

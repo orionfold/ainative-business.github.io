@@ -47,6 +47,48 @@ def _isolate_reward_signal_dir(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def _no_live_price_fetch(monkeypatch):
+    """The offline suite never reads the live OpenRouter catalog (BUG-3 path).
+
+    ``_run_eval_guarded`` does a best-effort price-at-dispatch capture when a
+    cloud model is unpriced — a real HTTP GET in production. Gate it off here
+    (the honest offline behavior: still-unpriced ⇒ tokens-only); a test
+    exercising the capture path re-enables the env and injects a fake fetcher.
+    """
+    monkeypatch.setenv("FK_EVAL_PRICE_AT_DISPATCH", "0")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_arena_db_and_sentinels(tmp_path, monkeypatch):
+    """Never let a test touch the operator's real arena db or eval sentinels.
+
+    ``create_app(db=None)`` resolves ``ARENA_DB`` (env) before the packaged
+    default ``~/.fieldkit/arena.db`` — without this pin, every TestClient
+    lifespan (BUG-2 orphan reconcile at startup, G1 sentinel trip at shutdown)
+    would run against the operator's **live** store, e.g. failing a genuinely
+    running overnight ``rl_run`` or aborting a real cloud eval mid-suite.
+    """
+    monkeypatch.setenv("ARENA_DB", str(tmp_path / "arena-isolated.db"))
+    monkeypatch.setenv("FK_EVAL_SENTINEL_DIR", str(tmp_path / "eval-sentinels"))
+    # The eval-bench registry (`resolve_bench` + the AF-27 verifier lookup)
+    # defaults to the operator's real ~/.fieldkit/arena/benches — pin it too,
+    # so e.g. the astro honest-skip test can't find the box's real verifier.
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(tmp_path / "bench-registry"))
+
+
+@pytest.fixture(autouse=True)
+def _isolate_job_owner_dir(tmp_path, monkeypatch):
+    """Keep the BUG-2 job owner stamps out of the real ``~/.fieldkit`` (test hygiene).
+
+    ``fieldkit.arena.jobs.dispatch_job`` stamps ``owner-<job_id>.json`` at the
+    ``running`` flip and the sidecar's startup reconciler reads/unlinks it; both
+    default to ``~/.fieldkit/arena/owners``. Pin to a per-test tmp dir so the
+    suite never touches (or is confused by) the operator's live stamps.
+    """
+    monkeypatch.setenv("FK_ARENA_OWNER_DIR", str(tmp_path / "job-owners"))
+
+
+@pytest.fixture(autouse=True)
 def _isolate_lane_truth(tmp_path, monkeypatch):
     """Keep lane discovery hermetic + the active-lane registry out of the real home.
 

@@ -90,6 +90,7 @@ from fieldkit.training.run import (
     merge_and_export,
     poll_run_progress,
     run,
+    sft_progress_dir,
     standardize_hf_export,
 )
 
@@ -137,6 +138,7 @@ __all__ = [
     "refresh",
     "register_llama_cpp_pretokenizer_hash",
     "run",
+    "sft_progress_dir",
     "standardize_hf_export",
     "summarize_rows",
     "train_backend",

@@ -116,8 +116,29 @@ A live run is a deliberate operator action — the orchestration is GPU-free, bu
 the rollout/train loop needs the GPU stack on the box:
 
 1. **Install the extra** — `pip install "fieldkit[rl]"` (torch + peft +
-   transformers + safetensors + accelerate). These are pip-installable on the
-   GB10.
+   transformers + protobuf + sentencepiece + safetensors + accelerate). These
+   are pip-installable on the GB10.
+
+   **The proven GB10 stack (BUG-4, e2e smoke 2026-06-06).** The extra is
+   ceiling-pinned to the combo a real 4-step GRPO `rl_run` validated:
+   `transformers==4.51.3` + `protobuf` + `sentencepiece` + `torch 2.12.0+cu130`
+   + `peft 0.19.1`. Do not "upgrade past" it casually — the drift chain it
+   pins out: transformers **5.x** crashes `device_map="auto"` on GB10 (`Cannot
+   copy out of meta tensor`); 4.5x without protobuf/sentencepiece fails the
+   qwen3 tokenizer load; and **no 4.x** accepts a NeMo-exported
+   `tokenizer_config.json` carrying *list-form* `extra_special_tokens`.
+
+   **The shadow model dir (the NeMo-export fix).** A NeMo-merged HF export may
+   write `extra_special_tokens` as a list (and may be root-owned, so unfixable
+   in place). Build a shadow dir: symlink every file from the export, replace
+   only `tokenizer_config.json` with a copy whose `extra_special_tokens` key is
+   dropped, then point `FK_RL_BASE_MODEL` at the shadow. vLLM keeps serving the
+   original (identical weights); only the trainer-side tokenizer load needs the
+   fixed config. On the Spark: `merged-hf-bf16-fixed/` shadows
+   `merged-hf-bf16/`.
+
+   **Venue:** keep the RL venv OFF `/tmp` (reboot-ephemeral — every reboot
+   silently re-resolves the stack; that is exactly how BUG-4 shipped).
 2. **Serve a pinned vLLM separately.** vLLM is *not* a dependency of the extra:
    there is no aarch64+CUDA-13 wheel for the pinned version yet
    (`[[project_verl_atgpo_vllm_gap]]`), so it is brought up as its own process

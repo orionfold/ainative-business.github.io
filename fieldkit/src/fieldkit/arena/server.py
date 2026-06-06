@@ -249,6 +249,185 @@ def _trip_running_eval_sentinels(db_path: str) -> int:
     return tripped
 
 
+def _eval_cloud_models(store: Any) -> list[str]:
+    """Distinct cloud-lane model ids from recent ``eval_rerun`` jobs (AF-29).
+
+    The G3-arming roster: the models the guardrail will actually be asked to
+    price. Newest-first distinct over the last 200 job rows; local-lane evals
+    (loopback/RFC-1918 ``base_url``) never need a price so they're excluded.
+    """
+    from fieldkit.arena.guardrail import is_cloud_endpoint
+
+    models: list[str] = []
+    try:
+        rows = store.list_jobs(limit=200)
+    except Exception:  # noqa: BLE001 — disclosure is best-effort
+        return models
+    for row in rows:
+        if (row["kind"] if "kind" in row.keys() else None) != "eval_rerun":
+            continue
+        pj = row["payload_json"] if "payload_json" in row.keys() else None
+        if not isinstance(pj, str) or not pj:
+            continue
+        try:
+            payload = json.loads(pj) or {}
+        except json.JSONDecodeError:
+            continue
+        model = payload.get("model")
+        if not model or not is_cloud_endpoint(str(payload.get("base_url") or "")):
+            continue
+        if str(model) not in models:
+            models.append(str(model))
+    return models
+
+
+def _install_signal_teardown(db_path: str) -> bool:
+    """Trip the G1 eval-abort sentinels **at signal time**, not lifespan shutdown (BUG-2).
+
+    The original G1 wiring tripped the sentinels from ``_lifespan`` shutdown — a
+    **circular wait**: uvicorn's graceful shutdown drains in-flight requests and
+    BackgroundTasks *before* running lifespan shutdown, but a guarded cloud eval's
+    BackgroundTask only finishes once the sentinel it polls exists. So a real
+    ``arena down`` / SIGTERM mid-eval could never fire G1 exactly when it mattered
+    (found live in the e2e smoke, 2026-06-06). Tripping from the signal handler
+    breaks the cycle: sentinel lands first → the row-loop aborts at the next row
+    boundary → the BackgroundTask completes → the drain finishes → ``_lifespan``
+    shutdown re-trips harmlessly (idempotent) → clean exit.
+
+    Chains to the previously-installed handler (uvicorn's, when called from
+    lifespan startup — uvicorn captures its signals *before* lifespan startup
+    runs). Main-thread-only (a ``signal.signal`` constraint); a non-main-thread
+    install (the TestClient portal) is skipped silently. Returns whether the
+    handlers were installed.
+    """
+    import signal as _signal
+    import threading
+
+    if threading.current_thread() is not threading.main_thread():
+        return False
+
+    def _chain(signum: int) -> None:
+        prev = _signal.getsignal(signum)
+
+        def _handler(s: int, frame: Any) -> None:
+            try:
+                _trip_running_eval_sentinels(db_path)
+            except Exception:  # noqa: BLE001 — never mask the shutdown signal
+                pass
+            if callable(prev):
+                prev(s, frame)
+            elif prev == _signal.SIG_DFL:
+                # Restore + re-raise so the default action (terminate) still runs.
+                _signal.signal(s, _signal.SIG_DFL)
+                _signal.raise_signal(s)
+            # SIG_IGN / None → swallow, matching the prior disposition.
+
+        try:
+            _signal.signal(signum, _handler)
+        except (ValueError, OSError):  # non-main thread raced us / exotic platform
+            pass
+
+    for signum in (_signal.SIGTERM, _signal.SIGINT):
+        _chain(signum)
+    return True
+
+
+def _reconcile_orphaned_jobs(db_path: str) -> int:
+    """Land ``running``/``dispatched`` rows orphaned by a dead process (BUG-2 reconciler).
+
+    Run once at lifespan **startup**. A job row stuck in flight when its
+    dispatching process died (a SIGKILL mid-eval, a box reboot mid-``rl_run``)
+    previously stayed ``running`` forever — through full down+up cycles — because
+    nothing ever reconciled the queue against reality (found live in the e2e
+    smoke, 2026-06-06).
+
+    Discriminator: the owner stamp ``dispatch_job`` writes at the ``running``
+    flip (``fieldkit.arena.jobs.job_owner_path``). A row whose stamp names a
+    **live** pid belongs to a sibling process (the M11 cron ``fieldkit arena
+    drain``) and is left alone; a dead/missing owner ⇒ orphan → land it
+    ``failed`` with an honest error, plus a ``guardrail`` block on eval rows so
+    the forensic trail matches the G1 teardown convention. Stale sentinel/owner
+    files are swept. Best-effort: a cold/missing db reconciles nothing.
+    """
+    from fieldkit.arena.guardrail import eval_sentinel_for
+    from fieldkit.arena.jobs import JobKind, JobStatus, job_owner_path
+
+    db_file = Path(db_path).expanduser()
+    if not db_file.is_file():
+        return 0
+    from fieldkit.arena.store import ArenaStore
+
+    reconciled = 0
+    store = ArenaStore(db_file)
+    with store:
+        in_flight = [
+            row
+            for status in (JobStatus.RUNNING, JobStatus.DISPATCHED)
+            for row in store.list_jobs(status=status, limit=100)
+        ]
+        for row in in_flight:
+            job_id = str(row["id"])
+            kind = str(row["kind"]) if "kind" in row.keys() else ""
+            owner_file = job_owner_path(job_id)
+            owner_pid: int | None = None
+            try:
+                owner_pid = int(json.loads(owner_file.read_text()).get("pid") or 0) or None
+            except (OSError, ValueError):
+                owner_pid = None
+            if owner_pid and owner_pid != os.getpid() and _pid_alive(owner_pid):
+                continue  # genuinely owned by a live sibling (cron drain) — leave it
+            error = (
+                "orphaned: no live dispatcher for this run "
+                "(reconciled at sidecar startup — the owning process died mid-run)"
+            )
+            update: dict[str, Any] = {
+                "status": JobStatus.FAILED,
+                "error": error,
+                "finished_at": _utc_now_iso(),
+            }
+            if kind == JobKind.EVAL_RERUN:
+                # Mirror the G1 result_fields shape so the trail reads like a
+                # teardown abort — but honestly: nothing persisted, 0 scored.
+                update["result_json"] = json.dumps(
+                    {
+                        "guardrail": {
+                            "aborted_by": "teardown",
+                            "partial": True,
+                            "n_scored": 0,
+                            "reconciled": True,
+                        }
+                    },
+                    sort_keys=True,
+                )
+            try:
+                store.update_job(job_id, **update)
+                reconciled += 1
+            except Exception as exc:  # noqa: BLE001 — reconcile is best-effort
+                _log.warning("orphan reconcile failed for job %s: %s", job_id, exc)
+                continue
+            for stale in (eval_sentinel_for(job_id), owner_file):
+                try:
+                    stale.unlink()
+                except OSError:
+                    pass
+    if reconciled:
+        _log.warning("reconciled %d orphaned in-flight job(s) at startup", reconciled)
+    return reconciled
+
+
+def _pid_alive(pid: int) -> bool:
+    """True iff ``pid`` is a live process we could signal (EPERM counts as alive)."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
 # ---------------------------------------------------------------------------
 # Telemetry pump — one Telemetry instance shared across SSE subscribers.
 # ---------------------------------------------------------------------------
@@ -851,6 +1030,13 @@ def create_app(
         cost_cap_usd: float = Field(ge=0)
         enabled: bool = True
 
+    class PriceRefreshRequest(BaseModel):
+        """``POST /api/prices/refresh`` body (BUG-3 / AF-29) — the operator
+        price-refresh action. ``models`` optionally narrows the capture; absent,
+        the eval-roster models (the ones G3 actually needs) are refreshed."""
+
+        models: Optional[list[str]] = None
+
     class LocalLoadRequest(BaseModel):
         """``POST /api/local/load`` body — pre-warm an on-demand local lane.
 
@@ -905,7 +1091,12 @@ def create_app(
         top_k: int = Field(default=5, ge=1, le=20)
         provenance: Optional[list[str]] = Field(default=None)
 
-    db_path = str(db or DEFAULT_ARENA_DB)
+    # Honor the ARENA_DB env when no explicit ``db`` arg — the same convention
+    # ``serve()`` exports and ``_reload_target`` reads. Lets the test harness
+    # pin every default-db ``create_app`` to an isolated tmp db, so a lifespan
+    # startup/shutdown (orphan reconcile, G1 sentinel trip) can never touch the
+    # operator's real ``~/.fieldkit/arena.db`` from a test run.
+    db_path = str(db or os.environ.get("ARENA_DB") or DEFAULT_ARENA_DB)
     root = Path(repo_root or Path.cwd()).resolve()
     hub = TelemetryHub(interval=telemetry_interval)
     # AE-18/19/20: the rail's resident lane is now the *reconciled* active lane
@@ -943,10 +1134,20 @@ def create_app(
 
     @asynccontextmanager
     async def _lifespan(_app: "FastAPI"):
-        # Yield-only: the hub starts itself on first SSE subscribe, so
-        # there is nothing to do on app boot. On shutdown, last-line guard:
-        # if subscribers were torn off uncleanly, stop the sampler thread
-        # so the process exits cleanly.
+        # BUG-2 startup half — land in-flight rows orphaned by a dead prior
+        # process (a SIGKILL mid-eval / reboot mid-rl_run left them `running`
+        # forever), then chain the G1 sentinel trip onto SIGTERM/SIGINT so a
+        # real `arena down` aborts an in-flight cloud eval *at signal time*
+        # (the lifespan-shutdown trip below deadlocked behind uvicorn's
+        # graceful drain — the circular wait found live in the e2e smoke).
+        try:
+            _reconcile_orphaned_jobs(db_path)
+        except Exception as exc:  # noqa: BLE001 — never block a boot
+            _log.warning("orphan reconcile at startup raised: %s", exc)
+        try:
+            _install_signal_teardown(db_path)
+        except Exception as exc:  # noqa: BLE001
+            _log.warning("signal-teardown install raised: %s", exc)
         try:
             yield
         finally:
@@ -1925,6 +2126,89 @@ def create_app(
         cfg, sources = load_config()
         return {"ok": True, "effective": cfg.to_dict(), "sources": sources}
 
+    # BUG-3 / AF-29 — the G3-arming disclosure + the price-refresh action. G3's
+    # protection quietly depends on a price row existing for the exact model_id;
+    # these routes make that dependency visible (per-model: priced? source?
+    # captured-at?) and maintainable (a deterministic OpenRouter catalog capture
+    # into the snapshot table). No schema change — rows land in the existing
+    # `openrouter_price_snapshot` under a dated snapshot id.
+    @app.get("/api/prices")
+    async def api_prices() -> dict[str, Any]:
+        """Per-model G3 arming status for the cloud-eval roster.
+
+        Roster = distinct cloud-lane models from recent ``eval_rerun`` jobs (the
+        models the guardrail will actually be asked to price). Each entry says
+        whether the *next* run is $-guarded (``priced``) and where the price
+        came from. ``enabled``/``cost_cap_usd`` ride along so the Settings pane
+        renders one coherent G3 story.
+        """
+        from fieldkit.arena.guardrail import load_config
+        from fieldkit.cost import CostLedger
+
+        cfg, _ = load_config()
+        out: list[dict[str, Any]] = []
+        db_file = Path(os.path.expanduser(db_path))
+        if db_file.is_file():
+            from fieldkit.arena.store import ArenaStore
+
+            store = ArenaStore(db_file)
+            store.initialize()
+            try:
+                ledger = CostLedger(store)
+                for model in _eval_cloud_models(store):
+                    p = ledger.price_for(model)
+                    entry: dict[str, Any] = {"model_id": model, "priced": p is not None}
+                    if p is not None:
+                        entry.update(
+                            price_per_m_input_usd=p.price_per_m_input_usd,
+                            price_per_m_output_usd=p.price_per_m_output_usd,
+                            source=p.source,
+                            captured_at=p.captured_at,
+                        )
+                    out.append(entry)
+            finally:
+                store.close()
+        return {
+            "models": out,
+            "unpriced": sum(1 for m in out if not m["priced"]),
+            "enabled": cfg.enabled,
+            "cost_cap_usd": cfg.cost_cap_usd,
+        }
+
+    @app.post("/api/prices/refresh")
+    async def api_prices_refresh(body: PriceRefreshRequest) -> dict[str, Any]:
+        """Capture current OpenRouter prices for the roster (or ``body.models``).
+
+        Deterministic CRUD — one catalog ``GET``, rows seeded under a dated
+        snapshot id with ``source='openrouter-api'`` (``fieldkit.cost.
+        refresh_prices``). A fetch failure surfaces as 502, not a silent no-op
+        (the silence is exactly what BUG-3 was)."""
+        from fieldkit.cost import CostError, refresh_prices
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            raise HTTPException(status_code=409, detail="no arena store yet")
+        from fieldkit.arena.store import ArenaStore
+
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            models = body.models or _eval_cloud_models(store)
+            if not models:
+                return {"ok": True, "refreshed": [], "note": "no cloud-eval models on the roster yet"}
+            try:
+                rows = refresh_prices(store, models)
+            except CostError as exc:
+                raise HTTPException(status_code=502, detail=str(exc))
+            captured = {r["model_id"] for r in rows}
+            return {
+                "ok": True,
+                "refreshed": rows,
+                "still_unpriced": [m for m in models if m not in captured],
+            }
+        finally:
+            store.close()
+
     # ------------------------------------------------------------------
     # M8 — control-plane jobs. Enqueue/inspect/cancel + an SSE board feed.
     # ``/api/jobs/stream`` is declared BEFORE ``/api/jobs/{job_id}`` so the
@@ -2333,17 +2617,28 @@ def create_app(
         No arena.db read, no schema bump."""
         sft_dir = _sft_run_dir()
         runs = _list_sft_runs(sft_dir)
-        log_path = (
-            _resolve_sft_log(sft_dir, source) if source else _newest_sft_log(sft_dir)
-        )
-        if log_path is None or not log_path.is_file():
+        # AE-25 / BUG-1 — two source kinds: the canonical `sft-progress-*.json`
+        # heartbeat (every `fieldkit.training.run`, checkpoint-liveness truth)
+        # and the legacy `*-driver.log` stdout redirect. ?source= picks either,
+        # traversal-safe; auto-follow tracks the newest across BOTH, so the
+        # canonical run a fresh heartbeat just stamped wins over a stale log.
+        if source:
+            path = _resolve_sft_progress_json(sft_dir, source) or _resolve_sft_log(
+                sft_dir, source
+            )
+        else:
+            path = _newest_sft_source(sft_dir)
+        if path is None or not path.is_file():
             return {"available": False, "kind": "sft", "runs": runs}
-        report = _parse_sft_log(log_path, sft_dir)
+        if path.name.endswith(".json"):
+            report = _parse_sft_progress_json(path)
+        else:
+            report = _parse_sft_log(path, sft_dir)
         if report is None:
             return {"available": False, "kind": "sft", "runs": runs}
         return {
             "available": True, "kind": "sft",
-            "report": report, "source": log_path.name, "runs": runs,
+            "report": report, "source": path.name, "runs": runs,
         }
 
     @app.get("/api/corpus-progress")
@@ -2570,6 +2865,78 @@ def _resolve_sft_log(sft_dir: Path, source: str) -> Path | None:
     return p if p.is_file() else None
 
 
+# -- AE-25 / BUG-1 — the canonical heartbeat source ----------------------------
+# `fieldkit.training.run` stamps `progress/sft-progress-*.json` from its
+# checkpoint-liveness poll. The pane reads it as a FIRST-CLASS source next to
+# the driver logs: the log-regex source only exists when an invocation happens
+# to redirect Megatron stdout (the standalone shell script does; the canonical
+# entrypoint does not), which is exactly how a finished real run rendered as
+# `0/0 · starting` in the e2e smoke (OBS-1, SEVERE).
+
+
+def _sft_progress_feed_dir(sft_dir: Path) -> Path:
+    return sft_dir / "progress"
+
+
+def _sft_progress_jsons(sft_dir: Path) -> list[Path]:
+    """All canonical heartbeats, newest-first by mtime."""
+    try:
+        cands = list(_sft_progress_feed_dir(sft_dir).glob("sft-progress-*.json"))
+        cands.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        return cands
+    except OSError:
+        return []
+
+
+def _resolve_sft_progress_json(sft_dir: Path, source: str) -> Path | None:
+    """Resolve a dropdown-selected heartbeat, traversal-safe."""
+    name = Path(source).name
+    if not (name.startswith("sft-progress-") and name.endswith(".json")):
+        return None
+    p = _sft_progress_feed_dir(sft_dir) / name
+    return p if p.is_file() else None
+
+
+def _parse_sft_progress_json(path: Path) -> dict[str, Any] | None:
+    """Render one canonical heartbeat in the SFT-progress report shape.
+
+    Same keys the log parser emits so the pane renders either source; the
+    loss-curve niceties are honestly absent (the heartbeat carries checkpoint
+    truth, not stdout), and ``feed: "canonical"`` marks the provenance.
+    """
+    try:
+        j = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    if not isinstance(j, dict) or j.get("kind") != "sft-progress":
+        return None
+    checkpoints: list[int] = []
+    for it in j.get("checkpoint_iters") or []:
+        try:
+            checkpoints.append(int(it))
+        except (TypeError, ValueError):
+            continue
+    report: dict[str, Any] = {
+        "status": str(j.get("status") or "running"),
+        "latest_iter": int(j.get("latest_iter") or 0),
+        "max_iters": int(j.get("max_iters") or 0),
+        "first_loss": None,
+        "last_loss": None,
+        "loss_series": [],
+        "iter_per_s": None,
+        "eta_s": None,
+        "peak_mem_gb": 0.0,
+        "checkpoints": sorted(checkpoints),
+        "run_label": str(j.get("run_label") or path.stem),
+        "feed": "canonical",
+    }
+    if j.get("error"):
+        report["error"] = str(j["error"])
+    if j.get("wall_seconds") is not None:
+        report["wall_seconds"] = j["wall_seconds"]
+    return report
+
+
 def _sft_run_subdir(log_name: str) -> str:
     """``full-driver.log`` → ``runs-full``; ``smoke-driver.log`` → ``runs-smoke``."""
     stem = log_name[: -len("-driver.log")]
@@ -2660,21 +3027,62 @@ def _parse_sft_log(log_path: Path, sft_dir: Path) -> dict[str, Any] | None:
 
 
 def _list_sft_runs(sft_dir: Path) -> list:
-    """Newest-first summaries of every SFT training driver log (dropdown)."""
-    out: list = []
-    paths = _sft_training_logs(_sft_logs_dir(sft_dir))
-    for p in paths:
-        rep = _parse_sft_log(p, sft_dir) or {}
-        out.append(
-            {
-                "source": p.name,
-                "status": rep.get("status"),
-                "latest_iter": rep.get("latest_iter"),
-                "max_iters": rep.get("max_iters"),
-                "last_loss": rep.get("last_loss"),
-            }
+    """Newest-first summaries of every SFT run source (dropdown).
+
+    Two source kinds, merged newest-first by mtime: the canonical
+    ``sft-progress-*.json`` heartbeats (AE-25 — every ``fieldkit.training.run``)
+    and the legacy ``*-driver.log`` stdout redirects (only some invocations).
+    """
+    entries: list[tuple[float, dict[str, Any]]] = []
+    for p in _sft_progress_jsons(sft_dir):
+        rep = _parse_sft_progress_json(p) or {}
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        entries.append(
+            (
+                mtime,
+                {
+                    "source": p.name,
+                    "feed": "canonical",
+                    "status": rep.get("status"),
+                    "latest_iter": rep.get("latest_iter"),
+                    "max_iters": rep.get("max_iters"),
+                    "last_loss": rep.get("last_loss"),
+                },
+            )
         )
-    return out
+    for p in _sft_training_logs(_sft_logs_dir(sft_dir)):
+        rep = _parse_sft_log(p, sft_dir) or {}
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        entries.append(
+            (
+                mtime,
+                {
+                    "source": p.name,
+                    "feed": "log",
+                    "status": rep.get("status"),
+                    "latest_iter": rep.get("latest_iter"),
+                    "max_iters": rep.get("max_iters"),
+                    "last_loss": rep.get("last_loss"),
+                },
+            )
+        )
+    entries.sort(key=lambda e: e[0], reverse=True)
+    return [e[1] for e in entries]
+
+
+def _newest_sft_source(sft_dir: Path) -> Path | None:
+    """Auto-follow: newest source by mtime across heartbeats AND driver logs."""
+    cands = _sft_progress_jsons(sft_dir) + _sft_training_logs(_sft_logs_dir(sft_dir))
+    live = [p for p in cands if p.is_file()]
+    if not live:
+        return None
+    return max(live, key=lambda p: p.stat().st_mtime)
 
 
 # ---------------------------------------------------------------------------
@@ -5441,6 +5849,22 @@ async def compare_event_stream(
         #     against the bench gold with the correct per-prompt scorer; the
         #     normalized [0,1] scores feed the eval accuracy leaderboard.
         eval_payload: dict[str, Any] | None = None
+        auto_matched = False
+        if eval_context is None:
+            # AF-27(b) — a free-typed prompt that IS a registered bench row is
+            # scored via the bench's own reference scorer, not just the format
+            # rubric (the smoke's "Dead heat — both 100%" while lane A's value
+            # was wrong ~2×). Exact whitespace-normalized question match;
+            # context-carrying rows never auto-match (conditions differ).
+            try:
+                from fieldkit.arena import benches as _benches_match
+
+                hit = _benches_match.find_prompt_by_text(body.prompt)
+            except Exception:  # noqa: BLE001 — the lookup never breaks a score
+                hit = None
+            if hit is not None:
+                eval_context = {"bench_id": hit[0], "qid": hit[1].qid}
+                auto_matched = True
         if eval_context is not None:
             from fieldkit.arena import benches as _benches
 
@@ -5477,19 +5901,31 @@ async def compare_event_stream(
                             "scored_at": scored_at,
                         }
                     )
-            eval_payload = {
-                "bench_id": bench_id,
-                "qid": qid,
-                "scorer_kind": a_eval.get("scorer_kind") or b_eval.get("scorer_kind"),
-                "reference": a_eval.get("reference") or b_eval.get("reference") or "",
-                "max": a_eval.get("max") or b_eval.get("max") or 1.0,
-                "a": a_eval,
-                "b": b_eval,
-            }
+            if auto_matched and not (a_eval.get("scored") or b_eval.get("scored")):
+                # AF-27(b) guard — an auto-matched row whose scorer can't run
+                # on this box (e.g. no registered verifier) must NOT replace
+                # the rubric verdict with an empty eval block; fall back to the
+                # (scope-labelled) rubric.
+                eval_payload = None
+            else:
+                eval_payload = {
+                    "bench_id": bench_id,
+                    "qid": qid,
+                    "scorer_kind": a_eval.get("scorer_kind") or b_eval.get("scorer_kind"),
+                    "reference": a_eval.get("reference") or b_eval.get("reference") or "",
+                    "max": a_eval.get("max") or b_eval.get("max") or 1.0,
+                    "auto_matched": auto_matched,
+                    "a": a_eval,
+                    "b": b_eval,
+                }
 
         score_event: dict[str, Any] = {
             "run_id": run_id,
             "rubric_id": rubric_id,
+            # AF-27(a) — what the rubric actually measured ("format" for every
+            # default rubric); the banner labels itself from this so a format
+            # pass is never presented as a QUALITY verdict.
+            "rubric_scope": getattr(spec, "scope", "format"),
             "a": {"total": a_total, "checks": a_payload},
             "b": {"total": b_total, "checks": b_payload},
             "deltas": {

@@ -40,6 +40,7 @@ import keeps `import fieldkit.training.run` cheap.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import shutil
@@ -400,6 +401,50 @@ via `recipe.extra_env['TRAIN_SCRIPT']`. The script's CLI is
 (--train-iters | --smoke)`` per `scripts/p65_train_nemo_lora.sh`."""
 
 
+# ---------------------------------------------------------------------------
+# Canonical SFT progress feed (AE-25 / BUG-1 — the system-of-record fix)
+# ---------------------------------------------------------------------------
+#
+# The cockpit's `/arena/sft/` pane used to derive progress ONLY by regex-parsing
+# Megatron `iteration N/M` stdout lines out of a `*-driver.log` — a logging
+# side-effect that the standalone shell script produced but THIS canonical
+# entrypoint never did. Result (e2e smoke A4): a genuinely-finished run rendered
+# as `0 · starting · 0/0 iters`. The fix mirrors the rl_run reward-signal writer
+# (AE-1) and the corpus heartbeat (AE-6): `run()` itself stamps a structured
+# `sft-progress-*.json` heartbeat from its existing checkpoint-liveness poll
+# (`latest_checkpointed_iteration.txt` — the only reliable signal,
+# `feedback_megatron_train_log_buffering`), so the observation is owned by the
+# training run, invocation-independent.
+
+
+def sft_progress_dir(recipe: TrainRecipe) -> Path:
+    """Dir the heartbeat lands in — ``<output_dir>/progress`` (env-overridable).
+
+    ``FK_SFT_PROGRESS_DIR`` wins when set; the default keeps the feed next to
+    the run dirs, under the same root the cockpit anchors via
+    ``FK_ARENA_SFT_DIR``.
+    """
+    explicit = os.environ.get("FK_SFT_PROGRESS_DIR")
+    if explicit:
+        return Path(os.path.expanduser(explicit))
+    return Path(recipe.output_dir).resolve() / "progress"
+
+
+def _utc_stamp() -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+
+def _write_progress_json(path: Path, payload: Mapping[str, object]) -> None:
+    """Atomic (`tmp + replace`), best-effort — the feed never fails a run."""
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(json.dumps(dict(payload), sort_keys=True))
+        os.replace(tmp, path)
+    except OSError:
+        pass
+
+
 def _smoke_run_dir(recipe: TrainRecipe) -> Path:
     return Path(recipe.output_dir).resolve() / "runs-smoke"
 
@@ -623,9 +668,59 @@ def run(
     real_runner = runner if runner is not None else _default_runner
     real_sleep = sleep if sleep is not None else time.sleep
 
+    # AE-25 / BUG-1 — the canonical progress heartbeat. One JSON per run(),
+    # updated in place from the same checkpoint-liveness poll on_progress rides;
+    # the cockpit's /api/sft-progress reads it invocation-independently (no
+    # dependence on any stdout-redirect side-effect).
+    started_at = _utc_stamp()
+    max_iters = recipe.smoke_steps if mode == MODE_SMOKE else recipe.max_steps
+    feed_path = sft_progress_dir(recipe) / (
+        f"sft-progress-{mode}-{started_at.replace(':', '').replace('-', '')[:15]}.json"
+    )
+    feed_base: dict[str, object] = {
+        "version": 1,
+        "kind": "sft-progress",
+        "backend": recipe.backend,
+        "mode": mode,
+        "run_dir": str(run_dir),
+        "run_label": f"{recipe.backend} LoRA SFT — {mode} · fieldkit.training.run",
+        "max_iters": max_iters,
+        "started_at": started_at,
+    }
+
+    def _stamp(
+        latest: int, iters: list[int], *, status: str | None = None, error: str | None = None
+    ) -> None:
+        st = status or ("done" if latest >= max_iters and max_iters > 0 else "running")
+        payload: dict[str, object] = {
+            **feed_base,
+            "status": st,
+            "latest_iter": latest,
+            "checkpoint_iters": list(iters),
+            "updated_at": _utc_stamp(),
+        }
+        if error:
+            payload["error"] = error
+        _write_progress_json(feed_path, payload)
+
+    def _emit(latest: int, iters: list[int]) -> None:
+        _stamp(latest, iters)
+        if on_progress is not None:
+            on_progress(latest, iters)
+
+    _stamp(0, [], status="starting")
     started = time.monotonic()
-    rc = real_runner(cmd)
+    try:
+        rc = real_runner(cmd)
+    except Exception as exc:
+        _stamp(*poll_run_progress(run_dir), status="failed", error=str(exc))
+        raise
     if rc != 0:
+        _stamp(
+            *poll_run_progress(run_dir),
+            status="failed",
+            error=f"trainer returned non-zero exit code {rc}",
+        )
         raise TrainError(
             f"trainer returned non-zero exit code {rc} — inspect the "
             f"container's stdout for the underlying cause."
@@ -635,8 +730,7 @@ def run(
     # a one-shot read. With an async runner that returns 0 immediately,
     # this loop is the place the caller actually waits for completion.
     latest, iters = poll_run_progress(run_dir)
-    if on_progress is not None:
-        on_progress(latest, iters)
+    _emit(latest, iters)
 
     if poll_interval > 0 and not iters:
         # Async runner with no iters yet — poll until first checkpoint.
@@ -645,11 +739,22 @@ def run(
         while not iters:
             real_sleep(poll_interval)
             latest, iters = poll_run_progress(run_dir)
-            if on_progress is not None:
-                on_progress(latest, iters)
+            _emit(latest, iters)
 
     final_iter = max(latest, iters[-1] if iters else 0)
     wall = time.monotonic() - started
+    _write_progress_json(
+        feed_path,
+        {
+            **feed_base,
+            "status": "done",
+            "latest_iter": final_iter,
+            "checkpoint_iters": list(iters),
+            "wall_seconds": round(wall, 1),
+            "final": True,
+            "updated_at": _utc_stamp(),
+        },
+    )
     return TrainResult(
         backend=recipe.backend,
         mode=mode,

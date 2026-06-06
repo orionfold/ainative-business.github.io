@@ -510,6 +510,64 @@ def test_run_emits_on_progress_callback(tmp_path: Path) -> None:
     assert calls[0] == (10, [10])
 
 
+# ---------------------------------------------------------------------------
+# AE-25 / BUG-1 — the canonical sft-progress heartbeat
+# ---------------------------------------------------------------------------
+
+
+def _progress_files(recipe: TrainRecipe) -> list[Path]:
+    return sorted((Path(recipe.output_dir) / "progress").glob("sft-progress-*.json"))
+
+
+def test_run_writes_canonical_progress_heartbeat(tmp_path: Path) -> None:
+    """Every run() stamps the invocation-independent heartbeat the Arena SFT
+    pane reads — the fix for a finished real run rendering `0/0 · starting`."""
+    recipe = _make_recipe(tmp_path, backend="nemo")
+    runner = _FakeRunner(
+        write_iter=10,
+        run_dir_factory=lambda: Path(recipe.output_dir) / "runs-full",
+    )
+    run(recipe, mode=MODE_FULL, runner=runner, poll_interval=0)
+    files = _progress_files(recipe)
+    assert len(files) == 1
+    j = json.loads(files[0].read_text())
+    assert j["kind"] == "sft-progress"
+    assert j["status"] == "done" and j["final"] is True
+    assert j["latest_iter"] == 10 and j["max_iters"] == 10
+    assert j["checkpoint_iters"] == [10]
+    assert j["backend"] == "nemo" and j["mode"] == MODE_FULL
+    assert "wall_seconds" in j and "run_label" in j
+    assert files[0].name.startswith("sft-progress-full-")
+
+
+def test_run_heartbeat_failed_on_nonzero_rc(tmp_path: Path) -> None:
+    recipe = _make_recipe(tmp_path, backend="nemo")
+    runner = _FakeRunner(rc=3)
+    with pytest.raises(TrainError):
+        run(recipe, mode=MODE_SMOKE, runner=runner, poll_interval=0)
+    files = _progress_files(recipe)
+    assert len(files) == 1
+    j = json.loads(files[0].read_text())
+    assert j["status"] == "failed"
+    assert "exit code 3" in j["error"]
+
+
+def test_sft_progress_dir_env_override(tmp_path: Path, monkeypatch) -> None:
+    from fieldkit.training import sft_progress_dir
+
+    recipe = _make_recipe(tmp_path, backend="nemo")
+    override = tmp_path / "elsewhere"
+    monkeypatch.setenv("FK_SFT_PROGRESS_DIR", str(override))
+    assert sft_progress_dir(recipe) == override
+    runner = _FakeRunner(
+        write_iter=2,
+        run_dir_factory=lambda: Path(recipe.output_dir) / "runs-smoke",
+    )
+    run(recipe, mode=MODE_SMOKE, runner=runner, poll_interval=0)
+    assert list(override.glob("sft-progress-smoke-*.json"))
+    assert not (Path(recipe.output_dir) / "progress").exists()
+
+
 def test_run_async_runner_polls_until_iter(tmp_path: Path) -> None:
     """An async runner that returns 0 immediately but writes the
     iter dir on the second sleep — the poll loop catches it."""

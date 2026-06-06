@@ -93,10 +93,26 @@ arena = [
 # separate process** — there is NO aarch64+CUDA-13 vLLM wheel to depend on yet
 # (`project_verl_atgpo_vllm_gap`), so vLLM is deliberately NOT a dependency here.
 # Bring it up on the box separately (see fieldkit/docs/api/rl.md "Operator run").
+#
+# BUG-4 (e2e smoke 2026-06-06): the old loose floor pins + a reboot-ephemeral
+# /tmp venv silently re-resolved the newest stack every reboot and broke the
+# rl_run trainer load in a 4-link chain. The proven GB10 combo is RECORDED here:
+#   transformers==4.51.3 + protobuf + sentencepiece + torch 2.12.0+cu130 +
+#   peft 0.19.1 + the shadow model dir (docs/api/rl.md "Operator run").
+# Why each pin:
+# - transformers >=4.51.3,<4.52: 5.x crashes `device_map="auto"` on GB10
+#   ("Cannot copy out of meta tensor"); 4.51 is the first qwen3-capable 4.x;
+#   later 4.5x add new failure modes against the NeMo-exported tokenizer_config
+#   (list-form `extra_special_tokens` — no 4.x accepts it; the shadow model dir
+#   fixes that link, the pin keeps the rest of the stack where it was proven).
+# - protobuf + sentencepiece: hard runtime deps of the qwen3 tokenizer path
+#   that transformers does NOT declare (link 2 of the chain).
 rl = [
   "torch>=2.4",
-  "peft>=0.12",
-  "transformers>=4.44",
+  "peft>=0.12,<0.20",
+  "transformers>=4.51.3,<4.52",
+  "protobuf",
+  "sentencepiece",
   "safetensors>=0.4",
   "accelerate>=0.33",  # peft device_map="auto" needs it
 ]

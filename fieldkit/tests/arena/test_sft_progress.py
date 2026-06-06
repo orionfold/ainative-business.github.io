@@ -139,6 +139,113 @@ def test_sft_progress_history_and_source_select(tmp_path: Path, monkeypatch) -> 
         assert picked["report"]["latest_iter"] == 10
 
 
+# ---------------------------------------------------------------------------
+# AE-25 / BUG-1 — the canonical heartbeat is a first-class source
+# ---------------------------------------------------------------------------
+
+
+def _write_heartbeat(sft_dir: Path, name: str, **overrides) -> Path:
+    import json as _json
+
+    payload = {
+        "version": 1,
+        "kind": "sft-progress",
+        "backend": "nemo",
+        "mode": "smoke",
+        "run_dir": str(sft_dir / "runs-smoke"),
+        "run_label": "nemo LoRA SFT — smoke · fieldkit.training.run",
+        "status": "done",
+        "latest_iter": 10,
+        "max_iters": 10,
+        "checkpoint_iters": [10],
+        "started_at": "2026-06-06T10:00:00Z",
+        "updated_at": "2026-06-06T10:03:07Z",
+        "wall_seconds": 187.4,
+        "final": True,
+        **overrides,
+    }
+    prog = sft_dir / "progress"
+    prog.mkdir(parents=True, exist_ok=True)
+    p = prog / name
+    p.write_text(_json.dumps(payload))
+    return p
+
+
+def test_sft_progress_canonical_heartbeat_renders(tmp_path: Path, monkeypatch) -> None:
+    """The BUG-1 regression case: a run launched via fieldkit.training.run has
+    NO driver log — the pane must render its heartbeat truthfully (the smoke
+    saw `0 · starting · 0/0` for a finished run)."""
+    monkeypatch.setenv("FK_ARENA_SFT_DIR", str(tmp_path))
+    _write_heartbeat(tmp_path, "sft-progress-smoke-20260606T100000.json")
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/sft-progress").json()
+    assert body["available"] is True
+    assert body["source"] == "sft-progress-smoke-20260606T100000.json"
+    rep = body["report"]
+    assert rep["feed"] == "canonical"
+    assert rep["status"] == "done"
+    assert rep["latest_iter"] == 10 and rep["max_iters"] == 10
+    assert rep["checkpoints"] == [10]
+    assert rep["loss_series"] == []  # honestly absent — checkpoint truth only
+    assert body["runs"][0]["feed"] == "canonical"
+
+
+def test_sft_progress_newest_heartbeat_beats_stale_log(tmp_path: Path, monkeypatch) -> None:
+    """Auto-follow spans BOTH source kinds: a fresh canonical heartbeat wins
+    over an older driver log (the exact OBS-1 topology — Jun-4 log on disk,
+    new canonical run just finished)."""
+    import os
+
+    monkeypatch.setenv("FK_ARENA_SFT_DIR", str(tmp_path))
+    stale = _write_log(tmp_path, "smoke-driver.log", _log_lines(10, max_iters=10, done=True))
+    os.utime(stale, (1_000_000_000, 1_000_000_000))  # ancient
+    _write_heartbeat(tmp_path, "sft-progress-smoke-20260606T100000.json")
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/sft-progress").json()
+        # auto-follow lands on the heartbeat...
+        assert body["source"].startswith("sft-progress-")
+        # ...both appear in the dropdown, heartbeat first (newest)
+        feeds = [(r["source"], r["feed"]) for r in body["runs"]]
+        assert feeds[0][1] == "canonical" and feeds[1] == ("smoke-driver.log", "log")
+        # ...and the log is still explicitly selectable
+        picked = client.get(
+            "/api/sft-progress", params={"source": "smoke-driver.log"}
+        ).json()
+        assert picked["source"] == "smoke-driver.log"
+        assert picked["report"].get("feed") is None  # log reports carry no marker
+
+
+def test_sft_progress_failed_heartbeat_carries_error(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("FK_ARENA_SFT_DIR", str(tmp_path))
+    _write_heartbeat(
+        tmp_path,
+        "sft-progress-smoke-20260606T110000.json",
+        status="failed",
+        error="trainer returned non-zero exit code 3",
+        final=False,
+        wall_seconds=None,
+    )
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        rep = client.get("/api/sft-progress").json()["report"]
+    assert rep["status"] == "failed"
+    assert "exit code 3" in rep["error"]
+
+
+def test_sft_progress_heartbeat_traversal_rejected(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("FK_ARENA_SFT_DIR", str(tmp_path))
+    _write_heartbeat(tmp_path, "sft-progress-smoke-20260606T100000.json")
+    app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get(
+            "/api/sft-progress", params={"source": "../progress/sft-progress-x.json"}
+        ).json()
+    # name-only resolution — never escapes the progress dir
+    assert body.get("available") is False or body["source"].startswith("sft-progress-")
+
+
 def test_sft_progress_source_traversal_rejected(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("FK_ARENA_SFT_DIR", str(tmp_path))
     _write_log(tmp_path, "full-driver.log", _log_lines(100, done=True))

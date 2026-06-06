@@ -194,6 +194,23 @@ def test_spend_digest_over_cap(m9_conn):
     assert dig.over_cap is True
 
 
+def test_spend_digest_includes_eval_job_spend(m9_conn):
+    """AF-30 — the Standup SPEND row counts metered eval-job spend, per-lane."""
+    m9_conn.execute(
+        "CREATE TABLE jobs (id TEXT, kind TEXT, payload_json TEXT, result_json TEXT)"
+    )
+    m9_conn.execute(
+        "INSERT INTO jobs VALUES ('j1', 'eval_rerun', "
+        "'{\"lane_id\": \"openrouter::claude-haiku-4.5\"}', "
+        "'{\"guardrail\": {\"run_cost_usd\": 0.0515, \"priced\": true}}')"
+    )
+    m9_conn.commit()
+    dig = SpendDigest.from_store(m9_conn, cap_usd=5.0)
+    assert dig.total_usd == pytest.approx(4.75 + 0.0515)
+    lanes = dict(dig.by_lane)
+    assert lanes["openrouter::claude-haiku-4.5"] == pytest.approx(0.0515)
+
+
 def test_spend_digest_pre_m9_is_dash(pre_m9_conn):
     dig = SpendDigest.from_store(pre_m9_conn, cap_usd=5.0)
     assert dig.has_cost_plane is False
