@@ -45,8 +45,8 @@ Phase 1 (Arena M8 control plane) **shipped** (`fieldkit v0.16.0`), and the four 
 
 | Spec | Status | Scope |
 |---|---|---|
-| [`design-system-v1.md`](design-system-v1.md) | RELAYED 2026-06-06 (adopt incrementally) | Shared Airtable-derived light-theme design system (system of record: self-health; live there + agency). §3 semantic tokens are the portable contract; apply to **new** operator-facing panes — no wholesale Arena restyle without green-light. |
-| [`dashboard-skill-v1.md`](dashboard-skill-v1.md) | RELAYED 2026-06-06 (adopt when useful) | Operator-triggered `/dashboard` launch-skill pattern (live in self-health + agency) incl. the SessionStart auto-launch rollback record and the load-bearing detached-launch form. For this repo it wraps launching the Arena cockpit. |
+| [`design-system-v1.md`](design-system-v1.md) | ADOPTED 2026-06-06 (incremental) | Shared Airtable-derived light-theme design system (system of record: self-health; live there + agency). §3 token contract landed as [`arena-app/src/styles/design-tokens.css`](../arena-app/src/styles/design-tokens.css) with the **spark accent locked: orange `#F7653B` / ink `#D74D26` / soft `#FEE2D5`** — NEW operator-facing panes import it; the shipped Arena cockpit keeps its dark theme (a wholesale restyle would be its own green-lit spec). |
+| [`dashboard-skill-v1.md`](dashboard-skill-v1.md) | ADOPTED 2026-06-06 | Operator-triggered `/dashboard` launch-skill pattern (live in self-health + agency) incl. the SessionStart auto-launch rollback record and the load-bearing detached-launch form. Instantiated as [`.claude/skills/dashboard/SKILL.md`](../.claude/skills/dashboard/SKILL.md) wrapping the Arena cockpit (`:7866/healthz` check → `arena_lifecycle.sh up` → §4-detached `xdg-open`); launch line live-smoked (piped return 0.008 s). |
 
 ## Archive (superseded / historical — kept for the record)
 

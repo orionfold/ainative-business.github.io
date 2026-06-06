@@ -1,0 +1,52 @@
+/*
+ * design-tokens.css — the §3 semantic token contract from _SPECS/design-system-v1.md
+ * (shared Airtable-derived LIGHT theme; relayed 2026-06-06 via Agency-cockpit PR #5,
+ * system of record: self-health's copy).
+ *
+ * Adoption rule (spec + PR guidance, deliberately conservative):
+ *   - NEW operator-facing panes import this file and build on these tokens.
+ *   - The shipped Arena cockpit keeps its dark OKLCH theme (global.css) — a
+ *     wholesale restyle would be its own green-lit spec. Token NAMES here are
+ *     disjoint from global.css's --color-* / --svg-* namespaces, so importing
+ *     both is collision-free.
+ *   - Keep the token NAMES stable (the portable contract); values may evolve
+ *     with the system of record.
+ *
+ * Spark accent (locked 2026-06-06, from the §2.1 palette — distinct from
+ * self-health teal / self-wealth blue / agency purple): orange.
+ */
+
+:root {
+  /* ---- neutrals (§2.2 improvised ramp) ---- */
+  --canvas:      #F7F8FA; /* page background */
+  --surface:     #FFFFFF; /* cards, header */
+  --surface-2:   #F2F4F7; /* inset chips, input wells, bar tracks */
+  --border:      #E4E7EC; /* card + table borders */
+  --border-soft: #EEF0F4; /* row separators, gridlines */
+  --ink:         #1D1F25; /* primary text */
+  --mute:        #5C6470; /* secondary text, labels */
+  --faint:       #8A919C; /* tertiary text, axis labels, placeholders */
+
+  /* ---- status (§4 attention semantics) — fill vs ink vs soft ---- */
+  --green: #11AF22;  --green-ink: #338A17;  --green-soft: #D1F7C4;
+  --amber: #E08D00;  --amber-ink: #B87503;  --amber-soft: #FFEAB6;
+  --red:   #EF3061;  --red-ink:   #BA1E45;  --red-soft:   #FFDCE5;
+
+  /* ---- data series (charts; not status-bearing) ---- */
+  --blue:   #1283DA; --blue-ink:   #2750AE; --blue-soft:   #CFDFFF;
+  --violet: #7C39ED; --violet-ink: #6B1CB0; --violet-soft: #EDE2FE;
+
+  /* ---- spark accent (brand/wordmark, active toggles, focus rings — never status) ---- */
+  --accent:      #F7653B; /* orange mid */
+  --accent-ink:  #D74D26; /* orange dark1 */
+  --accent-soft: #FEE2D5; /* orange light2 */
+}
+
+/*
+ * Usage (spec §3 rule of thumb):
+ *   --x       → SVG/chart fills and swatches
+ *   --x-ink   → any text/icon (mid/bright fills never carry small text)
+ *   --x-soft  → pill/badge/chip backgrounds, always paired with --x-ink text
+ * Panes adopting this theme should also set `color-scheme: light` and
+ * `font-variant-numeric: tabular-nums` on data surfaces (§2.3, §7).
+ */

@@ -20,6 +20,13 @@
 
 ## Current state
 
+### ✅ 2026-06-06 — Relayed standards MERGED + ADOPTED (PR #5 from the Agency cockpit): `/dashboard` skill + design-system token contract
+
+> **PR #5 squash-merged** (`f5d298b` — `_SPECS/design-system-v1.md` + `_SPECS/dashboard-skill-v1.md` + index registration; the second relay through the PR channel after the beacon). **Both specs implemented same-session:**
+> - **`/dashboard` skill** — `.claude/skills/dashboard/SKILL.md`: thin operator-triggered *"show me the cockpit"* wrapper (launch-policy verbatim incl. the peers' SessionStart-rollback record; never auto-start). Launch = `:7866/healthz` check → `arena_lifecycle.sh up` (the repo's proven launcher — NOT a raw server line; root `/` 404s so the skeleton's bare-`/` probe was corrected to `/healthz`) → §4-detached `xdg-open` on `DISPLAY :1`. **Live-smoked:** piped launch line returned **0.008 s** (bar <1 s), tab landed in the visible Chromium. Heavy lifecycle (restart/down/CDP) stays with `arena-lifecycle`.
+> - **Design-system §3 token contract** — `arena-app/src/styles/design-tokens.css` (neutrals · status · data-series · accent), **spark accent locked orange `#F7653B` / ink `#D74D26` / soft `#FEE2D5`** (distinct from self-health teal / self-wealth blue / agency purple). For **NEW operator-facing panes only** — not imported by `global.css`; the shipped Arena keeps its dark OKLCH theme (wholesale restyle = its own green-lit spec). Collision-scan vs `--color-*`/`--svg-*` namespaces clean.
+> - `_SPECS/index.md` rows flipped RELAYED → **ADOPTED** with pointers.
+
 ### ✅ 2026-06-06 — `fieldkit v0.30.0` RELEASED — arena-enhancements **v2 cut 3**: **Cluster I core** (AE-26 inventory truth · AE-27 corpus handshake · AE-29 operator-armed sft_run · AE-30 runtime readiness)
 
 > Tag `fieldkit/v0.30.0` + <https://pypi.org/project/fieldkit/0.30.0/> (both install-verifies green; PyPI needed one CDN-lag wait, as usual). Commits `4f71f27` (build, 17 files +1761) + `720dd16` (release) + `d25aba8` (stats). **Offline 1445 pass / 19 skip** (+26: `test_corpus_request.py`, `test_runtimes.py`, sft_run jobs/api, inventory). **NO arena.db schema change** (`user_version` 6). Every guarded-launch risk (AF-20 arming + AE-22 launch) deliberately deferred to the dedicated launch-runner cut (AE-R13). Live CDP smoke on the rebaked cockpit (seed→verify→revert; smoke rows + files fully reverted).
