@@ -10,6 +10,7 @@
 import ArenaAppLayout from '../../../layouts/ArenaAppLayout.astro';
 import { getCollection } from 'astro:content';
 import { recommendedVariant, verticalOf } from '../../../lib/arena/model-prompts.mjs';
+import LaneTruth from '../../../components/arena/LaneTruth.jsx';
 
 const title = 'Orionfold Arena — Models';
 const description =
@@ -69,6 +70,10 @@ const fmtTok = (v) => (v == null ? null : `${v.toFixed(0)} tok/s`);
 const kindLabel = (k) => k.replace('_', ' ');
 ---
 <ArenaAppLayout title={title} description={description} active="models">
+  {/* AE-21/22 — the live serving-lane truth (discovery + select), above the
+      static artifact catalog. Renders nothing on the public mirror. */}
+  <LaneTruth client:only="preact" />
+
   <div class="kpi-strip kpi-strip--compact">
     <div class="kpi-strip__cell"><span class="kpi-strip__label">Models</span><span class="kpi-strip__value">{counts.models}</span><span class="kpi-strip__hint">quant · lora · adapter</span></div>
     <div class="kpi-strip__cell"><span class="kpi-strip__label">Benches</span><span class="kpi-strip__value">{counts.benches}</span><span class="kpi-strip__hint">eval datasets</span></div>

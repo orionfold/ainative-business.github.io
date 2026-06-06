@@ -20,6 +20,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
+import ProvenanceChip from './ProvenanceChip.jsx';
 
 const fmtEta = (s) => {
   if (s == null) return '—';
@@ -143,6 +144,11 @@ export default function SftProgressPane() {
   const cur = rep.latest_iter || 0;
   const progressPct = max ? Math.min(100, Math.round((cur / max) * 100)) : 0;
   const ckpts = rep.checkpoints || [];
+  // AE-24 provenance — the shown run's stamp age vs the run anchor; the run
+  // dropdown deliberately lists prior runs (AF-9), the chip labels which one
+  // you're looking at instead of letting a Jun-4 run pass as current (OBS-5).
+  const shownRun = runs.find((r) => r.source === (data && data.source));
+  const shownTsMs = shownRun && shownRun.mtime != null ? shownRun.mtime * 1000 : null;
 
   return (
     <div class="sft">
@@ -160,6 +166,7 @@ export default function SftProgressPane() {
           {source && (
             <span class="sft__history-now">showing <code>{source}</code></span>
           )}
+          <ProvenanceChip tsMs={shownTsMs} live={isRunning} runId={rep.run_label || null} />
         </div>
       )}
 

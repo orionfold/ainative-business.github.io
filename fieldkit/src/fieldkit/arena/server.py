@@ -167,7 +167,12 @@ def _resolve_active_lane(hermes_path: Path | None = None) -> dict[str, Any]:
 
     hint = _read_hermes_lane(hermes_path)
     try:
-        return lanes.resolve_active_lane(hermes_hint=hint)
+        # The Arena-owned registry (the AE-22 operator selection) participates
+        # in every resolution — without it the select action was write-only
+        # (cut-2 fix: the resolver is pure; the caller owns the file read).
+        return lanes.resolve_active_lane(
+            registry=lanes.load_active_lane(), hermes_hint=hint
+        )
     except Exception as exc:  # noqa: BLE001 — never break a request on discovery
         _log.debug("lane resolve failed, falling back to hermes hint: %s", exc)
         out = dict(hint) if hint else {"base_url": "", "model": ""}
@@ -1284,9 +1289,53 @@ def create_app(
                 "base_url": match.get("base_url"),
                 "port": port,
                 "source": "operator-selected",
+                # AE-23 run anchor — selecting a lane is the operator *arming a
+                # run*; panes compare their data's age against this to label
+                # "this run" vs "prior run" (AE-24). ISO-UTC, spec AE-19 shape.
+                "set_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             }
         )
         return await api_active_lane()
+
+    @app.get("/api/run-context")
+    async def api_run_context() -> dict[str, Any]:
+        """Run identity (AE-23) — which run the cockpit is oriented to.
+
+        Derives the **current run** from the active build/vertical (the AE-5
+        ``build-manifest.json``) + the reconciled active lane (AE-19/20). The
+        rail renders it as the global current-run banner; the AE-24 per-pane
+        provenance chips compare their data's age against ``run_started`` (the
+        instant the operator selected/armed a lane — the registry ``set_at``)
+        to label "this run ◉" vs "prior run ○". Honest when unanchored: with
+        no operator selection there is no run boundary to claim, so
+        ``anchored`` is false and chips show age without a this-run/prior-run
+        verdict. Read-only; no ``arena.db`` read, no schema change."""
+        from fieldkit.arena import lanes
+
+        manifest = _load_build_manifest(root)
+        resolved = _resolve_active_lane()
+        registry = lanes.load_active_lane()
+        lane = None
+        if resolved.get("base_url"):
+            lane = {
+                "model": resolved.get("model"),
+                "port": resolved.get("port"),
+                "base_url": resolved.get("base_url"),
+                "source": resolved.get("source"),
+            }
+        lane_live = resolved.get("source") in ("registry", "discovered")
+        return {
+            "vertical": manifest.get("vertical"),
+            "label": manifest.get("label") or manifest.get("vertical"),
+            "bench_id": manifest.get("bench_id"),
+            "lane": lane,
+            "lane_live": lane_live,
+            "source": resolved.get("source"),
+            "drift": resolved.get("drift"),
+            "discovered_n": len(resolved.get("discovered") or []),
+            "anchored": bool(registry),
+            "run_started": (registry or {}).get("set_at"),
+        }
 
     @app.get("/api/leaderboard")
     async def api_leaderboard(
@@ -3046,6 +3095,7 @@ def _list_sft_runs(sft_dir: Path) -> list:
                 {
                     "source": p.name,
                     "feed": "canonical",
+                    "mtime": mtime,  # AE-24 provenance chip (matches reward runs)
                     "status": rep.get("status"),
                     "latest_iter": rep.get("latest_iter"),
                     "max_iters": rep.get("max_iters"),
@@ -3065,6 +3115,7 @@ def _list_sft_runs(sft_dir: Path) -> list:
                 {
                     "source": p.name,
                     "feed": "log",
+                    "mtime": mtime,  # AE-24 provenance chip (matches reward runs)
                     "status": rep.get("status"),
                     "latest_iter": rep.get("latest_iter"),
                     "max_iters": rep.get("max_iters"),

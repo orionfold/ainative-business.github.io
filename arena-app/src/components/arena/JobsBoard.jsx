@@ -15,6 +15,8 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
+import { useRunContext } from './ProvenanceChip.jsx';
+import { anchorMs } from '../../lib/arena/run-context.mjs';
 
 const COLUMNS = [
   { key: 'queued', label: 'Queued', match: (s) => s === 'queued' || s === 'dispatched' },
@@ -359,6 +361,13 @@ export default function JobsBoard({ curriculum = {} }) {
   // by job id; one sample per distinct step (the result_json is throttled), last
   // ~8 kept. The interpreter reads the trend, not just the latest point.
   const histRef = useRef({});
+  // AE-24 run-context — cards enqueued before the run anchor (the instant the
+  // operator armed a lane) are labelled "○ prior run" + stale-dimmed (OBS-5).
+  // Unanchored ⇒ no anchor ⇒ no claim (cards render exactly as before).
+  const runCtx = useRunContext();
+  const anchor = anchorMs(runCtx);
+  const isPrior = (j) =>
+    anchor != null && j.enqueued_at && Date.parse(j.enqueued_at) < anchor;
 
   useEffect(() => {
     if (isPublicMirrorHost()) return; // public mirror — static offline board
@@ -617,17 +626,23 @@ export default function JobsBoard({ curriculum = {} }) {
               <div class="jobs__col-body">
                 {cards.length === 0 && <p class="jobs__empty">—</p>}
                 {cards.map((j) => (
-                  <article class="jobs__card" key={j.id} data-status={j.status}>
+                  <article class="jobs__card" key={j.id} data-status={j.status} data-prior={isPrior(j)}>
                     <div class="jobs__card-top">
                       <span class="jobs__card-kind">{j.kind}</span>
                       <span class="jobs__card-trigger">{j.trigger}</span>
                     </div>
                     <div class="jobs__card-target">{laneBench(j)}</div>
-                    {/* AE-16 — on-card identity: run label · relative time · short id */}
+                    {/* AE-16 — on-card identity: run label · relative time · short id
+                        AE-24 — "○ prior run" when enqueued before the run anchor */}
                     <div class="jobs__card-id">
                       {runLabel(j) && <span class="jobs__card-runlabel">{runLabel(j)}</span>}
                       {fmtAgo(j.enqueued_at) && <span class="jobs__card-ago">{fmtAgo(j.enqueued_at)}</span>}
                       {shortId(j.id) && <code class="jobs__card-shortid">{shortId(j.id)}</code>}
+                      {isPrior(j) && (
+                        <span class="jobs__card-prior" title={`enqueued before the run anchor (lane armed ${runCtx?.run_started || '—'}) — from a prior run`}>
+                          ○ prior run
+                        </span>
+                      )}
                     </div>
                     {j.status === 'running' && j.kind === 'rl_run' && (
                       <RlProgress result={j.result} curriculum={curriculum} hist={histRef.current[j.id]} />

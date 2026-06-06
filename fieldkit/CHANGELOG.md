@@ -6,6 +6,48 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The second arena-enhancements **v2** cut: the **Cluster G frontend** (AE-21 multi-lane
+truth · AE-22 select, launch deferred per AE-R13) and **Cluster H run-context
+orientation** (AE-23 run identity + current-run banner · AE-24 per-pane provenance
+chips + stale-dimming — OBS-5/AF-26, the operator-raised "is this even my run?").
+
+### Added
+- **AE-23 — run identity (`GET /api/run-context`).** Derives the *current run* from
+  the build-manifest vertical/label + the reconciled active lane. The run **anchor**
+  is the instant the operator selects/arms a lane (`POST /api/active-lane` now stamps
+  `set_at`, the spec AE-19 shape); honest when unanchored — no selection ⇒
+  `anchored:false` and no this-run/prior-run claims anywhere. The telemetry rail
+  renders it as a global **Run** cell (`Kepler · armed 2m ago · model-Q8_0.gguf`,
+  or `lane live · select to anchor`).
+- **AE-24 — per-pane provenance chips + stale-dimming.** A shared `<ProvenanceChip>`
+  (`run-id · relative-age · live ◉ / prior ○`, the AE-16 pattern) on the SFT pane,
+  Reward pane, and Build spine; the Jobs board and the leaderboard's live eval group
+  label + visibly dim every card/row stamped **before** the run anchor (`○ prior
+  run`, hover restores). `/api/sft-progress` run summaries gain `mtime` (parity with
+  reward runs) so the chip can date the shown source.
+- **AE-21 — multi-lane truth surfaces.** New `<LaneTruth>` section on the Models pane:
+  every discovered resident lane with its self-reported identity, the active lane
+  marked with its winning source, an explicit **drift banner**, the demoted Hermes
+  hint labelled as an assertion, and an honest "no lane resident — arm one" empty
+  state (launching stays a CLI step, AE-R13). The rail's lane cell gains a `⚠ drift`
+  / `N lanes` badge; the cockpit `CurrentLane` card gains source + drift chips and
+  drops its stale hermes-config copy.
+- **AE-22 — select-a-lane UI (select half).** Selecting a discovered lane (or
+  **pinning** the auto-active single lane — `pin · anchor run`) persists the
+  operator selection to the AE-19 registry and anchors run-context; clear-selection
+  reverts to pure discovery and un-anchors. Verified live over CDP: discover →
+  pin → rail flips to `armed just now` → prior data dims (14 job cards · 8 live
+  leaderboard rows · SFT/Reward chips) → lane killed ⇒ drift banner + rail badge →
+  clear ⇒ honest unanchored revert.
+
+### Fixed
+- **The active-lane registry never participated in lane resolution.** `server.
+  _resolve_active_lane` called the pure resolver without loading the registry file,
+  so an operator selection was write-only — `POST /api/active-lane` persisted it but
+  routing/rail kept resolving as if no selection existed (and registry drift could
+  never surface). The Cluster G smoke only exercised pure discovery, so it slipped;
+  the cut-2 endpoint tests caught it.
+
 ## [0.28.0] — 2026-06-06
 
 The first arena-enhancements **v2** cut (`_SPECS/arena-enhancements-v2.md`): **Cluster G

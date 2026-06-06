@@ -214,6 +214,7 @@ the documented backlog.
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-06 | **Cut 2 BUILT (Cluster G frontend + Cluster H).** AE-21 `<LaneTruth>` (Models) + rail drift/multi-lane badge + CurrentLane source/drift chips; AE-22 **select/pin** UI (launch still deferred, AE-R13); AE-23 `GET /api/run-context` + rail Run cell — the run **anchor** = the select's `set_at` stamp (added to the POST); AE-24 `<ProvenanceChip>` (SFT/Reward/Build) + Jobs/leaderboard-live `○ prior run` label + stale-dim, honest no-claims when unanchored (AE-R12: anchored ⇒ prior data dims by default, never silently current). **Fixed en route:** the registry never fed `_resolve_active_lane` — an operator selection was write-only (caught by the new endpoint tests). Offline 1419 pass; live CDP smoke: discover→pin→dim→drift→clear-revert. | Manav (with Claude) |
 | 2026-06-06 | **Spec authored (v2.0 DRAFT).** 11 decisions AE-18…28 across 3 clusters (G lane-truth/Plan-B · H run-context · I related-fixes-roadmap) + 7 risks AE-R7…R13. Formalizes the S1 e2e-smoke harvest in `_IDEAS/arena-smoke-v2-features.md` (OBS-4/5, AF-19…26, BUG-1). Driven by the operator's two principles (P1 system-of-record · P2 arm/run-surface) + the explicit asks: question Arena's Hermes-config dependency (→ AE-18/19/20) and run-context orientation (→ AE-23/24). Build order: V1 = Cluster G core + rail provenance, then **resume the paused smoke**. Still no `arena.db` schema change, no skill imports (AE-R3), no route change (AE-R5). | Manav (with Claude) |
 
 ## 10. References

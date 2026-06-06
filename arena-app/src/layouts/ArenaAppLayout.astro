@@ -3587,6 +3587,13 @@ try {
       .arena-app .jobs__lineage-arrow { color: var(--arena-text-mute); }
       .arena-app .jobs__lineage-item { color: var(--arena-text-dim); }
       .arena-app .jobs__lineage-item code { color: var(--arena-text-mute); }
+      /* AE-24 — run-context: prior-run cards stale-dim; hover restores legibility */
+      .arena-app .jobs__card[data-prior="true"] { opacity: 0.55; }
+      .arena-app .jobs__card[data-prior="true"]:hover { opacity: 1; }
+      .arena-app .jobs__card-prior {
+        font-family: var(--arena-mono); font-size: 0.54rem; color: var(--arena-text-dim);
+        border: 1px dashed var(--arena-line); border-radius: 0.3rem; padding: 0.02rem 0.3rem;
+      }
       /* AE-17 — cloud-run guardrail: per-run cost chip + abort badge on a metered eval card */
       .arena-app .jobs__card-guard {
         display: flex; align-items: center; gap: 0.3rem 0.45rem; flex-wrap: wrap;
@@ -5261,6 +5268,117 @@ try {
       }
       .arena-app .eval-score-col .compare-score-col__tag { color: var(--side-accent); }
       .arena-app .compare-duel__evalnote { font-size: 0.66rem; color: var(--arena-text-mute); }
+
+      /* ------------------------------------------------------------------ *
+       * arena-enhancements v2 cut 2 — lane truth + run-context (AE-21..24)
+       * ------------------------------------------------------------------ */
+      /* AE-24 — the per-pane provenance chip: run-id · age · live ◉ / prior ○ */
+      .arena-app .prov-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-family: var(--arena-mono); font-size: 0.56rem; line-height: 1.4;
+        padding: 0.04rem 0.4rem; border-radius: 0.35rem;
+        border: 1px solid var(--arena-line); color: var(--arena-text-dim);
+        white-space: nowrap;
+      }
+      .arena-app .prov-chip__run { color: var(--arena-text-mute); }
+      .arena-app .prov-chip--live { color: var(--arena-ok); border-color: color-mix(in oklch, var(--arena-ok) 40%, var(--arena-line)); }
+      .arena-app .prov-chip--live .prov-chip__mark { animation: arena-pulse 1.4s infinite; }
+      .arena-app .prov-chip--current { color: var(--arena-ok); }
+      .arena-app .prov-chip--prior { border-style: dashed; opacity: 0.8; }
+      .arena-app .prov-chip--unanchored { opacity: 0.75; }
+      /* AE-24 — prior-run rows on the live eval leaderboard group */
+      .arena-app .evalbench tr[data-prior="true"] { opacity: 0.55; }
+      .arena-app .evalbench tr[data-prior="true"]:hover { opacity: 1; }
+      .arena-app .lane-cell__prior {
+        font-family: var(--arena-mono); font-size: 0.54rem; color: var(--arena-text-dim);
+        border: 1px dashed var(--arena-line); border-radius: 0.3rem; padding: 0.02rem 0.3rem;
+        margin-left: 0.4rem;
+      }
+      /* AE-21 — rail lane-truth badge (drift / multi-lane) + the AE-23 run cell */
+      .telemetry-rail__badge {
+        font-family: var(--arena-mono); font-size: 0.5rem; line-height: 1.3;
+        padding: 0.02rem 0.3rem; border-radius: 0.3rem; margin-left: 0.35rem;
+        border: 1px solid var(--arena-line); color: var(--arena-text-dim);
+      }
+      .telemetry-rail__badge[data-state="warn"] {
+        color: var(--arena-warn);
+        border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+        background: rgba(255,180,80,0.10);
+      }
+      .telemetry-rail__badge[data-state="ok"] {
+        color: var(--arena-ok);
+        border-color: color-mix(in oklch, var(--arena-ok) 35%, var(--arena-line));
+      }
+      .telemetry-rail__cell--run .telemetry-rail__value[data-state="ok"] { color: var(--arena-ok); }
+      /* AE-21 — CurrentLane source/drift chips (cockpit card) */
+      .arena-app .current-lane__chip--source { opacity: 0.8; }
+      .arena-app .current-lane__chip--drift {
+        color: var(--arena-warn);
+        border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+      }
+      /* AE-21/22 — LaneTruth: the serving-lane system-of-record section (Models) */
+      .arena-app .lanetruth { margin: 0 0 1rem; padding: 0.8rem 1rem; }
+      .arena-app .lanetruth__probing { margin: 0; font-size: 0.72rem; color: var(--arena-text-dim); }
+      .arena-app .lanetruth__head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+      .arena-app .lanetruth__title {
+        font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--arena-text);
+      }
+      .arena-app .lanetruth__sub { font-size: 0.62rem; color: var(--arena-text-dim); }
+      .arena-app .lanetruth__clear {
+        margin-left: auto; font-family: var(--arena-mono); font-size: 0.58rem;
+        padding: 0.1rem 0.5rem; border-radius: 0.35rem; cursor: pointer;
+        border: 1px solid var(--arena-line); background: transparent; color: var(--arena-text-dim);
+      }
+      .arena-app .lanetruth__clear:hover:not(:disabled) { color: var(--arena-text); border-color: var(--arena-text-dim); }
+      .arena-app .lanetruth__drift {
+        display: flex; align-items: center; gap: 0.5rem; margin: 0.55rem 0 0;
+        padding: 0.4rem 0.6rem; border-radius: 0.4rem; font-size: 0.66rem;
+        color: var(--arena-warn); background: rgba(255,180,80,0.10);
+        border: 1px solid color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+      }
+      .arena-app .lanetruth__drift-mark { font-family: var(--arena-mono); font-weight: 700; white-space: nowrap; }
+      .arena-app .lanetruth__err { margin: 0.45rem 0 0; font-size: 0.64rem; color: var(--arena-warn); }
+      .arena-app .lanetruth__empty {
+        margin: 0.55rem 0 0; font-size: 0.68rem; color: var(--arena-text-dim); line-height: 1.5;
+      }
+      .arena-app .lanetruth__list { list-style: none; margin: 0.55rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+      .arena-app .lanetruth__lane {
+        display: flex; align-items: center; gap: 0.55rem;
+        padding: 0.35rem 0.55rem; border-radius: 0.4rem;
+        border: 1px solid var(--arena-line-soft); background: var(--arena-panel-2);
+        font-size: 0.68rem;
+      }
+      .arena-app .lanetruth__lane[data-active="true"] {
+        border-color: color-mix(in oklch, var(--arena-ok) 40%, var(--arena-line));
+      }
+      .arena-app .lanetruth__dot {
+        width: 7px; height: 7px; border-radius: 50%; flex: none;
+        background: var(--arena-ok); box-shadow: 0 0 6px color-mix(in oklch, var(--arena-ok) 50%, transparent);
+      }
+      .arena-app .lanetruth__model { color: var(--arena-text); }
+      .arena-app .lanetruth__meta { font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-dim); }
+      .arena-app .lanetruth__active-tag {
+        margin-left: auto; font-family: var(--arena-mono); font-size: 0.56rem;
+        color: var(--arena-ok); border: 1px solid color-mix(in oklch, var(--arena-ok) 40%, var(--arena-line));
+        border-radius: 0.35rem; padding: 0.06rem 0.4rem; white-space: nowrap;
+      }
+      .arena-app .lanetruth__select {
+        margin-left: auto; font-family: var(--arena-mono); font-size: 0.58rem;
+        padding: 0.1rem 0.55rem; border-radius: 0.35rem; cursor: pointer;
+        border: 1px solid var(--arena-line); background: transparent; color: var(--arena-text);
+      }
+      .arena-app .lanetruth__select:hover:not(:disabled) { border-color: var(--arena-ok); color: var(--arena-ok); }
+      .arena-app .lanetruth__select:disabled, .arena-app .lanetruth__clear:disabled { opacity: 0.5; cursor: default; }
+      .arena-app .lanetruth__note { margin: 0.5rem 0 0; font-size: 0.64rem; color: var(--arena-warn); }
+      .arena-app .lanetruth__hint {
+        margin: 0.5rem 0 0; font-size: 0.62rem; color: var(--arena-text-dim); opacity: 0.85;
+      }
+      .arena-app .lanetruth__hint-tag {
+        font-family: var(--arena-mono); font-size: 0.54rem; text-transform: uppercase;
+        border: 1px dashed var(--arena-line); border-radius: 0.3rem; padding: 0.02rem 0.3rem;
+        margin-right: 0.35rem;
+      }
 
       @media (prefers-reduced-motion: reduce) {
         .arena-app *,
