@@ -152,6 +152,30 @@ def _read_hermes_lane(hermes_path: Path | None = None) -> dict[str, Any] | None:
     }
 
 
+def _resolve_active_lane(hermes_path: Path | None = None) -> dict[str, Any]:
+    """The reconciled active serving lane — Arena's system of record (AE-18/19/20).
+
+    Replaces trusting ``~/.hermes/config.yaml`` (an assertion) with *discovery*
+    (observation) reconciled against the Arena-owned registry, the Hermes config
+    demoted to one optional labelled *hint*. Returns the ``_read_hermes_lane``
+    dict shape (so chat/compare/rail are drop-in) + orientation fields
+    (``source``/``drift``/``discovered``/``hermes_hint``); ``base_url`` is ``""``
+    when nothing is resident (callers raise "no lane resident — arm one"). Cached
+    discovery (~8 s) keeps the telemetry tick cheap (AE-R7). Best-effort: any
+    failure degrades to the bare Hermes hint rather than erroring."""
+    from fieldkit.arena import lanes
+
+    hint = _read_hermes_lane(hermes_path)
+    try:
+        return lanes.resolve_active_lane(hermes_hint=hint)
+    except Exception as exc:  # noqa: BLE001 — never break a request on discovery
+        _log.debug("lane resolve failed, falling back to hermes hint: %s", exc)
+        out = dict(hint) if hint else {"base_url": "", "model": ""}
+        out.update({"source": "hermes-hint" if hint else "none", "drift": None,
+                    "discovered": [], "hermes_hint": hint})
+        return out
+
+
 def _read_active_gpu_lane(db_path: str) -> dict[str, Any] | None:
     """The lane currently holding the GPU per a running job (AE-15 layer 2).
 
@@ -884,8 +908,10 @@ def create_app(
     db_path = str(db or DEFAULT_ARENA_DB)
     root = Path(repo_root or Path.cwd()).resolve()
     hub = TelemetryHub(interval=telemetry_interval)
-    # Let the telemetry "Active Lane" cell show the warm resident at idle.
-    hub._resident_reader = _read_hermes_lane  # noqa: SLF001
+    # AE-18/19/20: the rail's resident lane is now the *reconciled* active lane
+    # (discovery ∩ registry, Hermes demoted to a hint) — not the raw config —
+    # so a lane served out-of-band on any port shows truthfully (OBS-4 fix).
+    hub._resident_reader = _resolve_active_lane  # noqa: SLF001
     # AE-15 layer 2 — name the real GPU lane when an rl_run/external job is
     # running (the resident brain is torn down then). Store-decoupled callable.
     hub._active_lane_reader = lambda: _read_active_gpu_lane(db_path)  # noqa: SLF001
@@ -984,7 +1010,7 @@ def create_app(
         (cheap; the OS caches the file). Roster: pulled from
         ``ArenaStore.lanes()`` if the M2 store exists; otherwise empty.
         """
-        resident = _read_hermes_lane()
+        resident = _resolve_active_lane()
         roster: list[dict[str, Any]] = []
         try:
             from fieldkit.arena.store import ArenaStore
@@ -997,7 +1023,69 @@ def create_app(
                         roster.append({k: row[k] for k in row.keys()})
         except Exception as exc:  # noqa: BLE001
             _log.warning("ArenaStore.lanes() failed: %s", exc)
-        return {"resident": resident, "roster": roster}
+        # AE-21: surface *every* discovered resident lane + the drift signal +
+        # which source won, so the rail/Models pane can stop claiming idle.
+        # Preserve the v1 contract: ``resident`` is None when nothing is resident.
+        return {
+            "resident": resident if resident.get("base_url") else None,
+            "roster": roster,
+            "discovered": resident.get("discovered", []),
+            "source": resident.get("source"),
+            "drift": resident.get("drift"),
+            "hermes_hint": resident.get("hermes_hint"),
+        }
+
+    @app.get("/api/active-lane")
+    async def api_active_lane() -> dict[str, Any]:
+        """The reconciled active lane + the discovered roster + drift (AE-19/21).
+
+        Operator-facing system-of-record read: what is *actually* resident, which
+        lane is active, and any drift between the registry/Hermes hint and reality.
+        """
+        from fieldkit.arena import lanes
+
+        resolved = _resolve_active_lane()
+        return {
+            "active": {k: v for k, v in resolved.items() if k != "discovered"},
+            "discovered": resolved.get("discovered", []),
+            "registry": lanes.load_active_lane(),
+            "source": resolved.get("source"),
+            "drift": resolved.get("drift"),
+        }
+
+    @app.post("/api/active-lane")
+    async def api_set_active_lane(body: dict[str, Any]) -> dict[str, Any]:
+        """Set (AE-22 *select*) or clear the operator's active-lane choice.
+
+        Body ``{"port": N}`` selects a discovered lane as active (persists it to
+        the Arena-owned registry — never the Hermes config); ``{"clear": true}``
+        reverts to pure discovery. Returns the freshly reconciled lane. 404 if the
+        requested port isn't currently discoverable (can't select a dead lane)."""
+        from fieldkit.arena import lanes
+
+        if body.get("clear"):
+            lanes.clear_active_lane()
+            return await api_active_lane()
+        port = body.get("port")
+        if not isinstance(port, int):
+            raise HTTPException(status_code=422, detail="body must be {port:int} or {clear:true}")
+        discovered = lanes.discover_cached()
+        match = next((l for l in discovered if l.get("port") == port), None)
+        if match is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"no live lane on :{port} to select (discovered: "
+                f"{[l.get('port') for l in discovered]})",
+            )
+        lanes.save_active_lane(
+            {
+                "model": match.get("model"),
+                "base_url": match.get("base_url"),
+                "port": port,
+                "source": "operator-selected",
+            }
+        )
+        return await api_active_lane()
 
     @app.get("/api/leaderboard")
     async def api_leaderboard(
@@ -1066,7 +1154,7 @@ def create_app(
         - ``done``  ``{ttft_ms, tok_per_s, tokens_out, finish_reason,
           session_id, turn_id}``
         """
-        resident = _read_hermes_lane()
+        resident = _resolve_active_lane()
         # v0.2 — a resident is only required when chatting the local resident
         # lane; on-demand local + OpenRouter lanes don't need it.
         lane_spec = getattr(body, "lane", "local:resident")
@@ -1075,8 +1163,10 @@ def create_app(
             raise HTTPException(
                 status_code=503,
                 detail=(
-                    "No resident brain in ~/.hermes/config.yaml — start a "
-                    "lane and ensure model.base_url is set, or pick another model."
+                    "No resident brain / live lane — serve a model (e.g. a llama.cpp "
+                    "GGUF lane) and Arena will discover it, or pick another model. "
+                    "(Arena discovers live lanes by probe; it no longer relies on "
+                    "~/.hermes/config.yaml.)"
                 ),
             )
         return EventSourceResponse(
@@ -1121,7 +1211,7 @@ def create_app(
 
         return {
             "benches": _benches.list_benches(),
-            "judge": _benches.judge_availability(_read_hermes_lane()),
+            "judge": _benches.judge_availability(_resolve_active_lane()),
         }
 
     @app.get("/api/eval/benches/{bench_id}/prompts")
@@ -1254,7 +1344,7 @@ def create_app(
             if turn is None:
                 raise HTTPException(status_code=404, detail=f"turn {body.turn_id} not found")
             predicted = turn["content"] or ""
-            resident = _read_hermes_lane()
+            resident = _resolve_active_lane()
             judge_backend = body.judge.backend if body.judge else None
             judge_model = body.judge.model if body.judge else None
 
@@ -1335,7 +1425,7 @@ def create_app(
         - ``score`` ``{rubric_id, a: {total, checks: […]}, b: {…},
           deltas: {score, speed_tok_per_s}}``
         """
-        resident = _read_hermes_lane()
+        resident = _resolve_active_lane()
         # v0.2 any-vs-any: a resident brain is only required when a side is
         # actually local. OpenRouter-vs-OpenRouter runs with no warm Spark lane.
         needs_local = any(
@@ -1375,7 +1465,7 @@ def create_app(
         entry carries per-million prices so the client can preview cost and the
         meter can price the chosen model. ``has_key`` tells the UI whether
         OpenRouter lanes will actually stream or fall to the no-key stub."""
-        resident = _read_hermes_lane()
+        resident = _resolve_active_lane()
         local: list[dict[str, Any]] = []
         if resident and resident.get("base_url"):
             local.append(
@@ -3302,8 +3392,22 @@ def _build_lane_stage(db_path: str) -> dict[str, Any]:
         base["state"] = "active"
         base["headline"] = f"{active['model']} · RL lane live"
         return base
-    resident = _read_hermes_lane() or {}
-    name = resident.get("model") or resident.get("lane_id")
+    # AE-18/21: a *discovered* (actually-resident) lane on any port reads as
+    # serving; a Hermes *hint* with no live lane reads as configured · idle; a
+    # mismatch surfaces drift. ``source`` (not mere base_url) gates liveness.
+    resolved = _resolve_active_lane()
+    source = resolved.get("source")
+    if source in ("discovered", "registry"):
+        base["state"] = "active"
+        port = resolved.get("port")
+        base["headline"] = (
+            f"{resolved.get('model') or 'lane'} · serving"
+            + (f" · :{port}" if port else "")
+        )
+        if resolved.get("drift"):
+            base["detail"] = f"⚠ drift — {resolved['drift']}"
+        return base
+    name = resolved.get("model") or (resolved.get("hermes_hint") or {}).get("model")
     if name:
         base["state"] = "idle"
         base["headline"] = f"{name} · configured · idle"
