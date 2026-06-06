@@ -36,7 +36,7 @@ interface Props {
   title: string;
   description?: string;
   /** Which top-nav tab is active. */
-  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'sft' | 'reward' | 'cortex' | 'lab';
+  active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'sft' | 'reward' | 'build' | 'cortex' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
 }
@@ -56,6 +56,7 @@ const ACTIVE_LABELS: Record<string, string> = {
   standup: 'Standup',
   sft: 'SFT',
   reward: 'Reward',
+  build: 'Build',
   cortex: 'Cortex',
   lab: 'Lab',
 };
@@ -229,12 +230,13 @@ try {
         lifecycle (BUILD/TRAIN → SERVE/INFER → REVIEW/META) with hairline-
         divided clusters + section labels. Route hrefs are UNCHANGED (AE-R5):
         this is grouping + ordering + labels only, trivially reversible. The
-        Build/Train group reserves the slot the S3 `/arena/build/` pane lands in.
+        Build/Train group hosts the S3 `/arena/build/` spine pane (AE-5).
       */}
       <nav class="arena-app__tabs" aria-label="Arena sections">
         <div class="arena-app__navgroup" data-flow="build">
           <span class="arena-app__navgroup-label" title="Build / Train">Build</span>
           <a href={href('arena/models/')}      class:list={["arena-app__tab", active === 'models'      && 'is-active']}>Models</a>
+          <a href={href('arena/build/')}       class:list={["arena-app__tab", active === 'build'       && 'is-active']}>Build</a>
           <a href={href('arena/sft/')}         class:list={["arena-app__tab", active === 'sft'         && 'is-active']}>SFT</a>
           <a href={href('arena/reward/')}      class:list={["arena-app__tab", active === 'reward'      && 'is-active']}>Reward</a>
           <a href={href('arena/jobs/')}        class:list={["arena-app__tab", active === 'jobs'        && 'is-active']}>Jobs</a>
@@ -3903,6 +3905,134 @@ try {
       }
       .arena-app .reward__foot b { color: var(--arena-accent); }
       .arena-app .reward__foot code { color: var(--arena-text-mute); }
+
+      /* ---------------------------------------------------------------
+       *  Build spine — vertical-build C1..C6 (/arena/build/) — AE-5/AF-1
+       * --------------------------------------------------------------- */
+      .arena-app .build { display: flex; flex-direction: column; gap: 1rem; }
+      .arena-app .build__offline {
+        display: flex; align-items: flex-start; gap: 0.7rem; padding: 1rem 1.1rem;
+        border: 1px dashed var(--arena-border); border-radius: 0.5rem;
+        color: var(--arena-text-mute); font-size: 0.8rem; line-height: 1.5;
+      }
+      .arena-app .build__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
+      .arena-app .build__offline strong { color: var(--arena-text); }
+      .arena-app .build__offline-dot {
+        flex: 0 0 auto; width: 0.5rem; height: 0.5rem; margin-top: 0.35rem;
+        border-radius: 50%; background: var(--arena-text-dim);
+      }
+      /* Head — vertical name + flow line + stages-complete progress */
+      .arena-app .build__head {
+        display: flex; align-items: flex-end; justify-content: space-between;
+        flex-wrap: wrap; gap: 0.8rem 1.2rem;
+        padding: 0.7rem 0.95rem; border: 1px solid var(--arena-border);
+        border-radius: 0.5rem; background: var(--arena-panel);
+      }
+      .arena-app .build__head-title { display: flex; flex-direction: column; gap: 0.25rem; }
+      .arena-app .build__head-vertical {
+        font-size: 1.05rem; font-weight: 650; color: var(--arena-text); letter-spacing: 0.01em;
+      }
+      .arena-app .build__head-sub {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.04em;
+        color: var(--arena-text-dim);
+      }
+      .arena-app .build__head-progress { display: flex; align-items: center; gap: 0.55rem; }
+      .arena-app .build__head-count { font-family: var(--arena-mono); font-size: 1.05rem; color: var(--arena-ok); font-weight: 600; }
+      .arena-app .build__head-slash { color: var(--arena-text-dim); font-size: 0.8rem; }
+      .arena-app .build__head-bar {
+        width: 120px; height: 5px; border-radius: 3px; overflow: hidden;
+        background: color-mix(in oklch, var(--arena-border) 60%, transparent);
+      }
+      .arena-app .build__head-fill { display: block; height: 100%; background: var(--arena-ok); transition: width 0.5s ease; }
+      .arena-app .build__head-label {
+        font-family: var(--arena-mono); font-size: 0.55rem; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .build__note {
+        font-size: 0.72rem; line-height: 1.5; color: var(--arena-text-mute);
+        padding: 0.5rem 0.7rem; border-left: 2px solid var(--arena-warn);
+        background: color-mix(in oklch, var(--arena-warn) 6%, transparent); border-radius: 0 0.3rem 0.3rem 0;
+      }
+      .arena-app .build__note code { font-family: var(--arena-mono); color: var(--arena-accent); }
+      .arena-app .build__note strong { color: var(--arena-warn); }
+      /* Stage grid */
+      .arena-app .build__grid {
+        display: grid; gap: 0.7rem;
+        grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      }
+      .arena-app .build__card {
+        display: flex; flex-direction: column; gap: 0.32rem;
+        padding: 0.7rem 0.8rem; border: 1px solid var(--arena-border);
+        border-left: 3px solid var(--arena-text-dim); border-radius: 0.5rem;
+        background: var(--arena-panel); text-decoration: none; color: inherit;
+        position: relative; transition: border-color 0.18s ease, transform 0.18s ease;
+      }
+      .arena-app .build__card[data-state="done"]   { border-left-color: var(--arena-ok); }
+      .arena-app .build__card[data-state="active"]  { border-left-color: var(--arena-accent); }
+      .arena-app .build__card[data-state="idle"]    { border-left-color: var(--arena-text-dim); }
+      .arena-app .build__card[data-state="hold"]    { border-left-color: var(--arena-warn); }
+      .arena-app .build__card--link { cursor: pointer; }
+      .arena-app .build__card--link:hover { border-color: var(--arena-accent); transform: translateY(-1px); }
+      .arena-app .build__card-top { display: flex; align-items: center; justify-content: space-between; }
+      .arena-app .build__card-code {
+        font-family: var(--arena-mono); font-size: 0.55rem; letter-spacing: 0.1em;
+        color: var(--arena-text-dim); border: 1px solid var(--arena-border);
+        border-radius: 0.25rem; padding: 0.05rem 0.3rem;
+      }
+      .arena-app .build__card-state {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-family: var(--arena-mono); font-size: 0.55rem; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .build__card-state[data-tone="done"]   { color: var(--arena-ok); }
+      .arena-app .build__card-state[data-tone="active"] { color: var(--arena-accent); }
+      .arena-app .build__card-state[data-tone="hold"]   { color: var(--arena-warn); }
+      .arena-app .build__card-dot {
+        width: 0.42rem; height: 0.42rem; border-radius: 50%; background: var(--arena-text-dim);
+      }
+      .arena-app .build__card-dot[data-tone="done"]   { background: var(--arena-ok); box-shadow: 0 0 5px var(--arena-ok-dim); }
+      .arena-app .build__card-dot[data-tone="active"] { background: var(--arena-accent); animation: build-pulse 1.8s ease-in-out infinite; }
+      .arena-app .build__card-dot[data-tone="hold"]   { background: var(--arena-warn); }
+      @keyframes build-pulse {
+        0%, 100% { box-shadow: 0 0 0 2px color-mix(in oklch, var(--arena-accent) 28%, transparent); }
+        50%      { box-shadow: 0 0 0 5px color-mix(in oklch, var(--arena-accent) 10%, transparent); }
+      }
+      .arena-app .build__card-label { font-size: 0.92rem; font-weight: 620; color: var(--arena-text); }
+      .arena-app .build__card-headline { font-size: 0.74rem; color: var(--arena-text); line-height: 1.35; }
+      .arena-app .build__card-headline[data-empty="true"] { color: var(--arena-text-dim); font-style: italic; }
+      .arena-app .build__card-detail { font-size: 0.63rem; color: var(--arena-text-dim); line-height: 1.4; }
+      .arena-app .build__card-gate {
+        display: flex; align-items: center; gap: 0.4rem; margin-top: 0.15rem;
+        padding-top: 0.4rem; border-top: 1px solid color-mix(in oklch, var(--arena-border) 60%, transparent);
+      }
+      .arena-app .build__card-gate-chip {
+        font-family: var(--arena-mono); font-size: 0.5rem; letter-spacing: 0.08em;
+        padding: 0.05rem 0.32rem; border-radius: 0.25rem;
+        border: 1px solid var(--arena-text-dim); color: var(--arena-text-dim);
+      }
+      .arena-app .build__card-gate-chip[data-tone="pass"] {
+        color: var(--arena-ok); border-color: color-mix(in oklch, var(--arena-ok) 45%, var(--arena-border));
+        background: color-mix(in oklch, var(--arena-ok) 10%, transparent);
+      }
+      .arena-app .build__card-gate-chip[data-tone="hold"] {
+        color: var(--arena-warn); border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-border));
+        background: color-mix(in oklch, var(--arena-warn) 10%, transparent);
+      }
+      .arena-app .build__card-gate-text { font-size: 0.6rem; color: var(--arena-text-mute); }
+      .arena-app .build__card-link {
+        position: absolute; top: 0.6rem; right: 0.7rem;
+        font-family: var(--arena-mono); font-size: 0.52rem; color: var(--arena-text-dim); opacity: 0;
+        transition: opacity 0.18s ease;
+      }
+      .arena-app .build__card--link:hover .build__card-link { opacity: 1; }
+      .arena-app .build__foot {
+        font-size: 0.7rem; line-height: 1.55; color: var(--arena-text-mute);
+        padding-top: 0.6rem; border-top: 1px solid var(--arena-border);
+      }
+      .arena-app .build__foot b { color: var(--arena-accent); }
+      .arena-app .build__foot strong { color: var(--arena-text); }
+      .arena-app .build__foot a { color: var(--arena-text-dim); }
+      .arena-app .build__foot a:hover { color: var(--arena-accent); }
 
       /* ---------------------------------------------------------------
        *  SFT training feed — live NeMo p65 LoRA SFT (/arena/sft/) — AF
