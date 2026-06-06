@@ -18,14 +18,34 @@ from pathlib import Path
 import pytest
 
 from fieldkit.arena.guardrail import (
+    BOUNDS,
     DEFAULT_RUN_COST_CAP_USD,
     DEFAULT_STALL_TIMEOUT_S,
+    DEFAULTS,
     EvalGuardrail,
+    GuardrailConfig,
+    GuardrailConfigError,
     eval_sentinel_dir,
     eval_sentinel_for,
+    guardrail_config_path,
     is_cloud_endpoint,
+    load_config,
+    save_config,
 )
 from fieldkit.cost import PriceSnapshot
+
+
+@pytest.fixture(autouse=True)
+def _isolate_guardrail_config(monkeypatch, tmp_path):
+    """Point the config resolver at an empty tmp dir (GS-1).
+
+    Keeps every test isolated from any real ``~/.fieldkit/arena/guardrail-config.json``
+    on the box — the file is absent by default (falls through to env/default), and a
+    test that wants a file just calls :func:`save_config` (it lands here).
+    """
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("FK_EVAL_GUARDRAIL_ENABLED", raising=False)
 
 _PRICE = PriceSnapshot(
     snapshot_id="t",
@@ -101,6 +121,117 @@ def test_from_env_bad_value_falls_back(monkeypatch, tmp_path):
     monkeypatch.setenv("FK_EVAL_STALL_TIMEOUT_S", "not-a-number")
     g = EvalGuardrail.from_env(tmp_path / "s.json")
     assert g.stall_timeout_s == DEFAULT_STALL_TIMEOUT_S
+
+
+# ---------------------------------------------------------------------------
+# GS-1 — config resolver (file > env > default + provenance) + save_config
+# ---------------------------------------------------------------------------
+
+
+def test_config_path_env_overrides(monkeypatch, tmp_path):
+    # FK_EVAL_CONFIG_PATH (exact) wins over FK_EVAL_CONFIG_DIR.
+    monkeypatch.setenv("FK_EVAL_CONFIG_PATH", str(tmp_path / "exact.json"))
+    assert guardrail_config_path() == tmp_path / "exact.json"
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "d"))
+    assert guardrail_config_path() == tmp_path / "d" / "guardrail-config.json"
+
+
+def test_load_config_all_defaults(monkeypatch):
+    # Isolated tmp dir (autouse), no env, no file → every field is a default.
+    monkeypatch.delenv("FK_EVAL_STALL_TIMEOUT_S", raising=False)
+    monkeypatch.delenv("FK_EVAL_RUN_COST_CAP_USD", raising=False)
+    cfg, sources = load_config()
+    assert cfg.stall_timeout_s == DEFAULT_STALL_TIMEOUT_S
+    assert cfg.cost_cap_usd == DEFAULT_RUN_COST_CAP_USD
+    assert cfg.enabled is True
+    assert sources == {
+        "stall_timeout_s": "default",
+        "cost_cap_usd": "default",
+        "enabled": "default",
+    }
+
+
+def test_load_config_env_layer(monkeypatch):
+    monkeypatch.setenv("FK_EVAL_STALL_TIMEOUT_S", "120")
+    monkeypatch.setenv("FK_EVAL_RUN_COST_CAP_USD", "2.5")
+    monkeypatch.setenv("FK_EVAL_GUARDRAIL_ENABLED", "0")
+    cfg, sources = load_config()
+    assert (cfg.stall_timeout_s, cfg.cost_cap_usd, cfg.enabled) == (120.0, 2.5, False)
+    assert sources == {
+        "stall_timeout_s": "env",
+        "cost_cap_usd": "env",
+        "enabled": "env",
+    }
+
+
+def test_load_config_file_wins_per_field(monkeypatch):
+    # File sets only cost_cap; env sets stall. Each field resolves independently.
+    monkeypatch.setenv("FK_EVAL_STALL_TIMEOUT_S", "45")
+    save_config(GuardrailConfig(stall_timeout_s=300.0, cost_cap_usd=9.0, enabled=True))
+    # Re-write the file with a partial dict so stall_timeout_s is absent.
+    guardrail_config_path().write_text(json.dumps({"cost_cap_usd": 9.0}))
+    cfg, sources = load_config()
+    assert cfg.cost_cap_usd == 9.0 and sources["cost_cap_usd"] == "file"
+    assert cfg.stall_timeout_s == 45.0 and sources["stall_timeout_s"] == "env"
+    assert sources["enabled"] == "default"
+
+
+def test_save_config_round_trips(monkeypatch):
+    monkeypatch.delenv("FK_EVAL_STALL_TIMEOUT_S", raising=False)
+    monkeypatch.delenv("FK_EVAL_RUN_COST_CAP_USD", raising=False)
+    save_config(GuardrailConfig(stall_timeout_s=900.0, cost_cap_usd=12.0, enabled=False))
+    cfg, sources = load_config()
+    assert (cfg.stall_timeout_s, cfg.cost_cap_usd, cfg.enabled) == (900.0, 12.0, False)
+    assert set(sources.values()) == {"file"}
+
+
+def test_save_config_rejects_out_of_bounds():
+    with pytest.raises(GuardrailConfigError):
+        save_config(GuardrailConfig(cost_cap_usd=-1.0))
+    with pytest.raises(GuardrailConfigError):
+        save_config(GuardrailConfig(cost_cap_usd=2000.0))
+    with pytest.raises(GuardrailConfigError):
+        save_config(GuardrailConfig(stall_timeout_s=5.0))  # below 30, not 0
+
+
+def test_save_config_allows_off_sentinels_and_tiny_cap():
+    # 0 disables a guard; a tiny-but-positive cap is allowed-but-loud (GS-R1).
+    save_config(GuardrailConfig(stall_timeout_s=0.0, cost_cap_usd=0.0, enabled=True))
+    save_config(GuardrailConfig(stall_timeout_s=60.0, cost_cap_usd=0.001, enabled=True))
+    cfg, _ = load_config()
+    assert cfg.cost_cap_usd == 0.001
+
+
+def test_load_config_corrupt_file_falls_back(monkeypatch):
+    monkeypatch.setenv("FK_EVAL_RUN_COST_CAP_USD", "7.0")
+    path = guardrail_config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("{ this is not json")
+    cfg, sources = load_config()  # must not raise
+    assert cfg.cost_cap_usd == 7.0 and sources["cost_cap_usd"] == "env"
+    assert cfg.enabled is True
+
+
+def test_load_config_ignores_nonnumeric_file_value(monkeypatch):
+    monkeypatch.setenv("FK_EVAL_RUN_COST_CAP_USD", "3.0")
+    guardrail_config_path().parent.mkdir(parents=True, exist_ok=True)
+    guardrail_config_path().write_text(json.dumps({"cost_cap_usd": "lots"}))
+    cfg, sources = load_config()
+    assert cfg.cost_cap_usd == 3.0 and sources["cost_cap_usd"] == "env"
+
+
+def test_from_env_reads_config_file(monkeypatch, tmp_path):
+    # from_env is now a thin wrapper over load_config → a file edit is picked up.
+    save_config(GuardrailConfig(stall_timeout_s=42.0, cost_cap_usd=3.5, enabled=False))
+    g = EvalGuardrail.from_env(tmp_path / "s.json")
+    assert g.stall_timeout_s == 42.0 and g.cost_cap_usd == 3.5
+
+
+def test_defaults_and_bounds_shape():
+    assert DEFAULTS["enabled"] is True
+    assert BOUNDS["stall_timeout_s"][0] == 30.0
+    assert BOUNDS["cost_cap_usd"] == (0.0, 1000.0)
 
 
 # ---------------------------------------------------------------------------

@@ -18,6 +18,7 @@ const PAGES = [
   { id: 'page:chat', label: 'Chat', sub: 'against the resident brain', path: 'arena/chat/' },
   { id: 'page:compare', label: 'Compare', sub: 'side-by-side rubric scoring', path: 'arena/compare/' },
   { id: 'page:lab', label: 'Lab', sub: 'what we are building next', path: 'arena/lab/' },
+  { id: 'page:settings', label: 'Settings', sub: 'cloud-eval guardrail config', path: 'arena/settings/' },
 ];
 
 // Strip the `::variant`/`::suffix` tail the importer appends to lane ids.

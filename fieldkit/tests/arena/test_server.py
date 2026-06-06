@@ -354,6 +354,105 @@ def test_create_app_healthz_reports_surface_version(repo_root: Path) -> None:
         assert body["subscribers"] == 0
 
 
+def test_guardrail_config_get_defaults(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # GS-2 — GET reflects defaults when no file/env, with per-field provenance
+    # + the canonical defaults & bounds for the Settings pane.
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    monkeypatch.delenv("FK_EVAL_STALL_TIMEOUT_S", raising=False)
+    monkeypatch.delenv("FK_EVAL_RUN_COST_CAP_USD", raising=False)
+    monkeypatch.delenv("FK_EVAL_GUARDRAIL_ENABLED", raising=False)
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        r = client.get("/api/guardrail-config")
+        assert r.status_code == 200
+        body = r.json()
+        assert body["effective"] == {
+            "stall_timeout_s": 600.0,
+            "cost_cap_usd": 5.0,
+            "enabled": True,
+        }
+        assert set(body["sources"].values()) == {"default"}
+        assert body["defaults"]["enabled"] is True
+        assert body["bounds"]["cost_cap_usd"] == [0.0, 1000.0]
+
+
+def test_guardrail_config_post_persists_and_takes_effect(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # GS-2 — POST writes the file; a subsequent GET reads it back with source=file.
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        r = client.post(
+            "/api/guardrail-config",
+            json={"stall_timeout_s": 300.0, "cost_cap_usd": 2.5, "enabled": False},
+        )
+        assert r.status_code == 200
+        assert r.json()["effective"]["cost_cap_usd"] == 2.5
+        assert r.json()["sources"]["cost_cap_usd"] == "file"
+        # And the live resolver reflects it (the arm path reads the same file).
+        from fieldkit.arena.guardrail import load_config
+
+        cfg, sources = load_config()
+        assert (cfg.cost_cap_usd, cfg.enabled) == (2.5, False)
+        assert sources["enabled"] == "file"
+        # GET now shows file provenance too.
+        g = client.get("/api/guardrail-config").json()
+        assert g["effective"]["stall_timeout_s"] == 300.0
+        assert g["sources"]["stall_timeout_s"] == "file"
+
+
+def test_guardrail_config_post_out_of_bounds_422(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # GS-5 — an out-of-range value is rejected. Negative is caught by Pydantic
+    # (422); an over-cap or below-floor value is caught by save_config (422).
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        neg = client.post(
+            "/api/guardrail-config",
+            json={"stall_timeout_s": 600.0, "cost_cap_usd": -1.0, "enabled": True},
+        )
+        assert neg.status_code == 422
+        over = client.post(
+            "/api/guardrail-config",
+            json={"stall_timeout_s": 600.0, "cost_cap_usd": 5000.0, "enabled": True},
+        )
+        assert over.status_code == 422
+        floor = client.post(
+            "/api/guardrail-config",
+            json={"stall_timeout_s": 5.0, "cost_cap_usd": 5.0, "enabled": True},
+        )
+        assert floor.status_code == 422
+        # The file was never written (no GET shows a file source).
+        g = client.get("/api/guardrail-config").json()
+        assert set(g["sources"].values()) == {"default"}
+
+
+def test_guardrail_config_file_wins_over_env(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # GS-R2 — file source is authoritative over env for a written field.
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    monkeypatch.setenv("FK_EVAL_RUN_COST_CAP_USD", "9.0")  # env base
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        client.post(
+            "/api/guardrail-config",
+            json={"stall_timeout_s": 600.0, "cost_cap_usd": 1.0, "enabled": True},
+        )
+        g = client.get("/api/guardrail-config").json()
+        assert g["effective"]["cost_cap_usd"] == 1.0  # file beats env
+        assert g["sources"]["cost_cap_usd"] == "file"
+
+
 def test_create_app_leaderboard_reads_mirror_json(repo_root: Path) -> None:
     app = create_app(repo_root=repo_root, telemetry_interval=2.0)
     with TestClient(app) as client:

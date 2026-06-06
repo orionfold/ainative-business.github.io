@@ -136,6 +136,18 @@ function EvalGuardrailBadge({ result }) {
         {toks ? ` · ${toks} tok` : ''}
       </span>
     ) : null;
+  // GS-6 — surface the *active thresholds* that governed this run (read from the
+  // already-persisted result_json.guardrail), so the config is visible at the run,
+  // not just on the Settings pane. 0 ⇒ that guard was off (omit the part).
+  const capParts = [];
+  if (g.cost_cap_usd) capParts.push(`$${Number(g.cost_cap_usd)}`);
+  const stallCap = fmtStallCap(g.stall_timeout_s);
+  if (stallCap) capParts.push(stallCap);
+  const capChip = capParts.length ? (
+    <span class="jobs__guard-capcfg" title="the guardrail config that governed this run (edit on the Settings pane)">
+      cap {capParts.join(' / ')}
+    </span>
+  ) : null;
   if (g.aborted_by) {
     return (
       <div class="jobs__card-guard" data-aborted="true">
@@ -143,16 +155,27 @@ function EvalGuardrailBadge({ result }) {
         <span class="jobs__guard-reason">{GUARDRAIL_REASON[g.aborted_by] || g.aborted_by}</span>
         {g.partial && <span class="jobs__guard-partial">partial · {g.n_scored ?? '—'} scored</span>}
         {costChip}
+        {capChip}
       </div>
     );
   }
-  if (!costChip) return null;
+  if (!costChip && !capChip) return null;
   return (
     <div class="jobs__card-guard">
       <span class="jobs__guard-ok" title="cloud-run guardrail: within stall + cost caps">guarded ✓</span>
       {costChip}
+      {capChip}
     </div>
   );
+}
+
+// Format a stall window for the badge cap chip (GS-6): whole minutes as `Nm`,
+// else seconds as `Ns`; 0/absent ⇒ G2 off (no chip part).
+function fmtStallCap(s) {
+  const n = Number(s);
+  if (!n || Number.isNaN(n)) return null;
+  const m = n / 60;
+  return Number.isInteger(m) ? `${m}m` : `${n}s`;
 }
 
 // A compounding post-run debrief (LA-16) on a completed rl_run — what it did,
