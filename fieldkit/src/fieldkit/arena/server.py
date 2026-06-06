@@ -813,6 +813,20 @@ def create_app(
         body: str = Field(min_length=1, max_length=4000)
         lane: Optional[str] = Field(default=None, max_length=40)
 
+    class GuardrailConfigRequest(BaseModel):
+        """``POST /api/guardrail-config`` body (GS-2) — an operator edit of the
+        cloud-eval guardrail thresholds.
+
+        Mirrors the ``LabNoteRequest`` deterministic-CRUD shape; operator-private
+        (the config is a JSON file, never a table, never mirrored). ``Field(ge=0)``
+        rejects negatives at the Pydantic layer (422); the canonical
+        range/floor bounds (``[30, 86400]`` or 0 for stall, ``[0, 1000]`` for cost)
+        are enforced by ``guardrail.save_config`` and surfaced as a 422 (GS-5)."""
+
+        stall_timeout_s: float = Field(ge=0)
+        cost_cap_usd: float = Field(ge=0)
+        enabled: bool = True
+
     class LocalLoadRequest(BaseModel):
         """``POST /api/local/load`` body — pre-warm an on-demand local lane.
 
@@ -1767,6 +1781,59 @@ def create_app(
             return {"ok": True, "note_id": note_id}
         finally:
             store.close()
+
+    # ------------------------------------------------------------------
+    # arena-guardrail-settings (GS-2) — view + edit the AE-17 cloud-eval
+    # guardrail thresholds live. Deterministic CRUD over a JSON config file
+    # (NOT a table → never mirrored, operator-private by construction). The arm
+    # path (`_run_eval_guarded`) reads `load_config()` per dispatch, so an edit
+    # takes effect on the next cloud eval with no restart.
+    @app.get("/api/guardrail-config")
+    async def api_guardrail_config() -> dict[str, Any]:
+        """The effective cloud-eval guardrail config + per-field provenance.
+
+        Pure projection over ``guardrail.load_config()`` (file > env > default);
+        also returns the canonical ``defaults`` + ``bounds`` so the Settings pane
+        can render reset-to-default + validation hints.
+        """
+        from fieldkit.arena.guardrail import BOUNDS, DEFAULTS, load_config
+
+        cfg, sources = load_config()
+        return {
+            "effective": cfg.to_dict(),
+            "sources": sources,
+            "defaults": DEFAULTS,
+            "bounds": {k: list(v) for k, v in BOUNDS.items()},
+        }
+
+    @app.post("/api/guardrail-config")
+    async def api_guardrail_config_save(body: GuardrailConfigRequest) -> dict[str, Any]:
+        """Validate + atomic-write the guardrail config (GS-2).
+
+        Deterministic CRUD only — no LLM (``feedback_llm_skill_pattern``). An
+        out-of-bounds value raises ``GuardrailConfigError`` → HTTP 422 (GS-5).
+        Returns the refreshed ``{effective, sources}`` so the island re-renders
+        the new value with ``source=file``.
+        """
+        from fieldkit.arena.guardrail import (
+            GuardrailConfig,
+            GuardrailConfigError,
+            load_config,
+            save_config,
+        )
+
+        try:
+            save_config(
+                GuardrailConfig(
+                    stall_timeout_s=body.stall_timeout_s,
+                    cost_cap_usd=body.cost_cap_usd,
+                    enabled=body.enabled,
+                )
+            )
+        except GuardrailConfigError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        cfg, sources = load_config()
+        return {"ok": True, "effective": cfg.to_dict(), "sources": sources}
 
     # ------------------------------------------------------------------
     # M8 — control-plane jobs. Enqueue/inspect/cancel + an SSE board feed.

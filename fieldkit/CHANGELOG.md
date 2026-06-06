@@ -6,6 +6,61 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-06-06
+
+The operator-config surface over the AE-17 cloud-run eval guardrails
+(`_SPECS/arena-guardrail-settings-v1.md`). AE-17 (v0.26.0) made the eval guardrails
+bounded + env-configurable; v0.27.0 makes them **visible** and **live-editable** from the
+cockpit — view the effective stall window + per-run cost cap with per-field provenance,
+edit them, and flip a master toggle, and the next cloud eval picks up the change with **no
+restart**. **No arena.db schema change** (`user_version` stays 6) — the config is a JSON
+file (the AF-9/AF-10 convention), never a table, never mirrored; **no skill imports**
+(AE-R3); deterministic CRUD only (no LLM). A local lane is byte-for-byte unchanged.
+
+### Added
+
+- **Arena guardrail settings** (`_SPECS/arena-guardrail-settings-v1.md`; GS-1…6). The
+  operator-config surface over the AE-17 cloud-run eval guardrails: view + live-edit the
+  thresholds with **no restart**. AE-17 made the guardrails bounded + env-configurable;
+  this makes them visible and editable from the cockpit. **No arena.db schema change**
+  (`user_version` stays 6) — the config is a JSON file (`~/.fieldkit/arena/guardrail-config.json`,
+  the AF-9/AF-10 file convention), never a table, never mirrored; **no skill imports**
+  (AE-R3); deterministic CRUD only (no LLM).
+  - **GS-1 — config core.** `fieldkit.arena.guardrail` gains the public
+    `GuardrailConfig` value (`stall_timeout_s` / `cost_cap_usd` / `enabled`), `load_config()`
+    (resolves **file > env > default** with per-field source provenance →
+    `(GuardrailConfig, sources)`), validated atomic `save_config()` (`tmp + os.replace`),
+    `guardrail_config_path()`, and `DEFAULTS` / `BOUNDS`. `EvalGuardrail.from_env` is now a
+    thin wrapper over `load_config()` (back-compat — with no file present it reads the same
+    env vars as before). The arm site `_run_eval_guarded` reads `load_config()` **per
+    dispatch**, so an edit lands on the next cloud eval with no restart, and honors the new
+    `enabled` master toggle (off ⇒ a cloud lane runs unguarded, byte-for-byte the local-lane
+    path). A corrupt/partial config file falls back to env/default — it never crashes a
+    dispatch. Config dir overridable via `FK_EVAL_CONFIG_DIR` / `FK_EVAL_CONFIG_PATH`; the
+    toggle env is `FK_EVAL_GUARDRAIL_ENABLED`.
+  - **GS-2 — config API.** `GET /api/guardrail-config` (pure projection →
+    `{effective, sources, defaults, bounds}`) + `POST /api/guardrail-config` (Pydantic body
+    → validate against `BOUNDS` → **422** on violation → atomic write → return the refreshed
+    `{effective, sources}`). Operator-private (the config file is never mirrored); mirrors the
+    `POST /api/lab/notes` deterministic-CRUD precedent.
+  - **GS-3 — Settings pane + GS-6 badge cap.** A new `/arena/settings/` pane +
+    `<GuardrailSettings>` island (per-field label · editable value · source chip · default,
+    Save → toast → re-fetch, Reset-to-defaults, the `enabled` master toggle, and a loud
+    persistent **"Cloud-eval guardrails OFF"** banner when disabled) + a **Settings** tab in
+    the REVIEW/META nav group (no other route change). The Jobs-card `<EvalGuardrailBadge>`
+    now appends `· cap $X / Nm` read from the already-persisted
+    `result_json.guardrail.{cost_cap_usd, stall_timeout_s}`, so the config that governed a run
+    is visible at the run (zero new persistence).
+
+### Test suite
+
+- **Offline: 1369 passed, 5 skipped** (`/tmp/fk/bin/pytest tests/`) — +16 over v0.26.0:
+  the GS-1 config resolver / `save_config` round-trip / bounds / provenance / corrupt-file
+  fallback tests (`tests/arena/test_guardrail.py`), the `enabled`-disabled cloud-dispatch
+  path (`tests/arena/test_jobs.py`), and the `GET`/`POST /api/guardrail-config` endpoints
+  (`tests/arena/test_server.py`). No `--spark` paths touched — the guardrail config is
+  stdlib-cheap (no NIM / pgvector / live cloud).
+
 ## [0.26.0] — 2026-06-06
 
 The arena-enhancements dogfood cluster's final session, S7 — bounded, configurable,

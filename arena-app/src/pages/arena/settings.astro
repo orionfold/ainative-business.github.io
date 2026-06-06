@@ -1,0 +1,55 @@
+---
+// Settings — /arena/settings/
+//
+// arena-guardrail-settings (GS-3). The operator-config surface over the AE-17
+// cloud-run eval guardrails (shipped in fieldkit v0.26.0). AE-17 made the eval
+// guardrails bounded + env-configurable; this pane makes them *visible* and
+// *live-editable* — view the effective stall window + per-run cost cap with
+// per-field provenance (file / env / default), edit them, and flip the master
+// `enabled` toggle. The arm path reads the config per dispatch, so an edit takes
+// effect on the next cloud eval with NO restart (GS-1).
+//
+// Named "Settings" (not "Guardrails") so a 2nd operator knob can slot in later,
+// but only the guardrails are wired this cycle (feedback_keep_scorer_local_until_reuse).
+//
+// Operator-private + read-mostly: the config is a JSON file under ~/.fieldkit/arena/,
+// never a table, never mirrored. On the public mirror the sidecar is offline, so the
+// <GuardrailSettings> island renders a short offline note instead of the form.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import GuardrailSettings from '../../components/arena/GuardrailSettings.jsx';
+
+const title = 'Orionfold Arena — Settings';
+const description =
+  'Operator config for the cloud-run eval guardrails — view and live-edit the per-run cost cap and stall window, with per-field provenance and a master on/off toggle. Edits take effect on the next cloud eval with no restart.';
+---
+<ArenaAppLayout title={title} description={description} active="settings">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Settings</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">cloud-eval guardrails · cost cap · stall window</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          live — next run, no restart
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      <section class="gsettings-intro">
+        <h2 class="gsettings-intro__title">Cloud-eval guardrails</h2>
+        <p class="gsettings-intro__lede">
+          The bounds on a <b>metered cloud</b> eval lane (a non-loopback model endpoint) — the fix
+          for an OpenRouter eval that once hung ~2.5 h holding the lane and accruing uncapped spend.
+          A local Spark lane runs unguarded and is unaffected. Edits write a private config file the
+          guardrail reads at dispatch time, so the next cloud eval picks them up live.
+        </p>
+      </section>
+
+      {/* view + edit the effective config; POST /api/guardrail-config persists,
+          the arm path reads it per dispatch (GS-1/GS-2). */}
+      <GuardrailSettings client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>

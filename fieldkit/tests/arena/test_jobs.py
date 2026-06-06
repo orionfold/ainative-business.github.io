@@ -288,6 +288,37 @@ def test_eval_cloud_guardrail_resolves_price(store):
     assert g.result_fields()["priced"] is True
 
 
+def test_eval_cloud_lane_unguarded_when_disabled(store, monkeypatch, tmp_path):
+    # GS-1/GS-4 — the `enabled` master toggle off ⇒ a metered cloud lane runs
+    # UNGUARDED (the operator opt-out), byte-for-byte the local-lane path.
+    from fieldkit.arena.guardrail import GuardrailConfig, save_config
+
+    monkeypatch.setenv("FK_EVAL_CONFIG_DIR", str(tmp_path / "gcfg"))
+    monkeypatch.delenv("FK_EVAL_CONFIG_PATH", raising=False)
+    save_config(GuardrailConfig(enabled=False))
+    jobs.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {
+            "lane_id": "patent-q4km",
+            "bench_id": "patent-bench",
+            "base_url": "https://openrouter.ai/api/v1",
+            "model": "m",
+        },
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW)
+    cap: dict = {}
+    row = jobs.dispatch_job(
+        store,
+        {k: claimed[k] for k in claimed.keys()},
+        runner=_capturing_eval_runner(cap),
+        now_fn=lambda: _NOW,
+    )
+    assert row["status"] == JobStatus.DONE
+    assert cap["guardrail"] is None  # disabled ⇒ nothing armed
+    assert "guardrail" not in json.loads(row["result_json"])
+
+
 def test_unknown_kind_dispatch_fails_loudly(store):
     # Phase 3 promoted the last stubs (rl_run/requant), so DISPATCHABLE == ALL —
     # there's no named-but-undispatchable kind left. A *truly* unknown kind (one

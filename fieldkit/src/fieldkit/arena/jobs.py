@@ -667,10 +667,19 @@ def _run_eval_guarded(
         EvalGuardrail,
         eval_sentinel_for,
         is_cloud_endpoint,
+        load_config,
     )
 
     base_url = payload.get("base_url") or os.environ.get("ARENA_EVAL_BASE_URL", "")
     if not is_cloud_endpoint(base_url):
+        return runner(JobKind.EVAL_RERUN, payload)
+
+    # GS-1/GS-4 — read the live config per dispatch (file > env > default), so an
+    # operator edit lands on this very next run with no restart. The `enabled`
+    # master toggle off ⇒ run a cloud lane unguarded (the operator opt-out for a
+    # trusted long run), byte-for-byte the local-lane passthrough above.
+    cfg, _ = load_config()
+    if not cfg.enabled:
         return runner(JobKind.EVAL_RERUN, payload)
 
     price = None

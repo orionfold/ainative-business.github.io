@@ -253,6 +253,7 @@ try {
           <a href={href('arena/')}            class:list={["arena-app__tab", active === 'cockpit'     && 'is-active']}>Cockpit</a>
           <a href={href('arena/lab/')}         class:list={["arena-app__tab", active === 'lab'         && 'is-active']}>Lab</a>
           <a href={href('arena/cortex/')}      class:list={["arena-app__tab", active === 'cortex'      && 'is-active']}>Cortex</a>
+          <a href={href('arena/settings/')}    class:list={["arena-app__tab", active === 'settings'    && 'is-active']}>Settings</a>
         </div>
       </nav>
 
@@ -3574,6 +3575,11 @@ try {
         margin-left: auto; padding: 0.02rem 0.3rem; border-radius: 0.3rem;
         background: rgba(255,255,255,0.05); color: var(--arena-text-mute);
       }
+      /* GS-6 — the active thresholds that governed this run (config, not outcome) */
+      .arena-app .jobs__guard-capcfg {
+        padding: 0.02rem 0.3rem; border-radius: 0.3rem;
+        border: 1px dashed var(--arena-line); color: var(--arena-text-dim); opacity: 0.85;
+      }
       .arena-app .jobs__card-error {
         font-size: 0.62rem; color: var(--arena-warn); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
@@ -3586,6 +3592,100 @@ try {
       }
       .arena-app .jobs__cancel:hover { color: var(--arena-warn); border-color: var(--arena-warn); }
       .arena-app .jobs__cancel:disabled { opacity: 0.4; cursor: default; }
+
+      /* arena-guardrail-settings (GS-3) — /arena/settings/ pane */
+      .arena-app .gsettings-intro { margin-bottom: 1.4rem; max-width: 46rem; }
+      .arena-app .gsettings-intro__title {
+        font-family: var(--arena-mono); font-size: 0.78rem; letter-spacing: 0.04em;
+        color: var(--arena-text); margin: 0 0 0.4rem;
+      }
+      .arena-app .gsettings-intro__lede {
+        font-size: 0.82rem; line-height: 1.55; color: var(--arena-text-mute); margin: 0;
+      }
+      .arena-app .gsettings { display: flex; flex-direction: column; gap: 1.1rem; max-width: 46rem; }
+      .arena-app .gsettings--loading, .arena-app .gsettings__offline {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-dim);
+        padding: 1rem 0; line-height: 1.5;
+      }
+      .arena-app .gsettings__banner {
+        display: flex; flex-direction: column; gap: 0.2rem;
+        border: 1px solid var(--arena-warn); border-radius: 0.5rem;
+        background: rgba(255,180,80,0.1); padding: 0.7rem 0.9rem;
+      }
+      .arena-app .gsettings__banner-flag {
+        font-family: var(--arena-mono); font-size: 0.7rem; font-weight: 600; color: var(--arena-warn);
+        letter-spacing: 0.04em;
+      }
+      .arena-app .gsettings__banner-note { font-size: 0.74rem; color: var(--arena-text-mute); line-height: 1.45; }
+      .arena-app .gsettings__form { display: flex; flex-direction: column; gap: 1.25rem; }
+      .arena-app .gsettings__row { display: flex; flex-direction: column; gap: 0.35rem; }
+      .arena-app .gsettings__label {
+        display: flex; align-items: center; gap: 0.45rem;
+        font-family: var(--arena-mono); font-size: 0.68rem; letter-spacing: 0.04em; color: var(--arena-text);
+      }
+      .arena-app .gsettings__source {
+        font-family: var(--arena-mono); font-size: 0.5rem; letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 0.04rem 0.34rem; border-radius: 0.6rem; border: 1px solid var(--arena-line);
+        color: var(--arena-text-dim);
+      }
+      .arena-app .gsettings__source[data-source="file"] {
+        color: var(--arena-accent); border-color: var(--arena-accent);
+      }
+      .arena-app .gsettings__source[data-source="env"] { color: var(--arena-text-mute); }
+      .arena-app .gsettings__field {
+        display: flex; align-items: center; gap: 0.4rem;
+      }
+      .arena-app .gsettings__field input[type="number"] {
+        width: 9rem; font-family: var(--arena-mono); font-size: 0.78rem;
+        background: var(--arena-surface-2, rgba(255,255,255,0.04)); color: var(--arena-text);
+        border: 1px solid var(--arena-line); border-radius: 0.35rem; padding: 0.32rem 0.5rem;
+      }
+      .arena-app .gsettings__field input:disabled { opacity: 0.4; }
+      .arena-app .gsettings__prefix, .arena-app .gsettings__suffix {
+        font-family: var(--arena-mono); font-size: 0.7rem; color: var(--arena-text-dim);
+      }
+      .arena-app .gsettings__hint { font-size: 0.68rem; color: var(--arena-text-dim); margin: 0; line-height: 1.45; }
+      .arena-app .gsettings__switch { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+      .arena-app .gsettings__switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+      .arena-app .gsettings__switch-track {
+        width: 2.1rem; height: 1.1rem; border-radius: 1rem; background: var(--arena-line);
+        position: relative; transition: background 0.15s;
+      }
+      .arena-app .gsettings__switch-track::after {
+        content: ""; position: absolute; top: 0.13rem; left: 0.13rem;
+        width: 0.84rem; height: 0.84rem; border-radius: 50%; background: var(--arena-text-mute);
+        transition: transform 0.15s, background 0.15s;
+      }
+      .arena-app .gsettings__switch input:checked + .gsettings__switch-track { background: var(--arena-accent); }
+      .arena-app .gsettings__switch input:checked + .gsettings__switch-track::after {
+        transform: translateX(1rem); background: #fff;
+      }
+      .arena-app .gsettings__switch-text {
+        font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-mute); min-width: 1.6rem;
+      }
+      .arena-app .gsettings__actions { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+      .arena-app .gsettings__save, .arena-app .gsettings__reset {
+        font-family: var(--arena-mono); font-size: 0.66rem; letter-spacing: 0.04em;
+        border-radius: 0.35rem; padding: 0.4rem 0.85rem; cursor: pointer;
+      }
+      .arena-app .gsettings__save {
+        background: var(--arena-accent); color: #0a0a0a; border: 1px solid var(--arena-accent);
+      }
+      .arena-app .gsettings__reset {
+        background: transparent; color: var(--arena-text-dim); border: 1px solid var(--arena-line);
+      }
+      .arena-app .gsettings__reset:hover { color: var(--arena-text); border-color: var(--arena-text-mute); }
+      .arena-app .gsettings__save:disabled, .arena-app .gsettings__reset:disabled { opacity: 0.4; cursor: default; }
+      .arena-app .gsettings__toast { font-family: var(--arena-mono); font-size: 0.64rem; }
+      .arena-app .gsettings__toast[data-kind="ok"] { color: var(--arena-good, #6ee7a8); }
+      .arena-app .gsettings__toast[data-kind="err"] { color: var(--arena-warn); }
+      .arena-app .gsettings__foot {
+        font-size: 0.68rem; color: var(--arena-text-dim); line-height: 1.5; margin: 0;
+        border-top: 1px solid var(--arena-line); padding-top: 0.8rem;
+      }
+      .arena-app .gsettings__foot code {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);
+      }
 
       /* M10 (Bet 5 recall layer) — /arena/cortex/ pane */
       .arena-app .kp { display: flex; flex-direction: column; gap: 1rem; }
