@@ -79,7 +79,8 @@
   <div class="telemetry-rail__cell">
     <span class="telemetry-rail__label">
       <span class="telemetry-rail__dot" data-cell="lane" data-state="idle"></span>
-      Active&nbsp;Lane
+      {/* AE-15: label flips to "Configured Lane" when nothing live is serving. */}
+      <span data-metric="lane-label">Active&nbsp;Lane</span>
     </span>
     <span class="telemetry-rail__value" data-metric="lane_id" style="font-size: 0.92rem;">idle</span>
     <span class="telemetry-rail__hint" data-metric="lane-hint">no warm brain</span>
@@ -127,6 +128,7 @@
       speedSource: railEl.querySelector('[data-metric="speed-source"]'),
       lane_id:     railEl.querySelector('[data-metric="lane_id"]'),
       laneHint:    railEl.querySelector('[data-metric="lane-hint"]'),
+      laneLabel:   railEl.querySelector('[data-metric="lane-label"]'),
       cost:        railEl.querySelector('[data-metric="openrouter_cost_usd"]'),
       costHint:    railEl.querySelector('[data-metric="cost-hint"]'),
     };
@@ -304,16 +306,36 @@
             cells.costHint.textContent = n > 0 ? `${n} call${n === 1 ? '' : 's'} · session` : 'spend · session';
           }
         }
-        // Lane — friendly model name (active lane while streaming, else the
-        // last/warm model) + where.
-        const lane = t.speed_model || t.lane_id || t.resident_lane;
-        if (lane) {
-          setCell(cells.lane_id, lane, 'ok');
-          setDot(dots.lane, 'ok');
-          if (cells.laneHint) {
-            const where = whereLabel || 'resident';
-            cells.laneHint.textContent = inflight ? `streaming · ${where}` : `${where} · warm`;
-          }
+        // Lane — AE-15 telemetry lane-truth. Reconcile what's CONFIGURED (the
+        // static Hermes resident, ``resident_lane``) against what's actually
+        // SERVING. Priority: a live in-flight stream → a running rl_run/external
+        // GPU lane (``active_lane_*`` — the arbiter tore the resident down) → a
+        // liveness-probed resident (``resident_live``) → the last warm
+        // generation → and, last, the configured-but-idle lane labelled HONESTLY
+        // ("Configured Lane", dimmed) instead of falsely claiming it's active.
+        let laneName = null, laneHint = '', laneState = 'idle', laneLabel = 'Active Lane';
+        if (t.speed_model && inflight) {
+          laneName = t.speed_model; laneState = 'ok';
+          laneHint = `streaming · ${whereLabel || 'Spark GPU'}`;
+        } else if (t.active_lane_model) {
+          laneName = t.active_lane_model; laneState = 'ok';
+          laneHint = t.active_lane_where === 'rl' ? 'RL lane · live' : 'active · live';
+        } else if (t.resident_lane && t.resident_live) {
+          laneName = t.resident_lane; laneState = 'ok';
+          laneHint = 'resident · live';
+        } else if (t.speed_model) {
+          laneName = t.speed_model; laneState = 'ok';
+          laneHint = `${whereLabel || 'last run'} · warm`;
+        } else if (t.resident_lane) {
+          // Configured but nothing is answering — don't claim it's active.
+          laneName = t.resident_lane; laneState = 'warn'; laneLabel = 'Configured Lane';
+          laneHint = 'configured · idle';
+        }
+        if (cells.laneLabel) cells.laneLabel.textContent = laneLabel;
+        if (laneName) {
+          setCell(cells.lane_id, laneName, laneState);
+          setDot(dots.lane, laneState);
+          if (cells.laneHint) cells.laneHint.textContent = laneHint;
         } else {
           setCell(cells.lane_id, 'idle', 'idle');
           setDot(dots.lane, 'idle');

@@ -35,6 +35,7 @@ from fieldkit.arena import (  # noqa: E402
 )
 from fieldkit.arena.server import (  # noqa: E402
     TelemetryHub,
+    _read_active_gpu_lane,
     _read_hermes_lane,
     create_app,
 )
@@ -224,6 +225,73 @@ def test_telemetry_hub_report_inflight_threads_through_payload() -> None:
     assert payload["tok_per_s"] is None
     assert payload["ttft_ms"] is None
     assert payload["lane_id"] == "lane-b"
+
+
+# ---------------------------------------------------------------------------
+# AE-15 — telemetry lane-truth (the rail must reflect a LIVE process, not the
+# static Hermes config that persists at idle / during an rl_run teardown).
+# ---------------------------------------------------------------------------
+
+
+def test_build_payload_resident_live_false_when_nothing_listening() -> None:
+    """A configured resident whose port has no listener → resident_live False
+    (so the rail relabels it "Configured Lane · idle", not "Active")."""
+    hub = TelemetryHub(interval=2.0)
+    # Port 9 (discard) is virtually never bound on a dev box; the TCP connect
+    # fails fast → not live. The model name still flows for the label.
+    hub._resident_reader = lambda: {  # noqa: SLF001
+        "model": "Qwen3-30B-A3B-Q4_K_M",
+        "base_url": "http://127.0.0.1:9",
+        "port": 9,
+    }
+    payload = hub._build_payload()  # noqa: SLF001
+    assert payload["resident_lane"] == "Qwen3-30B-A3B-Q4_K_M"
+    assert payload["resident_live"] is False
+
+
+def test_build_payload_resident_live_true_when_socket_listening() -> None:
+    """A real listening socket at the configured host:port → resident_live True."""
+    import socket
+
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    port = srv.getsockname()[1]
+    try:
+        hub = TelemetryHub(interval=2.0)
+        hub._resident_reader = lambda: {  # noqa: SLF001
+            "model": "resident-brain",
+            "base_url": f"http://127.0.0.1:{port}",
+            "port": port,
+        }
+        payload = hub._build_payload()  # noqa: SLF001
+        assert payload["resident_live"] is True
+    finally:
+        srv.close()
+
+
+def test_build_payload_surfaces_active_rl_lane() -> None:
+    """When the arbiter has an rl_run holding the GPU, the active lane (not the
+    stale resident config) is what the rail names (AE-15 layer 2)."""
+    hub = TelemetryHub(interval=2.0)
+    hub._resident_reader = lambda: {"model": "Qwen3-30B-A3B-Q4_K_M", "port": 0}  # noqa: SLF001
+    hub._active_lane_reader = lambda: {"model": "Qwen/Qwen3-8B", "where": "rl"}  # noqa: SLF001
+    payload = hub._build_payload()  # noqa: SLF001
+    assert payload["active_lane_model"] == "Qwen/Qwen3-8B"
+    assert payload["active_lane_where"] == "rl"
+
+
+def test_build_payload_active_lane_none_without_reader() -> None:
+    """No injected reader (the M8 default) → no active-lane fields claimed."""
+    hub = TelemetryHub(interval=2.0)
+    payload = hub._build_payload()  # noqa: SLF001
+    assert payload["active_lane_model"] is None
+    assert payload["active_lane_where"] is None
+
+
+def test_read_active_gpu_lane_missing_db_is_none(tmp_path: Path) -> None:
+    """Best-effort: a cold/missing db just yields None, never raises."""
+    assert _read_active_gpu_lane(str(tmp_path / "nope.db")) is None
 
 
 # ---------------------------------------------------------------------------

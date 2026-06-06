@@ -40,6 +40,43 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     a live side-by-side browser smoke of the rebaked cockpit; the AE-R1 live-`rl_run`
     GPU gate (the reward-gauge lighting end-to-end) remains operator-armed.
 
+- **Arena-enhancements S2 — information architecture & flow** (`_SPECS/arena-enhancements-v1.md`
+  §6 S2; AE-12/13/14/15). The IA refresh that lands *before* the new S3+ panes so they
+  slot into a reorganized nav. **No arena.db schema change** (`user_version` stays 6),
+  **no route change** (AE-R5 — grouping/labels only). Mostly cockpit-only (rebaked
+  `_webui`); one `fieldkit.arena.server` addition (AE-15) carries below.
+  - **AE-15 — telemetry lane-truth.** The rail's "active lane" echoed the static
+    `~/.hermes/config.yaml` (pinned Qwen3-30B) whether or not anything was serving —
+    so an idle box, or a box whose resident brain an `rl_run` had torn down, still read
+    "Qwen3-30B · warm". `TelemetryHub._build_payload` now emits `resident_live` (a
+    cached ~8 s TCP liveness probe of the configured `base_url`) + `active_lane_model` /
+    `active_lane_where` (an injected, store-decoupled reader that names a running
+    `rl_run`'s lane — `_read_active_gpu_lane`). The rail reconciles them: in-flight
+    stream → running RL/external lane → liveness-probed resident → last warm run → and,
+    last, the configured-but-idle lane relabelled **"Configured Lane · idle"** (amber)
+    instead of falsely claiming "active". 5 new tests (`tests/arena/test_server.py`);
+    the live-`rl_run` positive RL-lane label is validated on the next armed run (AE-R1).
+  - **AE-12 — flow-based nav IA** (cockpit). The flat 11-tab row (which overflowed +
+    read as a list) is regrouped into the three lifecycle stages — **Build/Train**
+    {Models · SFT · Reward · Jobs · Standup} → **Serve/Infer** {Chat · Compare ·
+    Leaderboard} → **Review/Meta** {Cockpit · Lab · Cortex} — on a **two-tier bar**
+    (brand + status on top, full-width nav below) so every tab is reachable. Route
+    `href`s unchanged; trivially reversible.
+  - **AE-13 — data-flow routing corrections** (cockpit). A **training-flow card** on
+    the cockpit landing stitches SFT → Reward → RL into one legible left→right chain
+    (new `TrainingFlow` island, reuses `/api/sft-progress` + `/api/reward-signal` +
+    `/api/jobs`, degrades to per-stage "idle"); the **Jobs↔Standup boundary** is made
+    explicit + navigable (cross-link notes: operator-dispatch vs overnight-cron review);
+    a **`$0 · local` cost chip** on Compare side cards so free Spark lanes read as free,
+    not blank. *(AE-13a leaderboard-row→producing-job link deferred — the aggregate rows
+    strip per-run provenance + there's no job-detail route; folds into S5 provenance.)*
+  - **AE-14 — pane-purpose redefinition** (cockpit, leverage not rebuild). **Reward**
+    reframed as the cross-stage scorable-output gauge spanning SFT-init step-0 + the live
+    `rl_run` (folds AE-1); **Standup** foregrounded as the overnight RL-run digest +
+    promote gate; the cockpit-body card relabelled "Active lane"→**"Resident lane ·
+    configured"** for consistency with AE-15. *(AE-14c Lab→build threading deferred to S3,
+    when the `/arena/build/` pane exists.)*
+
 ## [0.23.0] — 2026-06-05
 
 The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —

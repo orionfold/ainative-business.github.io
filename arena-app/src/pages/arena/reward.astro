@@ -15,7 +15,7 @@ import RewardSignalPane from '../../components/arena/RewardSignalPane.jsx';
 
 const title = 'Orionfold Arena — Reward';
 const description =
-  'The eval-is-reward gauge — boxed-rate, zero-shot held-out reward, and the AV-R1 truncation check over the latest verifier run. The step-0 baseline of the RLVR lineage delta; read-only.';
+  'The cross-stage "is the model producing scorable output" gauge — boxed-rate, zero-shot held-out reward, and the AV-R1 truncation check. Spans the SFT-init step-0 baseline through the live rl_run (AE-1); read-only.';
 ---
 <ArenaAppLayout title={title} description={description} active="reward">
 
@@ -31,6 +31,11 @@ const description =
       </span>
     </header>
     <div class="arena-pane__body">
+      {/* AE-14: state the pane's cross-stage role explicitly. */}
+      <p class="arena-pane__boundary">
+        <span>One gauge across the build: the <strong>SFT-init</strong> step-0 baseline (does the warm-start produce
+        boxed, scorable answers?) and the <strong>live rl_run</strong> reward as it trains (AE-1). The verifier IS the reward.</span>
+      </p>
       {/* boxed-rate / reward@step-0 / truncation + buckets + per-row detail,
           polled from /api/reward-signal. The verifier IS the reward; this page
           only renders — an HTTP GET never launches a GPU lane. */}

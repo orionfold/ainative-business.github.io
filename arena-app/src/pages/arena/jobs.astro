@@ -35,6 +35,11 @@ const description =
       </span>
     </header>
     <div class="arena-pane__body">
+      {/* AE-13: make the Jobs↔Standup boundary explicit + navigable. */}
+      <p class="arena-pane__boundary">
+        <span><strong>You</strong> dispatch jobs here — on demand, one lane at a time. What the
+        <strong>overnight cron</strong> ran (and staged for promotion) is reviewed in <a href="../standup/">Standup&nbsp;→</a></span>
+      </p>
       {/* Sequential single-lane drain through the fieldkit.harness MCP surface
           (M8-1/M8-5). eval_rerun is the first/only real M8 job type; the queue
           coalesces duplicate triggers while in flight (R15). */}
