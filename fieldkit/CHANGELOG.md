@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.30.0] — 2026-06-06
+
 The third arena-enhancements **v2** cut: **Cluster I core** — the observation +
 dispatch system-of-record fixes harvested by the S1 e2e smoke, with every
 guarded-launch risk (AF-20 arming · AE-22 launch) deliberately deferred to the
@@ -61,6 +63,28 @@ dedicated launch-runner cut (AE-R13).
 - The drain pass no longer re-claims a row it just released: `drain_jobs`
   threads the released ids through `claim_next_job(skip_ids=…)` (previously the
   brake pattern had to `break` the whole pass to avoid spinning).
+
+### Test suite
+- Offline: **1445 passed, 19 skipped** (+26: `tests/arena/test_corpus_request.py`
+  — handshake roundtrip / observed-fulfilment / liveness states / 422 bounds;
+  `tests/arena/test_runtimes.py` — roster states / docker-less degradation /
+  cache / inspect-parser contract; `test_jobs.py` + `test_jobs_api.py` — the
+  sft_run brake (unarmed release + no-starvation), armed dispatch + persist,
+  honest armed-failure, `skip_ids`, async-only API contract; `test_build_spine.py`
+  — inventory match / drift / missing / dir-claim / binary-stat-only).
+  No `arena.db` schema change (`user_version` stays 6).
+
+### Verified live (CDP browser-smoke, 2026-06-06)
+- Against the running cockpit on the rebaked bundle (seed → verify → revert):
+  the inventory chips verified the **real Kepler artifacts** at read time
+  (`600/600 ✓ · 120/120 ✓ · 44/44 ✓ · 8.7 GB ✓`, with ages); the runtimes
+  roster matched the box exactly (`pgvector up · ps-train stopped · nemo-train
+  absent · lane down — GPU free · embedder down`); the corpus handshake drove
+  request (UI form) → a synthetic heartbeat fulfilled it (`fulfilled ✓ ·
+  synth ◉ live`, the AE-6 strip lit from the same heartbeat) → withdraw +
+  heartbeat delete reverted honestly; an `sft_run` queued from the Jobs arm
+  form rendered the `⏸ awaiting armed drain · FK_SFT_RUN_ARMED=1` cue and the
+  cancel DELETE was verified on the wire. All smoke rows + files reverted.
 
 ## [0.29.0] — 2026-06-06
 
