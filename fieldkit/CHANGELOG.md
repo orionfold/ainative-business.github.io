@@ -76,6 +76,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     promote gate; the cockpit-body card relabelled "Active lane"→**"Resident lane ·
     configured"** for consistency with AE-15. *(AE-14c Lab→build threading deferred to S3,
     when the `/arena/build/` pane exists.)*
+- **Arena-enhancements S3 — build-spine backbone** (`_SPECS/arena-enhancements-v1.md`
+  §6 S3; AE-5 / AF-1). The vertical-build pipeline as a pane — *the spine that frames
+  the rest of the dogfood enhancements*. **No arena.db schema change** (no write, no new
+  table) and **no skill imports** (AE-R3): the spine is a pure projection over feeds the
+  cockpit already has.
+  - **AE-5 — `/arena/build/` Vertical-Build pane.** A new `GET /api/build` endpoint
+    assembles eight C1..C6 stage cards (scout · bench · corpus · SFT · smoke · lane ·
+    RLVR · publish), each with a **state**, a **headline metric**, and the **operator
+    gate**, from the signals the cockpit already reads — the SFT log feed
+    (`_newest_sft_log`/`_parse_sft_log`), the reward report (`_newest_reward_report`),
+    the bench registry (`benches.list_benches`), the newest `rl_run` row's `result_json`,
+    and the lane arbiter (`_read_active_gpu_lane` / resident config, AE-15-honest) —
+    plus an optional operator-authored **`build-manifest.json`** (env-anchored
+    `FK_ARENA_BUILD_DIR`, default the astrodynamics evidence dir) for the stages with no
+    live feed (scout / corpus / publish) + the human-gate annotations. Ownership split:
+    a live-feed stage's `state`/`headline`/`detail` win (the manifest only fills them
+    when blank); `gate`/`href` + the no-feed stages are manifest-owned. Read-only by
+    construction — an HTTP GET reads files + lists rows, it never launches a lane. A
+    fresh box degrades every stage to `pending` rather than erroring. New cockpit pane
+    `/arena/build/` (in the Build/Train nav group) + `<BuildSpine>` island (5 s poll,
+    deep-links the live stages to their panes); the Kepler build ships a tracked
+    `evidence/astrodynamics/build-manifest.json` so the spine reads the real end-to-end
+    pipeline (7/8 done; lane honestly idle). 6 new tests (`tests/arena/test_build_spine.py`).
 
 ## [0.23.0] — 2026-06-05
 

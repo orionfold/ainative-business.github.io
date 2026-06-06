@@ -2131,6 +2131,25 @@ def create_app(
             "report": report, "source": log_path.name, "runs": runs,
         }
 
+    @app.get("/api/build")
+    async def api_build() -> dict[str, Any]:
+        """The vertical-build spine (AE-5 / AF-1): C1..C6 stage cards.
+
+        Assembles eight stage cards (scout · bench · corpus · SFT · smoke · lane
+        · RLVR · publish) — each with a state, a headline metric, and the
+        operator gate — from the signals the cockpit ALREADY has (the SFT log
+        feed, the reward report, the bench registry, the ``rl_run`` rows, the
+        lane arbiter) plus an optional operator-authored ``build-manifest.json``
+        (``FK_ARENA_BUILD_DIR``) for the no-live-feed stages + the gate text.
+
+        Read-only by construction: an HTTP GET reads files + lists rows; it never
+        launches a lane. **No arena.db schema change** (no write, no new table)
+        and **no skill imports** (AE-R3) — the spine is a pure projection over
+        existing feeds. On the public mirror there is no sidecar, so the island
+        renders a static note. Declared before the static mount so ``/arena/build``
+        (page) and ``/api/build`` stay distinct."""
+        return _assemble_build(root, db_path)
+
     # ------------------------------------------------------------------
     # Packaged web UI (P7 distribution) — serve the baked Orionfold Arena
     # bundle at /arena/ when it shipped in the wheel. Same-origin with the
@@ -2389,6 +2408,373 @@ def _list_sft_runs(sft_dir: Path) -> list:
             }
         )
     return out
+
+
+# ---------------------------------------------------------------------------
+# Build spine (AE-5 / AF-1) — the vertical-build pipeline as C1..C6 stage cards
+# ---------------------------------------------------------------------------
+#
+# The /arena/build/ pane's data source — the spine that frames the dogfood
+# enhancements. Assembles eight stage cards (scout · bench · corpus · SFT ·
+# smoke · lane · RLVR · publish) from the signals the cockpit ALREADY has — the
+# SFT log feed, the reward report, the bench registry, the rl_run job rows, the
+# lane arbiter — plus an optional, operator-authored ``build-manifest.json`` for
+# the stages with no live feed (scout / corpus / publish) and the human-gate
+# annotations. No arena.db schema change, no skill imports (AE-R3): every signal
+# is a file the sidecar already reads or a row it already lists. Read-only — an
+# HTTP GET assembles state; it never launches a lane.
+
+
+def _build_manifest_dir(root: Path) -> Path:
+    """Dir holding the optional ``build-manifest.json`` (AE-5).
+
+    Env-anchored (``FK_ARENA_BUILD_DIR``) with the astrodynamics evidence dir as
+    default — the same place the reward reports live, so one vertical's build
+    state sits together."""
+    env = os.environ.get("FK_ARENA_BUILD_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
+    return _reward_reports_dir(root)
+
+
+def _load_build_manifest(root: Path) -> dict[str, Any]:
+    """Read ``build-manifest.json`` if present, else ``{}`` (best-effort).
+
+    The manifest is the operator's hand for the stages with no live feed
+    (scout / corpus / publish) and for the human-gate text on every stage. It is
+    never required — with no manifest the pane still renders the live stages off
+    their existing feeds."""
+    path = _build_manifest_dir(root) / "build-manifest.json"
+    try:
+        if path.is_file():
+            data = json.loads(path.read_text())
+            if isinstance(data, dict):
+                return data
+    except (OSError, ValueError) as exc:
+        _log.debug("build-manifest read failed: %s", exc)
+    return {}
+
+
+def _newest_rl_run(db_path: str) -> dict[str, Any] | None:
+    """The most-recent ``rl_run`` job row as a public dict, else ``None``.
+
+    ``list_jobs`` returns newest-first, so the first ``rl_run`` is the latest.
+    Best-effort: a missing/cold db yields ``None``."""
+    try:
+        from fieldkit.arena.store import ArenaStore
+
+        db_file = Path(os.path.expanduser(db_path))
+        if not db_file.is_file():
+            return None
+        store = ArenaStore(db_file)
+        store.initialize()
+        try:
+            rows = store.list_jobs(limit=200)
+        finally:
+            store.close()
+        for row in rows:
+            kind = row["kind"] if "kind" in row.keys() else None
+            if kind == "rl_run":
+                return _job_to_public(row)
+    except Exception as exc:  # noqa: BLE001 — build-spine nicety, never fatal
+        _log.debug("newest rl_run read failed: %s", exc)
+    return None
+
+
+def _pct(v: Any) -> str | None:
+    """``0.864`` → ``"86%"``; non-numeric → ``None``."""
+    if isinstance(v, (int, float)):
+        return f"{round(v * 100)}%"
+    return None
+
+
+def _build_scout_stage() -> dict[str, Any]:
+    """C-A scout — a base-model pick has no structured feed, so the only live
+    signal is the *presence* of an ``hf-model-scout`` report (``FK_ARENA_SCOUT_DIR``,
+    default ``/tmp/hf-scout``). That is a coarse default the manifest overrides
+    with the actual locked base (``live: False`` → manifest owns state/headline)."""
+    scout_root = Path(
+        os.path.expanduser(os.environ.get("FK_ARENA_SCOUT_DIR", "/tmp/hf-scout"))
+    )
+    try:
+        found = any(scout_root.glob("*/report.md"))
+    except OSError:
+        found = False
+    return {
+        "key": "scout", "code": "A", "label": "Scout",
+        "state": "done" if found else "pending",
+        "headline": "base-model report present" if found else "—",
+        "detail": "hf-model-scout top-3 → base lock (license · arch · size traps)",
+        "gate": "base lock", "gate_state": "pass" if found else "pending",
+        "href": None, "source": "scout-dir", "live": False,
+    }
+
+
+def _build_bench_stage(bench_id: str | None, vertical: str) -> dict[str, Any]:
+    """C-B bench — the eval substrate, read live from the bench registry
+    (``benches.list_benches``). Picks the manifest's ``bench_id`` → else the
+    first available bench for the vertical → else the first available."""
+    base = {
+        "key": "bench", "code": "B", "label": "Bench",
+        "state": "pending", "headline": "—",
+        "detail": "pool + held-out · self-verifying golds",
+        "gate": None, "gate_state": "none",
+        "href": None, "source": "benches", "live": True,
+    }
+    try:
+        from fieldkit.arena import benches as _benches
+
+        rows = _benches.list_benches()
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("bench list for build spine failed: %s", exc)
+        return base
+    row = None
+    if bench_id:
+        # An explicit pin selects exactly that bench; if it isn't registered yet
+        # (e.g. astro-bench, pending AE-11/S6) leave the card blank so the
+        # manifest fills it rather than mislabeling it with an unrelated vertical.
+        row = next((r for r in rows if r.get("bench_id") == bench_id), None)
+        if row is None:
+            base["state"] = "blank"
+            return base
+    else:
+        row = next(
+            (r for r in rows if r.get("vertical") == vertical and r.get("available")),
+            None,
+        ) or next((r for r in rows if r.get("available")), None)
+    if row is None:
+        return base
+    if row.get("available"):
+        fams = ", ".join(row.get("families", [])[:6])
+        base["state"] = "done"
+        base["headline"] = (
+            f"{row.get('label') or row.get('bench_id')} · {row.get('count')} prompts"
+        )
+        if fams:
+            base["detail"] = f"families: {fams}"
+    else:
+        base["state"] = "blank"
+        base["headline"] = f"{row.get('bench_id')} — files absent"
+    return base
+
+
+def _build_corpus_stage() -> dict[str, Any]:
+    """C1 corpus — the SFT-init corpus-synth run. The live feed (AE-6) lands in
+    S4; until then this card frames the gap and defers to the manifest."""
+    return {
+        "key": "corpus", "code": "C1", "label": "Corpus",
+        "state": "pending", "headline": "—",
+        "detail": "SFT-init corpus · live feed lands in S4 (AE-6)",
+        "gate": "/usage token preflight", "gate_state": "pending",
+        "href": None, "source": "manifest", "live": False,
+    }
+
+
+def _build_sft_stage() -> dict[str, Any]:
+    """C2 SFT-init — read live from the SFT-progress feed (the newest NeMo p65
+    driver log), the format-conditioning warm-start the RLVR loop begins from."""
+    base = {
+        "key": "sft", "code": "C2", "label": "SFT-init",
+        "state": "pending", "headline": "—",
+        "detail": "NeMo p65 LoRA format-conditioning warm-start",
+        "gate": "held-out > base", "gate_state": "pending",
+        "href": "../sft/", "source": "sft-progress", "live": True,
+    }
+    sft_dir = _sft_run_dir()
+    log = _newest_sft_log(sft_dir)
+    if log is None:
+        return base
+    rep = _parse_sft_log(log, sft_dir)
+    if not rep:
+        return base
+    status = rep.get("status") or "init"
+    cur, mx = rep.get("latest_iter") or 0, rep.get("max_iters") or 0
+    loss = rep.get("last_loss")
+    if status == "done":
+        base["state"] = "done"
+        base["headline"] = f"done · {mx} iters" + (f" · loss {loss}" if loss is not None else "")
+    elif status == "running":
+        base["state"] = "active"
+        base["headline"] = f"running {cur}/{mx}" + (f" · loss {loss}" if loss is not None else "")
+    else:
+        base["state"] = "active"
+        base["headline"] = "model + optimizer setup…"
+    return base
+
+
+def _build_smoke_stage(root: Path) -> dict[str, Any]:
+    """C2/C5 smoke — read live from the newest reward report (the AV-10 held-out
+    preflight, the same report the Reward gauge follows). The behavioral gate
+    between a warm-start / checkpoint and trusting it."""
+    base = {
+        "key": "smoke", "code": "C2/C5", "label": "Smoke",
+        "state": "pending", "headline": "—",
+        "detail": "held-out preflight · boxed-rate · AV-R1 truncation",
+        "gate": "AV-10 preflight", "gate_state": "pending",
+        "href": "../reward/", "source": "reward-signal", "live": True,
+    }
+    rp = _newest_reward_report(root)
+    if rp is None or not rp.is_file():
+        return base
+    try:
+        r = json.loads(rp.read_text())
+    except (OSError, ValueError):
+        return base
+    status = r.get("status", "done")
+    scored, total = r.get("scored"), r.get("total", r.get("n"))
+    boxed = _pct(r.get("boxed_rate"))
+    if status == "running":
+        base["state"] = "active"
+        base["headline"] = f"running {scored}/{total}"
+    else:
+        base["state"] = "done"
+        reward = _pct(r.get("reward_rate_step0"))
+        base["headline"] = f"{reward} held-out" if reward else "complete"
+        gate = r.get("gate_pass")
+        base["gate_state"] = (
+            "pass" if gate else ("hold" if gate is False else "pending")
+        )
+    if boxed:
+        base["detail"] = f"boxed {boxed} · held-out preflight · AV-R1 watch"
+    return base
+
+
+def _build_lane_stage(db_path: str) -> dict[str, Any]:
+    """C4 lane — the serving lane (one-lane envelope). The live RL/external lane
+    (the arbiter's truth, AE-15 layer 2) wins; else the configured resident brain
+    is shown as *configured · idle* rather than falsely claimed active (AE-15)."""
+    base = {
+        "key": "lane", "code": "C4", "label": "Lane",
+        "state": "pending", "headline": "—",
+        "detail": "serving lane · one-lane envelope",
+        "gate": None, "gate_state": "none",
+        "href": None, "source": "lane", "live": True,
+    }
+    active = _read_active_gpu_lane(db_path)
+    if active:
+        base["state"] = "active"
+        base["headline"] = f"{active['model']} · RL lane live"
+        return base
+    resident = _read_hermes_lane() or {}
+    name = resident.get("model") or resident.get("lane_id")
+    if name:
+        base["state"] = "idle"
+        base["headline"] = f"{name} · configured · idle"
+    return base
+
+
+def _build_rlvr_stage(db_path: str) -> dict[str, Any]:
+    """C5 RLVR — read live from the newest ``rl_run`` job row's ``result_json``
+    (the held-out-gated GRPO loop). Held-out-selected step + score on done; the
+    live step on running; queued/failed surfaced honestly."""
+    base = {
+        "key": "rlvr", "code": "C5", "label": "RLVR",
+        "state": "pending", "headline": "—",
+        "detail": "GRPO held-out-gated · operator-armed",
+        "gate": "held-out-win promote", "gate_state": "pending",
+        "href": "../jobs/", "source": "jobs", "live": True,
+    }
+    job = _newest_rl_run(db_path)
+    if job is None:
+        return base
+    status = job.get("status")
+    res = job.get("result") or {}
+    if status == "running":
+        base["state"] = "active"
+        step = res.get("step")
+        base["headline"] = f"running step {step}" if step is not None else "running"
+    elif status == "done":
+        base["state"] = "done"
+        held = _pct(res.get("selected_heldout_score"))
+        sel = res.get("selected_exp_id") or (
+            f"rl-{res.get('selected_step')}"
+            if res.get("selected_step") is not None
+            else None
+        )
+        base["headline"] = (held + " held-out" if held else "complete") + (
+            f" · {sel}" if sel else ""
+        )
+        base["gate_state"] = "pass" if res.get("selected_heldout_score") else "pending"
+    elif status in ("queued", "pending"):
+        base["state"] = "pending"
+        base["headline"] = "queued — armed by autonomy cron"
+    elif status == "failed":
+        base["state"] = "hold"
+        base["headline"] = "failed"
+    return base
+
+
+def _build_publish_stage() -> dict[str, Any]:
+    """C6 publish — the HF push + bench card. No sidecar-visible signal (the
+    artifacts live in the marketing repo), so the manifest owns this stage."""
+    return {
+        "key": "publish", "code": "C6", "label": "Publish",
+        "state": "pending", "headline": "—",
+        "detail": "HF GGUF + bench card (hf-publisher)",
+        "gate": "held-out-win publish", "gate_state": "pending",
+        "href": None, "source": "manifest", "live": False,
+    }
+
+
+def _merge_build_stage(
+    auto: dict[str, Any], manifest_stage: Any
+) -> dict[str, Any]:
+    """Overlay the operator's manifest onto an auto-derived stage.
+
+    Ownership split: for a stage with a rich live feed (``live: True``) the live
+    ``state`` / ``headline`` / ``detail`` win — the manifest only fills them when
+    the live signal is blank. ``gate`` / ``gate_state`` / ``href`` (operator
+    annotations) and every field of a non-live stage are always manifest-owned."""
+    out = dict(auto)
+    live = out.pop("live", False)
+    if isinstance(manifest_stage, dict):
+        blank = {None, "", "—", "unknown", "pending", "blank"}
+        for k, v in manifest_stage.items():
+            if v is None:
+                continue
+            if live and k in ("state", "headline", "detail"):
+                if out.get(k) in blank:
+                    out[k] = v
+            else:
+                out[k] = v
+    return out
+
+
+def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
+    """Assemble the eight-stage build spine (AE-5).
+
+    Auto-derives every stage from existing signals, then overlays the optional
+    ``build-manifest.json``. Always ``available: True`` when the sidecar answers;
+    individual stages carry ``pending`` / ``blank`` until their signal exists."""
+    manifest = _load_build_manifest(root)
+    m_stages = manifest.get("stages")
+    if not isinstance(m_stages, dict):
+        m_stages = {}
+    vertical = manifest.get("vertical") or "astrodynamics"
+    label = manifest.get("label") or "the current vertical"
+    bench_id = manifest.get("bench_id")
+    auto = [
+        _build_scout_stage(),
+        _build_bench_stage(bench_id, vertical),
+        _build_corpus_stage(),
+        _build_sft_stage(),
+        _build_smoke_stage(root),
+        _build_lane_stage(db_path),
+        _build_rlvr_stage(db_path),
+        _build_publish_stage(),
+    ]
+    stages = [_merge_build_stage(s, m_stages.get(s["key"])) for s in auto]
+    done = sum(1 for s in stages if s.get("state") == "done")
+    return {
+        "available": True,
+        "vertical": vertical,
+        "label": label,
+        "manifest_present": bool(manifest),
+        "updated": manifest.get("updated"),
+        "stages_done": done,
+        "stages_total": len(stages),
+        "stages": stages,
+    }
 
 
 def _mount_packaged_webui(app: Any) -> bool:

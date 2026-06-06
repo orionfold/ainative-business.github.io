@@ -1,0 +1,44 @@
+{
+  "vertical": "astrodynamics",
+  "label": "Kepler",
+  "bench_id": "astro-bench",
+  "updated": "2026-06-05",
+  "_note": "Operator-authored build spine for the Kepler vertical (AE-5 / /arena/build/). Fills the stages with no live cockpit feed (scout / corpus / publish) and the human-gate annotations; the SFT / smoke / lane / RLVR stages are read live off their existing feeds and override these where present. Read by GET /api/build via FK_ARENA_BUILD_DIR (default this dir).",
+  "stages": {
+    "scout": {
+      "state": "done",
+      "headline": "Qwen3-8B locked",
+      "detail": "hf-model-scout top-3 of 5 · NC-license / llama.cpp-arch / 128GB-size traps cleared",
+      "gate": "base lock",
+      "gate_state": "pass"
+    },
+    "bench": {
+      "state": "done",
+      "headline": "astro-bench v0.1 · 120 pool + 44 held-out",
+      "detail": "disjoint (RV-10) · every gold self-verifies · astro_numeric_match ±2%",
+      "gate_state": "pass"
+    },
+    "corpus": {
+      "state": "done",
+      "headline": "600 rows · all self-verify",
+      "detail": "SFT-init corpus · closed-form numeric · held-out-excluded",
+      "gate": "/usage token preflight",
+      "gate_state": "pass"
+    },
+    "sft": {
+      "gate_state": "pass"
+    },
+    "rlvr": {
+      "gate": "held-out-win promote",
+      "gate_state": "pass"
+    },
+    "publish": {
+      "state": "done",
+      "headline": "Orionfold/Kepler-GGUF · 4 variants",
+      "detail": "Q8_0 recommended · apache-2.0 · + Kepler-bench dataset card",
+      "gate": "held-out-win publish",
+      "gate_state": "pass",
+      "href": "https://huggingface.co/Orionfold/Kepler-GGUF"
+    }
+  }
+}

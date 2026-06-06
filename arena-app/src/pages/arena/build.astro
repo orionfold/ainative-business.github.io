@@ -1,0 +1,44 @@
+---
+// Build — /arena/build/
+//
+// Dogfood AF-1 / AE-5 (arena-enhancements-v1 §6 S3). The vertical-build spine:
+// "the vertical I'm building" as a staged C1..C6 pipeline — scout · bench ·
+// corpus · SFT · smoke · lane · RLVR · publish — each card with state +
+// headline metric + the operator gate. The spine that frames the rest of the
+// dogfood enhancements (the corpus feed AE-6, gate cards AE-7, provenance
+// AE-8/9 thread into these stages in later sessions).
+//
+// Read-only by construction: the <BuildSpine> island polls GET /api/build,
+// which assembles the spine from the cockpit's existing feeds (SFT log, reward
+// report, bench registry, rl_run rows, lane arbiter) + an optional manifest —
+// an HTTP GET reads files + lists rows, it never launches a GPU lane. On the
+// public mirror there is no sidecar, so the island renders a static note.
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import BuildSpine from '../../components/arena/BuildSpine.jsx';
+
+const title = 'Orionfold Arena — Build';
+const description =
+  'The vertical-build spine — the C1..C6 pipeline (scout · bench · corpus · SFT · smoke · lane · RLVR · publish) as stage cards, each with state, headline metric, and the operator gate. Assembled from the live cockpit feeds; read-only.';
+---
+<ArenaAppLayout title={title} description={description} active="build">
+
+  <div class="arena-pane">
+    <header class="arena-pane__head">
+      <span class="arena-pane__head-title">Vertical&nbsp;build</span>
+      <span class="arena-pane__head-meta">
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">C1..C6 spine · scout → publish · per-stage gate</span>
+        <span style="opacity: 0.4;">·</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
+          read-only — never dispatches
+        </span>
+      </span>
+    </header>
+    <div class="arena-pane__body">
+      {/* The eight C1..C6 stage cards, polled from /api/build. Each card is a
+          projection over an existing cockpit feed + an optional manifest; an
+          HTTP GET assembles state, it never launches a lane. */}
+      <BuildSpine client:only="preact" />
+    </div>
+  </div>
+
+</ArenaAppLayout>
