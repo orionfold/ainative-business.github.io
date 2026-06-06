@@ -35,6 +35,40 @@ function fmtEta(s) {
   return `${(s / 3600).toFixed(1)}h`;
 }
 
+// AE-16 — on-card job identity. Distinct done jobs (C5 smoke vs the full run; two
+// byte-identical rag_evals) read as repeats because the card face shows only kind
+// + laneBench. A relative enqueue time + a short id + (for rl_run) a run label
+// give every card a unique discriminator. Pure render — enqueued_at + id are
+// already in the board snapshot.
+function fmtAgo(iso) {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return null;
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 90) return `${Math.round(s)}s ago`;
+  if (s < 5400) return `${Math.round(s / 60)}m ago`;
+  if (s < 172800) return `${(s / 3600).toFixed(1)}h ago`;
+  return `${Math.round(s / 86400)}d ago`;
+}
+
+function shortId(id) {
+  return id ? String(id).slice(0, 8) : null;
+}
+
+// A run discriminator for the card face: an explicit payload.run_label wins, else
+// for an rl_run derive the step count (result.n_steps live/done, else the
+// configured max_steps) so the smoke and the full run never read alike.
+function runLabel(job) {
+  const p = job.payload || {};
+  if (p.run_label) return p.run_label;
+  if (job.kind === 'rl_run') {
+    const r = job.result || {};
+    const n = r.n_steps ?? r.max_steps ?? (p.max_steps != null ? p.max_steps : null);
+    return n != null ? `${n}-step` : null;
+  }
+  return null;
+}
+
 // Classify the pool-vs-held-out shape over a short rolling history (LA-14). The
 // teach_keys map to the interp-* explainers in the shared curriculum, so the
 // one-line read is the SAME source as the deep-dive's :::pitfall. Inversion is
@@ -155,6 +189,16 @@ function RlProgress({ result, curriculum, hist }) {
   const mem = result.mem || {};
   const inversion = pool != null && held != null && pool - held > 0.15;
 
+  // AE-2 — degenerate / no-op step. `n_used==0` (or `trained===false`) is a GRPO
+  // step with uniform-reward groups → zero advantage → no gradient: correct with
+  // a strong SFT init, but otherwise indistinguishable from a stall. Surface
+  // keep-rate / n_used / advantage-spread and badge the no-op explicitly.
+  const keepRate = result.keep_rate;
+  const nUsed = result.n_used;
+  const advSpread = result.adv_spread;
+  const hasGrpo = keepRate != null || nUsed != null || advSpread != null;
+  const degenerate = hasGrpo && (result.trained === false || nUsed === 0);
+
   const phaseEntry = curriculum[`phase-${result.phase}`];
   const interpKey = classifyInterp(hist);
   const interp = interpKey ? curriculum[interpKey] : null;
@@ -175,6 +219,17 @@ function RlProgress({ result, curriculum, hist }) {
         <span class="jobs__rl-held">held-out {held != null ? Number(held).toFixed(3) : '—'}</span>
         {mem.peak_used_gb != null && <span class="jobs__rl-mem">peak {Math.round(mem.peak_used_gb)} GB</span>}
       </div>
+
+      {/* AE-2 — GRPO step internals: keep-rate, rollouts used, advantage spread,
+          and the explicit no-op badge so a zero-advantage step ≠ a stall. */}
+      {hasGrpo && (
+        <div class="jobs__rl-grpo" data-degenerate={degenerate}>
+          {keepRate != null && <span>keep {(Number(keepRate) * 100).toFixed(0)}%</span>}
+          {nUsed != null && <span>n_used {nUsed}</span>}
+          {advSpread != null && <span>adv-spread {Number(advSpread).toFixed(3)}</span>}
+          {degenerate && <span class="jobs__rl-noop">no update — zero advantage</span>}
+        </div>
+      )}
 
       {/* LA-14 — the live interpreter: a one-line read of the two curves that
           updates as they move. Falls back to the static inversion warn if the
@@ -487,6 +542,12 @@ export default function JobsBoard({ curriculum = {} }) {
                       <span class="jobs__card-trigger">{j.trigger}</span>
                     </div>
                     <div class="jobs__card-target">{laneBench(j)}</div>
+                    {/* AE-16 — on-card identity: run label · relative time · short id */}
+                    <div class="jobs__card-id">
+                      {runLabel(j) && <span class="jobs__card-runlabel">{runLabel(j)}</span>}
+                      {fmtAgo(j.enqueued_at) && <span class="jobs__card-ago">{fmtAgo(j.enqueued_at)}</span>}
+                      {shortId(j.id) && <code class="jobs__card-shortid">{shortId(j.id)}</code>}
+                    </div>
                     {j.status === 'running' && j.kind === 'rl_run' && (
                       <RlProgress result={j.result} curriculum={curriculum} hist={histRef.current[j.id]} />
                     )}
@@ -499,7 +560,10 @@ export default function JobsBoard({ curriculum = {} }) {
                       <div class="jobs__card-result" data-aborted={j.result.aborted === true}>
                         {j.result.aborted
                           ? 'OOM-aborted'
-                          : `held-out step ${j.result.selected_step ?? '—'} · ${
+                          : `held-out step ${j.result.selected_step ?? '—'}${
+                              /* AE-4 — the selected-step → lineage trial back-pointer */
+                              j.result.selected_exp_id ? ` (${j.result.selected_exp_id})` : ''
+                            } · ${
                               j.result.selected_heldout_score != null
                                 ? Number(j.result.selected_heldout_score).toFixed(3)
                                 : '—'

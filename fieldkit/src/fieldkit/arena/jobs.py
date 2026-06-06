@@ -544,6 +544,12 @@ def _persist_rl_run(
         "heldout_scores": result.get("heldout_scores"),
         "pool_scores": result.get("pool_scores"),
         "selected_on": result.get("selected_on", "heldout"),
+        # AE-3/AE-4 (arena-enhancements S1) — the bounded per-step trajectory +
+        # the selected-step → lineage-trial back-pointer. Pure passthrough from
+        # RLLoop.summary(); both land in the existing result_json column (RV-8,
+        # no schema change). None on a bare M8/RV-6 run that didn't populate them.
+        "step_history": result.get("step_history"),
+        "selected_exp_id": result.get("selected_exp_id"),
         "lineage_card": result.get("lineage_card"),
         # rl-lane-autonomy (LA-10/11) — the memory trace + whether the watchdog
         # tore the run down early. Present only when the run drained under an
@@ -579,9 +585,24 @@ def _run_rl_arbitered(
     mem = _lane.mem_trace()
     sentinel = rl_lane.sentinel_for(job_id)
     sentinel.unlink(missing_ok=True)  # fresh — no stale abort from a prior run
-    progress_cb = _lane.rl_progress_writer(
+    _board_writer = _lane.rl_progress_writer(
         store, job_id, mem=mem, min_interval=rl_lane.throttle_s, used_sampler=_lane.unified_used_gb
     )
+    # AE-1 (arena-enhancements S1) — also light the /arena/reward/ gauge: at each
+    # held-out gate, write an av10-preflight-shaped report to the dir the gauge
+    # auto-follows. Composed onto the SAME progress_cb so the loop stays the lone
+    # writer of result_json (LA-8) while the gauge gets its own file feed.
+    _reward_writer = _lane.reward_signal_writer(
+        job_id, model=payload.get("base"), vertical=payload.get("vertical")
+    )
+
+    def progress_cb(blob: Mapping[str, Any]) -> None:
+        _board_writer(blob)
+        try:
+            _reward_writer(blob)
+        except Exception:  # noqa: BLE001 — the gauge feed never fails the run
+            pass
+
     should_abort = _lane.abort_poller(sentinel)
     arbiter = rl_lane.arbiter_for(job, mem, sentinel)
     try:

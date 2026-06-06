@@ -396,3 +396,85 @@ def test_autonomy_state_round_trip(tmp_path):
     assert st["enabled"] is True and st["interval_min"] == 20
     assert clear_autonomy_state(p) is True
     assert read_autonomy_state(p) == {"enabled": False}
+
+
+# --------------------------------------------------------------------------- #
+# arena-enhancements S1 — AE-1 reward-gauge wiring                              #
+# --------------------------------------------------------------------------- #
+
+
+def test_reward_signal_dir_precedence(monkeypatch, tmp_path):
+    """AE-1 — explicit override → FK_ARENA_REWARD_DIR → ARENA_REPO_ROOT/evidence."""
+    monkeypatch.delenv("FK_ARENA_REWARD_DIR", raising=False)
+    monkeypatch.setenv("ARENA_REPO_ROOT", str(tmp_path))
+    assert L._reward_signal_dir() == tmp_path / "evidence" / "astrodynamics"
+    monkeypatch.setenv("FK_ARENA_REWARD_DIR", str(tmp_path / "custom"))
+    assert L._reward_signal_dir() == tmp_path / "custom"
+    assert L._reward_signal_dir(tmp_path / "explicit") == tmp_path / "explicit"
+
+
+def test_reward_signal_writer_lights_gauge_on_gate(tmp_path):
+    """AE-1 — a held-out gate drops an av10-preflight-shaped report (held-out →
+    reward_rate_step0, the gauge's key); non-gate blobs write nothing; teardown
+    finalizes status=done. The filename matches the gauge's auto-follow glob."""
+    write = L.reward_signal_writer(
+        "job-abcd1234ef", reward_dir=tmp_path, model="Qwen/X", vertical="patent", n_heldout=44
+    )
+    write({"phase": "sampling", "step": 0})  # not a gate → no file yet
+    assert list(tmp_path.glob("av10-preflight*.json")) == []
+
+    write({"phase": "heldout-gate", "step": 0, "gate": True, "last_heldout": 0.61, "max_steps": 4})
+    reports = list(tmp_path.glob("av10-preflight*.json"))
+    assert len(reports) == 1
+    name = reports[0].name
+    assert name.startswith("av10-preflight") and name.endswith(".json")  # gauge glob
+    rep = json.loads(reports[0].read_text())
+    assert rep["reward_rate_step0"] == 0.61  # the gauge key — NOT `reward`
+    assert rep["status"] == "running" and rep["step"] == 0
+    assert rep["model"] == "Qwen/X" and rep["kind"] == "rl_run"
+
+    # A later gate overwrites the same file with the fresher held-out.
+    write({"phase": "heldout-gate", "step": 2, "gate": True, "last_heldout": 0.74, "max_steps": 4})
+    rep2 = json.loads(reports[0].read_text())
+    assert rep2["reward_rate_step0"] == 0.74 and rep2["step"] == 2
+
+    # Teardown flips status to done, carrying the last held-out.
+    write({"phase": "teardown", "step": 4})
+    rep3 = json.loads(reports[0].read_text())
+    assert rep3["status"] == "done" and rep3["reward_rate_step0"] == 0.74
+
+
+def test_reward_writer_teardown_without_gate_writes_nothing(tmp_path):
+    """A run torn down before any gate ran leaves no stale report."""
+    write = L.reward_signal_writer("j", reward_dir=tmp_path)
+    write({"phase": "teardown", "step": 0})
+    assert list(tmp_path.glob("av10-preflight*.json")) == []
+
+
+def test_drain_writes_reward_signal_report(monkeypatch, tmp_path):
+    """AE-1 integration — a drained rl_run lands a gauge-readable report in the
+    reward-follow dir (composed onto the loop's progress_cb), isolated from the
+    repo's evidence dir via FK_ARENA_REWARD_DIR."""
+    monkeypatch.setenv("ARENA_AUTONOMY_STATE", str(tmp_path / "autonomy.json"))
+    monkeypatch.setenv("FK_ARENA_REWARD_DIR", str(tmp_path / "reward"))
+    store = ArenaStore(tmp_path / "arena.db")
+    store.initialize()
+    rl_lane = L.RLLaneContext(
+        bin_check=lambda c: True, lane_factory=lambda c: FakeLane(),
+        throttle_s=0.0, sentinel_dir=str(tmp_path / "rl"),
+    )
+    jid = J.enqueue_job(
+        store, "rl_run",
+        {"base": "Qwen/X", "vertical": "patent", "bench_path": "/x", "lane_id": "rl-lane"},
+    )
+    J.drain_jobs(store, runner=lambda kind, p: _rl_runner(p), rl_lane=rl_lane)
+
+    reports = list((tmp_path / "reward").glob("av10-preflight*.json"))
+    assert len(reports) == 1
+    rep = json.loads(reports[0].read_text())
+    assert rep["kind"] == "rl_run" and "reward_rate_step0" in rep
+    assert rep["status"] == "done"  # teardown finalized it
+
+    # AE-3/AE-4 also rode through to the persisted result_json (no schema change).
+    res = json.loads(store.get_job(jid)["result_json"])
+    assert "step_history" in res and "selected_exp_id" in res

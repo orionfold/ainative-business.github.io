@@ -6,6 +6,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **Arena-enhancements S1 — RL-run observability** (`_SPECS/arena-enhancements-v1.md`
+  §6 S1; AE-1/2/3/4/16). Closes the gaps the first live `rl_run` exposed; all within
+  `result_json` / file-polled reports, **no arena.db schema change** (`user_version`
+  stays 6) and **no new route**.
+  - **AE-2 — degenerate/no-op step visibility.** `RLLoop._emit` now carries
+    `keep_rate` / `n_used` / `adv_spread` / `trained`; a uniform-reward step (all-zero
+    advantage → no gradient, no adapter, no lane restart) reads **visibly distinct**
+    from a stall on the Jobs board (`<RlProgress>` renders the GRPO row + a
+    "no update — zero advantage" badge).
+  - **AE-3 — per-step `step_history[]`.** `RLLoop.summary()` emits a bounded per-step
+    trajectory (`{step, phase, pool_score, last_heldout, keep_rate, loss, kl, n_used,
+    adv_spread, step_duration, trained}`), threaded through `_persist_rl_run` into the
+    existing `result_json` column — reconstructs "which steps moved the policy" after a run.
+  - **AE-4 — lineage step-index.** `summary()` adds `selected_exp_id` (`rl-<step>`),
+    the back-pointer from the held-out-selected step to its `fieldkit.lineage` trial, so
+    a regression traces to the exact published checkpoint. Rendered on the done card.
+  - **AE-1 — reward gauge wired to the live `rl_run`** (AF-11). New
+    `fieldkit.arena.lane.reward_signal_writer` (+ `_reward_signal_dir`) drops an
+    `av10-preflight`-shaped report (held-out → `reward_rate_step0`, the gauge's key)
+    into the dir `/api/reward-signal` auto-follows, at every held-out gate + a final
+    `status:done` on teardown — so the dedicated gauge lights up during the run it
+    exists for, **zero pane change**. Composed onto the loop's `progress_cb` in
+    `_run_rl_arbitered`; dir is env-anchored (`FK_ARENA_REWARD_DIR` →
+    `ARENA_REPO_ROOT/evidence/astrodynamics`). Best-effort — never fails the run.
+  - **AE-16 — Jobs-card identity.** Each board card now carries a relative enqueue
+    time + a short id + (for `rl_run`) a run label, so distinct jobs (the C5 smoke vs
+    the full run; two byte-identical `rag_eval`s) no longer read as repeats. Pure render.
+  - Backward-compatible (a bare M8/RV-6 run leaves the new fields `None`/absent).
+    Validated offline (6 new tests in `test_rl.py` + `tests/arena/test_lane.py`) and by
+    a live side-by-side browser smoke of the rebaked cockpit; the AE-R1 live-`rl_run`
+    GPU gate (the reward-gauge lighting end-to-end) remains operator-armed.
+
 ## [0.23.0] — 2026-06-05
 
 The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —

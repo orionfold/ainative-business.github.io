@@ -3247,6 +3247,17 @@ try {
       }
       .arena-app .jobs__rl-metrics[data-inversion="true"] .jobs__rl-held { color: var(--arena-warn); font-weight: 600; }
       .arena-app .jobs__rl-mem { margin-left: auto; }
+      /* AE-2 — GRPO step internals (keep-rate / n_used / advantage-spread) + the
+         no-op badge: a zero-advantage step must read distinct from a stall. */
+      .arena-app .jobs__rl-grpo {
+        margin-top: 0.2rem; display: flex; gap: 0.6rem; flex-wrap: wrap;
+        font-family: var(--arena-mono); font-size: 0.58rem; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__rl-grpo[data-degenerate="true"] { color: var(--arena-warn); }
+      .arena-app .jobs__rl-noop {
+        margin-left: auto; padding: 0.02rem 0.32rem; border-radius: 0.3rem;
+        background: rgba(255, 196, 0, 0.14); color: var(--arena-warn); font-weight: 600;
+      }
       .arena-app .jobs__rl-warn {
         margin-top: 0.3rem; font-size: 0.58rem; line-height: 1.3; color: var(--arena-warn);
       }
@@ -3353,6 +3364,17 @@ try {
       .arena-app .jobs__card-kind { color: var(--arena-text-mute); }
       .arena-app .jobs__card-trigger { color: var(--arena-text-dim); }
       .arena-app .jobs__card-target { font-size: 0.74rem; color: var(--arena-text); word-break: break-word; }
+      /* AE-16 — on-card identity row: run label · relative enqueue time · short id. */
+      .arena-app .jobs__card-id {
+        display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;
+        font-family: var(--arena-mono); font-size: 0.54rem; color: var(--arena-text-dim);
+      }
+      .arena-app .jobs__card-runlabel {
+        padding: 0.02rem 0.3rem; border-radius: 0.3rem;
+        background: rgba(255,255,255,0.05); color: var(--arena-text-mute);
+      }
+      .arena-app .jobs__card-ago { color: var(--arena-text-mute); }
+      .arena-app .jobs__card-shortid { margin-left: auto; color: var(--arena-text-dim); opacity: 0.8; }
       .arena-app .jobs__card-result { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-ok); }
       .arena-app .jobs__card-error {
         font-size: 0.62rem; color: var(--arena-warn); line-height: 1.3;

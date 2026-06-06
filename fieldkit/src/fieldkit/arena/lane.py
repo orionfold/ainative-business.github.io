@@ -65,6 +65,7 @@ __all__ = [
     "LaneDeferred",
     "lane_binary_present",
     "rl_progress_writer",
+    "reward_signal_writer",
     "abort_poller",
     "unified_used_gb",
     "unified_total_gb",
@@ -399,6 +400,92 @@ def abort_poller(sentinel: Any) -> Callable[[], bool]:
         return path.exists()
 
     return should_abort
+
+
+def _reward_signal_dir(override: Optional[Any] = None) -> Path:
+    """Resolve the dir the reward gauge auto-follows (AE-1).
+
+    Mirrors the server's ``_reward_reports_dir`` (``repo_root/evidence/
+    astrodynamics``) so a report written here is the one ``/api/reward-signal``
+    picks up. Precedence: explicit ``override`` → ``FK_ARENA_REWARD_DIR`` →
+    ``ARENA_REPO_ROOT``/evidence/astrodynamics → cwd/evidence/astrodynamics.
+    """
+    if override:
+        return Path(os.path.expanduser(str(override)))
+    env = os.environ.get("FK_ARENA_REWARD_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
+    root = os.environ.get("ARENA_REPO_ROOT") or os.getcwd()
+    return Path(root) / "evidence" / "astrodynamics"
+
+
+def reward_signal_writer(
+    job_id: str,
+    *,
+    reward_dir: Optional[Any] = None,
+    model: Optional[str] = None,
+    vertical: Optional[str] = None,
+    n_heldout: Optional[int] = None,
+) -> Callable[[Mapping[str, Any]], None]:
+    """Light the ``/arena/reward/`` gauge from a live ``rl_run`` (AE-1 / AF-11).
+
+    The reward pane auto-follows the **newest** ``av10-preflight*.json`` by mtime
+    (server ``_reward_reports_dir`` = ``repo_root/evidence/astrodynamics``). An
+    ``rl_run`` writes its live progress to ``jobs.result_json`` (the Jobs-board
+    strip), never that dir — so the dedicated gauge stayed **dark during the run
+    it exists for** (the AF-11 root cause: AF-9's "same transport, no UI change"
+    assumption failed at first contact).
+
+    Composed onto the loop's ``progress_cb``, this drops an **av10-preflight-
+    shaped** report into the followed dir at every held-out **gate** (and a final
+    ``status:done`` write on teardown): the held-out reward → ``reward_rate_step0``
+    (the gauge's key — **not** ``reward``, the ledger foot-gun), the step, and the
+    running/done status. Unsurfaced fields (boxed-rate, truncation, buckets, rows)
+    are left empty/calm — the held-out seam returns a scalar today (a richer
+    report is a future pane change, deliberately out of v1's zero-pane-change
+    scope). Best-effort: a write failure never fails the run.
+    """
+    base = _reward_signal_dir(reward_dir)
+    short = str(job_id)[:8]
+    slug = (vertical or "rl").replace("/", "-")
+    target = base / f"av10-preflight-rl-{slug}-{short}.json"
+    state: dict[str, Any] = {"held": None, "step": None, "written": False}
+
+    def write(progress: Mapping[str, Any]) -> None:
+        phase = progress.get("phase")
+        gate = bool(progress.get("gate"))
+        if gate:
+            state["held"] = progress.get("last_heldout")
+            state["step"] = progress.get("step")
+        elif phase == "teardown":
+            if not state["written"]:
+                return  # no gate ever ran — nothing to finalize
+        else:
+            return
+        report = {
+            "model": model or progress.get("base"),
+            "vertical": vertical or progress.get("domain"),
+            "kind": "rl_run",  # discriminator (server tolerates extra keys)
+            "step": state["step"],
+            "n": n_heldout,
+            "total": n_heldout,
+            "scored": n_heldout,
+            "status": "done" if phase == "teardown" else "running",
+            "boxed_rate": None,
+            "reward_rate_step0": state["held"],  # gauge key — the held-out reward
+            "truncation_rate": 0.0,  # unknown via the scalar seam → calm AV-R1
+            "gate_pass": None,
+            "buckets": {},
+            "rows": [],
+        }
+        try:
+            base.mkdir(parents=True, exist_ok=True)
+            target.write_text(json.dumps(report, sort_keys=True))
+            state["written"] = True
+        except OSError:  # noqa: BLE001 — the gauge is observational, never load-bearing
+            pass
+
+    return write
 
 
 # ---------------------------------------------------------------------------
