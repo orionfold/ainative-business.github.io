@@ -20,45 +20,54 @@
 
 ## Current state
 
-### ⏸️ 2026-06-06 — Arena e2e operator-smoke **RUN S1 IN PROGRESS (PAUSED at B2)** — surfaced a system-of-record redesign now being spec'd + built
+### ✅ 2026-06-06 — Arena e2e operator-smoke **RUN S1 COMPLETE** (resumed post-reboot, post-Cluster-G) — **BOTH long-deferred AE-R1 gates FIRED on real runs**; 3 new HIGH bugs + 4 new findings harvested
 
-> **The e2e build→serve→review smoke is mid-run, deliberately paused at B2 to fix a load-bearing
-> finding before continuing.** Phase A (BUILD) is **complete** (A0 spine 7/8 · A1 scout 95/100 ·
-> A2 bench-provenance · A3 corpus-feed · **A4 REAL NeMo SFT 10-iter smoke** val loss 0.844 /
-> checkpoint iter 10 · A5 reward 86% held-out · A6 gate ledger). Phase B started: **B0** a REAL
-> Kepler-Q8 llama.cpp lane is serving on `:8091` (verified `/props` model_path + a scored astro
-> completion `\boxed{93.45 min}` ✓), but **B1/B2 exposed the finding** and we stopped.
+> **The whole build→serve→review pipeline has now been walked end-to-end as one operator session.**
+> Phase A pre-pause (A0 spine · scout · bench-provenance · corpus feed · REAL NeMo SFT smoke ·
+> reward · gates ✓). The box **rebooted mid-pause**; resumed by re-arming (cockpit + CDP via
+> `arena-lifecycle`, Kepler-Q8 lane re-served on `:8091`) — **Cluster-G survived the cold boot**:
+> discovery found the re-served lane with no config (`source: discovered`, rail `ACTIVE LANE ·
+> model-Q8_0.gguf · resident · live`), and after teardown honestly reverted to `configured · idle`.
+> **Phase B (unblocked by AE-20 routing):** B2 chat streams from the *discovered* lane
+> (`CHATTING WITH model-Q8_0.gguf · :8091/v1`), bench question scored **1.0** vs gold; B3 compare
+> duel `local:resident` vs Haiku 4.5 (chips `$0·local` vs `$0.0018`); B4 leaderboard renders.
+> **Phase C — the two operator-armed gates:**
+> - **Guardrail AE-R1 ✅ G3** tripped on a REAL metered eval: cap $0.05 set via the Settings UI
+>   (source=file, no restart) → Haiku × 44 rows aborted at row 19 with **$0.0515 genuinely accrued**
+>   → badge `⚠ aborted · cost cap · partial · 19 scored · $0.0515 · cap $0.05/10m`. **✅ G1**
+>   mechanism verified on a real metered R1 eval (sentinel → row-boundary abort → `teardown ·
+>   partial · 3 scored` persisted → clean exit) — but the *trigger* is broken (BUG-2 below). G2 skipped per runbook.
+> - **RL-lane AE-R1 ✅** — a REAL 4-step GRPO `rl_run` (`35ed71b9`, attempt 4) lit everything:
+>   reward pane **auto-followed the live run** (`RUNNING · streaming · REWARD @ STEP-0 96%`), done
+>   card `held-out step 0 (rl-000) · 0.958 · peak 92 GB` + **AE-9 lineage** `↑ corpus · sft-init ·
+>   bench` + AE-2 degenerate-step truth (`adv_spread 0.0 · trained: false` — the expected
+>   headroom-gate null, honestly rendered). vLLM lane cycled per step; teardown clean.
 >
-> **The finding (OBS-4 / AF-24 / AF-25, HIGH+architectural):** Arena's rail showed `CONFIGURED
-> LANE · Qwen3-30B · idle` while Kepler genuinely served — because Arena learns "what lane is
-> serving" by reading **`~/.hermes/config.yaml`** (a *foreign tool's* config = an *assertion*),
-> not by *observing* what's actually resident. Operator's directive: **question the Hermes
-> dependency itself**; Arena should *own* + *discover* its lane truth. Chat/compare (B2/B3) route
-> via that Hermes `base_url` (:8080, nothing there) so they can't reach Kepler until this is fixed.
->
-> **Plan (operator-approved 2026-06-06):** (1) ✅ record the narrated-smoke flow → runbook +
-> [[feedback_arena_narrated_operator_smoke]]; (2) ✅ save state (this block); (3) ✅ **spec'd Plan B**
-> → `_SPECS/arena-enhancements-v2.md` (AE-18…28, 3 clusters, AE-R7…R13); (4) ✅ **IMPLEMENTED +
-> VERIFIED LIVE the Cluster-G core** — new `fieldkit.arena.lanes` (`discover()` probes
-> `FK_ARENA_LANE_PORTS` → `/v1/models`+`/props`; JSON registry `~/.fieldkit/arena/active-lane.json`;
-> `resolve_active_lane()` reconciles registry∩discovery, Hermes demoted to a hint) wired into
-> `server.py` (the hub resident-reader + chat/compare/judge/`/api/lanes` + new `GET/POST
-> /api/active-lane` + the build-spine Lane card). **Offline 1382 pass / 5 skip** (+13 `test_lanes.py`
-> + a conftest discovery-isolation autouse fixture). Cockpit restarted → **rail now reads `RESIDENT
-> LANE · model-Q8_0.gguf` + Lane card `serving · :8091` with NO Hermes edit** (OBS-4 fixed). **NO
-> arena.db schema change** (`user_version` 6, file registry). ▶ **UNCOMMITTED** — the v2 spec +
-> `lanes.py` + server wiring + tests + the guide/memory/ledger are all in the working tree, not yet
-> committed (operator's call). ⏳ DEFERRED to v2 build: the frontend polish (AE-21 multi-lane *pane*,
-> AE-22 *select* button UI, AE-24 provenance chip) — backend endpoints exist; no `arena-app/` edit
-> yet so **no `_webui` rebake was needed** (rail truth came free from the backend). (5) ⏳ **resume**
-> B2/B3/B4 + Phase C with Kepler resident; (6) ⏳ rewrite this HANDOFF clean.
-> **All findings + the operate-from-terminal gap catalogue** are in
-> `_IDEAS/arena-smoke-v2-features.md` (gitignored). **Other open finding:** BUG-1/OBS-1 — the
-> `/arena/sft/` pane reports `0/0` for a completed run (the canonical `fieldkit.training.run` path
-> doesn't emit the iteration lines the pane regex-parses; fix = structured `sft-progress` feed).
->
-> **Smoke screenshots staged:** `/tmp/aifn-smoke/e2e/build/` (00,01,03,04a,04b,05,06) +
-> `/tmp/aifn-smoke/e2e/serve/01-models.png`. CDP driver: `/tmp/pw/drive.mjs` (env-driven).
+> **Session harvest (HIGH bugs, all root-caused, in the gitignored ledger
+> [`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md) — READ IT next session):**
+> - **BUG-2** — G1's trigger is a **circular wait**: uvicorn graceful shutdown waits for the eval
+>   BackgroundTask before running `_lifespan`, but the eval only aborts when `_lifespan` writes the
+>   sentinel. `arena down` can never fire G1 exactly when it matters; no restart reconciler either
+>   (an orphaned job stays `running` forever). Fix: signal-handler trip + startup reconciler.
+> - **BUG-3** — **G3 was silently inert in production**: `openrouter_price_snapshot` held only 2
+>   stale h6-baseline rows → `price_for()=None` for every current lane → tokens-only, cap can never
+>   trip, no surface says so. Fired only after an `operator-manual` price insert (deepseek-r1 +
+>   claude-haiku-4.5 rows now in the table, provenance-marked, **kept**).
+> - **BUG-4** — rl_run dep-drift, a 4-link chain: loose `[rl]` floor-pins + reboot-ephemeral /tmp
+>   venv resolved transformers **5.10.2** (meta-tensor crash under `device_map="auto"` on GB10) →
+>   4.57.6 (protobuf missing) → all qwen3-capable 4.x reject the NeMo-written **list-form
+>   `extra_special_tokens`** (root-owned tokenizer_config.json) → **working combo: transformers==
+>   4.51.3 + protobuf + sentencepiece + torch 2.12.0+cu130 + peft 0.19.1 + a shadow model dir**
+>   (`merged-hf-bf16-fixed/` — symlinks + fixed config; **kept on disk**, `FK_RL_BASE_MODEL` points
+>   at it; vLLM serves the original).
+> - **AF-27** Compare rubric "Dead heat — both 100%" while lane A's value was wrong ~2× (format-regex
+>   presented as QUALITY; propagates into the leaderboard) · **AF-28** eval_rerun scores never feed
+>   the leaderboard (bench-anchored mirror stale 2026-05-28) · **AF-29** G3-armed? invisible ·
+>   **AF-30** Standup budget governor blind to eval spend ($0.0023 shown vs ~$0.18 real).
+> **Cluster-G is committed** (`dd63802` — the pause-block's "UNCOMMITTED" note is stale). Cloud
+> spend this session ≈ **$0.18** (ceiling $1). **11 curated 2× screenshots** now in
+> `products/arena-control-plane/screenshots/` (04–11 new: build/chat/compare/leaderboard/settings/
+> jobs/reward/standup) — article-refresh candidates.
 
 ### ✅ 2026-06-06 — `fieldkit v0.27.0` RELEASED (`arena-guardrail-settings-v1` **GS-1…6**) — the operator-config surface over the AE-17 guardrails
 
@@ -95,15 +104,21 @@
 
 **The Kepler pipeline lessons are encoded as memories** (apply to the next vertical): `feedback_sft_vs_rlvr_decision` (the prior question — cheap-correct-trajectory + enumerable-output → SFT-only wins), `feedback_rlvr_headroom_gate` (the Goldilocks band + the bimodal-per-family refinement: 0% = SFT-coverage gap, not RL headroom), `feedback_preflight_bench_before_quant`, `feedback_smoke_projection_slack`.
 
-## ⚙️ Live runtime (e2e-smoke S1 paused — cockpit + Kepler lane + nemo-train UP)
+## ⚙️ Live runtime (post-smoke 2026-06-06 — GPU lanes ALL DOWN; cockpit + browser left UP)
 
-> **e2e-smoke S1 runtime (2026-06-06, paused at B2):** `nemo-train` container UP (SFT smoke done);
-> **Kepler-Q8 llama.cpp lane UP on `:8091`** (bg, ~8 GiB GPU; one-lane envelope intact since the
-> nemo container is idle); cockpit `:7866` + CDP Chromium `:9222` UP. `~/.hermes/config.yaml` is
-> **unchanged** (Qwen3-30B:8080 — the edit to point it at Kepler was correctly denied; the fix is
-> the AF-25 redesign, not a config hack). To tear down at session end: kill the `:8091`
-> llama-server, `docker rm -f nemo-train`, `arena_lifecycle.sh down --browser`. The block below is
-> the pre-smoke baseline (still accurate for the cockpit/pgvector lanes).
+> **The box rebooted ~09:46 on 2026-06-06** (wiped /tmp venvs + the staged Phase-A shots;
+> `nemo-train` container gone — not needed again, A4 is done). Post-smoke state: **cockpit `:7866`
+> + visible CDP Chromium `:9222` UP** (left up; venv `/tmp/arena-venv` rebuilt by `arena-lifecycle`,
+> editable fieldkit + **the proven RL stack: transformers==4.51.3 + protobuf + sentencepiece +
+> torch 2.12.0+cu130 + peft 0.19.1** — ⚠️ dies on next reboot, BUG-4's pin fix should capture it);
+> **pgvector UP**; **GPU lane FREE** (no llama-server/vLLM/EngineCore; ~115 GiB headroom).
+> Guardrail config reverted to all-default (file deleted, sources=default). Smoke lab-notes deleted.
+> `~/.hermes/config.yaml` untouched. **Operator decisions left open:** (1) **autonomy was ON
+> (every-30min · $5 cap) and I disarmed it for the RL drain** — re-arm with `fieldkit arena
+> autonomy on` if the overnight loop should resume; (2) the 2 `operator-manual` price rows + the
+> `merged-hf-bf16-fixed/` shadow dir + the 3 failed rl_run rows (honest history) are **kept**;
+> (3) `sudo chown` list now also includes `merged-hf-bf16/tokenizer_config.json` (the list-form
+> `extra_special_tokens` NeMo export — the proper fix for BUG-4 link 3).
 
 ### Pre-smoke baseline (cockpit UP in browser-use mode; GPU lane otherwise FREE)
 
@@ -120,14 +135,12 @@
 
 ## Open items (by swimlane)
 
-### 🔬 QUEUED — next session: Arena end-to-end operator smoke (build → serve → review)
-The whole Arena pipeline has been built + shipped feature-by-feature (M1–M11 · S1–S7 · GS-1…6 across `fieldkit v0.16.0→v0.27.0`) and each surface per-feature browser-smoked in isolation — but **never walked end-to-end as one operator session**. Next session: drive build→serve→review live over CDP with the operator on the GPU/cloud-armed steps while I guide/explain/watch/screenshot/log. **Runbook:** [`_GUIDES/arena-e2e-smoke-runbook.md`](_GUIDES/arena-e2e-smoke-runbook.md) — read it first; it has the per-step table (panes · operator commands · success criteria · shots), the arming checklist, and the close-out. **Compute tier = FULL (~80 min)** (real 10-step SFT smoke + a 4-step real RLVR run). **This fires BOTH long-deferred operator-armed gates:**
-- **Guardrail AE-R1** — a real metered cloud eval trips **G3 cost cap** ($0.05 → aborted+partial badge) + **G1 teardown** (`arena down` mid-run → sentinel). (Skipping G2 stall.) Cloud ceiling ≈ **$1 total**.
-- **RL-lane AE-R1** — a 4-step real `rl_run` lights the `/arena/reward/` gauge + the Jobs rl_run card (GRPO row + held-out + AE-9 lineage) end-to-end.
-
-**Operator arming before we start** (full list in the runbook): NeMo container up (SFT smoke) · `fieldkit[rl]` + pinned vLLM lane armed (RL run; **tear the Kepler llama.cpp lane down first** — one-lane envelope) · OpenRouter key loaded (cloud evals + compare) · pgvector up (Cortex) · `sudo chown` the root-owned container dirs if rewriting.
-
-**Harvest** (close-out): bug + v2-feature ledger → [`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md) (gitignored; promote green-lit items to `_SPECS/arena-enhancements-v2.md`, AE-18+); ≥18 curated 2× screenshots → **refresh `products/arena-control-plane/screenshots/`** (currently jobs-board-only) + stage the rest in `/tmp` for an article refresh. Vertical = **Kepler / astrodynamics** (all artifacts on disk).
+### 🔬 QUEUED — next session: arena-enhancements **v2 build** (promote the smoke harvest)
+**The e2e smoke is DONE and both AE-R1 gates fired** (see Current state). The queue is now the v2 build, fed by the harvest in [`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md) (gitignored — read it first) against `_SPECS/arena-enhancements-v2.md` (AE-18…28; Cluster G core shipped in `dd63802`, rest open):
+1. **Bug fixes first (all HIGH, root-caused):** BUG-2 G1 signal-handler trip + startup reconciler for orphaned `running` evals (+ a real-SIGTERM test); BUG-3/AF-29 price-refresh + loud "G3 unarmed" degradation badge (`priced:false` already persists — render it); BUG-4 ceiling-pin the `[rl]` extra + record the proven stack (see runtime block) + fix the NeMo export's list-form `extra_special_tokens` (or chown+rewrite); BUG-1 structured `sft-progress` feed (pre-existing).
+2. **Integrity findings:** AF-27 rubric verdicts labeled by what they checked / scorer_path routing for bench prompts (the "Dead heat while wrong" fix, leaderboard included); AF-28 eval_rerun → leaderboard projection; AF-30 budget governor reads `guardrail.run_cost_usd`.
+3. **Deferred v2 frontend:** AE-21 multi-lane pane · AE-22 select/launch UI (the smoke's exit-127 PATH stumble is fresh evidence) · AE-24 provenance chip · AF-26 run-context banner.
+Discipline unchanged: build AND browser-smoke side-by-side in the running Arena over CDP; NO arena.db schema change; rebake `_webui` after `arena-app/` edits.
 
 ### ✅ Kepler ship-tail + Release + eval-dispatch verify — ALL DONE 2026-06-05
 - ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state).
@@ -176,14 +189,16 @@ The **operator-config surface** over the AE-17 cloud-run guardrails. Decisions c
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-06 (e2e operator-smoke S1 COMPLETE — both AE-R1 gates fired on real runs; BUG-2/3/4 harvested)
+Resumed the paused smoke after a box reboot (re-armed via `arena-lifecycle`; Kepler lane re-served; **Cluster-G `dd63802` verified cold** — discovery found `:8091` with no config, rail flipped to `ACTIVE LANE · resident · live`, reverted honestly after teardown). **B2/B3/B4** unblocked by AE-20 routing (chat scored 1.0 vs gold via the discovered lane; compare chips `$0·local` vs `$0.0018`; leaderboard ✓). **C-phase fired both operator-armed gates on REAL runs:** G3 cost-cap aborted a metered Haiku eval at **$0.0515 accrued** (19/44, badge + cap chip), G1's mechanism verified on a metered R1 eval (sentinel→abort→`teardown · partial · 3 scored`→clean exit), and a real 4-step GRPO `rl_run` (35ed71b9) lit the reward gauge live (`REWARD @ STEP-0 96%` auto-follow) + the done card with AE-9 lineage + AE-2 degenerate-step truth (clean headroom null, as predicted). **3 HIGH bugs root-caused live:** BUG-2 G1 lifespan circular-wait (trigger can't fire while an eval runs — hand-fired the sentinel to prove the mechanism), BUG-3 G3 silently inert (empty price table; fixed-forward with `operator-manual` price rows), BUG-4 RL dep-drift 4-link chain (transformers 5.x meta-crash → protobuf → list-form `extra_special_tokens` vs ALL qwen3-capable 4.x → **transformers==4.51.3 + shadow model dir** `merged-hf-bf16-fixed/`). Plus AF-27…30 (rubric "Dead heat" while wrong · leaderboard blind to eval_rerun · G3-armed invisible · budget governor blind to eval spend) — all in the gitignored ledger. C4/C5/C6 ✓ (Standup digest; Cortex honest-offline, embedder can't co-reside with the RL lane; Lab CRUD — the 4 "failures" were my CDP selector bug, logged as a false alarm). Close-out: GPU lanes torn down, config + notes reverted, autonomy left OFF (operator call to re-arm), 11 curated 2× shots → `products/arena-control-plane/screenshots/`. Session cloud spend ≈ $0.18. | Manav (with Claude)
+
 ### 2026-06-06 (`arena-guardrail-settings-v1` GS-1…6 BUILT + browser-smoked + RELEASED in `fieldkit v0.27.0`)
 Operator green-lit the GS spec as-is; §7 open question (per-job cap override) answered **keep out of scope — global config only**. Built the operator-config surface over the AE-17 guardrails in one cut. **GS-1** `fieldkit.arena.guardrail`: `GuardrailConfig` + `load_config()` (file > env > default + per-field source provenance → `(cfg, sources)`) + atomic `save_config()` + `guardrail_config_path()` + `DEFAULTS`/`BOUNDS` + `GuardrailConfigError`; `EvalGuardrail.from_env` now wraps the resolver (back-compat — env-only behavior preserved when no file); `_run_eval_guarded` reads `load_config()` **per dispatch** + honors the `enabled` master toggle (off ⇒ cloud lane runs unguarded, byte-for-byte the local path); corrupt/partial config → env/default fallback (never crashes a dispatch). **GS-2** `GET`/`POST /api/guardrail-config` (Pydantic `Field(ge=0)` + `save_config` bounds → **422**; operator-private, no store touched, never mirrored). **GS-3** `/arena/settings/` pane + `<GuardrailSettings>` island (source chips · reset · `enabled` toggle · loud OFF banner) + Settings tab in REVIEW/META nav + CSS + ⌘K entry; **GS-6** Jobs-card badge appends `· cap $X / Nm` from the persisted `result_json.guardrail`. **NO arena.db schema change** (`user_version` 6) · **no skill imports** (AE-R3) · no route change elsewhere. **Offline 1369 pass / 5 skip** (+16). `_webui` rebaked + cockpit restarted (pids 2277433/2277462); **live CDP browser-smoke ✓ 11/11** (OFF banner + edited-source chips when disabled; edit+toggle-on → Save → toast → file source + banner clears; 2 seeded cloud-eval cards show `cap $2.5 / 5m` aborted + guarded while real local rows show no badge; seeds + config reverted). Then **cut `fieldkit v0.27.0`** via `fieldkit-curator` release (minor 0.26.0→0.27.0; offline-only): audit-docs 17/18 + 1 skip (1 pre-existing `ArenaStore` kwarg WARN, none mine; the new guardrail public names are arena-submodule, not in `fieldkit.arena.__all__` → no `arena.md` gap, documented in the module docstring + CHANGELOG per spec §8), audit-landing 4/4; CHANGELOG `[Unreleased]`→`[0.27.0]`, commit `1b579fe`, tag `fieldkit/v0.27.0`, pushed main + tag; **both install-verifies green** (git-source + PyPI after one CDN-lag retry) → <https://pypi.org/project/fieldkit/0.27.0/>; stats refreshed `a4d2b34` (47,900 LOC fieldkit). The AE-R1-style live cloud-eval validation stays operator-armed. | Manav (with Claude)
 
-### 2026-06-06 (arena-enhancements **S7 / AE-17 cloud-run guardrails** BUILT + browser-smoked — cluster feature-complete)
-Built the last arena-enhancements session, AE-17. New module **`fieldkit.arena.guardrail`** — `EvalGuardrail` (G1 teardown / G2 stall / G3 cost) + `is_cloud_endpoint` (non-loopback `base_url`, via `ipaddress`) + `eval_sentinel_for`. Wiring threads the eval-side abort_poller through four surfaces with **no harness→arena import** (the guardrail is duck-typed): `eval/vertical.py::VerticalBench.run` gains `should_abort`+`on_row`; `notebook/__init__.py::OpenAICompatClient.chat` gains an `on_usage` hook (G3 usage capture); `harness/mcp.py::run_vertical_eval` accepts the duck-typed guardrail + returns `out["guardrail"]`; `arena/jobs.py::_run_eval_guarded` (mirrors `_run_rl_arbitered`) arms it **cloud-only** + resolves the M9 `PriceSnapshot` via `CostLedger.price_for`, `_persist_eval_rerun` threads `result_json.guardrail`; `arena/server.py::_trip_running_eval_sentinels` fires from `_lifespan` shutdown (G1). Frontend `<EvalGuardrailBadge>` + CSS on the Jobs board. **NO arena.db schema change** (`user_version` 6) · **no skill imports** (AE-R3) · **no route change** · local lanes byte-for-byte unchanged. **Offline 1353 pass / 5 skip** (+38). `_webui` rebaked + cockpit restarted (pids 1888725/1888742); **live CDP browser-smoke ✓** — seeded a cost-cap-aborted cloud eval (`⚠ aborted · cost cap · partial · 12 scored · $5.0231`) + a clean guarded run (`guarded ✓ · $0.4187`), confirmed the 2 real local-lane Kepler rows show NO badge, then deleted the seeds (board reverted). **Arena-enhancements S1–S7 is now feature-complete.** Then **cut `fieldkit v0.26.0`** via `fieldkit-curator` **release** (minor 0.25.0→0.26.0; offline-only tests): audit-docs 17/18 + 1 skip (documented the 3 NEW S7 kwargs — `should_abort`/`on_row` on `VerticalBench.run`, `on_usage` on `OpenAICompatClient.chat` — in `eval.md`+`notebook.md`; only the 3 pre-existing `ArenaStore` WARNs remain), audit-landing 4/4; CHANGELOG `[Unreleased]`→`[0.26.0]`, commit `85e4cfd`, tag `fieldkit/v0.26.0`, pushed main + tag; **both install-verifies green** (git-source + PyPI after CDN-lag retry) → <https://pypi.org/project/fieldkit/0.26.0/>; stats refreshed (47,447 LOC fieldkit). AE-R1 live cloud-eval validation stays operator-armed. | Manav (with Claude)
 
 <!--
   Older entries pruned 2026-06-06 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - arena-enhancements S7/AE-17 cloud-run guardrails BUILT+smoked (EvalGuardrail G1/G2/G3, no schema change, offline 1353 pass, live CDP smoke w/ seeded+reverted rows) then cut as fieldkit v0.26.0 (85e4cfd, tag, PyPI, both install-verifies green); cluster S1-S7 feature-complete. AE-R1 live cloud validation → FIRED 2026-06-06 in the e2e smoke (see the smoke entry).
   - Agency cockpit status beacon adopted + `status-beacon` skill with TTL refresh: merged PR #4 (beacon contract → CLAUDE.md); wrote first _STATUS.json; status-beacon skill (.claude/skills/status-beacon/ + update_beacon.mjs) — 3 metric tiers (cheap recompute every run / manual carried-forward / expensive GSC+GA4 TTL-gated 7d off the `checked` clock); never fabricates, never blocks a commit; scrape = seo-monitor/scripts/scrape_cdp_fallback.mjs (puppeteer CDP attach to logged-in Arena Chromium :9222, read-only). Live reads: GSC indexed 24, sitemap submitted 183, GA4 7d users 69; fieldkit_modules 9→18 (canonical FIELDKIT_MODULES); models/software_released/arena_features (6/7/16) operator-defined. Run update_beacon.mjs at session end (--force post-deploy, --no-scrape mid-day).
   - `fieldkit v0.25.0` CUT + on PyPI (arena-enhancements S5–S6): minor 0.24.0→0.25.0 (new GET /api/bench-provenance + GET /api/scout + BenchSpec root override + astro-bench registration, no breaking); offline-only tests; audit-docs 17/18 + 1 skip, audit-landing 4/4; CHANGELOG→[0.25.0], offline 1315 pass; commit 9bdbd11, tag fieldkit/v0.25.0, https://pypi.org/project/fieldkit/0.25.0/; both install-verifies green; stats 46,966 LOC. user_version 6.
   - arena-enhancements S6 BUILT + browser-smoked + RELEASED in v0.25.0 (wiring quick-wins; AE-10 / AE-11): AE-10 scout→Compare — new `GET /api/scout` projects the newest hf-model-scout report (report.md ranked picks joined by repo with candidates.json traps) → collapsed `<ScoutPanel>` on Compare + lock-time behavioral-gate framing; serving a candidate stays operator (one-lane AE-R4). AE-11 astro-bench preview — registered `astro-bench` in `fieldkit.arena.benches` via a `root_env`/`root_fallback` BenchSpec override + `fmt="astrodynamics"` loader (split→family, tier/subtopic/split facets + inline gold); interactive grading honest-skips (astro_numeric_match scores via the eval-job scorer_path). `serve()` now exports ARENA_REPO_ROOT (non-reload). Offline 1315 pass/5 skip (+12). Commit 47aeb16. Live CDP smoke 13/13.

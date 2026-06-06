@@ -3,20 +3,21 @@
   "project": "spark",
   "updated": "2026-06-06",
   "health": "green",
-  "focus": "Released fieldkit v0.27.0 — arena-guardrail-settings (GS-1…6): a live Settings pane to view+edit the AE-17 cloud-eval guardrails, no restart",
+  "focus": "Arena e2e operator-smoke COMPLETE — both long-deferred AE-R1 gates fired on real runs (G3 cost-cap trip $0.0515 accrued; 4-step real RLVR lit gauge+card+lineage); 3 HIGH bugs root-caused",
   "blockers": [],
   "next": [
-    "Arena end-to-end operator smoke (build→serve→review) — runbook _GUIDES/arena-e2e-smoke-runbook.md; fires both operator-armed gates (guardrail G3+G1, RL-lane reward gauge)",
-    "Confirm canonical definitions for models / software_released / arena_features"
+    "arena-enhancements v2 build: BUG-2 G1 signal-handler+reconciler, BUG-3/AF-29 price-refresh+loud G3-unarmed badge, BUG-4 pin the [rl] stack, AF-27 rubric integrity",
+    "Promote green-lit smoke findings (_IDEAS/arena-smoke-v2-features.md) into _SPECS/arena-enhancements-v2.md",
+    "Arena launch-article refresh with the 11 curated 2× screenshots"
   ],
   "recent": [
-    "fieldkit v0.27.0 on PyPI (arena-guardrail-settings GS-1…6)",
-    "New /arena/settings/ pane: live-edit cost cap + stall window + enabled toggle (file>env>default provenance)",
-    "GS-6 Jobs-card badge shows the active cap (cap $X/Nm); live CDP smoke 11/11",
-    "fieldkit v0.26.0 (S7 / AE-17 cloud-run guardrails); arena-enhancements S1–S7 complete",
-    "Kepler vertical published (Orionfold/Kepler-GGUF + bench)"
+    "e2e smoke S1 complete: A0–A6 · B0–B4 · C0–C6 walked live over CDP (resumed post-reboot)",
+    "Guardrail AE-R1 fired: real cost-cap abort ($0.0515/19 rows) + teardown-partial on a metered eval",
+    "RL-lane AE-R1 fired: real 4-step GRPO run — reward gauge auto-followed live, AE-9 lineage on the done card",
+    "Cluster G lane-truth verified across a cold reboot (discovery, no Hermes edit)",
+    "Harvest: BUG-2/3/4 (all HIGH, root-caused) + AF-27…30 in the smoke ledger"
   ],
-  "session": "arena-guardrail-settings GS-1…6 + fieldkit v0.27.0",
+  "session": "e2e operator-smoke S1 complete (resumed) — both AE-R1 gates fired",
   "metrics": {
     "articles": 53,
     "models": 6,
