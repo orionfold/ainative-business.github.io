@@ -322,7 +322,7 @@ The M8 milestone (`_SPECS/spark-arena-v1.md` §12) promotes Arena from a **recor
 
 | Symbol | Members |
 |---|---|
-| `JobKind` | `EVAL_RERUN`, `MEASURE_VARIANTS` (the `DISPATCHABLE` set), plus the named-but-not-built stubs `REQUANT`, `RL_RUN`, `REINDEX`, `RAG_EVAL`, `SCOUT_INGEST`. `DISPATCHABLE` / `ALL` are frozensets. |
+| `JobKind` | `EVAL_RERUN`, `MEASURE_VARIANTS` (the `DISPATCHABLE` set), plus the named-but-not-built stubs `REQUANT`, `RL_RUN`, `REINDEX`, `RAG_EVAL`, `SCOUT_INGEST`, and `SFT_RUN` (AE-29, v2 cut 3 — the **operator-armed** SFT dispatch: async-only like `RL_RUN`, and the drain releases it back to `queued` unless the draining process exports `FK_SFT_RUN_ARMED=1`; the held job never starves the queue behind it). `DISPATCHABLE` / `ALL` are frozensets. |
 | `JobStatus` | `QUEUED`, `DISPATCHED`, `RUNNING`, `DONE`, `FAILED`, `SKIPPED`; `IN_FLIGHT` is the dedup-holding subset. |
 
 ### M8 — `enqueue_job(store, kind, payload, *, trigger, priority, dedup_key, trigger_detail, now_fn)`
@@ -378,7 +378,7 @@ Resolves a `bench_id` → `{bench_path, scorer, max_tokens, limit}` from the **b
 |---|---|---|
 | `.enqueue_job(row)` | `str \| None` | Strict INSERT; `None` when the dedup unique-index coalesces. |
 | `.record_job_trigger(row)` | `int` | Append a `job_triggers` audit row. |
-| `.claim_next_job(*, dispatched_at)` | `sqlite3.Row \| None` | Atomically flip the oldest `queued` job to `dispatched`. |
+| `.claim_next_job(*, dispatched_at, skip_ids=())` | `sqlite3.Row \| None` | Atomically flip the oldest `queued` job to `dispatched`. `skip_ids` (AE-29) excludes rows the current drain pass already released (an operator-armed brake), so the pass works past a held job instead of re-claiming it forever. |
 | `.update_job(job_id, **fields)` / `.get_job(id)` / `.list_jobs(*, status, limit)` / `.cancel_job(id)` | — | Patch / read / board-list / cancel. |
 | `.upsert_eval_run(row)` / `.update_eval_run(id, **fields)` / `.get_eval_run(id)` | — | The per-run status row M8 activates (the `arq_job_id` socket). |
 | `.leaderboard_baseline()` / `.snapshot_leaderboard_baseline(rows, *, now)` | `list[Row]` / `int` | Read / full-overwrite the regression baseline (one `(bench, lane)` accuracy row each) that `check_and_enqueue_regressions` diffs against. |

@@ -61,6 +61,8 @@ __all__ = [
     # Phase 3 (rlvr-loop-v1) — closed-loop RLVR job-execution tools.
     "run_rl_loop",
     "requant_checkpoint",
+    # AE-29 (arena-enhancements-v2) — the operator-armed SFT dispatch body.
+    "run_sft_training",
 ]
 
 MCP_SERVER_NAME = "fieldkit"
@@ -194,6 +196,12 @@ MCP_TOOL_SPECS: tuple[MCPToolSpec, ...] = (
         "requant_checkpoint",
         "rl",
         "Re-quantize a held-out-winning RLVR checkpoint to the GGUF variant ladder (dry-run by default).",
+        False,
+    ),
+    MCPToolSpec(
+        "run_sft_training",
+        "training",
+        "Run one declarative SFT (LoRA) recipe through the training container — operator-armed, heartbeat-stamped.",
         False,
     ),
 )
@@ -930,6 +938,51 @@ def requant_checkpoint(
     return {"manifest_slug": manifest_slug, "checkpoint": checkpoint, **report}
 
 
+def run_sft_training(
+    recipe_path: str,
+    mode: str = "smoke",
+    run_label: Optional[str] = None,
+) -> dict[str, Any]:
+    """Run one declarative SFT (LoRA) training run (AE-29 ``sft_run`` body).
+
+    The recipe YAML (:class:`fieldkit.training.TrainRecipe`) is the whole
+    contract — base model, dataset, LoRA shape, step counts, backend container.
+    Execution is :func:`fieldkit.training.run`, which drives the training
+    container over ``docker exec`` and stamps the canonical
+    ``sft-progress-*.json`` heartbeat from its checkpoint-liveness poll (AE-25)
+    — so the Arena SFT pane follows the run live with no extra wiring, and the
+    progress survives any invocation path (the BUG-1 fix's contract).
+
+    **Real GPU work, operator-armed only** — the Arena dispatcher gates this
+    behind the ``FK_SFT_RUN_ARMED=1`` drain brake; it never runs from a
+    request-time background drain. ``mode='smoke'`` caps at the recipe's
+    ``smoke_steps`` (the cheap liveness rep); ``mode='full'`` is the real run.
+    """
+    from fieldkit.training import TrainRecipe
+    from fieldkit.training.run import run as _run_training
+
+    if mode not in ("smoke", "full"):
+        raise ValueError(f"mode must be 'smoke' or 'full', got {mode!r}")
+    path = Path(recipe_path).expanduser()
+    if not path.is_file():
+        raise FileNotFoundError(f"recipe YAML not found: {recipe_path}")
+    recipe = TrainRecipe.from_yaml(path)
+    result = _run_training(recipe, mode=mode)
+    return {
+        "kind": "sft_run",
+        "run_label": run_label,
+        "backend": result.backend,
+        "mode": result.mode,
+        "base_model": recipe.base_model,
+        "max_steps": recipe.smoke_steps if mode == "smoke" else recipe.max_steps,
+        "final_iter": result.final_iter,
+        "wall_seconds": result.wall_seconds,
+        "run_dir": str(result.run_dir),
+        "container": result.container,
+        "log_path": str(result.log_path) if result.log_path else None,
+    }
+
+
 # --- Server assembly -------------------------------------------------------
 
 _READ_ONLY = {"readOnlyHint": True, "idempotentHint": True, "openWorldHint": False}
@@ -1083,6 +1136,17 @@ def build_mcp_server(name: str = MCP_SERVER_NAME) -> Any:
         ),
         annotations=_WRITES,
     )(requant_checkpoint)
+
+    server.tool(
+        description=(
+            "Run one declarative SFT (LoRA) training run from a TrainRecipe YAML "
+            "through the training container (docker exec), stamping the canonical "
+            "sft-progress heartbeat the Arena SFT pane follows. Real GPU work, "
+            "minutes-to-hours — backs the operator-armed Arena `sft_run` job "
+            "(FK_SFT_RUN_ARMED drain brake); mode='smoke' is the cheap liveness rep."
+        ),
+        annotations=_WRITES,
+    )(run_sft_training)
 
     return server
 

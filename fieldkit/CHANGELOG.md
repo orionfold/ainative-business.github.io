@@ -6,6 +6,62 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+The third arena-enhancements **v2** cut: **Cluster I core** — the observation +
+dispatch system-of-record fixes harvested by the S1 e2e smoke, with every
+guarded-launch risk (AF-20 arming · AE-22 launch) deliberately deferred to the
+dedicated launch-runner cut (AE-R13).
+
+### Added
+- **AE-26 — inventory truth on the build spine (AF-19 / OBS-2).** Each
+  `build-manifest.json` stage may declare its `artifacts`
+  (`[{path, rows?, files?}]`); `GET /api/build` **verifies them on disk at read
+  time** (exists · line-count vs the claimed `rows` · directory file-count ·
+  bytes · mtime — the AE-8 live-count pattern, generalized) and ships the
+  observation as a per-stage `inventory` facet; `<BuildSpine>` renders the chips
+  (`600/600 ✓ · 3d`, `missing ✗`, `✗ drift`). "DONE · 600 rows" can no longer be
+  an unchecked assertion (P1). Binaries are stat'd, never read — an 8.7 GB GGUF
+  costs one `stat()`. The tracked Kepler manifest now declares the real corpus /
+  bench / publish artifacts.
+- **AE-27 — corpus-gen request handshake + producer liveness (AF-22 / OBS-3).**
+  `POST /api/corpus-request` writes one atomic intent file
+  (`corpus-request.json`, the GS-1 pattern) beside the heartbeats; the
+  in-CC-session synth skill polls + fulfils it — Arena never imports skill code
+  (AE-R3). Fulfilment is an **observation** (a heartbeat stamped after the
+  request), surfaced with `GET` / withdrawn with `DELETE`. Producer **liveness**
+  is heartbeat-mtime freshness (`live ◉` within `FK_ARENA_CORPUS_LIVE_S`,
+  default 180 s · `⚠ stale` when a "running" heartbeat stopped stamping — the
+  OBS-3 blind spot, finally distinguishable · `done` · `none`); it rides the
+  corpus stage card, `/api/corpus-progress`, and a new **Corpus handshake**
+  block on the Build pane (request form · open-request state · withdraw).
+- **AE-29 — operator-armed `sft_run` dispatch (AF-21 dispatch half).** SFT was
+  the one core build stage with no Arena dispatch surface. New
+  `JobKind.SFT_RUN` + curated harness tool `run_sft_training(recipe_path, mode,
+  run_label)` (`TrainRecipe.from_yaml` → `fieldkit.training.run`, which already
+  stamps the canonical AE-25 heartbeat — the SFT pane follows the run live with
+  no extra wiring). **Operator-armed twice over:** `POST /api/jobs` forces
+  async-only (like `rl_run` — training never drains in a request
+  BackgroundTask), and a **drain brake** releases the claim back to `queued`
+  (audited, `budget_defer`) unless the draining process exports
+  `FK_SFT_RUN_ARMED=1`; `ArenaStore.claim_next_job` gains `skip_ids` so the
+  held job never starves the queue behind it. Jobs board: an **Arm SFT run**
+  form (recipe × smoke/full), an `⏸ awaiting armed drain` cue on the queued
+  card, and a completion digest (`backend · iter N/M · wall`).
+- **AE-30 — runtime readiness, read-only (AF-20 observation half).**
+  `GET /api/runtimes`: the runtimes the build/serve stages depend on, observed —
+  serve lanes via the AE-18 discovery sweep, training containers
+  (`FK_ARENA_RUNTIME_CONTAINERS`, default `nemo-train,ps-train`) via one
+  short-timeout `docker inspect` (state `up/stopped/absent/unknown`; the exit
+  code is never trusted, stdout is), pgvector + the NIM embedder via direct TCP
+  probes. Cached ~8 s (AE-R7); a box without docker degrades to `unknown`,
+  never an error. `<BuildSpine>` renders the **Runtimes** roster; the guarded
+  arm/teardown half stays deferred to the AE-22 launch-runner cut (same
+  AE-R13 risk class).
+
+### Fixed
+- The drain pass no longer re-claims a row it just released: `drain_jobs`
+  threads the released ids through `claim_next_job(skip_ids=…)` (previously the
+  brake pattern had to `break` the whole pass to avoid spinning).
+
 ## [0.29.0] — 2026-06-06
 
 The second arena-enhancements **v2** cut: the **Cluster G frontend** (AE-21 multi-lane

@@ -27,6 +27,11 @@ const COLUMNS = [
 
 function laneBench(job) {
   const p = job.payload || {};
+  if (job.kind === 'sft_run' && p.recipe_path) {
+    // AE-29 — the card face names the declarative contract: recipe × mode.
+    const tail = String(p.recipe_path).split('/').pop();
+    return [tail, p.mode || 'smoke'].join(' × ');
+  }
   return [p.lane_id, p.bench_id || p.manifest_slug].filter(Boolean).join(' × ') || job.kind;
 }
 
@@ -353,6 +358,8 @@ export default function JobsBoard({ curriculum = {} }) {
   const [bench, setBench] = useState('');
   const [rlBase, setRlBase] = useState('');
   const [rlBench, setRlBench] = useState('');
+  const [sftRecipe, setSftRecipe] = useState('');
+  const [sftMode, setSftMode] = useState('smoke');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const baseRef = useRef(null);
@@ -473,6 +480,40 @@ export default function JobsBoard({ curriculum = {} }) {
         setRlBase('');
         setRlBench('');
         setNote(j.note || 'rl_run queued — drains under the autonomy cron');
+      }
+    } catch (_e) {
+      setNote('sidecar unreachable');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Enqueue an SFT run (AE-29 / AF-21 dispatch half). Async-only AND
+  // operator-armed: the server never drains it in the request, and the drain
+  // brake releases it unless the draining process exports FK_SFT_RUN_ARMED=1
+  // — so this click can never start GPU training by itself.
+  async function enqueueSft(e) {
+    e.preventDefault();
+    const rp = sftRecipe.trim();
+    if (!rp || busy) return;
+    setBusy(true);
+    setNote('');
+    try {
+      const r = await fetch(`${baseRef.current}/api/jobs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'sft_run',
+          payload: { recipe_path: rp, mode: sftMode },
+          trigger: 'manual',
+          dispatch: false,
+        }),
+      });
+      const j = await r.json();
+      if (j.coalesced) setNote('an sft_run is already queued');
+      else {
+        setSftRecipe('');
+        setNote(j.note || 'sft_run queued — operator-armed (FK_SFT_RUN_ARMED=1)');
       }
     } catch (_e) {
       setNote('sidecar unreachable');
@@ -614,6 +655,41 @@ export default function JobsBoard({ curriculum = {} }) {
         <GuideCard entry={curriculum['gate-enqueue']} label="before you queue" />
       </form>
 
+      <form class="jobs__dispatch jobs__dispatch--sft" onSubmit={enqueueSft}>
+        <span
+          class="jobs__dispatch-label"
+          title="Enqueue a declarative SFT (LoRA) run — async-only AND operator-armed: it drains only under a process exporting FK_SFT_RUN_ARMED=1 (AE-29); the canonical sft-progress heartbeat feeds the SFT pane live"
+        >
+          Arm&nbsp;SFT&nbsp;run
+        </span>
+        <input
+          class="jobs__input"
+          type="text"
+          value={sftRecipe}
+          placeholder="recipe YAML path (TrainRecipe contract)"
+          maxLength={300}
+          disabled={!online}
+          onInput={(e) => setSftRecipe(e.currentTarget.value)}
+        />
+        <select
+          class="jobs__input jobs__input--mode"
+          value={sftMode}
+          disabled={!online}
+          onChange={(e) => setSftMode(e.currentTarget.value)}
+        >
+          <option value="smoke">smoke (recipe smoke_steps)</option>
+          <option value="full">full (recipe max_steps)</option>
+        </select>
+        <button
+          type="submit"
+          class="jobs__go"
+          disabled={!online || busy || !sftRecipe.trim()}
+          title="Queued only — never runs in this request; the operator arms the drain with FK_SFT_RUN_ARMED=1"
+        >
+          {busy ? '…' : 'queue (armed drain)'}
+        </button>
+      </form>
+
       <div class="jobs__board">
         {COLUMNS.map((col) => {
           const cards = jobs.filter((j) => col.match(j.status));
@@ -646,6 +722,18 @@ export default function JobsBoard({ curriculum = {} }) {
                     </div>
                     {j.status === 'running' && j.kind === 'rl_run' && (
                       <RlProgress result={j.result} curriculum={curriculum} hist={histRef.current[j.id]} />
+                    )}
+                    {/* AE-29 — a running sft_run's live truth is the canonical
+                        heartbeat (AE-25); deep-link instead of duplicating it. */}
+                    {j.status === 'running' && j.kind === 'sft_run' && (
+                      <div class="jobs__card-result">
+                        training… <a href="../sft/">follow live in the SFT pane ↗</a>
+                      </div>
+                    )}
+                    {j.status === 'queued' && j.kind === 'sft_run' && (
+                      <div class="jobs__card-armed" title="The drain brake holds this until a process exporting FK_SFT_RUN_ARMED=1 drains the queue — a stray background drain can never start training (AE-29)">
+                        ⏸ awaiting armed drain · <code>FK_SFT_RUN_ARMED=1</code>
+                      </div>
                     )}
                     {j.status === 'done' && j.result && j.result.mean_normalized != null && (
                       <div class="jobs__card-result">
@@ -696,6 +784,16 @@ export default function JobsBoard({ curriculum = {} }) {
                     )}
                     {j.status === 'done' && j.kind === 'rl_run' && j.result && (
                       <RlDebrief result={j.result} curriculum={curriculum} />
+                    )}
+                    {/* AE-29 — the sft_run completion digest (the live progress
+                        already rode the heartbeat; this is the settled record). */}
+                    {j.status === 'done' && j.kind === 'sft_run' && j.result && (
+                      <div class="jobs__card-result">
+                        {j.result.backend || '—'} · iter {j.result.final_iter ?? '—'}
+                        {j.result.max_steps != null ? `/${j.result.max_steps}` : ''}
+                        {j.result.wall_seconds != null ? ` · ${fmtEta(j.result.wall_seconds)} wall` : ''}
+                        {j.result.base_model ? ` · ${String(j.result.base_model).split('/').pop()}` : ''}
+                      </div>
                     )}
                     {j.status === 'failed' && j.error && (
                       <div class="jobs__card-error" title={j.error}>{j.error}</div>

@@ -1173,20 +1173,29 @@ class ArenaStore:
         conn.commit()
         return int(cur.lastrowid or 0)
 
-    def claim_next_job(self, *, dispatched_at: str) -> sqlite3.Row | None:
+    def claim_next_job(
+        self, *, dispatched_at: str, skip_ids: Sequence[str] = ()
+    ) -> sqlite3.Row | None:
         """Atomically claim the highest-priority oldest ``queued`` job.
 
         Flips it to ``dispatched`` (stamping ``dispatched_at``) inside one
         transaction so a second drainer can't grab the same row. Returns the
         claimed row (post-flip) or ``None`` when the queue is empty. Sequential
         single-lane drain (M8-5): the dispatcher calls this in a loop until it
-        returns ``None``.
+        returns ``None``. ``skip_ids`` (AE-29) excludes rows the current drain
+        pass already released back to ``queued`` (an operator-armed brake), so
+        the pass keeps working past a held job instead of re-claiming it forever.
         """
         conn = self.connect()
+        skip = [str(s) for s in skip_ids]
+        not_in = (
+            " AND id NOT IN (%s)" % ",".join("?" for _ in skip) if skip else ""
+        )
         with conn:  # BEGIN…COMMIT/ROLLBACK
             cur = conn.execute(
-                "SELECT id FROM jobs WHERE status='queued' "
-                "ORDER BY priority DESC, enqueued_at ASC LIMIT 1"
+                "SELECT id FROM jobs WHERE status='queued'" + not_in +
+                " ORDER BY priority DESC, enqueued_at ASC LIMIT 1",
+                skip,
             )
             hit = cur.fetchone()
             if hit is None:

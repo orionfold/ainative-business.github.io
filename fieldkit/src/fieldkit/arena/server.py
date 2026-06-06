@@ -53,7 +53,7 @@ import re
 import threading
 import time
 from pathlib import Path
-from typing import Any, AsyncIterator, Callable, Optional, Tuple
+from typing import Any, AsyncIterator, Callable, Mapping, Optional, Tuple
 
 from fieldkit.arena import (
     ARENA_SURFACE_VERSION,
@@ -1051,6 +1051,17 @@ def create_app(
 
         lane: str = Field(min_length=1, max_length=200)
 
+    class CorpusRequestBody(BaseModel):
+        """``POST /api/corpus-request`` body (AE-27 / AF-22) — a corpus-gen
+        intent. Every field optional: the bare POST is already a meaningful
+        "operator wants a synth" signal; the fields scope it. Operator-private
+        (a JSON file beside the heartbeats, never a table, never mirrored)."""
+
+        vertical: Optional[str] = Field(default=None, max_length=100)
+        target: Optional[int] = Field(default=None, ge=1, le=1_000_000)
+        run_label: Optional[str] = Field(default=None, max_length=100)
+        note: Optional[str] = Field(default=None, max_length=500)
+
     class JobCreateRequest(BaseModel):
         """``POST /api/jobs`` body — enqueue a control-plane job (M8).
 
@@ -1065,7 +1076,7 @@ def create_app(
         ``failed`` with the import/connection error, never silently dropped."""
 
         kind: str = Field(
-            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest|rl_run)$"
+            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest|rl_run|sft_run)$"
         )
         payload: dict = Field(default_factory=dict)
         trigger: str = Field(default="manual", max_length=40)
@@ -2314,15 +2325,24 @@ def create_app(
             return {"ok": True, "coalesced": True, "job_id": None}
         # rl_run is async-only (LA-4 / RV-6): never drain the 8.5 h GRPO loop in
         # a request BackgroundTask — it drains under the M11 cron + RL arbiter.
-        async_only = body.kind == "rl_run"
+        # sft_run is the same shape (AE-29 / AF-21): training is minutes-to-hours
+        # of GPU work; it drains only under an operator-ARMED drain (the
+        # FK_SFT_RUN_ARMED brake in `drain_jobs` releases it otherwise).
+        async_only = body.kind in ("rl_run", "sft_run")
         if body.dispatch and not async_only:
             background_tasks.add_task(_drain_jobs_background, str(db_file))
-        note = (
-            "queued — drains under the autonomy cron (one lane at a time); "
-            "arm it with `fieldkit arena autonomy on`"
-            if async_only
-            else None
-        )
+        if body.kind == "rl_run":
+            note = (
+                "queued — drains under the autonomy cron (one lane at a time); "
+                "arm it with `fieldkit arena autonomy on`"
+            )
+        elif body.kind == "sft_run":
+            note = (
+                "queued — operator-armed: drains only when the draining process "
+                "sets FK_SFT_RUN_ARMED=1 (and the training container is up)"
+            )
+        else:
+            note = None
         return {
             "ok": True,
             "coalesced": False,
@@ -2716,15 +2736,69 @@ def create_app(
             if source
             else _newest_corpus_report(root)
         )
+        liveness = _corpus_liveness(root)
         if report_path is None or not report_path.is_file():
-            return {"available": False, "kind": "corpus", "runs": runs}
+            return {
+                "available": False, "kind": "corpus", "runs": runs,
+                "liveness": liveness,
+            }
         report = _parse_corpus_report(report_path)
         if report is None:
-            return {"available": False, "kind": "corpus", "runs": runs}
+            return {
+                "available": False, "kind": "corpus", "runs": runs,
+                "liveness": liveness,
+            }
         return {
             "available": True, "kind": "corpus",
             "report": report, "source": report_path.name, "runs": runs,
+            "liveness": liveness,
         }
+
+    @app.get("/api/corpus-request")
+    async def api_corpus_request_get() -> dict[str, Any]:
+        """The corpus-gen handshake state (AE-27 / AF-22).
+
+        Returns the open intent (if any), its age, whether a heartbeat has
+        OBSERVABLY answered it (a ``corpus-progress*.json`` stamped after the
+        request file — never an assertion), and the producer liveness. Read-only;
+        never imports skill code (AE-R3)."""
+        return {
+            **_corpus_request_view(root),
+            "liveness": _corpus_liveness(root),
+        }
+
+    @app.post("/api/corpus-request")
+    async def api_corpus_request_post(body: CorpusRequestBody) -> dict[str, Any]:
+        """Post a corpus-gen INTENT (AE-27) — the P2 fix that keeps AE-R3.
+
+        Arena never runs the synth (it's an in-CC-session skill); it writes one
+        ``corpus-request.json`` beside the heartbeats (atomic, GS-1 pattern) that
+        the claude-corpus-synth session polls + fulfils. One open request at a
+        time — re-posting overwrites (it's an operator intent, not a queue)."""
+        payload = {
+            "kind": "corpus_request",
+            "status": "open",
+            "requested_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "vertical": body.vertical,
+            "target": body.target,
+            "run_label": body.run_label,
+            "note": body.note,
+        }
+        _write_corpus_request(root, payload)
+        return {
+            **_corpus_request_view(root),
+            "liveness": _corpus_liveness(root),
+        }
+
+    @app.delete("/api/corpus-request")
+    async def api_corpus_request_delete() -> dict[str, Any]:
+        """Withdraw the open corpus-gen intent (deletes the request file)."""
+        path = _corpus_request_path(root)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as exc:
+            raise HTTPException(status_code=500, detail=f"withdraw failed: {exc}")
+        return {"present": False, "liveness": _corpus_liveness(root)}
 
     @app.get("/api/build")
     async def api_build() -> dict[str, Any]:
@@ -2744,6 +2818,19 @@ def create_app(
         renders a static note. Declared before the static mount so ``/arena/build``
         (page) and ``/api/build`` stay distinct."""
         return _assemble_build(root, db_path)
+
+    @app.get("/api/runtimes")
+    async def api_runtimes() -> dict[str, Any]:
+        """Runtime readiness (AE-30 / AF-20 read-only half).
+
+        The roster of runtimes the build/serve stages depend on — serve lanes
+        (the AE-18 discovery sweep), training containers (`docker inspect`,
+        one short-timeout subprocess), pgvector + the NIM embedder (direct TCP
+        probes) — each with an observed up/stopped/absent/down state. READ-ONLY
+        by design: the guarded arm/teardown half is deferred to the AE-22
+        launch-runner cut (AE-R13 — same one-lane risk class). Cached ~8 s
+        (AE-R7); a box without docker degrades to ``unknown``, never an error."""
+        return _runtimes_cached()
 
     @app.get("/api/bench-provenance")
     async def api_bench_provenance() -> dict[str, Any]:
@@ -3243,6 +3330,118 @@ def _list_corpus_runs(root: Path) -> list:
 
 
 # ---------------------------------------------------------------------------
+# AE-27 (AF-22 / OBS-3) — corpus-gen request handshake + producer liveness
+# ---------------------------------------------------------------------------
+#
+# Two blind spots from the S1 smoke: (a) the operator can't *intend* a corpus
+# synth from Arena — generation is an in-CC-session skill, and AE-R3 forbids
+# Arena running skill code; (b) Arena can't tell "no synth running" from
+# "synth running but not stamping." The handshake keeps the AE-R3 boundary:
+# Arena writes an INTENT file (`corpus-request.json`, the GS-1 atomic-save
+# pattern) that the claude-corpus-synth session polls + fulfils; fulfilment is
+# *observed* (a heartbeat newer than the request), never asserted. Liveness is
+# heartbeat-mtime freshness — a `running` heartbeat older than the window is
+# honestly STALE, the exact blind spot OBS-3 named.
+
+_CORPUS_LIVE_WINDOW_ENV = "FK_ARENA_CORPUS_LIVE_S"
+_CORPUS_LIVE_WINDOW_DEFAULT = 180.0  # a stamping synth writes every batch (~min)
+
+
+def _corpus_request_path(root: Path) -> Path:
+    """The single open-intent file (one request at a time — it's an operator
+    intent, not a queue). Lives beside the heartbeats so the producer skill
+    finds both in the one ``FK_ARENA_CORPUS_DIR``."""
+    return _corpus_reports_dir(root) / "corpus-request.json"
+
+
+def _read_corpus_request(root: Path) -> dict[str, Any] | None:
+    """The open request, else ``None``. Best-effort (corrupt file → ``None``)."""
+    path = _corpus_request_path(root)
+    try:
+        if path.is_file():
+            data = json.loads(path.read_text())
+            if isinstance(data, dict):
+                return data
+    except (OSError, ValueError) as exc:
+        _log.debug("corpus-request read failed: %s", exc)
+    return None
+
+
+def _write_corpus_request(root: Path, payload: Mapping[str, Any]) -> Path:
+    """Atomic intent write (GS-1 ``tmp + os.replace`` pattern)."""
+    path = _corpus_request_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(dict(payload), indent=2, sort_keys=True))
+    os.replace(tmp, path)
+    return path
+
+
+def _corpus_liveness(root: Path, now: float | None = None) -> dict[str, Any]:
+    """Producer liveness from heartbeat-mtime freshness.
+
+    ``live`` = a ``running`` heartbeat stamped within the window;
+    ``stale`` = claims running but stopped stamping (the OBS-3 blind spot,
+    surfaced); ``done`` = the newest run finished; ``none`` = no heartbeat."""
+    now = time.time() if now is None else now
+    window = _CORPUS_LIVE_WINDOW_DEFAULT
+    env = os.environ.get(_CORPUS_LIVE_WINDOW_ENV)
+    if env:
+        try:
+            window = max(1.0, float(env))
+        except ValueError:
+            pass
+    rp = _newest_corpus_report(root)
+    if rp is None:
+        return {"state": "none", "source": None, "age_s": None}
+    try:
+        age = max(0.0, now - rp.stat().st_mtime)
+    except OSError:
+        return {"state": "none", "source": None, "age_s": None}
+    rep = _parse_corpus_report(rp) or {}
+    status = rep.get("status") or "running"
+    if status == "done":
+        state = "done"
+    elif age <= window:
+        state = "live"
+    else:
+        state = "stale"
+    return {"state": state, "source": rp.name, "age_s": round(age, 1), "status": status}
+
+
+def _corpus_request_view(root: Path, now: float | None = None) -> dict[str, Any]:
+    """The handshake state: the open intent + whether reality answered it.
+
+    Fulfilment is an OBSERVATION (P1): a heartbeat stamped *after* the request
+    file. The producer may also rewrite the request's ``status`` (``acked`` /
+    ``done``) — surfaced verbatim, but the mtime comparison is the truth."""
+    now = time.time() if now is None else now
+    req = _read_corpus_request(root)
+    if req is None:
+        return {"present": False}
+    path = _corpus_request_path(root)
+    try:
+        req_mtime = path.stat().st_mtime
+    except OSError:
+        return {"present": False}
+    fulfilled_by: str | None = None
+    rp = _newest_corpus_report(root)
+    if rp is not None:
+        try:
+            if rp.stat().st_mtime > req_mtime:
+                fulfilled_by = rp.name
+        except OSError:
+            pass
+    return {
+        "present": True,
+        "request": req,
+        "age_s": round(max(0.0, now - req_mtime), 1),
+        "fulfilled": fulfilled_by is not None,
+        "fulfilled_by": fulfilled_by,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Build spine (AE-5 / AF-1) — the vertical-build pipeline as C1..C6 stage cards
 # ---------------------------------------------------------------------------
 #
@@ -3733,6 +3932,11 @@ def _build_corpus_stage(root: Path) -> dict[str, Any]:
         ),
         "href": None, "source": "corpus-progress", "live": True,
     }
+    # AE-27 — producer liveness + the open request ride the stage card so the
+    # operator sees "synth live / stale / none" and "request open · awaiting
+    # the CC session" without leaving the spine.
+    base["liveness"] = _corpus_liveness(root)
+    base["request"] = _corpus_request_view(root)
     rp = _newest_corpus_report(root)
     if rp is None:
         return base
@@ -3958,6 +4162,261 @@ def _merge_build_stage(
     return out
 
 
+# ---------------------------------------------------------------------------
+# AE-26 (AF-19 / OBS-2) — inventory truth: assertion → disk observation
+# ---------------------------------------------------------------------------
+#
+# The build spine reported MANIFEST-ASSERTED state ("Corpus DONE · 600 rows")
+# without ever checking the file exists or actually has 600 lines — the S1
+# e2e smoke had to drop to `wc -l` to know reality matched the claim (P1:
+# report ≠ reality is an integrity bug). Each manifest stage may now declare
+# its artifacts; the spine VERIFIES them at read time, exactly the way AE-8
+# already counts the bench JSONL live:
+#
+#   "corpus": {"artifacts": [{"path": "astro-sft-corpus.jsonl", "rows": 600}]}
+#
+# `path` resolves relative to the build-manifest dir (absolute allowed — GGUFs
+# live outside the repo); `rows` claims a JSONL/text line count; `files` claims
+# a directory's file count. Binary/large files get exists/bytes/mtime only —
+# the verifier never reads a multi-GB GGUF.
+
+_INVENTORY_LINECOUNT_SUFFIXES = {".jsonl", ".json", ".txt", ".csv", ".md", ".yaml"}
+_INVENTORY_LINECOUNT_MAX_BYTES = 64 * 1024 * 1024  # never line-count a weights file
+
+
+def _count_jsonl_lines(path: Path) -> int | None:
+    """Non-blank line count of a small text artifact; ``None`` when unreadable."""
+    try:
+        return sum(1 for line in path.read_text().splitlines() if line.strip())
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
+def _inventory_item(base_dir: Path, spec: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Verify one declared artifact against the disk. Best-effort, never raises."""
+    raw = spec.get("path")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    p = Path(os.path.expanduser(raw))
+    if not p.is_absolute():
+        p = base_dir / p
+    item: dict[str, Any] = {
+        "name": p.name,
+        "exists": False,
+        "bytes": None,
+        "mtime": None,
+        "lines": None,
+        "files": None,
+        "claimed_rows": spec.get("rows") if isinstance(spec.get("rows"), int) else None,
+        "claimed_files": spec.get("files") if isinstance(spec.get("files"), int) else None,
+        "match": None,
+    }
+    try:
+        st = p.stat()
+    except OSError:
+        return item  # honest: declared but absent
+    item["exists"] = True
+    item["mtime"] = st.st_mtime
+    if p.is_dir():
+        try:
+            n_files = sum(1 for c in p.iterdir() if c.is_file() and not c.name.startswith("."))
+        except OSError:
+            n_files = None
+        item["files"] = n_files
+        if item["claimed_files"] is not None and n_files is not None:
+            item["match"] = n_files == item["claimed_files"]
+        return item
+    item["bytes"] = st.st_size
+    wants_lines = item["claimed_rows"] is not None or p.suffix in _INVENTORY_LINECOUNT_SUFFIXES
+    if wants_lines and st.st_size <= _INVENTORY_LINECOUNT_MAX_BYTES:
+        item["lines"] = _count_jsonl_lines(p)
+    if item["claimed_rows"] is not None and item["lines"] is not None:
+        item["match"] = item["lines"] == item["claimed_rows"]
+    return item
+
+
+def _stage_inventory(root: Path, manifest_stage: Any) -> dict[str, Any] | None:
+    """AE-26 — the disk-truth facet for one stage's declared artifacts.
+
+    ``None`` when the stage declares nothing (no facet rendered — the
+    declaration is operator-opt-in, like every other manifest field). ``ok``
+    is True only when every declared artifact exists AND no count claim
+    mismatches — a single missing file or drifted count flips the facet."""
+    if not isinstance(manifest_stage, dict):
+        return None
+    specs = manifest_stage.get("artifacts")
+    if not isinstance(specs, list) or not specs:
+        return None
+    base_dir = _build_manifest_dir(root)
+    items = [
+        it
+        for spec in specs
+        if isinstance(spec, Mapping)
+        if (it := _inventory_item(base_dir, spec)) is not None
+    ]
+    if not items:
+        return None
+    ok = all(i["exists"] and i["match"] is not False for i in items)
+    return {"ok": ok, "items": items}
+
+
+# ---------------------------------------------------------------------------
+# AE-30 (AF-20, read-only half) — runtime readiness: observe, never arm
+# ---------------------------------------------------------------------------
+#
+# The S1 smoke's "single biggest gap": the operator arming a build/serve stage
+# flew blind — is `nemo-train` up? a serve lane resident? pgvector answering?
+# Every check was a terminal `docker ps`/`nc`. This is the OBSERVATION half
+# only (P1): serve lanes via the AE-18 discovery sweep, training containers via
+# one short-timeout `docker inspect`, pgvector via a direct TCP probe. The
+# guarded ARM/TEARDOWN half (P2) is deliberately deferred to the AE-22
+# launch-runner cut — same risk class (AE-R13, one-lane envelope).
+
+_RUNTIMES_TTL_S = 8.0  # mirror the AE-18 discovery cache (AE-R7 — never per-tick)
+_runtimes_cache: dict[str, Any] = {"t": 0.0, "v": None}
+
+#: Training containers the build stages dispatch into (box-specific; override
+#: with a comma list). `nemo-train` is the `sft_run` dispatch target.
+_RUNTIME_CONTAINERS_ENV = "FK_ARENA_RUNTIME_CONTAINERS"
+_RUNTIME_CONTAINERS_DEFAULT = "nemo-train,ps-train"
+
+_RUNTIME_CONTAINER_NOTES = {
+    "nemo-train": "NeMo training backend — sft_run dispatch target",
+    "ps-train": "Unsloth training backend",
+}
+
+
+def _tcp_up(port: int, host: str = "127.0.0.1", timeout: float = 0.3) -> bool:
+    """One TCP connect — the cheapest honest liveness observation."""
+    import socket
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _docker_container_states(
+    names: list[str], timeout: float = 1.5
+) -> dict[str, str]:
+    """``docker inspect`` each named container in ONE subprocess call.
+
+    Returns per-name: ``up`` (running) · ``stopped`` (exists, not running) ·
+    ``absent`` (no such container) · ``unknown`` (docker unavailable/timed out).
+    Missing names exit nonzero but the found ones still print — parsed from
+    stdout, never trusted from the exit code."""
+    import subprocess
+
+    if not names:
+        return {}
+    try:
+        proc = subprocess.run(
+            ["docker", "inspect", "-f", "{{.Name}} {{.State.Running}}", *names],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        _log.debug("docker inspect failed: %s", exc)
+        return {n: "unknown" for n in names}
+    out = {n: "absent" for n in names}
+    for line in proc.stdout.splitlines():
+        parts = line.strip().lstrip("/").split()
+        if len(parts) == 2 and parts[0] in out:
+            out[parts[0]] = "up" if parts[1] == "true" else "stopped"
+    return out
+
+
+def _probe_runtimes() -> dict[str, Any]:
+    """Assemble the runtime-readiness roster (uncached — pure observation)."""
+    from fieldkit.arena import lanes
+
+    entries: list[dict[str, Any]] = []
+    discovered = []
+    try:
+        discovered = lanes.discover_cached()
+    except Exception as exc:  # noqa: BLE001 — readiness must never error a pane
+        _log.debug("runtime lane discovery failed: %s", exc)
+    seen_ports: set[int] = set()
+    for ln in discovered:
+        port = ln.get("port")
+        if isinstance(port, int):
+            seen_ports.add(port)
+        entries.append(
+            {
+                "key": f"lane:{port}",
+                "label": ln.get("model") or f"lane :{port}",
+                "kind": "lane",
+                "state": "up",
+                "detail": f":{port} · {ln.get('kind') or 'OpenAI-compat'}",
+            }
+        )
+    if not discovered:
+        entries.append(
+            {
+                "key": "lane",
+                "label": "serve lane",
+                "kind": "lane",
+                "state": "down",
+                "detail": "none resident — GPU lane free",
+            }
+        )
+    raw = os.environ.get(_RUNTIME_CONTAINERS_ENV, _RUNTIME_CONTAINERS_DEFAULT)
+    names = [n.strip() for n in raw.split(",") if n.strip()]
+    states = _docker_container_states(names)
+    for name in names:
+        entries.append(
+            {
+                "key": f"container:{name}",
+                "label": name,
+                "kind": "container",
+                "state": states.get(name, "unknown"),
+                "detail": _RUNTIME_CONTAINER_NOTES.get(name, "training container"),
+            }
+        )
+    entries.append(
+        {
+            "key": "tcp:5432",
+            "label": "pgvector",
+            "kind": "tcp",
+            "state": "up" if _tcp_up(5432) else "down",
+            "detail": ":5432 · Second Brain index",
+        }
+    )
+    if 8001 not in seen_ports:
+        # The NIM embedder lane answers the discovery sweep when up; when it
+        # doesn't, name the expectation honestly instead of omitting it.
+        entries.append(
+            {
+                "key": "tcp:8001",
+                "label": "NIM embedder",
+                "kind": "tcp",
+                "state": "up" if _tcp_up(8001) else "down",
+                "detail": ":8001 · Second Brain queries",
+            }
+        )
+    up = sum(1 for e in entries if e["state"] == "up")
+    return {
+        "available": True,
+        "checked_at": time.time(),
+        "up": up,
+        "total": len(entries),
+        "runtimes": entries,
+    }
+
+
+def _runtimes_cached(ttl: float = _RUNTIMES_TTL_S) -> dict[str, Any]:
+    """Cached :func:`_probe_runtimes` so a polling pane never docker-storms."""
+    now = time.monotonic()
+    c = _runtimes_cache
+    if c["v"] is not None and (now - c["t"]) < ttl:
+        return c["v"]
+    v = _probe_runtimes()
+    c.update(t=now, v=v)
+    return v
+
+
 def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
     """Assemble the eight-stage build spine (AE-5).
 
@@ -3983,6 +4442,13 @@ def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
         _build_publish_stage(),
     ]
     stages = [_merge_build_stage(s, m_stages.get(s["key"])) for s in auto]
+    for s in stages:
+        # AE-26 — verify each stage's declared artifacts against the disk at
+        # read time; the raw declaration never ships, the observation does.
+        s.pop("artifacts", None)
+        inv = _stage_inventory(root, m_stages.get(s["key"]))
+        if inv is not None:
+            s["inventory"] = inv
     done = sum(1 for s in stages if s.get("state") == "done")
     return {
         "available": True,

@@ -86,12 +86,19 @@ class JobKind:
     # Phase 3 (rlvr-loop-v1, RV-6) — the closed-loop RLVR engine, overnight-only:
     REQUANT = "requant"
     RL_RUN = "rl_run"
+    # AE-29 (arena-enhancements-v2, AF-21 dispatch half) — the operator-armed
+    # SFT dispatch. SFT was the one core build stage with NO Arena dispatch
+    # surface (the S1 smoke launched it from bash). Like RL_RUN it is
+    # async-only; *additionally* it drains only under a process that exports
+    # ``FK_SFT_RUN_ARMED=1`` (the drain brake) — a stray request-time
+    # background drain can never start a training run.
+    SFT_RUN = "sft_run"
 
     DISPATCHABLE: frozenset[str] = frozenset(
-        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST, REQUANT, RL_RUN}
+        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST, REQUANT, RL_RUN, SFT_RUN}
     )
     ALL: frozenset[str] = frozenset(
-        {EVAL_RERUN, MEASURE_VARIANTS, REQUANT, RL_RUN, REINDEX, RAG_EVAL, SCOUT_INGEST}
+        {EVAL_RERUN, MEASURE_VARIANTS, REQUANT, RL_RUN, REINDEX, RAG_EVAL, SCOUT_INGEST, SFT_RUN}
     )
 
 
@@ -414,6 +421,18 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             checkpoint=payload["checkpoint"],
             variants=payload.get("variants"),
         )
+    # AE-29 (AF-21 dispatch half) — the operator-armed SFT dispatch. The recipe
+    # YAML is the declarative contract (`TrainRecipe.from_yaml`); execution is
+    # `fieldkit.training.run`, which stamps the canonical `sft-progress-*.json`
+    # heartbeat (AE-25) — so the /arena/sft/ pane follows this run live with no
+    # extra wiring. The FK_SFT_RUN_ARMED brake gates this in `drain_jobs`; by
+    # the time the runner executes, the drain was deliberately armed.
+    if kind == JobKind.SFT_RUN:
+        return mcp.run_sft_training(
+            recipe_path=payload["recipe_path"],
+            mode=payload.get("mode", "smoke"),
+            run_label=payload.get("run_label"),
+        )
     raise UnknownJobKind(
         f"job kind {kind!r} is a named stub, not dispatchable "
         f"(dispatchable: {sorted(JobKind.DISPATCHABLE)})"
@@ -630,6 +649,59 @@ def _persist_rl_run(
         "mem_trace": result.get("mem_trace"),
         "aborted": bool(result.get("aborted", False)),
     }
+
+
+def _persist_sft_run(
+    store: Any,
+    payload: Mapping[str, Any],
+    result: Mapping[str, Any],
+    now: str,
+) -> dict[str, Any]:
+    """Summarize an ``sft_run`` result for ``jobs.result_json`` (AE-29).
+
+    **No new arena.db table** — the run's live progress already rides the
+    canonical ``sft-progress-*.json`` heartbeat (AE-25; ``fieldkit.training.run``
+    stamps it from its checkpoint poll, the /arena/sft/ pane follows it). This
+    persists only the completion digest the Jobs card renders: backend / mode /
+    final iter / wall / where the run-dir landed. ``recipe_path`` echoes the
+    declarative contract the run was dispatched from.
+    """
+    return {
+        "kind": JobKind.SFT_RUN,
+        "backend": result.get("backend"),
+        "mode": result.get("mode", payload.get("mode", "smoke")),
+        "recipe_path": payload.get("recipe_path"),
+        "run_label": payload.get("run_label"),
+        "base_model": result.get("base_model"),
+        "final_iter": result.get("final_iter"),
+        "max_steps": result.get("max_steps"),
+        "wall_seconds": result.get("wall_seconds"),
+        "run_dir": result.get("run_dir"),
+        "container": result.get("container"),
+        "log_path": result.get("log_path"),
+    }
+
+
+def _sft_run_armed() -> bool:
+    """The AE-29 drain brake's arming check — process-level, deliberate.
+
+    ``sft_run`` executes minutes-to-hours of GPU training via ``docker exec``;
+    it must never start because an unrelated ``eval_rerun`` dispatch happened
+    to drain the queue it was waiting in. The operator arms a drain by
+    exporting ``FK_SFT_RUN_ARMED=1`` in the draining process (the FK_RL_*
+    convention) — anything else releases the claim back to ``queued``.
+    """
+    return os.environ.get("FK_SFT_RUN_ARMED", "").strip() == "1"
+
+
+class _SftDeferred:
+    """Duck-typed defer decision for :func:`_release_and_audit` (LA-6 shape)."""
+
+    action = "defer"
+
+    def __init__(self, reason: str, detail: Optional[dict[str, Any]] = None) -> None:
+        self.reason = reason
+        self.detail = detail or {}
 
 
 def _run_rl_arbitered(
@@ -853,6 +925,8 @@ def dispatch_job(
             summary = _persist_rag_eval(store, payload, result, now)
         elif kind == JobKind.RL_RUN:
             summary = _persist_rl_run(store, payload, result, now)
+        elif kind == JobKind.SFT_RUN:
+            summary = _persist_sft_run(store, payload, result, now)
         else:
             summary = dict(result)
         store.update_job(
@@ -941,8 +1015,9 @@ def drain_jobs(
     live progress) and is inert for every other kind. ``None`` = bare M8 behavior.
     """
     done: list[dict[str, Any]] = []
+    braked: list[str] = []  # AE-29 — sft_run rows this pass released (skip, don't re-claim)
     while max_jobs is None or len(done) < max_jobs:
-        claimed = store.claim_next_job(dispatched_at=now_fn())
+        claimed = store.claim_next_job(dispatched_at=now_fn(), skip_ids=braked)
         if claimed is None:
             break
         job = {k: claimed[k] for k in claimed.keys()}
@@ -959,6 +1034,25 @@ def drain_jobs(
             if lane_decision is not None:
                 _release_and_audit(store, job, lane_decision, now_fn())
                 break
+        if str(job.get("kind")) == JobKind.SFT_RUN and not _sft_run_armed():
+            # AE-29 brake — sft_run is operator-armed. An unarmed drain (the
+            # request-time BackgroundTask, an autonomy tick without the env)
+            # releases the claim + audits, then KEEPS DRAINING past it
+            # (`skip_ids` — a held training run must not starve the evals
+            # queued behind it); the job waits, queued, for a drain the
+            # operator deliberately armed (FK_SFT_RUN_ARMED=1).
+            _release_and_audit(
+                store,
+                job,
+                _SftDeferred(
+                    "sft_run is operator-armed — export FK_SFT_RUN_ARMED=1 "
+                    "in the draining process",
+                    {"brake": "sft_run_unarmed"},
+                ),
+                now_fn(),
+            )
+            braked.append(str(job["id"]))
+            continue
         try:
             done.append(
                 dispatch_job(store, job, runner=runner, now_fn=now_fn, rl_lane=rl_lane)

@@ -873,3 +873,106 @@ def test_rag_eval_promotion_gate(store):
     assert s2["prior_recall_at_k"] == 0.659
     assert s2["delta"] == -0.159
     assert len(store.rag_eval_runs()) == 2
+
+
+# ---------------------------------------------------------------------------
+# AE-29 (arena-enhancements-v2 cut 3) — the operator-armed sft_run dispatch
+# ---------------------------------------------------------------------------
+#
+# SFT was the one core build stage with no Arena dispatch surface (the S1 e2e
+# smoke launched it from bash — AF-21). These pin the arming contract: the job
+# enqueues + coalesces like any kind, but it EXECUTES only under a drain whose
+# process exports FK_SFT_RUN_ARMED=1; an unarmed drain releases the claim back
+# to queued (audited) and KEEPS DRAINING past it — a held training run must
+# never starve the evals queued behind it, and a stray request-time background
+# drain can never start GPU training.
+
+
+def _fake_sft_runner():
+    def _run(kind, payload):
+        assert kind == JobKind.SFT_RUN
+        return {
+            "kind": "sft_run",
+            "backend": "nemo",
+            "mode": payload.get("mode", "smoke"),
+            "base_model": "Qwen/Qwen3-8B",
+            "max_steps": 10,
+            "final_iter": 10,
+            "wall_seconds": 187.4,
+            "run_dir": "/data/runs-smoke",
+            "container": "nemo-train",
+            "log_path": "/data/runs-smoke/host.log",
+        }
+
+    return _run
+
+
+def test_sft_run_is_a_known_dispatchable_kind():
+    assert JobKind.SFT_RUN in JobKind.ALL
+    assert JobKind.SFT_RUN in JobKind.DISPATCHABLE
+
+
+def test_sft_run_unarmed_drain_releases_and_keeps_draining(store, monkeypatch):
+    """The brake: no FK_SFT_RUN_ARMED ⇒ released to queued + audited; the eval
+    queued BEHIND it still drains in the same pass (skip, not stop)."""
+    monkeypatch.delenv("FK_SFT_RUN_ARMED", raising=False)
+    sft_id = jobs.enqueue_job(
+        store, JobKind.SFT_RUN, {"recipe_path": "/tmp/recipe.yaml", "mode": "smoke"}
+    )
+    jobs.enqueue_job(
+        store, JobKind.EVAL_RERUN,
+        {"lane_id": "patent-q4km", "bench_id": "b", "bench_path": "/tmp/b.jsonl"},
+    )
+    done = jobs.drain_jobs(store, runner=_fake_eval_runner(), now_fn=lambda: _NOW)
+    # The eval drained; the sft_run did not.
+    assert [d["kind"] for d in done] == [JobKind.EVAL_RERUN]
+    held = store.get_job(sft_id)
+    assert held["status"] == JobStatus.QUEUED
+    # The release is audited (budget_defer trigger row carrying the brake).
+    trig = list(
+        store.connect().execute(
+            "SELECT * FROM job_triggers WHERE job_id=?", [sft_id]
+        )
+    )
+    assert any("sft_run_unarmed" in (t["detail_json"] or "") for t in trig)
+
+
+def test_sft_run_armed_drain_dispatches_and_persists(store, monkeypatch):
+    monkeypatch.setenv("FK_SFT_RUN_ARMED", "1")
+    jobs.enqueue_job(
+        store, JobKind.SFT_RUN,
+        {"recipe_path": "/tmp/astro-recipe.yaml", "mode": "smoke", "run_label": "astro-s1"},
+    )
+    done = jobs.drain_jobs(store, runner=_fake_sft_runner(), now_fn=lambda: _NOW)
+    assert len(done) == 1
+    assert done[0]["status"] == JobStatus.DONE
+    summary = json.loads(done[0]["result_json"])
+    assert summary["kind"] == "sft_run"
+    assert summary["backend"] == "nemo"
+    assert summary["final_iter"] == 10
+    assert summary["recipe_path"] == "/tmp/astro-recipe.yaml"
+    assert summary["run_label"] == "astro-s1"
+    assert summary["wall_seconds"] == 187.4
+
+
+def test_sft_run_armed_failure_lands_failed_not_requeued(store, monkeypatch):
+    """An ARMED drain that fails (recipe missing, container down) is an honest
+    failed row — never an infinite defer loop."""
+    monkeypatch.setenv("FK_SFT_RUN_ARMED", "1")
+    def _boom(kind, payload):
+        raise FileNotFoundError("recipe YAML not found: /tmp/nope.yaml")
+    job_id = jobs.enqueue_job(store, JobKind.SFT_RUN, {"recipe_path": "/tmp/nope.yaml"})
+    jobs.drain_jobs(store, runner=_boom, now_fn=lambda: _NOW, on_error="record")
+    row = store.get_job(job_id)
+    assert row["status"] == JobStatus.FAILED
+    assert "recipe YAML not found" in row["error"]
+
+
+def test_claim_next_job_skip_ids(store):
+    a = jobs.enqueue_job(store, JobKind.SFT_RUN, {"recipe_path": "/a.yaml"})
+    b = jobs.enqueue_job(
+        store, JobKind.EVAL_RERUN,
+        {"lane_id": "patent-q4km", "bench_id": "b2", "bench_path": "/tmp/b.jsonl"},
+    )
+    claimed = store.claim_next_job(dispatched_at=_NOW, skip_ids=[a])
+    assert claimed["id"] == b

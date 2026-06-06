@@ -3,7 +3,7 @@
   "label": "Kepler",
   "bench_id": "astro-bench",
   "updated": "2026-06-05",
-  "_note": "Operator-authored build spine for the Kepler vertical (AE-5 / /arena/build/). Fills the stages with no live cockpit feed (scout / corpus / publish) and the human-gate annotations; the SFT / smoke / lane / RLVR stages are read live off their existing feeds and override these where present. Read by GET /api/build via FK_ARENA_BUILD_DIR (default this dir).",
+  "_note": "Operator-authored build spine for the Kepler vertical (AE-5 / /arena/build/). Fills the stages with no live cockpit feed (scout / corpus / publish) and the human-gate annotations; the SFT / smoke / lane / RLVR stages are read live off their existing feeds and override these where present. Read by GET /api/build via FK_ARENA_BUILD_DIR (default this dir). Per-stage `artifacts` declarations (AE-26) are VERIFIED against the disk at read time — paths relative to this dir, `rows` claims a JSONL line count.",
   "stages": {
     "scout": {
       "state": "done",
@@ -16,14 +16,22 @@
       "state": "done",
       "headline": "astro-bench v0.1 · 120 pool + 44 held-out",
       "detail": "disjoint (RV-10) · every gold self-verifies · astro_numeric_match ±2%",
-      "gate_state": "pass"
+      "gate_state": "pass",
+      "artifacts": [
+        {"path": "astro-bench-v0.1.jsonl", "rows": 120},
+        {"path": "astro-bench-v0.1.heldout.jsonl", "rows": 44}
+      ]
     },
     "corpus": {
       "state": "done",
       "headline": "600 rows · all self-verify",
       "detail": "SFT-init corpus · closed-form numeric · held-out-excluded",
       "gate": "/usage token preflight",
-      "gate_state": "pass"
+      "gate_state": "pass",
+      "artifacts": [
+        {"path": "astro-sft-corpus.jsonl", "rows": 600},
+        {"path": "astro-sft-queue.jsonl", "rows": 600}
+      ]
     },
     "sft": {
       "gate_state": "pass"
@@ -38,7 +46,10 @@
       "detail": "Q8_0 recommended · apache-2.0 · + Kepler-bench dataset card",
       "gate": "held-out-win publish",
       "gate_state": "pass",
-      "href": "https://huggingface.co/Orionfold/Kepler-GGUF"
+      "href": "https://huggingface.co/Orionfold/Kepler-GGUF",
+      "artifacts": [
+        {"path": "/home/nvidia/data/quants/Kepler/model-Q8_0.gguf"}
+      ]
     }
   }
 }

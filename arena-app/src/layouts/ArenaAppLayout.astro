@@ -3422,6 +3422,14 @@ try {
       .arena-app .jobs__scan:disabled { opacity: 0.4; cursor: default; }
       /* RLVR async-enqueue affordance (rl-lane-autonomy LA-4) */
       .arena-app .jobs__dispatch--rl { border-style: dashed; }
+      /* AE-29 — the operator-armed SFT dispatch form + the held-queued cue */
+      .arena-app .jobs__dispatch--sft { border-style: dashed; }
+      .arena-app .jobs__input--mode { width: auto; }
+      .arena-app .jobs__card-armed {
+        font-family: var(--arena-mono); font-size: 0.58rem; color: var(--arena-warn);
+        padding-top: 0.3rem;
+      }
+      .arena-app .jobs__card-armed code { font-size: 0.55rem; color: var(--arena-text-dim); }
       .arena-app .jobs__dispatch--rl .jobs__go {
         color: var(--arena-text); background: transparent;
         border: 1px solid var(--arena-accent);
@@ -4230,6 +4238,102 @@ try {
       .arena-app .build__foot a { color: var(--arena-text-dim); }
       .arena-app .build__foot a:hover { color: var(--arena-accent); }
       .arena-app .build__foot b { color: var(--arena-accent); }
+
+      /* AE-26 — inventory-truth chips (disk-verified artifact facts per stage) */
+      .arena-app .build__inv {
+        display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.15rem;
+        padding-top: 0.4rem; border-top: 1px dashed color-mix(in oklch, var(--arena-border) 60%, transparent);
+      }
+      .arena-app .build__inv-chip {
+        display: inline-flex; align-items: center; gap: 0.25rem;
+        font-family: var(--arena-mono); font-size: 0.55rem;
+        padding: 0.08rem 0.36rem; border-radius: 0.28rem;
+        border: 1px solid color-mix(in oklch, var(--arena-ok) 35%, var(--arena-border));
+        color: var(--arena-ok);
+        background: color-mix(in oklch, var(--arena-ok) 7%, transparent);
+      }
+      .arena-app .build__inv-chip[data-tone="hold"] {
+        border-color: color-mix(in oklch, var(--arena-warn) 50%, var(--arena-border));
+        color: var(--arena-warn);
+        background: color-mix(in oklch, var(--arena-warn) 10%, transparent);
+      }
+      .arena-app .build__inv-chip code { font-size: 0.55rem; color: var(--arena-text-dim); }
+      .arena-app .build__inv-chip i { font-style: normal; color: var(--arena-text-dim); }
+
+      /* AE-30 — runtime-readiness roster (observed; read-only half of AF-20) */
+      .arena-app .build__rt {
+        display: flex; flex-direction: column; gap: 0.45rem;
+        padding: 0.6rem 0.85rem; border-radius: 0.5rem;
+        border: 1px solid var(--arena-border);
+        background: color-mix(in oklch, var(--arena-bg) 85%, transparent);
+      }
+      .arena-app .build__rt-head { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+      .arena-app .build__rt-title {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .build__rt-count { font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text); }
+      .arena-app .build__rt-sub { font-size: 0.58rem; color: var(--arena-text-mute); }
+      .arena-app .build__rt-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+      .arena-app .build__rt-chip {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-family: var(--arena-mono); font-size: 0.58rem;
+        padding: 0.14rem 0.45rem; border-radius: 0.3rem;
+        border: 1px solid var(--arena-border); color: var(--arena-text-dim);
+      }
+      .arena-app .build__rt-chip b { color: var(--arena-text); font-weight: 600; }
+      .arena-app .build__rt-chip i { font-style: normal; color: var(--arena-text-mute); }
+      .arena-app .build__rt-chip[data-tone="pass"] { border-color: color-mix(in oklch, var(--arena-ok) 40%, var(--arena-border)); }
+      .arena-app .build__rt-chip[data-tone="hold"] { border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-border)); }
+      .arena-app .build__rt-dot { width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--arena-text-dim); }
+      .arena-app .build__rt-dot[data-tone="pass"] { background: var(--arena-ok); box-shadow: 0 0 4px var(--arena-ok-dim); }
+      .arena-app .build__rt-dot[data-tone="hold"] { background: var(--arena-warn); }
+
+      /* AE-27 — corpus handshake (intent control + producer liveness) */
+      .arena-app .build__shake {
+        display: flex; flex-direction: column; gap: 0.45rem;
+        padding: 0.6rem 0.85rem; border-radius: 0.5rem;
+        border: 1px dashed var(--arena-border);
+        background: color-mix(in oklch, var(--arena-bg) 85%, transparent);
+      }
+      .arena-app .build__shake-head { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+      .arena-app .build__shake-title {
+        font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.14em;
+        text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .build__shake-live {
+        display: inline-flex; align-items: center; gap: 0.3rem;
+        font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-dim);
+      }
+      .arena-app .build__shake-live[data-tone="pass"] { color: var(--arena-ok); }
+      .arena-app .build__shake-live[data-tone="hold"] { color: var(--arena-warn); }
+      .arena-app .build__shake-dot { width: 0.42rem; height: 0.42rem; border-radius: 50%; background: var(--arena-text-dim); }
+      .arena-app .build__shake-dot[data-tone="pass"] { background: var(--arena-ok); animation: build-pulse 1.8s ease-in-out infinite; }
+      .arena-app .build__shake-dot[data-tone="hold"] { background: var(--arena-warn); }
+      .arena-app .build__shake-src { font-size: 0.55rem; color: var(--arena-text-mute); }
+      .arena-app .build__shake-req {
+        display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+        font-size: 0.66rem; color: var(--arena-text);
+      }
+      .arena-app .build__shake-req[data-fulfilled="true"] .build__shake-req-state { color: var(--arena-ok); }
+      .arena-app .build__shake-req-meta { font-size: 0.6rem; color: var(--arena-text-dim); }
+      .arena-app .build__shake-form { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+      .arena-app .build__shake-input {
+        font-family: var(--arena-mono); font-size: 0.62rem;
+        padding: 0.28rem 0.5rem; border-radius: 0.3rem; width: 7.5rem;
+        border: 1px solid var(--arena-border); background: var(--arena-bg);
+        color: var(--arena-text);
+      }
+      .arena-app .build__shake-input--note { width: 18rem; max-width: 100%; }
+      .arena-app .build__shake-btn {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.06em;
+        padding: 0.3rem 0.7rem; border-radius: 0.3rem; cursor: pointer;
+        border: 1px solid color-mix(in oklch, var(--arena-accent) 50%, var(--arena-border));
+        color: var(--arena-accent); background: color-mix(in oklch, var(--arena-accent) 8%, transparent);
+      }
+      .arena-app .build__shake-btn:disabled { opacity: 0.5; cursor: default; }
+      .arena-app .build__shake-msg { font-size: 0.6rem; color: var(--arena-warn); }
+      .arena-app .build__shake-foot { font-size: 0.56rem; color: var(--arena-text-mute); line-height: 1.45; }
 
       /* AE-6 — corpus-synth live strip (the in-CC-session synth heartbeat) */
       .arena-app .build__corpus {
