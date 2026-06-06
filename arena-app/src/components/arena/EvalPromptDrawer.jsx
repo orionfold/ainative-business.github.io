@@ -140,10 +140,18 @@ export default function EvalPromptDrawer({ open, onClose, benches, scopeLanes, o
                 <span class="eval-row__q">{p.question}</span>
                 <span class="eval-row__meta">
                   {p.family && <span class="eval-badge eval-badge--fam">{p.family}</span>}
+                  {/* AE-11 — astro facets: tier + subtopic ride alongside the split. */}
+                  {p.tier != null && <span class="eval-badge eval-badge--tier">T{p.tier}</span>}
+                  {p.subtopic && <span class="eval-badge eval-badge--sub">{p.subtopic}</span>}
                   <span class={`eval-badge ${p.judge_required ? 'eval-badge--judge' : 'eval-badge--det'}`}>
                     {scorerLabel(p.scorer_kind)}
                   </span>
-                  {p.has_reference !== false && p.reference ? (
+                  {/* AE-11 — for the numeric astro bench the gold is a short value;
+                      preview it inline (these are the operator's own bench). Other
+                      benches keep the leak-safe "◆ ref" badge (gold hidden). */}
+                  {p.split && p.reference ? (
+                    <span class="eval-badge eval-badge--gold" title="gold answer">◆ {p.reference}</span>
+                  ) : p.has_reference !== false && p.reference ? (
                     <span class="eval-badge eval-badge--ref">◆ ref</span>
                   ) : null}
                   {p.has_context && (

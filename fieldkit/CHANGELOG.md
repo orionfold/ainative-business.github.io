@@ -29,6 +29,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     stamps `corpus_slug` / `sft_init`); `None` on a bare run. The Jobs board renders an
     `↑ corpus · sft-init · bench` line under the held-out summary, so a regression traces
     to its corpus, not just its step (complementing AE-4's `rl-<step>` pointer).
+- **Arena-enhancements S6 — wiring quick-wins** (`_SPECS/arena-enhancements-v1.md`
+  §6 S6; AE-10/AE-11). Surfaces the two flows that the live cockpit was blind to —
+  the base-model scout decision and the vertical's own bench — through the existing
+  Compare + Eval surfaces. **No arena.db schema change** (`user_version` stays 6),
+  **no new skill imports** (AE-R3); both are pure read-only projections.
+  - **AE-10 — scout top-3 → Compare (+ lock-time behavioral gate).** New
+    `GET /api/scout` projects the newest `hf-model-scout` report
+    (`FK_ARENA_SCOUT_DIR`, default `/tmp/hf-scout/<date>/<vertical>/`) — the ranked
+    top picks from `report.md` joined with the structured traps from
+    `candidates.json` (license · commercial-OK · chat-format · arch · llama.cpp
+    compat · Spark envelope) + the ruled-out table. The Compare pane renders a
+    `<ScoutPanel>` (collapsed) so the scout decision is finally visible in the
+    cockpit AND frames the lock-time behavioral gate (eyeball boxing + verbosity on
+    a held-out prompt before committing a bench — the over-think we caught one stage
+    too late). Serving a candidate stays an operator step (one-lane envelope, AE-R4);
+    the panel's gate button opens the Eval drawer at the held-out astro split.
+  - **AE-11 — astro-bench preview (register `astro-bench` in the Eval surface).**
+    The astrodynamics RLVR bench is now registered in `fieldkit.arena.benches`,
+    previewable beside the published verticals via the existing
+    `GET /api/eval/benches` + `…/prompts`. A `root_env`/`root_fallback` override on
+    `BenchSpec` lets it read its splits from the vertical's evidence dir (the same
+    JSONL AE-8's provenance reads) rather than the eval-benches tree; a dedicated
+    `fmt="astrodynamics"` loader maps its `{prompt, answer, tier, subtopic}` rows
+    (split → `family` so the drawer filters pool/held-out; `tier`/`subtopic`/`split`
+    ride new payload facets the drawer renders as chips + an inline gold preview).
+    Interactive grading honestly skips (the unit-aware `astro_numeric_match` verifier
+    stays LOCAL per `feedback_keep_scorer_local_until_reuse` and scores through the
+    eval-job dispatch's `scorer_path`, not the built-in scorers). Registering it also
+    resolves the build-spine bench stage's "pending AE-11" note. `serve()` now exports
+    `ARENA_REPO_ROOT` in the direct (non-reload) path so the bench root resolves.
 
 ## [0.24.0] — 2026-06-05
 

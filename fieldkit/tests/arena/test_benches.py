@@ -76,6 +76,10 @@ def eval_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         [{"id": "mm-1", "text": "Q ...\nA) a\nB) b\nC) c\nD) d", "answer": "B", "task": "medmcqa"}],
     )
     monkeypatch.setattr(benches, "ARENA_EVAL_BENCHES_ROOT", root)
+    # AE-11 — astro resolves via its own root override; keep it out of this tree
+    # so the published-bench assertions stay deterministic.
+    monkeypatch.delenv("FK_ARENA_BENCH_DIR", raising=False)
+    monkeypatch.delenv("ARENA_REPO_ROOT", raising=False)
     benches._CACHE.clear()
     yield root
     benches._CACHE.clear()
@@ -86,10 +90,14 @@ def eval_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 def test_list_benches_reports_all_available(eval_root: Path) -> None:
     rows = {b["bench_id"]: b for b in benches.list_benches()}
-    assert set(rows) == {
+    published = {
         "patent-strategist", "financebench", "legalbench", "cybermetric", "medmcqa"
     }
-    assert all(b["available"] for b in rows.values())
+    # astro-bench (AE-11) is always registry-listed but resolves via its own root
+    # override — absent from this eval-benches tree, so it lists as unavailable.
+    assert set(rows) == published | {"astro-bench"}
+    assert all(rows[b]["available"] for b in published)
+    assert rows["astro-bench"]["available"] is False
     assert rows["patent-strategist"]["count"] == 3
     assert set(rows["medmcqa"]["scorer_kinds"]) == {"mcq_letter"}
     assert "A" in rows["patent-strategist"]["families"]
@@ -304,3 +312,98 @@ def test_build_model_prompt_mcq_appends_options(eval_root: Path) -> None:
     p = benches.load_bench("patent-strategist").by_qid["ps-D-1"]
     out = benches.build_model_prompt(p, "Edited stem?")
     assert "Options:" in out and "B. §103" in out
+
+
+# --- AE-11 (S6) astro-bench preview ---------------------------------------
+
+
+@pytest.fixture
+def astro_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """An astro-bench split pair under the FK_ARENA_BENCH_DIR override, wired so
+    ``benches`` resolves the astro spec there (its root_env)."""
+    root = tmp_path / "astro-evidence"
+    root.mkdir(parents=True, exist_ok=True)
+    _write_jsonl(
+        root / "astro-bench-v0.1.jsonl",
+        [
+            {"task_id": "astro-orb-leo_period-0000", "topic": "orbital_mechanics",
+             "subtopic": "leo_period", "tier": 2,
+             "prompt": "Compute the orbital period. Give \\boxed{value unit}.",
+             "answer": "105.6 min", "gold_value_si": 6336.4, "gold_unit": "s", "rel_tol": 0.02},
+            {"task_id": "astro-astro-flux-0001", "topic": "astrophysics",
+             "subtopic": "flux", "tier": 1,
+             "prompt": "Compute the flux. \\boxed{value unit}.",
+             "answer": "3.8e-9 W/m^2", "gold_value_si": 3.8e-9, "gold_unit": "W/m^2", "rel_tol": 0.02},
+        ],
+    )
+    _write_jsonl(
+        root / "astro-bench-v0.1.heldout.jsonl",
+        [{"task_id": "astro-orb-hohmann-0000", "topic": "orbital_mechanics",
+          "subtopic": "hohmann_transfer", "tier": 3,
+          "prompt": "Compute the Hohmann delta-v. \\boxed{value unit}.",
+          "answer": "3.94 km/s", "gold_value_si": 3940.0, "gold_unit": "m/s", "rel_tol": 0.02}],
+    )
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(root))
+    benches._CACHE.clear()
+    yield root
+    benches._CACHE.clear()
+
+
+def test_astro_bench_registered_and_available(astro_root: Path) -> None:
+    rows = {b["bench_id"]: b for b in benches.list_benches()}
+    a = rows["astro-bench"]
+    assert a["available"] is True
+    assert a["vertical"] == "astrodynamics"
+    assert a["count"] == 3  # 2 pool + 1 held-out
+    # the split rides ``family`` so the drawer can filter pool vs held-out
+    assert set(a["families"]) == {"pool", "heldout"}
+    assert a["scorer_kinds"] == ["astro_numeric_match"]
+
+
+def test_astro_bench_root_env_override_isolates_from_eval_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # With no FK_ARENA_BENCH_DIR + no ARENA_REPO_ROOT, astro falls back to the
+    # eval-benches tree (where its files are absent) → unavailable, not a crash.
+    monkeypatch.delenv("FK_ARENA_BENCH_DIR", raising=False)
+    monkeypatch.delenv("ARENA_REPO_ROOT", raising=False)
+    monkeypatch.setattr(benches, "ARENA_EVAL_BENCHES_ROOT", tmp_path / "nope")
+    benches._CACHE.clear()
+    rows = {b["bench_id"]: b for b in benches.list_benches()}
+    assert rows["astro-bench"]["available"] is False
+
+
+def test_astro_prompts_carry_tier_subtopic_split(astro_root: Path) -> None:
+    res = benches.list_prompts("astro-bench", limit=50)
+    assert res["total"] == 3
+    by_qid = {p["qid"]: p for p in res["prompts"]}
+    p = by_qid["astro-orb-leo_period-0000"]
+    assert p["tier"] == 2 and p["subtopic"] == "leo_period" and p["split"] == "pool"
+    assert p["scorer_kind"] == "astro_numeric_match" and p["judge_required"] is False
+    assert p["reference"] == "105.6 min"  # gold previewed for the numeric bench
+
+
+def test_astro_split_filter_via_family(astro_root: Path) -> None:
+    pool = benches.list_prompts("astro-bench", family="pool")
+    held = benches.list_prompts("astro-bench", family="heldout")
+    assert pool["total"] == 2 and held["total"] == 1
+    assert all(p["split"] == "heldout" for p in held["prompts"])
+
+
+def test_astro_interactive_score_is_honest_skip(astro_root: Path) -> None:
+    # The astro bench is scored by its scorer_path verifier via the eval-job
+    # dispatch, not interactive grading — so the interactive path skips with a
+    # clear reason (never mis-scores with the unit-blind built-in numeric_match).
+    res = benches.score_eval_prediction(
+        "astro-bench", "astro-orb-leo_period-0000",
+        "The period is \\boxed{105.6 min}",
+    )
+    assert res["scored"] is False
+    assert res["scorer_kind"] == "astro_numeric_match"
+    assert "scorer_path" in res["reason"]
+    assert res["reference"] == "105.6 min"
+
+
+def test_astro_bench_for_lane_maps_kepler() -> None:
+    assert benches.bench_for_lane("local:kepler-q8-gguf") == "astro-bench"
+    assert benches.bench_for_lane("kepler-q8-gguf::Q8_0") == "astro-bench"

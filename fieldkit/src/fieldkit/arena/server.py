@@ -1094,6 +1094,19 @@ def create_app(
             )
         return result
 
+    @app.get("/api/scout")
+    async def api_scout() -> dict[str, Any]:
+        """AE-10 — the newest hf-model-scout report as a Compare-pane projection.
+
+        Surfaces the top-3 ranked base-model picks (with each one's license /
+        chat-format / arch / Spark-envelope traps joined from ``candidates.json``)
+        and the ruled-out table, so the scout decision is visible in the cockpit
+        and frames the lock-time behavioral gate. ``{available: false}`` when no
+        report is on disk (fresh box / no scout run yet). Pure read — no skill
+        import (AE-R3), no GPU, no db."""
+        proj = _scout_projection()
+        return proj or {"available": False, "dir": str(_scout_dir())}
+
     @app.get("/api/eval/leaderboard")
     async def api_eval_leaderboard(include_cross_vertical: bool = False) -> dict[str, Any]:
         """Accuracy-per-(bench, model) rollup over persisted eval scores.
@@ -2803,16 +2816,152 @@ def _pct(v: Any) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# AE-10 (S6) — scout → Compare. The hf-model-scout writes a top-3 ranked
+# base-model report (``/tmp/hf-scout/<date>/<vertical>/{report.md,candidates.json}``)
+# the cockpit never saw — so the operator A/Bs candidate bases one stage too late
+# (we caught Qwen3-8B's over-think after committing). This projects the newest
+# report into the cockpit (a Compare-pane candidate panel) so the scout decision
+# is visible AND frames the lock-time behavioral gate (eyeball boxing + verbosity
+# on a held-out prompt before committing a bench). A PURE read of the report dir —
+# no skill import (AE-R3), no arena.db, no GPU.
+
+
+def _scout_dir() -> Path:
+    """Root the hf-model-scout writes its run dirs under (``FK_ARENA_SCOUT_DIR``,
+    default ``/tmp/hf-scout``)."""
+    return Path(os.path.expanduser(os.environ.get("FK_ARENA_SCOUT_DIR", "/tmp/hf-scout")))
+
+
+def _newest_scout_report(scout_root: Path) -> Path | None:
+    """The newest ``report.md`` under the scout root (any depth), or ``None``."""
+    try:
+        reports = sorted(
+            scout_root.rglob("report.md"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    return reports[0] if reports else None
+
+
+_SCOUT_PICK_RE = re.compile(
+    r"^###\s+(\d+)\.\s+(.+?)\s+[—-]\s+score\s+(\d+)/100(?:\s*[·-]\s*(.+))?$"
+)
+_SCOUT_RULED_RE = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|\s*$")
+
+
+def _parse_scout_report(text: str) -> dict[str, Any]:
+    """Parse an hf-model-scout ``report.md`` into ranked picks + ruled-out rows.
+
+    Picks come from the ``### N. <repo> — score NN/100 · <tagline>`` headings
+    (the canonical skill format); ruled-out from the ``Picks ruled out`` table's
+    `` `repo` | reason `` rows. Best-effort — a report missing either section just
+    yields an empty list for it."""
+    picks: list[dict[str, Any]] = []
+    ruled: list[dict[str, str]] = []
+    generated: str | None = None
+    in_ruled = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if generated is None and line.startswith("> Run:"):
+            generated = line[len("> Run:"):].strip()
+        m = _SCOUT_PICK_RE.match(line)
+        if m:
+            picks.append({
+                "rank": int(m.group(1)),
+                "repo": m.group(2).strip(),
+                "score": int(m.group(3)),
+                "tagline": (m.group(4) or "").strip() or None,
+            })
+            continue
+        if line.lower().startswith("## picks ruled out"):
+            in_ruled = True
+            continue
+        if in_ruled:
+            if line.startswith("## "):
+                in_ruled = False
+                continue
+            rm = _SCOUT_RULED_RE.match(line)
+            if rm:
+                repo, reason = rm.group(1).strip(), rm.group(2).strip()
+                # Skip the markdown table header/separator rows.
+                if repo.lower() in ("repo", "") or set(repo) <= {"-", " ", ":"}:
+                    continue
+                ruled.append({"repo": repo, "reason": reason})
+    picks.sort(key=lambda p: p["rank"])
+    return {"picks": picks, "ruled_out": ruled, "generated": generated}
+
+
+def _scout_projection() -> dict[str, Any] | None:
+    """AE-10 — the newest scout report as a cockpit-ready projection, or ``None``.
+
+    Joins the report's ranked picks with the structured ``candidates.json``
+    (license / chat-format / arch / Spark envelope) by repo, so each pick carries
+    both the prose ranking and the machine-checked traps. Read-only + best-effort."""
+    root = _scout_dir()
+    report = _newest_scout_report(root)
+    if report is None:
+        return None
+    try:
+        parsed = _parse_scout_report(report.read_text())
+    except OSError:
+        return None
+    run_dir = report.parent
+    # candidates.json sits beside the report — index by repo for the join.
+    by_repo: dict[str, dict[str, Any]] = {}
+    cand_path = run_dir / "candidates.json"
+    if cand_path.is_file():
+        try:
+            for c in json.loads(cand_path.read_text()):
+                if isinstance(c, dict) and c.get("repo"):
+                    by_repo[str(c["repo"])] = c
+        except (OSError, ValueError):
+            by_repo = {}
+
+    def _axes(repo: str) -> dict[str, Any]:
+        c = by_repo.get(repo) or {}
+        env = c.get("spark_envelope") or {}
+        warnings = [w for w in (c.get("warnings") or []) if w]
+        return {
+            "license": c.get("license"),
+            "commercial_ok": c.get("commercial_ok"),
+            "chat_format": c.get("chat_format"),
+            "training_type": c.get("training_type"),
+            "arch": c.get("arch_name"),
+            "llama_cpp_compat": c.get("llama_cpp_compat"),
+            "f16_gb": env.get("f16_gb"),
+            "q4km_gb": env.get("q4km_gb"),
+            "tg_tok_s": env.get("estimated_tg_tok_s"),
+            "fits": bool(env.get("fits_q4km")),
+            "warnings": warnings,
+        }
+
+    picks = [{**p, **_axes(p["repo"])} for p in parsed["picks"]]
+    try:
+        rel = str(run_dir.relative_to(root))
+    except ValueError:
+        rel = run_dir.name
+    return {
+        "available": True,
+        "run": rel,
+        "generated": parsed["generated"],
+        "report": report.name,
+        "n_candidates": len(by_repo),
+        "picks": picks,
+        "ruled_out": parsed["ruled_out"],
+    }
+
+
 def _build_scout_stage() -> dict[str, Any]:
     """C-A scout — a base-model pick has no structured feed, so the only live
     signal is the *presence* of an ``hf-model-scout`` report (``FK_ARENA_SCOUT_DIR``,
     default ``/tmp/hf-scout``). That is a coarse default the manifest overrides
     with the actual locked base (``live: False`` → manifest owns state/headline)."""
-    scout_root = Path(
-        os.path.expanduser(os.environ.get("FK_ARENA_SCOUT_DIR", "/tmp/hf-scout"))
-    )
+    scout_root = _scout_dir()
     try:
-        found = any(scout_root.glob("*/report.md"))
+        found = _newest_scout_report(scout_root) is not None
     except OSError:
         found = False
     return {
@@ -2854,10 +3003,10 @@ def _build_bench_stage(
         rows = []
     row = None
     if bench_id:
-        # An explicit pin selects exactly that bench; if it isn't registered yet
-        # (e.g. astro-bench, pending AE-11/S6) the card stays blank from the
-        # registry — but the AE-8 provenance overlay below can still light it
-        # live off the on-disk JSONL.
+        # An explicit pin selects exactly that bench. astro-bench is registered
+        # (AE-11/S6); when its JSONL is present the registry + AE-8 overlay light
+        # it live, and when absent the card stays blank so the manifest fills it
+        # (rather than mislabeling with an unrelated vertical's bench).
         row = next((r for r in rows if r.get("bench_id") == bench_id), None)
         if row is None:
             base["state"] = "blank"
@@ -2875,8 +3024,11 @@ def _build_bench_stage(
         if fams:
             base["detail"] = f"families: {fams}"
     elif row is not None:
+        # Registered but its files aren't on this box — keep the headline blank
+        # (state ``blank``) so the operator manifest's headline can fill it;
+        # surface the files-absent reason in detail (manifest-overridable).
         base["state"] = "blank"
-        base["headline"] = f"{row.get('bench_id')} — files absent"
+        base["detail"] = f"{row.get('bench_id')} — files absent on this box"
     # AE-8 — overlay the on-disk provenance. When the bench JSONL exists this
     # wins over the registry (the bench may not be registered yet, AE-11/S6): it
     # lights the card live AND attaches the full provenance the island renders as
@@ -5241,13 +5393,20 @@ def serve(
             "Install with `pip install 'fieldkit[arena]'`."
         ) from exc
 
+    # Export ARENA_DB / ARENA_REPO_ROOT into the process env so modules that
+    # resolve roots from the environment rather than the create_app arg (e.g.
+    # ``fieldkit.arena.benches`` — the astro-bench root override, AE-11) see the
+    # operator's ``--repo-root``. Set in BOTH the reload and direct paths (only
+    # the reload worker read it before). Kept out of ``create_app`` itself so the
+    # test suite's repeated ``create_app(repo_root=tmp_path)`` stays isolated.
+    os.environ.setdefault("ARENA_DB", db)
+    if repo_root:
+        os.environ.setdefault("ARENA_REPO_ROOT", repo_root)
+
     # When ``reload`` is requested we pass an import-string to uvicorn so
     # the worker process can reload module sources. Otherwise pass the app
     # instance directly — cheaper, no double-import.
     if reload:
-        os.environ.setdefault("ARENA_DB", db)
-        if repo_root:
-            os.environ.setdefault("ARENA_REPO_ROOT", repo_root)
         uvicorn.run(
             "fieldkit.arena.server:_reload_target",
             host=host,

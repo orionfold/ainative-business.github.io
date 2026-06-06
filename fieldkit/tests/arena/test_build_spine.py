@@ -163,14 +163,17 @@ def test_build_manifest_fills_no_feed_stages_and_label(
         assert stages["smoke"]["gate"] == "AV-10 preflight"
 
 
-def test_build_manifest_bench_id_unregistered_stays_blank(
+def test_build_manifest_bench_id_files_absent_stays_blank(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # An explicit bench_id that isn't registered (astro-bench, pending AE-11)
-    # must NOT fall back to an unrelated vertical's bench — it stays blank so the
-    # manifest fills it, rather than mislabeling the card.
+    # astro-bench is registered (AE-11/S6), but when its JSONL is absent on this
+    # box the bench stage must NOT fall back to an unrelated vertical's bench — it
+    # stays blank so the manifest's headline fills it, rather than mislabeling the
+    # card. (Point the astro root at an empty dir so the registry row is
+    # unavailable regardless of the machine-global eval-benches tree.)
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(tmp_path / "no-bench-files"))
     manifest = {
         "vertical": "astrodynamics",
         "label": "Kepler",
