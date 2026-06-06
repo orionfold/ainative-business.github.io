@@ -385,3 +385,111 @@ def test_build_bench_stage_lit_by_provenance(
         assert "4 pool + 2 held-out" in bench["headline"]
         assert bench["provenance"]["disjoint"] is True
         assert bench["provenance"]["bench_id"] == "astro-bench"
+
+
+# ---------------------------------------------------------------------------
+# AE-26 (v2 cut 3) — inventory truth: manifest claims VERIFIED on disk at read
+# ---------------------------------------------------------------------------
+
+
+def _manifest_with_artifacts(tmp_path: Path, stage: str, artifacts: list) -> None:
+    d = tmp_path / "evidence" / "astrodynamics"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "build-manifest.json").write_text(
+        json.dumps({
+            "vertical": "astrodynamics",
+            "label": "Kepler",
+            "stages": {stage: {"state": "done", "headline": "x", "artifacts": artifacts}},
+        })
+    )
+
+
+def _stage(client, key):
+    body = client.get("/api/build").json()
+    return {s["key"]: s for s in body["stages"]}[key]
+
+
+def test_inventory_verifies_matching_line_count(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    d = tmp_path / "evidence" / "astrodynamics"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "corpus.jsonl").write_text("\n".join('{"prompt": "p%d"}' % i for i in range(600)) + "\n")
+    _manifest_with_artifacts(tmp_path, "corpus", [{"path": "corpus.jsonl", "rows": 600}])
+    with TestClient(_app(tmp_path)) as client:
+        st = _stage(client, "corpus")
+        inv = st["inventory"]
+        assert inv["ok"] is True
+        item = inv["items"][0]
+        assert item["exists"] is True
+        assert item["lines"] == 600 and item["claimed_rows"] == 600
+        assert item["match"] is True
+        assert item["mtime"] is not None
+        # The raw declaration never ships — only the computed observation.
+        assert "artifacts" not in st
+
+
+def test_inventory_flags_count_drift_and_missing_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    d = tmp_path / "evidence" / "astrodynamics"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "short.jsonl").write_text('{"a":1}\n{"a":2}\n')  # 2 rows, claims 600
+    _manifest_with_artifacts(
+        tmp_path, "corpus",
+        [{"path": "short.jsonl", "rows": 600}, {"path": "gone.jsonl", "rows": 44}],
+    )
+    with TestClient(_app(tmp_path)) as client:
+        inv = _stage(client, "corpus")["inventory"]
+        assert inv["ok"] is False  # assertion ≠ disk truth — the OBS-2 fix
+        drift = next(i for i in inv["items"] if i["name"] == "short.jsonl")
+        assert drift["lines"] == 2 and drift["match"] is False
+        gone = next(i for i in inv["items"] if i["name"] == "gone.jsonl")
+        assert gone["exists"] is False
+
+
+def test_inventory_directory_file_claim_and_binary_size_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    d = tmp_path / "evidence" / "astrodynamics"
+    quants = tmp_path / "quants"
+    quants.mkdir(parents=True, exist_ok=True)
+    for n in ("a.gguf", "b.gguf"):
+        (quants / n).write_bytes(b"\x00" * 64)
+    _manifest_with_artifacts(
+        tmp_path, "publish",
+        [
+            {"path": str(quants), "files": 2},
+            {"path": str(quants / "a.gguf")},  # binary: exists/bytes only
+        ],
+    )
+    d.mkdir(parents=True, exist_ok=True)
+    with TestClient(_app(tmp_path)) as client:
+        inv = _stage(client, "publish")["inventory"]
+        assert inv["ok"] is True
+        dirit = next(i for i in inv["items"] if i["files"] is not None)
+        assert dirit["files"] == 2 and dirit["match"] is True
+        binit = next(i for i in inv["items"] if i["name"] == "a.gguf")
+        assert binit["bytes"] == 64
+        assert binit["lines"] is None  # never read as text
+
+
+def test_inventory_absent_when_nothing_declared(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    _manifest_with_artifacts(tmp_path, "corpus", [])
+    with TestClient(_app(tmp_path)) as client:
+        st = _stage(client, "corpus")
+        assert "inventory" not in st

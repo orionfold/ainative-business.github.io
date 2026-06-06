@@ -31,6 +31,21 @@
 //     (version · pool/held-out counts · RV-10 disjointness · self-verifying
 //     golds · tier/topic mix · corpus held-out-exclusion) renders as a card, so
 //     an eval result traces to its pedigree, not just a prompt count.
+//
+// v2 cut 3 threads three more INTO this spine:
+//   • AE-26 inventory truth — each stage's manifest-DECLARED artifacts are
+//     VERIFIED against the disk at read time (exists · line-count vs claim ·
+//     mtime); the chips render the observation, so "DONE · 600 rows" can no
+//     longer be an unchecked assertion (P1 — report ≠ reality is a bug);
+//   • AE-27 corpus handshake — a "request corpus" intent control (Arena posts
+//     the intent file, the in-CC-session synth skill fulfils it — AE-R3 holds)
+//     + producer liveness (live ◉ / stale ⚠ / done / none) from heartbeat
+//     freshness, so "no synth running" and "running but not stamping" are
+//     finally distinguishable;
+//   • AE-30 runtime readiness (AF-20 read-only half) — the runtimes the build/
+//     serve stages depend on (training containers · serve lanes · pgvector ·
+//     embedder), observed up/stopped/absent. Arming stays a CLI step until the
+//     AE-22 launch-runner cut.
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
@@ -116,6 +131,163 @@ function CorpusStrip({ feed }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// AE-27 — the corpus-gen handshake + producer liveness. The liveness chip is
+// heartbeat-mtime freshness (live ◉ within the window · ⚠ stale when a
+// "running" heartbeat stopped stamping · done · none) — the OBS-3 blind spot,
+// surfaced. The request control posts an INTENT file the in-CC-session synth
+// skill polls + fulfils; Arena never runs the skill (AE-R3). Fulfilment is an
+// observation: a heartbeat stamped after the request.
+function CorpusHandshake({ liveness, request, base, onChange }) {
+  const [target, setTarget] = useState('');
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  async function post(method, body) {
+    if (busy || !base) return;
+    setBusy(true);
+    setMsg('');
+    try {
+      const r = await fetch(`${base}/api/corpus-request`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (!r.ok) {
+        setMsg(`request failed (${r.status})`);
+        return;
+      }
+      setTarget('');
+      setNote('');
+      if (onChange) onChange();
+    } catch (_e) {
+      setMsg('sidecar unreachable');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const lv = liveness || { state: 'none' };
+  const LIVE_META = {
+    live: { label: 'synth ◉ live', tone: 'pass' },
+    stale: { label: `⚠ stale${lv.age_s != null ? ` · ${fmtAgeS(Date.now() / 1000 - lv.age_s)} silent` : ''}`, tone: 'hold' },
+    done: { label: 'synth done', tone: 'idle' },
+    none: { label: 'no synth', tone: 'idle' },
+  };
+  const lm = LIVE_META[lv.state] || LIVE_META.none;
+  const req = request && request.present ? request : null;
+
+  return (
+    <div class="build__shake" role="status">
+      <div class="build__shake-head">
+        <span class="build__shake-title">Corpus handshake</span>
+        <span class="build__shake-live" data-tone={lm.tone}>
+          <span class="build__shake-dot" data-tone={lm.tone} aria-hidden="true" />
+          {lm.label}
+        </span>
+        {lv.source && <code class="build__shake-src">{lv.source}</code>}
+      </div>
+      {req ? (
+        <div class="build__shake-req" data-fulfilled={req.fulfilled}>
+          <span class="build__shake-req-state">
+            {req.fulfilled
+              ? <>fulfilled ✓ by <code>{req.fulfilled_by}</code></>
+              : <>request open · {fmtAgeS(Date.now() / 1000 - (req.age_s || 0))} ago · awaiting the CC session</>}
+          </span>
+          {req.request && (req.request.target || req.request.note) && (
+            <span class="build__shake-req-meta">
+              {req.request.target ? `target ${req.request.target} rows` : ''}
+              {req.request.target && req.request.note ? ' · ' : ''}
+              {req.request.note || ''}
+            </span>
+          )}
+          <button
+            class="build__shake-btn"
+            type="button"
+            disabled={busy}
+            onClick={() => post('DELETE')}
+          >withdraw</button>
+        </div>
+      ) : (
+        <form
+          class="build__shake-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const t = parseInt(target, 10);
+            post('POST', {
+              target: Number.isFinite(t) && t > 0 ? t : null,
+              note: note.trim() || null,
+            });
+          }}
+        >
+          <input
+            class="build__shake-input"
+            type="number"
+            min="1"
+            placeholder="target rows"
+            value={target}
+            onInput={(e) => setTarget(e.currentTarget.value)}
+          />
+          <input
+            class="build__shake-input build__shake-input--note"
+            type="text"
+            maxLength={500}
+            placeholder="note for the synth session (optional)"
+            value={note}
+            onInput={(e) => setNote(e.currentTarget.value)}
+          />
+          <button class="build__shake-btn" type="submit" disabled={busy}>
+            request corpus
+          </button>
+        </form>
+      )}
+      {msg && <span class="build__shake-msg">{msg}</span>}
+      <span class="build__shake-foot">
+        Arena posts the intent file; the in-CC-session synth skill fulfils it
+        (AE-R3 — the cockpit never runs skill code). Fulfilment = a heartbeat
+        newer than the request, observed.
+      </span>
+    </div>
+  );
+}
+
+// AE-30 (AF-20 read-only half) — runtime readiness. The runtimes the build /
+// serve stages depend on, OBSERVED: serve lanes via the AE-18 discovery sweep,
+// training containers via docker inspect, pgvector/embedder via TCP. Read-only
+// by design — the guarded arm/teardown half is the AE-22 launch-runner cut.
+const RT_META = {
+  up: { tone: 'pass' },
+  down: { tone: 'idle' },
+  stopped: { tone: 'hold' },
+  absent: { tone: 'hold' },
+  unknown: { tone: 'idle' },
+};
+
+function RuntimeStrip({ rt }) {
+  if (!rt || rt.available === false || !rt.runtimes) return null;
+  return (
+    <div class="build__rt" role="status">
+      <div class="build__rt-head">
+        <span class="build__rt-title">Runtimes</span>
+        <span class="build__rt-count">{rt.up}/{rt.total} up</span>
+        <span class="build__rt-sub">observed — arming stays a CLI step (AE-22 cut)</span>
+      </div>
+      <div class="build__rt-list">
+        {rt.runtimes.map((r) => {
+          const m = RT_META[r.state] || RT_META.unknown;
+          return (
+            <span class="build__rt-chip" data-tone={m.tone} key={r.key} title={r.detail}>
+              <span class="build__rt-dot" data-tone={m.tone} aria-hidden="true" />
+              <b>{r.label}</b> {r.state}
+              <i> · {r.detail}</i>
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -221,6 +393,62 @@ function GateLedger({ stages }) {
   );
 }
 
+// Relative age from an epoch-seconds mtime (the AE-16 relative-time pattern).
+function fmtAgeS(epochS) {
+  if (epochS == null) return null;
+  const s = Math.max(0, Date.now() / 1000 - epochS);
+  if (s < 90) return `${Math.round(s)}s`;
+  if (s < 5400) return `${Math.round(s / 60)}m`;
+  if (s < 129600) return `${Math.round(s / 3600)}h`;
+  return `${Math.round(s / 86400)}d`;
+}
+
+function fmtBytes(b) {
+  if (b == null) return null;
+  if (b >= 1e9) return `${(b / 1e9).toFixed(1)} GB`;
+  if (b >= 1e6) return `${(b / 1e6).toFixed(1)} MB`;
+  if (b >= 1e3) return `${Math.round(b / 1e3)} KB`;
+  return `${b} B`;
+}
+
+// AE-26 — the inventory-truth facet. One chip per declared artifact: the
+// VERIFIED line count against the manifest's claim (600/600 ✓), the dir file
+// count, or exists+size for binaries; a missing file or drifted count renders
+// loud. Disk observation, computed server-side at read time (never the claim).
+function InventoryFacet({ inv }) {
+  if (!inv || !inv.items || inv.items.length === 0) return null;
+  return (
+    <span class="build__inv" data-ok={inv.ok} title="inventory truth — declared artifacts verified on disk at read time (AE-26)">
+      {inv.items.map((it) => {
+        let fact;
+        let tone = 'pass';
+        if (!it.exists) {
+          fact = 'missing ✗';
+          tone = 'hold';
+        } else if (it.claimed_rows != null) {
+          fact = `${it.lines ?? '?'}/${it.claimed_rows} ${it.match ? '✓' : '✗ drift'}`;
+          if (!it.match) tone = 'hold';
+        } else if (it.claimed_files != null) {
+          fact = `${it.files ?? '?'}/${it.claimed_files} files ${it.match ? '✓' : '✗ drift'}`;
+          if (!it.match) tone = 'hold';
+        } else if (it.lines != null) {
+          fact = `${it.lines} lines ✓`;
+        } else if (it.files != null) {
+          fact = `${it.files} files ✓`;
+        } else {
+          fact = `${fmtBytes(it.bytes) || 'present'} ✓`;
+        }
+        const age = fmtAgeS(it.mtime);
+        return (
+          <span class="build__inv-chip" data-tone={tone} key={it.name}>
+            <code>{it.name}</code> {fact}{age ? <i> · {age}</i> : null}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 function StageCard({ stage }) {
   const sm = STATE_META[stage.state] || STATE_META.pending;
   const gate = stage.gate ? (GATE_META[stage.gate_state] || GATE_META.pending) : null;
@@ -240,6 +468,8 @@ function StageCard({ stage }) {
         {headline || 'no signal yet'}
       </span>
       {stage.detail && <span class="build__card-detail">{stage.detail}</span>}
+      {/* AE-26 — the disk-verified inventory facet (never the manifest claim). */}
+      <InventoryFacet inv={stage.inventory} />
       {stage.gate && (
         <span class="build__card-gate">
           <span class="build__card-gate-chip" data-tone={gate.tone}>{gate.label}</span>
@@ -261,6 +491,7 @@ export default function BuildSpine() {
   const [online, setOnline] = useState(false);
   const [data, setData] = useState(null);
   const [corpus, setCorpus] = useState(null);
+  const [runtimes, setRuntimes] = useState(null);
   const baseRef = useRef(null);
   const pollRef = useRef(null);
 
@@ -268,19 +499,23 @@ export default function BuildSpine() {
     const base = baseRef.current;
     if (!base) return;
     try {
-      // The spine + the corpus feed (AE-6) are independent file-polled reads;
-      // fetch both each tick so a running synth's strip tracks alongside the
-      // stage grid. The corpus read is best-effort — its failure never blanks
-      // the spine.
-      const [r, rc] = await Promise.all([
+      // The spine + the corpus feed (AE-6) + the runtime roster (AE-30) are
+      // independent reads; fetch all each tick so a running synth's strip and
+      // a container flip track alongside the stage grid. The corpus + runtime
+      // reads are best-effort — their failure never blanks the spine. The
+      // runtimes endpoint is server-cached ~8 s (AE-R7), so the 5 s poll never
+      // docker-storms.
+      const [r, rc, rr] = await Promise.all([
         fetch(`${base}/api/build`),
         fetch(`${base}/api/corpus-progress`).catch(() => null),
+        fetch(`${base}/api/runtimes`).catch(() => null),
       ]);
       if (r.ok) {
         setData(await r.json());
         setOnline(true);
       }
       if (rc && rc.ok) setCorpus(await rc.json());
+      if (rr && rr.ok) setRuntimes(await rr.json());
     } catch (_e) {
       setOnline(false);
     }
@@ -353,8 +588,19 @@ export default function BuildSpine() {
         </p>
       )}
 
+      {/* AE-30 — the runtime-readiness roster (observed; read-only half). */}
+      <RuntimeStrip rt={runtimes} />
+
       {/* AE-6 — the corpus-synth live strip; surfaces only with a heartbeat. */}
       <CorpusStrip feed={corpus} />
+
+      {/* AE-27 — producer liveness + the request-corpus intent control. */}
+      <CorpusHandshake
+        liveness={(stages.find((s) => s.key === 'corpus') || {}).liveness}
+        request={(stages.find((s) => s.key === 'corpus') || {}).request}
+        base={baseRef.current}
+        onChange={refresh}
+      />
 
       {/* AE-8 — the bench provenance card; rides the bench stage's projection. */}
       <BenchProvenance prov={(stages.find((s) => s.key === 'bench') || {}).provenance} />
@@ -377,6 +623,11 @@ export default function BuildSpine() {
         (AE-8) shows the eval substrate's pedigree (disjoint splits · self-
         verifying golds · held-out-excluded corpus); the <b>gate ledger</b>
         (AE-7) surfaces each human decision point with the consequence of holding.
+        The <b>inventory chips</b> (AE-26) verify each declared artifact on disk
+        at read time — never the manifest's claim; the <b>runtimes roster</b>
+        (AE-30) observes the containers/lanes the stages depend on; the
+        <b> corpus handshake</b> (AE-27) posts an intent the CC-session synth
+        fulfils, with producer liveness from heartbeat freshness.
       </p>
     </div>
   );

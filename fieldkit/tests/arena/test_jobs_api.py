@@ -208,3 +208,26 @@ def test_check_regressions_enqueues_on_drop(client):
     jobs = c.get("/api/jobs").json()["jobs"]
     reg = [j for j in jobs if j["trigger"] == "leaderboard_regression"]
     assert len(reg) == 1 and reg[0]["kind"] == "eval_rerun"
+
+
+def test_create_sft_run_is_async_only_and_operator_armed(client):
+    c, _ = client
+    # AE-29 (v2 cut 3): sft_run IS enqueue-allowed, but the route forces
+    # async-only — training never drains in a request BackgroundTask, even with
+    # dispatch=True. The note names the arming contract (FK_SFT_RUN_ARMED).
+    r = c.post(
+        "/api/jobs",
+        json={
+            "kind": "sft_run",
+            "payload": {"recipe_path": "/tmp/recipe.yaml", "mode": "smoke"},
+            "dispatch": True,
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["coalesced"] is False and body["job_id"]
+    assert body["async_only"] is True
+    assert "FK_SFT_RUN_ARMED" in (body["note"] or "")
+    # Queued, untouched — only an operator-armed drain may claim it.
+    jobs = c.get("/api/jobs").json()["jobs"]
+    assert any(j["id"] == body["job_id"] and j["status"] == "queued" for j in jobs)

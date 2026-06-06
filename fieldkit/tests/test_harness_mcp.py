@@ -83,6 +83,8 @@ def test_tool_specs_shape():
         # Phase 3 (rlvr-loop-v1) — closed-loop RLVR job-execution tools
         "run_rl_loop",
         "requant_checkpoint",
+        # AE-29 (arena-enhancements-v2 cut 3) — the operator-armed SFT dispatch
+        "run_sft_training",
     ]
     by_name = {s.name: s for s in fkmcp.MCP_TOOL_SPECS}
     # the two capability tools + the RAG bridge are read-only; the rest write
@@ -102,6 +104,8 @@ def test_tool_specs_shape():
     # Phase 3 RLVR tools do real GPU work / quantize → not read-only
     assert by_name["run_rl_loop"].read_only is False
     assert by_name["requant_checkpoint"].read_only is False
+    # AE-29 — SFT training is real GPU work → not read-only
+    assert by_name["run_sft_training"].read_only is False
     assert {s.surface for s in fkmcp.MCP_TOOL_SPECS} == {
         "capabilities",
         "quant",
@@ -110,6 +114,7 @@ def test_tool_specs_shape():
         "eval",  # M8 — run_vertical_eval is mcp.py's first fieldkit.eval wiring
         "memory",  # M10 — the recall-pipeline tools (Bet 5)
         "rl",  # Phase 3 — the closed-loop RLVR tools (rlvr-loop-v1)
+        "training",  # AE-29 — the operator-armed SFT dispatch (v2 cut 3)
     }
 
 
