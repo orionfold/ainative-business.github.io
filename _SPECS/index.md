@@ -41,6 +41,13 @@ Phase 1 (Arena M8 control plane) **shipped** (`fieldkit v0.16.0`), and the four 
 | [`hermes-harness-v1-mac.md`](hermes-harness-v1-mac.md) | ACTIVE | Section-by-section rendering-side companion to `hermes-harness-v1.md` ("what the site renders for the `harness`/`skill` artifact kinds"). |
 | [`notebooks-as-artifacts-v1-mac.md`](notebooks-as-artifacts-v1-mac.md) | ACTIVE | Rendering-side companion to `notebooks-as-artifacts-v1.md`. Supersedes the archived model-playground design (see below). |
 
+### Relayed standards (operator ecosystem, via Agency-cockpit PR)
+
+| Spec | Status | Scope |
+|---|---|---|
+| [`design-system-v1.md`](design-system-v1.md) | RELAYED 2026-06-06 (adopt incrementally) | Shared Airtable-derived light-theme design system (system of record: self-health; live there + agency). §3 semantic tokens are the portable contract; apply to **new** operator-facing panes — no wholesale Arena restyle without green-light. |
+| [`dashboard-skill-v1.md`](dashboard-skill-v1.md) | RELAYED 2026-06-06 (adopt when useful) | Operator-triggered `/dashboard` launch-skill pattern (live in self-health + agency) incl. the SessionStart auto-launch rollback record and the load-bearing detached-launch form. For this repo it wraps launching the Arena cockpit. |
+
 ## Archive (superseded / historical — kept for the record)
 
 | Doc | Retired | Why |
