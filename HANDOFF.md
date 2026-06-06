@@ -24,7 +24,7 @@
 
 > **The arena-enhancements dogfood cluster S1–S6 is built, browser-smoked, AND released across `fieldkit v0.24.0` (S1–S4) + `fieldkit v0.25.0` (S5–S6); the greenfield Kepler vertical remains published end-to-end. Only S7 (AE-17 cloud-run guardrails) remains in the spec.**
 > **`fieldkit v0.25.0`** — tag `fieldkit/v0.25.0` + <https://pypi.org/project/fieldkit/0.25.0/> (both install-verifies green): **S5** provenance/lineage (AE-8 bench provenance card `GET /api/bench-provenance` · AE-9 rl_run upstream lineage) · **S6** wiring quick-wins (AE-10 scout→Compare `GET /api/scout` + `<ScoutPanel>` lock-time gate · AE-11 astro-bench registered in the Eval preview surface). **NO arena.db schema change** (`user_version` stays 6); both sessions are pure read-only projections, no skill imports (AE-R3). Offline **1315 pass / 5 skip**. `[Unreleased]` is now empty.
-> `origin/main` tip = **`<stats-refresh commit>`** (this entry), working tree clean
+> `origin/main` is current through the v0.25.0 release + stats/HANDOFF refresh (commit `9bdbd11` cut the version; the stats+HANDOFF refresh follows it). Working tree clean
 > except two pre-existing untracked items to **leave alone** (`.claude/scheduled_tasks.lock` = runtime lock; `src/data/arena-mirror/` = generated mirror).
 > GitHub Pages auto-deploys on push to `main` → site is live at `ainative.business`.
 > **`fieldkit v0.24.0`** — tag `fieldkit/v0.24.0` + <https://pypi.org/project/fieldkit/0.24.0/> (both install-verifies green): the arena-enhancements
