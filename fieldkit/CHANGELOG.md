@@ -100,6 +100,38 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     `evidence/astrodynamics/build-manifest.json` so the spine reads the real end-to-end
     pipeline (7/8 done; lane honestly idle). 6 new tests (`tests/arena/test_build_spine.py`).
 
+- **Arena-enhancements S4 — live feeds + gates** (`_SPECS/arena-enhancements-v1.md`
+  §6 S4; AE-6 / AF-2 + AE-7 / AF-5). Threads two features INTO the S3 build spine.
+  **No arena.db schema change** (`user_version` stays 6), **no new route**, **no skill
+  imports** (AE-R3) — both are file-polled projections + render.
+  - **AE-6 — corpus-synth live feed.** Closes the C1 corpus blind spot (the
+    in-CC-session synth the control plane never saw — the "#1 immediate win" in the
+    dogfood ledger). A new producer-side stamper
+    `fieldkit.arena.lane.write_corpus_progress` (the AF-9/AF-10 file-polled-heartbeat
+    pattern, one dir over) reads the live `out.jsonl` against the deterministic
+    `queue.jsonl` and drops a `corpus-progress-<slug>.json` heartbeat — `written/target`,
+    the batch-verify tally, the accumulating tier/topic `family_mix`, and the
+    ETA-in-batches. The cockpit polls it via a new `GET /api/corpus-progress` (auto-newest
+    + history dropdown + traversal-safe `?source=` pin, mirroring `/api/sft-progress`,
+    env-anchored `FK_ARENA_CORPUS_DIR`). The build spine's **corpus stage now reads the
+    feed live** (`written/target · verify ✓` on a running synth, overriding the manifest);
+    the `<BuildSpine>` island renders a **corpus strip** (progress bar · verify chip ·
+    tier-mix chips · ETA-in-batches) mirroring the rl_run / SFT progress strip when a
+    heartbeat is present. Read-only: an HTTP GET reads a JSON file, it never launches a
+    lane or imports skill code.
+  - **AE-7 — build-gate cards.** Every gated stage now ships a default `gate_consequence`
+    (the cost of holding: base-lock · `/usage` preflight · held-out>base · AV-10 · promote ·
+    publish), operator-overridable via the manifest. The island renders a **gate ledger** —
+    one row per human gate with an **allow/hold/pending control** + the consequence — reusing
+    the Standup autonomy-banner pattern (advisory + read-only; the spine never mutates
+    arena.db).
+  - Validated offline (9 new tests: `tests/arena/test_corpus_feed.py` +
+    `tests/arena/test_build_spine.py`) and by a live side-by-side browser smoke of the
+    rebaked cockpit over CDP (a seeded synthetic heartbeat lit the corpus strip —
+    `388/600 rows · verify ✓ · ~5 batches left` + the six-family mix + the six-gate ledger
+    — then deleted, reverting the spine to the real Kepler 7/8). The AE-6 feed lights
+    end-to-end on the next live corpus-synth run.
+
 ## [0.23.0] — 2026-06-05
 
 The **Arena cockpit grows an education layer** (`rl-lane-autonomy-v1` LA-12..16 —

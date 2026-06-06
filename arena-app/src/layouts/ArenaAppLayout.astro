@@ -4033,6 +4033,136 @@ try {
       .arena-app .build__foot strong { color: var(--arena-text); }
       .arena-app .build__foot a { color: var(--arena-text-dim); }
       .arena-app .build__foot a:hover { color: var(--arena-accent); }
+      .arena-app .build__foot b { color: var(--arena-accent); }
+
+      /* AE-6 — corpus-synth live strip (the in-CC-session synth heartbeat) */
+      .arena-app .build__corpus {
+        display: flex; flex-direction: column; gap: 0.5rem;
+        padding: 0.7rem 0.85rem; border-radius: 0.5rem;
+        border: 1px solid var(--arena-border);
+        background: color-mix(in oklch, var(--arena-bg) 85%, transparent);
+      }
+      .arena-app .build__corpus[data-running="true"] {
+        border-left: 2px solid var(--arena-accent);
+        background: color-mix(in oklch, var(--arena-accent) 5%, transparent);
+      }
+      .arena-app .build__corpus-head { display: flex; align-items: center; gap: 0.5rem; }
+      .arena-app .build__corpus-dot {
+        width: 0.5rem; height: 0.5rem; border-radius: 50%;
+        background: var(--arena-text-dim);
+      }
+      .arena-app .build__corpus-dot[data-running="true"] {
+        background: var(--arena-accent); box-shadow: 0 0 5px var(--arena-accent);
+        animation: build-pulse 1.8s ease-in-out infinite;
+      }
+      .arena-app .build__corpus-label {
+        font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.14em;
+        color: var(--arena-accent); font-weight: 600;
+      }
+      .arena-app .build__corpus-run { font-size: 0.62rem; color: var(--arena-text-mute); }
+      .arena-app .build__corpus-run code { font-family: var(--arena-mono); color: var(--arena-text-dim); }
+      .arena-app .build__corpus-verify {
+        margin-left: auto; font-family: var(--arena-mono); font-size: 0.55rem;
+        padding: 0.05rem 0.36rem; border-radius: 0.25rem;
+      }
+      .arena-app .build__corpus-verify[data-tone="pass"] {
+        color: var(--arena-ok); background: color-mix(in oklch, var(--arena-ok) 12%, transparent);
+      }
+      .arena-app .build__corpus-verify[data-tone="hold"] {
+        color: var(--arena-warn); background: color-mix(in oklch, var(--arena-warn) 12%, transparent);
+      }
+      .arena-app .build__corpus-bar-row { display: flex; align-items: center; gap: 0.6rem; }
+      .arena-app .build__corpus-count {
+        font-family: var(--arena-mono); font-size: 0.85rem; color: var(--arena-text);
+        font-weight: 600; white-space: nowrap;
+      }
+      .arena-app .build__corpus-slash { color: var(--arena-text-dim); font-size: 0.7rem; }
+      .arena-app .build__corpus-rows { font-size: 0.6rem; color: var(--arena-text-dim); font-weight: 400; }
+      .arena-app .build__corpus-bar {
+        flex: 1; height: 0.4rem; border-radius: 0.4rem; overflow: hidden;
+        background: color-mix(in oklch, var(--arena-border) 70%, transparent);
+      }
+      .arena-app .build__corpus-fill {
+        display: block; height: 100%; background: var(--arena-accent);
+        transition: width 0.5s ease;
+      }
+      .arena-app .build__corpus-fill[data-done="true"] { background: var(--arena-ok); }
+      .arena-app .build__corpus-eta {
+        font-family: var(--arena-mono); font-size: 0.56rem; color: var(--arena-text-dim);
+        white-space: nowrap;
+      }
+      .arena-app .build__corpus-mix {
+        display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;
+      }
+      .arena-app .build__corpus-mix-label {
+        font-size: 0.55rem; letter-spacing: 0.08em; color: var(--arena-text-dim);
+        text-transform: uppercase; margin-right: 0.15rem;
+      }
+      .arena-app .build__corpus-chip {
+        font-family: var(--arena-mono); font-size: 0.56rem; color: var(--arena-text-mute);
+        padding: 0.04rem 0.34rem; border-radius: 0.25rem;
+        border: 1px solid var(--arena-border);
+      }
+      .arena-app .build__corpus-chip b { color: var(--arena-text); margin-left: 0.22rem; }
+
+      /* AE-7 — build-gate ledger (allow/hold + consequence per human gate) */
+      .arena-app .build__gates {
+        display: flex; flex-direction: column; gap: 0.55rem;
+        padding-top: 0.7rem; border-top: 1px solid var(--arena-border);
+      }
+      .arena-app .build__gates-head { display: flex; align-items: baseline; gap: 0.6rem; }
+      .arena-app .build__gates-title {
+        font-size: 0.78rem; font-weight: 620; color: var(--arena-text);
+      }
+      .arena-app .build__gates-sub {
+        font-family: var(--arena-mono); font-size: 0.56rem; letter-spacing: 0.06em;
+        color: var(--arena-text-dim);
+      }
+      .arena-app .build__gates-list { display: flex; flex-direction: column; gap: 0.3rem; }
+      .arena-app .build__gate {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.9fr) minmax(7rem, 1fr) auto;
+        grid-template-areas: "stage name ctrl" "conseq conseq conseq";
+        align-items: center; gap: 0.3rem 0.6rem;
+        padding: 0.4rem 0.6rem; border-radius: 0.4rem;
+        border: 1px solid var(--arena-border); border-left: 2px solid var(--arena-text-dim);
+        background: color-mix(in oklch, var(--arena-bg) 85%, transparent);
+      }
+      .arena-app .build__gate[data-tone="pass"] { border-left-color: var(--arena-ok); }
+      .arena-app .build__gate[data-tone="hold"] { border-left-color: var(--arena-warn); }
+      .arena-app .build__gate[data-tone="pending"] { border-left-color: var(--arena-text-dim); }
+      .arena-app .build__gate-stage {
+        grid-area: stage; display: flex; align-items: center; gap: 0.4rem;
+        font-size: 0.72rem; font-weight: 600; color: var(--arena-text);
+      }
+      .arena-app .build__gate-code {
+        font-family: var(--arena-mono); font-size: 0.5rem; color: var(--arena-text-dim);
+        padding: 0.02rem 0.28rem; border-radius: 0.2rem; border: 1px solid var(--arena-border);
+      }
+      .arena-app .build__gate-name {
+        grid-area: name; font-family: var(--arena-mono); font-size: 0.6rem;
+        color: var(--arena-text-mute);
+      }
+      .arena-app .build__gate-ctrl {
+        grid-area: ctrl; display: inline-flex; align-items: center; gap: 0.3rem;
+        font-family: var(--arena-mono); font-size: 0.56rem; letter-spacing: 0.05em;
+        padding: 0.1rem 0.42rem; border-radius: 0.3rem; border: 1px solid var(--arena-text-dim);
+        color: var(--arena-text-dim);
+      }
+      .arena-app .build__gate-ctrl[data-tone="pass"] {
+        color: var(--arena-ok); border-color: color-mix(in oklch, var(--arena-ok) 45%, var(--arena-border));
+        background: color-mix(in oklch, var(--arena-ok) 8%, transparent);
+      }
+      .arena-app .build__gate-ctrl[data-tone="hold"] {
+        color: var(--arena-warn); border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-border));
+        background: color-mix(in oklch, var(--arena-warn) 8%, transparent);
+      }
+      .arena-app .build__gate-ctrl-dot {
+        width: 0.4rem; height: 0.4rem; border-radius: 50%; background: currentColor;
+      }
+      .arena-app .build__gate-conseq {
+        grid-area: conseq; font-size: 0.6rem; line-height: 1.4; color: var(--arena-text-dim);
+      }
 
       /* ---------------------------------------------------------------
        *  SFT training feed — live NeMo p65 LoRA SFT (/arena/sft/) — AF

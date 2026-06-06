@@ -2131,6 +2131,42 @@ def create_app(
             "report": report, "source": log_path.name, "runs": runs,
         }
 
+    @app.get("/api/corpus-progress")
+    async def api_corpus_progress(
+        source: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        """Live corpus-synth feed (AE-6 / AF-2 — closes the C1 corpus blind spot).
+
+        The corpus-synth skill writes SFT-init rows in-CC-session (Edit-append to
+        ``out.jsonl`` against a deterministic ``queue.jsonl``); the control plane
+        never saw it — the "#1 immediate win" in the dogfood ledger. The producer
+        stamps a ``corpus-progress-<slug>.json`` heartbeat
+        (``fieldkit.arena.lane.write_corpus_progress``) into the dir this endpoint
+        auto-follows; the response carries ``written/target``, the batch verify
+        tally, the accumulating tier/topic ``family_mix``, and the ETA-in-batches
+        — the corpus-stage analogue of the ``rl_run`` / SFT progress strip.
+
+        Read-only: an HTTP GET reads a JSON file; it never launches a lane and
+        never imports skill code (AE-R3). History + auto-follow mirror
+        ``/api/sft-progress``: ``runs`` lists every heartbeat newest-first; the
+        shown one is ``?source=`` (traversal-sanitized) → else newest by mtime.
+        ``{available: false}`` paints a clean empty state. No arena.db read."""
+        runs = _list_corpus_runs(root)
+        report_path = (
+            _resolve_corpus_report(root, source)
+            if source
+            else _newest_corpus_report(root)
+        )
+        if report_path is None or not report_path.is_file():
+            return {"available": False, "kind": "corpus", "runs": runs}
+        report = _parse_corpus_report(report_path)
+        if report is None:
+            return {"available": False, "kind": "corpus", "runs": runs}
+        return {
+            "available": True, "kind": "corpus",
+            "report": report, "source": report_path.name, "runs": runs,
+        }
+
     @app.get("/api/build")
     async def api_build() -> dict[str, Any]:
         """The vertical-build spine (AE-5 / AF-1): C1..C6 stage cards.
@@ -2411,6 +2447,112 @@ def _list_sft_runs(sft_dir: Path) -> list:
 
 
 # ---------------------------------------------------------------------------
+# Corpus-synth live feed (AE-6 / AF-2) — the consumer side of the heartbeat
+# ---------------------------------------------------------------------------
+#
+# The producer is the claude-corpus-synth skill, which stamps a
+# ``corpus-progress-<slug>.json`` heartbeat via
+# ``fieldkit.arena.lane.write_corpus_progress`` after each batch. The cockpit
+# only polls that file (AE-R3: never imports skill code) — exactly the AF-9
+# reward / AF-10 SFT auto-newest transport, one dir over.
+
+
+def _corpus_reports_dir(root: Path) -> Path:
+    """Dir holding the corpus heartbeat JSONs (env ``FK_ARENA_CORPUS_DIR``).
+
+    Defaults to the same ``evidence/astrodynamics`` dir the reward + SFT feeds
+    use, so one vertical's build signals sit together (mirrors the producer's
+    ``lane._corpus_signal_dir``)."""
+    env = os.environ.get("FK_ARENA_CORPUS_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
+    return root / "evidence" / "astrodynamics"
+
+
+def _newest_corpus_report(root: Path) -> Path | None:
+    """The most-recent ``corpus-progress*.json`` by mtime (auto-follow the live
+    synth); ``None`` when no run has stamped a heartbeat yet."""
+    base = _corpus_reports_dir(root)
+    try:
+        cands = sorted(
+            base.glob("corpus-progress*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return None
+    return cands[0] if cands else None
+
+
+def _resolve_corpus_report(root: Path, source: str) -> Path | None:
+    """Resolve a dropdown-selected heartbeat filename to a path, traversal-safe."""
+    name = Path(source).name
+    if not name.startswith("corpus-progress") or not name.endswith(".json"):
+        return None
+    p = _corpus_reports_dir(root) / name
+    return p if p.is_file() else None
+
+
+def _parse_corpus_report(path: Path) -> dict[str, Any] | None:
+    """Read one corpus heartbeat into the feed shape (mostly passthrough + a
+    derived ``pct``). ``None`` only on an unreadable / non-dict file."""
+    try:
+        r = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    if not isinstance(r, dict):
+        return None
+    written = r.get("written") or 0
+    target = r.get("target")
+    pct = (
+        min(100, round(written / target * 100))
+        if isinstance(target, (int, float)) and target
+        else None
+    )
+    return {
+        "status": r.get("status") or "running",
+        "written": written,
+        "target": target,
+        "pct": pct,
+        "verified": r.get("verified"),
+        "verify_fail": r.get("verify_fail"),
+        "batch_size": r.get("batch_size"),
+        "batches_done": r.get("batches_done"),
+        "eta_batches": r.get("eta_batches"),
+        "family_mix": r.get("family_mix") or {},
+        "last_batch": r.get("last_batch"),
+        "run_label": r.get("run_label"),
+        "vertical": r.get("vertical"),
+    }
+
+
+def _list_corpus_runs(root: Path) -> list:
+    """Newest-first summaries of every corpus heartbeat (history dropdown)."""
+    base = _corpus_reports_dir(root)
+    out: list = []
+    try:
+        paths = sorted(
+            base.glob("corpus-progress*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return out
+    for p in paths:
+        rep = _parse_corpus_report(p) or {}
+        out.append(
+            {
+                "source": p.name,
+                "status": rep.get("status"),
+                "written": rep.get("written"),
+                "target": rep.get("target"),
+                "run_label": rep.get("run_label"),
+            }
+        )
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Build spine (AE-5 / AF-1) — the vertical-build pipeline as C1..C6 stage cards
 # ---------------------------------------------------------------------------
 #
@@ -2506,6 +2648,10 @@ def _build_scout_stage() -> dict[str, Any]:
         "headline": "base-model report present" if found else "—",
         "detail": "hf-model-scout top-3 → base lock (license · arch · size traps)",
         "gate": "base lock", "gate_state": "pass" if found else "pending",
+        "gate_consequence": (
+            "Locks the base model; a wrong base (NC-license / unsupported "
+            "llama.cpp-arch / oversize weights) sinks the whole pipeline."
+        ),
         "href": None, "source": "scout-dir", "live": False,
     }
 
@@ -2558,16 +2704,45 @@ def _build_bench_stage(bench_id: str | None, vertical: str) -> dict[str, Any]:
     return base
 
 
-def _build_corpus_stage() -> dict[str, Any]:
-    """C1 corpus — the SFT-init corpus-synth run. The live feed (AE-6) lands in
-    S4; until then this card frames the gap and defers to the manifest."""
-    return {
+def _build_corpus_stage(root: Path) -> dict[str, Any]:
+    """C1 corpus — the SFT-init corpus-synth run, read live from the corpus
+    heartbeat feed (AE-6): ``written/target`` + the batch-verify tally on a
+    running synth, the final count on done. The manifest fills it when no run has
+    stamped a heartbeat yet (the producer is the in-CC-session skill)."""
+    base = {
         "key": "corpus", "code": "C1", "label": "Corpus",
         "state": "pending", "headline": "—",
-        "detail": "SFT-init corpus · live feed lands in S4 (AE-6)",
+        "detail": "SFT-init corpus · closed-form numeric · held-out-excluded",
         "gate": "/usage token preflight", "gate_state": "pending",
-        "href": None, "source": "manifest", "live": False,
+        "gate_consequence": (
+            "Confirms the synth fits the weekly cap before a multi-session run; "
+            "holding stops the spend."
+        ),
+        "href": None, "source": "corpus-progress", "live": True,
     }
+    rp = _newest_corpus_report(root)
+    if rp is None:
+        return base
+    rep = _parse_corpus_report(rp)
+    if not rep:
+        return base
+    status = rep.get("status") or "running"
+    written, target = rep.get("written") or 0, rep.get("target")
+    vf = rep.get("verify_fail")
+    if vf == 0:
+        verify = " · verify ✓"
+    elif vf:
+        verify = f" · {vf} verify ✗"
+    else:
+        verify = ""
+    count = f"{written}/{target} rows" if target else f"{written} rows"
+    if status == "done":
+        base["state"] = "done"
+        base["headline"] = count + verify
+    else:
+        base["state"] = "active"
+        base["headline"] = count + verify
+    return base
 
 
 def _build_sft_stage() -> dict[str, Any]:
@@ -2578,6 +2753,10 @@ def _build_sft_stage() -> dict[str, Any]:
         "state": "pending", "headline": "—",
         "detail": "NeMo p65 LoRA format-conditioning warm-start",
         "gate": "held-out > base", "gate_state": "pending",
+        "gate_consequence": (
+            "SFT-init must beat base on held-out or the warm-start adds nothing; "
+            "holding blocks the RLVR loop."
+        ),
         "href": "../sft/", "source": "sft-progress", "live": True,
     }
     sft_dir = _sft_run_dir()
@@ -2611,6 +2790,10 @@ def _build_smoke_stage(root: Path) -> dict[str, Any]:
         "state": "pending", "headline": "—",
         "detail": "held-out preflight · boxed-rate · AV-R1 truncation",
         "gate": "AV-10 preflight", "gate_state": "pending",
+        "gate_consequence": (
+            "The behavioral smoke gates trusting the checkpoint; holding sends "
+            "it back to corpus coverage."
+        ),
         "href": "../reward/", "source": "reward-signal", "live": True,
     }
     rp = _newest_reward_report(root)
@@ -2672,6 +2855,10 @@ def _build_rlvr_stage(db_path: str) -> dict[str, Any]:
         "state": "pending", "headline": "—",
         "detail": "GRPO held-out-gated · operator-armed",
         "gate": "held-out-win promote", "gate_state": "pending",
+        "gate_consequence": (
+            "Only a held-out-winning step promotes; holding keeps the prior "
+            "checkpoint resident."
+        ),
         "href": "../jobs/", "source": "jobs", "live": True,
     }
     job = _newest_rl_run(db_path)
@@ -2712,6 +2899,10 @@ def _build_publish_stage() -> dict[str, Any]:
         "state": "pending", "headline": "—",
         "detail": "HF GGUF + bench card (hf-publisher)",
         "gate": "held-out-win publish", "gate_state": "pending",
+        "gate_consequence": (
+            "Publish only on a held-out win; holding keeps the artifact "
+            "unpublished."
+        ),
         "href": None, "source": "manifest", "live": False,
     }
 
@@ -2756,7 +2947,7 @@ def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
     auto = [
         _build_scout_stage(),
         _build_bench_stage(bench_id, vertical),
-        _build_corpus_stage(),
+        _build_corpus_stage(root),
         _build_sft_stage(),
         _build_smoke_stage(root),
         _build_lane_stage(db_path),

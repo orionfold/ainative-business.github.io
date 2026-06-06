@@ -206,3 +206,50 @@ def test_build_dir_env_override(
         body = client.get("/api/build").json()
         assert body["label"] == "Relocated"
         assert body["manifest_present"] is True
+
+
+def test_build_gate_cards_carry_consequence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # AE-7 — every gated stage ships a default ``gate_consequence`` (the cost of
+    # holding), so the gate ledger has copy without a manifest.
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    monkeypatch.setenv("FK_ARENA_CORPUS_DIR", str(tmp_path / "no-corpus"))
+    with TestClient(_app(tmp_path)) as client:
+        stages = {s["key"]: s for s in client.get("/api/build").json()["stages"]}
+        for key in ("scout", "corpus", "sft", "smoke", "rlvr", "publish"):
+            assert stages[key].get("gate"), key
+            assert stages[key].get("gate_consequence"), key
+        # bench + lane have no human gate → no consequence forced.
+        assert stages["bench"].get("gate") is None
+
+
+def test_build_manifest_overrides_gate_consequence(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The operator can override the gate copy via the manifest (AE-7 + AE-5
+    # ownership: gate annotations are always manifest-owned).
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    monkeypatch.setenv("FK_ARENA_CORPUS_DIR", str(tmp_path / "no-corpus"))
+    p = tmp_path / "evidence" / "astrodynamics" / "build-manifest.json"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        json.dumps(
+            {
+                "stages": {
+                    "publish": {
+                        "gate_state": "hold",
+                        "gate_consequence": "Custom hold reason.",
+                    }
+                }
+            }
+        )
+    )
+    with TestClient(_app(tmp_path)) as client:
+        stages = {s["key"]: s for s in client.get("/api/build").json()["stages"]}
+        assert stages["publish"]["gate_state"] == "hold"
+        assert stages["publish"]["gate_consequence"] == "Custom hold reason."
