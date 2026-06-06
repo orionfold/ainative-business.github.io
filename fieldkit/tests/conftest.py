@@ -44,3 +44,24 @@ def _isolate_reward_signal_dir(tmp_path, monkeypatch):
     needs a specific location still overrides this env or passes ``reward_dir=``.
     """
     monkeypatch.setenv("FK_ARENA_REWARD_DIR", str(tmp_path / "reward-signal"))
+
+
+@pytest.fixture(autouse=True)
+def _isolate_lane_truth(tmp_path, monkeypatch):
+    """Keep lane discovery hermetic + the active-lane registry out of the real home.
+
+    ``server._resolve_active_lane`` calls ``fieldkit.arena.lanes.discover_cached``,
+    which probes real serving ports (e.g. a live llama.cpp lane on :8091 during an
+    operator smoke). Under pytest that makes lane-dependent tests flaky against
+    whatever happens to be serving on the box. Neutralize discovery to ``[]`` by
+    default — tests that exercise discovery call ``lanes.discover``/``probe_port``
+    with the HTTP layer mocked, or pass ``discovered=`` to ``resolve_active_lane``
+    — and pin the Arena-owned registry to a per-test tmp dir.
+    """
+    from fieldkit.arena import lanes
+
+    monkeypatch.setattr(lanes, "discover_cached", lambda *a, **k: [])
+    lanes._discover_cache.update(t=0.0, key=None, v=None)
+    monkeypatch.setenv("FK_ARENA_LANE_DIR", str(tmp_path / "lane-registry"))
+    monkeypatch.delenv("FK_ARENA_LANE_PATH", raising=False)
+    monkeypatch.delenv("FK_ARENA_LANE_PORTS", raising=False)

@@ -20,6 +20,33 @@
   (c) states the **success criterion**, (d) watches the live pane over CDP and confirms the
   render, (e) shoots a 2× screenshot, (f) logs anything off into the issue ledger.
 
+## Narrated cadence — the guided, explainable flow (adopted 2026-06-06, run S1)
+
+**The operator watches *two* surfaces at once: the Arena browser *and* Claude's CLI.** The run
+only works if they stay in sync. So Claude narrates **every** step in this fixed shape — announce
+*before* acting, confirm *after* — and never races ahead:
+
+1. **▶ Announce the step** — `### ▶ Step <id> — <name>`, one line on what it is.
+2. **What I'll do** — the exact command/action (and whether it's read-only or GPU/cloud-armed).
+3. **Watch in Arena (your screen)** — *which pane/tab/rail the operator should be looking at*, so
+   they see the same thing change that Claude is driving over CDP.
+4. **Success criterion** — the concrete pass condition, stated *before* running.
+5. *(run it)*
+6. **Result** — **Arena report vs. actual.** State plainly whether Arena's render matched reality.
+   A divergence is a **system-of-record finding** (log it), not a cosmetic note.
+
+**Pace + control.** One step at a time. Pause for a discussion at any architectural fork or
+finding rather than pushing through. Long/real runs (SFT, RLVR) go to the background and Claude
+waits on the completion signal — no busy-polling. Hard-to-reverse / out-of-scope actions (e.g.
+editing a non-repo config, GPU/cloud spend) are surfaced for the operator's call, not worked
+around. The operator can interject "pause / discuss / continue" at any time and Claude re-plans.
+
+**Why this exists.** Two principles govern the whole run (operator, 2026-06-06): **Arena is the
+system of record for every observation**, and **Arena is the surface the operator arms + runs the
+machine from**. Each terminal step Claude has to take *outside* Arena, and each place Arena's
+report diverges from reality, is a finding for `_IDEAS/arena-smoke-v2-features.md`. The narration
+is what lets the operator catch those divergences live, on their own screen.
+
 ## Harness
 
 - Cockpit + visible Chromium: `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh

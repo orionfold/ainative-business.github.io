@@ -20,6 +20,46 @@
 
 ## Current state
 
+### ⏸️ 2026-06-06 — Arena e2e operator-smoke **RUN S1 IN PROGRESS (PAUSED at B2)** — surfaced a system-of-record redesign now being spec'd + built
+
+> **The e2e build→serve→review smoke is mid-run, deliberately paused at B2 to fix a load-bearing
+> finding before continuing.** Phase A (BUILD) is **complete** (A0 spine 7/8 · A1 scout 95/100 ·
+> A2 bench-provenance · A3 corpus-feed · **A4 REAL NeMo SFT 10-iter smoke** val loss 0.844 /
+> checkpoint iter 10 · A5 reward 86% held-out · A6 gate ledger). Phase B started: **B0** a REAL
+> Kepler-Q8 llama.cpp lane is serving on `:8091` (verified `/props` model_path + a scored astro
+> completion `\boxed{93.45 min}` ✓), but **B1/B2 exposed the finding** and we stopped.
+>
+> **The finding (OBS-4 / AF-24 / AF-25, HIGH+architectural):** Arena's rail showed `CONFIGURED
+> LANE · Qwen3-30B · idle` while Kepler genuinely served — because Arena learns "what lane is
+> serving" by reading **`~/.hermes/config.yaml`** (a *foreign tool's* config = an *assertion*),
+> not by *observing* what's actually resident. Operator's directive: **question the Hermes
+> dependency itself**; Arena should *own* + *discover* its lane truth. Chat/compare (B2/B3) route
+> via that Hermes `base_url` (:8080, nothing there) so they can't reach Kepler until this is fixed.
+>
+> **Plan (operator-approved 2026-06-06):** (1) ✅ record the narrated-smoke flow → runbook +
+> [[feedback_arena_narrated_operator_smoke]]; (2) ✅ save state (this block); (3) ✅ **spec'd Plan B**
+> → `_SPECS/arena-enhancements-v2.md` (AE-18…28, 3 clusters, AE-R7…R13); (4) ✅ **IMPLEMENTED +
+> VERIFIED LIVE the Cluster-G core** — new `fieldkit.arena.lanes` (`discover()` probes
+> `FK_ARENA_LANE_PORTS` → `/v1/models`+`/props`; JSON registry `~/.fieldkit/arena/active-lane.json`;
+> `resolve_active_lane()` reconciles registry∩discovery, Hermes demoted to a hint) wired into
+> `server.py` (the hub resident-reader + chat/compare/judge/`/api/lanes` + new `GET/POST
+> /api/active-lane` + the build-spine Lane card). **Offline 1382 pass / 5 skip** (+13 `test_lanes.py`
+> + a conftest discovery-isolation autouse fixture). Cockpit restarted → **rail now reads `RESIDENT
+> LANE · model-Q8_0.gguf` + Lane card `serving · :8091` with NO Hermes edit** (OBS-4 fixed). **NO
+> arena.db schema change** (`user_version` 6, file registry). ▶ **UNCOMMITTED** — the v2 spec +
+> `lanes.py` + server wiring + tests + the guide/memory/ledger are all in the working tree, not yet
+> committed (operator's call). ⏳ DEFERRED to v2 build: the frontend polish (AE-21 multi-lane *pane*,
+> AE-22 *select* button UI, AE-24 provenance chip) — backend endpoints exist; no `arena-app/` edit
+> yet so **no `_webui` rebake was needed** (rail truth came free from the backend). (5) ⏳ **resume**
+> B2/B3/B4 + Phase C with Kepler resident; (6) ⏳ rewrite this HANDOFF clean.
+> **All findings + the operate-from-terminal gap catalogue** are in
+> `_IDEAS/arena-smoke-v2-features.md` (gitignored). **Other open finding:** BUG-1/OBS-1 — the
+> `/arena/sft/` pane reports `0/0` for a completed run (the canonical `fieldkit.training.run` path
+> doesn't emit the iteration lines the pane regex-parses; fix = structured `sft-progress` feed).
+>
+> **Smoke screenshots staged:** `/tmp/aifn-smoke/e2e/build/` (00,01,03,04a,04b,05,06) +
+> `/tmp/aifn-smoke/e2e/serve/01-models.png`. CDP driver: `/tmp/pw/drive.mjs` (env-driven).
+
 ### ✅ 2026-06-06 — `fieldkit v0.27.0` RELEASED (`arena-guardrail-settings-v1` **GS-1…6**) — the operator-config surface over the AE-17 guardrails
 
 > **`arena-guardrail-settings-v1` is BUILT + browser-smoked + RELEASED as `fieldkit v0.27.0`** (the whole GS-1…6 cluster in one cut). The post-v0.26.0 question *"where can I see the guardrails config in Arena?"* is answered: a new **Settings** pane (`/arena/settings/`, REVIEW/META nav group) **views + live-edits** the AE-17 eval-guardrail thresholds (per-run cost cap · stall window · `enabled` master toggle) with **no restart** — the arm path reads the config **per dispatch**.
@@ -55,7 +95,17 @@
 
 **The Kepler pipeline lessons are encoded as memories** (apply to the next vertical): `feedback_sft_vs_rlvr_decision` (the prior question — cheap-correct-trajectory + enumerable-output → SFT-only wins), `feedback_rlvr_headroom_gate` (the Goldilocks band + the bimodal-per-family refinement: 0% = SFT-coverage gap, not RL headroom), `feedback_preflight_bench_before_quant`, `feedback_smoke_projection_slack`.
 
-## ⚙️ Live runtime (cockpit UP in browser-use mode; GPU lane FREE, no OpenRouter activity)
+## ⚙️ Live runtime (e2e-smoke S1 paused — cockpit + Kepler lane + nemo-train UP)
+
+> **e2e-smoke S1 runtime (2026-06-06, paused at B2):** `nemo-train` container UP (SFT smoke done);
+> **Kepler-Q8 llama.cpp lane UP on `:8091`** (bg, ~8 GiB GPU; one-lane envelope intact since the
+> nemo container is idle); cockpit `:7866` + CDP Chromium `:9222` UP. `~/.hermes/config.yaml` is
+> **unchanged** (Qwen3-30B:8080 — the edit to point it at Kepler was correctly denied; the fix is
+> the AF-25 redesign, not a config hack). To tear down at session end: kill the `:8091`
+> llama-server, `docker rm -f nemo-train`, `arena_lifecycle.sh down --browser`. The block below is
+> the pre-smoke baseline (still accurate for the cockpit/pgvector lanes).
+
+### Pre-smoke baseline (cockpit UP in browser-use mode; GPU lane otherwise FREE)
 
 - **Arena cockpit UP** (`:7866`, OpenRouter key loaded, pid 2277433) + **visible CDP Chromium UP** (`:9222`, browser-use mode, pid 2277462) — **restarted 2026-06-06 onto the GS-1…6-rebaked `_webui`** (serves the new **Settings** pane `/arena/settings/` + the **GS-6 cap chip** on the Jobs-board guardrail badge, on top of S1–S7); **left up**. `arena.db` has **0 running/queued jobs**, Kepler eval results preserved: `kepler-q8-gguf` **0.86/44**, `deepseek-r1` **0.84/37** (both local-lane → no guardrail badge, correct). The GS browser-smoke seeded 2 synthetic cloud-eval rows + a config file, both reverted after (config back to all-default · seeds hard-deleted). ⚠️ Visible Chromium caches hashed JS — if a pane looks stale, hard-reload / CDP `Network.clearBrowserCache`. **NB `serve()` exports `ARENA_REPO_ROOT`** (non-reload path) so `benches.py` resolves the astro bench dir.
 - **`pgvector` container UP** (`:5432`, db `vectors`, table `blog_chunks`) — backs the Second Brain index.
