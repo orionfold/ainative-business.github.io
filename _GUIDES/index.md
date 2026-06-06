@@ -1,4 +1,4 @@
-<!-- _GUIDES index — active guidance & practices for this repo. Last updated: 2026-06-02 -->
+<!-- _GUIDES index — active guidance & practices for this repo. Last updated: 2026-06-06 -->
 
 # _GUIDES — active guidance & practices
 
@@ -32,6 +32,7 @@ the doc *and* its line below.
 | Guide | Last updated | What it governs |
 |---|---|---|
 | [`local-ai-stack-commands.md`](local-ai-stack-commands.md) | 2026-04-21 | Repeat commands for the local AI stack on the DGX Spark — Ollama, NemoClaw (`clawnav`), OpenClaw TUI, OpenShell gateway, plus troubleshooting + state-file map. (Was `COMMANDS.md`.) |
+| [`arena-e2e-smoke-runbook.md`](arena-e2e-smoke-runbook.md) | 2026-06-06 | The reusable operator runbook for walking the whole Arena pipeline (build → serve → review) as one CDP-driven side-by-side session — per-step panes/commands/success-criteria, the two operator-armed gates (guardrail + RL-lane), efficiency safeguards, and the bug + v2-feature + screenshot harvest. |
 
 ---
 
