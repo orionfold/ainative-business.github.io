@@ -39,3 +39,43 @@ author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on 
 `node node_modules/astro/astro.js build` (485 pages; `npm run build` is broken on this checkout
 per the SMB-symlink memory) → `node scripts/verify_artifact_rendering.mjs` +
 `node scripts/verify_field_notes_rendering.mjs`. `build:og` is CI-only (needs Chrome).
+
+## Status beacon (Agency cockpit, 2026-06-06)
+
+End every session by writing `_STATUS.json` at the repo root and **committing
+it with the session's push** (it churns once per session, like `HANDOFF.md`).
+The operator's Agency cockpit (on another desktop) mirrors this repo
+read-only and renders the beacon in preference to parsing `HANDOFF.md`. Keep
+`focus`/`blockers`/`next`/`recent` short (≤5 items) and factual:
+
+```json
+{
+  "version": 1,
+  "project": "spark",
+  "updated": "2026-06-06",
+  "health": "green",
+  "focus": "one line — what this session moved",
+  "blockers": [],
+  "next": [],
+  "recent": [],
+  "session": "S42 (short tag)",
+  "metrics": {
+    "articles": 66,
+    "models": 4,
+    "software_released": 12,
+    "arena_features": 16,
+    "fieldkit_modules": 9,
+    "gsc_indexed": 12,
+    "gsc_submitted": 305,
+    "ga4_users_7d": 123,
+    "checked": "2026-06-06"
+  }
+}
+```
+
+`metrics` carries the canonical counts only this project knows — the cockpit
+cannot compute them remotely (example values above; replace with real ones).
+Sessions that don't re-verify a number carry the previous value forward
+verbatim. `checked` is the ISO date the GSC/GA4/HF numbers were actually
+read — never bump it without a real check (the cockpit renders staleness
+from it, >14d shows a warning).
