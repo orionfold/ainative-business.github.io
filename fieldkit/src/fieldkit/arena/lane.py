@@ -66,6 +66,7 @@ __all__ = [
     "lane_binary_present",
     "rl_progress_writer",
     "reward_signal_writer",
+    "write_corpus_progress",
     "abort_poller",
     "unified_used_gb",
     "unified_total_gb",
@@ -486,6 +487,130 @@ def reward_signal_writer(
             pass
 
     return write
+
+
+# ---------------------------------------------------------------------------
+# Corpus-synth live feed (AE-6 / AF-2) — the producer-side heartbeat stamper
+# ---------------------------------------------------------------------------
+
+
+def _corpus_signal_dir(override: Optional[Any] = None) -> Path:
+    """Resolve the dir the corpus feed auto-follows (AE-6).
+
+    Mirrors :func:`_reward_signal_dir` so a heartbeat written here is the one the
+    server's ``/api/corpus-progress`` picks up. Precedence: explicit ``override``
+    → ``FK_ARENA_CORPUS_DIR`` → ``ARENA_REPO_ROOT``/evidence/astrodynamics →
+    cwd/evidence/astrodynamics.
+    """
+    if override:
+        return Path(os.path.expanduser(str(override)))
+    env = os.environ.get("FK_ARENA_CORPUS_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
+    root = os.environ.get("ARENA_REPO_ROOT") or os.getcwd()
+    return Path(root) / "evidence" / "astrodynamics"
+
+
+def write_corpus_progress(
+    out_path: Any,
+    queue_path: Optional[Any] = None,
+    *,
+    corpus_dir: Optional[Any] = None,
+    run_label: Optional[str] = None,
+    vertical: Optional[str] = None,
+    batch_size: int = 50,
+    status: str = "running",
+    verified: Optional[int] = None,
+    verify_fail: Optional[int] = None,
+    last_batch: Optional[Mapping[str, Any]] = None,
+) -> Optional[Path]:
+    """Stamp the corpus-synth live-feed heartbeat (AE-6 / AF-2).
+
+    The corpus-synth skill writes rows in-CC-session via Edit-append to an
+    ``out.jsonl`` against a deterministic ``queue.jsonl`` (the target N + the
+    per-row family). The control plane never saw this — the corpus stage was the
+    cockpit's blind spot (the "#1 immediate win" in the dogfood ledger). This is
+    the producer-side stamper the skill calls after each batch: it counts the
+    written rows, reads the target + family map off the queue, tallies the
+    accumulating tier/topic mix, and drops a ``corpus-progress-<slug>.json``
+    heartbeat into the dir ``/api/corpus-progress`` auto-follows — the
+    file-polled-heartbeat transport (AF-9/AF-10), never importing skill code into
+    the cockpit (AE-R3). Best-effort: a write failure never fails the run.
+
+    Each ``out.jsonl`` row is ``{"row_idx": int, ...}``; the family is read from
+    the row when present, else looked up in ``queue_path`` by ``row_idx``.
+    """
+    base = _corpus_signal_dir(corpus_dir)
+    out_p = Path(os.path.expanduser(str(out_path)))
+
+    # Target N + per-row family from the deterministic queue (if provided).
+    fam_by_idx: dict[int, str] = {}
+    target: Optional[int] = None
+    if queue_path is not None:
+        q_p = Path(os.path.expanduser(str(queue_path)))
+        try:
+            q_lines = [ln for ln in q_p.read_text().splitlines() if ln.strip()]
+            target = len(q_lines)
+            for ln in q_lines:
+                try:
+                    rec = json.loads(ln)
+                    fam_by_idx[int(rec["row_idx"])] = str(rec.get("family") or "?")
+                except (ValueError, KeyError, TypeError):
+                    continue
+        except OSError:
+            pass
+
+    # Written rows + the accumulating family mix from the live out.jsonl.
+    written = 0
+    family_mix: dict[str, int] = {}
+    try:
+        for ln in out_p.read_text().splitlines():
+            if not ln.strip():
+                continue
+            written += 1
+            try:
+                rec = json.loads(ln)
+            except ValueError:
+                continue
+            fam = rec.get("family")
+            if fam is None:
+                idx = rec.get("row_idx")
+                fam = fam_by_idx.get(int(idx)) if isinstance(idx, int) else None
+            if fam:
+                family_mix[str(fam)] = family_mix.get(str(fam), 0) + 1
+    except OSError:
+        return None
+
+    remaining = max(0, target - written) if target is not None else None
+    eta_batches = (
+        (remaining + batch_size - 1) // batch_size
+        if remaining is not None and batch_size
+        else None
+    )
+    batches_done = (written + batch_size - 1) // batch_size if batch_size else None
+    slug = (run_label or vertical or "corpus").replace("/", "-")
+    report = {
+        "kind": "corpus_run",
+        "run_label": run_label,
+        "vertical": vertical,
+        "status": status,
+        "written": written,
+        "target": target,
+        "verified": verified,
+        "verify_fail": verify_fail,
+        "batch_size": batch_size,
+        "batches_done": batches_done,
+        "eta_batches": eta_batches,
+        "family_mix": family_mix,
+        "last_batch": dict(last_batch) if last_batch else None,
+    }
+    target_file = base / f"corpus-progress-{slug}.json"
+    try:
+        base.mkdir(parents=True, exist_ok=True)
+        target_file.write_text(json.dumps(report, sort_keys=True))
+    except OSError:  # noqa: BLE001 — the feed is observational, never load-bearing
+        return None
+    return target_file
 
 
 # ---------------------------------------------------------------------------
