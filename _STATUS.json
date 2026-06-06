@@ -7,8 +7,7 @@
   "blockers": [],
   "next": [
     "arena-enhancements S7 — AE-17 cloud-run guardrails (last open session)",
-    "Re-run /seo-monitor from a Google-signed-in browser for fresh GSC/GA4 (claude-in-chrome unavailable on Spark)",
-    "Verify seeded metrics: models / software_released / arena_features / ga4_users_7d"
+    "Confirm canonical definitions for models / software_released / arena_features"
   ],
   "recent": [
     "fieldkit v0.25.0 on PyPI (S5–S6 cluster)",
@@ -23,10 +22,10 @@
     "models": 6,
     "software_released": 7,
     "arena_features": 16,
-    "fieldkit_modules": 9,
-    "gsc_indexed": 12,
-    "gsc_submitted": 305,
-    "ga4_users_7d": 123,
-    "checked": "2026-05-30"
+    "fieldkit_modules": 18,
+    "gsc_indexed": 24,
+    "gsc_submitted": 183,
+    "ga4_users_7d": 69,
+    "checked": "2026-06-06"
   }
 }
