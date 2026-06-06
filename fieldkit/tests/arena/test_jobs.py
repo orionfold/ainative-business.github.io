@@ -234,6 +234,56 @@ def test_rl_run_dispatches_and_persists_heldout_digest(store):
     assert store.user_version == user_version_before
 
 
+def test_rl_run_persists_upstream_lineage(store):
+    # AE-9 (arena-enhancements S5) — the rl_run digest threads the inter-run
+    # upstream lineage (corpus C1 / SFT-init C2 / bench version) so a regression
+    # traces to its corpus, not just its step. Pulled from the loop summary first,
+    # else the enqueue payload. Still no schema churn (RV-8).
+    def _rl_runner(kind, payload):
+        return {
+            "base": payload["base"],
+            "domain": "astrodynamics",
+            "n_steps": 2,
+            "selected_step": 1,
+            "selected_heldout_score": 0.9,
+            "heldout_scores": {0: 0.3, 1: 0.9},
+            "selected_on": "heldout",
+            # the loop summary supplied no upstream → fall back to the payload
+        }
+
+    jid = jobs.enqueue_job(
+        store,
+        JobKind.RL_RUN,
+        {
+            "base": "astro-merged",
+            "bench_path": "/tmp/b.jsonl",
+            "lane_id": "astro-rlvr",
+            "bench_id": "astro-bench-v0.1",
+            "corpus_slug": "astro-sft-corpus",
+            "sft_init": "p65-nemo-lora-r16",
+        },
+    )
+    jobs.drain_jobs(store, runner=_rl_runner)
+    summary = json.loads(store.get_job(jid)["result_json"])
+    assert summary["upstream"] == {
+        "corpus": "astro-sft-corpus",
+        "sft_init": "p65-nemo-lora-r16",
+        "bench": "astro-bench-v0.1",
+    }
+
+
+def test_rl_run_upstream_none_when_unsupplied(store):
+    # A bare M8/RV-6 run (no corpus/sft/bench supplied by summary or payload)
+    # leaves `upstream` None rather than an empty dict the card would render blank.
+    def _rl_runner(kind, payload):
+        return {"base": payload["base"], "n_steps": 1, "selected_on": "heldout"}
+
+    jid = jobs.enqueue_job(store, JobKind.RL_RUN, {"base": "bare", "lane_id": "x"})
+    jobs.drain_jobs(store, runner=_rl_runner)
+    summary = json.loads(store.get_job(jid)["result_json"])
+    assert summary["upstream"] is None
+
+
 def test_runner_failure_marks_job_failed(store):
     jobs.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "patent-q4km", "bench_id": "b"})
     claimed = store.claim_next_job(dispatched_at=_NOW)
