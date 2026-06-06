@@ -176,9 +176,16 @@ export default function SftProgressPane() {
         <span class="sft__live-eta">
           {isRunning && status === 'running'
             ? `ETA ${fmtEta(rep.eta_s)} · ${rep.iter_per_s ?? '—'} it/s · refreshes 3s`
-            : (status === 'done' ? 'training complete' : 'starting · refreshes 3s')}
+            : (status === 'done'
+                ? 'training complete'
+                : (status === 'failed' ? 'trainer exited non-zero' : 'starting · refreshes 3s'))}
         </span>
       </div>
+
+      {/* AE-25 — a failed canonical run says why (the heartbeat carries the error). */}
+      {status === 'failed' && rep.error && (
+        <div class="sft__error" role="alert" title={rep.error}>⚠ {rep.error}</div>
+      )}
 
       {/* Headline numbers. */}
       <div class="sft__gauges">
@@ -203,7 +210,17 @@ export default function SftProgressPane() {
       <div class="sft__curve">
         <div class="sft__curve-head">
           <span class="sft__curve-title">LoRA SFT loss</span>
-          <span class="sft__curve-meta"><code>{rep.run_label || '—'}</code></span>
+          <span class="sft__curve-meta">
+            {/* AE-25 / BUG-1 — source provenance: the canonical heartbeat is
+                checkpoint-liveness truth from fieldkit.training.run itself
+                (no loss curve); a driver log is a stdout-redirect side-effect. */}
+            {rep.feed === 'canonical' && (
+              <span class="sft__feed-chip" title="canonical sft-progress heartbeat — stamped by fieldkit.training.run from checkpoint liveness (invocation-independent); the loss curve only exists on driver-log sources">
+                canonical feed
+              </span>
+            )}
+            <code>{rep.run_label || '—'}</code>
+          </span>
         </div>
         <LossSpark series={rep.loss_series} />
       </div>

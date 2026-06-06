@@ -217,6 +217,12 @@ def test_gpu_seams_requires_rl_extra():
     # The backend is vendored, but a live run needs the fieldkit[rl] extra
     # (torch+peft+transformers) installed. Absent it, gpu_seams raises a
     # friendly RLLoopError pointing at the extra — never a bare ImportError.
+    # In a venv that HAS the extra (e.g. the operator's live arena venv after a
+    # BUG-4-pinned install) the missing-extra path can't be exercised — skip.
+    import importlib.util
+
+    if importlib.util.find_spec("torch") is not None:
+        pytest.skip("fieldkit[rl] extra installed — missing-extra error path not reachable")
     with pytest.raises(RLLoopError, match="fieldkit\\[rl\\]"):
         gpu_seams(GRPOConfig(base="x"))
 
@@ -224,13 +230,18 @@ def test_gpu_seams_requires_rl_extra():
 def test_import_fieldkit_rl_stays_torch_free():
     # The load-bearing invariant: `import fieldkit.rl` (and the torch-free serve
     # half) must NOT drag in torch — only a live gpu_seams() trainer call does.
+    # Checked in a fresh subprocess so the verdict is immune to suite ordering
+    # (an earlier test calling gpu_seams() in a torch-capable venv would leave
+    # torch in *this* process's sys.modules).
+    import subprocess
     import sys
 
-    import fieldkit._rl_gpu_serve as _serve  # torch-free half
-    import fieldkit.rl as _rl
-
-    assert _serve and _rl  # touch the names — the point is the import side-effect
-    assert "torch" not in sys.modules
+    code = (
+        "import sys; import fieldkit._rl_gpu_serve, fieldkit.rl; "
+        "raise SystemExit(0 if 'torch' not in sys.modules else 1)"
+    )
+    proc = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert proc.returncode == 0, f"import fieldkit.rl dragged torch in:\n{proc.stderr[-1500:]}"
 
 
 # ---------------------------------------------------------------------------

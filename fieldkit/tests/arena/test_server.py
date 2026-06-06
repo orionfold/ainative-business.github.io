@@ -338,6 +338,154 @@ def test_trip_running_eval_sentinels_touches_running_eval(tmp_path: Path, monkey
 
 
 # ---------------------------------------------------------------------------
+# BUG-2 — startup reconciler: orphaned in-flight rows land, live-owned rows don't
+# ---------------------------------------------------------------------------
+
+
+def test_reconcile_orphaned_jobs_missing_db_is_zero(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _reconcile_orphaned_jobs
+
+    assert _reconcile_orphaned_jobs(str(tmp_path / "nope.db")) == 0
+
+
+def _seed_inflight_db(tmp_path: Path):
+    """A db with: an orphaned running eval, an orphaned running rl_run, a
+    running eval owned by a live sibling pid, and an untouched queued eval."""
+    import os
+
+    from fieldkit.arena import jobs as jobs_mod
+    from fieldkit.arena.jobs import JobKind, JobStatus
+    from fieldkit.arena.store import ArenaStore
+
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    store.upsert_lane(
+        {"id": "cloud", "kind": "OpenRouterLane", "model": "m", "port": 0, "base_url": "", "recommended": 0}
+    )
+    orphan_eval = jobs_mod.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b1"})
+    orphan_rl = jobs_mod.enqueue_job(store, JobKind.RL_RUN, {"base": "x", "lane_id": "cloud", "bench_path": "p"})
+    owned = jobs_mod.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b2"})
+    queued = jobs_mod.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b3"})
+    store.update_job(orphan_eval, status=JobStatus.RUNNING)
+    store.update_job(orphan_rl, status=JobStatus.RUNNING)
+    store.update_job(owned, status=JobStatus.RUNNING)
+    # Stamp `owned` with a pid that is alive and not ours: pytest's parent.
+    stamp = jobs_mod.job_owner_path(owned)
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    stamp.write_text(json.dumps({"pid": os.getppid(), "kind": "eval_rerun"}))
+    store.close()
+    return db, {"orphan_eval": orphan_eval, "orphan_rl": orphan_rl, "owned": owned, "queued": queued}
+
+
+def test_reconcile_orphans_land_failed_with_honest_trail(tmp_path: Path) -> None:
+    from fieldkit.arena.jobs import JobStatus, job_owner_path
+    from fieldkit.arena.server import _reconcile_orphaned_jobs
+    from fieldkit.arena.store import ArenaStore
+
+    db, ids = _seed_inflight_db(tmp_path)
+    n = _reconcile_orphaned_jobs(str(db))
+    assert n == 2  # the two orphans; the live-owned + queued rows untouched
+
+    store = ArenaStore(db)
+    rows = {str(r["id"]): r for r in store.list_jobs(limit=50)}
+    # Orphaned eval → failed, error names the reconcile, guardrail trail honest
+    # (teardown-shaped, 0 scored, reconciled flag for forensics).
+    ev = rows[ids["orphan_eval"]]
+    assert ev["status"] == JobStatus.FAILED
+    assert "orphaned" in ev["error"]
+    g = json.loads(ev["result_json"])["guardrail"]
+    assert g["aborted_by"] == "teardown"
+    assert g["partial"] is True and g["n_scored"] == 0 and g["reconciled"] is True
+    # Orphaned rl_run → failed too (a reboot mid-run), no guardrail block.
+    rl = rows[ids["orphan_rl"]]
+    assert rl["status"] == JobStatus.FAILED and "orphaned" in rl["error"]
+    assert rl["result_json"] is None
+    # Owned by a live sibling (the cron drain case) — left alone, stamp kept.
+    assert rows[ids["owned"]]["status"] == JobStatus.RUNNING
+    assert job_owner_path(ids["owned"]).exists()
+    # Queued rows are never reconciled.
+    assert rows[ids["queued"]]["status"] == JobStatus.QUEUED
+    store.close()
+
+
+def test_reconcile_runs_on_lifespan_startup(tmp_path: Path, repo_root: Path) -> None:
+    """The reconciler is wired into app startup — booting the sidecar lands
+    orphans without any operator action (the full down+up cycle in the smoke
+    left a dead eval `running` forever)."""
+    from fieldkit.arena.jobs import JobStatus
+    from fieldkit.arena.store import ArenaStore
+
+    db, ids = _seed_inflight_db(tmp_path)
+    app = create_app(repo_root=repo_root, db=str(db), telemetry_interval=2.0)
+    with TestClient(app) as client:
+        assert client.get("/healthz").status_code == 200
+    store = ArenaStore(db)
+    rows = {str(r["id"]): r for r in store.list_jobs(limit=50)}
+    assert rows[ids["orphan_eval"]]["status"] == JobStatus.FAILED
+    assert rows[ids["owned"]]["status"] == JobStatus.RUNNING
+    store.close()
+
+
+# ---------------------------------------------------------------------------
+# BUG-2 — signal-time sentinel trip (the G1 circular-wait fix)
+# ---------------------------------------------------------------------------
+
+
+def test_signal_teardown_trips_sentinel_and_chains(tmp_path: Path, monkeypatch) -> None:
+    """SIGTERM trips the eval-abort sentinels *in the handler* (not lifespan
+    shutdown) and still delegates to the previously-installed handler."""
+    import signal as _signal
+
+    from fieldkit.arena import jobs as jobs_mod
+    from fieldkit.arena.guardrail import eval_sentinel_for
+    from fieldkit.arena.jobs import JobKind, JobStatus
+    from fieldkit.arena.server import _install_signal_teardown
+    from fieldkit.arena.store import ArenaStore
+
+    monkeypatch.setenv("FK_EVAL_SENTINEL_DIR", str(tmp_path / "sentinels"))
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    store.upsert_lane(
+        {"id": "cloud", "kind": "OpenRouterLane", "model": "m", "port": 0, "base_url": "", "recommended": 0}
+    )
+    running_id = jobs_mod.enqueue_job(store, JobKind.EVAL_RERUN, {"lane_id": "cloud", "bench_id": "b1"})
+    store.update_job(running_id, status=JobStatus.RUNNING)
+    store.close()
+
+    seen: list[int] = []
+    prev_term = _signal.getsignal(_signal.SIGTERM)
+    prev_int = _signal.getsignal(_signal.SIGINT)
+    try:
+        # A stand-in for uvicorn's handler — must still be called (chained).
+        _signal.signal(_signal.SIGTERM, lambda s, f: seen.append(s))
+        assert _install_signal_teardown(str(db)) is True
+        _signal.raise_signal(_signal.SIGTERM)
+        assert eval_sentinel_for(running_id).exists()
+        body = json.loads(eval_sentinel_for(running_id).read_text())
+        assert body["aborted_by"] == "teardown"
+        assert seen == [_signal.SIGTERM]  # the prior handler still ran
+    finally:
+        _signal.signal(_signal.SIGTERM, prev_term)
+        _signal.signal(_signal.SIGINT, prev_int)
+
+
+def test_signal_teardown_skipped_off_main_thread(tmp_path: Path) -> None:
+    """`signal.signal` is main-thread-only; the installer must no-op (not
+    raise) when called from a worker thread — the TestClient portal case."""
+    import threading
+
+    from fieldkit.arena.server import _install_signal_teardown
+
+    out: list[bool] = []
+    t = threading.Thread(target=lambda: out.append(_install_signal_teardown(str(tmp_path / "x.db"))))
+    t.start()
+    t.join()
+    assert out == [False]
+
+
+# ---------------------------------------------------------------------------
 # create_app — endpoints
 # ---------------------------------------------------------------------------
 
@@ -451,6 +599,108 @@ def test_guardrail_config_file_wins_over_env(
         g = client.get("/api/guardrail-config").json()
         assert g["effective"]["cost_cap_usd"] == 1.0  # file beats env
         assert g["sources"]["cost_cap_usd"] == "file"
+
+
+# ---------------------------------------------------------------------------
+# BUG-3 / AF-29 — /api/prices (G3-arming disclosure) + /api/prices/refresh
+# ---------------------------------------------------------------------------
+
+
+def _seed_eval_roster_db(tmp_path: Path) -> Path:
+    """A db with two cloud eval jobs (one H6-priced model, one unpriced) and a
+    local-lane eval that must stay off the roster."""
+    from fieldkit.arena import jobs as jobs_mod
+    from fieldkit.arena.jobs import JobKind
+    from fieldkit.arena.store import ArenaStore
+
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    store.upsert_lane(
+        {"id": "cloud", "kind": "OpenRouterLane", "model": "m", "port": 0, "base_url": "", "recommended": 0}
+    )
+    jobs_mod.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "cloud", "bench_id": "b1", "base_url": "https://openrouter.ai/api/v1",
+         "model": "openai/gpt-4o-mini"},
+    )
+    jobs_mod.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "cloud", "bench_id": "b2", "base_url": "https://openrouter.ai/api/v1",
+         "model": "fresh/unpriced"},
+    )
+    jobs_mod.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "cloud", "bench_id": "b3", "base_url": "http://127.0.0.1:8091/v1",
+         "model": "kepler-q8"},
+    )
+    store.close()
+    return db
+
+
+def test_api_prices_reports_g3_arming_per_model(repo_root: Path, tmp_path: Path) -> None:
+    db = _seed_eval_roster_db(tmp_path)
+    app = create_app(repo_root=repo_root, db=str(db), telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/prices").json()
+        by_id = {m["model_id"]: m for m in body["models"]}
+        # The local-lane eval never needs a price — off the roster.
+        assert "kepler-q8" not in by_id
+        # H6-seeded model: armed, provenance visible.
+        priced = by_id["openai/gpt-4o-mini"]
+        assert priced["priced"] is True
+        assert priced["source"] == "h6_evidence"
+        assert priced["price_per_m_output_usd"] == 0.6
+        # Unpriced model: the loud bit — the next eval of it is tokens-only.
+        assert by_id["fresh/unpriced"]["priced"] is False
+        assert body["unpriced"] == 1
+        assert body["enabled"] is True and body["cost_cap_usd"] == 5.0
+
+
+def test_api_prices_refresh_captures_roster(repo_root: Path, tmp_path: Path, monkeypatch) -> None:
+    from fieldkit import cost as cost_mod
+
+    db = _seed_eval_roster_db(tmp_path)
+
+    def _fake_fetch(model_ids, **kwargs):
+        # The roster (cloud models only); we price just one of the two.
+        assert set(model_ids) == {"openai/gpt-4o-mini", "fresh/unpriced"}
+        return [
+            {"model_id": "fresh/unpriced", "price_per_m_input_usd": 0.2,
+             "price_per_m_output_usd": 0.8}
+        ]
+
+    monkeypatch.setattr(cost_mod, "fetch_openrouter_prices", _fake_fetch)
+    app = create_app(repo_root=repo_root, db=str(db), telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.post("/api/prices/refresh", json={}).json()
+        assert body["ok"] is True
+        assert [r["model_id"] for r in body["refreshed"]] == ["fresh/unpriced"]
+        assert body["still_unpriced"] == ["openai/gpt-4o-mini"]  # absent from the fake catalog
+        # The disclosure now shows the captured model armed, fresh provenance.
+        by_id = {m["model_id"]: m for m in client.get("/api/prices").json()["models"]}
+        assert by_id["fresh/unpriced"]["priced"] is True
+        assert by_id["fresh/unpriced"]["source"] == "openrouter-api"
+
+
+def test_api_prices_refresh_fetch_failure_is_502(repo_root: Path, tmp_path: Path, monkeypatch) -> None:
+    from fieldkit import cost as cost_mod
+    from fieldkit.cost import CostError
+
+    db = _seed_eval_roster_db(tmp_path)
+
+    def _boom(model_ids, **kwargs):
+        raise CostError("OpenRouter price fetch failed: offline")
+
+    monkeypatch.setattr(cost_mod, "fetch_openrouter_prices", _boom)
+    app = create_app(repo_root=repo_root, db=str(db), telemetry_interval=2.0)
+    with TestClient(app) as client:
+        r = client.post("/api/prices/refresh", json={})
+        assert r.status_code == 502  # loud, not a silent no-op (BUG-3's silence)
+        assert "fetch failed" in r.json()["detail"]
 
 
 def test_create_app_leaderboard_reads_mirror_json(repo_root: Path) -> None:
@@ -1122,6 +1372,166 @@ def test_compare_event_stream_emits_full_sse_sequence(
     # Per-check why strings are visible.
     assert all("why" in c for c in score["a"]["checks"])
     assert all("why" in c for c in score["b"]["checks"])
+
+
+class _StubAstroWrongAClient:
+    """Lane A — boxed value wrong ~2× (the smoke's B3 lane-A failure shape)."""
+
+    def chat_stream(self, messages, **_kwargs):
+        yield "The orbital period is \\boxed{210.0 min}."
+
+
+class _StubAstroRightBClient:
+    def __init__(self) -> None:
+        self.api_key = "fake-key-so-no-stub"
+
+    def chat_stream(self, messages, **_kwargs):
+        yield "The orbital period is \\boxed{105.6 min}."
+
+
+def test_compare_free_prompt_auto_matches_bench_row(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AF-27(b) — a free-typed prompt that IS a registered bench row gets the
+    bench's own reference verdict (via its scorer_path verifier), not just the
+    format rubric. The exact smoke-B3 topology: both sides pass the format
+    regex ("Dead heat — both 100%") while lane A's VALUE is wrong ~2×."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from fieldkit.arena import benches
+    from fieldkit.arena.server import compare_event_stream
+    from fieldkit.arena.store import ArenaStore
+
+    # The astro bench splits (FK_ARENA_BENCH_DIR root override, AE-11 shape).
+    astro = tmp_path / "astro-evidence"
+    astro.mkdir()
+    (astro / "astro-bench-v0.1.jsonl").write_text(
+        json.dumps(
+            {"task_id": "astro-orb-leo_period-0000", "topic": "orbital_mechanics",
+             "subtopic": "leo_period", "tier": 2,
+             "prompt": "Compute the orbital period. Give \\boxed{value unit}.",
+             "answer": "105.6 min", "gold_value_si": 6336.4, "gold_unit": "s",
+             "rel_tol": 0.02}
+        )
+        + "\n"
+    )
+    (astro / "astro-bench-v0.1.heldout.jsonl").write_text("")
+    monkeypatch.setenv("FK_ARENA_BENCH_DIR", str(astro))
+    benches._CACHE.clear()
+    # A registered verifier the AF-15 loader can resolve (the kepler-astro
+    # registry shape from the live box).
+    reg = tmp_path / "bench-registry"
+    reg.mkdir()
+    verifier = tmp_path / "verifier.py"
+    verifier.write_text(
+        "def astro_numeric_match(predicted, expected, **kw):\n"
+        "    return 1.0 if expected.split()[0] in predicted else 0.0\n"
+    )
+    (reg / "kepler-astro.meta.json").write_text(
+        json.dumps({"scorer_path": f"{verifier}:astro_numeric_match"})
+    )
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(reg))
+    benches._SCORER_FN_CACHE.clear()
+
+    monkeypatch.setattr(
+        "fieldkit.arena.server._chat_client_factory",
+        lambda resident: _StubAstroWrongAClient(),
+    )
+    monkeypatch.setattr(
+        "fieldkit.arena.server._compare_b_factory",
+        lambda: (_StubAstroRightBClient(), None),
+    )
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
+
+    hub = TelemetryHub(interval=0.1)
+    body = SimpleNamespace(
+        prompt="Compute the orbital period. Give \\boxed{value unit}.",
+        lane_b="openrouter",
+        rubric_id=None,
+        max_tokens=128,
+        temperature=0.0,
+    )
+    resident = {"id": "resident-brain", "model": "qwen-fixture",
+                "base_url": "http://127.0.0.1:8080/v1"}
+    db_path = str(repo_root / "arena.db")
+
+    async def _drive():
+        events = []
+        gen = compare_event_stream(
+            hub=hub, request=_FakeRequest(), body=body, resident=resident, db_path=db_path
+        )
+        async for ev in gen:
+            events.append(ev)
+            if ev["event"] == "score":
+                break
+        await gen.aclose()
+        return events
+
+    events = asyncio.run(_drive())
+    score = json.loads(events[-1]["data"])
+    # The format rubric is labelled as such — and both sides pass it (the
+    # misleading "dead heat") …
+    assert score["rubric_scope"] == "format"
+    assert score["a"]["total"] == 1.0 and score["b"]["total"] == 1.0
+    # … but the auto-matched bench verdict tells the truth: A's value is wrong.
+    ev = score["eval"]
+    assert ev["auto_matched"] is True
+    assert ev["bench_id"] == "astro-bench"
+    assert ev["a"]["normalized"] == 0.0
+    assert ev["b"]["normalized"] == 1.0
+    # The real verdict persisted into eval_scores (feeds the AF-28 live group).
+    store = ArenaStore(db_path)
+    n = store.connect().execute(
+        "SELECT COUNT(*) FROM eval_scores WHERE source='compare'"
+    ).fetchone()[0]
+    store.close()
+    assert n == 2
+
+
+def test_compare_free_prompt_no_match_keeps_rubric_path(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A plain free prompt (no bench row) carries no eval block — the rubric
+    verdict (scope-labelled) stands."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from fieldkit.arena.server import compare_event_stream
+
+    monkeypatch.setattr(
+        "fieldkit.arena.server._chat_client_factory",
+        lambda resident: _StubBlankAClient(),
+    )
+    monkeypatch.setattr(
+        "fieldkit.arena.server._compare_b_factory",
+        lambda: (_StubPatentBClient(), None),
+    )
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
+    hub = TelemetryHub(interval=0.1)
+    body = SimpleNamespace(
+        prompt="Tell me something nice.", lane_b="openrouter",
+        rubric_id=None, max_tokens=128, temperature=0.0,
+    )
+    resident = {"id": "resident-brain", "model": "qwen-fixture",
+                "base_url": "http://127.0.0.1:8080/v1"}
+
+    async def _drive():
+        gen = compare_event_stream(
+            hub=hub, request=_FakeRequest(), body=body, resident=resident,
+            db_path=str(repo_root / "arena.db"),
+        )
+        events = []
+        async for ev in gen:
+            events.append(ev)
+            if ev["event"] == "score":
+                break
+        await gen.aclose()
+        return events
+
+    score = json.loads(asyncio.run(_drive())[-1]["data"])
+    assert score["rubric_scope"] == "format"
+    assert "eval" not in score
 
 
 def test_compare_event_stream_persists_rows_and_no_pref_mutation(

@@ -67,6 +67,7 @@ __all__ = [
     "LoadedBench",
     "bench_for_lane",
     "default_openrouter_judge_model",
+    "find_prompt_by_text",
     "judge_availability",
     "list_benches",
     "list_prompts",
@@ -525,6 +526,76 @@ def _norm(s: str) -> str:
     return "".join(ch for ch in (s or "").lower() if ch.isalnum())
 
 
+#: Memo for registry-resolved scorer callables (AF-27(b)) — keyed by the
+#: resolved ``scorer_path`` ref so repeat Compare scores skip the module load.
+_SCORER_FN_CACHE: dict[str, Any] = {}
+
+
+def _registry_scorer_callable(fn_name: str):
+    """Resolve a local-vertical verifier from the eval-bench registry (AF-27).
+
+    Sweeps the ``resolve_bench`` registry dir (``$ARENA_BENCH_DIR``) for a
+    ``*.meta.json`` whose ``scorer_path`` names ``fn_name`` and loads it through
+    the AF-15 loader (``fieldkit.harness.mcp._load_scorer_callable`` — sibling
+    imports resolved). ``None`` when no registered bench carries the verifier,
+    the file is gone, or the load fails — callers honest-skip.
+    """
+    import json
+
+    try:
+        from fieldkit.arena.jobs import DEFAULT_BENCH_DIR
+
+        bench_dir = Path(
+            os.path.expanduser(os.environ.get("ARENA_BENCH_DIR", DEFAULT_BENCH_DIR))
+        )
+        for meta_path in sorted(bench_dir.glob("*.meta.json")):
+            try:
+                meta = json.loads(meta_path.read_text())
+            except (OSError, ValueError):
+                continue
+            ref = (meta or {}).get("scorer_path")
+            if not isinstance(ref, str) or not ref.endswith(f":{fn_name}"):
+                continue
+            cached = _SCORER_FN_CACHE.get(ref)
+            if cached is not None:
+                return cached
+            from fieldkit.harness.mcp import _load_scorer_callable
+
+            fn = _load_scorer_callable(ref)
+            _SCORER_FN_CACHE[ref] = fn
+            return fn
+    except Exception:  # noqa: BLE001 — resolution is best-effort
+        return None
+    return None
+
+
+def find_prompt_by_text(text: str) -> tuple[str, "EvalPrompt"] | None:
+    """Exact-question lookup across every registered bench (AF-27).
+
+    The compare surface's deterministic rubrics are **format** checks; when a
+    free-typed prompt happens to BE a registered bench row (the e2e smoke's
+    550-km-period question), the bench's own reference scorer is the honest
+    verdict — a format-regex "Dead heat — both 100%" while one value was wrong
+    ~2× is exactly the integrity bug this closes. Whitespace-normalized exact
+    match on the raw ``question``; rows that carry canonical *context* are
+    skipped (a free prompt lacked that context, so a gold comparison would be
+    unfair). ``load_bench`` is mtime-cached, so the sweep is string compares.
+    """
+    needle = " ".join((text or "").split())
+    if not needle:
+        return None
+    for bench_id in BENCHES:
+        loaded = load_bench(bench_id)
+        if loaded is None:
+            continue
+        for p in loaded.prompts:
+            if p.has_context:
+                continue
+            if " ".join(p.question.split()) == needle:
+                return bench_id, p
+    return None
+
+
 def bench_for_lane(lane_id: str | None) -> str | None:
     """Map a compare/options lane id to its own-vertical bench, or ``None``.
 
@@ -868,13 +939,28 @@ def score_eval_prediction(
     # --- AE-11: astro bench — scored by its own scorer_path verifier ---
     # The astrodynamics bench uses a unit-aware ±2% numeric match
     # (``astro_numeric_match``) kept LOCAL to the vertical
-    # (``feedback_keep_scorer_local_until_reuse``), not a built-in scorer. The
-    # canonical scoring path is the eval-job dispatch (AF-15 ``scorer_path``),
-    # which loads the verifier and resolves its sibling ``units`` import — not
-    # this interactive grader. Surface that honestly (the row still previews +
-    # shows its gold reference) rather than mis-scoring with the unit-blind
-    # built-in ``numeric_match``.
+    # (``feedback_keep_scorer_local_until_reuse``), not a built-in scorer.
+    # AF-27(b): when a registered eval bench carries the verifier ref
+    # (``scorer_path: …verifier.py:astro_numeric_match``), load it through the
+    # same AF-15 loader the eval-job dispatch uses (sibling ``units`` import
+    # resolved) and score for real — this is what lets a Compare/chat run of a
+    # bench question carry a gold verdict instead of a format-regex "Dead
+    # heat". When no verifier is registered on the box, honest-skip as before
+    # (never mis-score with the unit-blind built-in ``numeric_match``).
     if kind == "astro_numeric_match":
+        fn = _registry_scorer_callable("astro_numeric_match")
+        if fn is not None:
+            try:
+                s = float(fn(pred, ref))
+            except Exception as exc:  # noqa: BLE001 — verifier errors skip honestly
+                return _skip(kind, f"scorer_path verifier raised: {exc}", reference=ref)
+            return _det_result(
+                scorer_kind=kind, score=s, max_score=1.0, reference=ref,
+                why=(
+                    "unit-aware ±2% numeric match "
+                    f"{'matches' if s else 'differs from'} gold (scorer_path verifier)"
+                ),
+            )
         return _skip(
             kind,
             "astro rows are scored by the bench's scorer_path verifier "

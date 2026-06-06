@@ -136,6 +136,18 @@ function EvalGuardrailBadge({ result }) {
         {toks ? ` · ${toks} tok` : ''}
       </span>
     ) : null;
+  // BUG-3 / AF-29 — loud degradation: a cloud run whose model had no price row
+  // ran with the $ cap UNARMED (tokens-only). Silence here is exactly how the
+  // cost cap was inert for every current lane until the e2e smoke caught it.
+  const unarmedChip =
+    g.priced === false ? (
+      <span
+        class="jobs__guard-unarmed"
+        title="no price resolved for this model — the $ cap could not arm (tokens-only run); refresh prices on the Settings pane"
+      >
+        ⚠ G3 unarmed · tokens-only{toks ? ` · ${toks} tok` : ''}
+      </span>
+    ) : null;
   // GS-6 — surface the *active thresholds* that governed this run (read from the
   // already-persisted result_json.guardrail), so the config is visible at the run,
   // not just on the Settings pane. 0 ⇒ that guard was off (omit the part).
@@ -154,15 +166,18 @@ function EvalGuardrailBadge({ result }) {
         <span class="jobs__guard-flag">⚠ aborted</span>
         <span class="jobs__guard-reason">{GUARDRAIL_REASON[g.aborted_by] || g.aborted_by}</span>
         {g.partial && <span class="jobs__guard-partial">partial · {g.n_scored ?? '—'} scored</span>}
+        {unarmedChip}
         {costChip}
         {capChip}
       </div>
     );
   }
-  if (!costChip && !capChip) return null;
+  if (!costChip && !capChip && !unarmedChip) return null;
   return (
     <div class="jobs__card-guard">
-      <span class="jobs__guard-ok" title="cloud-run guardrail: within stall + cost caps">guarded ✓</span>
+      {unarmedChip || (
+        <span class="jobs__guard-ok" title="cloud-run guardrail: within stall + cost caps">guarded ✓</span>
+      )}
       {costChip}
       {capChip}
     </div>
@@ -623,8 +638,10 @@ export default function JobsBoard({ curriculum = {} }) {
                       </div>
                     )}
                     {/* AE-17 — cloud-run guardrail accounting (cost chip + abort
-                        badge) on a metered eval card; absent on a local run. */}
-                    {j.status === 'done' && j.kind === 'eval_rerun' && j.result && (
+                        badge) on a metered eval card; absent on a local run.
+                        Failed cards render it too — a BUG-2 reconciled orphan
+                        lands `failed` carrying a teardown-shaped guardrail. */}
+                    {(j.status === 'done' || j.status === 'failed') && j.kind === 'eval_rerun' && j.result && (
                       <EvalGuardrailBadge result={j.result} />
                     )}
                     {j.status === 'done' && j.kind === 'rl_run' && j.result && (

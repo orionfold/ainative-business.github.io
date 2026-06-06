@@ -48,6 +48,9 @@ __all__ = [
     "enqueue_job",
     "dispatch_job",
     "drain_jobs",
+    "JOB_OWNER_DIR",
+    "job_owner_dir",
+    "job_owner_path",
     "resolve_bench",
     "DEFAULT_BENCH_DIR",
     "detect_leaderboard_regression",
@@ -145,6 +148,48 @@ DEFAULT_REGRESSION_TAU = 0.05
 def _utc_now_iso() -> str:
     """ISO-8601 UTC stamp, matching the sidecar + mirror convention."""
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+#: Dir for per-job *owner stamps* (BUG-2 startup reconciler). When a job row
+#: flips ``running``, the dispatching process stamps ``owner-<job_id>.json``
+#: with its pid; the sidecar's startup reconciler reads it to tell a row owned
+#: by a **live** sibling process (the M11 cron ``fieldkit arena drain``) from a
+#: true orphan (a prior process died mid-run). A file, not a table — the AF-9 /
+#: GS-1 convention, no ``arena.db`` schema change.
+JOB_OWNER_DIR = "~/.fieldkit/arena/owners"
+
+
+def job_owner_dir() -> Path:
+    """The dir holding per-job owner stamps (env-overridable)."""
+    return Path(os.path.expanduser(os.environ.get("FK_ARENA_OWNER_DIR", JOB_OWNER_DIR)))
+
+
+def job_owner_path(job_id: str) -> Path:
+    """The deterministic owner-stamp path for ``job_id`` (mirrors ``eval_sentinel_for``)."""
+    return job_owner_dir() / f"owner-{job_id}.json"
+
+
+def _stamp_job_owner(job_id: str, kind: str) -> None:
+    """Best-effort: record this process as the live owner of a ``running`` job."""
+    path = job_owner_path(job_id)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(
+                {"pid": os.getpid(), "kind": kind, "started_at": _utc_now_iso()},
+                sort_keys=True,
+            )
+        )
+    except OSError:
+        pass
+
+
+def _clear_job_owner(job_id: str) -> None:
+    """Best-effort: drop the owner stamp once the job row leaves ``running``."""
+    try:
+        job_owner_path(job_id).unlink()
+    except OSError:
+        pass
 
 
 #: Where the bench registry lives — one ``<bench_id>.jsonl`` gold set per bench,
@@ -645,6 +690,22 @@ def _run_rl_arbitered(
     return result
 
 
+def _price_at_dispatch_enabled() -> bool:
+    """The BUG-3 price-at-dispatch capture toggle (default on).
+
+    ``FK_EVAL_PRICE_AT_DISPATCH=0`` disables the one-shot OpenRouter catalog
+    read when an unpriced cloud model dispatches — the offline-suite default
+    and an operator escape hatch (an air-gapped run falls straight to
+    tokens-only instead of waiting out an HTTP timeout).
+    """
+    return os.environ.get("FK_EVAL_PRICE_AT_DISPATCH", "1").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+
+
 def _run_eval_guarded(
     store: Any,
     job_id: str,
@@ -684,11 +745,23 @@ def _run_eval_guarded(
 
     price = None
     try:
-        from fieldkit.cost import CostLedger
+        from fieldkit.cost import CostLedger, refresh_prices
 
         model = payload.get("model")
         if model:
-            price = CostLedger(store).price_for(str(model))
+            ledger = CostLedger(store)
+            price = ledger.price_for(str(model))
+            if price is None and _price_at_dispatch_enabled():
+                # BUG-3 — price-at-dispatch capture: the M9 snapshot had no
+                # refresh path, so G3 ran silently inert for every model not in
+                # the baked H6 seed. A cloud dispatch already implies network;
+                # one best-effort catalog read prices THIS run and persists the
+                # row (provenance `openrouter-api`) for every run after it.
+                try:
+                    refresh_prices(store, [str(model)])
+                    price = ledger.price_for(str(model))
+                except Exception:  # noqa: BLE001 — still unpriced ⇒ tokens-only
+                    price = None
     except Exception:  # noqa: BLE001 — no price ⇒ G3 best-effort (tokens only)
         price = None
 
@@ -746,6 +819,10 @@ def dispatch_job(
 
     payload = json.loads(job["payload_json"])
     store.update_job(job_id, status=JobStatus.RUNNING)
+    # BUG-2 — stamp this process as the live owner while the row is `running`,
+    # so the sidecar's startup reconciler can tell "owned by a live cron-drain
+    # process" from "orphaned by a dead one". Cleared when the row lands.
+    _stamp_job_owner(job_id, kind)
     try:
         if kind == JobKind.RL_RUN and rl_lane is not None:
             from fieldkit.arena.lane import LaneDeferred
@@ -792,6 +869,10 @@ def dispatch_job(
             finished_at=now_fn(),
         )
         raise JobDispatchError(f"job {job_id} ({kind}) failed: {exc}") from exc
+    finally:
+        # BUG-2 — the row has left `running` on every path (done / failed /
+        # deferred-release); the owner stamp must not outlive it.
+        _clear_job_owner(job_id)
     row = store.get_job(job_id)
     return {k: row[k] for k in row.keys()}
 

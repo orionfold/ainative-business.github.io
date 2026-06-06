@@ -54,6 +54,14 @@ class RubricSpec:
     title: str
     description: str
     rubric: Rubric
+    #: What the rubric actually measures (AF-27). ``"format"`` = presence /
+    #: shape checks (regex / substring anchors) that say NOTHING about whether
+    #: the answer's *value* is right; ``"quality"`` is reserved for a future
+    #: reference- or judge-backed rubric. The compare verdict banner labels
+    #: itself from this, so a format-regex pass can never be presented as a
+    #: correctness verdict again (e2e smoke B3: "Dead heat — both 100%" while
+    #: lane A's boxed value was wrong ~2×).
+    scope: str = "format"
 
     def to_payload(self) -> dict[str, object]:
         """JSON-safe shape for ``GET /api/rubrics``.
@@ -68,6 +76,7 @@ class RubricSpec:
             "id": self.id,
             "title": self.title,
             "description": self.description,
+            "scope": self.scope,
             "checks": [{"kind": c.kind} for c in self.rubric.checks],
         }
 

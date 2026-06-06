@@ -55,11 +55,13 @@ store seeds *this* module at `initialize()`, and a back-import would be circular
 
 ```python
 from fieldkit.cost import (
-    CostLedger,          # read API over the persisted per-run cost rows
-    PriceSnapshot,       # one openrouter_price_snapshot row (+ .cost_usd())
-    seed_price_snapshot, # idempotent seed (defaults to the baked H6 evidence)
-    cost_per_quality,    # the public $/quality-point read off leaderboard_rows
-    CostError,           # raised on a bad seed / lookup
+    CostLedger,              # read API over the persisted per-run cost rows
+    PriceSnapshot,           # one openrouter_price_snapshot row (+ .cost_usd())
+    seed_price_snapshot,     # idempotent seed (defaults to the baked H6 evidence)
+    fetch_openrouter_prices, # live per-M prices from the OpenRouter /models catalog
+    refresh_prices,          # capture live prices into a dated snapshot (BUG-3 fix)
+    cost_per_quality,        # the public $/quality-point read off leaderboard_rows
+    CostError,               # raised on a bad seed / lookup / fetch failure
 )
 ```
 
@@ -81,14 +83,42 @@ price_per_m_input_usd, price_per_m_output_usd}` mappings) under a new
 their `price_snapshot_id`, so prior comparisons stay reproducible. Called by
 `ArenaStore.initialize()` so a fresh or migrated db is always seeded.
 
+### `fetch_openrouter_prices(model_ids=None, *, timeout=10.0)`
+
+Reads current per-million prices from the public OpenRouter `/models` catalog
+(the `OPENROUTER_API_KEY` header is attached when present, not required) and
+returns rows in the `seed_price_snapshot` `prices` shape — filtered to
+`model_ids` when given, the whole catalog otherwise. Un-priceable entries
+(image/embedding/router) are omitted. Raises `CostError` on a network / HTTP /
+shape failure so callers decide how loud to be; `timeout` bounds the request.
+
+### `refresh_prices(store_or_conn, model_ids=None, *, fetcher=None, now_iso=None)`
+
+The BUG-3 fix — the snapshot table's **refresh path**. Fetches live prices (via
+`fetcher`, default `fetch_openrouter_prices`; inject a fake in tests) and seeds
+them under a dated snapshot id (`or-refresh-<UTC date>`, `source='openrouter-api'`,
+`captured_at` = `now_iso` or now). Prior snapshots keep their rows; the
+newest-row default of `price_for` makes the refresh effective on the very next
+dispatch. Returns the rows written (+ `snapshot_id`/`captured_at`). The Arena
+eval dispatch calls this automatically for an unpriced cloud model
+(price-at-dispatch capture, `FK_EVAL_PRICE_AT_DISPATCH=0` opts out), and
+`POST /api/prices/refresh` exposes it as the Settings-pane operator action.
+
 ### `CostLedger(store_or_conn)`
 
 - `.session_spend() -> (total_usd, n_paid_runs)` — total persisted OpenRouter
   spend summed across `compare_responses` + `chat_turns` (the M9-8 fix for the
-  accumulator that reset to `$0` on every boot). A pre-M9 db (no cost column)
+  accumulator that reset to `$0` on every boot), **plus metered eval-job spend**
+  persisted at `jobs.result_json.guardrail.run_cost_usd` (AF-30 — the budget
+  governor and Standup SPEND were blind to it). A pre-M9 db (no cost column)
   contributes zero rather than raising.
-- `.price_for(model_id, *, snapshot_id="h6-baseline") -> PriceSnapshot | None` —
-  the snapshot row for a model, or `None` for a local/unknown lane.
+- `.price_for(model_id, *, snapshot_id=None) -> PriceSnapshot | None` — the
+  **freshest** snapshot row for a model by default (newest `captured_at` across
+  snapshots — so a refresh/capture takes effect immediately; the pre-BUG-3
+  default pinned every read to the stale H6 baseline, which is exactly how the
+  G3 cost cap ran silently inert). Pass `snapshot_id` to pin a read to one
+  snapshot — prior comparisons stay reproducible. `None` for a local/unknown
+  lane.
 
 ### `cost_per_quality(store_or_conn, bench_id, lane_id)`
 

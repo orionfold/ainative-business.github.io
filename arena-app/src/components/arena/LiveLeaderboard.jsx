@@ -48,6 +48,16 @@ const H2_STYLE =
   'text-transform: uppercase; color: var(--arena-text-mute); margin: 0 0 0.85rem; ' +
   'display: flex; align-items: center; gap: 0.6rem;';
 
+// AF-27 — the default cockpit rubrics are FORMAT checks (regex/substring
+// anchors), not correctness verdicts; their leaderboard scores carry a `fmt`
+// qualifier so a wrong-but-well-formatted answer can't read as 100% quality
+// (the smoke's `kepler 100.0%` off a format regex).
+const FORMAT_RUBRICS = new Set(['generic-correctness', 'patent_claim_validity', 'mcq_letter']);
+const isFormatScore = (benchId) =>
+  typeof benchId === 'string' &&
+  benchId.startsWith('cockpit:') &&
+  FORMAT_RUBRICS.has(benchId.slice('cockpit:'.length));
+
 export default function LiveLeaderboard({ seedRows = [] }) {
   const [rows, setRows] = useState(() => sortLiveRows(seedRows));
   const [mode, setMode] = useState('static'); // 'static' | 'live' | 'offline'
@@ -202,7 +212,17 @@ export default function LiveLeaderboard({ seedRows = [] }) {
                           <span class="scorebar__track">
                             <span class="scorebar__fill" style={`width: ${pctVal}%`} />
                           </span>
-                          <span class="scorebar__value">{pctVal}%</span>
+                          <span class="scorebar__value">
+                            {pctVal}%
+                            {isFormatScore(r.bench_id) && (
+                              <span
+                                class="dim"
+                                title="format-rubric score (regex/substring anchors) — checks answer SHAPE, not whether the value is correct; gold verdicts live in the bench-anchored live group"
+                              >
+                                {' '}·fmt
+                              </span>
+                            )}
+                          </span>
                         </div>
                       ) : (
                         <span class="dim" title="throughput-only — no quality score yet">—</span>

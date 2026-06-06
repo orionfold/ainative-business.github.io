@@ -123,6 +123,10 @@ export default function CompareDuel() {
   const [warmLanes, setWarmLanes] = useState(['local:resident']);
   const [runId, setRunId] = useState(null);
   const [resolvedRubricId, setResolvedRubricId] = useState(null);
+  // AF-27 — the rubric's measured scope ("format" for every default rubric) +
+  // the auto-matched bench eval (a free prompt that IS a registered bench row).
+  const [rubricScope, setRubricScope] = useState(null);
+  const [autoEval, setAutoEval] = useState(null); // {bench_id, scorer_kind} | null
   const [a, setA] = useState(makeEmptySide());
   const [b, setB] = useState(makeEmptySide());
   // Per-metric session history — one record per completed compare, fed to the
@@ -250,6 +254,8 @@ export default function CompareDuel() {
     setB(makeEmptySide());
     setRunId(null);
     setResolvedRubricId(null);
+    setRubricScope(null);
+    setAutoEval(null);
     setThanks(null);
     setNPrefs(0);
     setError(null);
@@ -405,17 +411,28 @@ export default function CompareDuel() {
           }));
         } else if (ev.event === 'score') {
           setResolvedRubricId(payload.rubric_id);
+          // AF-27(a) — what the rubric measured ("format" for the defaults);
+          // the verdict banner labels itself from this.
+          setRubricScope(payload.rubric_scope || null);
           setA((prev) => ({ ...prev, score: payload.a }));
           setB((prev) => ({ ...prev, score: payload.b }));
           // Quality for the sparkline: gold-match normalized in eval mode, else
           // the deterministic rubric total.
           runMetrics.a.quality = (payload.eval ? payload.eval.a?.normalized : payload.a?.total) ?? null;
           runMetrics.b.quality = (payload.eval ? payload.eval.b?.normalized : payload.b?.total) ?? null;
-          // v0.3 — reference-based eval block (present only in eval mode).
+          // v0.3 — reference-based eval block. Present in eval mode, AND
+          // (AF-27(b)) when the free prompt auto-matched a registered bench
+          // row — the bench's own scorer is the honest verdict either way.
           if (payload.eval) {
             setEvalRef(payload.eval.reference || null);
             setA((prev) => ({ ...prev, evalScore: payload.eval.a }));
             setB((prev) => ({ ...prev, evalScore: payload.eval.b }));
+            if (payload.eval.auto_matched) {
+              setAutoEval({
+                bench_id: payload.eval.bench_id,
+                scorer_kind: payload.eval.scorer_kind,
+              });
+            }
           }
         } else if (ev.event === 'error') {
           const code = payload?.code;
@@ -694,23 +711,35 @@ export default function CompareDuel() {
         </div>
       )}
 
-      {/* Eval mode: the reference-based eval score is the yardstick, replacing
-          the deterministic rubric verdict. Free-prompt mode keeps the rubric. */}
-      {evalMode ? (
+      {/* Eval scoring is the yardstick whenever a gold reference scored the
+          run — operator-picked eval mode OR an AF-27 auto-matched bench row.
+          Only a plain free prompt falls to the (format-scope) rubric banner. */}
+      {evalMode || autoEval ? (
         a.evalScore && b.evalScore && <WinnerBanner a={a} b={b} evalMode />
       ) : (
-        a.score && b.score && <WinnerBanner a={a} b={b} />
+        a.score && b.score && <WinnerBanner a={a} b={b} scope={rubricScope} />
+      )}
+
+      {/* AF-27(b) — say WHY the verdict is reference-based on a free prompt. */}
+      {autoEval && (a.evalScore || b.evalScore) && (
+        <p class="compare-duel__automatch">
+          🧪 This prompt is a registered <code>{autoEval.bench_id}</code> row — both sides were
+          scored by the bench's own verifier (<code>{autoEval.scorer_kind}</code>), not just the
+          format rubric.
+        </p>
       )}
 
       {(history.length > 0 || a.state === 'done' || b.state === 'done') && (
-        <MetricCards a={a} b={b} evalMode={!!evalMode} history={history} />
+        <MetricCards a={a} b={b} evalMode={!!evalMode || !!autoEval} scope={rubricScope} history={history} />
       )}
 
-      {evalMode && (a.evalScore || b.evalScore) ? (
+      {(evalMode || autoEval) && (a.evalScore || b.evalScore) ? (
         <div class="compare-duel__verdict">
           <h3 class="compare-duel__verdict-title">
             Eval score{' '}
-            <code class="compare-duel__verdict-rubric">{evalMode.bench_id} · {evalMode.scorer_kind}</code>
+            <code class="compare-duel__verdict-rubric">
+              {(evalMode || autoEval).bench_id} · {(evalMode || autoEval).scorer_kind}
+            </code>
           </h3>
           <div class="compare-duel__verdict-grid">
             <div class="eval-score-col" style="--side-accent:#76b900">
@@ -730,6 +759,14 @@ export default function CompareDuel() {
             <code class="compare-duel__verdict-rubric">
               {resolvedRubricId}
             </code>
+            {rubricScope === 'format' && (
+              <span
+                class="compare-duel__scope-chip"
+                title="this rubric checks answer FORMAT/anchors (regex · substring) — it does not verify the value is correct"
+              >
+                format check — not correctness
+              </span>
+            )}
           </h3>
           <div class="compare-duel__verdict-grid">
             <ScoreColumn side="A" score={a.score} accent="#76b900" />
@@ -936,21 +973,37 @@ function LaneSelect({ value, disabled, options, showAll, onChange }) {
 // Winner banner — derived purely from the deterministic rubric totals. This
 // NEVER touches human prefs (those stay a separate signal below). Tie when the
 // totals are within a hair of each other.
-function WinnerBanner({ a, b, evalMode }) {
+//
+// AF-27(a) — a format-scope rubric (every default rubric: regex/substring
+// anchor checks) is labelled as exactly that, never as a quality verdict.
+// The smoke's B3 rendered "Dead heat — both score 100%" off a format regex
+// while one lane's boxed VALUE was wrong ~2× — that read as QUALITY parity
+// and propagated into the leaderboard.
+function WinnerBanner({ a, b, evalMode, scope }) {
   const at = evalMode ? (a.evalScore?.normalized ?? 0) : (a.score?.total ?? 0);
   const bt = evalMode ? (b.evalScore?.normalized ?? 0) : (b.score?.total ?? 0);
   const margin = Math.abs(at - bt);
   const tie = margin < 0.005;
   const winner = tie ? 'tie' : at > bt ? 'A' : 'B';
   const accent = winner === 'A' ? '#76b900' : winner === 'B' ? '#5b9cff' : 'var(--arena-text-mute)';
+  const formatOnly = !evalMode && scope === 'format';
+  const tag = evalMode ? 'Closest to gold' : formatOnly ? 'Format check' : 'Rubric verdict';
   return (
     <div class={`compare-winner compare-winner--${winner}`} style={`--win-accent: ${accent};`}>
-      <span class="compare-winner__tag">{evalMode ? 'Closest to gold' : 'Rubric verdict'}</span>
+      <span class="compare-winner__tag" title={formatOnly ? 'checks answer shape/anchors only — does NOT verify the value is correct' : undefined}>
+        {tag}
+      </span>
       {tie ? (
-        <span class="compare-winner__text">Dead heat — both score {(at * 100).toFixed(0)}%</span>
+        <span class="compare-winner__text">
+          {formatOnly ? (
+            <>Both pass the format check ({(at * 100).toFixed(0)}%)<span class="dim"> · says nothing about which value is right — use an eval prompt for a gold verdict</span></>
+          ) : (
+            <>Dead heat — both score {(at * 100).toFixed(0)}%</>
+          )}
+        </span>
       ) : (
         <span class="compare-winner__text">
-          <b>Lane {winner}</b> wins by <b>{(margin * 100).toFixed(0)} pts</b>
+          <b>Lane {winner}</b> {formatOnly ? 'passes more format checks' : 'wins'} by <b>{(margin * 100).toFixed(0)} pts</b>
           <span class="dim"> · {(Math.max(at, bt) * 100).toFixed(0)}% vs {(Math.min(at, bt) * 100).toFixed(0)}%</span>
         </span>
       )}
@@ -982,12 +1035,15 @@ function CanvasSpark({ series, color, max }) {
 // Each card: metric label · current-run A-vs-B values (winner emphasised) · a
 // two-row peak-bar sparkline (A over B) of that metric across this session's
 // compare runs. Replaces the old paired-bar DeltaStrip.
-function MetricCards({ a, b, evalMode, history }) {
+function MetricCards({ a, b, evalMode, scope, history }) {
   const qualityA = evalMode ? a.evalScore?.normalized : a.score?.total;
   const qualityB = evalMode ? b.evalScore?.normalized : b.score?.total;
   const num = (v) => typeof v === 'number' && !Number.isNaN(v);
+  // AF-27(c) — never present a format-rubric total as "Quality": label the
+  // row by what was actually measured.
+  const qualityLabel = evalMode ? 'Gold match' : scope === 'format' ? 'Format' : 'Quality';
   const specs = [
-    { key: 'quality', label: evalMode ? 'Gold match' : 'Quality', lowerBetter: false, av: qualityA, bv: qualityB, fmt: (v) => `${(v * 100).toFixed(0)}%` },
+    { key: 'quality', label: qualityLabel, lowerBetter: false, av: qualityA, bv: qualityB, fmt: (v) => `${(v * 100).toFixed(0)}%` },
     { key: 'tok_per_s', label: 'tok/s', lowerBetter: false, av: a.tok_per_s, bv: b.tok_per_s, fmt: (v) => v.toFixed(1) },
     { key: 'ttft_ms', label: 'TTFT', lowerBetter: true, av: a.ttft_ms, bv: b.ttft_ms, fmt: (v) => `${v.toFixed(0)} ms` },
     { key: 'tokens_out', label: 'Tokens', lowerBetter: false, av: a.tokens_out, bv: b.tokens_out, fmt: (v) => v.toLocaleString() },

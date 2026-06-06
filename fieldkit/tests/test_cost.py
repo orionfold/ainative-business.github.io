@@ -164,8 +164,9 @@ def test_price_for_unknown_model_is_none(store):
 
 
 def test_reseed_under_new_snapshot_id_preserves_old(store):
-    """R19 fallback — a re-seed lands under a fresh id; the baseline rows
-    remain reproducible."""
+    """R19 fallback + the BUG-3 default flip — a re-seed lands under a fresh id;
+    the **freshest** row wins the default read (so a refresh actually arms G3),
+    while a pinned read keeps the baseline reproducible."""
     seed_price_snapshot(
         store,
         prices=[
@@ -177,13 +178,98 @@ def test_reseed_under_new_snapshot_id_preserves_old(store):
         ],
         snapshot_id="reseed-2026-06",
         source="fallback",
+        captured_at="2026-06-06T00:00:00Z",  # newer than the H6 baseline
     )
     led = CostLedger(store)
-    # Old baseline intact.
-    assert led.price_for("anthropic/claude-opus-4.1").price_per_m_input_usd == 15.0
-    # New snapshot readable.
+    # Default read = the freshest capture (the pre-BUG-3 default pinned this to
+    # the stale H6 baseline — exactly how the cost cap ran silently inert).
+    assert led.price_for("anthropic/claude-opus-4.1").price_per_m_input_usd == 99.0
+    # Pinned reads stay reproducible — the baseline row is intact.
+    base = led.price_for("anthropic/claude-opus-4.1", snapshot_id=H6_SNAPSHOT_ID)
+    assert base.price_per_m_input_usd == 15.0
     fresh = led.price_for("anthropic/claude-opus-4.1", snapshot_id="reseed-2026-06")
     assert fresh.price_per_m_input_usd == 99.0
+
+
+# ---------------------------------------------------------------------------
+# BUG-3 / AF-29 — the live price-refresh path
+# ---------------------------------------------------------------------------
+
+
+def test_refresh_prices_seeds_dated_snapshot_and_wins_default_read(store):
+    from fieldkit.cost import refresh_prices
+
+    def _fake_fetch(model_ids):
+        assert list(model_ids) == ["deepseek/deepseek-r1"]
+        return [
+            {
+                "model_id": "deepseek/deepseek-r1",
+                "price_per_m_input_usd": 0.4,
+                "price_per_m_output_usd": 2.0,
+            }
+        ]
+
+    rows = refresh_prices(
+        store, ["deepseek/deepseek-r1"], fetcher=_fake_fetch, now_iso="2026-06-06T12:00:00Z"
+    )
+    assert len(rows) == 1
+    assert rows[0]["snapshot_id"] == "or-refresh-2026-06-06"
+    led = CostLedger(store)
+    p = led.price_for("deepseek/deepseek-r1")
+    assert p is not None and p.price_per_m_output_usd == 2.0
+    assert p.source == "openrouter-api"
+    assert p.captured_at == "2026-06-06T12:00:00Z"
+
+
+def test_refresh_prices_empty_fetch_is_noop(store):
+    from fieldkit.cost import refresh_prices
+
+    assert refresh_prices(store, ["nope/none"], fetcher=lambda m: []) == []
+    assert CostLedger(store).price_for("nope/none") is None
+
+
+def test_fetch_openrouter_prices_parses_catalog(monkeypatch):
+    """The catalog read converts per-token strings → per-M floats, filters to
+    the requested ids, and omits un-priceable entries."""
+    import httpx
+
+    from fieldkit import cost as cost_mod
+
+    payload = {
+        "data": [
+            {"id": "deepseek/deepseek-r1", "pricing": {"prompt": "0.0000004", "completion": "0.000002"}},
+            {"id": "anthropic/claude-haiku-4.5", "pricing": {"prompt": "0.000001", "completion": "0.000005"}},
+            {"id": "other/model", "pricing": {"prompt": "0.000001", "completion": "0.000001"}},
+            {"id": "broken/no-pricing", "pricing": {}},
+        ]
+    }
+
+    def _fake_get(url, headers=None, timeout=None):
+        assert "openrouter.ai" in url
+        return httpx.Response(200, json=payload, request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(httpx, "get", _fake_get)
+    rows = cost_mod.fetch_openrouter_prices(["deepseek/deepseek-r1", "broken/no-pricing"])
+    assert rows == [
+        {
+            "model_id": "deepseek/deepseek-r1",
+            "price_per_m_input_usd": 0.4,
+            "price_per_m_output_usd": 2.0,
+        }
+    ]
+
+
+def test_fetch_openrouter_prices_failure_raises_cost_error(monkeypatch):
+    import httpx
+
+    from fieldkit import cost as cost_mod
+
+    def _boom(url, headers=None, timeout=None):
+        raise httpx.ConnectError("offline")
+
+    monkeypatch.setattr(httpx, "get", _boom)
+    with pytest.raises(CostError, match="price fetch failed"):
+        cost_mod.fetch_openrouter_prices(["x/y"])
 
 
 def test_seed_bad_row_raises(store):
@@ -260,6 +346,44 @@ def test_session_spend_sums_persisted_rows(store):
 
 def test_session_spend_empty_is_zero(store):
     assert CostLedger(store).session_spend() == (0.0, 0)
+
+
+def test_session_spend_folds_eval_job_guardrail_cost(store):
+    """AF-30 — metered eval spend (jobs.result_json.guardrail.run_cost_usd)
+    counts toward session spend; the governor/standup were blind to it (the
+    smoke showed $0.0023 while ~$0.18 of real eval spend sat invisible)."""
+    import json as _json
+
+    from fieldkit.arena import jobs as jobs_mod
+    from fieldkit.arena.jobs import JobKind, JobStatus
+
+    _seed_one_compare(store, cost_a=0.0, cost_b=0.0123)
+    jid = jobs_mod.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "openrouter::claude-haiku-4.5", "bench_id": "b",
+         "base_url": "https://openrouter.ai/api/v1", "model": "anthropic/claude-haiku-4.5"},
+    )
+    store.update_job(
+        jid,
+        status=JobStatus.DONE,
+        result_json=_json.dumps({"guardrail": {"run_cost_usd": 0.0515, "priced": True}}),
+    )
+    # An unpriced/zero-cost eval contributes nothing.
+    jid2 = jobs_mod.enqueue_job(
+        store,
+        JobKind.EVAL_RERUN,
+        {"lane_id": "openrouter::x", "bench_id": "b2",
+         "base_url": "https://openrouter.ai/api/v1", "model": "x/y"},
+    )
+    store.update_job(
+        jid2,
+        status=JobStatus.DONE,
+        result_json=_json.dumps({"guardrail": {"run_cost_usd": 0.0, "priced": False}}),
+    )
+    total, calls = CostLedger(store).session_spend()
+    assert total == pytest.approx(0.0123 + 0.0515)
+    assert calls == 2  # the paid compare side + the paid eval run
 
 
 # ---------------------------------------------------------------------------

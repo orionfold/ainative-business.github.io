@@ -1038,6 +1038,19 @@ try {
         color: var(--arena-text-dim);
         margin-left: auto;
       }
+      /* AF-28 — the live eval-run projection + the cached-tier staleness stamp */
+      .evalbench__live-tag {
+        font-family: var(--arena-mono); font-size: 0.55rem; font-weight: 700;
+        letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 1px 7px; border-radius: 999px;
+        color: #76b900; background: rgba(118,185,0,0.12); border: 1px solid rgba(118,185,0,0.4);
+      }
+      .lb-cached-stamp {
+        font-size: 0.58rem; letter-spacing: 0.08em; text-transform: none;
+        padding: 0.06rem 0.45rem; border-radius: 0.6rem;
+        border: 1px dashed var(--arena-line); color: var(--arena-text-dim);
+        margin-left: 0.6rem;
+      }
       .bench-group__count {
         font-family: var(--arena-mono);
         font-size: 0.65rem;
@@ -2006,6 +2019,22 @@ try {
         color: var(--arena-text-mute);
       }
       .arena-app .compare-duel__verdict-rubric { color: var(--arena-accent-glow); }
+      /* AF-27 — format-scope disclosure + bench auto-match note */
+      .arena-app .compare-duel__scope-chip {
+        font-family: var(--arena-mono); font-size: 0.52rem; font-weight: 600;
+        letter-spacing: 0.06em; text-transform: uppercase;
+        padding: 0.08rem 0.4rem; margin-left: 0.5rem; border-radius: 0.6rem;
+        border: 1px dashed var(--arena-warn); color: var(--arena-warn);
+        vertical-align: middle;
+      }
+      .arena-app .compare-duel__automatch {
+        font-size: 0.7rem; color: var(--arena-text-mute); line-height: 1.5;
+        border-left: 2px solid var(--arena-accent); padding: 0.2rem 0 0.2rem 0.7rem;
+        margin: 0;
+      }
+      .arena-app .compare-duel__automatch code {
+        font-family: var(--arena-mono); font-size: 0.64rem; color: var(--arena-accent);
+      }
       .arena-app .compare-duel__verdict-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -3580,6 +3609,12 @@ try {
         padding: 0.02rem 0.3rem; border-radius: 0.3rem;
         border: 1px dashed var(--arena-line); color: var(--arena-text-dim); opacity: 0.85;
       }
+      /* BUG-3 / AF-29 — loud degradation: the $ cap could not arm (no price row) */
+      .arena-app .jobs__guard-unarmed {
+        padding: 0.02rem 0.3rem; border-radius: 0.3rem;
+        border: 1px dashed var(--arena-warn);
+        background: rgba(255,180,80,0.08); color: var(--arena-warn); font-weight: 600;
+      }
       .arena-app .jobs__card-error {
         font-size: 0.62rem; color: var(--arena-warn); line-height: 1.3;
         overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
@@ -3686,6 +3721,35 @@ try {
       .arena-app .gsettings__foot code {
         font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);
       }
+      /* BUG-3 / AF-29 — the G3 price-coverage disclosure + refresh action */
+      .arena-app .gsettings__prices {
+        display: flex; flex-direction: column; gap: 0.7rem;
+        border-top: 1px solid var(--arena-line); padding-top: 1rem;
+      }
+      .arena-app .gsettings__prices-title {
+        font-family: var(--arena-mono); font-size: 0.72rem; letter-spacing: 0.04em;
+        color: var(--arena-text); margin: 0;
+      }
+      .arena-app .gsettings__prices-empty {
+        font-family: var(--arena-mono); font-size: 0.64rem; color: var(--arena-text-dim);
+        margin: 0; line-height: 1.5;
+      }
+      .arena-app .gsettings__prices-table {
+        border-collapse: collapse; font-size: 0.66rem; width: 100%;
+      }
+      .arena-app .gsettings__prices-table th {
+        font-family: var(--arena-mono); font-size: 0.54rem; letter-spacing: 0.08em;
+        text-transform: uppercase; color: var(--arena-text-dim); text-align: left;
+        padding: 0.25rem 0.6rem 0.25rem 0; border-bottom: 1px solid var(--arena-line);
+      }
+      .arena-app .gsettings__prices-table td {
+        padding: 0.3rem 0.6rem 0.3rem 0; color: var(--arena-text-mute);
+        border-bottom: 1px solid var(--arena-line); line-height: 1.4;
+      }
+      .arena-app .gsettings__prices-table td code {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text);
+      }
+      .arena-app .gsettings__prices-table tr[data-priced="false"] td { color: var(--arena-warn); }
 
       /* M10 (Bet 5 recall layer) — /arena/cortex/ pane */
       .arena-app .kp { display: flex; flex-direction: column; gap: 1rem; }
@@ -4446,6 +4510,19 @@ try {
       }
       .arena-app .sft__curve-meta { font-size: 0.62rem; color: var(--arena-text-mute); }
       .arena-app .sft__curve-meta code { font-family: var(--arena-mono); color: var(--arena-text-dim); }
+      /* AE-25 / BUG-1 — canonical-heartbeat provenance + failed-run error line */
+      .arena-app .sft__feed-chip {
+        font-family: var(--arena-mono); font-size: 0.5rem; letter-spacing: 0.06em;
+        text-transform: uppercase; padding: 0.04rem 0.34rem; margin-right: 0.45rem;
+        border-radius: 0.6rem; border: 1px solid var(--arena-accent); color: var(--arena-accent);
+      }
+      .arena-app .sft__error {
+        font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn);
+        border: 1px dashed var(--arena-warn); border-radius: 0.4rem;
+        background: rgba(255,180,80,0.07); padding: 0.45rem 0.7rem; line-height: 1.45;
+        overflow: hidden; text-overflow: ellipsis; display: -webkit-box;
+        -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      }
       .arena-app .sft__spark { width: 100%; height: 96px; display: block; }
       .arena-app .sft__spark-area { fill: var(--arena-accent); opacity: 0.10; }
       .arena-app .sft__spark-line { fill: none; stroke: var(--arena-accent); stroke-width: 1.6; vector-effect: non-scaling-stroke; }

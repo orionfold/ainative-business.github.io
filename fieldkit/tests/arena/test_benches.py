@@ -390,6 +390,89 @@ def test_astro_split_filter_via_family(astro_root: Path) -> None:
     assert all(p["split"] == "heldout" for p in held["prompts"])
 
 
+# --- AF-27(b) — free-prompt → bench-row auto-match -------------------------
+
+
+def test_find_prompt_by_text_matches_registered_row(astro_root: Path) -> None:
+    hit = benches.find_prompt_by_text(
+        "Compute the orbital period. Give \\boxed{value unit}."
+    )
+    assert hit is not None
+    bench_id, prompt = hit
+    assert bench_id == "astro-bench"
+    assert prompt.qid == "astro-orb-leo_period-0000"
+
+
+def test_find_prompt_by_text_normalizes_whitespace(astro_root: Path) -> None:
+    hit = benches.find_prompt_by_text(
+        "  Compute the orbital period.   Give \\boxed{value unit}.\n"
+    )
+    assert hit is not None and hit[1].qid == "astro-orb-leo_period-0000"
+
+
+def test_find_prompt_by_text_misses_free_text(astro_root: Path) -> None:
+    assert benches.find_prompt_by_text("What's the capital of France?") is None
+    assert benches.find_prompt_by_text("") is None
+
+
+def _register_astro_verifier(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A registered eval bench whose meta carries an astro scorer_path verifier
+    (the kepler-astro registry shape from the live box)."""
+    reg = tmp_path / "bench-registry"
+    reg.mkdir(parents=True, exist_ok=True)
+    verifier = tmp_path / "verifier.py"
+    verifier.write_text(
+        "def astro_numeric_match(predicted, expected, **kw):\n"
+        "    # toy unit-aware match: pass iff the gold string appears verbatim\n"
+        "    return 1.0 if expected.split()[0] in predicted else 0.0\n"
+    )
+    (reg / "kepler-astro.jsonl").write_text("")
+    (reg / "kepler-astro.meta.json").write_text(
+        f'{{"scorer_path": "{verifier}:astro_numeric_match"}}'
+    )
+    monkeypatch.setenv("ARENA_BENCH_DIR", str(reg))
+    benches._SCORER_FN_CACHE.clear()
+    return reg
+
+
+def test_astro_scores_via_registered_scorer_path(
+    astro_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AF-27(b) — with a registered verifier on the box, an astro row scores
+    for REAL through the scorer_path loader (the smoke's Compare/chat gold
+    verdict), instead of honest-skipping."""
+    _register_astro_verifier(tmp_path, monkeypatch)
+    good = benches.score_eval_prediction(
+        "astro-bench", "astro-orb-leo_period-0000", "The period is \\boxed{105.6 min}."
+    )
+    assert good["scored"] is True and good["normalized"] == 1.0
+    assert good["scorer_kind"] == "astro_numeric_match"
+    bad = benches.score_eval_prediction(
+        "astro-bench", "astro-orb-leo_period-0000", "The period is \\boxed{210.0 min}."
+    )
+    assert bad["scored"] is True and bad["normalized"] == 0.0
+
+
+def test_astro_skips_when_no_verifier_registered(astro_root: Path) -> None:
+    # The conftest pins ARENA_BENCH_DIR to an empty tmp registry — no verifier
+    # found ⇒ the honest-skip path is unchanged.
+    benches._SCORER_FN_CACHE.clear()
+    res = benches.score_eval_prediction(
+        "astro-bench", "astro-orb-leo_period-0000", "\\boxed{105.6 min}"
+    )
+    assert res["scored"] is False
+    assert "scorer_path verifier" in res["reason"]
+
+
+def test_rubric_specs_carry_format_scope() -> None:
+    # AF-27(a) — every default rubric is a FORMAT check and must say so; the
+    # compare banner labels itself from this scope.
+    from fieldkit.arena.rubrics import DEFAULT_RUBRIC_REGISTRY, list_rubrics
+
+    assert all(s.scope == "format" for s in DEFAULT_RUBRIC_REGISTRY.values())
+    assert all(p["scope"] == "format" for p in list_rubrics())
+
+
 def test_astro_interactive_score_is_honest_skip(astro_root: Path) -> None:
     # The astro bench is scored by its scorer_path verifier via the eval-job
     # dispatch, not interactive grading — so the interactive path skips with a
