@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.25.0] — 2026-06-06
+
+The arena-enhancements dogfood cluster tail, sessions S5–S6 — provenance + lineage
+threaded into the build spine and the rl_run card, then the base-model scout
+decision and the vertical's own bench surfaced through the existing Compare + Eval
+surfaces. **No arena.db schema change** across either session (`user_version` stays
+6); every signal is a pure read-only projection over files/rows the cockpit already
+reads, and no skill code is imported into the cockpit (AE-R3).
+
 ### Added
 
 - **Arena-enhancements S5 — provenance / lineage** (`_SPECS/arena-enhancements-v1.md`
@@ -59,6 +68,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     eval-job dispatch's `scorer_path`, not the built-in scorers). Registering it also
     resolves the build-spine bench stage's "pending AE-11" note. `serve()` now exports
     `ARENA_REPO_ROOT` in the direct (non-reload) path so the bench root resolves.
+
+### Test suite
+
+- Offline **1315 passed, 5 skipped** (`cd fieldkit && pytest`) — +18 over v0.24.0's
+  1297 (S5 +6, S6 +12). S5–S6 are arena / benches / build-spine / server work with
+  no live NIM / pgvector / eval paths, so no `--spark` run this release (mirrors the
+  v0.24.0 cut of the same cluster).
+
+### Articles in this release
+
+- None — S5–S6 are cockpit-internal dogfood sessions (no `articles/` changes since
+  `fieldkit/v0.24.0`); the build-spine + Compare + Eval surfaces they extend already
+  shipped with `products/arena-control-plane/`.
 
 ## [0.24.0] — 2026-06-05
 
