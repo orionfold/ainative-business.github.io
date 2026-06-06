@@ -3,26 +3,27 @@
   "project": "spark",
   "updated": "2026-06-06",
   "health": "green",
-  "focus": "fieldkit v0.28.0 RELEASED \u2014 arena-enhancements v2 cut 1: Cluster G lane-truth + ALL 4 smoke-harvested HIGH bugs (BUG-1/2/3/4) + AF-27/28/29/30 fixed, each live-smoked; offline 1413 pass",
+  "focus": "fieldkit v0.29.0 RELEASED — arena-enhancements v2 cut 2: Cluster G frontend (LaneTruth multi-lane + select/pin) + Cluster H run-context (run anchor, Run cell, provenance chips + prior-run dimming); fixed registry-blind lane resolution; offline 1419 pass",
   "blockers": [],
   "next": [
-    "v2 cut 2: AE-21/22 multi-lane + select/launch UI, Cluster H run-context (AE-23/24), then Cluster I (inventory truth, corpus handshake, sft_run dispatch)",
-    "Operator-armed live gates: arena down mid-metered-eval (real-cloud rep), GS no-restart cap edit on a real cloud eval",
+    "v2 cut 3: Cluster I (AE-26 inventory truth, AE-27 corpus handshake, AE-28 feed self-description, operator-armed sft_run dispatch, AF-20 runtime arming)",
+    "AE-22 launch half: deterministic guarded launch runner (AE-R13, own focused cut)",
+    "Operator-armed live gates: arena down mid-metered-eval, GS no-restart cap edit, run-anchor flow on a real Kepler serve",
     "Arena launch-article refresh with the 11 curated 2x screenshots"
   ],
   "recent": [
-    "fieldkit v0.28.0 on PyPI (tag + both install-verifies green; 32 files, +2739)",
-    "BUG-2: signal-time G1 trip + startup orphan-reconciler + real-process SIGTERM test",
-    "BUG-3: live price refresh + price-at-dispatch capture + loud 'G3 unarmed' badge; real catalog capture corrected a stale manual price row",
-    "AF-27: format-scope rubric labels + free-prompt bench auto-match via scorer_path verifier",
-    "AF-28/30: leaderboard live eval group + eval spend folded into the budget governor"
+    "fieldkit v0.29.0 on PyPI (tag + both install-verifies green; 16 files, +845)",
+    "AE-23: GET /api/run-context + set_at run anchor + rail Run cell (honest unanchored)",
+    "AE-24: ProvenanceChip on SFT/Reward/Build + prior-run dimming on Jobs + leaderboard-live",
+    "AE-21/22: LaneTruth on Models (drift banner, demoted hermes hint) + select/pin anchors the run",
+    "Fixed: active-lane registry never fed _resolve_active_lane (selection was write-only)"
   ],
-  "session": "v2 cut 1 (bug-fix cluster) \u2014 fieldkit v0.28.0",
+  "session": "v2 cut 2 (G frontend + H run-context) — fieldkit v0.29.0",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 17,
+    "arena_features": 18,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,
