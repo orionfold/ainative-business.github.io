@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-06-06
+
 The second arena-enhancements **v2** cut: the **Cluster G frontend** (AE-21 multi-lane
 truth · AE-22 select, launch deferred per AE-R13) and **Cluster H run-context
 orientation** (AE-23 run identity + current-run banner · AE-24 per-pane provenance
@@ -47,6 +49,21 @@ chips + stale-dimming — OBS-5/AF-26, the operator-raised "is this even my run?
   routing/rail kept resolving as if no selection existed (and registry drift could
   never surface). The Cluster G smoke only exercised pure discovery, so it slipped;
   the cut-2 endpoint tests caught it.
+
+### Test suite
+- Offline: **1419 passed, 19 skipped** (+6: `tests/arena/test_run_context.py` —
+  run-context shape, the select→anchor→clear cycle, registry-drift surfacing,
+  dead-port 404). No `arena.db` schema change (`user_version` stays 6).
+
+### Verified live (CDP browser-smoke, 2026-06-06)
+- Against the running cockpit with a synthetic llama-server-shaped lane on `:8091`
+  (seed → verify → revert): discovery lit the LaneTruth roster with no config edit →
+  **pin · anchor run** flipped the tag to `ACTIVE · operator-selected` and the rail
+  Run cell to `Kepler · armed just now · model-Q8_0.gguf` → 14 prior job cards +
+  8 live leaderboard rows dimmed `○ prior run`, SFT/Reward chips dated their shown
+  sources as prior → killing the pinned lane raised the LaneTruth drift banner +
+  the rail `⚠ drift` badge → clear-selection reverted to the honest unanchored
+  state (no prior-run claims anywhere).
 
 ## [0.28.0] — 2026-06-06
 
