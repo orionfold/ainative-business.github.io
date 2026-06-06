@@ -133,6 +133,15 @@ class BenchSpec:
     open_book: bool = False
     fixed_scorer: str | None = None
     models: tuple[str, ...] = ()
+    #: Optional per-bench root override. When ``root_env`` is set and that env
+    #: var resolves, the bench's ``files`` are read from there instead of
+    #: :data:`ARENA_EVAL_BENCHES_ROOT`; ``root_fallback`` (relative to
+    #: ``ARENA_REPO_ROOT``) is the next fallback. This lets a vertical-build
+    #: bench (astro) live with its evidence/reward feeds rather than under the
+    #: published-model eval-benches tree — the same dir AE-8's provenance reads
+    #: (``FK_ARENA_BENCH_DIR`` → ``ARENA_REPO_ROOT/evidence/<vertical>``).
+    root_env: str | None = None
+    root_fallback: str | None = None
 
 
 BENCHES: dict[str, BenchSpec] = {
@@ -191,6 +200,26 @@ BENCHES: dict[str, BenchSpec] = {
         fixed_scorer="mcq_letter",
         models=("ii-medical-8b-gguf",),
     ),
+    # AE-11 (S6) — the astrodynamics RLVR bench, previewable beside the published
+    # verticals. Unlike them it lives with the vertical's *build* feeds (the same
+    # ``evidence/astrodynamics`` dir AE-8's provenance reads), not the
+    # eval-benches tree — hence the ``root_env``/``root_fallback`` override. Its
+    # rows are ``{prompt, answer, tier, topic, subtopic, gold_value_si, rel_tol}``
+    # (a shape none of the published ``fmt``s match), so ``fmt="astrodynamics"``
+    # gets its own dedicated loader branch below. Scored by the bench's own
+    # ``scorer_path`` verifier (``astro_numeric_match``, unit-aware ±2%) through
+    # the eval-job dispatch — interactive grading here is an honest skip (the
+    # verifier stays LOCAL per ``feedback_keep_scorer_local_until_reuse``).
+    "astro-bench": BenchSpec(
+        bench_id="astro-bench",
+        vertical="astrodynamics",
+        label="Astro-bench",
+        files=("astro-bench-v0.1.jsonl", "astro-bench-v0.1.heldout.jsonl"),
+        fmt="astrodynamics",
+        models=("kepler-q8-gguf", "kepler-gguf", "kepler"),
+        root_env="FK_ARENA_BENCH_DIR",
+        root_fallback="evidence/astrodynamics",
+    ),
 }
 
 
@@ -217,6 +246,11 @@ class EvalPrompt:
     context_token_hint: int
     judge_required: bool
     rubric_hints: dict[str, Any] | None  # per-row judge hints (patent A / D-oa)
+    # AE-11 — vertical-build bench facets (astro). ``None`` on the published
+    # benches; the preview drawer renders them as chips when present.
+    tier: int | None = None
+    subtopic: str | None = None
+    split: str | None = None  # pool | heldout
 
 
 @dataclass
@@ -243,8 +277,28 @@ _CACHE: dict[str, tuple[tuple[float, ...], LoadedBench]] = {}
 _CACHE_LOCK = threading.Lock()
 
 
+def _spec_root(spec: BenchSpec) -> Path:
+    """The root the bench's ``files`` are resolved against.
+
+    Default benches sit under :data:`ARENA_EVAL_BENCHES_ROOT`. A bench with a
+    ``root_env`` (astro) prefers that env var, then ``ARENA_REPO_ROOT`` +
+    ``root_fallback`` (mirroring the server's ``FK_ARENA_BENCH_DIR`` →
+    ``evidence/<vertical>`` resolution so the preview reads the same JSONL as
+    AE-8's provenance), and only then falls back to the eval-benches tree."""
+    if spec.root_env:
+        env = os.environ.get(spec.root_env)
+        if env:
+            return Path(os.path.expanduser(env))
+    if spec.root_fallback:
+        repo = os.environ.get("ARENA_REPO_ROOT")
+        if repo:
+            return Path(repo) / spec.root_fallback
+    return ARENA_EVAL_BENCHES_ROOT
+
+
 def _bench_paths(spec: BenchSpec) -> list[Path]:
-    return [ARENA_EVAL_BENCHES_ROOT / rel for rel in spec.files]
+    root = _spec_root(spec)
+    return [root / rel for rel in spec.files]
 
 
 def _mtime_signature(spec: BenchSpec) -> tuple[float, ...] | None:
@@ -320,7 +374,55 @@ def _parse_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _build_astro_bench(spec: BenchSpec) -> LoadedBench:
+    """Loader for the astrodynamics bench (AE-11).
+
+    The astro rows are ``{task_id, prompt, answer, tier, topic, subtopic,
+    gold_value_si, gold_unit, rel_tol}`` — text-in / numeric-out, no context
+    prepend and no MCQ options, so the published-vertical ``_row_to_qa`` machinery
+    doesn't apply. Each file maps to a split (``*.heldout.jsonl`` → held-out, else
+    pool); the split rides ``family`` so the drawer's family filter browses
+    pool/held-out, and ``tier``/``subtopic`` ride the new facets. Scored by the
+    bench's own ``scorer_path`` verifier through the eval-job dispatch — the
+    interactive scorer kind ``astro_numeric_match`` is recognised + honestly
+    skipped in :func:`score_eval_prediction` (never a judge)."""
+    prompts: list[EvalPrompt] = []
+    for rel, path in zip(spec.files, _bench_paths(spec)):
+        split = "heldout" if ".heldout." in Path(rel).name else "pool"
+        for idx, row in enumerate(_parse_jsonl(path)):
+            q = str(row.get("prompt") or "")
+            if not q:
+                continue
+            qid = str(row.get("task_id") or f"{split}-{idx}")
+            tier = row.get("tier")
+            subtopic = row.get("subtopic") or row.get("topic")
+            prompts.append(
+                EvalPrompt(
+                    qid=qid,
+                    question=q,
+                    model_prompt=q,
+                    reference=str(row.get("answer") or ""),
+                    family=split,  # pool | heldout — drives the drawer split filter
+                    scorer_kind="astro_numeric_match",
+                    scoring_mode=None,
+                    options=None,
+                    has_context=False,
+                    context_kind=None,
+                    context_text="",
+                    context_token_hint=0,
+                    judge_required=False,
+                    rubric_hints=None,
+                    tier=int(tier) if isinstance(tier, (int, float)) and not isinstance(tier, bool) else None,
+                    subtopic=str(subtopic) if subtopic else None,
+                    split=split,
+                )
+            )
+    return LoadedBench(spec=spec, prompts=prompts)
+
+
 def _build_loaded_bench(spec: BenchSpec) -> LoadedBench:
+    if spec.fmt == "astrodynamics":
+        return _build_astro_bench(spec)
     prompts: list[EvalPrompt] = []
     for rel, path in zip(spec.files, _bench_paths(spec)):
         stem = Path(rel).stem
@@ -456,7 +558,7 @@ def bench_for_lane(lane_id: str | None) -> str | None:
 
 
 def _prompt_payload(p: EvalPrompt) -> dict[str, Any]:
-    return {
+    payload: dict[str, Any] = {
         "qid": p.qid,
         "question": p.question,
         "reference": p.reference,
@@ -469,6 +571,15 @@ def _prompt_payload(p: EvalPrompt) -> dict[str, Any]:
         "context_token_hint": p.context_token_hint,
         "judge_required": p.judge_required,
     }
+    # AE-11 — vertical-build facets, included only when present so the published
+    # benches' payload shape is unchanged.
+    if p.tier is not None:
+        payload["tier"] = p.tier
+    if p.subtopic is not None:
+        payload["subtopic"] = p.subtopic
+    if p.split is not None:
+        payload["split"] = p.split
+    return payload
 
 
 def list_benches() -> list[dict[str, Any]]:
@@ -752,6 +863,24 @@ def score_eval_prediction(
         return _det_result(
             scorer_kind=kind, score=s, max_score=1.0, reference=ref,
             why=f"{int(round(s * 4))}/4 IRAC components present",
+        )
+
+    # --- AE-11: astro bench — scored by its own scorer_path verifier ---
+    # The astrodynamics bench uses a unit-aware ±2% numeric match
+    # (``astro_numeric_match``) kept LOCAL to the vertical
+    # (``feedback_keep_scorer_local_until_reuse``), not a built-in scorer. The
+    # canonical scoring path is the eval-job dispatch (AF-15 ``scorer_path``),
+    # which loads the verifier and resolves its sibling ``units`` import — not
+    # this interactive grader. Surface that honestly (the row still previews +
+    # shows its gold reference) rather than mis-scoring with the unit-blind
+    # built-in ``numeric_match``.
+    if kind == "astro_numeric_match":
+        return _skip(
+            kind,
+            "astro rows are scored by the bench's scorer_path verifier "
+            "(unit-aware ±2% numeric match) via the eval-job dispatch, not "
+            "interactive grading — pick the gold below to read the reference",
+            reference=ref,
         )
 
     # --- Family B: ranked-list gold can't be reconstructed from prose ---

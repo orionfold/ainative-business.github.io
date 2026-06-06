@@ -15,6 +15,9 @@ const DETERMINISTIC_KINDS = new Set([
   'exact_match',
   'contains',
   'irac_structure',
+  // AE-11 — astro is non-judge (unit-aware numeric); the interactive grader
+  // honest-skips it, but it's never a judge backend, so the judge picker hides.
+  'astro_numeric_match',
 ]);
 
 // Model slugs each bench maps to — mirror of the backend registry.
@@ -24,6 +27,8 @@ const BENCH_MODELS = {
   legalbench: ['saul-7b-instruct-v1-gguf'],
   cybermetric: ['securityllm-gguf'],
   medmcqa: ['ii-medical-8b-gguf'],
+  // AE-11 — the astro bench maps to the Kepler GGUF lanes.
+  'astro-bench': ['kepler-q8-gguf', 'kepler-gguf', 'kepler'],
 };
 
 function norm(s) {
@@ -70,6 +75,7 @@ export function scorerLabel(kind) {
       exact_match: 'exact match',
       contains: 'contains',
       irac_structure: 'IRAC',
+      astro_numeric_match: 'numeric · unit-aware ±2%',
       patent_claim_validity: 'judge · claim validity',
       office_action_argument: 'judge · office action',
       judge_rubric: 'judge · correctness',

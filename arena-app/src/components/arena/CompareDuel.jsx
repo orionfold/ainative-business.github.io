@@ -38,6 +38,7 @@ import {
 import EvalPromptDrawer from './EvalPromptDrawer.jsx';
 import EvalScore, { ReferencePanel } from './EvalScore.jsx';
 import JudgeSelect from './JudgeSelect.jsx';
+import ScoutPanel from './ScoutPanel.jsx';
 
 const MIN_PROMPT = 1;
 const MAX_PROMPT = 32_000;
@@ -583,6 +584,9 @@ export default function CompareDuel() {
 
   return (
     <div class="compare-duel">
+      {/* AE-10 — the scout top-3 + the lock-time behavioral-gate framing. The
+          gate button opens the eval drawer (the held-out astro prompt source). */}
+      <ScoutPanel onLoadGate={() => setEvalDrawerOpen(true)} />
       <div class="compare-duel__controls">
         <label class="compare-duel__field">
           <span class="compare-duel__field-label" style="color:#76b900">Lane A</span>
