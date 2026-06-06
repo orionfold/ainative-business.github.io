@@ -34,6 +34,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
+import ProvenanceChip from './ProvenanceChip.jsx';
 
 // State → visual treatment. `active` is the live/in-flight tone (accent),
 // `done` the settled green, `hold`/`blank` the warn/dim edges.
@@ -326,6 +327,13 @@ export default function BuildSpine() {
         <div class="build__head-title">
           <span class="build__head-vertical">{label}</span>
           <span class="build__head-sub">scout → bench → corpus → SFT → smoke → lane → RLVR → publish</span>
+          {/* AE-24 — which run the spine is oriented to; live iff any stage
+              reads a live feed right now (manifest stages are assertions). */}
+          <ProvenanceChip
+            live={stages.some((st) => st.state === 'active')}
+            tsMs={null}
+            runId={label !== 'the current vertical' ? label : null}
+          />
         </div>
         <div class="build__head-progress">
           <span class="build__head-count">{done}<span class="build__head-slash">/{total}</span></span>

@@ -19,6 +19,10 @@ export default function CurrentLane({ compact = false } = {}) {
   const [state, setState] = useState('connecting'); // 'connecting' | 'live' | 'offline'
   const [resident, setResident] = useState(null);
   const [rosterCount, setRosterCount] = useState(null);
+  // AE-21 lane truth: which source won resolution + any drift (discovery vs
+  // the operator selection / hermes hint). See LaneTruth.jsx for the full UI.
+  const [laneSource, setLaneSource] = useState(null);
+  const [drift, setDrift] = useState(null);
 
   useEffect(() => {
     if (isPublicMirrorHost()) {
@@ -42,6 +46,8 @@ export default function CurrentLane({ compact = false } = {}) {
         if (cancelled) return;
         setResident(body.resident ?? null);
         setRosterCount(Array.isArray(body.roster) ? body.roster.length : 0);
+        setLaneSource(body.source ?? null);
+        setDrift(body.drift ?? null);
         setState('live');
       } catch (err) {
         if (cancelled) return;
@@ -77,7 +83,7 @@ export default function CurrentLane({ compact = false } = {}) {
   if (state === 'connecting') {
     return (
       <div class={`current-lane current-lane--connecting${compact ? ' current-lane--compact' : ''}`}>
-        <p class="current-lane__status">Reading <code>~/.hermes/config.yaml</code>…</p>
+        <p class="current-lane__status">Discovering serving lanes…</p>
       </div>
     );
   }
@@ -86,9 +92,9 @@ export default function CurrentLane({ compact = false } = {}) {
       <div class={`current-lane current-lane--empty${compact ? ' current-lane--compact' : ''}`}>
         <p class="current-lane__status">
           {compact ? (
-            <>No resident brain. Start a lane and refresh.</>
+            <>No lane resident — discovery found nothing. Start a lane and it appears here.</>
           ) : (
-            <>No resident brain in <code>~/.hermes/config.yaml</code>. Start a lane (<code>start-llama-moe.sh</code> in the brain-bakeoff evidence dir) and refresh.</>
+            <>No lane resident — the discovery probe found nothing serving on the lane ports. Start a GGUF lane (<code>llama-server … --port 8091</code>) and it appears here within ~8s, no config edit needed.</>
           )}
         </p>
         {!compact && rosterCount != null && (
@@ -129,6 +135,8 @@ export default function CurrentLane({ compact = false } = {}) {
               : '—'}
           </span>
           <span class="current-lane__chip">{resident.kind || 'lane'}</span>
+          {laneSource && <span class="current-lane__chip current-lane__chip--source">{laneSource}</span>}
+          {drift && <span class="current-lane__chip current-lane__chip--drift" title={drift}>⚠ drift</span>}
         </div>
       </div>
     );
@@ -144,6 +152,8 @@ export default function CurrentLane({ compact = false } = {}) {
         <span class="current-lane__label">Endpoint</span>
         <code class="current-lane__value">{resident.base_url || '—'}</code>
         <span class="current-lane__chip">{resident.kind || 'lane'}</span>
+        {laneSource && <span class="current-lane__chip current-lane__chip--source" title="which source won lane resolution — discovery observation, the operator selection, or the demoted hermes hint">{laneSource}</span>}
+        {drift && <span class="current-lane__chip current-lane__chip--drift" title={drift}>⚠ drift</span>}
       </div>
       <div class="current-lane__row">
         <span class="current-lane__label">Context</span>

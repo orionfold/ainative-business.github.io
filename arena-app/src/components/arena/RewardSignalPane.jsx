@@ -23,6 +23,7 @@
 
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
+import ProvenanceChip from './ProvenanceChip.jsx';
 
 const pct = (x) => (x == null ? '—' : `${(Number(x) * 100).toFixed(0)}%`);
 
@@ -135,6 +136,11 @@ export default function RewardSignalPane() {
   // dropdown defaults to "Latest (auto-follow)" and can pin any prior run.
   const runs = (data && data.runs) || [];
   const source = data && data.source;
+  // AE-24 provenance — label which run's report the gauge is reading (the
+  // auto-follow deliberately tracks the newest file; the chip says whether
+  // that newest file is from THIS run or a prior one, OBS-5).
+  const shownRun = runs.find((r) => r.source === source);
+  const shownTsMs = shownRun && shownRun.mtime != null ? shownRun.mtime * 1000 : null;
 
   return (
     <div class="reward">
@@ -152,6 +158,7 @@ export default function RewardSignalPane() {
           {source && (
             <span class="reward__history-now">showing <code>{source}</code></span>
           )}
+          <ProvenanceChip tsMs={shownTsMs} live={isRunning} runId={null} />
         </div>
       )}
 

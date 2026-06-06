@@ -76,11 +76,22 @@
     </div>
     <span class="telemetry-rail__source" data-metric="speed-source">throughput &amp; first-token from the active lane</span>
   </div>
+  <div class="telemetry-rail__cell telemetry-rail__cell--run" id="rail-run-cell" hidden
+       title="Run-context (AE-23) — the vertical this cockpit is oriented to + whether a lane is armed. Select/clear the active lane on the Models pane.">
+    <span class="telemetry-rail__label">
+      <span class="telemetry-rail__dot" data-cell="run" data-state="idle"></span>
+      Run
+    </span>
+    <span class="telemetry-rail__value" data-metric="run_label" style="font-size: 0.92rem;">—</span>
+    <span class="telemetry-rail__hint" data-metric="run-hint">run-context</span>
+  </div>
   <div class="telemetry-rail__cell">
     <span class="telemetry-rail__label">
       <span class="telemetry-rail__dot" data-cell="lane" data-state="idle"></span>
       {/* AE-15: label flips to "Configured Lane" when nothing live is serving. */}
       <span data-metric="lane-label">Active&nbsp;Lane</span>
+      {/* AE-21: drift / multi-lane truth from discovery (poll, not SSE). */}
+      <span class="telemetry-rail__badge" data-metric="lane-extra" hidden></span>
     </span>
     <span class="telemetry-rail__value" data-metric="lane_id" style="font-size: 0.92rem;">idle</span>
     <span class="telemetry-rail__hint" data-metric="lane-hint">no warm brain</span>
@@ -361,6 +372,62 @@
       onError: (rs) => { if (rs === 2) offlineEl.hidden = false; },
       onUnreachable: () => { offlineEl.hidden = false; },
     });
+
+    // AE-21/23 — run-context banner cell + lane-truth extras (drift badge,
+    // multi-lane count). A light 12 s poll of GET /api/run-context; the SSE
+    // above keeps owning the 0.5 s lane label, this only writes its own
+    // elements (run cell + the lane-extra badge) so there are never two
+    // writers on one node.
+    const runCell = document.getElementById('rail-run-cell');
+    const runVal = railEl.querySelector('[data-metric="run_label"]');
+    const runHint = railEl.querySelector('[data-metric="run-hint"]');
+    const runDot = railEl.querySelector('[data-cell="run"]');
+    const laneExtra = railEl.querySelector('[data-metric="lane-extra"]');
+    function fmtAgoIso(iso) {
+      if (!iso) return '';
+      const t = Date.parse(iso);
+      if (Number.isNaN(t)) return '';
+      const s = Math.max(0, (Date.now() - t) / 1000);
+      if (s < 90) return 'just now';
+      if (s < 5400) return Math.round(s / 60) + 'm ago';
+      if (s < 172800) return (s / 3600).toFixed(1) + 'h ago';
+      return Math.round(s / 86400) + 'd ago';
+    }
+    async function pollRunContext() {
+      try {
+        const r = await fetch(base + '/api/run-context', { headers: { Accept: 'application/json' } });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const c = await r.json();
+        if (runCell) runCell.hidden = false;
+        const label = c.label || c.vertical || '—';
+        if (runVal) { runVal.textContent = label; runVal.dataset.state = c.lane_live ? 'ok' : 'idle'; }
+        if (runDot) runDot.dataset.state = c.drift ? 'warn' : (c.lane_live ? 'ok' : 'idle');
+        if (runHint) {
+          runHint.textContent = c.anchored
+            ? ('armed ' + (fmtAgoIso(c.run_started) || '—') + (c.lane && c.lane.model ? ' · ' + c.lane.model : ''))
+            : (c.lane_live ? 'lane live · select to anchor' : 'unanchored · no lane armed');
+        }
+        if (laneExtra) {
+          if (c.drift) {
+            laneExtra.hidden = false;
+            laneExtra.textContent = '⚠ drift';
+            laneExtra.title = c.drift;
+            laneExtra.dataset.state = 'warn';
+          } else if ((c.discovered_n || 0) > 1) {
+            laneExtra.hidden = false;
+            laneExtra.textContent = c.discovered_n + ' lanes';
+            laneExtra.title = c.discovered_n + ' resident lanes discovered — pick the active one on the Models pane';
+            laneExtra.dataset.state = 'ok';
+          } else {
+            laneExtra.hidden = true;
+          }
+        }
+      } catch (e) { /* sidecar-down is the SSE banner's story; leave the cells */ }
+    }
+    pollRunContext();
+    setInterval(function () {
+      if (document.visibilityState === 'visible') pollRunContext();
+    }, 12000);
   }
   })();
 </script>

@@ -17,6 +17,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
 import { pct, benchLabel, scoreColor } from '../../lib/arena/leaderboard-format.mjs';
+import { useRunContext } from './ProvenanceChip.jsx';
+import { anchorMs } from '../../lib/arena/run-context.mjs';
 
 const POLL_MS = 15000; // eval jobs land on minutes-cadence; a light poll suffices
 
@@ -33,6 +35,13 @@ function fmtAgo(iso) {
 
 export default function EvalBenchLive() {
   const [rows, setRows] = useState(null); // null until first live fetch lands
+  // AE-24 run-context — a "live" row whose newest run predates the run anchor
+  // is evidence from a PRIOR run; label + dim it instead of letting it pass
+  // as current (OBS-5). Unanchored ⇒ no claim, rows render as before.
+  const runCtx = useRunContext();
+  const anchor = anchorMs(runCtx);
+  const isPrior = (r) =>
+    anchor != null && r.last_run_at && Date.parse(r.last_run_at) < anchor;
 
   useEffect(() => {
     if (isPublicMirrorHost()) return undefined;
@@ -103,13 +112,18 @@ export default function EvalBenchLive() {
                 const pctVal = pct(r.mean_normalized);
                 const color = scoreColor(r.mean_normalized);
                 return (
-                  <tr key={r.lane_id}>
+                  <tr key={r.lane_id} data-prior={isPrior(r)}>
                     <td class="rankcol-rank">
                       <span class={`rank-badge ${badgeClass}`}>{rank}</span>
                     </td>
                     <td class="rankcol-lane">
                       <div class="lane-cell">
                         <span class="lane-cell__id">{r.lane_id}</span>
+                        {isPrior(r) && (
+                          <span class="lane-cell__prior" title={`newest run predates the run anchor (lane armed ${runCtx?.run_started || '—'}) — from a prior run`}>
+                            ○ prior run
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td class="rankcol-score">
