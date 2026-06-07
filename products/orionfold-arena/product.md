@@ -37,7 +37,7 @@ features:
     benefit: "Live bench-anchored rankings that fold in every chat and compare run, with Spark/OpenRouter source badges — served from a leak-proof public mirror, never your prompts or completions."
     screenshot: "screenshots/02-leaderboard.png"
   - name: "Efficiency frontier"
-    benefit: "Quality versus throughput on one chart with the Pareto skyline in gold — where you decide which quant is worth shipping."
+    benefit: "Quality versus throughput on one chart with the Pareto skyline in orange — where you decide which quant is worth shipping."
     screenshot: "screenshots/03-efficiency-frontier.png"
   - name: "Models browser"
     benefit: "Every artifact you can run, filterable by kind and license, one click from chat or compare."
@@ -190,7 +190,7 @@ token, the active lane, and OpenRouter spend — a live instrument cluster, each
 metric over a fixed-window peak-bar chart, across the top of every page.*
 
 On a Spark, GPU and system memory share the same 128 GB pool, so watching the
-unified-memory cell (here 32.0 / 122 GB, with ~90 GB of headroom) is how you
+unified-memory cell (here 16.8 / 122 GB, with ~105 GB of headroom) is how you
 avoid an out-of-memory hang before it happens. Each cell now carries a
 **fixed-window peak-bar chart** — discrete vertical bars, one per time bucket,
 that fill left-to-right and then FIFO off the edge — so a glance shows not just
@@ -221,17 +221,17 @@ publish; the data behind it stays yours.
 
 ### Decide what to ship — the efficiency frontier
 
-![The efficiency frontier: quality versus throughput for every quant build, with the Pareto skyline drawn in gold](screenshots/03-efficiency-frontier.png)
+![The efficiency frontier: quality versus throughput for every quant build, with the Pareto skyline drawn in orange](screenshots/03-efficiency-frontier.png)
 
 *Quality versus throughput for every quant build the Spark has measured, with the
-Pareto frontier drawn in gold. The points on the gold line are the ones worth
+Pareto frontier drawn in orange. The points on the orange line are the ones worth
 shipping.*
 
 This is the chart that turns a pile of measurements into a decision. Each build
-is a point in quality-versus-throughput space; the gold skyline is the Pareto
+is a point in quality-versus-throughput space; the orange skyline is the Pareto
 frontier — the set of builds where you can't get more quality without giving up
 speed. For a researcher choosing which quantization to release, the frontier *is*
-the answer: ship a point on the gold line and know exactly what you traded to be
+the answer: ship a point on the orange line and know exactly what you traded to be
 there. Quality is normalized per model, because perplexity is only comparable
 within one base; each model's variants form their own curve.
 
@@ -275,8 +275,9 @@ default, but the lane selector lets you point it at any on-demand local GGUF
 (booted for you, with the previous on-demand model torn down first to respect the
 memory envelope) or a hosted lane. Answers render with full markdown and syntax
 highlighting, reasoning traces collapse out of the way, and the throughput reads
-live — the answer above streamed back at **116 tok/s with a 202 ms time-to-first-
-token** off the resident 30B.
+live — the answer above (a Kepler's-third-law orbit period, correct to the
+minute) streamed back with a **210 ms time-to-first-token** off the resident
+Kepler-8B Q8 specialist.
 
 ### Score against gold — the eval drawer
 
@@ -307,11 +308,13 @@ answer the same prompt. Where the launch build showed a single delta strip, the
 duel now lays out **telemetry-style metric cards** — quality, tok/s,
 time-to-first-token, tokens, and cost — each marking the winner and drawing a
 **peak-bar sparkline of that metric across this session's runs**, so a pattern
-emerges as you fire more comparisons. The run above is local-vs-local — the
-resident **Qwen3-30B** against **finance-chat-gguf**, both free on the Spark —
-scored by a deterministic rubric. A thumbs-up records your own preference as a
-*separate* signal — it never silently mutates the rubric score. When a hosted
-lane is involved, a cost meter tracks what the comparison spent.
+emerges as you fire more comparisons. The run above is local-vs-hosted — the
+resident **Kepler Q8** against **Claude Haiku 4.5**, both answering the same
+orbital-mechanics prompt correctly — scored by a deterministic rubric. A
+thumbs-up records your own preference as a *separate* signal — it never silently
+mutates the rubric score. And because a hosted lane is involved, the **cost
+card** meters it: the local answer cost $0, the hosted one a metered fraction of
+a cent.
 
 ### Move at the speed of thought — the command palette
 

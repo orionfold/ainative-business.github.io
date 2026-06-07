@@ -20,6 +20,17 @@
 
 ## Current state
 
+### ✅ 2026-06-06 — **ARENA MARKETING RE-CAPTURE COMPLETE** (post-light-theme): all 22 product shots re-shot light + demo fixtures re-recorded + prose drift swept
+
+> The "📸 QUEUED FIRST" task is DONE — every published arena capture in BOTH product articles now shows the light cockpit, with the v2 cut 1–3 features visible (inventory chips · LaneTruth roster · run-anchor cell · Arm-SFT form · Settings/guardrails · G3 price coverage).
+> - **Capture rig**: headless `playwright-core` + `deviceScaleFactor:2` per `reference_marketing_screenshots_live_sse_2x` (the visible CDP Chromium was already dead — not needed). Kepler Q8 served on `:8091` for the session (discovered lane lit the rail/LaneTruth/chat/compare), torn down after.
+> - **`products/arena-control-plane/screenshots/`** (11): 01–03 re-seeded with the launch-demo composition (6 rows w/ realistic hex ids — first pass leaked `seed-…` AE-16 id chips, re-seeded; seeds hard-deleted + API-verified after). 04–11 straight page shots off the real data.
+> - **`products/orionfold-arena/screenshots/`** (11): 06-chat + 07-compare are REAL runs — **answers pre-verified against the lane before shooting** (first takes had Kepler flubbing a 550 km period (233.8 vs 95.6 min) and the GEO duel (7.3 vs 24 h) — known-drift adjacent; swapped to verified-correct questions: Kepler-3rd-law 97.0 min ✓, circular velocity 7.67 km/s ✓ vs Haiku 7.7 ✓ w/ the cost cards $0-local vs ~$0.0007). The two wrong-answer capture-drafts were deleted from arena.db (my runs, seed→revert); the operator's real smoke history kept.
+> - **Prose swept**: arena-control-plane (rail lane Qwen3-30B→Kepler ×2) · orionfold-arena (chat 116 tok/s/30B→210 ms TTFT/Kepler-8B · compare local-vs-local→local-vs-hosted w/ cost card · rail memory numbers · frontier "gold"→"orange" ×6, light-theme Pareto line).
+> - **Demo re-recorded**: `fieldkit arena record --max-chat 5 --max-compare 1` (curated: 2 correct Kepler chats + 2 vintage 30B chats + 1 Haiku + the verified velocity duel; sanitized stubs, no base_url/config leaks) → `ARENA_DEMO=1` build → `scripts/deploy_arena_demo.mjs` → `public/arena/demo/`. Static smoke ✓: shim active, light `#F7F8FA`, replay streams the fixture answer, **0 console errors / 0 sidecar calls**.
+> - **Verified**: site build 518 pages + both verifiers ALL_OK. Session cloud spend ≈ **$0.003** (3 short Haiku duels).
+> - ⚠️ **Residual dark surfaces** (the step-4 grep): `products/orionfold-cortex/screenshots/` (8 embeds — re-shoot needs the Second Brain stack UP (embedder `:8001` down) + seeded rebuild/drain/RAG states → **queued below**) · `articles/the-machine-manages-its-own-memory/` (5 evidence shots — historical record of that session, deliberately kept dark).
+
 ### ✅ 2026-06-06 — **LIGHT-ONLY THEME SHIPPED** (operator green-lit): marketing site + Arena cockpit restyled to `design-system-v1` (Airtable light, spark orange accent)
 
 > The wholesale restyle the relay deferred was **green-lit and executed same-day** (operator: "switch to light theme as guided by the design spec"; scope answer: cockpit + marketing site, light-only). 21 files; both surfaces verified + operator-approved on a side-by-side review before commit.
@@ -149,18 +160,21 @@
 
 **The Kepler pipeline lessons are encoded as memories** (apply to the next vertical): `feedback_sft_vs_rlvr_decision` (the prior question — cheap-correct-trajectory + enumerable-output → SFT-only wins), `feedback_rlvr_headroom_gate` (the Goldilocks band + the bimodal-per-family refinement: 0% = SFT-coverage gap, not RL headroom), `feedback_preflight_bench_before_quant`, `feedback_smoke_projection_slack`.
 
-## ⚙️ Live runtime (post-v0.30.0 2026-06-06 — GPU lanes DOWN; cockpit + browser left UP)
+## ⚙️ Live runtime (post-re-capture 2026-06-06 — GPU lane DOWN; cockpit UP; CDP Chromium DOWN)
 
-> **Cockpit `:7866` restarted onto the v0.30.0 (cut-3) bake** (pid 504672; serves the
-> inventory chips + Runtimes roster + Corpus-handshake block on `/arena/build/`, the
-> **Arm SFT run** form on Jobs — on top of everything v0.29.0). **Visible CDP Chromium
-> `:9222` UP** (pid 45024). `/tmp/arena-venv` fieldkit editable now reads **0.30.0**
-> (+ pytest; still carries the proven RL stack — dies on next reboot, but the `[rl]` pins
-> capture it). **Active-lane registry CLEAN** (run-context honestly unanchored). **No open
-> corpus request** (`corpus-request.json` absent); **no sft_run rows** (the smoke's two were
-> hard-deleted, operator-approved seed→revert). `openrouter_price_snapshot` still carries the
-> `or-refresh-2026-06-06` rows — G3 armed for the roster. The orphan reconciler runs on every
-> cockpit boot. ⚠️ Visible Chromium caches hashed JS — hard-reload if a pane looks stale.
+> **Cockpit `:7866` UP on the v0.30.0 (cut-3) bake** (serves the inventory chips + Runtimes
+> roster + Corpus-handshake block on `/arena/build/`, the **Arm SFT run** form on Jobs).
+> **Visible CDP Chromium `:9222` is DOWN** (the post-reboot pid died; the re-capture used
+> headless playwright-core and never needed it — relaunch via `arena_lifecycle.sh restart
+> --browser` when browser-use mode is next wanted). **Kepler Q8 `llama-server :8091` served
+> for the capture session and torn down** — GPU lane FREE (~115 GiB headroom). `/tmp/arena-venv`
+> fieldkit editable reads **0.30.0**. **Active-lane registry CLEAN** (run-context honestly
+> unanchored). **arena.db deltas from the capture session (all deliberate):** +1 chat session
+> (`cs-d7611`, the verified Kepler-3rd-law turn) + +1 compare run (`cr-bdb44`, the verified
+> velocity duel — these ARE the new 06/07 shots + demo fixtures); my 4 wrong-answer/duplicate
+> capture-drafts deleted; the 01–03 board seeds hard-deleted + API-verified (14 real job rows
+> remain). `openrouter_price_snapshot` still carries `or-refresh-2026-06-06` — G3 armed.
+> Cloud spend this session ≈ $0.003. No open corpus request; no sft_run rows.
 
 ### Post-smoke baseline (superseded detail, kept for forensics)
 
@@ -193,28 +207,15 @@
 
 ## Open items (by swimlane)
 
-### 📸 QUEUED FIRST — next session: arena marketing re-capture, end-to-end (post-light-theme)
+### 📸 Residual: orionfold-cortex re-capture (the one dark marketing set left)
 
-**Why now:** the 2026-06-06 light-only restyle made every published arena screen capture stale
-(they show the old dark cockpit), and a fresh end-to-end pass also captures the v2 cut 1–3
-features (inventory chips · corpus handshake · Arm-SFT form · runtimes roster · run-anchor ·
-LaneTruth · Settings/guardrails) that postdate the originals. Surfaces, in order:
-
-1. **`products/arena-control-plane/screenshots/`** (11× 2× shots, 01-jobs-board … 11-standup) —
-   re-shoot the same numbered set against the live light cockpit; then sweep
-   `products/arena-control-plane/product.md` prose for color/feature references that drifted.
-2. **`products/orionfold-arena/screenshots/`** (11 more) + `products/orionfold-arena/product.md` —
-   same treatment (the original Arena launch article).
-3. **Arena demo (record→replay)** — re-record fixtures with `fieldkit arena record` against the
-   live cockpit so the replay carries the new panes/feeds, then rebuild the `ARENA_DEMO=1`
-   bundle (source fixtures at `arena-app/public/arena-demo/`; see `reference_arena_demo_mode`).
-4. Quick grep for any other article embedding a dark arena shot before closing.
-
-**Capture recipe:** per `reference_marketing_screenshots_live_sse_2x` — drive `playwright-core`
-from Node (NOT the MCP: it can't clip-to-element and shoots DPR 1), `deviceScaleFactor: 2`,
-`clip`, `domcontentloaded` (not networkidle — SSE pages never settle), seed the jobs board for
-the shot and hard-delete the seeds after (seed→shoot→revert, operator-approved pattern).
-Tagline ≤120 / summary ≤300 if product.md frontmatter changes.
+The 2026-06-06 re-capture covered both arena product articles + the demo. Still dark:
+`products/orionfold-cortex/screenshots/` (8 shots — knowledge baseline/rebuild/drain/RAG-query/
+gate/standup/catalog). Re-shoot needs the **Second Brain stack up** (pgvector is up; NIM embedder
+`:8001` is DOWN) plus seeded reindex/rag_eval job states (the drain/queued/gate compositions), and
+`products/orionfold-cortex/product.md` swept after. Same rig: headless playwright-core 2×,
+seed→shoot→revert. `articles/the-machine-manages-its-own-memory/` evidence shots stay dark
+deliberately (historical record).
 
 ### 🔬 QUEUED — arena-enhancements **v2 cut 4** (the guarded LAUNCH cut, AE-R13)
 **Cuts 1–3 are RELEASED (v0.28.0 + v0.29.0 + v0.30.0 — Clusters G+H complete except AE-22's launch half; Cluster I core complete except AE-28; see Current state).** The remaining v2 queue, per `_SPECS/arena-enhancements-v2.md` + the ledger ([`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md), gitignored — statuses updated):
@@ -270,14 +271,15 @@ The **operator-config surface** over the AE-17 cloud-run guardrails. Decisions c
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-06 (arena marketing re-capture COMPLETE — 22 light shots + demo re-record; correctness-gated live captures)
+Executed the queued post-light-theme re-capture end-to-end with headless playwright-core 2× (CDP Chromium was dead; not needed). Two quality gates emerged worth keeping: (1) **realistic seed ids** — the AE-16 card-identity chip renders `id[:8]`, so `seed-01` ids leak the staging into the marketing shot; seed with hex-looking ids, delete by suffix; (2) **pre-verify live-model answers before shooting** — Kepler flubbed 2 of the first 3 capture questions (550 km period, GEO period — known-drift adjacent); curl the lane first, shoot only verified-correct prompts, delete the wrong-answer drafts from arena.db (own runs only — operator smoke history kept). Demo fixtures re-recorded curated (`--max-compare 1` keeps the one verified duel; older wrong smoke duels stay in db but outside the export). Prose swept both articles (lane names, tok/s claims, frontier gold→orange). Build 518 + verifiers ALL_OK. Residual: orionfold-cortex set queued (needs Second Brain stack); memory-article evidence stays dark deliberately. Spend ≈ $0.003. | Manav (with Claude)
+
 ### 2026-06-06 (`fieldkit v0.30.0` RELEASED — v2 cut 3: Cluster I core, live-smoked end-to-end; every launch risk deferred to cut 4)
 Operator scoped cut 3 to **Cluster I core** (AE-26 + AE-27 + sft_run dispatch + AF-20 read-only) — the key scoping insight: AF-20's arm/teardown half and AE-22's launch half are the **same risk class** (AE-R13, guarded process launch, one-lane envelope), so they pair in a dedicated cut 4 and this cut stayed pure observation + dispatch. Built: **AE-26** manifest `artifacts` → disk-verified `inventory` facet (the raw declaration never ships, the observation does); **AE-27** atomic intent file + heartbeat-freshness liveness (fulfilment observed via mtime comparison, never asserted); **AE-29** sft_run armed twice over (async-only + `FK_SFT_RUN_ARMED` drain brake; `claim_next_job(skip_ids)` added so a held job releases-and-skips instead of `break`-starving the queue — the brake-vs-starvation tension was the cut's one real design problem); **AE-30** runtimes observed (docker inspect stdout parsed, exit code never trusted). Smoke note: two CDP false-signals (uppercase `text-transform` breaking innerText matches; a `scrollIntoView` click that vacuously "passed" a revert check) — both caught by verifying against the API/db before trusting the DOM, the report≠reality principle applied to my own smoke. Curator full-auto release: audits 17/18+1skip (skip_ids kwarg documented) & 4/4, offline 1445/19, commits `4f71f27`+`720dd16`+stats `d25aba8`, tag `fieldkit/v0.30.0`, both install-verifies green (1 CDN wait). Session cloud spend: $0. | Manav (with Claude)
 
-### 2026-06-06 (`fieldkit v0.29.0` RELEASED — v2 cut 2: Cluster G frontend + Cluster H run-context, live-smoked end-to-end)
-Operator scoped cut 2 to **G-frontend + H, select-only** (AE-22's launch runner deferred per AE-R13 — "the guard deserves undivided attention"). Built: **AE-23** `GET /api/run-context` + the `set_at` run-anchor stamp on `POST /api/active-lane` + the rail **Run** cell; **AE-24** shared `<ProvenanceChip>` + run-context client (module-level cached fetch) wired into SFT/Reward/Build chips + Jobs/leaderboard-live `○ prior run` dimming (honest no-claims when unanchored — the anchor only exists once the operator arms a lane, which is exactly P2); **AE-21** `<LaneTruth>` on Models + rail drift/N-lanes badge + CurrentLane source/drift chips; **AE-22** select/pin UI (pin = the auto-active single lane case the first smoke pass exposed: without it the operator could never anchor). **Found + fixed a real Cluster-G bug en route:** `_resolve_active_lane` never loaded the registry — selection was write-only (caught by the new endpoint tests, not the live smoke). Live CDP smoke on a synthetic `:8091` lane (seed→verify→revert): discover→pin→`armed just now`→14 cards + 8 rows dim→kill⇒`⚠ drift`→clear⇒honest revert. Curator release: audits 17/18+1skip & 4/4, offline 1419/19, commits `28c2a12`+`935ae6f`+stats `b507445`, tag `fieldkit/v0.29.0`, both install-verifies green (1 CDN retry). Session cloud spend: $0. | Manav (with Claude)
-
 <!--
   Older entries pruned 2026-06-06 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - fieldkit v0.29.0 RELEASED (2026-06-06, v2 cut 2: Cluster G frontend + Cluster H run-context): AE-23 /api/run-context + set_at run-anchor + rail Run cell; AE-24 ProvenanceChip + prior-run dimming (honest no-claims unanchored); AE-21 LaneTruth + drift badges; AE-22 select/pin half. Real bug found: _resolve_active_lane never loaded the registry (selection write-only; endpoint tests caught it). Live CDP smoke on synthetic :8091 lane seed→verify→revert. Commits 28c2a12+935ae6f+b507445, tag fieldkit/v0.29.0, offline 1419/19.
   - fieldkit v0.28.0 RELEASED (2026-06-06, v2 cut 1: Cluster G backend + the S1 smoke bug-fix cluster): BUG-2 signal-handler G1 trip + startup orphan-reconciler w/ owner-pid stamps + real-process SIGTERM test; BUG-3/AF-29 newest-row price_for + live OpenRouter refresh + /api/prices* + G3-coverage card + tokens-only badge; BUG-4 [rl] ceiling-pins + shadow-dir recipe; BUG-1/AE-25 canonical sft-progress heartbeat; AF-27 rubric scope labels + bench auto-match via scorer_path; AF-28 EvalBenchLive; AF-30 eval spend in session_spend. Test-hygiene: ARENA_DB conftest pins (tests could touch the real arena.db). Commit 5e992ad, tag fieldkit/v0.28.0, offline 1413/19, stats 5c9941c.
   - e2e operator-smoke S1 COMPLETE (2026-06-06): both AE-R1 gates FIRED on real runs — G3 cost-cap aborted a metered Haiku eval at $0.0515 accrued (19/44, badge+chip); G1 mechanism verified on a metered R1 eval (sentinel→abort→teardown·partial·3-scored→clean exit); real 4-step GRPO rl_run 35ed71b9 lit the reward gauge live (REWARD @ STEP-0 96% auto-follow) + AE-9 lineage + AE-2 degenerate-step truth (clean headroom null). 3 HIGH bugs root-caused live (BUG-2 G1 circular-wait · BUG-3 G3 silently inert/empty price table · BUG-4 RL dep-drift 4-link chain → transformers==4.51.3 + shadow dir) + AF-27..30; all fixed in v0.28.0. Cluster-G dd63802 verified cold post-reboot (discovery found the re-served lane w/ no config). C4/C5/C6 ✓; close-out: lanes torn down, autonomy left OFF, 11 curated 2× shots → products/arena-control-plane/screenshots/. Session cloud spend ≈ $0.18.
   - arena-guardrail-settings-v1 GS-1..6 BUILT + smoked + RELEASED as fieldkit v0.27.0 (2026-06-06): GuardrailConfig/load_config (file>env>default + provenance) + atomic save; GET/POST /api/guardrail-config (422 bounds); /arena/settings/ pane + GuardrailSettings island (source chips · reset · enabled toggle · loud OFF banner) + GS-6 jobs cap chip; per-dispatch config read = no-restart cap edits; offline 1369/5 (+16); live CDP smoke 11/11; commit 1b579fe, tag fieldkit/v0.27.0, PyPI + stats a4d2b34 (47,900 LOC). Per-job cap override answered: out of scope, global config only.

@@ -136,7 +136,7 @@ single board: what it shows, how you trigger work, and what each card tells you.
 
 ### The control plane board
 
-![The Arena control plane: the telemetry rail above a four-column jobs board — queued, running, done, and failed — with a regression banner and a dispatch form, the resident Qwen3-30B lane shown on the rail](screenshots/01-jobs-board.png)
+![The Arena control plane: the telemetry rail above a four-column jobs board — queued, running, done, and failed — with a regression banner and dispatch forms, the discovered Kepler Q8 lane shown live on the rail](screenshots/01-jobs-board.png)
 
 *One screen: the live telemetry rail, a regression banner, the dispatch form,
 and the four-column board of every re-evaluation the Spark is working through.*
@@ -144,7 +144,8 @@ and the four-column board of every re-evaluation the Spark is working through.*
 The board is the cockpit's new home for work-in-flight. The same instrument rail
 that fronts every Arena page sits across the top — GPU utilization, die
 temperature, the unified-memory envelope with its headroom, and the resident lane
-(here the warm Qwen3-30B) — so you watch the machine's state while the queue
+(here the discovered Kepler Q8 GGUF, live on its port) — so you watch the machine's
+state while the queue
 drains. Below it, four columns track each job from *queued* through *running* to
 *done* or *failed*. The header line states the two invariants that make this safe
 to leave running: **single lane** (one model resident at a time, inside the
