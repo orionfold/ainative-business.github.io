@@ -257,8 +257,11 @@ function CorpusHandshake({ liveness, request, base, onChange }) {
 
 // AE-30 (AF-20 read-only half) — runtime readiness. The runtimes the build /
 // serve stages depend on, OBSERVED: serve lanes via the AE-18 discovery sweep,
-// training containers via docker inspect, pgvector/embedder via TCP. Read-only
-// by design — the guarded arm/teardown half is the AE-22 launch-runner cut.
+// training containers via docker inspect, pgvector/embedder via TCP.
+// AE-32 (cut 4 — the AF-20 act half): roster CONTAINERS gain guarded
+// start/stop/run controls (`POST /api/runtimes/container`, confirm-gated;
+// `run` creates an absent container from the operator-authored recipe file).
+// The chip re-renders from the RE-OBSERVED state the action returns.
 const RT_META = {
   up: { tone: 'pass' },
   down: { tone: 'idle' },
@@ -267,27 +270,90 @@ const RT_META = {
   unknown: { tone: 'idle' },
 };
 
-function RuntimeStrip({ rt }) {
+// which action a container chip offers, per observed state
+const RT_ACTION = { up: 'stop', stopped: 'start', absent: 'run' };
+
+function RuntimeStrip({ rt, base, onActed }) {
+  const [confirmKey, setConfirmKey] = useState(null);
+  const [busyKey, setBusyKey] = useState(null);
+  const [actMsg, setActMsg] = useState(null);
+
   if (!rt || rt.available === false || !rt.runtimes) return null;
+
+  async function act(name, action, key) {
+    if (!base) return;
+    setBusyKey(key);
+    setActMsg(null);
+    setConfirmKey(null);
+    try {
+      const r = await fetch(`${base}/api/runtimes/container`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, action, confirm: true }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.detail || `HTTP ${r.status}`);
+      setActMsg(
+        `${name}: ${body.before} → ${body.after}${body.ok ? '' : ' · ⚠ check docker'}`,
+      );
+      if (onActed) onActed();
+    } catch (e) {
+      setActMsg(`⚠ ${name} ${action}: ${String(e.message || e)}`);
+    } finally {
+      setBusyKey(null);
+    }
+  }
+
   return (
     <div class="build__rt" role="status">
       <div class="build__rt-head">
         <span class="build__rt-title">Runtimes</span>
         <span class="build__rt-count">{rt.up}/{rt.total} up</span>
-        <span class="build__rt-sub">observed — arming stays a CLI step (AE-22 cut)</span>
+        <span class="build__rt-sub">observed · container arm/stop is confirm-gated (AE-32)</span>
       </div>
       <div class="build__rt-list">
         {rt.runtimes.map((r) => {
           const m = RT_META[r.state] || RT_META.unknown;
+          const action = r.kind === 'container' ? RT_ACTION[r.state] : null;
           return (
             <span class="build__rt-chip" data-tone={m.tone} key={r.key} title={r.detail}>
               <span class="build__rt-dot" data-tone={m.tone} aria-hidden="true" />
-              <b>{r.label}</b> {r.state}
+              <b>{r.label}</b> {busyKey === r.key ? '…' : r.state}
               <i> · {r.detail}</i>
+              {action && base && (
+                confirmKey === r.key ? (
+                  <span class="build__rt-confirm">
+                    <button
+                      class="build__rt-btn build__rt-btn--confirm"
+                      disabled={busyKey != null}
+                      onClick={() => act(r.label, action, r.key)}
+                    >
+                      confirm {action}
+                    </button>
+                    <button class="build__rt-btn" onClick={() => setConfirmKey(null)}>
+                      ✕
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    class="build__rt-btn"
+                    disabled={busyKey != null}
+                    onClick={() => setConfirmKey(r.key)}
+                    title={
+                      action === 'run'
+                        ? 'create the container from the operator-authored runtime-recipes.json'
+                        : `docker ${action} ${r.label}`
+                    }
+                  >
+                    {action}
+                  </button>
+                )
+              )}
             </span>
           );
         })}
       </div>
+      {actMsg && <span class="build__rt-msg">{actMsg}</span>}
     </div>
   );
 }
@@ -588,8 +654,8 @@ export default function BuildSpine() {
         </p>
       )}
 
-      {/* AE-30 — the runtime-readiness roster (observed; read-only half). */}
-      <RuntimeStrip rt={runtimes} />
+      {/* AE-30 roster (observed) + AE-32 guarded container arm/stop/run. */}
+      <RuntimeStrip rt={runtimes} base={baseRef.current} onActed={refresh} />
 
       {/* AE-6 — the corpus-synth live strip; surfaces only with a heartbeat. */}
       <CorpusStrip feed={corpus} />

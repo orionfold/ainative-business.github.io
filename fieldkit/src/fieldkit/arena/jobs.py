@@ -93,13 +93,30 @@ class JobKind:
     # ``FK_SFT_RUN_ARMED=1`` (the drain brake) — a stray request-time
     # background drain can never start a training run.
     SFT_RUN = "sft_run"
+    # AE-31 (arena-enhancements-v2 cut 4, the AE-22 launch half / AE-R13) — the
+    # guarded lane launch + teardown. Unlike RL_RUN/SFT_RUN these dispatch
+    # in-request (seconds-to-a-couple-minutes, fully reversible): the brake is
+    # the deterministic pre-flight in ``fieldkit.arena.launcher`` (launch lock ·
+    # envelope · ONE-LANE/teardown_first · binary/GGUF present), not an env-var
+    # armed drain. Refusals land as honestly-failed rows (``refused:<reason>``).
+    LANE_LAUNCH = "lane_launch"
+    LANE_TEARDOWN = "lane_teardown"
 
     DISPATCHABLE: frozenset[str] = frozenset(
-        {EVAL_RERUN, MEASURE_VARIANTS, REINDEX, RAG_EVAL, SCOUT_INGEST, REQUANT, RL_RUN, SFT_RUN}
+        {
+            EVAL_RERUN,
+            MEASURE_VARIANTS,
+            REINDEX,
+            RAG_EVAL,
+            SCOUT_INGEST,
+            REQUANT,
+            RL_RUN,
+            SFT_RUN,
+            LANE_LAUNCH,
+            LANE_TEARDOWN,
+        }
     )
-    ALL: frozenset[str] = frozenset(
-        {EVAL_RERUN, MEASURE_VARIANTS, REQUANT, RL_RUN, REINDEX, RAG_EVAL, SCOUT_INGEST, SFT_RUN}
-    )
+    ALL: frozenset[str] = frozenset(DISPATCHABLE)
 
 
 class JobStatus:
@@ -433,6 +450,31 @@ def default_runner(kind: str, payload: Mapping[str, Any]) -> dict[str, Any]:
             mode=payload.get("mode", "smoke"),
             run_label=payload.get("run_label"),
         )
+    # AE-31 (the AE-22 launch half) — the guarded lane launch/teardown runner.
+    # The brake is the launcher's deterministic pre-flight (lock · envelope ·
+    # ONE-LANE · binary/GGUF); a refusal raises and lands as a failed row with
+    # the typed ``refused:<reason>`` message. ``_abort_sentinel`` (threaded by
+    # ``dispatch_job``) aborts only the warm-poll on sidecar teardown (BUG-2) —
+    # never the detached lane itself.
+    if kind == JobKind.LANE_LAUNCH:
+        from fieldkit.arena import launcher
+        from fieldkit.arena.lane import abort_poller
+
+        sentinel = payload.get("_abort_sentinel")
+        return launcher.launch_lane(
+            recipe=payload["recipe"],
+            teardown_first=bool(payload.get("teardown_first", False)),
+            select_on_warm=bool(payload.get("select_on_warm", True)),
+            should_abort=abort_poller(sentinel) if sentinel else None,
+        )
+    if kind == JobKind.LANE_TEARDOWN:
+        from fieldkit.arena import launcher
+
+        if not payload.get("confirm"):
+            raise launcher.LaunchRefused(
+                "unconfirmed", "lane_teardown requires confirm:true (explicit operator intent)"
+            )
+        return launcher.teardown_lane(int(payload["port"]))
     raise UnknownJobKind(
         f"job kind {kind!r} is a named stub, not dispatchable "
         f"(dispatchable: {sorted(JobKind.DISPATCHABLE)})"
@@ -914,6 +956,15 @@ def dispatch_job(
             # AE-17 — arm a cloud-run guardrail for metered lanes (local lanes
             # pass straight through unchanged).
             result = _run_eval_guarded(store, job_id, payload, runner)
+        elif kind == JobKind.LANE_LAUNCH:
+            # AE-31 — thread the per-job abort sentinel (the BUG-2 G1 path) so a
+            # sidecar SIGTERM aborts the warm-poll cleanly; the detached lane
+            # itself is never child-managed.
+            from fieldkit.arena.guardrail import eval_sentinel_for
+
+            result = runner(
+                kind, {**payload, "_abort_sentinel": str(eval_sentinel_for(job_id))}
+            )
         else:
             result = runner(kind, payload)
         now = now_fn()

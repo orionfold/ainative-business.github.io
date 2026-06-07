@@ -32,6 +32,13 @@ function laneBench(job) {
     const tail = String(p.recipe_path).split('/').pop();
     return [tail, p.mode || 'smoke'].join(' × ');
   }
+  // AE-31 — lane ops name their target: the launch recipe / the torn-down port.
+  if (job.kind === 'lane_launch' && p.recipe) {
+    return `${p.recipe}${p.teardown_first ? ' · teardown-first' : ''}`;
+  }
+  if (job.kind === 'lane_teardown' && p.port != null) {
+    return `:${p.port}`;
+  }
   return [p.lane_id, p.bench_id || p.manifest_slug].filter(Boolean).join(' × ') || job.kind;
 }
 
@@ -793,6 +800,35 @@ export default function JobsBoard({ curriculum = {} }) {
                         {j.result.max_steps != null ? `/${j.result.max_steps}` : ''}
                         {j.result.wall_seconds != null ? ` · ${fmtEta(j.result.wall_seconds)} wall` : ''}
                         {j.result.base_model ? ` · ${String(j.result.base_model).split('/').pop()}` : ''}
+                      </div>
+                    )}
+                    {/* AE-31 — lane-op digests: launch (model · port · warm · anchor)
+                        and teardown (freed · verified). A pre-flight refusal lands
+                        as `failed` with the typed `refused:<reason>` error below. */}
+                    {j.status === 'done' && j.kind === 'lane_launch' && j.result && (
+                      <div class="jobs__card-result">
+                        <code>{j.result.model || j.result.model_file || '—'}</code> live on :
+                        {j.result.port ?? '—'}
+                        {j.result.warm_seconds != null ? ` · warm ${j.result.warm_seconds}s` : ''}
+                        {j.result.selected ? ' · run anchored' : ''}
+                        {j.result.teardown_first ? ' · replaced resident lane' : ''}
+                      </div>
+                    )}
+                    {j.status === 'done' && j.kind === 'lane_teardown' && j.result && (
+                      <div class="jobs__card-result">
+                        {j.result.already_dead
+                          ? `:${j.result.port} already dead · state reverted`
+                          : `:${j.result.port} torn down · ${j.result.method || '—'}` +
+                            (j.result.freed_gb != null ? ` · ${j.result.freed_gb} GB freed` : '') +
+                            (j.result.registry_cleared ? ' · selection cleared' : '')}
+                      </div>
+                    )}
+                    {j.status === 'failed' && j.error && String(j.error).includes('refused:') && (
+                      <div
+                        class="jobs__card-refused"
+                        title="the guarded pre-flight refused this lane op (AE-R13) — nothing was launched/killed"
+                      >
+                        ⚠ {String(j.error).match(/refused:([a-z_]+)/)?.[1]?.replace(/_/g, ' ') || 'refused'}
                       </div>
                     )}
                     {j.status === 'failed' && j.error && (

@@ -231,3 +231,42 @@ def test_create_sft_run_is_async_only_and_operator_armed(client):
     # Queued, untouched — only an operator-armed drain may claim it.
     jobs = c.get("/api/jobs").json()["jobs"]
     assert any(j["id"] == body["job_id"] and j["status"] == "queued" for j in jobs)
+
+
+def test_create_lane_launch_is_in_request_and_guard_braked(client, monkeypatch):
+    """AE-31 — lane_launch/lane_teardown dispatch IN-REQUEST (unlike rl_run /
+    sft_run): the brake is the launcher pre-flight, not an armed drain. With no
+    recipes file the pre-flight refuses → the job lands honestly FAILED with
+    the typed reason, in the same request's background drain."""
+    c, _ = client
+    r = c.post(
+        "/api/jobs",
+        json={"kind": "lane_launch", "payload": {"recipe": "no-such"}, "dispatch": True},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["async_only"] is False
+    assert "guarded" in (body["note"] or "")
+    job = c.get(f"/api/jobs/{body['job_id']}").json()
+    assert job["status"] == "failed"
+    assert "refused:recipe_not_found" in (job["error"] or "")
+
+
+def test_lane_recipes_endpoint_empty_and_populated(client, tmp_path, monkeypatch):
+    c, _ = client
+    # empty roster — honest path to author
+    body = c.get("/api/lane-recipes").json()
+    assert body["recipes"] == []
+    assert body["path"].endswith("lane-recipes.json")
+    # populated — card-safe digests (filename, never the absolute path)
+    gguf = tmp_path / "model-Q8_0.gguf"
+    gguf.write_bytes(b"\0" * 1024)
+    recipes = tmp_path / "lane-recipes.json"
+    recipes.write_text(
+        json.dumps([{"name": "kepler-q8", "gguf_path": str(gguf), "port": 8091}])
+    )
+    monkeypatch.setenv("FK_ARENA_LANE_RECIPES", str(recipes))
+    body = c.get("/api/lane-recipes").json()
+    assert [r["name"] for r in body["recipes"]] == ["kepler-q8"]
+    assert body["recipes"][0]["gguf_present"] is True
+    assert str(gguf) not in json.dumps(body["recipes"])

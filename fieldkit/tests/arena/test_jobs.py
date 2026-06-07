@@ -976,3 +976,93 @@ def test_claim_next_job_skip_ids(store):
     )
     claimed = store.claim_next_job(dispatched_at=_NOW, skip_ids=[a])
     assert claimed["id"] == b
+
+
+# ---------------------------------------------------------------------------
+# AE-31 (arena-enhancements-v2 cut 4) — guarded lane launch/teardown dispatch
+# ---------------------------------------------------------------------------
+#
+# Unlike rl_run/sft_run these dispatch in-request: the brake is the launcher's
+# deterministic pre-flight, not an armed drain. These pin the jobs-layer
+# contract: routing reaches the launcher with the right kwargs (including the
+# BUG-2 abort sentinel for the warm-poll), a success digest persists verbatim,
+# and a typed refusal lands as an honestly-FAILED row carrying refused:<reason>.
+
+
+def test_lane_kinds_are_dispatchable():
+    assert JobKind.LANE_LAUNCH in JobKind.DISPATCHABLE
+    assert JobKind.LANE_TEARDOWN in JobKind.DISPATCHABLE
+
+
+def test_lane_launch_routes_to_launcher_with_abort_sentinel(store, monkeypatch):
+    """dispatch_job threads the per-job sentinel; _dispatch_payload builds the
+    should_abort poller from it and forwards the operator's launch options."""
+    seen = {}
+
+    def _fake_launch(recipe, *, teardown_first, select_on_warm, should_abort):
+        seen.update(
+            recipe=recipe,
+            teardown_first=teardown_first,
+            select_on_warm=select_on_warm,
+            has_abort=callable(should_abort),
+        )
+        return {"recipe": recipe, "model": "stub", "port": 8091, "warm_seconds": 1.2}
+
+    from fieldkit.arena import launcher
+
+    monkeypatch.setattr(launcher, "launch_lane", _fake_launch)
+    job_id = jobs.enqueue_job(
+        store,
+        JobKind.LANE_LAUNCH,
+        {"recipe": "kepler-q8", "teardown_first": True, "select_on_warm": False},
+    )
+    done = jobs.drain_jobs(store, now_fn=lambda: _NOW)
+    assert seen == {
+        "recipe": "kepler-q8",
+        "teardown_first": True,
+        "select_on_warm": False,
+        "has_abort": True,
+    }
+    row = store.get_job(job_id)
+    assert row["status"] == JobStatus.DONE
+    summary = json.loads(row["result_json"])
+    assert summary["model"] == "stub" and summary["port"] == 8091
+    assert len(done) == 1
+
+
+def test_lane_launch_refusal_lands_failed_with_typed_reason(store, monkeypatch):
+    from fieldkit.arena import launcher
+
+    def _refuse(recipe, **_k):
+        raise launcher.LaunchRefused("lane_resident", "other.gguf:8080 is live")
+
+    monkeypatch.setattr(launcher, "launch_lane", _refuse)
+    job_id = jobs.enqueue_job(store, JobKind.LANE_LAUNCH, {"recipe": "kepler-q8"})
+    jobs.drain_jobs(store, now_fn=lambda: _NOW, on_error="record")
+    row = store.get_job(job_id)
+    assert row["status"] == JobStatus.FAILED
+    assert row["error"].startswith("refused:lane_resident")
+
+
+def test_lane_teardown_requires_confirm(store):
+    job_id = jobs.enqueue_job(store, JobKind.LANE_TEARDOWN, {"port": 8091})
+    jobs.drain_jobs(store, now_fn=lambda: _NOW, on_error="record")
+    row = store.get_job(job_id)
+    assert row["status"] == JobStatus.FAILED
+    assert "refused:unconfirmed" in row["error"]
+
+
+def test_lane_teardown_confirmed_routes_and_persists(store, monkeypatch):
+    from fieldkit.arena import launcher
+
+    monkeypatch.setattr(
+        launcher,
+        "teardown_lane",
+        lambda port: {"port": port, "port_dead": True, "freed_gb": 9.1, "registry_cleared": True},
+    )
+    job_id = jobs.enqueue_job(store, JobKind.LANE_TEARDOWN, {"port": 8091, "confirm": True})
+    jobs.drain_jobs(store, now_fn=lambda: _NOW)
+    row = store.get_job(job_id)
+    assert row["status"] == JobStatus.DONE
+    summary = json.loads(row["result_json"])
+    assert summary["port"] == 8091 and summary["freed_gb"] == 9.1

@@ -240,7 +240,10 @@ def _trip_running_eval_sentinels(db_path: str) -> int:
         running = store.list_jobs(status="running", limit=50)
     for row in running:
         kind = row["kind"] if "kind" in row.keys() else None
-        if kind != "eval_rerun":
+        # lane_launch polls the same per-job sentinel during its warm-poll
+        # (AE-31): tripping it aborts the poll cleanly; the detached lane
+        # itself is never owned by the sidecar.
+        if kind not in ("eval_rerun", "lane_launch"):
             continue
         sentinel = eval_sentinel_for(str(row["id"]))
         try:
@@ -1076,12 +1079,23 @@ def create_app(
         ``failed`` with the import/connection error, never silently dropped."""
 
         kind: str = Field(
-            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest|rl_run|sft_run)$"
+            pattern="^(eval_rerun|measure_variants|reindex|rag_eval|scout_ingest|rl_run|sft_run|lane_launch|lane_teardown)$"
         )
         payload: dict = Field(default_factory=dict)
         trigger: str = Field(default="manual", max_length=40)
         priority: int = Field(default=0, ge=0, le=100)
         dispatch: bool = True
+
+    class ContainerActionRequest(BaseModel):
+        """``POST /api/runtimes/container`` body (AE-32 / AF-20 arm half).
+
+        ``confirm`` must be explicitly true — a container arm/teardown is an
+        operator decision, never a default. ``run`` additionally needs an
+        operator-authored recipe in ``runtime-recipes.json``."""
+
+        name: str = Field(min_length=1, max_length=100)
+        action: str = Field(pattern="^(start|stop|run)$")
+        confirm: bool = False
 
     class KnowledgeReindexRequest(BaseModel):
         """``POST /api/knowledge/reindex`` — enqueue an M10 ``reindex`` job.
@@ -1307,6 +1321,23 @@ def create_app(
             }
         )
         return await api_active_lane()
+
+    @app.get("/api/lane-recipes")
+    async def api_lane_recipes() -> dict[str, Any]:
+        """The launchable-lane roster (AE-31) — card-safe recipe digests.
+
+        Operator-authored ``lane-recipes.json`` (env ``FK_ARENA_LANE_RECIPES``)
+        rendered for the Models-pane launch form: name · model file · port ·
+        whether the GGUF currently exists. Absolute paths never leave the box's
+        own UI surface beyond the model filename. Missing file → an honest empty
+        roster + the path to author."""
+        from fieldkit.arena import launcher
+
+        try:
+            recipes = launcher.recipe_summaries()
+        except launcher.LaunchRefused as exc:
+            return {"recipes": [], "path": str(launcher.lane_recipes_path()), "error": str(exc)}
+        return {"recipes": recipes, "path": str(launcher.lane_recipes_path())}
 
     @app.get("/api/run-context")
     async def api_run_context() -> dict[str, Any]:
@@ -2341,6 +2372,11 @@ def create_app(
                 "queued — operator-armed: drains only when the draining process "
                 "sets FK_SFT_RUN_ARMED=1 (and the training container is up)"
             )
+        elif body.kind in ("lane_launch", "lane_teardown"):
+            # AE-31 — in-request + guard-braked: the launcher's deterministic
+            # pre-flight (lock · envelope · ONE-LANE · binary/GGUF) is the brake;
+            # a refusal lands as a failed row with the typed reason.
+            note = "dispatching — guarded by the launcher pre-flight (AE-R13)"
         else:
             note = None
         return {
@@ -2831,6 +2867,28 @@ def create_app(
         launch-runner cut (AE-R13 — same one-lane risk class). Cached ~8 s
         (AE-R7); a box without docker degrades to ``unknown``, never an error."""
         return _runtimes_cached()
+
+    @app.post("/api/runtimes/container")
+    def api_runtimes_container(body: ContainerActionRequest) -> dict[str, Any]:
+        """Guarded container arm/teardown (AE-32 — the AF-20 act half).
+
+        ``start``/``stop`` an existing roster container, or ``run`` (create) an
+        ABSENT one from the operator-authored ``runtime-recipes.json`` — the
+        once-memorized ``docker run`` block as data, argv-built. Transitions are
+        validated against the OBSERVED state and the result reports the
+        re-observed state (`docker inspect` after) — observation, never
+        assertion. 409 on a state/recipe refusal; ``confirm:true`` required.
+        Sync ``def`` on purpose: FastAPI runs it in the threadpool, so the
+        bounded docker call never blocks the event loop."""
+        if not body.confirm:
+            raise HTTPException(
+                status_code=422,
+                detail="container actions require confirm:true (explicit operator intent)",
+            )
+        try:
+            return _container_action(body.name, body.action)
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
 
     @app.get("/api/bench-provenance")
     async def api_bench_provenance() -> dict[str, Any]:
@@ -4415,6 +4473,119 @@ def _runtimes_cached(ttl: float = _RUNTIMES_TTL_S) -> dict[str, Any]:
     v = _probe_runtimes()
     c.update(t=now, v=v)
     return v
+
+
+# --- AE-32 (AF-20 arm/teardown half) — guarded container arm/teardown ------ #
+# The observation half (AE-30, above) reports the roster; this half lets the
+# operator act on it: `docker start/stop` a roster container, or `docker run`
+# an ABSENT one from an operator-authored recipe — the once-memorized terminal
+# block (`nemo-train` was never recorded anywhere) stored as data, argv-built,
+# never shell-interpolated. Every action returns the RE-OBSERVED state
+# (`docker inspect` after), never an assertion.
+
+#: Operator-authored container-run recipes (env-overridable).
+RUNTIME_RECIPES_PATH = "~/.fieldkit/arena/runtime-recipes.json"
+_RUNTIME_RECIPES_ENV = "FK_ARENA_RUNTIME_RECIPES"
+
+
+def _runtime_recipes_path() -> Path:
+    explicit = os.environ.get(_RUNTIME_RECIPES_ENV)
+    if explicit:
+        return Path(os.path.expanduser(explicit))
+    return Path(os.path.expanduser(RUNTIME_RECIPES_PATH))
+
+
+def _load_runtime_recipes() -> dict[str, dict[str, Any]]:
+    """Recipes keyed by container name. Missing/corrupt file → ``{}`` (the
+    endpoint reports 'no recipe' honestly rather than erroring the pane)."""
+    p = _runtime_recipes_path()
+    try:
+        raw = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return {}
+    return {str(k): v for k, v in raw.items() if isinstance(v, dict)} if isinstance(raw, dict) else {}
+
+
+def _docker_run_argv(name: str, rec: dict[str, Any]) -> list[str]:
+    """Build the ``docker run`` argv from a recipe — data, not a shell string."""
+    argv = ["docker", "run", "-d", "--name", name]
+    if rec.get("gpus"):
+        argv += ["--gpus", str(rec["gpus"])]
+    if rec.get("ipc"):
+        argv += ["--ipc", str(rec["ipc"])]
+    if rec.get("network"):
+        argv += ["--network", str(rec["network"])]
+    if rec.get("shm_size"):
+        argv += ["--shm-size", str(rec["shm_size"])]
+    for b in rec.get("binds", []) or []:
+        argv += ["-v", str(b)]
+    for a in rec.get("extra_args", []) or []:
+        argv.append(str(a))
+    argv.append(str(rec["image"]))
+    argv += [str(c) for c in rec.get("cmd", []) or []]
+    return argv
+
+
+def _container_action(name: str, action: str) -> dict[str, Any]:
+    """One guarded container action; returns ``{before, after, …}`` observed.
+
+    Raises ``ValueError`` with an honest message on every refusal (the endpoint
+    maps it to a 409/422). State transitions enforced against the OBSERVED
+    state: start needs ``stopped``, stop needs ``up``, run needs ``absent`` +
+    a recipe. Docker stdout/stderr tails ride the result for forensics."""
+    import subprocess
+
+    roster_raw = os.environ.get(_RUNTIME_CONTAINERS_ENV, _RUNTIME_CONTAINERS_DEFAULT)
+    roster = [n.strip() for n in roster_raw.split(",") if n.strip()]
+    if name not in roster:
+        raise ValueError(f"container {name!r} is not in the runtime roster {roster}")
+    before = _docker_container_states([name]).get(name, "unknown")
+    if before == "unknown":
+        raise ValueError("docker unavailable — container state unobservable, refusing to act")
+
+    if action == "start":
+        if before != "stopped":
+            raise ValueError(
+                f"start needs an existing stopped container; {name} is {before!r}"
+                + (" — use action 'run' (recipe) to create it" if before == "absent" else "")
+            )
+        argv, timeout = ["docker", "start", name], 15.0
+    elif action == "stop":
+        if before != "up":
+            raise ValueError(f"stop needs a running container; {name} is {before!r}")
+        argv, timeout = ["docker", "stop", name], 30.0
+    elif action == "run":
+        if before != "absent":
+            raise ValueError(
+                f"run creates a new container; {name} already exists ({before!r}) — "
+                "use start/stop"
+            )
+        rec = _load_runtime_recipes().get(name)
+        if not rec or not rec.get("image"):
+            raise ValueError(
+                f"no run recipe for {name!r} in {_runtime_recipes_path()} — author one "
+                "({image, cmd[], binds[], gpus, ipc, network, shm_size, extra_args[]})"
+            )
+        argv, timeout = _docker_run_argv(name, rec), 60.0
+    else:
+        raise ValueError(f"unknown action {action!r} (start|stop|run)")
+
+    try:
+        proc = subprocess.run(argv, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        proc = None
+    after = _docker_container_states([name]).get(name, "unknown")
+    _runtimes_cache.update(t=0.0, v=None)  # the roster pane re-observes next poll
+    out = {
+        "name": name,
+        "action": action,
+        "before": before,
+        "after": after,
+        "ok": (after == "up") if action in ("start", "run") else (after in ("stopped", "absent")),
+        "stdout": (proc.stdout.strip()[-400:] if proc else None),
+        "stderr": (proc.stderr.strip()[-400:] if proc else "docker command timed out"),
+    }
+    return out
 
 
 def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:

@@ -2242,3 +2242,25 @@ def test_compare_eval_block_scores_both_sides(
     assert score["eval"]["reference"] == "B"
     assert score["eval"]["a"]["score"] == 1.0
     assert score["eval"]["b"]["score"] == 0.0
+
+
+def test_trip_sentinels_includes_running_lane_launch(tmp_path: Path, monkeypatch) -> None:
+    """AE-31 — a running lane_launch polls the same per-job sentinel during its
+    warm-poll: a sidecar SIGTERM must abort the poll (the job), never hang the
+    drain (BUG-2 shape). The detached lane itself is not the sidecar's child."""
+    from fieldkit.arena import jobs
+    from fieldkit.arena.guardrail import eval_sentinel_for
+    from fieldkit.arena.jobs import JobKind, JobStatus
+    from fieldkit.arena.server import _trip_running_eval_sentinels
+    from fieldkit.arena.store import ArenaStore
+
+    monkeypatch.setenv("FK_EVAL_SENTINEL_DIR", str(tmp_path / "sentinels"))
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    launch_id = jobs.enqueue_job(store, JobKind.LANE_LAUNCH, {"recipe": "kepler-q8"})
+    store.update_job(launch_id, status=JobStatus.RUNNING)
+    store.close()
+
+    assert _trip_running_eval_sentinels(str(db)) == 1
+    assert eval_sentinel_for(launch_id).exists()
