@@ -135,7 +135,7 @@ export default function TelemetryGauge() {
           series: [
             {},
             {
-              stroke: 'oklch(74% 0.16 165)',
+              stroke: '#11AF22',
               width: 1.5,
               fill: 'rgba(74, 222, 128, 0.12)',
               points: { show: false },

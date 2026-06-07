@@ -99,13 +99,13 @@ try {
 }
 ---
 <!doctype html>
-<html lang="en" class="arena-app" data-theme="dark">
+<html lang="en" class="arena-app" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={desc} />
-    <meta name="theme-color" content="#0a0e14" />
-    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#F7F8FA" />
+    <meta name="color-scheme" content="light" />
     <link rel="icon" type="image/svg+xml" href={href('favicon.svg')} />
     <title>{title}</title>
     {isDemo && <script is:inline src={href('arena-demo/boot.js')}></script>}
@@ -337,54 +337,53 @@ try {
        *  site's global.css. Imports the Geist faces from BaseLayout's same
        *  @fontsource sources at the top of this layout.
        *
-       *  Design language:
-       *    - dark-only cockpit; deep slate background, hairline rules
-       *    - bezel chrome: every panel has an inner stroke + outer stroke
+       *  Design language (light since 2026-06-06 — _SPECS/design-system-v1.md):
+       *    - light-only cockpit; near-white canvas, white panels, hairline rules
        *    - instrument typography: mono labels, mono numerics, tabular-nums
-       *    - traffic-light accents (green=OK · amber=warn · red=alarm)
-       *    - blue is reserved for primary actions and links
-       *    - no card shadows — flat, technical
+       *    - traffic-light accents (§4 attention semantics: green=OK · amber=warn · red=alarm)
+       *    - spark orange is reserved for primary actions and links (§6 accent)
+       *    - elevation from borders first, shadow second (§2.4)
        */
 
       html.arena-app {
-        --arena-bg:        oklch(0.10 0.012 250);
-        --arena-bg-deep:   oklch(0.075 0.012 250);
-        --arena-panel:     oklch(0.14 0.012 250);
-        --arena-panel-2:   oklch(0.17 0.012 250);
-        --arena-panel-3:   oklch(0.20 0.012 250);
-        --arena-line:      oklch(0.27 0.012 250);
-        --arena-line-soft: oklch(0.22 0.012 250);
-        --arena-text:      oklch(0.94 0.012 250);
-        --arena-text-mute: oklch(0.72 0.012 250);
-        --arena-text-dim:  oklch(0.58 0.012 250);
+        --arena-bg:        #F7F8FA; /* canvas */
+        --arena-bg-deep:   #EEF0F4; /* rails/top-bar wash */
+        --arena-panel:     #FFFFFF; /* surface */
+        --arena-panel-2:   #F7F8FA; /* nested panel */
+        --arena-panel-3:   #F2F4F7; /* surface-2 wells */
+        --arena-line:      #E4E7EC; /* border */
+        --arena-line-soft: #EEF0F4; /* border-soft */
+        --arena-text:      #1D1F25; /* ink */
+        --arena-text-mute: #5C6470; /* mute */
+        --arena-text-dim:  #8A919C; /* faint */
 
         /* Two-tier top-bar height (AE-12) — drives the sticky telemetry-rail offset. */
         --arena-bar-h: 92px;
 
-        /* Primary action / link / highlight — same hue 250 as the rest of the brand. */
-        --arena-accent:    oklch(0.72 0.18 250);
-        --arena-accent-dim: oklch(0.55 0.14 250);
-        --arena-accent-glow: oklch(0.78 0.22 250);
+        /* Primary action / link / highlight — spark accent (design-system §6). */
+        --arena-accent:    #D74D26; /* accent-ink — text-safe */
+        --arena-accent-dim: #FFA981; /* orange light1 — subdued borders/marks */
+        --arena-accent-glow: #F7653B; /* orange mid — emphasis fills/hover */
 
-        /* Traffic-light state colours — explicit OKLCH for predictable rendering. */
-        --arena-ok:        oklch(0.78 0.18 155);
-        --arena-ok-dim:    oklch(0.50 0.14 155);
-        --arena-warn:      oklch(0.83 0.16 78);
-        --arena-warn-dim:  oklch(0.58 0.14 78);
-        --arena-alarm:     oklch(0.68 0.22 25);
-        --arena-alarm-dim: oklch(0.48 0.18 25);
+        /* Traffic-light state colours — §4: -ink flavors carry text, light1 for dims. */
+        --arena-ok:        #338A17;
+        --arena-ok-dim:    #93E088;
+        --arena-warn:      #B87503;
+        --arena-warn-dim:  #FFD66E;
+        --arena-alarm:     #BA1E45;
+        --arena-alarm-dim: #FF9EB7;
 
         /* Medal accents — used by the leaderboard top-3 badges. */
-        --arena-gold:      oklch(0.84 0.16 92);
-        --arena-silver:    oklch(0.82 0.025 250);
-        --arena-bronze:    oklch(0.72 0.13 50);
+        --arena-gold:      #E08D00;
+        --arena-silver:    #8A919C;
+        --arena-bronze:    #C97A4A;
 
         --arena-font:      "Geist Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
         --arena-mono:      "Geist Mono Variable", "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
         background: var(--arena-bg);
         color: var(--arena-text);
-        color-scheme: dark;
+        color-scheme: light;
         font-family: var(--arena-font);
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
@@ -395,7 +394,7 @@ try {
           /* Faint instrument-grid backdrop — barely there until you look. */
           linear-gradient(var(--arena-line-soft) 1px, transparent 1px) 0 0 / 48px 48px,
           linear-gradient(90deg, var(--arena-line-soft) 1px, transparent 1px) 0 0 / 48px 48px,
-          radial-gradient(ellipse 80% 60% at 50% 0%, oklch(0.18 0.04 250 / 0.55), transparent 70%),
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(29,31,37,0.03), transparent 70%),
           var(--arena-bg);
         background-attachment: fixed;
         min-height: 100vh;
@@ -452,7 +451,7 @@ try {
         backdrop-filter: blur(14px) saturate(1.4);
         -webkit-backdrop-filter: blur(14px) saturate(1.4);
         border-bottom: 1px solid var(--arena-line);
-        box-shadow: 0 1px 0 0 oklch(0.32 0.02 250 / 0.18) inset;
+        box-shadow: 0 1px 0 0 rgba(29,31,37,0.05) inset;
       }
       .arena-app__brand {
         display: inline-flex;
@@ -463,10 +462,10 @@ try {
       .arena-app__brand:hover { color: var(--arena-text); }
       .arena-app__mark {
         flex: 0 0 auto;
-        filter: drop-shadow(0 0 6px oklch(0.72 0.18 250 / 0.4));
+        filter: drop-shadow(0 0 6px rgba(247,101,59,0.35));
       }
-      .arena-app__mark-cell { fill: oklch(0.30 0.02 250); }
-      .arena-app__mark-cell--lit { fill: oklch(0.55 0.05 250); }
+      .arena-app__mark-cell { fill: #D6DAE1; }
+      .arena-app__mark-cell--lit { fill: #8A919C; }
       .arena-app__mark-cell--accent { fill: var(--arena-accent); }
       .arena-app__wordmark {
         display: inline-flex;
@@ -573,7 +572,7 @@ try {
         box-shadow:
           inset 0 1px 0 oklch(1 0 0 / 0.25),
           0 0 0 1px var(--arena-accent-dim),
-          0 0 12px oklch(0.72 0.18 250 / 0.35);
+          0 0 12px rgba(247,101,59,0.30);
       }
       .arena-app__tab.is-stub {
         color: var(--arena-text-dim);
@@ -704,8 +703,8 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 8px;
         box-shadow:
-          inset 0 1px 0 oklch(1 0 0 / 0.04),
-          inset 0 0 0 1px oklch(0 0 0 / 0.4);
+          inset 0 1px 0 rgba(255,255,255,0.5),
+          inset 0 0 0 1px rgba(29,31,37,0.05);
       }
       .bezel--quiet {
         background: color-mix(in oklch, var(--arena-panel) 60%, transparent);
@@ -714,8 +713,8 @@ try {
         background: var(--arena-panel);
         border-color: color-mix(in oklch, var(--arena-accent) 30%, var(--arena-line));
         box-shadow:
-          inset 0 1px 0 oklch(1 0 0 / 0.05),
-          inset 0 0 0 1px oklch(0 0 0 / 0.4),
+          inset 0 1px 0 rgba(255,255,255,0.5),
+          inset 0 0 0 1px rgba(29,31,37,0.05),
           0 0 0 1px color-mix(in oklch, var(--arena-accent) 8%, transparent),
           0 8px 32px -16px color-mix(in oklch, var(--arena-accent) 30%, transparent);
       }
@@ -1123,22 +1122,20 @@ try {
         color: var(--arena-text-dim);
       }
       .rank-badge--1 {
-        background: var(--arena-gold);
-        color: oklch(0.18 0.04 80);
-        border-color: oklch(0.55 0.16 80);
-        box-shadow: 0 0 0 1px oklch(1 0 0 / 0.12) inset, 0 0 12px -4px var(--arena-gold);
+        background: #FFEAB6;            /* yellow light2 */
+        color: #B87503;                 /* yellow dark1 */
+        border-color: #FFD66E;          /* yellow light1 */
+        box-shadow: 0 0 12px -4px var(--arena-gold);
       }
       .rank-badge--2 {
-        background: var(--arena-silver);
-        color: oklch(0.18 0.02 250);
-        border-color: oklch(0.55 0.025 250);
-        box-shadow: 0 0 0 1px oklch(1 0 0 / 0.12) inset;
+        background: #F2F4F7;
+        color: #5C6470;
+        border-color: #CCCCCC;
       }
       .rank-badge--3 {
-        background: var(--arena-bronze);
-        color: oklch(0.18 0.03 40);
-        border-color: oklch(0.50 0.13 40);
-        box-shadow: 0 0 0 1px oklch(1 0 0 / 0.10) inset;
+        background: #FEE2D5;            /* orange light2 */
+        color: #A85A33;                 /* bronze ink */
+        border-color: #FFA981;          /* orange light1 */
       }
 
       .lane-cell {
@@ -1638,12 +1635,12 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 18px;
         padding: 0.9rem 1rem 0.7rem;
-        box-shadow: 0 6px 24px oklch(0 0 0 / 0.28);
+        box-shadow: 0 4px 16px rgba(29,31,37,0.08);
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
       .arena-app .chat-lane__composer:focus-within {
         border-color: var(--arena-accent-dim);
-        box-shadow: 0 6px 28px oklch(0 0 0 / 0.34),
+        box-shadow: 0 6px 20px rgba(29,31,37,0.10),
           0 0 0 1px color-mix(in oklch, var(--arena-accent) 30%, transparent);
       }
       .arena-app .chat-lane__textarea {
@@ -2160,12 +2157,12 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 18px;
         padding: 0.9rem 1rem 0.7rem;
-        box-shadow: 0 6px 24px oklch(0 0 0 / 0.28);
+        box-shadow: 0 4px 16px rgba(29,31,37,0.08);
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
       .arena-app .compare-duel__composer:focus-within {
         border-color: var(--arena-accent-dim);
-        box-shadow: 0 6px 28px oklch(0 0 0 / 0.34),
+        box-shadow: 0 6px 20px rgba(29,31,37,0.10),
           0 0 0 1px color-mix(in oklch, var(--arena-accent) 30%, transparent);
       }
       .arena-app .compare-duel__textarea {
@@ -2662,7 +2659,7 @@ try {
         border-radius: 8px;
         box-shadow:
           0 0 0 1px color-mix(in oklch, var(--arena-bg-deep) 50%, transparent),
-          0 12px 28px -6px rgba(0, 0, 0, 0.45);
+          0 12px 28px -6px rgba(29,31,37,0.16);
       }
       .arena-app .chat-session-switcher__row {
         display: grid;
@@ -2860,7 +2857,7 @@ try {
         border-radius: 8px;
         box-shadow:
           0 0 0 1px color-mix(in oklch, var(--arena-bg-deep) 50%, transparent),
-          0 12px 28px -6px rgba(0, 0, 0, 0.45);
+          0 12px 28px -6px rgba(29,31,37,0.16);
         overflow: hidden;
       }
       .arena-app .chat-slashmenu__head {
@@ -2949,7 +2946,7 @@ try {
         padding: 0.55rem 1rem;
         border-radius: 6px;
         box-shadow: 0 0 0 1px color-mix(in oklch, var(--arena-accent) 18%, transparent),
-                    0 10px 24px -6px rgba(0, 0, 0, 0.5);
+                    0 10px 24px -6px rgba(29,31,37,0.16);
         animation: arena-toast-in 150ms ease;
       }
       @keyframes arena-toast-in {
@@ -3081,8 +3078,8 @@ try {
          surfaces that should read as powered-on, not just bordered. */
       .arena-app .instrument-glow {
         box-shadow:
-          inset 0 1px 0 oklch(1 0 0 / 0.05),
-          inset 0 0 0 1px oklch(0 0 0 / 0.4),
+          inset 0 1px 0 rgba(255,255,255,0.5),
+          inset 0 0 0 1px rgba(29,31,37,0.05),
           0 0 0 1px color-mix(in oklch, var(--arena-accent) 14%, transparent),
           0 10px 40px -18px color-mix(in oklch, var(--arena-accent-glow) 55%, transparent);
       }
@@ -3212,7 +3209,7 @@ try {
       .arena-app .lvb__row {
         display: flex; align-items: center; justify-content: space-between;
         padding: 0.4rem 0.55rem; border: 1px solid var(--arena-line);
-        border-radius: 0.4rem; background: var(--arena-surface-2, rgba(255,255,255,0.02));
+        border-radius: 0.4rem; background: var(--arena-panel-3);
       }
       .arena-app .lvb__row--live { border-color: color-mix(in oklch, var(--arena-accent) 40%, var(--arena-line)); }
       .arena-app .lvb__row-label {
@@ -3234,7 +3231,7 @@ try {
       .arena-app .lvb__muted { color: var(--arena-text-dim); }
       .arena-app .lvb__muted code {
         font-family: var(--arena-mono); font-size: 0.92em;
-        color: var(--arena-text-mute); background: rgba(255,255,255,0.05);
+        color: var(--arena-text-mute); background: rgba(29,31,37,0.045);
         padding: 0.05em 0.35em; border-radius: 0.25rem;
       }
       .arena-app .lvb__delta { font-family: var(--arena-mono); font-weight: 600; }
@@ -3261,7 +3258,7 @@ try {
       }
       .arena-app .evidence-card:hover {
         transform: translateY(-2px);
-        background: rgba(255,255,255,0.025);
+        background: rgba(29,31,37,0.03);
       }
       .arena-app .evidence-card__kind {
         display: inline-flex; align-items: center; gap: 0.35rem;
@@ -3303,7 +3300,7 @@ try {
       }
       .arena-app .lab-lane__count {
         margin-left: auto; font-family: var(--arena-mono); font-size: 0.7rem;
-        color: var(--arena-text-mute); background: rgba(255,255,255,0.05);
+        color: var(--arena-text-mute); background: rgba(29,31,37,0.045);
         padding: 0.05rem 0.45rem; border-radius: 0.6rem;
       }
       .arena-app .lab-lane__cards { display: flex; flex-direction: column; gap: 0.7rem; }
@@ -3338,7 +3335,7 @@ try {
       .arena-app .labnotes__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
       .arena-app .labnotes__item {
         display: flex; align-items: flex-start; gap: 0.4rem; font-size: 0.7rem;
-        color: var(--arena-text-mute); background: rgba(255,255,255,0.03);
+        color: var(--arena-text-mute); background: rgba(29,31,37,0.035);
         border-left: 2px solid var(--arena-accent); padding: 0.3rem 0.45rem; border-radius: 0.25rem;
       }
       .arena-app .labnotes__body { flex: 1; line-height: 1.4; }
@@ -3369,7 +3366,7 @@ try {
         display: flex; align-items: flex-start; gap: 0.7rem;
         padding: 1rem 1.1rem; font-size: 0.78rem; line-height: 1.5;
         color: var(--arena-text-mute); border: 1px dashed var(--arena-line);
-        border-radius: 0.5rem; background: rgba(255,255,255,0.02);
+        border-radius: 0.5rem; background: rgba(29,31,37,0.025);
       }
       .arena-app .jobs__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
       .arena-app .jobs__offline strong { color: var(--arena-text); }
@@ -3393,7 +3390,7 @@ try {
       .arena-app .jobs__dispatch {
         display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(255,255,255,0.02);
+        background: rgba(29,31,37,0.025);
       }
       .arena-app .jobs__dispatch-label {
         font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.1em;
@@ -3437,7 +3434,7 @@ try {
       /* Live rl_run progress (rl-lane-autonomy LA-9) */
       .arena-app .jobs__rl {
         margin-top: 0.4rem; padding: 0.4rem 0.5rem; border-radius: 0.35rem;
-        background: rgba(255,255,255,0.025); border: 1px solid var(--arena-line);
+        background: rgba(29,31,37,0.03); border: 1px solid var(--arena-line);
       }
       .arena-app .jobs__rl-head {
         display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
@@ -3476,7 +3473,7 @@ try {
          the per-phase guide cards, and the post-run debrief. */
       .arena-app .jobs__rl-interp {
         margin-top: 0.35rem; padding: 0.3rem 0.4rem; border-radius: 0.3rem;
-        border-left: 2px solid var(--arena-text-dim); background: rgba(255,255,255,0.02);
+        border-left: 2px solid var(--arena-text-dim); background: rgba(29,31,37,0.025);
         display: flex; flex-direction: column; gap: 0.1rem;
       }
       .arena-app .jobs__rl-interp[data-kind="pitfall"] { border-left-color: var(--arena-warn); }
@@ -3538,7 +3535,7 @@ try {
       .arena-app .jobs__col {
         display: flex; flex-direction: column; gap: 0.55rem;
         border: 1px solid var(--arena-line); border-radius: 0.5rem; padding: 0.6rem 0.6rem 0.7rem;
-        background: rgba(255,255,255,0.015);
+        background: rgba(29,31,37,0.02);
       }
       .arena-app .jobs__col-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -3553,7 +3550,7 @@ try {
       .arena-app .jobs__col[data-col="failed"] .jobs__col-title { color: var(--arena-warn); }
       .arena-app .jobs__col-count {
         font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-dim);
-        background: rgba(255,255,255,0.05); border-radius: 0.6rem; padding: 0.02rem 0.4rem;
+        background: rgba(29,31,37,0.045); border-radius: 0.6rem; padding: 0.02rem 0.4rem;
       }
       .arena-app .jobs__col-body { display: flex; flex-direction: column; gap: 0.5rem; min-height: 2.5rem; }
       .arena-app .jobs__empty { margin: 0; text-align: center; color: var(--arena-text-dim); font-size: 0.8rem; }
@@ -3582,7 +3579,7 @@ try {
       }
       .arena-app .jobs__card-runlabel {
         padding: 0.02rem 0.3rem; border-radius: 0.3rem;
-        background: rgba(255,255,255,0.05); color: var(--arena-text-mute);
+        background: rgba(29,31,37,0.045); color: var(--arena-text-mute);
       }
       .arena-app .jobs__card-ago { color: var(--arena-text-mute); }
       .arena-app .jobs__card-shortid { margin-left: auto; color: var(--arena-text-dim); opacity: 0.8; }
@@ -3617,7 +3614,7 @@ try {
       .arena-app .jobs__guard-ok { color: var(--arena-text-mute); opacity: 0.8; }
       .arena-app .jobs__guard-cost {
         margin-left: auto; padding: 0.02rem 0.3rem; border-radius: 0.3rem;
-        background: rgba(255,255,255,0.05); color: var(--arena-text-mute);
+        background: rgba(29,31,37,0.045); color: var(--arena-text-mute);
       }
       /* GS-6 — the active thresholds that governed this run (config, not outcome) */
       .arena-app .jobs__guard-capcfg {
@@ -3687,7 +3684,7 @@ try {
       }
       .arena-app .gsettings__field input[type="number"] {
         width: 9rem; font-family: var(--arena-mono); font-size: 0.78rem;
-        background: var(--arena-surface-2, rgba(255,255,255,0.04)); color: var(--arena-text);
+        background: var(--arena-panel-3); color: var(--arena-text);
         border: 1px solid var(--arena-line); border-radius: 0.35rem; padding: 0.32rem 0.5rem;
       }
       .arena-app .gsettings__field input:disabled { opacity: 0.4; }
@@ -3772,7 +3769,7 @@ try {
         display: flex; align-items: flex-start; gap: 0.7rem;
         padding: 1rem 1.1rem; font-size: 0.78rem; line-height: 1.5;
         color: var(--arena-text-mute); border: 1px dashed var(--arena-line);
-        border-radius: 0.5rem; background: rgba(255,255,255,0.02);
+        border-radius: 0.5rem; background: rgba(29,31,37,0.025);
       }
       .arena-app .kp__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
       .arena-app .kp__offline strong { color: var(--arena-text); }
@@ -3781,7 +3778,7 @@ try {
       .arena-app .kp__cov {
         display: flex; flex-wrap: wrap; align-items: center; gap: 1.2rem;
         padding: 0.85rem 1rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(255,255,255,0.015);
+        background: rgba(29,31,37,0.02);
       }
       .arena-app .kp__cov-stat { display: flex; flex-direction: column; align-items: center; flex: none; }
       .arena-app .kp__cov-num { font-family: var(--arena-mono); font-size: 1.7rem; color: var(--arena-accent); line-height: 1; }
@@ -3795,12 +3792,12 @@ try {
       .arena-app .kp__missing { width: 100%; }
       .arena-app .kp__missing summary { font-size: 0.68rem; color: var(--arena-text-mute); cursor: pointer; }
       .arena-app .kp__missing-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
-      .arena-app .kp__missing-list code { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn); background: rgba(255,255,255,0.04); border-radius: 0.25rem; padding: 0.08rem 0.35rem; }
+      .arena-app .kp__missing-list code { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn); background: rgba(29,31,37,0.04); border-radius: 0.25rem; padding: 0.08rem 0.35rem; }
       /* (b) controls */
       .arena-app .kp__controls {
         display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(255,255,255,0.02);
+        background: rgba(29,31,37,0.025);
       }
       .arena-app .kp__controls-label { font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--arena-text-dim); }
       .arena-app .kp__select {
@@ -3826,7 +3823,7 @@ try {
       .arena-app .kp__trend {
         display: flex; flex-direction: column; gap: 0.55rem;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(255,255,255,0.015);
+        background: rgba(29,31,37,0.02);
       }
       .arena-app .kp__trend-head { display: flex; align-items: center; justify-content: space-between; }
       .arena-app .kp__trend-title { font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--arena-text-mute); }
@@ -3840,7 +3837,7 @@ try {
       .arena-app .kp__query {
         display: flex; flex-direction: column; gap: 0.6rem;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(255,255,255,0.015);
+        background: rgba(29,31,37,0.02);
       }
       .arena-app .kp__query-form { display: flex; gap: 0.5rem; }
       .arena-app .kp__input {
@@ -4706,7 +4703,7 @@ try {
         border-color: color-mix(in oklch, var(--arena-accent) 35%, var(--arena-line));
         transform: translateY(-2px);
         box-shadow:
-          inset 0 1px 0 oklch(1 0 0 / 0.05),
+          inset 0 1px 0 rgba(255,255,255,0.5),
           0 14px 40px -22px color-mix(in oklch, var(--arena-accent-glow) 60%, transparent);
       }
       .model-card__top {
@@ -4850,7 +4847,7 @@ try {
         display: flex;
         flex-direction: column;
         gap: 0.15rem;
-        box-shadow: 0 10px 28px -10px rgba(0,0,0,0.6);
+        box-shadow: 0 10px 28px -10px rgba(29,31,37,0.18);
       }
       .frontier-tip b { color: var(--arena-text); font-size: 0.74rem; }
       .frontier-tip__grp { color: var(--arena-text-dim); }
@@ -5011,7 +5008,7 @@ try {
         justify-content: center;
         align-items: flex-start;
         padding-top: 12vh;
-        background: oklch(0.06 0.01 250 / 0.62);
+        background: rgba(29,31,37,0.40);
         backdrop-filter: blur(3px);
         -webkit-backdrop-filter: blur(3px);
         animation: arena-rise-in 120ms ease-out both;
@@ -5026,8 +5023,8 @@ try {
         border-radius: 12px;
         overflow: hidden;
         box-shadow:
-          0 0 0 1px oklch(0 0 0 / 0.4),
-          0 30px 80px -24px oklch(0 0 0 / 0.7),
+          0 0 0 1px rgba(29,31,37,0.06),
+          0 30px 80px -24px rgba(29,31,37,0.25),
           0 0 60px -30px var(--arena-accent-glow);
       }
       .arena-app .cmdk__inputrow {

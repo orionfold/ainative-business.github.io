@@ -110,7 +110,7 @@
 .fn-prose code {
   font-family: var(--font-mono);
   font-size: 0.875em;
-  background: var(--color-surface-raised);
+  background: var(--color-surface-overlay); /* surface-2 — raised is white-on-white in light */
   color: var(--color-primary);
   padding: 0.15em 0.4em;
   border-radius: 3px;
@@ -742,32 +742,32 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
   background: color-mix(in oklch, var(--color-primary) 12%, transparent);
 }
 .card__series-badge[data-series="foundations"] {
-  color: var(--svg-accent-cyan);
+  color: #0B76B7; /* cyan dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-cyan) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-cyan) 8%, transparent);
 }
 .card__series-badge[data-series="second-brain"] {
-  color: var(--svg-accent-teal);
+  color: #06A09B; /* teal dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-teal) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-teal) 8%, transparent);
 }
 .card__series-badge[data-series="llm-wiki"] {
-  color: var(--svg-accent-purple);
+  color: #6B1CB0; /* purple dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-purple) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-purple) 8%, transparent);
 }
 .card__series-badge[data-series="machine-that-builds-machines"] {
-  color: var(--svg-accent-green);
+  color: #338A17; /* green dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-green) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-green) 10%, transparent);
 }
 .card__series-badge[data-series="looking-beyond-spark"] {
-  color: var(--svg-accent-orange);
+  color: #D74D26; /* orange dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-orange) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-orange) 9%, transparent);
 }
 .card__series-badge[data-series="frontier-scout"] {
-  color: var(--svg-accent-pink);
+  color: #B2158B; /* pink dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-pink) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-pink) 9%, transparent);
 }
@@ -1052,12 +1052,12 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
   color: var(--color-text);
 }
 .article__series-badge[data-series="ai-native-platform"] .article__series-badge-name { color: var(--color-primary); }
-.article__series-badge[data-series="foundations"] .article__series-badge-name { color: var(--svg-accent-cyan); }
-.article__series-badge[data-series="second-brain"] .article__series-badge-name { color: var(--svg-accent-teal); }
-.article__series-badge[data-series="llm-wiki"] .article__series-badge-name { color: var(--svg-accent-purple); }
-.article__series-badge[data-series="machine-that-builds-machines"] .article__series-badge-name { color: var(--svg-accent-green); }
-.article__series-badge[data-series="looking-beyond-spark"] .article__series-badge-name { color: var(--svg-accent-orange); }
-.article__series-badge[data-series="frontier-scout"] .article__series-badge-name { color: var(--svg-accent-pink); }
+.article__series-badge[data-series="foundations"] .article__series-badge-name { color: #0B76B7; }
+.article__series-badge[data-series="second-brain"] .article__series-badge-name { color: #06A09B; }
+.article__series-badge[data-series="llm-wiki"] .article__series-badge-name { color: #6B1CB0; }
+.article__series-badge[data-series="machine-that-builds-machines"] .article__series-badge-name { color: #338A17; }
+.article__series-badge[data-series="looking-beyond-spark"] .article__series-badge-name { color: #D74D26; }
+.article__series-badge[data-series="frontier-scout"] .article__series-badge-name { color: #B2158B; }
 
 .article__meta {
   font-family: var(--font-mono);

@@ -24,14 +24,14 @@ import 'uplot/dist/uPlot.min.css';
 
 // Per-group point colors (OKLCH) — cycles for multi/leaderboard modes.
 const GROUP_COLORS = [
-  'oklch(0.72 0.18 250)', // accent blue
-  'oklch(0.78 0.18 155)', // green
-  'oklch(0.83 0.16 78)',  // amber
-  'oklch(0.72 0.20 320)', // magenta
-  'oklch(0.74 0.16 200)', // cyan
+  '#1283DA', // blue mid
+  '#11AF22', // green mid
+  '#E08D00', // yellow mid
+  '#E929BA', // pink mid
+  '#01A9DB', // cyan mid
 ];
-const FRONTIER_COLOR = 'oklch(0.84 0.16 92)'; // --arena-gold
-const REC_COLOR = 'oklch(0.84 0.16 92)';
+const FRONTIER_COLOR = '#E08D00'; // --arena-gold
+const REC_COLOR = '#E08D00';
 
 function qualityOf(p) {
   if (typeof p.score === 'number') return { norm: p.score, raw: p.score, kind: 'score' };

@@ -20,6 +20,14 @@
 
 ## Current state
 
+### ✅ 2026-06-06 — **LIGHT-ONLY THEME SHIPPED** (operator green-lit): marketing site + Arena cockpit restyled to `design-system-v1` (Airtable light, spark orange accent)
+
+> The wholesale restyle the relay deferred was **green-lit and executed same-day** (operator: "switch to light theme as guided by the design spec"; scope answer: cockpit + marketing site, light-only). 21 files; both surfaces verified + operator-approved on a side-by-side review before commit.
+> - **Mechanism**: `data-theme="light"` **pinned** on both `<html>`s (legacy light-scoped overrides became the permanent styles); toggles + FOUC scripts deleted (`ThemeToggle`×2, `ThemeScript`); three token layers rewritten to the spec palette — site `--color-*`/`--svg-*` (`src/styles/global.css`), arena copies (`arena-app/.../global.css`), and the cockpit's own `--arena-*` block (`ArenaAppLayout.astro`, flips the 5k-line cockpit sheet). `design-tokens.css` (§3 contract) now imported as source of truth. `color-scheme: light`, manifest + theme-color metas → `#F7F8FA`.
+> - **~60 dark assumptions patched**: white-wash overlays → ink washes; black shadows → §2.4 elevations; lane colors `#76b900`/`#5b9cff` → `#338A17`/`#2750AE` (CompareDuel/LiveLeaderboard); FrontierScatter/TelemetryGauge → Airtable mids; rank badges → soft+ink pills; cmdk scrim; series-chip text → dark1 inks (§2.1 small-text rule); hero gradient → orange ramp. **Kept deliberately**: always-dark code blocks, reader-theme prefs (sepia/dark reading modes), modal scrims.
+> - **Verified**: site build + both verifiers ALL_OK ×2; arena bake OK (caught a real `*/`-inside-comment CSS bug in design-tokens.css); cockpit restarted onto the light bake; CDP smoke 9/9 panes + 6 site routes, computed colors spot-checked on the wire. OG images regenerate light in CI (`build:og`).
+> - ⚠️ The pre-light marketing screenshots under `products/arena-control-plane/screenshots/` (11 curated 2× dark shots) now show the OLD dark cockpit — re-shoot when the launch-article refresh happens.
+
 ### ✅ 2026-06-06 — Relayed standards MERGED + ADOPTED (PR #5 from the Agency cockpit): `/dashboard` skill + design-system token contract
 
 > **PR #5 squash-merged** (`f5d298b` — `_SPECS/design-system-v1.md` + `_SPECS/dashboard-skill-v1.md` + index registration; the second relay through the PR channel after the beacon). **Both specs implemented same-session:**

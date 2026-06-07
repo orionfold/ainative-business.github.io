@@ -4,8 +4,8 @@
   "description": "Companion software for the AI Native Business book. Local-first builder scaffold for AI-native businesses.",
   "start_url": "/",
   "display": "browser",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#F7F8FA",
+  "theme_color": "#F7F8FA",
   "icons": [
     {
       "src": "/ainative-s-64.png",

@@ -32,7 +32,7 @@ import {
 // as the compare side-card badges (CompareDuel) so the cockpit reads as one app.
 function SourceBadge({ source }) {
   const isOR = source === 'openrouter';
-  const c = isOR ? '#5b9cff' : '#76b900';
+  const c = isOR ? '#2750AE' : '#338A17';
   return (
     <span
       title={isOR ? 'Runs in the cloud via OpenRouter' : 'Runs locally on the DGX Spark'}

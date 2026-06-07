@@ -34,18 +34,10 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 <!doctype html>
-<html lang="en">
+<!-- Light-only since 2026-06-06 (_SPECS/design-system-v1.md). data-theme="light" is pinned
+     statically so legacy light-scoped CSS overrides keep applying; no toggle, no FOUC script. -->
+<html lang="en" data-theme="light">
   <head>
-    <!-- No-FOUC theme initialization (must run before any rendering) -->
-    <script is:inline>
-      (function() {
-        var s = localStorage.getItem('theme');
-        var t = (s === 'light' || s === 'dark')
-          ? s
-          : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-        document.documentElement.setAttribute('data-theme', t);
-      })();
-    </script>
 
     <!-- No-FOUC reader-settings init for /field-notes/ articles -->
     <script is:inline>
@@ -152,9 +144,9 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <link rel="preload" href="/fonts/geist-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 
-    <!-- Theme-color split: Safari paints address bar in matching scheme -->
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a" id="meta-theme-color" />
+    <!-- Light-only theme (design-system-v1) -->
+    <meta name="theme-color" content="#F7F8FA" />
+    <meta name="color-scheme" content="light" />
     <meta name="application-name" content="ainative" />
     <meta name="apple-mobile-web-app-title" content="ainative" />
     <meta name="format-detection" content="telephone=no" />

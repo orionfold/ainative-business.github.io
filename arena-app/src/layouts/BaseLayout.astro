@@ -5,7 +5,6 @@ import '@fontsource/geist-sans/700.css';
 import '@fontsource-variable/geist-mono';
 import '../styles/global.css';
 
-import ThemeScript from '../components/ThemeScript.astro';
 import ReaderScript from '../components/ReaderScript.astro';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
@@ -22,7 +21,7 @@ const asset = (path: string) => `${base}${path}`.replace(/\/+/g, '/');
 const ogImageUrl = `https://ainative.business${asset('og-image.png')}`;
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -43,7 +42,6 @@ const ogImageUrl = `https://ainative.business${asset('og-image.png')}`;
     <meta name="twitter:description" content={desc} />
     <meta name="twitter:image" content={ogImageUrl} />
     <title>{title}</title>
-    <ThemeScript />
     <ReaderScript />
   </head>
   <body>

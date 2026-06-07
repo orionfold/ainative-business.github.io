@@ -30,90 +30,53 @@
   src: url('/fonts/geist-mono-latin-wght-normal.woff2') format('woff2');
 }
 
-/* ── Design Tokens (OKLCH hue 250 blue-indigo) ── */
+/* ── Design Tokens — _SPECS/design-system-v1.md light theme (LIGHT-ONLY since 2026-06-06) ──
+   Airtable-derived light system; spark accent = orange (§6: #F7653B / ink #D74D26 / soft #FEE2D5).
+   `html[data-theme="light"]` is pinned in Layout.astro so legacy light-scoped component
+   overrides keep applying; the dark palette is gone (recoverable via git history). */
 @theme {
-  --color-surface: oklch(0.13 0.02 250);
-  --color-surface-raised: oklch(0.16 0.02 250);
-  --color-surface-overlay: oklch(0.19 0.02 250);
-  --color-text: oklch(0.93 0.01 250);
-  --color-text-muted: oklch(0.6 0.02 250);
-  --color-text-dim: oklch(0.5 0.02 250);
-  --color-primary: oklch(0.65 0.18 250);
-  --color-primary-dim: oklch(0.65 0.18 250 / 0.12);
-  --color-primary-glow: oklch(0.65 0.18 250 / 0.25);
-  --color-success: oklch(0.65 0.15 170);
-  --color-success-dim: oklch(0.65 0.15 170 / 0.12);
-  --color-success-glow: oklch(0.65 0.15 170 / 0.25);
-  --color-border: oklch(0.25 0.02 250);
+  --color-surface: #F7F8FA;           /* canvas */
+  --color-surface-raised: #FFFFFF;    /* surface — cards, header */
+  --color-surface-overlay: #F2F4F7;   /* surface-2 — inset chips, wells */
+  --color-text: #1D1F25;              /* ink */
+  --color-text-muted: #5C6470;        /* mute */
+  --color-text-dim: #8A919C;          /* faint */
+  --color-primary: #D74D26;           /* accent-ink — text-safe spark orange */
+  --color-primary-dim: #FEE2D5;       /* accent-soft — pill/chip fills */
+  --color-primary-glow: rgba(247, 101, 59, 0.22);
+  --color-success: #338A17;           /* green-ink */
+  --color-success-dim: #D1F7C4;       /* green-soft */
+  --color-success-glow: rgba(17, 175, 34, 0.22);
+  --color-border: #E4E7EC;
 
-  /* ── SVG semantic tokens (dark defaults) ── */
-  --svg-card-fill: oklch(0.16 0.02 250);
-  --svg-card-stroke: oklch(0.28 0.03 250);
-  --svg-bg: oklch(0.19 0.02 250);
-  --svg-bg-inner: oklch(0.22 0.02 250);
-  --svg-bg-inner-stroke: oklch(0.3 0.03 250);
-  --svg-stroke: oklch(0.25 0.02 250);
-  --svg-text-bright: oklch(0.75 0.05 250);
-  --svg-text-dim: oklch(0.45 0.02 250);
-  --svg-text-muted: oklch(0.5 0.02 250);
-  --svg-text-extra-dim: oklch(0.4 0.02 250);
-  --svg-text-faint: oklch(0.35 0.02 250);
-  --svg-connector: oklch(0.5 0.1 250);
-  --svg-connector-label: oklch(0.5 0.08 250);
-  --svg-accent-blue: oklch(0.65 0.18 250);
-  --svg-accent-teal: oklch(0.7 0.15 195);
-  --svg-accent-green: oklch(0.65 0.15 170);
-  --svg-accent-green-alt: oklch(0.7 0.18 150);
-  --svg-accent-cyan: oklch(0.65 0.15 180);
-  --svg-accent-purple: oklch(0.6 0.15 300);
-  --svg-accent-orange: oklch(0.7 0.15 75);
-  --svg-accent-red: oklch(0.65 0.2 25);
-  --svg-accent-pink: oklch(0.7 0.15 340);
+  /* ── SVG semantic tokens (light) ── */
+  --svg-card-fill: #FFFFFF;
+  --svg-card-stroke: #E4E7EC;
+  --svg-bg: #F2F4F7;
+  --svg-bg-inner: #F7F8FA;
+  --svg-bg-inner-stroke: #EEF0F4;
+  --svg-stroke: #E4E7EC;
+  --svg-text-bright: #1D1F25;
+  --svg-text-dim: #6E7682;
+  --svg-text-muted: #5C6470;
+  --svg-text-extra-dim: #8A919C;
+  --svg-text-faint: #9CA3AE;
+  --svg-connector: #8A919C;
+  --svg-connector-label: #5C6470;
+  /* Airtable Blocks palette (design-system §2.1) — mid flavors for shapes/strokes */
+  --svg-accent-blue: #1283DA;
+  --svg-accent-teal: #02AAA4;
+  --svg-accent-green: #11AF22;
+  --svg-accent-green-alt: #338A17;
+  --svg-accent-cyan: #01A9DB;
+  --svg-accent-purple: #7C39ED;
+  --svg-accent-orange: #F7653B;
+  --svg-accent-red: #EF3061;
+  --svg-accent-pink: #E929BA;
 
   --font-display: "Geist Sans", system-ui, sans-serif;
   --font-body: "Geist Sans", system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
-}
-
-/* ── Light Theme Token Overrides ── */
-html[data-theme="light"] {
-  --color-surface: oklch(0.98 0.005 260);
-  --color-surface-raised: oklch(0.99 0.002 260 / 0.92);
-  --color-surface-overlay: oklch(0.94 0.008 260);
-  --color-text: oklch(0.15 0.02 260);
-  --color-text-muted: oklch(0.45 0.03 260);
-  --color-text-dim: oklch(0.47 0.03 260);
-  --color-primary: oklch(0.55 0.18 260);
-  --color-primary-dim: oklch(0.55 0.18 260 / 0.10);
-  --color-primary-glow: oklch(0.55 0.18 260 / 0.20);
-  --color-success: oklch(0.45 0.15 170);
-  --color-success-dim: oklch(0.45 0.15 170 / 0.10);
-  --color-success-glow: oklch(0.45 0.15 170 / 0.20);
-  --color-border: oklch(0.8 0.02 260 / 0.25);
-
-  /* ── SVG semantic tokens (light) ── */
-  --svg-card-fill: oklch(0.99 0.002 260);
-  --svg-card-stroke: oklch(0.85 0.02 260 / 0.3);
-  --svg-bg: oklch(0.96 0.005 260);
-  --svg-bg-inner: oklch(0.97 0.003 260);
-  --svg-bg-inner-stroke: oklch(0.88 0.015 260 / 0.4);
-  --svg-stroke: oklch(0.85 0.02 260 / 0.3);
-  --svg-text-bright: oklch(0.25 0.05 260);
-  --svg-text-dim: oklch(0.55 0.03 260);
-  --svg-text-muted: oklch(0.45 0.03 260);
-  --svg-text-extra-dim: oklch(0.55 0.03 260);
-  --svg-text-faint: oklch(0.6 0.02 260);
-  --svg-connector: oklch(0.55 0.1 260);
-  --svg-connector-label: oklch(0.5 0.08 260);
-  --svg-accent-blue: oklch(0.50 0.18 250);
-  --svg-accent-teal: oklch(0.45 0.15 195);
-  --svg-accent-green: oklch(0.45 0.15 170);
-  --svg-accent-green-alt: oklch(0.45 0.18 150);
-  --svg-accent-cyan: oklch(0.45 0.15 180);
-  --svg-accent-purple: oklch(0.45 0.15 300);
-  --svg-accent-orange: oklch(0.55 0.15 75);
-  --svg-accent-red: oklch(0.50 0.2 25);
-  --svg-accent-pink: oklch(0.55 0.15 340);
 }
 
 /* ── Base ── */
@@ -121,6 +84,7 @@ html {
   scroll-behavior: smooth;
   background: var(--color-surface);
   color: var(--color-text);
+  color-scheme: light; /* design-system §7 — light-only */
   font-size: 100%; /* 16px base on mobile */
 }
 
@@ -453,9 +417,9 @@ html[data-theme="light"] body::before {
   opacity: 0.015;
 }
 
-/* ── Light-mode hero gradient text ── */
+/* ── Hero gradient text — spark accent ramp (design-system §6) ── */
 html[data-theme="light"] .hero-gradient-text {
-  background: linear-gradient(135deg, oklch(0.42 0.12 230), oklch(0.45 0.18 260), oklch(0.38 0.18 280));
+  background: linear-gradient(135deg, #D74D26, #F7653B, #E08D00);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

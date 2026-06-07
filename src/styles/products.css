@@ -223,7 +223,7 @@
   border-radius: 0.7rem;
   overflow: hidden;
   background: var(--color-surface-overlay);
-  box-shadow: 0 8px 30px oklch(0 0 0 / 0.12);
+  box-shadow: 0 4px 16px rgba(29, 31, 37, 0.08); /* design-system level-2 elevation */
 }
 .feature__shot img { display: block; width: 100%; height: auto; }
 .feature__num {

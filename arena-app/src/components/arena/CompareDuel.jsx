@@ -606,7 +606,7 @@ export default function CompareDuel() {
       <ScoutPanel onLoadGate={() => setEvalDrawerOpen(true)} />
       <div class="compare-duel__controls">
         <label class="compare-duel__field">
-          <span class="compare-duel__field-label" style="color:#76b900">Lane A</span>
+          <span class="compare-duel__field-label" style="color:#338A17">Lane A</span>
           <LaneSelect
             value={laneA}
             disabled={streaming}
@@ -616,7 +616,7 @@ export default function CompareDuel() {
           />
         </label>
         <label class="compare-duel__field">
-          <span class="compare-duel__field-label" style="color:#5b9cff">Lane B</span>
+          <span class="compare-duel__field-label" style="color:#2750AE">Lane B</span>
           <LaneSelect
             value={laneB}
             disabled={streaming}
@@ -684,7 +684,7 @@ export default function CompareDuel() {
       <div class="compare-duel__columns">
         <SideCard
           side="A"
-          accent="#76b900"
+          accent="#338A17"
           state={a}
           streaming={streaming}
           title={labelFor(laneA)}
@@ -693,7 +693,7 @@ export default function CompareDuel() {
         />
         <SideCard
           side="B"
-          accent="#5b9cff"
+          accent="#2750AE"
           state={b}
           streaming={streaming}
           title={labelFor(laneB)}
@@ -742,11 +742,11 @@ export default function CompareDuel() {
             </code>
           </h3>
           <div class="compare-duel__verdict-grid">
-            <div class="eval-score-col" style="--side-accent:#76b900">
+            <div class="eval-score-col" style="--side-accent:#338A17">
               <span class="compare-score-col__tag">A</span>
               <EvalScore result={a.evalScore} />
             </div>
-            <div class="eval-score-col" style="--side-accent:#5b9cff">
+            <div class="eval-score-col" style="--side-accent:#2750AE">
               <span class="compare-score-col__tag">B</span>
               <EvalScore result={b.evalScore} />
             </div>
@@ -769,8 +769,8 @@ export default function CompareDuel() {
             )}
           </h3>
           <div class="compare-duel__verdict-grid">
-            <ScoreColumn side="A" score={a.score} accent="#76b900" />
-            <ScoreColumn side="B" score={b.score} accent="#5b9cff" />
+            <ScoreColumn side="A" score={a.score} accent="#338A17" />
+            <ScoreColumn side="B" score={b.score} accent="#2750AE" />
           </div>
         </div>
       ) : null}
@@ -985,7 +985,7 @@ function WinnerBanner({ a, b, evalMode, scope }) {
   const margin = Math.abs(at - bt);
   const tie = margin < 0.005;
   const winner = tie ? 'tie' : at > bt ? 'A' : 'B';
-  const accent = winner === 'A' ? '#76b900' : winner === 'B' ? '#5b9cff' : 'var(--arena-text-mute)';
+  const accent = winner === 'A' ? '#338A17' : winner === 'B' ? '#2750AE' : 'var(--arena-text-mute)';
   const formatOnly = !evalMode && scope === 'format';
   const tag = evalMode ? 'Closest to gold' : formatOnly ? 'Format check' : 'Rubric verdict';
   return (
@@ -1017,8 +1017,8 @@ function WinnerBanner({ a, b, evalMode, scope }) {
 // lower-is-better for TTFT) is marked with a ✓ and full opacity, the loser
 // dimmed. This reads literally ("B's tok/s bar is ~4× A's") — unlike the old
 // centre-diverging bars whose length was a normalised margin, not the value.
-const DELTA_A = '#76b900';
-const DELTA_B = '#5b9cff';
+const DELTA_A = '#338A17';
+const DELTA_B = '#2750AE';
 
 // One small canvas of peak bars across the session's runs, reusing the exact
 // telemetry-rail renderer. `series` is this metric's value per run (oldest
@@ -1115,7 +1115,7 @@ function SideCard({ side, accent, state, streaming, title, needsLoad, onLoad }) 
         {(state.lane_id || state.base_url) && (() => {
           const isOR = String(state.lane_id || '').startsWith('openrouter')
             || /openrouter\.ai/.test(state.base_url || '');
-          const c = isOR ? '#5b9cff' : '#76b900';
+          const c = isOR ? '#2750AE' : '#338A17';
           return (
             <span
               title={isOR ? 'Runs in the cloud via OpenRouter' : 'Runs locally on the DGX Spark'}

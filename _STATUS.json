@@ -1,25 +1,24 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-06",
+  "updated": "2026-06-07",
   "health": "green",
-  "focus": "Relayed standards landed: PR #5 merged + both specs ADOPTED same-session — /dashboard skill (Arena cockpit wrapper, live-smoked 0.008s) + design-system §3 token contract (spark accent locked orange #F7653B)",
+  "focus": "LIGHT-ONLY THEME SHIPPED (operator green-lit): marketing site + Arena cockpit restyled to design-system-v1 — data-theme pinned light, 3 token layers rewritten, ~60 dark assumptions patched, toggles removed; 9 cockpit panes + 6 site routes CDP-smoked, side-by-side approved",
   "blockers": [],
   "next": [
     "v2 cut 4 — the guarded LAUNCH cut (AE-R13): AE-22 launch runner + AF-20 arm/teardown, one-lane-aware",
     "Operator-armed live gates: real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1), real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
-    "First NEW operator-facing pane to import design-tokens.css (light theme + spark accent)",
-    "AE-28 feed self-description + operator brief (low priority)",
-    "Arena launch-article refresh with the 11 curated 2x screenshots"
+    "Re-shoot the 11 curated arena marketing screenshots (they show the OLD dark cockpit) + launch-article refresh",
+    "AE-28 feed self-description + operator brief (low priority)"
   ],
   "recent": [
-    "PR #5 (Agency relay) squash-merged: design-system-v1 + dashboard-skill-v1 specs",
-    ".claude/skills/dashboard/SKILL.md — operator-triggered cockpit launch (healthz → arena_lifecycle.sh up → detached xdg-open)",
-    "arena-app/src/styles/design-tokens.css — §3 contract, spark accent orange #F7653B/#D74D26/#FEE2D5",
-    "_SPECS/index.md relay rows flipped RELAYED → ADOPTED",
-    "fieldkit v0.30.0 on PyPI (Cluster I core, offline 1445 pass)"
+    "LIGHT-ONLY theme shipped: site --color-*/--svg-* + cockpit --arena-* rewritten to design-system-v1 palette, spark orange accent",
+    "Theme toggles + FOUC scripts deleted; data-theme=light pinned; color-scheme light; manifest #F7F8FA",
+    "~60 dark assumptions patched (shadows→spec elevations, lane colors→inks, white washes→ink washes, scrims)",
+    "Verified: site build+verifiers ALL_OK x2, arena bake OK, 9 panes + 6 routes CDP-smoked, operator side-by-side approved",
+    "PR #5 relay adopted earlier today: /dashboard skill + design-tokens.css §3 contract"
   ],
-  "session": "relay adoption (PR #5: /dashboard + design tokens)",
+  "session": "light-theme restyle (design-system-v1, both surfaces)",
   "metrics": {
     "articles": 53,
     "models": 6,
