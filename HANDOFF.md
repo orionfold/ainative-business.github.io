@@ -20,6 +20,16 @@
 
 ## Current state
 
+### ✅ 2026-06-07 — **AE-31 LIVE REP FIRED** (the v0.31.0 remaining gate): real guarded lane-launch from the LaneTruth form + UI teardown — **zero Arena-vs-actual discrepancies**
+
+> The launch-runner cut is now validated end-to-end on a real run, narrated step-by-step (`feedback_arena_narrated_operator_smoke`):
+> - **Recipe authored** — first operator lane recipe: `kepler-q8` (Q8_0 GGUF · `:8091` · ctx 8K · ngl 99) → `~/.fieldkit/arena/lane-recipes.json` (**kept** — future launches are one-click); `GET /api/lane-recipes` validated it live (`valid ✓ · gguf_present ✓`), no restart needed (per-request load).
+> - **Launch from the form** (anchor-on-warm ticked): job `5419a336` — **pre-flight brake passed honestly** (114.69 GB available vs 16.09 GB estimated) → detached spawn pid 381072 (exact recipe argv) → **warm 6.0 s** → owner file atomic → discovery lit the rail (`ACTIVE LANE · resident · live`) + LaneTruth roster (`:8091 · ACTIVE · operator-selected`) → **run anchored** (`RUN · Kepler · armed just now`) — this also fires the queued **run-anchor-on-real-serve** gate.
+> - **Lane really serves**: circular-velocity question → **7.67 km/s boxed, correct** (the pre-verified capture-class question).
+> - **Teardown from the UI** — two-click confirm (a deliberate guard, found live) → job `caa0ada1`: `owner-killpg · freed 9.51 GB · pgid_empty · port_dead` (released **observed**, never asserted) · `owner_removed` · `registry_cleared` → **honest revert**: roster "No lane resident — arm one below", run-context `anchored:false · run_started:null`, no process (exact-name pgrep).
+> - The 2 job rows kept as honest history. One false signal caught on my side, not Arena's: `pgrep -f llama-server` matching my own shell wrapper text (the `feedback_cdp_smoke_innertext_traps` class) — re-verified with `pgrep -x`.
+> - **Remaining operator-armed gates after this**: real armed `sft_run` drain · real corpus-request fulfilment · `arena down` mid-metered cloud eval + GS-1 no-restart cap edit · AE-10 behavioral gate on a candidate base serve.
+
 ### ✅ 2026-06-07 — **`fieldkit v0.31.0` RELEASED** — arena-enhancements **v2 cut 4**: **AE-31 guarded lane launch + teardown** (launch-runner cut, AE-R13) + demo recorder extensions
 
 > Tag `fieldkit/v0.31.0` + <https://pypi.org/project/fieldkit/0.31.0/> (both install-verifies green; PyPI needed one CDN-lag wait, as usual). Commit `fd0b2e3` (version + CHANGELOG + docs catch-up). **Offline 1496 pass / 19 skip** (+51). **NO arena.db schema change** (`user_version` 6). The release packages the two already-committed-but-unreleased cuts:
@@ -178,21 +188,20 @@
 
 **The Kepler pipeline lessons are encoded as memories** (apply to the next vertical): `feedback_sft_vs_rlvr_decision` (the prior question — cheap-correct-trajectory + enumerable-output → SFT-only wins), `feedback_rlvr_headroom_gate` (the Goldilocks band + the bimodal-per-family refinement: 0% = SFT-coverage gap, not RL headroom), `feedback_preflight_bench_before_quant`, `feedback_smoke_projection_slack`.
 
-## ⚙️ Live runtime (post-re-capture 2026-06-06 — GPU lane DOWN; cockpit UP; CDP Chromium DOWN)
+## ⚙️ Live runtime (post-AE-31-rep 2026-06-07 — cockpit UP in browser-use mode; GPU lane FREE)
 
-> **Cockpit `:7866` UP on the v0.30.0 (cut-3) bake** (serves the inventory chips + Runtimes
-> roster + Corpus-handshake block on `/arena/build/`, the **Arm SFT run** form on Jobs).
-> **Visible CDP Chromium `:9222` is DOWN** (the post-reboot pid died; the re-capture used
-> headless playwright-core and never needed it — relaunch via `arena_lifecycle.sh restart
-> --browser` when browser-use mode is next wanted). **Kepler Q8 `llama-server :8091` served
-> for the capture session and torn down** — GPU lane FREE (~115 GiB headroom). `/tmp/arena-venv`
-> fieldkit editable tracks source — reads **0.31.0** post-release. **Active-lane registry CLEAN** (run-context honestly
-> unanchored). **arena.db deltas from the capture session (all deliberate):** +1 chat session
-> (`cs-d7611`, the verified Kepler-3rd-law turn) + +1 compare run (`cr-bdb44`, the verified
-> velocity duel — these ARE the new 06/07 shots + demo fixtures); my 4 wrong-answer/duplicate
-> capture-drafts deleted; the 01–03 board seeds hard-deleted + API-verified (14 real job rows
-> remain). `openrouter_price_snapshot` still carries `or-refresh-2026-06-06` — G3 armed.
-> Cloud spend this session ≈ $0.003. No open corpus request; no sft_run rows.
+> **Cockpit `:7866` UP** (restarted via `arena-lifecycle restart --browser`, OpenRouter key
+> loaded) + **visible CDP Chromium `:9222` UP** (browser-use mode, parked on `/arena/models/`)
+> — both left up. The kepler-q8 lane launched for the AE-31 rep was **torn down from the UI**
+> — GPU lane FREE (~115 GiB headroom), run-context honestly unanchored. **NEW operator asset:**
+> `~/.fieldkit/arena/lane-recipes.json` with the `kepler-q8` recipe (Q8_0 · `:8091` · ctx 8K) —
+> kept; future launches are one-click from LaneTruth. `/tmp/arena-venv` fieldkit editable
+> tracks source — reads **0.31.0**. **arena.db deltas (deliberate, kept):** +2 honest job rows
+> from the rep (`5419a336` lane_launch done · `caa0ada1` lane_teardown done). Prior capture
+> session's rows unchanged (chat `cs-d7611` + compare `cr-bdb44` + 14 real job rows).
+> `openrouter_price_snapshot` still carries `or-refresh-2026-06-06` — G3 armed. Cloud spend
+> this session **$0** (local lane only). No open corpus request; no sft_run rows.
+> **Tear down when done:** `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh down --browser`.
 
 ### Post-smoke baseline (superseded detail, kept for forensics)
 
@@ -225,14 +234,15 @@
 
 ## Open items (by swimlane)
 
-### ✅ fieldkit v0.31.0 RELEASED 2026-06-07 (was the 🚢 NEXT item)
-The AE-31 launch cut + recorder extensions are on PyPI (see Current state). The natural next
-arm is the **AE-31 live rep** — a real guarded lane-launch from the LaneTruth form (below).
+### ✅ fieldkit v0.31.0 RELEASED 2026-06-07 + **AE-31 live rep FIRED same-day**
+The AE-31 launch cut + recorder extensions are on PyPI, and the remaining gate — the real
+guarded lane-launch from the LaneTruth form — fired with zero discrepancies (see Current
+state). The run-anchor-on-real-serve gate fired with it.
 
 ### 🔬 QUEUED — arena-enhancements v2 remainder
-**Cuts 1–4 done (AE-31 committed `ec8cd8e`, unreleased).** Remaining, per `_SPECS/arena-enhancements-v2.md` + the gitignored ledger `_IDEAS/arena-smoke-v2-features.md`:
+**Cuts 1–4 done + released; AE-31 live rep done.** Remaining, per `_SPECS/arena-enhancements-v2.md` + the gitignored ledger `_IDEAS/arena-smoke-v2-features.md`:
 1. **AE-28** feed self-description + operator brief (AF-23/AF-18) — low priority, as warranted.
-2. **Operator-armed live gates (AE-R1-style):** a **real armed `sft_run` drain** (start `nemo-train`, `FK_SFT_RUN_ARMED=1` drain against the real astro recipe — the AE-29 live rep) · a **real corpus-request fulfilled by an actual claude-corpus-synth session** (the AE-27 skill-side loop) · a **real guarded lane-launch from the new LaneTruth form** (the AE-31 live rep) · a real `arena down` mid-**metered** cloud eval · the GS-1 no-restart cap edit on a real cloud eval · AE-10's behavioral gate once a candidate base serves · the run-anchor flow on a real serve.
+2. **Operator-armed live gates (AE-R1-style):** a **real armed `sft_run` drain** (start `nemo-train`, `FK_SFT_RUN_ARMED=1` drain against the real astro recipe — the AE-29 live rep) · a **real corpus-request fulfilled by an actual claude-corpus-synth session** (the AE-27 skill-side loop) · a real `arena down` mid-**metered** cloud eval · the GS-1 no-restart cap edit on a real cloud eval · AE-10's behavioral gate once a candidate base serves.
 Discipline unchanged: build AND browser-smoke side-by-side in the running Arena over CDP; NO arena.db schema change; rebake `_webui` after `arena-app/` edits. `articles/the-machine-manages-its-own-memory/` evidence shots stay dark deliberately (historical record).
 
 ### ✅ Kepler ship-tail + Release + eval-dispatch verify — ALL DONE 2026-06-05
@@ -282,14 +292,15 @@ The **operator-config surface** over the AE-17 cloud-run guardrails. Decisions c
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-07 (AE-31 live rep FIRED — zero discrepancies; recipe file is a kept operator asset)
+The v0.31.0 remaining gate closed same-day: authored the first lane recipe (`kepler-q8` → `~/.fieldkit/arena/lane-recipes.json`, loaded per-request so no restart), launched from the LaneTruth form with anchor-on-warm (pre-flight 114.69 GB vs 16.09 est → warm 6.0 s → discovery lit → run anchored — the run-anchor-on-real-serve gate fired with it), verified real serving (7.67 km/s boxed, correct), tore down from the UI (two-click confirm — a guard discovered live, not a bug; `owner-killpg · freed 9.51 GB · port_dead observed`) → honest revert. Worth keeping: (1) the recipe file persists as an operator asset — future launches are one-click; (2) `pgrep -f` self-matches the CC shell wrapper's command text — verify process death with `pgrep -x` (the cdp-smoke-traps class, shell edition). Job rows kept as honest history. Spend $0. | Manav (with Claude)
+
 ### 2026-06-07 (`fieldkit v0.31.0` RELEASED — v2 cut 4 packaged: AE-31 + recorder extensions; empty-[Unreleased] handled editorially)
 Curator full-auto run on the two already-committed cuts (`ec8cd8e` + `4abe639` fieldkit side). The cuts had landed without CHANGELOG entries (the prior sessions committed mid-flight), so the nominal empty-`[Unreleased]` hard-stop was resolved editorially: entries drafted from the commit diffs at release time, plus a docs catch-up the audit can't see (`arena.md` JobKind row + AE-31 launcher section — launcher is a non-re-exported submodule, so `audit_docs` passes either way; eyeballed per `feedback_audit_docs_kwarg_blind_spot`). `/tmp/fk` venv was reboot-wiped and the recreate recipe needed `[dev,arena]` (the documented `[dev]`-only line leaves fastapi missing → 2 collection errors). Gates: audit-docs 17/18+1skip, audit-landing 4/4, offline 1496/19. Commit `fd0b2e3`, tag `fieldkit/v0.31.0`, PyPI live (one CDN wait), both install-verifies green. Session cloud spend: $0. | Manav (with Claude)
 
-### 2026-06-06 (arena marketing re-capture COMPLETE — 22 light shots + demo re-record; correctness-gated live captures)
-Executed the queued post-light-theme re-capture end-to-end with headless playwright-core 2× (CDP Chromium was dead; not needed). Two quality gates emerged worth keeping: (1) **realistic seed ids** — the AE-16 card-identity chip renders `id[:8]`, so `seed-01` ids leak the staging into the marketing shot; seed with hex-looking ids, delete by suffix; (2) **pre-verify live-model answers before shooting** — Kepler flubbed 2 of the first 3 capture questions (550 km period, GEO period — known-drift adjacent); curl the lane first, shoot only verified-correct prompts, delete the wrong-answer drafts from arena.db (own runs only — operator smoke history kept). Demo fixtures re-recorded curated (`--max-compare 1` keeps the one verified duel; older wrong smoke duels stay in db but outside the export). Prose swept both articles (lane names, tok/s claims, frontier gold→orange). Build 518 + verifiers ALL_OK. Residual: orionfold-cortex set queued (needs Second Brain stack); memory-article evidence stays dark deliberately. Spend ≈ $0.003. | Manav (with Claude)
-
 <!--
   Older entries pruned 2026-06-07 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - arena marketing re-capture COMPLETE (2026-06-06): 22 light shots + demo re-record with headless playwright-core 2× (CDP dead, not needed); 2 quality gates kept — realistic hex seed ids (AE-16 chip renders id[:8]) + pre-verify live-model answers before shooting (Kepler flubbed 2/3 first capture questions; curl the lane first, delete wrong-answer drafts, keep operator history). Prose swept both articles; build 518 + verifiers ALL_OK; spend ≈ $0.003.
   - fieldkit v0.30.0 RELEASED (2026-06-06, v2 cut 3: Cluster I core — AE-26 disk-verified inventory facet, AE-27 corpus handshake + heartbeat liveness, AE-29 sft_run armed twice over (async-only + FK_SFT_RUN_ARMED brake + claim_next_job(skip_ids)), AE-30 runtimes observed): every launch risk deferred to cut 4 (AE-R13). Two CDP false-signals caught (uppercase innerText; vacuous scrollIntoView pass) by API/db verification. Commits 4f71f27+720dd16+d25aba8, tag fieldkit/v0.30.0, offline 1445/19, both install-verifies green.
   - fieldkit v0.29.0 RELEASED (2026-06-06, v2 cut 2: Cluster G frontend + Cluster H run-context): AE-23 /api/run-context + set_at run-anchor + rail Run cell; AE-24 ProvenanceChip + prior-run dimming (honest no-claims unanchored); AE-21 LaneTruth + drift badges; AE-22 select/pin half. Real bug found: _resolve_active_lane never loaded the registry (selection write-only; endpoint tests caught it). Live CDP smoke on synthetic :8091 lane seed→verify→revert. Commits 28c2a12+935ae6f+b507445, tag fieldkit/v0.29.0, offline 1419/19.
   - fieldkit v0.28.0 RELEASED (2026-06-06, v2 cut 1: Cluster G backend + the S1 smoke bug-fix cluster): BUG-2 signal-handler G1 trip + startup orphan-reconciler w/ owner-pid stamps + real-process SIGTERM test; BUG-3/AF-29 newest-row price_for + live OpenRouter refresh + /api/prices* + G3-coverage card + tokens-only badge; BUG-4 [rl] ceiling-pins + shadow-dir recipe; BUG-1/AE-25 canonical sft-progress heartbeat; AF-27 rubric scope labels + bench auto-match via scorer_path; AF-28 EvalBenchLive; AF-30 eval spend in session_spend. Test-hygiene: ARENA_DB conftest pins (tests could touch the real arena.db). Commit 5e992ad, tag fieldkit/v0.28.0, offline 1413/19, stats 5c9941c.

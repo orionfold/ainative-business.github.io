@@ -3,20 +3,22 @@
   "project": "spark",
   "updated": "2026-06-07",
   "health": "green",
-  "focus": "fieldkit v0.31.0 RELEASED — arena-enhancements v2 cut 4 packaged: AE-31 guarded lane launch/teardown (pre-flight brake, detached spawn, verified teardown, LaneTruth launch form) + demo recorder extensions (12 stubs, _scrub_str, --stubs-overlay); offline 1496/19, both install-verifies green",
+  "focus": "AE-31 live rep FIRED (the v0.31.0 remaining gate): real guarded kepler-q8 lane-launch from the LaneTruth form (pre-flight brake → warm 6.0s → discovery lit → run anchored on warm) + UI two-click teardown (owner-killpg, port_dead observed) → honest revert — zero Arena-vs-actual discrepancies",
   "blockers": [],
   "next": [
-    "AE-31 live rep (operator-armed): real guarded lane-launch from the LaneTruth form → discovery lights → UI teardown → honest revert",
-    "Other operator-armed live gates: real armed sft_run drain, real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
-    "AE-28 feed self-description + operator brief (low priority)"
+    "Real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1 against the astro recipe — AE-29 live rep)",
+    "Real corpus-request fulfilled by an actual claude-corpus-synth session (AE-27 skill-side loop)",
+    "Real arena down mid-metered cloud eval + GS-1 no-restart cap edit on a real cloud eval",
+    "AE-28 feed self-description + operator brief (low priority)",
+    "Editorial: Phase 2 autonomous-harness launch article (product-writer)"
   ],
   "recent": [
-    "fieldkit v0.31.0 on PyPI (tag fieldkit/v0.31.0, commit fd0b2e3): AE-31 launcher (751 lines, 1268 test lines incl. real-process spawn/teardown) + recorder stubs/overlay/scrubber",
-    "Docs catch-up in the release: arena.md JobKind row + AE-31 launcher section (non-re-exported submodule — audit-blind, eyeballed)",
-    "Gates: audit-docs 17/18+1skip, audit-landing 4/4, offline suite 1496 pass / 19 skip; no arena.db schema change (user_version 6)",
-    "Prior session: demo full-glory (13 panes simulated-from-real-runs + dispatch sim), 404 sweep + verify_arena_demo_links.mjs, light screengrab sync (cortex re-shot off a real reindex)"
+    "AE-31 live rep: first operator lane recipe (kepler-q8 → ~/.fieldkit/arena/lane-recipes.json, kept — one-click future launches); launch job 5419a336 + teardown caa0ada1 kept as honest history",
+    "Run-anchor-on-real-serve gate fired with it (anchor-on-warm → un-anchor on teardown); lane verified really serving (7.67 km/s boxed, correct)",
+    "fieldkit v0.31.0 on PyPI (AE-31 launcher + recorder extensions; offline 1496/19)",
+    "Prior: demo full-glory + 404 sweep + light screengrab sync"
   ],
-  "session": "fieldkit v0.31.0 release (curator full-auto)",
+  "session": "S-AE31-rep (live gate)",
   "metrics": {
     "articles": 53,
     "models": 6,
