@@ -6,6 +6,62 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-06-07
+
+The fourth arena-enhancements **v2** cut: **AE-31 guarded lane launch + teardown**
+(the dedicated launch-runner cut, risk class AE-R13 — the AE-22 launch half and
+AF-20 arm/teardown half deferred from cuts 2–3), plus the demo recorder
+extensions behind the public Arena demo's "full glory" pass.
+
+### Added
+- **AE-31 — guarded lane launch + teardown (`fieldkit.arena.launcher`).**
+  Serving becomes an Arena operator action: new `JobKind.LANE_LAUNCH` /
+  `LANE_TEARDOWN` run operator-authored **lane recipes**
+  (`~/.fieldkit/arena/lane-recipes.json`, the once-memorized launch command
+  stored as data; `GET /api/lane-recipes` lists summaries) through a
+  **pre-flight brake** — every side-effect-free check runs BEFORE the one
+  destructive step: launch lock → recipe → binary → GGUF existence →
+  unified-memory envelope (`estimate_lane_gb`) → fused ONE-LANE/port check. A
+  resident lane refuses the launch unless the operator explicitly passed
+  `teardown_first`; a doomed launch never tears a working lane down. Spawn is
+  **detached** (`start_new_session=True` + an atomic owner file) so a launched
+  lane survives sidecar restarts; teardown is **verified** (owner-pid kill with
+  a PID-reuse cmdline guard, targeted fallback — never a broad pkill for
+  llama.cpp, EngineCore-aware stop only for vLLM-kind lanes; "released" is
+  *observed*: process group empty + port refused). Refusals raise
+  `LaunchRefused` and persist as honestly-failed job rows (`refused:<reason>`).
+  Frontend: `<LaneTruth>` gains the launch form + per-lane teardown buttons,
+  `<BuildSpine>` the lane-stage wiring, the Jobs board the launch-job cards.
+- **Demo recorder extensions (`fieldkit arena record`).** Twelve new sanitized
+  stub endpoints (build · sft-progress · reward-signal · standup · jobs ·
+  leaderboard/live · active-lane · lane-recipes · guardrail-config · prices ·
+  corpus-progress · runtimes) so a recorded demo renders every cockpit pane,
+  not just chat/compare; a new **recursive host-path scrubber** (`_scrub_str`)
+  catches absolute paths *inside* string payloads (`result_json`,
+  `lineage_card`) that the dict-level scrub missed; new **`--stubs-overlay`**
+  flag merges a checked-in showcase overlay (`arena-app/arena-demo-sim/`) over
+  the recorded stubs — enriched jobs board, standup queue, lane recipes, a
+  discovered active lane, Cortex before→after.
+
+### Test suite
+- Offline: **1496 passed, 19 skipped** (+51: `tests/arena/test_launcher.py` — recipe
+  loading / every pre-flight refusal / envelope math / owner-file contract;
+  `tests/arena/test_launch_process.py` — real-process detached spawn +
+  verified teardown; `tests/arena/test_fixtures.py` — the 12 stub recorders /
+  `_scrub_str` recursion / overlay merge; plus `test_jobs.py` /
+  `test_jobs_api.py` / `test_server.py` / `test_runtimes.py` extensions).
+  No `arena.db` schema change (`user_version` stays 6).
+
+### Verified live
+- The demo bundle (headless playwright, 2026-06-07): all 13 panes render
+  simulated-from-real-runs data (disclosed on the ribbon), the dispatch
+  simulation animates queued→running→done, 0 console errors / 0 sidecar
+  escapes; the live cockpit re-baked + restarted on the same source. The
+  **real guarded lane-launch from the LaneTruth form stays operator-armed**
+  (AE-R1-style) — the launcher's pre-flight + real-process spawn/teardown are
+  covered by `test_launch_process.py`; the live rep lands on the next armed
+  serve.
+
 ## [0.30.0] — 2026-06-06
 
 The third arena-enhancements **v2** cut: **Cluster I core** — the observation +

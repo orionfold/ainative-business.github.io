@@ -322,7 +322,7 @@ The M8 milestone (`_SPECS/spark-arena-v1.md` §12) promotes Arena from a **recor
 
 | Symbol | Members |
 |---|---|
-| `JobKind` | `EVAL_RERUN`, `MEASURE_VARIANTS` (the `DISPATCHABLE` set), plus the named-but-not-built stubs `REQUANT`, `RL_RUN`, `REINDEX`, `RAG_EVAL`, `SCOUT_INGEST`, and `SFT_RUN` (AE-29, v2 cut 3 — the **operator-armed** SFT dispatch: async-only like `RL_RUN`, and the drain releases it back to `queued` unless the draining process exports `FK_SFT_RUN_ARMED=1`; the held job never starves the queue behind it). `DISPATCHABLE` / `ALL` are frozensets. |
+| `JobKind` | `EVAL_RERUN`, `MEASURE_VARIANTS` (the `DISPATCHABLE` set), plus the named-but-not-built stubs `REQUANT`, `RL_RUN`, `REINDEX`, `RAG_EVAL`, `SCOUT_INGEST`, and `SFT_RUN` (AE-29, v2 cut 3 — the **operator-armed** SFT dispatch: async-only like `RL_RUN`, and the drain releases it back to `queued` unless the draining process exports `FK_SFT_RUN_ARMED=1`; the held job never starves the queue behind it), and `LANE_LAUNCH` / `LANE_TEARDOWN` (AE-31, v2 cut 4 — guarded serve-lane launch/teardown through `launcher.py`'s pre-flight brake; refusals persist as honestly-failed rows `refused:<reason>`). `DISPATCHABLE` / `ALL` are frozensets. |
 | `JobStatus` | `QUEUED`, `DISPATCHED`, `RUNNING`, `DONE`, `FAILED`, `SKIPPED`; `IN_FLIGHT` is the dedup-holding subset. |
 
 ### M8 — `enqueue_job(store, kind, payload, *, trigger, priority, dedup_key, trigger_detail, now_fn)`
@@ -553,6 +553,36 @@ top-level module** (it documents here, under `arena`).
   vLLM); absent it the arbiter `defer`s cleanly (`LANE_BIN_ABSENT`), so the whole
   surface ships + is GPU-free-testable now. See `docs/api/rl.md` →
   "Operator: full autonomy" + `_SPECS/rl-lane-autonomy-v1.md`.
+
+## AE-31 — guarded lane launch + teardown (`launcher.py`, v2 cut 4)
+
+Serving becomes an Arena operator action (risk class AE-R13 — the launch half AE-22
+and the arm/teardown half AF-20 deferred from cuts 2–3). `fieldkit.arena.launcher` is
+the deterministic runner behind `POST /api/jobs {kind: lane_launch | lane_teardown}`
+and the LaneTruth launch form; it is a submodule (not re-exported through
+`fieldkit.arena.__all__`) because its consumers are the jobs layer + the sidecar, not
+library callers.
+
+- **Recipes** — operator-authored `~/.fieldkit/arena/lane-recipes.json` (sibling of
+  the AE-19 registry): the once-memorized launch command stored as data
+  (`gguf_path` · `port` · `n_ctx` · `ngl` · `extra_args`). `GET /api/lane-recipes`
+  lists summaries for the LaneTruth form.
+- **Pre-flight brake** (`launch_lane`) — every side-effect-free check runs BEFORE
+  the one destructive step: launch lock → recipe → binary → GGUF → unified-memory
+  envelope (`estimate_lane_gb`) → fused ONE-LANE/port check. A resident lane refuses
+  the launch unless `teardown_first` was explicitly passed — a doomed launch never
+  tears a working lane down. Refusals raise `LaunchRefused` with a machine-readable
+  `reason`; the jobs layer persists them as honestly-failed rows (`refused:<reason>`).
+- **Detached spawn** — `start_new_session=True` + an atomic owner file
+  (`lane_owner_path` / `read_lane_owner`), so a launched lane survives sidecar
+  restarts; the cockpit never child-manages it. The warm-poll honors the per-job
+  cancel sentinel (the same one `eval_rerun` polls).
+- **Verified teardown** (`teardown_lane`) — owner-pid kill with a PID-reuse cmdline
+  guard, targeted fallback (never a broad pkill for llama.cpp; EngineCore-aware stop
+  only for vLLM-kind lanes), and a "released" gate that is **observed** (process
+  group empty + port refused), never asserted.
+
+No `arena.db` schema change; all state is files beside the AE-19 registry.
 
 ## v0.2 surfaces (Lab + distribution)
 
