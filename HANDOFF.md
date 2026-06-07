@@ -26,7 +26,7 @@
 > - **Mechanism**: `data-theme="light"` **pinned** on both `<html>`s (legacy light-scoped overrides became the permanent styles); toggles + FOUC scripts deleted (`ThemeToggle`×2, `ThemeScript`); three token layers rewritten to the spec palette — site `--color-*`/`--svg-*` (`src/styles/global.css`), arena copies (`arena-app/.../global.css`), and the cockpit's own `--arena-*` block (`ArenaAppLayout.astro`, flips the 5k-line cockpit sheet). `design-tokens.css` (§3 contract) now imported as source of truth. `color-scheme: light`, manifest + theme-color metas → `#F7F8FA`.
 > - **~60 dark assumptions patched**: white-wash overlays → ink washes; black shadows → §2.4 elevations; lane colors `#76b900`/`#5b9cff` → `#338A17`/`#2750AE` (CompareDuel/LiveLeaderboard); FrontierScatter/TelemetryGauge → Airtable mids; rank badges → soft+ink pills; cmdk scrim; series-chip text → dark1 inks (§2.1 small-text rule); hero gradient → orange ramp. **Kept deliberately**: always-dark code blocks, reader-theme prefs (sepia/dark reading modes), modal scrims.
 > - **Verified**: site build + both verifiers ALL_OK ×2; arena bake OK (caught a real `*/`-inside-comment CSS bug in design-tokens.css); cockpit restarted onto the light bake; CDP smoke 9/9 panes + 6 site routes, computed colors spot-checked on the wire. OG images regenerate light in CI (`build:og`).
-> - ⚠️ The pre-light marketing screenshots under `products/arena-control-plane/screenshots/` (11 curated 2× dark shots) now show the OLD dark cockpit — re-shoot when the launch-article refresh happens.
+> - ⚠️ Every published arena screen capture (22 shots across both product articles + the record→replay demo fixtures) now shows the OLD dark cockpit — **queued as the NEXT task** (see "📸 QUEUED FIRST" in Open items).
 
 ### ✅ 2026-06-06 — Relayed standards MERGED + ADOPTED (PR #5 from the Agency cockpit): `/dashboard` skill + design-system token contract
 
@@ -193,7 +193,30 @@
 
 ## Open items (by swimlane)
 
-### 🔬 QUEUED — next session: arena-enhancements **v2 cut 4** (the guarded LAUNCH cut, AE-R13)
+### 📸 QUEUED FIRST — next session: arena marketing re-capture, end-to-end (post-light-theme)
+
+**Why now:** the 2026-06-06 light-only restyle made every published arena screen capture stale
+(they show the old dark cockpit), and a fresh end-to-end pass also captures the v2 cut 1–3
+features (inventory chips · corpus handshake · Arm-SFT form · runtimes roster · run-anchor ·
+LaneTruth · Settings/guardrails) that postdate the originals. Surfaces, in order:
+
+1. **`products/arena-control-plane/screenshots/`** (11× 2× shots, 01-jobs-board … 11-standup) —
+   re-shoot the same numbered set against the live light cockpit; then sweep
+   `products/arena-control-plane/product.md` prose for color/feature references that drifted.
+2. **`products/orionfold-arena/screenshots/`** (11 more) + `products/orionfold-arena/product.md` —
+   same treatment (the original Arena launch article).
+3. **Arena demo (record→replay)** — re-record fixtures with `fieldkit arena record` against the
+   live cockpit so the replay carries the new panes/feeds, then rebuild the `ARENA_DEMO=1`
+   bundle (source fixtures at `arena-app/public/arena-demo/`; see `reference_arena_demo_mode`).
+4. Quick grep for any other article embedding a dark arena shot before closing.
+
+**Capture recipe:** per `reference_marketing_screenshots_live_sse_2x` — drive `playwright-core`
+from Node (NOT the MCP: it can't clip-to-element and shoots DPR 1), `deviceScaleFactor: 2`,
+`clip`, `domcontentloaded` (not networkidle — SSE pages never settle), seed the jobs board for
+the shot and hard-delete the seeds after (seed→shoot→revert, operator-approved pattern).
+Tagline ≤120 / summary ≤300 if product.md frontmatter changes.
+
+### 🔬 QUEUED — arena-enhancements **v2 cut 4** (the guarded LAUNCH cut, AE-R13)
 **Cuts 1–3 are RELEASED (v0.28.0 + v0.29.0 + v0.30.0 — Clusters G+H complete except AE-22's launch half; Cluster I core complete except AE-28; see Current state).** The remaining v2 queue, per `_SPECS/arena-enhancements-v2.md` + the ledger ([`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md), gitignored — statuses updated):
 1. **The guarded-launch cut (high-risk AE-R13 — its own focused cut, deliberately deferred twice):** **AE-22 launch half** — the deterministic guarded lane-launch runner (one-lane-aware teardown-offer, EngineCore-aware kill `pkill -9 -f 'vllm|EngineCore'`; the smoke's exit-127 PATH stumble is the evidence) + **AF-20's arm/teardown half** (same risk class — arming `nemo-train`/a serve lane from the AE-30 roster, one-lane-envelope-aware, `project_spark_unified_memory_oom`).
 2. **AE-28** feed self-description + operator brief (AF-23/AF-18) — low priority, as warranted.

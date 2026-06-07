@@ -6,9 +6,9 @@
   "focus": "LIGHT-ONLY THEME SHIPPED (operator green-lit): marketing site + Arena cockpit restyled to design-system-v1 — data-theme pinned light, 3 token layers rewritten, ~60 dark assumptions patched, toggles removed; 9 cockpit panes + 6 site routes CDP-smoked, side-by-side approved",
   "blockers": [],
   "next": [
+    "NEXT: arena marketing re-capture end-to-end — 22 screenshots (both product articles) + demo fixtures re-record + article prose sweep (light UI + cut 1-3 features); see HANDOFF 📸 swimlane",
     "v2 cut 4 — the guarded LAUNCH cut (AE-R13): AE-22 launch runner + AF-20 arm/teardown, one-lane-aware",
     "Operator-armed live gates: real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1), real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
-    "Re-shoot the 11 curated arena marketing screenshots (they show the OLD dark cockpit) + launch-article refresh",
     "AE-28 feed self-description + operator brief (low priority)"
   ],
   "recent": [
