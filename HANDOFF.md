@@ -20,6 +20,14 @@
 
 ## Current state
 
+### ✅ 2026-06-07 — **`fieldkit v0.31.0` RELEASED** — arena-enhancements **v2 cut 4**: **AE-31 guarded lane launch + teardown** (launch-runner cut, AE-R13) + demo recorder extensions
+
+> Tag `fieldkit/v0.31.0` + <https://pypi.org/project/fieldkit/0.31.0/> (both install-verifies green; PyPI needed one CDN-lag wait, as usual). Commit `fd0b2e3` (version + CHANGELOG + docs catch-up). **Offline 1496 pass / 19 skip** (+51). **NO arena.db schema change** (`user_version` 6). The release packages the two already-committed-but-unreleased cuts:
+> - **AE-31** (`ec8cd8e`) — `fieldkit.arena.launcher` (751 lines): `JobKind.LANE_LAUNCH`/`LANE_TEARDOWN` + `GET /api/lane-recipes`; operator-authored lane recipes → **pre-flight brake** (launch lock → recipe → binary → GGUF → memory envelope → fused one-lane/port check; a doomed launch never tears a working lane down) → detached spawn (survives sidecar restarts, atomic owner file) → **verified teardown** (owner-pid kill w/ PID-reuse guard, "released" observed never asserted). Refusals persist as honestly-failed rows (`refused:<reason>`). LaneTruth launch form + teardown buttons, BuildSpine lane wiring, JobsBoard launch cards. 1268 test lines incl. real-process `test_launch_process.py`.
+> - **Recorder extensions** (`4abe639` fieldkit side) — 12 new sanitized stub endpoints, recursive `_scrub_str` host-path scrubber, `--stubs-overlay` showcase merge (23 tests, `test_fixtures.py`).
+> - **Docs catch-up in the release commit**: `arena.md` JobKind row + a new AE-31 launcher section (the audit only checks `__all__`; launcher is a non-re-exported submodule — eyeballed per `feedback_audit_docs_kwarg_blind_spot`).
+> - ▶ **REMAINING GATE (operator-armed, AE-R1-style):** the **real guarded lane-launch from the LaneTruth form** (launch a Kepler recipe → lane lights discovery → teardown from the UI → honest revert) — the real-process offline tests + the committed bakes are the session bar.
+
 ### ✅ 2026-06-07 — **DEMO "FULL GLORY" + LINK SWEEP + SCREENGRAB SYNC** (operator-reported blanks/404s/dark-shots all fixed) · AE-31 launch cut committed
 
 > Operator drove the public demo and found: blank feature panes (build/sft/reward/jobs/standup), "training flow" + "Measured on the Spark" 404s, and dark screengrabs on the LIVE product articles. All three classes fixed + regression-guarded.
@@ -178,7 +186,7 @@
 > headless playwright-core and never needed it — relaunch via `arena_lifecycle.sh restart
 > --browser` when browser-use mode is next wanted). **Kepler Q8 `llama-server :8091` served
 > for the capture session and torn down** — GPU lane FREE (~115 GiB headroom). `/tmp/arena-venv`
-> fieldkit editable reads **0.30.0**. **Active-lane registry CLEAN** (run-context honestly
+> fieldkit editable tracks source — reads **0.31.0** post-release. **Active-lane registry CLEAN** (run-context honestly
 > unanchored). **arena.db deltas from the capture session (all deliberate):** +1 chat session
 > (`cs-d7611`, the verified Kepler-3rd-law turn) + +1 compare run (`cr-bdb44`, the verified
 > velocity duel — these ARE the new 06/07 shots + demo fixtures); my 4 wrong-answer/duplicate
@@ -217,12 +225,9 @@
 
 ## Open items (by swimlane)
 
-### 🚢 NEXT — fieldkit release (the AE-31 launch cut + demo recorder are committed but UNRELEASED)
-
-`ec8cd8e` (AE-31 guarded lane launch/teardown) + this session's recorder extensions
-(`--stubs-overlay`, 12 new stub endpoints, `_scrub_str`) sit on main ahead of the last tag
-(v0.30.0). Cut **v0.31.0** via `/fieldkit-curator` when convenient — the launch cut is the
-headline; suite 449 pass.
+### ✅ fieldkit v0.31.0 RELEASED 2026-06-07 (was the 🚢 NEXT item)
+The AE-31 launch cut + recorder extensions are on PyPI (see Current state). The natural next
+arm is the **AE-31 live rep** — a real guarded lane-launch from the LaneTruth form (below).
 
 ### 🔬 QUEUED — arena-enhancements v2 remainder
 **Cuts 1–4 done (AE-31 committed `ec8cd8e`, unreleased).** Remaining, per `_SPECS/arena-enhancements-v2.md` + the gitignored ledger `_IDEAS/arena-smoke-v2-features.md`:
@@ -277,14 +282,15 @@ The **operator-config surface** over the AE-17 cloud-run guardrails. Decisions c
 
 ## Recent decisions (short running log — prune older)
 
+### 2026-06-07 (`fieldkit v0.31.0` RELEASED — v2 cut 4 packaged: AE-31 + recorder extensions; empty-[Unreleased] handled editorially)
+Curator full-auto run on the two already-committed cuts (`ec8cd8e` + `4abe639` fieldkit side). The cuts had landed without CHANGELOG entries (the prior sessions committed mid-flight), so the nominal empty-`[Unreleased]` hard-stop was resolved editorially: entries drafted from the commit diffs at release time, plus a docs catch-up the audit can't see (`arena.md` JobKind row + AE-31 launcher section — launcher is a non-re-exported submodule, so `audit_docs` passes either way; eyeballed per `feedback_audit_docs_kwarg_blind_spot`). `/tmp/fk` venv was reboot-wiped and the recreate recipe needed `[dev,arena]` (the documented `[dev]`-only line leaves fastapi missing → 2 collection errors). Gates: audit-docs 17/18+1skip, audit-landing 4/4, offline 1496/19. Commit `fd0b2e3`, tag `fieldkit/v0.31.0`, PyPI live (one CDN wait), both install-verifies green. Session cloud spend: $0. | Manav (with Claude)
+
 ### 2026-06-06 (arena marketing re-capture COMPLETE — 22 light shots + demo re-record; correctness-gated live captures)
 Executed the queued post-light-theme re-capture end-to-end with headless playwright-core 2× (CDP Chromium was dead; not needed). Two quality gates emerged worth keeping: (1) **realistic seed ids** — the AE-16 card-identity chip renders `id[:8]`, so `seed-01` ids leak the staging into the marketing shot; seed with hex-looking ids, delete by suffix; (2) **pre-verify live-model answers before shooting** — Kepler flubbed 2 of the first 3 capture questions (550 km period, GEO period — known-drift adjacent); curl the lane first, shoot only verified-correct prompts, delete the wrong-answer drafts from arena.db (own runs only — operator smoke history kept). Demo fixtures re-recorded curated (`--max-compare 1` keeps the one verified duel; older wrong smoke duels stay in db but outside the export). Prose swept both articles (lane names, tok/s claims, frontier gold→orange). Build 518 + verifiers ALL_OK. Residual: orionfold-cortex set queued (needs Second Brain stack); memory-article evidence stays dark deliberately. Spend ≈ $0.003. | Manav (with Claude)
 
-### 2026-06-06 (`fieldkit v0.30.0` RELEASED — v2 cut 3: Cluster I core, live-smoked end-to-end; every launch risk deferred to cut 4)
-Operator scoped cut 3 to **Cluster I core** (AE-26 + AE-27 + sft_run dispatch + AF-20 read-only) — the key scoping insight: AF-20's arm/teardown half and AE-22's launch half are the **same risk class** (AE-R13, guarded process launch, one-lane envelope), so they pair in a dedicated cut 4 and this cut stayed pure observation + dispatch. Built: **AE-26** manifest `artifacts` → disk-verified `inventory` facet (the raw declaration never ships, the observation does); **AE-27** atomic intent file + heartbeat-freshness liveness (fulfilment observed via mtime comparison, never asserted); **AE-29** sft_run armed twice over (async-only + `FK_SFT_RUN_ARMED` drain brake; `claim_next_job(skip_ids)` added so a held job releases-and-skips instead of `break`-starving the queue — the brake-vs-starvation tension was the cut's one real design problem); **AE-30** runtimes observed (docker inspect stdout parsed, exit code never trusted). Smoke note: two CDP false-signals (uppercase `text-transform` breaking innerText matches; a `scrollIntoView` click that vacuously "passed" a revert check) — both caught by verifying against the API/db before trusting the DOM, the report≠reality principle applied to my own smoke. Curator full-auto release: audits 17/18+1skip (skip_ids kwarg documented) & 4/4, offline 1445/19, commits `4f71f27`+`720dd16`+stats `d25aba8`, tag `fieldkit/v0.30.0`, both install-verifies green (1 CDN wait). Session cloud spend: $0. | Manav (with Claude)
-
 <!--
-  Older entries pruned 2026-06-06 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  Older entries pruned 2026-06-07 (keep ~2 latest). Recover any via `git log -p HANDOFF.md`. Pruned set, newest→oldest:
+  - fieldkit v0.30.0 RELEASED (2026-06-06, v2 cut 3: Cluster I core — AE-26 disk-verified inventory facet, AE-27 corpus handshake + heartbeat liveness, AE-29 sft_run armed twice over (async-only + FK_SFT_RUN_ARMED brake + claim_next_job(skip_ids)), AE-30 runtimes observed): every launch risk deferred to cut 4 (AE-R13). Two CDP false-signals caught (uppercase innerText; vacuous scrollIntoView pass) by API/db verification. Commits 4f71f27+720dd16+d25aba8, tag fieldkit/v0.30.0, offline 1445/19, both install-verifies green.
   - fieldkit v0.29.0 RELEASED (2026-06-06, v2 cut 2: Cluster G frontend + Cluster H run-context): AE-23 /api/run-context + set_at run-anchor + rail Run cell; AE-24 ProvenanceChip + prior-run dimming (honest no-claims unanchored); AE-21 LaneTruth + drift badges; AE-22 select/pin half. Real bug found: _resolve_active_lane never loaded the registry (selection write-only; endpoint tests caught it). Live CDP smoke on synthetic :8091 lane seed→verify→revert. Commits 28c2a12+935ae6f+b507445, tag fieldkit/v0.29.0, offline 1419/19.
   - fieldkit v0.28.0 RELEASED (2026-06-06, v2 cut 1: Cluster G backend + the S1 smoke bug-fix cluster): BUG-2 signal-handler G1 trip + startup orphan-reconciler w/ owner-pid stamps + real-process SIGTERM test; BUG-3/AF-29 newest-row price_for + live OpenRouter refresh + /api/prices* + G3-coverage card + tokens-only badge; BUG-4 [rl] ceiling-pins + shadow-dir recipe; BUG-1/AE-25 canonical sft-progress heartbeat; AF-27 rubric scope labels + bench auto-match via scorer_path; AF-28 EvalBenchLive; AF-30 eval spend in session_spend. Test-hygiene: ARENA_DB conftest pins (tests could touch the real arena.db). Commit 5e992ad, tag fieldkit/v0.28.0, offline 1413/19, stats 5c9941c.
   - e2e operator-smoke S1 COMPLETE (2026-06-06): both AE-R1 gates FIRED on real runs — G3 cost-cap aborted a metered Haiku eval at $0.0515 accrued (19/44, badge+chip); G1 mechanism verified on a metered R1 eval (sentinel→abort→teardown·partial·3-scored→clean exit); real 4-step GRPO rl_run 35ed71b9 lit the reward gauge live (REWARD @ STEP-0 96% auto-follow) + AE-9 lineage + AE-2 degenerate-step truth (clean headroom null). 3 HIGH bugs root-caused live (BUG-2 G1 circular-wait · BUG-3 G3 silently inert/empty price table · BUG-4 RL dep-drift 4-link chain → transformers==4.51.3 + shadow dir) + AF-27..30; all fixed in v0.28.0. Cluster-G dd63802 verified cold post-reboot (discovery found the re-served lane w/ no config). C4/C5/C6 ✓; close-out: lanes torn down, autonomy left OFF, 11 curated 2× shots → products/arena-control-plane/screenshots/. Session cloud spend ≈ $0.18.

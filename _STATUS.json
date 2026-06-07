@@ -3,26 +3,25 @@
   "project": "spark",
   "updated": "2026-06-07",
   "health": "green",
-  "focus": "Demo 'full glory' + link sweep + screengrab sync: 12 new fixture stubs + simulated jobs dispatch fill the blank demo panes (disclaimer ribbon), every 404 class fixed + regression-verified, dark/missing public/products/ shots replaced (cortex re-shot light off a REAL reindex), AE-31 launch cut committed",
+  "focus": "fieldkit v0.31.0 RELEASED — arena-enhancements v2 cut 4 packaged: AE-31 guarded lane launch/teardown (pre-flight brake, detached spawn, verified teardown, LaneTruth launch form) + demo recorder extensions (12 stubs, _scrub_str, --stubs-overlay); offline 1496/19, both install-verifies green",
   "blockers": [],
   "next": [
-    "Cut fieldkit v0.31.0 — AE-31 launch cut + demo recorder extensions are committed but unreleased",
-    "Operator-armed live gates: real armed sft_run drain, real corpus-request fulfilled by a synth session, real guarded lane-launch from the new LaneTruth form, arena down mid-metered-eval, run-anchor on a real serve",
+    "AE-31 live rep (operator-armed): real guarded lane-launch from the LaneTruth form → discovery lights → UI teardown → honest revert",
+    "Other operator-armed live gates: real armed sft_run drain, real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
     "AE-28 feed self-description + operator brief (low priority)"
   ],
   "recent": [
-    "Demo panes filled: build/sft/reward/jobs/standup/models/settings/leaderboard/cortex all render simulated-from-real-runs data; interactive jobs dispatch animates queued→running→done",
-    "Link sweep: in-bundle article links → absolute field-notes URLs (bake prunes articles/), TrainingFlow ../→./, lab double-prefix fixed; new scripts/verify_arena_demo_links.mjs guards all classes + leaks + screenshot drift",
-    "UI: EvalBenchLive local:-prefix regression → shared SourceBadge; telemetry rail one-row (auto-flow grid); claude-haiku-45 no longer badges Spark GPU",
-    "Screengrabs: public/products/ sync was the dark-shot root cause (arena stale dark, control-plane missing/404); cortex 4 shots re-captured light off a real reindex+rag_eval+query (provenance 328/328)",
-    "AE-31 guarded lane launch/teardown committed (ec8cd8e); arena suite 449 pass; site 518 pages + verifiers ALL_OK"
+    "fieldkit v0.31.0 on PyPI (tag fieldkit/v0.31.0, commit fd0b2e3): AE-31 launcher (751 lines, 1268 test lines incl. real-process spawn/teardown) + recorder stubs/overlay/scrubber",
+    "Docs catch-up in the release: arena.md JobKind row + AE-31 launcher section (non-re-exported submodule — audit-blind, eyeballed)",
+    "Gates: audit-docs 17/18+1skip, audit-landing 4/4, offline suite 1496 pass / 19 skip; no arena.db schema change (user_version 6)",
+    "Prior session: demo full-glory (13 panes simulated-from-real-runs + dispatch sim), 404 sweep + verify_arena_demo_links.mjs, light screengrab sync (cortex re-shot off a real reindex)"
   ],
-  "session": "demo full-glory + link sweep + screengrab sync",
+  "session": "fieldkit v0.31.0 release (curator full-auto)",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 23,
+    "arena_features": 24,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,
