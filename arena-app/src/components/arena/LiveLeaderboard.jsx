@@ -27,21 +27,7 @@ import {
   scoreColor,
   sortLiveRows,
 } from '../../lib/arena/leaderboard-format.mjs';
-
-// Source pill — Spark-green for local, OpenRouter-blue for cloud. Same colours
-// as the compare side-card badges (CompareDuel) so the cockpit reads as one app.
-function SourceBadge({ source }) {
-  const isOR = source === 'openrouter';
-  const c = isOR ? '#2750AE' : '#338A17';
-  return (
-    <span
-      title={isOR ? 'Runs in the cloud via OpenRouter' : 'Runs locally on the DGX Spark'}
-      style={`flex:none; font-family: var(--arena-mono); font-size:0.55rem; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; padding:1px 7px; border-radius:999px; color:${c}; background:${c}1f; border:1px solid ${c}66;`}
-    >
-      {isOR ? 'OpenRouter' : 'Spark GPU'}
-    </span>
-  );
-}
+import SourceBadge from './SourceBadge.jsx';
 
 const H2_STYLE =
   'font-family: var(--arena-mono); font-size: 0.7rem; letter-spacing: 0.22em; ' +

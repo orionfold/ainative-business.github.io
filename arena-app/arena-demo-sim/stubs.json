@@ -1,0 +1,1360 @@
+{
+ "note": "Demo bundle: chat & compare replay real recorded DGX Spark runs (real answers, measured TTFT/throughput). The jobs board, standup, lane and knowledge panes show simulated data drawn from past real runs to demonstrate the features \u2014 see the DEMO ribbon.",
+ "stubs": {
+  "/api/jobs": {
+   "jobs": [
+    {
+     "id": "c41f7a02d9e84b6f8a3d5e0b117f24a9",
+     "kind": "eval_rerun",
+     "status": "queued",
+     "trigger": "leaderboard_regression",
+     "priority": 5,
+     "dedup_key": "eval_rerun:saul-7b-instruct-v1-gguf::Q4_K_M:legal-bench-v0.1",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-07T07:58:12Z",
+     "dispatched_at": null,
+     "finished_at": null,
+     "arq_job_id": null,
+     "payload": {
+      "lane_id": "saul-7b-instruct-v1-gguf::Q4_K_M",
+      "bench_id": "legal-bench-v0.1",
+      "n": 25
+     },
+     "result": null,
+     "result_json": null
+    },
+    {
+     "id": "9b8e2f6c413d47d2b0a6c9d8e5f1a370",
+     "kind": "lane_launch",
+     "status": "queued",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "lane_launch:patent-v3-q5km",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-07T08:02:47Z",
+     "dispatched_at": null,
+     "finished_at": null,
+     "arq_job_id": null,
+     "payload": {
+      "recipe": "patent-v3-q5km",
+      "anchor_on_warm": true
+     },
+     "result": null,
+     "result_json": null
+    },
+    {
+     "id": "5d20c7b9ef364c01a4f8b2d6c3e91854",
+     "kind": "rag_eval",
+     "status": "running",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rag_eval:qa-eval.jsonl",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-07T08:04:21Z",
+     "dispatched_at": "2026-06-07T08:04:30Z",
+     "finished_at": null,
+     "arq_job_id": null,
+     "payload": {
+      "qa_set": "qa-eval.jsonl",
+      "rerank": false,
+      "top_k": 5
+     },
+     "result": null,
+     "result_json": null
+    },
+    {
+     "id": "35ed71b905694958ac1cd4fc47604553",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16-fixed\", \"heldout_scores\": {\"0\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: heldout-000\\n- **core_metric**: 0.958333\\n- **specialist**: heldout-gate\\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n\\n## Top 5 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-000 | 0.750000 | \\u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-003 | 0.750000 | \\u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=\\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n \\u2514\\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool \\u2190 BEST\\n```\\n\\n## Recent Activity (last 6)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| baseline | baseline | baseline | \\u2014 | RLVR seed \\u2014 base=merged-hf-bf16-fix\\u2026 |\\n\\n## Recent Activity (most recent 6 \\u2014 full hypothesis)\\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\\n  \\u2514\\u2500 corpus_min=100 heldout_every=10 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 92 GB \\u00b7 min headroom 30 GB\", \"headroom_at_spawn_gb\": 114.57, \"min_headroom_gb\": 29.7, \"oom_deferred\": false, \"peak_used_gb\": 91.99, \"phase_used_gb\": {\"heldout-gate\": 89.06, \"lane-bringup\": 7.47, \"sampling\": 89.14, \"teardown\": 89.02, \"training\": 89.02}, \"total_gb\": 121.69}, \"n_steps\": 4, \"pool_scores\": {\"0\": 0.75, \"1\": 0.875, \"2\": 0.875, \"3\": 0.75}, \"selected_exp_id\": \"rl-000\", \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"step_history\": [{\"adv_spread\": 0.0, \"keep_rate\": 0.75, \"kl\": 0.0, \"last_heldout\": 0.958333, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"heldout-gate\", \"pool_score\": 0.75, \"step\": 0, \"step_duration\": 735.671, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.875, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.875, \"step\": 1, \"step_duration\": 436.804, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.875, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.875, \"step\": 2, \"step_duration\": 436.803, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.75, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.75, \"step\": 3, \"step_duration\": 419.006, \"trained\": false}], \"upstream\": {\"bench\": \"astro-bench-v0.1\", \"corpus\": \"astro-sft-corpus\", \"sft_init\": \"init-lora-r16\"}, \"vertical\": \"astrodynamics\"}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T18:30:05Z",
+     "dispatched_at": "2026-06-06T18:30:05Z",
+     "finished_at": "2026-06-06T19:09:25Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16-fixed",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 4,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "corpus_slug": "astro-sft-corpus",
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "sft_init": "init-lora-r16",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "aborted": false,
+      "base": "merged-hf-bf16-fixed",
+      "heldout_scores": {
+       "0": 0.958333
+      },
+      "kind": "rl_run",
+      "lineage_card": "# Session start \u2014 \u2014\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\n\n## LEADERBOARD.md\n\n## Current Best\n- **exp_id**: heldout-000\n- **core_metric**: 0.958333\n- **specialist**: heldout-gate\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool\n\n## Top 5 Kept Trials\n\n| exp | core_metric | \u0394 | specialist | hypothesis |\n|-----|-------------|---|------------|------------|\n| heldout-000 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-001 | 0.875000 | \u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-002 | 0.875000 | \u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-000 | 0.750000 | \u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\n| rl-003 | 0.750000 | \u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\n\n## KNOWLEDGE.md\n\n**Current-best lineage** (root \u2192 best):\n```\nexp_baseline [baseline, baseline, metric=\u2014, \u0394=\u2014] RLVR seed \u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=\u2026\n \u2514\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\n \u2514\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \u0394=\u2014] held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool \u2190 BEST\n```\n\n## Recent Activity (last 6)\n\n| exp | specialist | status | core_metric | hypothesis |\n|-----|------------|--------|-------------|------------|\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\n| baseline | baseline | baseline | \u2014 | RLVR seed \u2014 base=merged-hf-bf16-fix\u2026 |\n\n## Recent Activity (most recent 6 \u2014 full hypothesis)\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \u0394=\u2014] held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool\n  \u2514\u2500 held-out checkpoint-selection metric (RV-4)\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_baseline [baseline, baseline, metric=\u2014, \u0394=\u2014] RLVR seed \u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\n  \u2514\u2500 corpus_min=100 heldout_every=10 vllm_pin=\n\n",
+      "mem_trace": {
+       "abort_headroom_gb": null,
+       "display": "peak 92 GB \u00b7 min headroom 30 GB",
+       "headroom_at_spawn_gb": 114.57,
+       "min_headroom_gb": 29.7,
+       "oom_deferred": false,
+       "peak_used_gb": 91.99,
+       "phase_used_gb": {
+        "heldout-gate": 89.06,
+        "lane-bringup": 7.47,
+        "sampling": 89.14,
+        "teardown": 89.02,
+        "training": 89.02
+       },
+       "total_gb": 121.69
+      },
+      "n_steps": 4,
+      "pool_scores": {
+       "0": 0.75,
+       "1": 0.875,
+       "2": 0.875,
+       "3": 0.75
+      },
+      "selected_exp_id": "rl-000",
+      "selected_heldout_score": 0.958333,
+      "selected_on": "heldout",
+      "selected_step": 0,
+      "step_history": [
+       {
+        "adv_spread": 0.0,
+        "keep_rate": 0.75,
+        "kl": 0.0,
+        "last_heldout": 0.958333,
+        "loss": 0.0,
+        "n_used": 0,
+        "phase": "heldout-gate",
+        "pool_score": 0.75,
+        "step": 0,
+        "step_duration": 735.671,
+        "trained": false
+       },
+       {
+        "adv_spread": 0.0,
+        "keep_rate": 0.875,
+        "kl": 0.0,
+        "last_heldout": null,
+        "loss": 0.0,
+        "n_used": 0,
+        "phase": "training",
+        "pool_score": 0.875,
+        "step": 1,
+        "step_duration": 436.804,
+        "trained": false
+       },
+       {
+        "adv_spread": 0.0,
+        "keep_rate": 0.875,
+        "kl": 0.0,
+        "last_heldout": null,
+        "loss": 0.0,
+        "n_used": 0,
+        "phase": "training",
+        "pool_score": 0.875,
+        "step": 2,
+        "step_duration": 436.803,
+        "trained": false
+       },
+       {
+        "adv_spread": 0.0,
+        "keep_rate": 0.75,
+        "kl": 0.0,
+        "last_heldout": null,
+        "loss": 0.0,
+        "n_used": 0,
+        "phase": "training",
+        "pool_score": 0.75,
+        "step": 3,
+        "step_duration": 419.006,
+        "trained": false
+       }
+      ],
+      "upstream": {
+       "bench": "astro-bench-v0.1",
+       "corpus": "astro-sft-corpus",
+       "sft_init": "init-lora-r16"
+      },
+      "vertical": "astrodynamics"
+     }
+    },
+    {
+     "id": "76e22d059fdc4b38a84eff16533b1dc4",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 114 GB\", \"headroom_at_spawn_gb\": 114.75, \"min_headroom_gb\": 114.49, \"oom_deferred\": false, \"peak_used_gb\": 7.25, \"phase_used_gb\": {\"lane-bringup\": 7.25, \"sampling\": 7.25}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}",
+     "error": "The checkpoint you are trying to load has model type `qwen3` but Transformers does not recognize this architecture. This could be because of an issue with the checkpoint, or because your version of Transformers is out of date.",
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T18:18:13Z",
+     "dispatched_at": "2026-06-06T18:18:24Z",
+     "finished_at": "2026-06-06T18:28:18Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 4,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "corpus_slug": "astro-sft-corpus",
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "sft_init": "init-lora-r16",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "adv_spread": null,
+      "base": "merged-hf-bf16",
+      "domain": "astrodynamics",
+      "eta_s": null,
+      "gate": false,
+      "keep_rate": null,
+      "last_heldout": null,
+      "max_steps": 4,
+      "mem": {
+       "abort_headroom_gb": null,
+       "display": "peak 7 GB \u00b7 min headroom 114 GB",
+       "headroom_at_spawn_gb": 114.75,
+       "min_headroom_gb": 114.49,
+       "oom_deferred": false,
+       "peak_used_gb": 7.25,
+       "phase_used_gb": {
+        "lane-bringup": 7.25,
+        "sampling": 7.25
+       },
+       "total_gb": 121.69
+      },
+      "n_used": null,
+      "phase": "sampling",
+      "pool_score": null,
+      "status": "running",
+      "step": 0,
+      "trained": null
+     }
+    },
+    {
+     "id": "f91c31b2f9a24f94adf7516e2e651191",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 115 GB\", \"headroom_at_spawn_gb\": 115.11, \"min_headroom_gb\": 114.77, \"oom_deferred\": false, \"peak_used_gb\": 6.97, \"phase_used_gb\": {\"lane-bringup\": 6.96, \"sampling\": 6.97}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}",
+     "error": "\n requires the protobuf library but it was not found in your environment. Check out the instructions on the\ninstallation page of its repo: https://github.com/protocolbuffers/protobuf/tree/master/python#installation and follow the ones\nthat match your environment. Please note that you may need to restart your runtime after installation.\n",
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T18:03:25Z",
+     "dispatched_at": "2026-06-06T18:03:33Z",
+     "finished_at": "2026-06-06T18:15:34Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 4,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "corpus_slug": "astro-sft-corpus",
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "sft_init": "init-lora-r16",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "adv_spread": null,
+      "base": "merged-hf-bf16",
+      "domain": "astrodynamics",
+      "eta_s": null,
+      "gate": false,
+      "keep_rate": null,
+      "last_heldout": null,
+      "max_steps": 4,
+      "mem": {
+       "abort_headroom_gb": null,
+       "display": "peak 7 GB \u00b7 min headroom 115 GB",
+       "headroom_at_spawn_gb": 115.11,
+       "min_headroom_gb": 114.77,
+       "oom_deferred": false,
+       "peak_used_gb": 6.97,
+       "phase_used_gb": {
+        "lane-bringup": 6.96,
+        "sampling": 6.97
+       },
+       "total_gb": 121.69
+      },
+      "n_used": null,
+      "phase": "sampling",
+      "pool_score": null,
+      "status": "running",
+      "step": 0,
+      "trained": null
+     }
+    },
+    {
+     "id": "bb819c81b5324f4f8159ad58b2d846ca",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 115 GB\", \"headroom_at_spawn_gb\": 115.12, \"min_headroom_gb\": 114.76, \"oom_deferred\": false, \"peak_used_gb\": 6.94, \"phase_used_gb\": {\"lane-bringup\": 6.94, \"sampling\": 6.94}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}",
+     "error": "Cannot copy out of meta tensor; no data!",
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T17:49:19Z",
+     "dispatched_at": "2026-06-06T17:49:31Z",
+     "finished_at": "2026-06-06T18:01:04Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 4,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "corpus_slug": "astro-sft-corpus",
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "sft_init": "init-lora-r16",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "adv_spread": null,
+      "base": "merged-hf-bf16",
+      "domain": "astrodynamics",
+      "eta_s": null,
+      "gate": false,
+      "keep_rate": null,
+      "last_heldout": null,
+      "max_steps": 4,
+      "mem": {
+       "abort_headroom_gb": null,
+       "display": "peak 7 GB \u00b7 min headroom 115 GB",
+       "headroom_at_spawn_gb": 115.12,
+       "min_headroom_gb": 114.76,
+       "oom_deferred": false,
+       "peak_used_gb": 6.94,
+       "phase_used_gb": {
+        "lane-bringup": 6.94,
+        "sampling": 6.94
+       },
+       "total_gb": 121.69
+      },
+      "n_used": null,
+      "phase": "sampling",
+      "pool_score": null,
+      "status": "running",
+      "step": 0,
+      "trained": null
+     }
+    },
+    {
+     "id": "59e4b7a2038e471aaab921ce8d33dc75",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": "eval_rerun:claude-haiku-45:kepler-astro",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"6221a685b1e345158c3d20ceabc16fd4\", \"guardrail\": {\"aborted_by\": \"cost_cap\", \"cost_cap_usd\": 0.05, \"n_scored\": 19, \"partial\": true, \"priced\": true, \"run_cost_usd\": 0.051523, \"stall_timeout_s\": 600.0, \"tokens_in\": 1558, \"tokens_out\": 9993}, \"lane_id\": \"claude-haiku-45\", \"mean_normalized\": 0.8947368421052632, \"n_scored\": 19}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T17:43:28Z",
+     "dispatched_at": "2026-06-06T17:43:28Z",
+     "finished_at": "2026-06-06T17:44:28Z",
+     "arq_job_id": null,
+     "payload": {
+      "api_key_env": "OPENROUTER_API_KEY",
+      "bench_id": "kepler-astro",
+      "lane_id": "claude-haiku-45",
+      "limit": 44,
+      "model": "anthropic/claude-haiku-4.5"
+     },
+     "result": {
+      "bench_id": "kepler-astro",
+      "eval_run_id": "6221a685b1e345158c3d20ceabc16fd4",
+      "guardrail": {
+       "aborted_by": "cost_cap",
+       "cost_cap_usd": 0.05,
+       "n_scored": 19,
+       "partial": true,
+       "priced": true,
+       "run_cost_usd": 0.051523,
+       "stall_timeout_s": 600.0,
+       "tokens_in": 1558,
+       "tokens_out": 9993
+      },
+      "lane_id": "claude-haiku-45",
+      "mean_normalized": 0.8947368421052632,
+      "n_scored": 19
+     }
+    },
+    {
+     "id": "c8e2ef1e04e647459bcb92a9c4be7fae",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": "eval_rerun:deepseek-r1:kepler-astro",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f60b3c046d17419ab37abb59c509b559\", \"guardrail\": {\"aborted_by\": \"teardown\", \"cost_cap_usd\": 0.05, \"n_scored\": 3, \"partial\": true, \"priced\": false, \"run_cost_usd\": 0.0, \"stall_timeout_s\": 600.0, \"tokens_in\": 178, \"tokens_out\": 33863}, \"lane_id\": \"deepseek-r1\", \"mean_normalized\": 1.0, \"n_scored\": 3}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T17:18:09Z",
+     "dispatched_at": "2026-06-06T17:18:09Z",
+     "finished_at": "2026-06-06T17:40:38Z",
+     "arq_job_id": null,
+     "payload": {
+      "api_key_env": "OPENROUTER_API_KEY",
+      "bench_id": "kepler-astro",
+      "lane_id": "deepseek-r1",
+      "limit": 20,
+      "model": "deepseek/deepseek-r1"
+     },
+     "result": {
+      "bench_id": "kepler-astro",
+      "eval_run_id": "f60b3c046d17419ab37abb59c509b559",
+      "guardrail": {
+       "aborted_by": "teardown",
+       "cost_cap_usd": 0.05,
+       "n_scored": 3,
+       "partial": true,
+       "priced": false,
+       "run_cost_usd": 0.0,
+       "stall_timeout_s": 600.0,
+       "tokens_in": 178,
+       "tokens_out": 33863
+      },
+      "lane_id": "deepseek-r1",
+      "mean_normalized": 1.0,
+      "n_scored": 3
+     }
+    },
+    {
+     "id": "47a431735c204901b7415ca7d5a2e9a4",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": "eval_rerun:kepler-q8-gguf:kepler-astro",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f16f1bc1e11742c898ee9024a40103e4\", \"lane_id\": \"kepler-q8-gguf\", \"mean_normalized\": 0.8, \"n_scored\": 10}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-06T17:15:16Z",
+     "dispatched_at": "2026-06-06T17:15:16Z",
+     "finished_at": "2026-06-06T17:16:37Z",
+     "arq_job_id": null,
+     "payload": {
+      "bench_id": "kepler-astro",
+      "lane_id": "kepler-q8-gguf",
+      "limit": 10,
+      "model": "kepler-Q8_0"
+     },
+     "result": {
+      "bench_id": "kepler-astro",
+      "eval_run_id": "f16f1bc1e11742c898ee9024a40103e4",
+      "lane_id": "kepler-q8-gguf",
+      "mean_normalized": 0.8,
+      "n_scored": 10
+     }
+    },
+    {
+     "id": "73bf9841afc644c7a2abe96fe4b3a71f",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": "eval_rerun:deepseek-r1:kepler-astro",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"fe7ff6c39de54143bf1073d0972ea8be\", \"lane_id\": \"deepseek-r1\", \"mean_normalized\": 0.8378378378378378, \"n_scored\": 37}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-05T16:32:38Z",
+     "dispatched_at": "2026-06-05T16:32:38Z",
+     "finished_at": "2026-06-05T21:14:35Z",
+     "arq_job_id": null,
+     "payload": {
+      "api_key_env": "OPENROUTER_API_KEY",
+      "bench_id": "kepler-astro",
+      "lane_id": "deepseek-r1",
+      "model": "deepseek/deepseek-r1"
+     },
+     "result": {
+      "bench_id": "kepler-astro",
+      "eval_run_id": "fe7ff6c39de54143bf1073d0972ea8be",
+      "lane_id": "deepseek-r1",
+      "mean_normalized": 0.8378378378378378,
+      "n_scored": 37
+     }
+    },
+    {
+     "id": "4b834bf44b584c7d9505e602d6fdb378",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": "eval_rerun:kepler-q8-gguf:kepler-astro",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f832570f3c644798880a45ae034d667f\", \"lane_id\": \"kepler-q8-gguf\", \"mean_normalized\": 0.8636363636363636, \"n_scored\": 44}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-05T16:26:48Z",
+     "dispatched_at": "2026-06-05T16:26:48Z",
+     "finished_at": "2026-06-05T16:31:58Z",
+     "arq_job_id": null,
+     "payload": {
+      "api_key_env": null,
+      "bench_id": "kepler-astro",
+      "lane_id": "kepler-q8-gguf",
+      "model": "kepler-Q8_0"
+     },
+     "result": {
+      "bench_id": "kepler-astro",
+      "eval_run_id": "f832570f3c644798880a45ae034d667f",
+      "lane_id": "kepler-q8-gguf",
+      "mean_normalized": 0.8636363636363636,
+      "n_scored": 44
+     }
+    },
+    {
+     "id": "08e6cca7913043c4bae0e7ad15f60b4a",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16\", \"heldout_scores\": {\"0\": 0.958333, \"10\": 0.958333, \"20\": 0.958333, \"30\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_rl-008** (core_metric=0.968750).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: rl-008\\n- **core_metric**: 0.968750\\n- **specialist**: astrodynamics\\n- **hypothesis**: GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97)\\n- **snapshot**: `adapter`\\n\\n## Top 20 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| rl-008 | 0.968750 | \\u2014 | astrodynamics | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-010 | 0.968750 | \\u2014 | astrodynamics | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-010 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 10 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-020 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 20 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-030 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-007 | 0.906250 | \\u2014 | astrodynamics | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-012 | 0.906250 | \\u2014 | astrodynamics | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-013 | 0.906250 | \\u2014 | astrodynamics | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-018 | 0.906250 | \\u2014 | astrodynamics | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-025 | 0.906250 | \\u2014 | astrodynamics | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-009 | 0.875000 | \\u2014 | astrodynamics | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-014 | 0.875000 | \\u2014 | astrodynamics | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-024 | 0.875000 | \\u2014 | astrodynamics | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-032 | 0.875000 | \\u2014 | astrodynamics | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-004 | 0.843750 | \\u2014 | astrodynamics | GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84) |\\n| rl-006 | 0.843750 | \\u2014 | astrodynamics | GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84) |\\n| rl-016 | 0.812500 | \\u2014 | astrodynamics | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.78)\\n \\u2514\\u2500 exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n \\u2514\\u2500 exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n \\u2514\\u2500 exp_rl-003 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.78)\\n \\u2514\\u2500 exp_rl-004 [astrodynamics, keep, metric=0.843750, \\u0394=\\u2014] GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84)\\n \\u2514\\u2500 exp_rl-005 [astrodynamics, keep, metric=0.718750, \\u0394=\\u2014] GRPO step 5 (k=4, 8 tasks, pool keep-rate 0.72)\\n \\u2514\\u2500 exp_rl-006 [astrodynamics, keep, metric=0.843750, \\u0394=\\u2014] GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84)\\n \\u2514\\u2500 exp_rl-007 [astrodynamics, keep, metric=0.906250, \\u0394=\\u2014] GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91)\\n \\u2514\\u2500 exp_rl-008 [astrodynamics, keep, metric=0.968750, \\u0394=\\u2014] GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) \\u2190 BEST\\n```\\n\\n## Recent Activity (last 30)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-033 | astrodynamics | keep | 0.781250 | GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-032 | astrodynamics | keep | 0.875000 | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-031 | astrodynamics | keep | 0.687500 | GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69) |\\n| heldout-030 | heldout-gate | keep | 0.958333 | held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-030 | astrodynamics | keep | 0.687500 | GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69) |\\n| rl-029 | astrodynamics | keep | 0.812500 | GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-028 | astrodynamics | keep | 0.718750 | GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72) |\\n| rl-027 | astrodynamics | keep | 0.781250 | GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-026 | astrodynamics | keep | 0.781250 | GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-025 | astrodynamics | keep | 0.906250 | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-024 | astrodynamics | keep | 0.875000 | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-023 | astrodynamics | keep | 0.781250 | GRPO step 23 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-022 | astrodynamics | keep | 0.656250 | GRPO step 22 (k=4, 8 tasks, pool keep-rate 0.66) |\\n| rl-021 | astrodynamics | keep | 0.750000 | GRPO step 21 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| heldout-020 | heldout-gate | keep | 0.958333 | held-out gate @ step 20 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-020 | astrodynamics | keep | 0.812500 | GRPO step 20 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-019 | astrodynamics | keep | 0.781250 | GRPO step 19 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-018 | astrodynamics | keep | 0.906250 | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-017 | astrodynamics | keep | 0.718750 | GRPO step 17 (k=4, 8 tasks, pool keep-rate 0.72) |\\n| rl-016 | astrodynamics | keep | 0.812500 | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-015 | astrodynamics | keep | 0.781250 | GRPO step 15 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-014 | astrodynamics | keep | 0.875000 | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-013 | astrodynamics | keep | 0.906250 | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-012 | astrodynamics | keep | 0.906250 | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-011 | astrodynamics | keep | 0.593750 | GRPO step 11 (k=4, 8 tasks, pool keep-rate 0.59) |\\n| heldout-010 | heldout-gate | keep | 0.958333 | held-out gate @ step 10 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-010 | astrodynamics | keep | 0.968750 | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-009 | astrodynamics | keep | 0.875000 | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-008 | astrodynamics | keep | 0.968750 | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-007 | astrodynamics | keep | 0.906250 | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\\n\\n## Recent Activity (most recent 10 \\u2014 full hypothesis)\\n- exp_rl-033 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=0.007 kl=0.0001 vllm_pin=\\n- exp_rl-032 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-031 [astrodynamics, keep, metric=0.687500, \\u0394=\\u2014] GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69)\\n  \\u2514\\u2500 loss=-0.0098 kl=0.0001 vllm_pin=\\n- exp_heldout-030 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-030 [astrodynamics, keep, metric=0.687500, \\u0394=\\u2014] GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69)\\n  \\u2514\\u2500 loss=-0.006 kl=0.0001 vllm_pin=\\n- exp_rl-029 [astrodynamics, keep, metric=0.812500, \\u0394=\\u2014] GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81)\\n  \\u2514\\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\\n- exp_rl-028 [astrodynamics, keep, metric=0.718750, \\u0394=\\u2014] GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72)\\n  \\u2514\\u2500 loss=0.0049 kl=0.0002 vllm_pin=\\n- exp_rl-027 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=-0.0068 kl=0.0001 vllm_pin=\\n- exp_rl-026 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\\n- exp_rl-025 [astrodynamics, keep, metric=0.906250, \\u0394=\\u2014] GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91)\\n  \\u2514\\u2500 loss=-0.001 kl=0.0 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 104 GB \\u00b7 min headroom 18 GB\", \"headroom_at_spawn_gb\": 113.9, \"min_headroom_gb\": 17.6, \"oom_deferred\": false, \"peak_used_gb\": 104.09, \"phase_used_gb\": {\"heldout-gate\": 93.74, \"lane-bringup\": 8.16, \"sampling\": 93.86, \"teardown\": 93.64, \"training\": 93.64}, \"total_gb\": 121.69}, \"n_steps\": 34, \"pool_scores\": {\"0\": 0.78125, \"1\": 0.875, \"2\": 0.875, \"3\": 0.78125, \"4\": 0.84375, \"5\": 0.71875, \"6\": 0.84375, \"7\": 0.90625, \"8\": 0.96875, \"9\": 0.875, \"10\": 0.96875, \"11\": 0.59375, \"12\": 0.90625, \"13\": 0.90625, \"14\": 0.875, \"15\": 0.78125, \"16\": 0.8125, \"17\": 0.71875, \"18\": 0.90625, \"19\": 0.78125, \"20\": 0.8125, \"21\": 0.75, \"22\": 0.65625, \"23\": 0.78125, \"24\": 0.875, \"25\": 0.90625, \"26\": 0.78125, \"27\": 0.78125, \"28\": 0.71875, \"29\": 0.8125, \"30\": 0.6875, \"31\": 0.6875, \"32\": 0.875, \"33\": 0.78125}, \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"vertical\": \"astrodynamics\"}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-04T23:51:23Z",
+     "dispatched_at": "2026-06-04T23:51:55Z",
+     "finished_at": "2026-06-05T05:59:59Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 34,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "aborted": false,
+      "base": "merged-hf-bf16",
+      "heldout_scores": {
+       "0": 0.958333,
+       "10": 0.958333,
+       "20": 0.958333,
+       "30": 0.958333
+      },
+      "kind": "rl_run",
+      "lineage_card": "# Session start \u2014 \u2014\nYou are specialist **rl_run**. Current best: **exp_rl-008** (core_metric=0.968750).\n\n## LEADERBOARD.md\n\n## Current Best\n- **exp_id**: rl-008\n- **core_metric**: 0.968750\n- **specialist**: astrodynamics\n- **hypothesis**: GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97)\n- **snapshot**: `adapter`\n\n## Top 20 Kept Trials\n\n| exp | core_metric | \u0394 | specialist | hypothesis |\n|-----|-------------|---|------------|------------|\n| rl-008 | 0.968750 | \u2014 | astrodynamics | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\n| rl-010 | 0.968750 | \u2014 | astrodynamics | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\n| heldout-000 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| heldout-010 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 10 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| heldout-020 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 20 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| heldout-030 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 30 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-007 | 0.906250 | \u2014 | astrodynamics | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-012 | 0.906250 | \u2014 | astrodynamics | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-013 | 0.906250 | \u2014 | astrodynamics | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-018 | 0.906250 | \u2014 | astrodynamics | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-025 | 0.906250 | \u2014 | astrodynamics | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-001 | 0.875000 | \u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-002 | 0.875000 | \u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-009 | 0.875000 | \u2014 | astrodynamics | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-014 | 0.875000 | \u2014 | astrodynamics | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-024 | 0.875000 | \u2014 | astrodynamics | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-032 | 0.875000 | \u2014 | astrodynamics | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-004 | 0.843750 | \u2014 | astrodynamics | GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84) |\n| rl-006 | 0.843750 | \u2014 | astrodynamics | GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84) |\n| rl-016 | 0.812500 | \u2014 | astrodynamics | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\n\n## KNOWLEDGE.md\n\n**Current-best lineage** (root \u2192 best):\n```\nexp_baseline [baseline, baseline, metric=\u2014, \u0394=\u2014] RLVR seed \u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \u2026\n \u2514\u2500 exp_rl-000 [astrodynamics, keep, metric=0.781250, \u0394=\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.78)\n \u2514\u2500 exp_rl-001 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\n \u2514\u2500 exp_rl-002 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\n \u2514\u2500 exp_rl-003 [astrodynamics, keep, metric=0.781250, \u0394=\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.78)\n \u2514\u2500 exp_rl-004 [astrodynamics, keep, metric=0.843750, \u0394=\u2014] GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84)\n \u2514\u2500 exp_rl-005 [astrodynamics, keep, metric=0.718750, \u0394=\u2014] GRPO step 5 (k=4, 8 tasks, pool keep-rate 0.72)\n \u2514\u2500 exp_rl-006 [astrodynamics, keep, metric=0.843750, \u0394=\u2014] GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84)\n \u2514\u2500 exp_rl-007 [astrodynamics, keep, metric=0.906250, \u0394=\u2014] GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91)\n \u2514\u2500 exp_rl-008 [astrodynamics, keep, metric=0.968750, \u0394=\u2014] GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) \u2190 BEST\n```\n\n## Recent Activity (last 30)\n\n| exp | specialist | status | core_metric | hypothesis |\n|-----|------------|--------|-------------|------------|\n| rl-033 | astrodynamics | keep | 0.781250 | GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-032 | astrodynamics | keep | 0.875000 | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-031 | astrodynamics | keep | 0.687500 | GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69) |\n| heldout-030 | heldout-gate | keep | 0.958333 | held-out gate @ step 30 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-030 | astrodynamics | keep | 0.687500 | GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69) |\n| rl-029 | astrodynamics | keep | 0.812500 | GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81) |\n| rl-028 | astrodynamics | keep | 0.718750 | GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72) |\n| rl-027 | astrodynamics | keep | 0.781250 | GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-026 | astrodynamics | keep | 0.781250 | GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-025 | astrodynamics | keep | 0.906250 | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-024 | astrodynamics | keep | 0.875000 | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-023 | astrodynamics | keep | 0.781250 | GRPO step 23 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-022 | astrodynamics | keep | 0.656250 | GRPO step 22 (k=4, 8 tasks, pool keep-rate 0.66) |\n| rl-021 | astrodynamics | keep | 0.750000 | GRPO step 21 (k=4, 8 tasks, pool keep-rate 0.75) |\n| heldout-020 | heldout-gate | keep | 0.958333 | held-out gate @ step 20 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-020 | astrodynamics | keep | 0.812500 | GRPO step 20 (k=4, 8 tasks, pool keep-rate 0.81) |\n| rl-019 | astrodynamics | keep | 0.781250 | GRPO step 19 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-018 | astrodynamics | keep | 0.906250 | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-017 | astrodynamics | keep | 0.718750 | GRPO step 17 (k=4, 8 tasks, pool keep-rate 0.72) |\n| rl-016 | astrodynamics | keep | 0.812500 | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\n| rl-015 | astrodynamics | keep | 0.781250 | GRPO step 15 (k=4, 8 tasks, pool keep-rate 0.78) |\n| rl-014 | astrodynamics | keep | 0.875000 | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-013 | astrodynamics | keep | 0.906250 | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-012 | astrodynamics | keep | 0.906250 | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\n| rl-011 | astrodynamics | keep | 0.593750 | GRPO step 11 (k=4, 8 tasks, pool keep-rate 0.59) |\n| heldout-010 | heldout-gate | keep | 0.958333 | held-out gate @ step 10 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-010 | astrodynamics | keep | 0.968750 | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\n| rl-009 | astrodynamics | keep | 0.875000 | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-008 | astrodynamics | keep | 0.968750 | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\n| rl-007 | astrodynamics | keep | 0.906250 | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\n\n## Recent Activity (most recent 10 \u2014 full hypothesis)\n- exp_rl-033 [astrodynamics, keep, metric=0.781250, \u0394=\u2014] GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78)\n  \u2514\u2500 loss=0.007 kl=0.0001 vllm_pin=\n- exp_rl-032 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_rl-031 [astrodynamics, keep, metric=0.687500, \u0394=\u2014] GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69)\n  \u2514\u2500 loss=-0.0098 kl=0.0001 vllm_pin=\n- exp_heldout-030 [heldout-gate, keep, metric=0.958333, \u0394=\u2014] held-out gate @ step 30 (frozen split, n=24) \u2014 selection metric, NOT pool\n  \u2514\u2500 held-out checkpoint-selection metric (RV-4)\n- exp_rl-030 [astrodynamics, keep, metric=0.687500, \u0394=\u2014] GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69)\n  \u2514\u2500 loss=-0.006 kl=0.0001 vllm_pin=\n- exp_rl-029 [astrodynamics, keep, metric=0.812500, \u0394=\u2014] GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81)\n  \u2514\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\n- exp_rl-028 [astrodynamics, keep, metric=0.718750, \u0394=\u2014] GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72)\n  \u2514\u2500 loss=0.0049 kl=0.0002 vllm_pin=\n- exp_rl-027 [astrodynamics, keep, metric=0.781250, \u0394=\u2014] GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78)\n  \u2514\u2500 loss=-0.0068 kl=0.0001 vllm_pin=\n- exp_rl-026 [astrodynamics, keep, metric=0.781250, \u0394=\u2014] GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78)\n  \u2514\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\n- exp_rl-025 [astrodynamics, keep, metric=0.906250, \u0394=\u2014] GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91)\n  \u2514\u2500 loss=-0.001 kl=0.0 vllm_pin=\n\n",
+      "mem_trace": {
+       "abort_headroom_gb": null,
+       "display": "peak 104 GB \u00b7 min headroom 18 GB",
+       "headroom_at_spawn_gb": 113.9,
+       "min_headroom_gb": 17.6,
+       "oom_deferred": false,
+       "peak_used_gb": 104.09,
+       "phase_used_gb": {
+        "heldout-gate": 93.74,
+        "lane-bringup": 8.16,
+        "sampling": 93.86,
+        "teardown": 93.64,
+        "training": 93.64
+       },
+       "total_gb": 121.69
+      },
+      "n_steps": 34,
+      "pool_scores": {
+       "0": 0.78125,
+       "1": 0.875,
+       "2": 0.875,
+       "3": 0.78125,
+       "4": 0.84375,
+       "5": 0.71875,
+       "6": 0.84375,
+       "7": 0.90625,
+       "8": 0.96875,
+       "9": 0.875,
+       "10": 0.96875,
+       "11": 0.59375,
+       "12": 0.90625,
+       "13": 0.90625,
+       "14": 0.875,
+       "15": 0.78125,
+       "16": 0.8125,
+       "17": 0.71875,
+       "18": 0.90625,
+       "19": 0.78125,
+       "20": 0.8125,
+       "21": 0.75,
+       "22": 0.65625,
+       "23": 0.78125,
+       "24": 0.875,
+       "25": 0.90625,
+       "26": 0.78125,
+       "27": 0.78125,
+       "28": 0.71875,
+       "29": 0.8125,
+       "30": 0.6875,
+       "31": 0.6875,
+       "32": 0.875,
+       "33": 0.78125
+      },
+      "selected_heldout_score": 0.958333,
+      "selected_on": "heldout",
+      "selected_step": 0,
+      "vertical": "astrodynamics"
+     }
+    },
+    {
+     "id": "ac8739be9f704049a08b2c2a9d76286e",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "priority": 0,
+     "dedup_key": "rl_run:astro-rlvr:astro-bench-v0.1",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16\", \"heldout_scores\": {\"0\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: heldout-000\\n- **core_metric**: 0.958333\\n- **specialist**: heldout-gate\\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n\\n## Top 5 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-000 | 0.750000 | \\u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-003 | 0.750000 | \\u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n \\u2514\\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool \\u2190 BEST\\n```\\n\\n## Recent Activity (last 6)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| baseline | baseline | baseline | \\u2014 | RLVR seed \\u2014 base=merged-hf-bf16, ra\\u2026 |\\n\\n## Recent Activity (most recent 6 \\u2014 full hypothesis)\\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\\n  \\u2514\\u2500 corpus_min=100 heldout_every=10 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 106 GB \\u00b7 min headroom 16 GB\", \"headroom_at_spawn_gb\": 77.68, \"min_headroom_gb\": 16.06, \"oom_deferred\": false, \"peak_used_gb\": 105.63, \"phase_used_gb\": {\"heldout-gate\": 104.56, \"lane-bringup\": 44.39, \"sampling\": 105.42, \"teardown\": 105.62, \"training\": 105.62}, \"total_gb\": 121.69}, \"n_steps\": 4, \"pool_scores\": {\"0\": 0.75, \"1\": 0.875, \"2\": 0.875, \"3\": 0.75}, \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"vertical\": \"astrodynamics\"}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-04T22:48:12Z",
+     "dispatched_at": "2026-06-04T22:48:56Z",
+     "finished_at": "2026-06-04T23:25:47Z",
+     "arq_job_id": null,
+     "payload": {
+      "base": "merged-hf-bf16",
+      "bench_id": "astro-bench-v0.1",
+      "bench_path": "astro-bench-v0.1.jsonl",
+      "config": {
+       "group_k": 4,
+       "heldout_every": 10,
+       "heldout_frac": 0.2,
+       "lora_rank": 16,
+       "max_steps": 4,
+       "seed": 0,
+       "tasks_per_step": 8
+      },
+      "lane_id": "astro-rlvr",
+      "scorer_path": "verifier.py:astro_numeric_match",
+      "vertical": "astrodynamics"
+     },
+     "result": {
+      "aborted": false,
+      "base": "merged-hf-bf16",
+      "heldout_scores": {
+       "0": 0.958333
+      },
+      "kind": "rl_run",
+      "lineage_card": "# Session start \u2014 \u2014\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\n\n## LEADERBOARD.md\n\n## Current Best\n- **exp_id**: heldout-000\n- **core_metric**: 0.958333\n- **specialist**: heldout-gate\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool\n\n## Top 5 Kept Trials\n\n| exp | core_metric | \u0394 | specialist | hypothesis |\n|-----|-------------|---|------------|------------|\n| heldout-000 | 0.958333 | \u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-001 | 0.875000 | \u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-002 | 0.875000 | \u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-000 | 0.750000 | \u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\n| rl-003 | 0.750000 | \u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\n\n## KNOWLEDGE.md\n\n**Current-best lineage** (root \u2192 best):\n```\nexp_baseline [baseline, baseline, metric=\u2014, \u0394=\u2014] RLVR seed \u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \u2026\n \u2514\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\n \u2514\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \u0394=\u2014] held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool \u2190 BEST\n```\n\n## Recent Activity (last 6)\n\n| exp | specialist | status | core_metric | hypothesis |\n|-----|------------|--------|-------------|------------|\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool |\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\n| baseline | baseline | baseline | \u2014 | RLVR seed \u2014 base=merged-hf-bf16, ra\u2026 |\n\n## Recent Activity (most recent 6 \u2014 full hypothesis)\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \u0394=\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \u0394=\u2014] held-out gate @ step 0 (frozen split, n=24) \u2014 selection metric, NOT pool\n  \u2514\u2500 held-out checkpoint-selection metric (RV-4)\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \u0394=\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\n  \u2514\u2500 loss=0.0 kl=0.0 vllm_pin=\n- exp_baseline [baseline, baseline, metric=\u2014, \u0394=\u2014] RLVR seed \u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\n  \u2514\u2500 corpus_min=100 heldout_every=10 vllm_pin=\n\n",
+      "mem_trace": {
+       "abort_headroom_gb": null,
+       "display": "peak 106 GB \u00b7 min headroom 16 GB",
+       "headroom_at_spawn_gb": 77.68,
+       "min_headroom_gb": 16.06,
+       "oom_deferred": false,
+       "peak_used_gb": 105.63,
+       "phase_used_gb": {
+        "heldout-gate": 104.56,
+        "lane-bringup": 44.39,
+        "sampling": 105.42,
+        "teardown": 105.62,
+        "training": 105.62
+       },
+       "total_gb": 121.69
+      },
+      "n_steps": 4,
+      "pool_scores": {
+       "0": 0.75,
+       "1": 0.875,
+       "2": 0.875,
+       "3": 0.75
+      },
+      "selected_heldout_score": 0.958333,
+      "selected_on": "heldout",
+      "selected_step": 0,
+      "vertical": "astrodynamics"
+     }
+    },
+    {
+     "id": "6c93b3f7bdb94aac967e5153a1fa5bdf",
+     "kind": "rag_eval",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": null,
+     "result_json": "{\"delta\": 0.0, \"prior_recall_at_k\": 0.4091, \"promote\": true, \"qa_set\": \"qa-eval.jsonl\", \"rag_eval_run_id\": \"a7a4b1e127c14d80ade915f2c1c0a43d\", \"recall_at_k\": 0.4091, \"rerank\": 0, \"slug_recall_at_k\": 0.7273}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-03T11:09:19Z",
+     "dispatched_at": "2026-06-03T11:09:19Z",
+     "finished_at": "2026-06-03T11:09:21Z",
+     "arq_job_id": null,
+     "payload": {},
+     "result": {
+      "delta": 0.0,
+      "prior_recall_at_k": 0.4091,
+      "promote": true,
+      "qa_set": "qa-eval.jsonl",
+      "rag_eval_run_id": "a7a4b1e127c14d80ade915f2c1c0a43d",
+      "recall_at_k": 0.4091,
+      "rerank": 0,
+      "slug_recall_at_k": 0.7273
+     }
+    },
+    {
+     "id": "d0e5379c0dc54294974ab0d5df1927a7",
+     "kind": "reindex",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": null,
+     "result_json": "{\"articles_n\": 50, \"by_source\": {\"article\": 313}, \"chunks_after\": 313, \"chunks_before\": 313, \"index_version\": \"idx-50d-313c-80b7d7dd0e66\", \"reindex_run_id\": \"11a481ffc7744095b61075e4135b4d57\", \"source_set\": \"articles\"}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-03T11:04:19Z",
+     "dispatched_at": "2026-06-03T11:04:21Z",
+     "finished_at": "2026-06-03T11:07:10Z",
+     "arq_job_id": null,
+     "payload": {
+      "source_set": "articles"
+     },
+     "result": {
+      "articles_n": 50,
+      "by_source": {
+       "article": 313
+      },
+      "chunks_after": 313,
+      "chunks_before": 313,
+      "index_version": "idx-50d-313c-80b7d7dd0e66",
+      "reindex_run_id": "11a481ffc7744095b61075e4135b4d57",
+      "source_set": "articles"
+     }
+    },
+    {
+     "id": "e4744f4bbe3f4f85a7875bb36a4f272f",
+     "kind": "rag_eval",
+     "status": "done",
+     "trigger": "operator",
+     "priority": 0,
+     "dedup_key": null,
+     "result_json": "{\"delta\": null, \"prior_recall_at_k\": null, \"promote\": true, \"qa_set\": \"qa-eval.jsonl\", \"rag_eval_run_id\": \"5c586029702144d4a6dafda8e252766b\", \"recall_at_k\": 0.4091, \"rerank\": 0, \"slug_recall_at_k\": 0.7273}",
+     "error": null,
+     "attempt": 0,
+     "enqueued_at": "2026-06-03T11:04:19Z",
+     "dispatched_at": "2026-06-03T11:04:19Z",
+     "finished_at": "2026-06-03T11:04:21Z",
+     "arq_job_id": null,
+     "payload": {},
+     "result": {
+      "delta": null,
+      "prior_recall_at_k": null,
+      "promote": true,
+      "qa_set": "qa-eval.jsonl",
+      "rag_eval_run_id": "5c586029702144d4a6dafda8e252766b",
+      "recall_at_k": 0.4091,
+      "rerank": 0,
+      "slug_recall_at_k": 0.7273
+     }
+    }
+   ]
+  },
+  "/api/standup": {
+   "generated_at": "2026-06-07T08:10:09Z",
+   "ran": [
+    {
+     "id": "35ed71b905694958ac1cd4fc47604553",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-06T18:30:05Z",
+     "finished_at": "2026-06-06T19:09:25Z",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16-fixed\", \"heldout_scores\": {\"0\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: heldout-000\\n- **core_metric**: 0.958333\\n- **specialist**: heldout-gate\\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n\\n## Top 5 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-000 | 0.750000 | \\u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-003 | 0.750000 | \\u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=\\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n \\u2514\\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool \\u2190 BEST\\n```\\n\\n## Recent Activity (last 6)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| baseline | baseline | baseline | \\u2014 | RLVR seed \\u2014 base=merged-hf-bf16-fix\\u2026 |\\n\\n## Recent Activity (most recent 6 \\u2014 full hypothesis)\\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16-fixed, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\\n  \\u2514\\u2500 corpus_min=100 heldout_every=10 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 92 GB \\u00b7 min headroom 30 GB\", \"headroom_at_spawn_gb\": 114.57, \"min_headroom_gb\": 29.7, \"oom_deferred\": false, \"peak_used_gb\": 91.99, \"phase_used_gb\": {\"heldout-gate\": 89.06, \"lane-bringup\": 7.47, \"sampling\": 89.14, \"teardown\": 89.02, \"training\": 89.02}, \"total_gb\": 121.69}, \"n_steps\": 4, \"pool_scores\": {\"0\": 0.75, \"1\": 0.875, \"2\": 0.875, \"3\": 0.75}, \"selected_exp_id\": \"rl-000\", \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"step_history\": [{\"adv_spread\": 0.0, \"keep_rate\": 0.75, \"kl\": 0.0, \"last_heldout\": 0.958333, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"heldout-gate\", \"pool_score\": 0.75, \"step\": 0, \"step_duration\": 735.671, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.875, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.875, \"step\": 1, \"step_duration\": 436.804, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.875, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.875, \"step\": 2, \"step_duration\": 436.803, \"trained\": false}, {\"adv_spread\": 0.0, \"keep_rate\": 0.75, \"kl\": 0.0, \"last_heldout\": null, \"loss\": 0.0, \"n_used\": 0, \"phase\": \"training\", \"pool_score\": 0.75, \"step\": 3, \"step_duration\": 419.006, \"trained\": false}], \"upstream\": {\"bench\": \"astro-bench-v0.1\", \"corpus\": \"astro-sft-corpus\", \"sft_init\": \"init-lora-r16\"}, \"vertical\": \"astrodynamics\"}"
+    },
+    {
+     "id": "59e4b7a2038e471aaab921ce8d33dc75",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-06T17:43:28Z",
+     "finished_at": "2026-06-06T17:44:28Z",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"6221a685b1e345158c3d20ceabc16fd4\", \"guardrail\": {\"aborted_by\": \"cost_cap\", \"cost_cap_usd\": 0.05, \"n_scored\": 19, \"partial\": true, \"priced\": true, \"run_cost_usd\": 0.051523, \"stall_timeout_s\": 600.0, \"tokens_in\": 1558, \"tokens_out\": 9993}, \"lane_id\": \"claude-haiku-45\", \"mean_normalized\": 0.8947368421052632, \"n_scored\": 19}"
+    },
+    {
+     "id": "c8e2ef1e04e647459bcb92a9c4be7fae",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-06T17:18:09Z",
+     "finished_at": "2026-06-06T17:40:38Z",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f60b3c046d17419ab37abb59c509b559\", \"guardrail\": {\"aborted_by\": \"teardown\", \"cost_cap_usd\": 0.05, \"n_scored\": 3, \"partial\": true, \"priced\": false, \"run_cost_usd\": 0.0, \"stall_timeout_s\": 600.0, \"tokens_in\": 178, \"tokens_out\": 33863}, \"lane_id\": \"deepseek-r1\", \"mean_normalized\": 1.0, \"n_scored\": 3}"
+    },
+    {
+     "id": "47a431735c204901b7415ca7d5a2e9a4",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-06T17:15:16Z",
+     "finished_at": "2026-06-06T17:16:37Z",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f16f1bc1e11742c898ee9024a40103e4\", \"lane_id\": \"kepler-q8-gguf\", \"mean_normalized\": 0.8, \"n_scored\": 10}"
+    },
+    {
+     "id": "73bf9841afc644c7a2abe96fe4b3a71f",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-05T16:32:38Z",
+     "finished_at": "2026-06-05T21:14:35Z",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"fe7ff6c39de54143bf1073d0972ea8be\", \"lane_id\": \"deepseek-r1\", \"mean_normalized\": 0.8378378378378378, \"n_scored\": 37}"
+    },
+    {
+     "id": "4b834bf44b584c7d9505e602d6fdb378",
+     "kind": "eval_rerun",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-05T16:26:48Z",
+     "finished_at": "2026-06-05T16:31:58Z",
+     "result_json": "{\"bench_id\": \"kepler-astro\", \"eval_run_id\": \"f832570f3c644798880a45ae034d667f\", \"lane_id\": \"kepler-q8-gguf\", \"mean_normalized\": 0.8636363636363636, \"n_scored\": 44}"
+    },
+    {
+     "id": "08e6cca7913043c4bae0e7ad15f60b4a",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-04T23:51:23Z",
+     "finished_at": "2026-06-05T05:59:59Z",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16\", \"heldout_scores\": {\"0\": 0.958333, \"10\": 0.958333, \"20\": 0.958333, \"30\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_rl-008** (core_metric=0.968750).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: rl-008\\n- **core_metric**: 0.968750\\n- **specialist**: astrodynamics\\n- **hypothesis**: GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97)\\n- **snapshot**: `adapter`\\n\\n## Top 20 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| rl-008 | 0.968750 | \\u2014 | astrodynamics | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-010 | 0.968750 | \\u2014 | astrodynamics | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-010 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 10 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-020 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 20 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| heldout-030 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-007 | 0.906250 | \\u2014 | astrodynamics | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-012 | 0.906250 | \\u2014 | astrodynamics | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-013 | 0.906250 | \\u2014 | astrodynamics | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-018 | 0.906250 | \\u2014 | astrodynamics | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-025 | 0.906250 | \\u2014 | astrodynamics | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-009 | 0.875000 | \\u2014 | astrodynamics | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-014 | 0.875000 | \\u2014 | astrodynamics | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-024 | 0.875000 | \\u2014 | astrodynamics | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-032 | 0.875000 | \\u2014 | astrodynamics | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-004 | 0.843750 | \\u2014 | astrodynamics | GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84) |\\n| rl-006 | 0.843750 | \\u2014 | astrodynamics | GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84) |\\n| rl-016 | 0.812500 | \\u2014 | astrodynamics | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.78)\\n \\u2514\\u2500 exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n \\u2514\\u2500 exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n \\u2514\\u2500 exp_rl-003 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.78)\\n \\u2514\\u2500 exp_rl-004 [astrodynamics, keep, metric=0.843750, \\u0394=\\u2014] GRPO step 4 (k=4, 8 tasks, pool keep-rate 0.84)\\n \\u2514\\u2500 exp_rl-005 [astrodynamics, keep, metric=0.718750, \\u0394=\\u2014] GRPO step 5 (k=4, 8 tasks, pool keep-rate 0.72)\\n \\u2514\\u2500 exp_rl-006 [astrodynamics, keep, metric=0.843750, \\u0394=\\u2014] GRPO step 6 (k=4, 8 tasks, pool keep-rate 0.84)\\n \\u2514\\u2500 exp_rl-007 [astrodynamics, keep, metric=0.906250, \\u0394=\\u2014] GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91)\\n \\u2514\\u2500 exp_rl-008 [astrodynamics, keep, metric=0.968750, \\u0394=\\u2014] GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) \\u2190 BEST\\n```\\n\\n## Recent Activity (last 30)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-033 | astrodynamics | keep | 0.781250 | GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-032 | astrodynamics | keep | 0.875000 | GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-031 | astrodynamics | keep | 0.687500 | GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69) |\\n| heldout-030 | heldout-gate | keep | 0.958333 | held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-030 | astrodynamics | keep | 0.687500 | GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69) |\\n| rl-029 | astrodynamics | keep | 0.812500 | GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-028 | astrodynamics | keep | 0.718750 | GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72) |\\n| rl-027 | astrodynamics | keep | 0.781250 | GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-026 | astrodynamics | keep | 0.781250 | GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-025 | astrodynamics | keep | 0.906250 | GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-024 | astrodynamics | keep | 0.875000 | GRPO step 24 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-023 | astrodynamics | keep | 0.781250 | GRPO step 23 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-022 | astrodynamics | keep | 0.656250 | GRPO step 22 (k=4, 8 tasks, pool keep-rate 0.66) |\\n| rl-021 | astrodynamics | keep | 0.750000 | GRPO step 21 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| heldout-020 | heldout-gate | keep | 0.958333 | held-out gate @ step 20 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-020 | astrodynamics | keep | 0.812500 | GRPO step 20 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-019 | astrodynamics | keep | 0.781250 | GRPO step 19 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-018 | astrodynamics | keep | 0.906250 | GRPO step 18 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-017 | astrodynamics | keep | 0.718750 | GRPO step 17 (k=4, 8 tasks, pool keep-rate 0.72) |\\n| rl-016 | astrodynamics | keep | 0.812500 | GRPO step 16 (k=4, 8 tasks, pool keep-rate 0.81) |\\n| rl-015 | astrodynamics | keep | 0.781250 | GRPO step 15 (k=4, 8 tasks, pool keep-rate 0.78) |\\n| rl-014 | astrodynamics | keep | 0.875000 | GRPO step 14 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-013 | astrodynamics | keep | 0.906250 | GRPO step 13 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-012 | astrodynamics | keep | 0.906250 | GRPO step 12 (k=4, 8 tasks, pool keep-rate 0.91) |\\n| rl-011 | astrodynamics | keep | 0.593750 | GRPO step 11 (k=4, 8 tasks, pool keep-rate 0.59) |\\n| heldout-010 | heldout-gate | keep | 0.958333 | held-out gate @ step 10 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-010 | astrodynamics | keep | 0.968750 | GRPO step 10 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-009 | astrodynamics | keep | 0.875000 | GRPO step 9 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-008 | astrodynamics | keep | 0.968750 | GRPO step 8 (k=4, 8 tasks, pool keep-rate 0.97) |\\n| rl-007 | astrodynamics | keep | 0.906250 | GRPO step 7 (k=4, 8 tasks, pool keep-rate 0.91) |\\n\\n## Recent Activity (most recent 10 \\u2014 full hypothesis)\\n- exp_rl-033 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 33 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=0.007 kl=0.0001 vllm_pin=\\n- exp_rl-032 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 32 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-031 [astrodynamics, keep, metric=0.687500, \\u0394=\\u2014] GRPO step 31 (k=4, 8 tasks, pool keep-rate 0.69)\\n  \\u2514\\u2500 loss=-0.0098 kl=0.0001 vllm_pin=\\n- exp_heldout-030 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 30 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-030 [astrodynamics, keep, metric=0.687500, \\u0394=\\u2014] GRPO step 30 (k=4, 8 tasks, pool keep-rate 0.69)\\n  \\u2514\\u2500 loss=-0.006 kl=0.0001 vllm_pin=\\n- exp_rl-029 [astrodynamics, keep, metric=0.812500, \\u0394=\\u2014] GRPO step 29 (k=4, 8 tasks, pool keep-rate 0.81)\\n  \\u2514\\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\\n- exp_rl-028 [astrodynamics, keep, metric=0.718750, \\u0394=\\u2014] GRPO step 28 (k=4, 8 tasks, pool keep-rate 0.72)\\n  \\u2514\\u2500 loss=0.0049 kl=0.0002 vllm_pin=\\n- exp_rl-027 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 27 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=-0.0068 kl=0.0001 vllm_pin=\\n- exp_rl-026 [astrodynamics, keep, metric=0.781250, \\u0394=\\u2014] GRPO step 26 (k=4, 8 tasks, pool keep-rate 0.78)\\n  \\u2514\\u2500 loss=-0.0063 kl=0.0001 vllm_pin=\\n- exp_rl-025 [astrodynamics, keep, metric=0.906250, \\u0394=\\u2014] GRPO step 25 (k=4, 8 tasks, pool keep-rate 0.91)\\n  \\u2514\\u2500 loss=-0.001 kl=0.0 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 104 GB \\u00b7 min headroom 18 GB\", \"headroom_at_spawn_gb\": 113.9, \"min_headroom_gb\": 17.6, \"oom_deferred\": false, \"peak_used_gb\": 104.09, \"phase_used_gb\": {\"heldout-gate\": 93.74, \"lane-bringup\": 8.16, \"sampling\": 93.86, \"teardown\": 93.64, \"training\": 93.64}, \"total_gb\": 121.69}, \"n_steps\": 34, \"pool_scores\": {\"0\": 0.78125, \"1\": 0.875, \"2\": 0.875, \"3\": 0.78125, \"4\": 0.84375, \"5\": 0.71875, \"6\": 0.84375, \"7\": 0.90625, \"8\": 0.96875, \"9\": 0.875, \"10\": 0.96875, \"11\": 0.59375, \"12\": 0.90625, \"13\": 0.90625, \"14\": 0.875, \"15\": 0.78125, \"16\": 0.8125, \"17\": 0.71875, \"18\": 0.90625, \"19\": 0.78125, \"20\": 0.8125, \"21\": 0.75, \"22\": 0.65625, \"23\": 0.78125, \"24\": 0.875, \"25\": 0.90625, \"26\": 0.78125, \"27\": 0.78125, \"28\": 0.71875, \"29\": 0.8125, \"30\": 0.6875, \"31\": 0.6875, \"32\": 0.875, \"33\": 0.78125}, \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"vertical\": \"astrodynamics\"}"
+    },
+    {
+     "id": "ac8739be9f704049a08b2c2a9d76286e",
+     "kind": "rl_run",
+     "status": "done",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-04T22:48:12Z",
+     "finished_at": "2026-06-04T23:25:47Z",
+     "result_json": "{\"aborted\": false, \"base\": \"merged-hf-bf16\", \"heldout_scores\": {\"0\": 0.958333}, \"kind\": \"rl_run\", \"lineage_card\": \"# Session start \\u2014 \\u2014\\nYou are specialist **rl_run**. Current best: **exp_heldout-000** (core_metric=0.958333).\\n\\n## LEADERBOARD.md\\n\\n## Current Best\\n- **exp_id**: heldout-000\\n- **core_metric**: 0.958333\\n- **specialist**: heldout-gate\\n- **hypothesis**: held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n\\n## Top 5 Kept Trials\\n\\n| exp | core_metric | \\u0394 | specialist | hypothesis |\\n|-----|-------------|---|------------|------------|\\n| heldout-000 | 0.958333 | \\u2014 | heldout-gate | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-001 | 0.875000 | \\u2014 | astrodynamics | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-002 | 0.875000 | \\u2014 | astrodynamics | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-000 | 0.750000 | \\u2014 | astrodynamics | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-003 | 0.750000 | \\u2014 | astrodynamics | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n\\n## KNOWLEDGE.md\\n\\n**Current-best lineage** (root \\u2192 best):\\n```\\nexp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 \\u2026\\n \\u2514\\u2500 exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n \\u2514\\u2500 exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool \\u2190 BEST\\n```\\n\\n## Recent Activity (last 6)\\n\\n| exp | specialist | status | core_metric | hypothesis |\\n|-----|------------|--------|-------------|------------|\\n| rl-003 | astrodynamics | keep | 0.750000 | GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| rl-002 | astrodynamics | keep | 0.875000 | GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| rl-001 | astrodynamics | keep | 0.875000 | GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88) |\\n| heldout-000 | heldout-gate | keep | 0.958333 | held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool |\\n| rl-000 | astrodynamics | keep | 0.750000 | GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75) |\\n| baseline | baseline | baseline | \\u2014 | RLVR seed \\u2014 base=merged-hf-bf16, ra\\u2026 |\\n\\n## Recent Activity (most recent 6 \\u2014 full hypothesis)\\n- exp_rl-003 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 3 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-002 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 2 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_rl-001 [astrodynamics, keep, metric=0.875000, \\u0394=\\u2014] GRPO step 1 (k=4, 8 tasks, pool keep-rate 0.88)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_heldout-000 [heldout-gate, keep, metric=0.958333, \\u0394=\\u2014] held-out gate @ step 0 (frozen split, n=24) \\u2014 selection metric, NOT pool\\n  \\u2514\\u2500 held-out checkpoint-selection metric (RV-4)\\n- exp_rl-000 [astrodynamics, keep, metric=0.750000, \\u0394=\\u2014] GRPO step 0 (k=4, 8 tasks, pool keep-rate 0.75)\\n  \\u2514\\u2500 loss=0.0 kl=0.0 vllm_pin=\\n- exp_baseline [baseline, baseline, metric=\\u2014, \\u0394=\\u2014] RLVR seed \\u2014 base=merged-hf-bf16, rank-16 LoRA, K=4, 96 train / 24 held-out (frozen)\\n  \\u2514\\u2500 corpus_min=100 heldout_every=10 vllm_pin=\\n\\n\", \"mem_trace\": {\"abort_headroom_gb\": null, \"display\": \"peak 106 GB \\u00b7 min headroom 16 GB\", \"headroom_at_spawn_gb\": 77.68, \"min_headroom_gb\": 16.06, \"oom_deferred\": false, \"peak_used_gb\": 105.63, \"phase_used_gb\": {\"heldout-gate\": 104.56, \"lane-bringup\": 44.39, \"sampling\": 105.42, \"teardown\": 105.62, \"training\": 105.62}, \"total_gb\": 121.69}, \"n_steps\": 4, \"pool_scores\": {\"0\": 0.75, \"1\": 0.875, \"2\": 0.875, \"3\": 0.75}, \"selected_heldout_score\": 0.958333, \"selected_on\": \"heldout\", \"selected_step\": 0, \"vertical\": \"astrodynamics\"}"
+    },
+    {
+     "id": "6c93b3f7bdb94aac967e5153a1fa5bdf",
+     "kind": "rag_eval",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-03T11:09:19Z",
+     "finished_at": "2026-06-03T11:09:21Z",
+     "result_json": "{\"delta\": 0.0, \"prior_recall_at_k\": 0.4091, \"promote\": true, \"qa_set\": \"qa-eval.jsonl\", \"rag_eval_run_id\": \"a7a4b1e127c14d80ade915f2c1c0a43d\", \"recall_at_k\": 0.4091, \"rerank\": 0, \"slug_recall_at_k\": 0.7273}"
+    },
+    {
+     "id": "d0e5379c0dc54294974ab0d5df1927a7",
+     "kind": "reindex",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-03T11:04:19Z",
+     "finished_at": "2026-06-03T11:07:10Z",
+     "result_json": "{\"articles_n\": 50, \"by_source\": {\"article\": 313}, \"chunks_after\": 313, \"chunks_before\": 313, \"index_version\": \"idx-50d-313c-80b7d7dd0e66\", \"reindex_run_id\": \"11a481ffc7744095b61075e4135b4d57\", \"source_set\": \"articles\"}"
+    },
+    {
+     "id": "e4744f4bbe3f4f85a7875bb36a4f272f",
+     "kind": "rag_eval",
+     "status": "done",
+     "trigger": "operator",
+     "enqueued_at": "2026-06-03T11:04:19Z",
+     "finished_at": "2026-06-03T11:04:21Z",
+     "result_json": "{\"delta\": null, \"prior_recall_at_k\": null, \"promote\": true, \"qa_set\": \"qa-eval.jsonl\", \"rag_eval_run_id\": \"5c586029702144d4a6dafda8e252766b\", \"recall_at_k\": 0.4091, \"rerank\": 0, \"slug_recall_at_k\": 0.7273}"
+    }
+   ],
+   "failed": [
+    {
+     "id": "76e22d059fdc4b38a84eff16533b1dc4",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-06T18:18:13Z",
+     "finished_at": "2026-06-06T18:28:18Z",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 114 GB\", \"headroom_at_spawn_gb\": 114.75, \"min_headroom_gb\": 114.49, \"oom_deferred\": false, \"peak_used_gb\": 7.25, \"phase_used_gb\": {\"lane-bringup\": 7.25, \"sampling\": 7.25}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}"
+    },
+    {
+     "id": "f91c31b2f9a24f94adf7516e2e651191",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-06T18:03:25Z",
+     "finished_at": "2026-06-06T18:15:34Z",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 115 GB\", \"headroom_at_spawn_gb\": 115.11, \"min_headroom_gb\": 114.77, \"oom_deferred\": false, \"peak_used_gb\": 6.97, \"phase_used_gb\": {\"lane-bringup\": 6.96, \"sampling\": 6.97}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}"
+    },
+    {
+     "id": "bb819c81b5324f4f8159ad58b2d846ca",
+     "kind": "rl_run",
+     "status": "failed",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-06T17:49:19Z",
+     "finished_at": "2026-06-06T18:01:04Z",
+     "result_json": "{\"adv_spread\": null, \"base\": \"merged-hf-bf16\", \"domain\": \"astrodynamics\", \"eta_s\": null, \"gate\": false, \"keep_rate\": null, \"last_heldout\": null, \"max_steps\": 4, \"mem\": {\"abort_headroom_gb\": null, \"display\": \"peak 7 GB \\u00b7 min headroom 115 GB\", \"headroom_at_spawn_gb\": 115.12, \"min_headroom_gb\": 114.76, \"oom_deferred\": false, \"peak_used_gb\": 6.94, \"phase_used_gb\": {\"lane-bringup\": 6.94, \"sampling\": 6.94}, \"total_gb\": 121.69}, \"n_used\": null, \"phase\": \"sampling\", \"pool_score\": null, \"status\": \"running\", \"step\": 0, \"trained\": null}"
+    }
+   ],
+   "regressed": [],
+   "queued": [
+    {
+     "id": "c41f7a02d9e84b6f8a3d5e0b117f24a9",
+     "kind": "eval_rerun",
+     "status": "queued",
+     "trigger": "leaderboard_regression",
+     "enqueued_at": "2026-06-07T07:58:12Z"
+    },
+    {
+     "id": "9b8e2f6c413d47d2b0a6c9d8e5f1a370",
+     "kind": "lane_launch",
+     "status": "queued",
+     "trigger": "manual",
+     "enqueued_at": "2026-06-07T08:02:47Z"
+    }
+   ],
+   "spend": {
+    "total_usd": 0.054537,
+    "by_lane": [
+     {
+      "lane_id": "claude-haiku-45",
+      "cost_usd": 0.051523
+     },
+     {
+      "lane_id": "openrouter::anthropic/claude-haiku-4.5",
+      "cost_usd": 0.002562
+     },
+     {
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "cost_usd": 0.000434
+     },
+     {
+      "lane_id": "openrouter::deepseek/deepseek-r1-0528",
+      "cost_usd": 1.8e-05
+     }
+    ],
+    "cap_usd": 5.0,
+    "n_paid_runs": 7,
+    "has_cost_plane": true,
+    "over_cap": false,
+    "display": "$0.0545 / $5.00"
+   },
+   "autonomy": {
+    "enabled": false
+   },
+   "rl": {
+    "n_rl_run": 3,
+    "peak_used_gb": 105.63,
+    "oom_deferred": 0,
+    "aborted": 0,
+    "display": "RAN 3 \u00b7 peak 106 GB"
+   },
+   "counts": {
+    "ran": 11,
+    "failed": 3,
+    "regressed": 0,
+    "queued": 2
+   },
+   "staged_only": true
+  },
+  "/api/lane-recipes": {
+   "recipes": [
+    {
+     "name": "kepler-q8",
+     "valid": true,
+     "kind": "llama-server",
+     "model_file": "kepler-q8.gguf",
+     "port": 8091,
+     "n_ctx": 32768,
+     "gguf_present": true
+    },
+    {
+     "name": "patent-v3-q5km",
+     "valid": true,
+     "kind": "llama-server",
+     "model_file": "patent-strategist-v3-nemo-Q5_K_M.gguf",
+     "port": 8092,
+     "n_ctx": 16384,
+     "gguf_present": true
+    },
+    {
+     "name": "medical-q4km",
+     "valid": true,
+     "kind": "llama-server",
+     "model_file": "II-Medical-8B-Q4_K_M.gguf",
+     "port": 8093,
+     "n_ctx": 16384,
+     "gguf_present": true
+    }
+   ],
+   "path": "lane-recipes.json"
+  },
+  "/api/active-lane": {
+   "active": {
+    "id": "discovered:8091",
+    "kind": "LlamaServerLane",
+    "model": "kepler-q8.gguf",
+    "port": 8091,
+    "provider": "custom",
+    "context_length": 32768,
+    "max_tokens": 8192,
+    "source": "discovery",
+    "drift": null
+   },
+   "discovered": [
+    {
+     "port": 8091,
+     "model": "kepler-q8.gguf",
+     "context_length": 32768,
+     "kind": "LlamaServerLane",
+     "warm_seconds": 412
+    }
+   ],
+   "registry": null,
+   "source": "discovery",
+   "drift": null
+  }
+ },
+ "knowledge": {
+  "before": {
+   "coverage": {
+    "should_index": 49,
+    "indexed": 46,
+    "missing": [
+     "t2po-uncertainty-guided-rl-on-spark",
+     "test-time-distilling-for-exploration",
+     "trajectory-eval-is-the-agent-flailing"
+    ],
+    "missing_n": 3,
+    "orphan": [
+     "the-meta-program-on-spark"
+    ],
+    "orphan_n": 1,
+    "total_indexed_slugs": 50,
+    "chunk_counts": {
+     "a2tgpo-turn-clipping-on-spark": 7,
+     "auto-research-loop-on-spark": 7,
+     "autoresearch-agent-loop": 6,
+     "autoresearchbench-on-spark": 7,
+     "baseline-training-loop-on-spark": 7,
+     "becoming-a-cyber-curator-on-spark": 5,
+     "becoming-a-gguf-publisher-on-spark": 5,
+     "becoming-a-legal-curator-on-spark": 3,
+     "becoming-a-medical-curator-on-spark": 6,
+     "bigger-generator-grounding-on-spark": 6,
+     "clawgym-on-spark": 7,
+     "clawgym-on-spark-grpo": 9,
+     "derisk-cloud-pretraining-on-the-spark": 7,
+     "dgx-spark-day-one-access-first": 6,
+     "distill-architect-lora-from-trajectories": 7,
+     "fine-tune-data-prep-decisions-on-spark": 6,
+     "gpu-sizing-math-for-fine-tuning": 7,
+     "guardrails-for-code-generation": 6,
+     "guardrails-on-the-retrieval-path": 6,
+     "hardening-the-hermes-harness-on-spark": 5,
+     "hermes-cost-routing-local-and-openrouter": 5,
+     "hermes-drives-the-spark-via-fieldkit-mcp": 5,
+     "hermes-serving-lane-on-spark": 5,
+     "hermes-vertical-router-on-spark": 7,
+     "kv-cache-arithmetic-at-inference": 6,
+     "lora-on-your-own-qa-pairs": 8,
+     "mcp-second-brain-in-claude-code": 7,
+     "naive-rag-on-spark": 6,
+     "nemo-curator-training-data-prep": 6,
+     "nemo-framework-on-spark": 6,
+     "nemo-retriever-embeddings-local": 6,
+     "nemoclaw-vs-openclaw-dgx-spark": 8,
+     "nim-first-inference-dgx-spark": 7,
+     "one-substrate-three-apps": 4,
+     "pass-at-k-after-the-seventh-patch": 8,
+     "patent-strategist-bakeoff-unsloth-vs-nemo-framework": 7,
+     "patent-strategist-v1-baseline-on-spark": 6,
+     "pgvector-on-spark": 8,
+     "picking-the-hermes-brain-on-spark": 6,
+     "rag-eval-ragas-and-nemo-evaluator": 6,
+     "rerank-fusion-retrieval-on-spark": 8,
+     "runtime-frontier-six-patches-on-spark": 7,
+     "the-hermes-harness-on-spark": 5,
+     "trtllm-and-triton-on-spark": 7,
+     "unsloth-on-spark-feasibility": 6,
+     "what-the-agent-actually-built": 5
+    },
+    "coverage_pct": 93.9
+   },
+   "provenance_backfilled": {
+    "with_provenance": 188,
+    "total": 295
+   },
+   "index_note": "3 articles published since the last re-index \u2014 rebuild to fold them in.",
+   "rag_eval_runs": [],
+   "reindex_runs": [
+    {
+     "id": "ca3a718adb444ec58d3e8e86d79223c2",
+     "source_set": "articles",
+     "index_version": "idx-50d-313c-80b7d7dd0e66",
+     "chunks_before": 313,
+     "chunks_after": 313,
+     "articles_n": 50,
+     "status": "done",
+     "started_at": "2026-06-03T11:03:41Z",
+     "finished_at": "2026-06-03T11:03:41Z",
+     "error": null
+    }
+   ],
+   "source_classes": [
+    "article",
+    "lineage",
+    "eval",
+    "scout",
+    "deep_research"
+   ]
+  },
+  "after": {
+   "coverage": {
+    "should_index": 49,
+    "indexed": 49,
+    "missing": [],
+    "missing_n": 0,
+    "orphan": [
+     "the-meta-program-on-spark"
+    ],
+    "orphan_n": 1,
+    "total_indexed_slugs": 50,
+    "chunk_counts": {
+     "a2tgpo-turn-clipping-on-spark": 7,
+     "auto-research-loop-on-spark": 7,
+     "autoresearch-agent-loop": 6,
+     "autoresearchbench-on-spark": 7,
+     "baseline-training-loop-on-spark": 7,
+     "becoming-a-cyber-curator-on-spark": 5,
+     "becoming-a-gguf-publisher-on-spark": 5,
+     "becoming-a-legal-curator-on-spark": 3,
+     "becoming-a-medical-curator-on-spark": 6,
+     "bigger-generator-grounding-on-spark": 6,
+     "clawgym-on-spark": 7,
+     "clawgym-on-spark-grpo": 9,
+     "derisk-cloud-pretraining-on-the-spark": 7,
+     "dgx-spark-day-one-access-first": 6,
+     "distill-architect-lora-from-trajectories": 7,
+     "fine-tune-data-prep-decisions-on-spark": 6,
+     "gpu-sizing-math-for-fine-tuning": 7,
+     "guardrails-for-code-generation": 6,
+     "guardrails-on-the-retrieval-path": 6,
+     "hardening-the-hermes-harness-on-spark": 5,
+     "hermes-cost-routing-local-and-openrouter": 5,
+     "hermes-drives-the-spark-via-fieldkit-mcp": 5,
+     "hermes-serving-lane-on-spark": 5,
+     "hermes-vertical-router-on-spark": 7,
+     "kv-cache-arithmetic-at-inference": 6,
+     "lora-on-your-own-qa-pairs": 8,
+     "mcp-second-brain-in-claude-code": 7,
+     "naive-rag-on-spark": 6,
+     "nemo-curator-training-data-prep": 6,
+     "nemo-framework-on-spark": 6,
+     "nemo-retriever-embeddings-local": 6,
+     "nemoclaw-vs-openclaw-dgx-spark": 8,
+     "nim-first-inference-dgx-spark": 7,
+     "one-substrate-three-apps": 4,
+     "pass-at-k-after-the-seventh-patch": 8,
+     "patent-strategist-bakeoff-unsloth-vs-nemo-framework": 7,
+     "patent-strategist-v1-baseline-on-spark": 6,
+     "pgvector-on-spark": 8,
+     "picking-the-hermes-brain-on-spark": 6,
+     "rag-eval-ragas-and-nemo-evaluator": 6,
+     "rerank-fusion-retrieval-on-spark": 8,
+     "runtime-frontier-six-patches-on-spark": 7,
+     "t2po-uncertainty-guided-rl-on-spark": 6,
+     "test-time-distilling-for-exploration": 6,
+     "the-hermes-harness-on-spark": 5,
+     "trajectory-eval-is-the-agent-flailing": 6,
+     "trtllm-and-triton-on-spark": 7,
+     "unsloth-on-spark-feasibility": 6,
+     "what-the-agent-actually-built": 5
+    },
+    "coverage_pct": 100.0
+   },
+   "provenance_backfilled": {
+    "with_provenance": 313,
+    "total": 313
+   },
+   "index_note": null,
+   "rag_eval_runs": [
+    {
+     "id": "a7a4b1e127c14d80ade915f2c1c0a43d",
+     "reindex_run_id": null,
+     "qa_set": "qa-eval.jsonl",
+     "recall_at_k": 0.4091,
+     "slug_recall_at_k": 0.7273,
+     "faithfulness": null,
+     "mean_correctness": null,
+     "refusal_rate": null,
+     "rerank": 0,
+     "status": "done",
+     "created_at": "2026-06-03T11:09:21Z"
+    },
+    {
+     "id": "5c586029702144d4a6dafda8e252766b",
+     "reindex_run_id": null,
+     "qa_set": "qa-eval.jsonl",
+     "recall_at_k": 0.4091,
+     "slug_recall_at_k": 0.7273,
+     "faithfulness": null,
+     "mean_correctness": null,
+     "refusal_rate": null,
+     "rerank": 0,
+     "status": "done",
+     "created_at": "2026-06-03T11:04:21Z"
+    }
+   ],
+   "reindex_runs": [
+    {
+     "id": "11a481ffc7744095b61075e4135b4d57",
+     "source_set": "articles",
+     "index_version": "idx-50d-313c-80b7d7dd0e66",
+     "chunks_before": 313,
+     "chunks_after": 313,
+     "articles_n": 50,
+     "status": "done",
+     "started_at": "2026-06-03T11:07:10Z",
+     "finished_at": "2026-06-03T11:07:10Z",
+     "error": null
+    },
+    {
+     "id": "ca3a718adb444ec58d3e8e86d79223c2",
+     "source_set": "articles",
+     "index_version": "idx-50d-313c-80b7d7dd0e66",
+     "chunks_before": 313,
+     "chunks_after": 313,
+     "articles_n": 50,
+     "status": "done",
+     "started_at": "2026-06-03T11:03:41Z",
+     "finished_at": "2026-06-03T11:03:41Z",
+     "error": null
+    }
+   ],
+   "source_classes": [
+    "article",
+    "lineage",
+    "eval",
+    "scout",
+    "deep_research"
+   ]
+  },
+  "queries": [
+   {
+    "query": "Why did the Hermes brain bakeoff pick a 30B MoE over NIM?",
+    "hits": [
+     {
+      "slug": "picking-the-hermes-brain-on-spark",
+      "chunk_idx": 2,
+      "source": "article",
+      "dist": 0.312,
+      "text": "The bakeoff pinned the Hermes brain to Qwen3-30B-A3B MoE at Q4_K_M on llama.cpp: 8/8 harness tasks against 6/8 for the NIM lane, at roughly 3.5x the tokens per second."
+     },
+     {
+      "slug": "hermes-serving-lane-on-spark",
+      "chunk_idx": 1,
+      "source": "article",
+      "dist": 0.389,
+      "text": "One serving lane at a time inside the 128 GB unified envelope \u2014 the harness points at whichever lane is resident, and the cockpit's discovery probe reports what is actually serving."
+     },
+     {
+      "slug": "hermes-cost-routing-local-and-openrouter",
+      "chunk_idx": 3,
+      "source": "article",
+      "dist": 0.421,
+      "text": "Routing sends local-shaped work to the resident lane and escalates to OpenRouter frontier models only when local confidence drops below the threshold."
+     }
+    ]
+   },
+   {
+    "query": "What recall did naive RAG get on the Second Brain eval?",
+    "hits": [
+     {
+      "slug": "naive-rag-on-spark",
+      "chunk_idx": 4,
+      "source": "article",
+      "dist": 0.298,
+      "text": "Naive top-k retrieval over the 313-chunk pgvector index lands recall@k 0.409 on the QA eval set \u2014 the floor the rerank and fusion experiments are measured against."
+     },
+     {
+      "slug": "rag-eval-ragas-and-nemo-evaluator",
+      "chunk_idx": 2,
+      "source": "eval",
+      "dist": 0.355,
+      "text": "The QA eval harness scores recall@k and slug-recall@k per run and persists each run, so the trend over re-indexes is inspectable instead of anecdotal."
+     },
+     {
+      "slug": "rerank-fusion-retrieval-on-spark",
+      "chunk_idx": 5,
+      "source": "article",
+      "dist": 0.401,
+      "text": "Fusing dense retrieval with a reranking pass lifts slug-recall toward 0.73 \u2014 the biggest single jump in the retrieval-path series."
+     }
+    ]
+   },
+   {
+    "query": "How much GPU memory does a LoRA fine-tune need on the Spark?",
+    "hits": [
+     {
+      "slug": "gpu-sizing-math-for-fine-tuning",
+      "chunk_idx": 1,
+      "source": "article",
+      "dist": 0.276,
+      "text": "Rule-of-thumb arithmetic: weights + optimizer states + activations, then check it against the 128 GB unified envelope \u2014 a rank-16 LoRA on an 8B model fits with tens of gigabytes to spare."
+     },
+     {
+      "slug": "lora-on-your-own-qa-pairs",
+      "chunk_idx": 3,
+      "source": "article",
+      "dist": 0.342,
+      "text": "A 600-row QA LoRA on the Spark trains in minutes, not hours \u2014 the bottleneck is corpus quality, not compute."
+     },
+     {
+      "slug": "fine-tune-data-prep-decisions-on-spark",
+      "chunk_idx": 2,
+      "source": "article",
+      "dist": 0.398,
+      "text": "Data-prep decisions (dedup, format, BOS/EOS) move the eval more than hyperparameters do; the gates are cheap to run before any multi-hour train."
+     }
+    ]
+   }
+  ]
+ }
+}

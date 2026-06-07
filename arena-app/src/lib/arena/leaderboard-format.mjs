@@ -44,7 +44,10 @@ export const laneSuffix = (id) => {
 };
 // Where the lane ran — cloud (OpenRouter) vs local (DGX Spark). Rendered as a
 // badge instead of an `openrouter::` prefix / no marker at all. Reads the RAW id.
-export const laneSource = (id) => (/^openrouter/.test(String(id || '')) ? 'openrouter' : 'spark');
+// Some early eval rows carry un-prefixed cloud ids (`claude-haiku-45`) — catch
+// the obvious frontier-model names so a cloud run never badges as "Spark GPU".
+export const laneSource = (id) =>
+  /^(openrouter|claude|gpt-|gemini|anthropic\/|openai\/)/.test(String(id || '')) ? 'openrouter' : 'spark';
 // Model name for the source-badged live table — drops the cloud prefix since
 // the badge carries that signal: `openrouter::owner/model` → `owner/model`,
 // `openrouter-frontier` → `frontier`. The bench table keeps prefix-aware laneLabel.

@@ -19,8 +19,10 @@ import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.m
 
 const POLL_MS = 6000;
 
-// base-aware sibling links (relative — robust across dev / baked / mirror).
-const LINKS = { sft: '../sft/', reward: '../reward/', rl: '../jobs/' };
+// Current-dir-relative sibling links: this card renders on the cockpit landing
+// (`/arena/` live, `/arena/demo/` demo, `/arena/` dev), so `./sft/` resolves to
+// the sibling pane in every mode. (`../sft/` escaped the base and 404'd.)
+const LINKS = { sft: './sft/', reward: './reward/', rl: './jobs/' };
 
 function deriveSft(d) {
   if (!d || d.available === false) return { state: 'idle', value: 'no run yet' };
@@ -42,6 +44,11 @@ function deriveReward(d) {
   if (rep.status === 'running') return { state: 'running', value: `scoring ${scored}/${total}` };
   if (rep.gate_pass === true) return { state: 'done', value: 'gate PASS' };
   if (rep.gate_pass === false) return { state: 'warn', value: 'gate HOLD' };
+  // preflight shape (AV-10): a step-0 reward rate with no scored/total — the
+  // RLVR headroom gate reading, which the dedicated pane renders as the gauge.
+  if (rep.reward_rate_step0 != null) {
+    return { state: 'done', value: `step-0 ${(rep.reward_rate_step0 * 100).toFixed(0)}%` };
+  }
   return { state: total ? 'done' : 'idle', value: total ? `${scored}/${total} scored` : 'idle' };
 }
 
@@ -63,7 +70,7 @@ function deriveRl(jobs) {
 }
 
 function Node({ stage, label, hint, data }) {
-  // Relative href so it works on dev / baked bundle / public mirror alike.
+  // Current-dir-relative href so it works on dev / baked bundle / demo alike.
   return (
     <a class="trainflow__node" href={LINKS[stage]} data-state={data.state}>
       <span class="trainflow__node-dot" data-state={data.state} aria-hidden="true" />

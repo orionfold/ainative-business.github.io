@@ -201,6 +201,15 @@ def record(
         "--sidecar",
         help="Running sidecar to capture sanitized read-only stubs from.",
     ),
+    stubs_overlay: str = typer.Option(
+        "",
+        "--stubs-overlay",
+        help=(
+            "Hand-authored showcase overlay JSON merged over the recorded "
+            "payload (stubs merge per-endpoint; other top-level keys replace). "
+            "Keeps simulated demo data durable across re-records."
+        ),
+    ),
     json_out: bool = typer.Option(False, "--json", help="Emit the report as JSON."),
 ) -> None:
     """Record a curated demo-replay bundle so the cockpit is interactive
@@ -222,6 +231,7 @@ def record(
         max_chat=max_chat,
         max_compare=max_compare,
         sidecar_url=sidecar,
+        stubs_overlay=stubs_overlay or None,
     )
     if json_out:
         typer.echo(_json.dumps(report.as_dict(), indent=2))

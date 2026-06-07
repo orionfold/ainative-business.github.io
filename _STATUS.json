@@ -3,27 +3,26 @@
   "project": "spark",
   "updated": "2026-06-07",
   "health": "green",
-  "focus": "Arena marketing re-capture COMPLETE (post-light-theme): all 22 product shots re-shot light (live Kepler lane, correctness-gated chat/compare captures) + demo fixtures re-recorded + prose drift swept; build 518 + verifiers ALL_OK",
+  "focus": "Demo 'full glory' + link sweep + screengrab sync: 12 new fixture stubs + simulated jobs dispatch fill the blank demo panes (disclaimer ribbon), every 404 class fixed + regression-verified, dark/missing public/products/ shots replaced (cortex re-shot light off a REAL reindex), AE-31 launch cut committed",
   "blockers": [],
   "next": [
-    "orionfold-cortex re-capture (8 dark shots left) — needs Second Brain stack up (embedder :8001) + seeded rebuild/drain/RAG states",
-    "v2 cut 4 — the guarded LAUNCH cut (AE-R13): AE-22 launch runner + AF-20 arm/teardown, one-lane-aware",
-    "Operator-armed live gates: real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1), real corpus-request fulfilled by a synth session, arena down mid-metered-eval, run-anchor on a real serve",
+    "Cut fieldkit v0.31.0 — AE-31 launch cut + demo recorder extensions are committed but unreleased",
+    "Operator-armed live gates: real armed sft_run drain, real corpus-request fulfilled by a synth session, real guarded lane-launch from the new LaneTruth form, arena down mid-metered-eval, run-anchor on a real serve",
     "AE-28 feed self-description + operator brief (low priority)"
   ],
   "recent": [
-    "22 arena product shots re-shot light: arena-control-plane 01-11 (seeded launch board, realistic ids) + orionfold-arena 01-11",
-    "06-chat + 07-compare are real runs, answers pre-verified against the lane (wrong-answer drafts deleted from arena.db)",
-    "Demo fixtures re-recorded curated (5 chat + 1 verified duel, no key leaks) → ARENA_DEMO build → public/arena/demo/, static smoke 0 errors",
-    "Both product.md swept: lane names, tok/s claims, frontier gold→orange; cloud spend ~$0.003",
-    "Residual: orionfold-cortex set queued; memory-article evidence shots stay dark deliberately"
+    "Demo panes filled: build/sft/reward/jobs/standup/models/settings/leaderboard/cortex all render simulated-from-real-runs data; interactive jobs dispatch animates queued→running→done",
+    "Link sweep: in-bundle article links → absolute field-notes URLs (bake prunes articles/), TrainingFlow ../→./, lab double-prefix fixed; new scripts/verify_arena_demo_links.mjs guards all classes + leaks + screenshot drift",
+    "UI: EvalBenchLive local:-prefix regression → shared SourceBadge; telemetry rail one-row (auto-flow grid); claude-haiku-45 no longer badges Spark GPU",
+    "Screengrabs: public/products/ sync was the dark-shot root cause (arena stale dark, control-plane missing/404); cortex 4 shots re-captured light off a real reindex+rag_eval+query (provenance 328/328)",
+    "AE-31 guarded lane launch/teardown committed (ec8cd8e); arena suite 449 pass; site 518 pages + verifiers ALL_OK"
   ],
-  "session": "arena marketing re-capture (post-light-theme)",
+  "session": "demo full-glory + link sweep + screengrab sync",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 22,
+    "arena_features": 23,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,

@@ -16,7 +16,8 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
-import { pct, benchLabel, scoreColor } from '../../lib/arena/leaderboard-format.mjs';
+import { pct, benchLabel, scoreColor, laneModel, laneSuffix, laneSource } from '../../lib/arena/leaderboard-format.mjs';
+import SourceBadge from './SourceBadge.jsx';
 import { useRunContext } from './ProvenanceChip.jsx';
 import { anchorMs } from '../../lib/arena/run-context.mjs';
 
@@ -118,7 +119,16 @@ export default function EvalBenchLive() {
                     </td>
                     <td class="rankcol-lane">
                       <div class="lane-cell">
-                        <span class="lane-cell__id">{r.lane_id}</span>
+                        {/* Same lane treatment as LiveLeaderboard: formatted
+                            model + quant suffix + source pill — a raw lane_id
+                            here regressed to showing the `local:` prefix. */}
+                        <span style="display:inline-flex; align-items:center; gap:7px; min-width:0;">
+                          <span class="lane-cell__id">
+                            {laneModel(r.lane_id)}
+                            {laneSuffix(r.lane_id) && ` (${laneSuffix(r.lane_id)})`}
+                          </span>
+                          <SourceBadge source={laneSource(r.lane_id)} />
+                        </span>
                         {isPrior(r) && (
                           <span class="lane-cell__prior" title={`newest run predates the run anchor (lane armed ${runCtx?.run_started || '—'}) — from a prior run`}>
                             ○ prior run

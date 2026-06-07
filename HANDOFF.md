@@ -20,6 +20,16 @@
 
 ## Current state
 
+### ✅ 2026-06-07 — **DEMO "FULL GLORY" + LINK SWEEP + SCREENGRAB SYNC** (operator-reported blanks/404s/dark-shots all fixed) · AE-31 launch cut committed
+
+> Operator drove the public demo and found: blank feature panes (build/sft/reward/jobs/standup), "training flow" + "Measured on the Spark" 404s, and dark screengrabs on the LIVE product articles. All three classes fixed + regression-guarded.
+> - **Demo simulated data (operator decision: simulated-from-past-runs, w/ disclaimer)** — `fieldkit arena record` records 12 NEW endpoint stubs (build/sft-progress/reward-signal/standup/jobs/leaderboard-live/active-lane/lane-recipes/guardrail-config/prices/corpus-progress/runtimes), sanitized by a new recursive host-path scrubber (`_scrub_str` — catches paths INSIDE `result_json`/`lineage_card` strings); a checked-in overlay `arena-app/arena-demo-sim/stubs.json` (+ its `assemble_overlay.py`) merges via the new `--stubs-overlay` flag (enriched jobs board w/ queued+running, standup queue, 3 lane recipes, Kepler `discovered:8091` active lane, Cortex before→after + 3 canned queries). `boot.js`: jobs SSE shim (named `jobs` events), **interactive dispatch simulation** (queued→running→done over ~6 s, cancel + check-regressions wired), per-endpoint fallbacks, ribbon now discloses "simulated data drawn from past real runs". NEW `fieldkit/tests/arena/test_fixtures.py` (23 tests; suite 449 pass).
+> - **Link sweep** — root causes: the arena bake PRUNES `articles/` (live AND demo 404 every in-bundle article link) · TrainingFlow's `../sft/` escaped the base from the landing page · lab's local `href` lacked the strip-prefix → `/arena/arena/*`. Fixes: NEW `arena-app/src/lib/arena/article-url.mjs` (absolute `ainative.business/field-notes/<slug>/`, survives the deploy rebase) wired into EvidenceBand · lab · models/[slug] · cockpit baseline link · ⌘K command-index; TrainingFlow → `./sft/`; lab href fixed. NEW **`scripts/verify_arena_demo_links.mjs`** (walks deployed HTML, resolves every internal link on disk, guards the exact 404 classes + fixture leak scan + product-screenshot drift; runs against `public/arena/demo` AND `_webui`) — green on both.
+> - **Operator UI fixes** — EvalBenchLive rendered RAW `lane_id` (the `local:` regression; now `laneModel`+`laneSuffix`+shared `SourceBadge.jsx`); `laneSource` also catches un-prefixed cloud ids (`claude-haiku-45` no longer badges "Spark GPU"); telemetry rail wrapped the OpenRouter cell to a 2nd row when the AE-23 Run cell appeared (fixed 7-track grid → `grid-auto-flow: column` one-row + nowrap labels); TrainingFlow understands the AV-10 preflight reward shape (`step-0 96%` instead of idle).
+> - **Screengrab sync (the dark-shots root cause)** — the 2026-06-06 light re-capture never copied to **`public/products/`** (the SERVING dir per product-writer §134): orionfold-arena served STALE DARK, arena-control-plane was MISSING entirely (live 404s). Both synced. **orionfold-cortex re-captured light for real** (embedder `:8001` up → cockpit rebuild → real reindex+chained rag_eval (3rd run, recall@k 0.409 stable) → real query; 4 shots @2×, captions updated 313→328 provenance, 94→96% GPU, query swapped to the pictured one; 3 unused dark leftovers deleted). Drift now FAILS the verifier.
+> - **Verified**: demo smoke (headless playwright) — all 13 panes render data, dispatch sim animates, chat replays, Cortex flips 93.9→100%, **0 console errors / 0 sidecar escapes**; live cockpit re-baked + restarted (rail one-row ✓ pills ✓); site build 518 pages + both verifiers ALL_OK; fixtures leak-grep 0.
+> - **AE-31 committed** (`ec8cd8e`) — the prior session's in-flight guarded lane-launch cut (launcher.py + LaneTruth form + 1268 test lines) committed first so the shipped bakes match source.
+
 ### ✅ 2026-06-06 — **ARENA MARKETING RE-CAPTURE COMPLETE** (post-light-theme): all 22 product shots re-shot light + demo fixtures re-recorded + prose drift swept
 
 > The "📸 QUEUED FIRST" task is DONE — every published arena capture in BOTH product articles now shows the light cockpit, with the v2 cut 1–3 features visible (inventory chips · LaneTruth roster · run-anchor cell · Arm-SFT form · Settings/guardrails · G3 price coverage).
@@ -207,22 +217,18 @@
 
 ## Open items (by swimlane)
 
-### 📸 Residual: orionfold-cortex re-capture (the one dark marketing set left)
+### 🚢 NEXT — fieldkit release (the AE-31 launch cut + demo recorder are committed but UNRELEASED)
 
-The 2026-06-06 re-capture covered both arena product articles + the demo. Still dark:
-`products/orionfold-cortex/screenshots/` (8 shots — knowledge baseline/rebuild/drain/RAG-query/
-gate/standup/catalog). Re-shoot needs the **Second Brain stack up** (pgvector is up; NIM embedder
-`:8001` is DOWN) plus seeded reindex/rag_eval job states (the drain/queued/gate compositions), and
-`products/orionfold-cortex/product.md` swept after. Same rig: headless playwright-core 2×,
-seed→shoot→revert. `articles/the-machine-manages-its-own-memory/` evidence shots stay dark
-deliberately (historical record).
+`ec8cd8e` (AE-31 guarded lane launch/teardown) + this session's recorder extensions
+(`--stubs-overlay`, 12 new stub endpoints, `_scrub_str`) sit on main ahead of the last tag
+(v0.30.0). Cut **v0.31.0** via `/fieldkit-curator` when convenient — the launch cut is the
+headline; suite 449 pass.
 
-### 🔬 QUEUED — arena-enhancements **v2 cut 4** (the guarded LAUNCH cut, AE-R13)
-**Cuts 1–3 are RELEASED (v0.28.0 + v0.29.0 + v0.30.0 — Clusters G+H complete except AE-22's launch half; Cluster I core complete except AE-28; see Current state).** The remaining v2 queue, per `_SPECS/arena-enhancements-v2.md` + the ledger ([`_IDEAS/arena-smoke-v2-features.md`](_IDEAS/arena-smoke-v2-features.md), gitignored — statuses updated):
-1. **The guarded-launch cut (high-risk AE-R13 — its own focused cut, deliberately deferred twice):** **AE-22 launch half** — the deterministic guarded lane-launch runner (one-lane-aware teardown-offer, EngineCore-aware kill `pkill -9 -f 'vllm|EngineCore'`; the smoke's exit-127 PATH stumble is the evidence) + **AF-20's arm/teardown half** (same risk class — arming `nemo-train`/a serve lane from the AE-30 roster, one-lane-envelope-aware, `project_spark_unified_memory_oom`).
-2. **AE-28** feed self-description + operator brief (AF-23/AF-18) — low priority, as warranted.
-3. **Operator-armed live gates (AE-R1-style):** a **real armed `sft_run` drain** (start `nemo-train`, `FK_SFT_RUN_ARMED=1` drain against the real astro recipe — the AE-29 live rep) · a **real corpus-request fulfilled by an actual claude-corpus-synth session** (the AE-27 skill-side loop) · a real `arena down` mid-**metered** cloud eval · the GS-1 no-restart cap edit on a real cloud eval · AE-10's behavioral gate once a candidate base serves · the run-anchor flow on a real serve.
-Discipline unchanged: build AND browser-smoke side-by-side in the running Arena over CDP; NO arena.db schema change; rebake `_webui` after `arena-app/` edits.
+### 🔬 QUEUED — arena-enhancements v2 remainder
+**Cuts 1–4 done (AE-31 committed `ec8cd8e`, unreleased).** Remaining, per `_SPECS/arena-enhancements-v2.md` + the gitignored ledger `_IDEAS/arena-smoke-v2-features.md`:
+1. **AE-28** feed self-description + operator brief (AF-23/AF-18) — low priority, as warranted.
+2. **Operator-armed live gates (AE-R1-style):** a **real armed `sft_run` drain** (start `nemo-train`, `FK_SFT_RUN_ARMED=1` drain against the real astro recipe — the AE-29 live rep) · a **real corpus-request fulfilled by an actual claude-corpus-synth session** (the AE-27 skill-side loop) · a **real guarded lane-launch from the new LaneTruth form** (the AE-31 live rep) · a real `arena down` mid-**metered** cloud eval · the GS-1 no-restart cap edit on a real cloud eval · AE-10's behavioral gate once a candidate base serves · the run-anchor flow on a real serve.
+Discipline unchanged: build AND browser-smoke side-by-side in the running Arena over CDP; NO arena.db schema change; rebake `_webui` after `arena-app/` edits. `articles/the-machine-manages-its-own-memory/` evidence shots stay dark deliberately (historical record).
 
 ### ✅ Kepler ship-tail + Release + eval-dispatch verify — ALL DONE 2026-06-05
 - ✅ Kepler HF links added to `articles/the-gate-before-the-gpu/` (`871a654`, pushed). ✅ Stray `model-f16.gguf` dup deleted (operator). ✅ `test_drain_arbiters…mem_trace` fixed via `ARENA_AUTONOMY_STATE` isolation (`a8acc1c`). ✅ `fieldkit v0.23.0` cut + on PyPI (see Current state).

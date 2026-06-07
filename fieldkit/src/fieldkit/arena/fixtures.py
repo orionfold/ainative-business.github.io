@@ -44,6 +44,21 @@ _STUB_ENDPOINTS = (
     "api/activity",
     "api/chat/sessions",
     "api/lab/notes",
+    # Feature panes that rendered "Cockpit offline" on the demo until these
+    # were recorded (build spine, training flow, jobs board, standup, models,
+    # settings, live leaderboard).
+    "api/build",
+    "api/corpus-progress",
+    "api/runtimes",
+    "api/sft-progress",
+    "api/reward-signal",
+    "api/standup",
+    "api/jobs",
+    "api/leaderboard/live",
+    "api/active-lane",
+    "api/lane-recipes",
+    "api/guardrail-config",
+    "api/prices",
 )
 
 #: Host-specific keys stripped from every captured stub — same discipline as
@@ -52,13 +67,32 @@ _FORBIDDEN_STUB_KEYS = frozenset(
     {
         "base_url",
         "config_path",
+        "config_mtime",
         "port",
         "start_script",
         "stop_script",
         "repo_root",
         "db",
+        "db_path",
     }
 )
+
+#: Absolute host paths anywhere in a captured value — including INSIDE embedded
+#: JSON strings (jobs/standup ``result_json``) and markdown blobs
+#: (``lineage_card``) — are reduced to their basename. A model path like
+#: ``/home/nvidia/data/astro-train-lora/p65-nemo/merged-hf-bf16-fixed`` becomes
+#: ``merged-hf-bf16-fixed``: still meaningful, no host layout leaked.
+_HOST_PATH_RE = re.compile(r"/(?:home|Users|root|tmp|var|opt|mnt|data)/[^\s\"'\)\],}]*")
+
+
+def _scrub_str(s: str) -> str:
+    """Collapse absolute host paths inside a string value to their basename."""
+
+    def _basename(m: re.Match[str]) -> str:
+        tail = m.group(0).rstrip("/").rsplit("/", 1)[-1]
+        return tail or "redacted"
+
+    return _HOST_PATH_RE.sub(_basename, s)
 
 #: Prompts that are scaffolding/smoke noise, never showcase material.
 _JUNK_PROMPTS = {
@@ -82,7 +116,9 @@ _UNIFIED_TOTAL_GB = 128.0
 
 
 def _sanitize(obj: Any) -> Any:
-    """Recursively drop host-specific keys from a captured stub response."""
+    """Recursively drop host-specific keys from a captured stub response and
+    scrub absolute host paths out of every surviving string value (they hide
+    inside ``result_json`` strings and ``lineage_card`` markdown too)."""
     if isinstance(obj, dict):
         return {
             k: _sanitize(v)
@@ -91,6 +127,8 @@ def _sanitize(obj: Any) -> Any:
         }
     if isinstance(obj, list):
         return [_sanitize(v) for v in obj]
+    if isinstance(obj, str):
+        return _scrub_str(obj)
     return obj
 
 
@@ -288,6 +326,24 @@ def _model_for_lane(lane_map: dict[str, str], lane_id: str | None) -> str:
 # Public entry point
 # --------------------------------------------------------------------------- #
 
+def _apply_overlay(payload: dict[str, Any], overlay: dict[str, Any]) -> None:
+    """Merge a hand-authored showcase overlay over the recorded payload.
+
+    The overlay is the *simulated-data* layer (operator decision 2026-06-07):
+    hand-authored stubs grounded in past real runs, kept in a checked-in JSON
+    so future re-records don't lose the showcase. Semantics: ``stubs`` merges
+    per-endpoint (overlay endpoint replaces recorded endpoint wholesale); any
+    other top-level key (``knowledge``, ``note``, …) replaces the recorded
+    value. Overlay content is reviewed by hand — it is NOT re-sanitized; the
+    deploy verifier's leak scan is the backstop.
+    """
+    for key, value in overlay.items():
+        if key == "stubs" and isinstance(value, dict):
+            payload.setdefault("stubs", {}).update(value)
+        else:
+            payload[key] = value
+
+
 def record_demo_fixtures(
     *,
     db_path: str,
@@ -296,6 +352,7 @@ def record_demo_fixtures(
     max_chat: int = 5,
     max_compare: int = 3,
     sidecar_url: str = "http://127.0.0.1:7866",
+    stubs_overlay: str | None = None,
 ) -> FixtureReport:
     """Record a curated demo-replay bundle to ``out_path`` (a JSON file)."""
     root = Path(repo_root).expanduser() if repo_root else Path.cwd()
@@ -344,6 +401,15 @@ def record_demo_fixtures(
         "telemetry": telemetry,
         "stubs": stubs,
     }
+
+    if stubs_overlay:
+        overlay_path = Path(stubs_overlay).expanduser()
+        if not overlay_path.is_absolute():
+            overlay_path = root / overlay_path
+        overlay = json.loads(overlay_path.read_text(encoding="utf-8"))
+        _apply_overlay(payload, overlay)
+        report.stubs = len(payload.get("stubs", {}))
+
     _atomic_write_json(staging, final, payload)
     return report
 

@@ -11,9 +11,7 @@
 // We do NOT parse the ~1,900 evidence files (per plan §P5). Renders identically
 // on the Spark and the public mirror — pure build-time, no island.
 import stats from '../../data/project-stats.json';
-
-const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
-const href = (p: string) => `${base}${p}`.replace(/\/+/g, '/');
+import { articleUrl } from '../../lib/arena/article-url.mjs';
 
 type Metric = { label: string; value: string; article_slug: string };
 const metrics = (stats as any).metrics ?? {};
@@ -56,7 +54,7 @@ const kindColor: Record<string, string> = {
     {cards.map((c) => (
       <a
         class="bezel evidence-card"
-        href={href(`articles/${c.article_slug}/`)}
+        href={articleUrl(c.article_slug)}
         style={`--evidence-color: ${kindColor[c.kind] ?? 'var(--arena-accent)'};`}
       >
         <span class="evidence-card__kind">

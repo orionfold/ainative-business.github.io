@@ -21,6 +21,8 @@ const PAGES = [
   { id: 'page:settings', label: 'Settings', sub: 'cloud-eval guardrail config', path: 'arena/settings/' },
 ];
 
+import { articleUrl } from './article-url.mjs';
+
 // Strip the `::variant`/`::suffix` tail the importer appends to lane ids.
 function laneLabel(laneId) {
   return String(laneId || '').replace(/::[a-z0-9-]+$/i, '');
@@ -70,7 +72,8 @@ export function buildCommandIndex({ articles = [], artifacts = [], leaderboard =
       type: 'article',
       label: d.title || a.id,
       sub: [d.stage, d.series].filter(Boolean).join(' · '),
-      href: href(`articles/${a.id}/`),
+      // Absolute — the baked bundle (wheel + demo) prunes the articles/ tree.
+      href: articleUrl(a.id),
       keywords: `${d.title || ''} ${a.id} ${d.stage || ''} ${d.series || ''} ${(d.tags || []).join(' ')}`.toLowerCase(),
     });
   }

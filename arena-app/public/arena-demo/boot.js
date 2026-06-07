@@ -31,6 +31,11 @@
   // every 5s, so a "rebuild" is a before→after flip: clicking it backfills
   // provenance + scores recall, and the next poll renders the green state.
   var kb = { rebuilt: false };
+  // Jobs board replay state: a MUTABLE copy of the fixture snapshot so the demo
+  // dispatch forms work — a dispatched job animates queued→running→done over a
+  // few seconds and every connected /api/jobs/stream subscriber re-renders.
+  var jobsState = null;
+  var jobsSubs = [];
 
   // ----- helpers ------------------------------------------------------------
   function pathOf(url) {
@@ -108,6 +113,68 @@
     });
   }
 
+  // ----- jobs board replay helpers -------------------------------------------
+  function jobsList() {
+    if (!jobsState) {
+      var st = (fixtures.stubs || {})['/api/jobs'];
+      jobsState = (st && st.jobs ? st.jobs : []).slice();
+    }
+    return jobsState;
+  }
+  function emitJobs() {
+    var snap = { jobs: jobsList() };
+    jobsSubs.forEach(function (es) { try { es._emit('jobs', snap); } catch (e) {} });
+  }
+  function demoJobId() {
+    var hex = '0123456789abcdef', id = '';
+    for (var k = 0; k < 32; k++) id += hex[Math.floor(Math.random() * 16)];
+    return id;
+  }
+  function isoNow() { return new Date().toISOString().replace(/\.\d+Z$/, 'Z'); }
+  // Simulated dispatch: append a queued job; unless the live contract keeps the
+  // kind async-only (rl_run/sft_run dispatch:false — they wait for the autonomy
+  // cron / operator arming), animate it queued→running→done with a plausible
+  // per-kind result so the board demonstrates the full lifecycle.
+  function simulateDispatch(body) {
+    body = body || {};
+    var kind = body.kind || 'eval_rerun';
+    var payload = body.payload || {};
+    var job = {
+      id: demoJobId(), kind: kind, status: 'queued',
+      trigger: body.trigger || 'manual', priority: 0,
+      dedup_key: null, error: null, attempt: 0,
+      enqueued_at: isoNow(), dispatched_at: null, finished_at: null,
+      arq_job_id: null, payload: payload, result: null, result_json: null,
+      demo: true
+    };
+    jobsList().unshift(job);
+    emitJobs();
+    if (body.dispatch === false) return job; // stays queued, like the live contract
+    setTimeout(function () {
+      job.status = 'running'; job.dispatched_at = isoNow(); emitJobs();
+    }, 1800);
+    setTimeout(function () {
+      job.status = 'done'; job.finished_at = isoNow();
+      if (kind === 'eval_rerun') {
+        job.result = { mean_normalized: 0.84, n_scored: 20, lane_id: payload.lane_id || null, bench_id: payload.bench_id || null, demo: true };
+      } else if (kind === 'rag_eval') {
+        job.result = { recall_at_k: 0.409, slug_recall_at_k: 0.727, demo: true };
+      } else {
+        job.result = { ok: true, demo: true };
+      }
+      job.result_json = JSON.stringify(job.result);
+      emitJobs();
+    }, 6200);
+    return job;
+  }
+  function simulateRegressionScan() {
+    var job = simulateDispatch({
+      kind: 'eval_rerun', trigger: 'leaderboard_regression',
+      payload: { lane_id: 'finance-chat-gguf::Q5_K_M', bench_id: 'finance-bench-v0.1' }
+    });
+    return { ok: true, had_baseline: true, checked: 21, enqueued: [job.id], demo: true };
+  }
+
   // ----- knowledge (Cortex) replay helpers ----------------------------------
   function knowledgeState() {
     var k = fixtures.knowledge;
@@ -166,6 +233,26 @@
       return Promise.resolve(jsonResponse(knowledgeState()));
     }
 
+    // jobs board — MUTABLE demo state, so it must win over the static stub:
+    // dispatch/cancel/scan mutate jobsState and re-emit on the jobs stream.
+    if (/\/api\/jobs\/check-regressions$/.test(path) && method === 'POST') {
+      return Promise.resolve(jsonResponse(simulateRegressionScan()));
+    }
+    if (/\/api\/jobs\/[^/]+$/.test(path) && method === 'DELETE') {
+      var jid = path.split('/').pop();
+      jobsState = jobsList().filter(function (j) { return j.id !== jid; });
+      emitJobs();
+      return Promise.resolve(jsonResponse({ ok: true, demo: true }));
+    }
+    if (/\/api\/jobs$/.test(path)) {
+      if (method === 'POST') {
+        var jb = {}; try { jb = init.body ? JSON.parse(init.body) : {}; } catch (e) {}
+        var made = simulateDispatch(jb);
+        return Promise.resolve(jsonResponse({ ok: true, id: made.id, note: 'demo — simulated dispatch', demo: true }));
+      }
+      return Promise.resolve(jsonResponse({ jobs: jobsList() }));
+    }
+
     // canned read-only stubs (exact path)
     var stubs = fixtures.stubs || {};
     if (stubs[path] !== undefined) return Promise.resolve(jsonResponse(stubs[path]));
@@ -178,6 +265,21 @@
     if (/\/api\/eval\/benches/.test(path)) return Promise.resolve(jsonResponse(stubs['/api/eval/benches'] || { benches: [] }));
     if (/\/api\/lanes$/.test(path)) return Promise.resolve(jsonResponse(stubs['/api/lanes'] || {}));
     if (/\/api\/compare\/options$/.test(path)) return Promise.resolve(jsonResponse(stubs['/api/compare/options'] || {}));
+    // feature panes (build spine / training flow / standup / models / settings /
+    // live leaderboard) — recorded stubs serve via the exact-path hit above;
+    // these defaults keep the islands on their graceful empty states if a
+    // re-record ever drops one.
+    if (/\/api\/build$/.test(path)) return Promise.resolve(jsonResponse({ available: false }));
+    if (/\/api\/(sft|corpus)-progress$/.test(path)) return Promise.resolve(jsonResponse({ available: false }));
+    if (/\/api\/reward-signal$/.test(path)) return Promise.resolve(jsonResponse({ available: false }));
+    if (/\/api\/standup$/.test(path)) return Promise.resolve(jsonResponse({ ran: [], failed: 0, regressed: 0, queued: [], counts: {} }));
+    if (/\/api\/leaderboard\/live$/.test(path)) return Promise.resolve(jsonResponse({ rows: [] }));
+    if (/\/api\/eval\/leaderboard$/.test(path)) return Promise.resolve(jsonResponse({ rows: [] }));
+    if (/\/api\/active-lane$/.test(path)) return Promise.resolve(jsonResponse({ active: null, discovered: [], registry: null }));
+    if (/\/api\/lane-recipes$/.test(path)) return Promise.resolve(jsonResponse({ recipes: [], path: 'lane-recipes.json' }));
+    if (/\/api\/guardrail-config$/.test(path)) return Promise.resolve(jsonResponse({}));
+    if (/\/api\/prices$/.test(path)) return Promise.resolve(jsonResponse({ models: [], unpriced: 0, enabled: false }));
+    if (/\/api\/runtimes$/.test(path)) return Promise.resolve(jsonResponse({ available: false, runtimes: [] }));
     if (/\/api\//.test(path)) {
       // POSTs (score, local/load, prefs, lab note create, …) → benign OK
       return Promise.resolve(jsonResponse(method === 'GET' ? {} : { ok: true, demo: true }));
@@ -186,12 +288,25 @@
     return realFetch ? realFetch(input, init) : Promise.reject(new Error('no fetch'));
   };
 
-  // ----- EventSource shim (telemetry) --------------------------------------
+  // ----- EventSource shim (telemetry + jobs stream) -------------------------
   var RealES = window.EventSource;
   function DemoES(url) {
-    if (!/\/api\/telemetry\/stream/.test(String(url)) && RealES) return new RealES(url);
-    this.url = String(url); this.readyState = 1; this._l = {}; this._timer = null;
+    var u = String(url);
+    var isJobs = /\/api\/jobs\/stream/.test(u);
+    if (!isJobs && !/\/api\/telemetry\/stream/.test(u) && RealES) return new RealES(url);
+    this.url = u; this.readyState = 1; this._l = {}; this._timer = null;
     var self = this, i = 0;
+    if (isJobs) {
+      // Named `jobs` events carrying the full snapshot — same wire shape the
+      // sidecar emits. First emit is deferred a tick so the caller has attached
+      // its listeners; dispatch/cancel re-emit immediately via jobsSubs.
+      jobsSubs.push(self);
+      var jtick = function () { try { self._emit('jobs', { jobs: jobsList() }); } catch (e) {} };
+      setTimeout(jtick, 0);
+      this._timer = setInterval(jtick, 4000);
+      this._onclose = function () { jobsSubs = jobsSubs.filter(function (x) { return x !== self; }); };
+      return;
+    }
     function tick() {
       var tel = fixtures.telemetry || { samples: [], inflight_profile: {} };
       var prof = tel.inflight_profile || {};
@@ -219,7 +334,7 @@
     (this._l[t] || []).forEach(function (cb) { try { cb(ev); } catch (e) {} });
     if (t === 'message' && typeof this.onmessage === 'function') this.onmessage(ev);
   };
-  DemoES.prototype.close = function () { this.readyState = 2; if (this._timer) clearInterval(this._timer); };
+  DemoES.prototype.close = function () { this.readyState = 2; if (this._timer) clearInterval(this._timer); if (this._onclose) this._onclose(); };
   window.EventSource = DemoES;
 
   // ----- DEMO ribbon --------------------------------------------------------
@@ -233,7 +348,8 @@
       '#arena-demo-ribbon code{background:rgba(255,255,255,.16);padding:1px 5px;border-radius:4px}';
     var el = document.createElement('div');
     el.id = 'arena-demo-ribbon'; el.setAttribute('role', 'note');
-    el.innerHTML = '<strong>DEMO</strong> recorded on a DGX Spark — chat &amp; compare replay real sessions. ' +
+    el.innerHTML = '<strong>DEMO</strong> chat &amp; compare replay real DGX Spark sessions; ' +
+      'the board &amp; training panes show simulated data drawn from past real runs. ' +
       'Run it live: <code>pip install fieldkit[arena]</code>' +
       ' &nbsp;·&nbsp; <a href="https://orionfold.com" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline">Sponsor this project on Orionfold &#8599;</a>';
     document.head.appendChild(s);
@@ -302,6 +418,13 @@
   // ----- load fixtures (async; shims read the mutable ref) ------------------
   (realFetch || fetch)(FIXTURE_URL)
     .then(function (r) { return r && r.ok ? r.json() : null; })
-    .then(function (d) { if (d) { fixtures = d; window.__ARENA_DEMO_FIXTURES__ = d; } })
+    .then(function (d) {
+      if (d) {
+        fixtures = d; window.__ARENA_DEMO_FIXTURES__ = d;
+        // if the jobs board primed before fixtures landed, drop the empty
+        // cached snapshot so the next read re-seeds from the fixture data
+        if (jobsState && !jobsState.length) jobsState = null;
+      }
+    })
     .catch(function (e) { try { console.warn('[arena demo] fixtures load failed', e); } catch (x) {} });
 })();

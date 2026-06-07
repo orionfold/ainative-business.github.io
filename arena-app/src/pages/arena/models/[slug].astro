@@ -16,6 +16,7 @@ import {
   examplePromptFor,
   verticalOf,
 } from '../../../lib/arena/model-prompts.mjs';
+import { articleUrl } from '../../../lib/arena/article-url.mjs';
 
 export async function getStaticPaths() {
   const all = await getCollection('artifacts');
@@ -197,7 +198,7 @@ const compareHref = `${href('arena/compare/')}?prompt=${encodeURIComponent(promp
         <div class="bezel__body model-detail__links">
           {isApp && <a class="arena-btn arena-btn--primary" href={previewUrl} target="_blank" rel="noopener">See the live preview ↗</a>}
           {hfUrl && <a class="arena-btn arena-btn--primary" href={hfUrl} target="_blank" rel="noopener">Open on HuggingFace ↗</a>}
-          {d.article && <a class="arena-btn" href={href(d.article)}>Read the build article</a>}
+          {d.article && <a class="arena-btn" href={articleUrl(d.article)}>Read the build article</a>}
           {(d.notebooks || []).map((nb) => (
             <>
               {nb.colab && <a class="arena-btn arena-btn--ghost" href={nb.colab} target="_blank" rel="noopener">{nb.label ? `${nb.label} — Colab` : 'Open in Colab'} ↗</a>}

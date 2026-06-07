@@ -69,15 +69,15 @@ With the fix in, Cortex scored itself for the first time: against a **44-questio
 
 ### Coverage and freshness as a number, not a guess
 
-![The recall-layer pane after a rebuild — coverage 100%, provenance 313/313, recall@k 0.409](screenshots/04-knowledge-after-rebuild.png)
+![The recall-layer pane after a rebuild — coverage 100%, provenance 328/328, recall@k 0.409](screenshots/04-knowledge-after-rebuild.png)
 
-The top of the pane is Cortex's dashboard: coverage percent, how many documents are indexed versus how many *should* be, how many are stale, and — the field that didn't exist before this session — what fraction of chunks carry a provenance stamp. After the rebuild it reads **100% coverage, 313/313 provenance**. Before the rebuild it read a blunt warning: `live index unavailable: column "source" does not exist`. Cortex bootstrapped its own provenance schema on the first re-index, and the pane went from degraded to green without a single manual SQL statement.
+The top of the pane is Cortex's dashboard: coverage percent, how many documents are indexed versus how many *should* be, how many are stale, and — the field that didn't exist before this session — what fraction of chunks carry a provenance stamp. After a rebuild it reads **100% coverage with every chunk provenance-stamped** (328/328 at the latest re-index; 313 on the session that built it). Before that first rebuild it read a blunt warning: `live index unavailable: column "source" does not exist`. Cortex bootstrapped its own provenance schema on the first re-index, and the pane went from degraded to green without a single manual SQL statement.
 
 ### Re-index from the control plane
 
-![The control-plane jobs board mid-drain — reindex running at 94% GPU, rag_eval done](screenshots/03-jobs-board-draining.png)
+![The control-plane jobs board mid-drain — reindex running at 96% GPU](screenshots/03-jobs-board-draining.png)
 
-Clicking **rebuild** doesn't run a script — it enqueues a `reindex` job and a chained `rag_eval` job onto the Arena control plane, which drains them one at a time through the same MCP harness the agent uses to drive the box. The board shows the work moving: the re-index running with the GPU at **94%** as it re-embeds every chunk, the scoring job already done beside it. The job payloads stay on the machine; only aggregate scores are ever mirrored.
+Clicking **rebuild** doesn't run a script — it enqueues a `reindex` job and a chained `rag_eval` job onto the Arena control plane, which drains them one at a time through the same MCP harness the agent uses to drive the box. The board shows the work moving: the re-index running with the GPU at **96%** as it re-embeds every chunk, the rest of the board carrying the queue's history beside it. The job payloads stay on the machine; only aggregate scores are ever mirrored.
 
 ### A recall gate that won't let a rebuild regress
 
@@ -89,7 +89,7 @@ The point of scoring is the gate. Each `rag_eval` compares its recall against th
 
 ![Querying the Second Brain through the cockpit — cited hits tagged by source](screenshots/05-knowledge-rag-query.png)
 
-The query console is Cortex's read surface. Asked *"how does GRPO use the eval harness as the reward model on the Spark?"*, it returned cited chunks from exactly the right notes — the GRPO and trajectory-eval pieces — each tagged with its source and trust tier. The trust-tier chips let you constrain retrieval to the provenance you trust for a given question, which is the differentiator a hosted RAG over someone else's corpus structurally can't offer.
+The query console is Cortex's read surface. Asked *"how do I pick the right quant for a GGUF release?"*, it returned cited chunks from exactly the right notes — the GGUF-publisher and quant-economics pieces — each tagged with its source and trust tier. The trust-tier chips let you constrain retrieval to the provenance you trust for a given question, which is the differentiator a hosted RAG over someone else's corpus structurally can't offer.
 
 ## Built on the substrate
 
