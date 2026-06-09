@@ -24,6 +24,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
 import ProvenanceChip from './ProvenanceChip.jsx';
+import FeedHealth from './FeedHealth.jsx';
 
 const pct = (x) => (x == null ? '—' : `${(Number(x) * 100).toFixed(0)}%`);
 
@@ -141,6 +142,7 @@ export default function RewardSignalPane() {
   // that newest file is from THIS run or a prior one, OBS-5).
   const shownRun = runs.find((r) => r.source === source);
   const shownTsMs = shownRun && shownRun.mtime != null ? shownRun.mtime * 1000 : null;
+  const feedTone = isRunning ? 'live' : (shownTsMs != null ? 'ok' : 'idle');
 
   return (
     <div class="reward">
@@ -174,6 +176,18 @@ export default function RewardSignalPane() {
           <span class="reward__live-eta">live · streaming each held-out row · refreshes every 5s</span>
         </div>
       )}
+
+      <FeedHealth
+        title="Reward feed"
+        tone={feedTone}
+        source={source}
+        sourceKind="reward-signal report"
+        lastStampMs={shownTsMs}
+        producer={isRunning ? 'active eval/preflight writer' : 'latest verifier report'}
+        reads="reward-signal JSON rows + verifier summary"
+        cadence="5s poll"
+        status={isRunning ? `running ${scored}/${total}` : (rep.status || (gatePass ? 'pass' : 'hold'))}
+      />
 
       {/* Three headline gauges — the eval-is-reward signal at a glance. */}
       <div class="reward__gauges">

@@ -50,6 +50,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
 import ProvenanceChip from './ProvenanceChip.jsx';
+import FeedHealth from './FeedHealth.jsx';
 
 // State → visual treatment. `active` is the live/in-flight tone (accent),
 // `done` the settled green, `hold`/`blank` the warn/dim edges.
@@ -180,6 +181,8 @@ function CorpusHandshake({ liveness, request, base, onChange }) {
   };
   const lm = LIVE_META[lv.state] || LIVE_META.none;
   const req = request && request.present ? request : null;
+  const feedTone = lv.state === 'live' ? 'live' : (lv.state === 'stale' ? 'stale' : 'idle');
+  const lastStampMs = lv.age_s != null ? Date.now() - (lv.age_s * 1000) : null;
 
   return (
     <div class="build__shake" role="status">
@@ -246,6 +249,17 @@ function CorpusHandshake({ liveness, request, base, onChange }) {
         </form>
       )}
       {msg && <span class="build__shake-msg">{msg}</span>}
+      <FeedHealth
+        title="Corpus feed"
+        tone={feedTone}
+        source={lv.source}
+        sourceKind="corpus heartbeat"
+        lastStampMs={lastStampMs}
+        producer="in-session corpus synth"
+        reads="corpus-progress heartbeat + request fulfilment"
+        cadence="5s poll"
+        status={lv.state}
+      />
       <span class="build__shake-foot">
         Arena posts the intent file; the in-CC-session synth skill fulfils it
         (AE-R3 — the cockpit never runs skill code). Fulfilment = a heartbeat

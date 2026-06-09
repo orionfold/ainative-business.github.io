@@ -22,7 +22,7 @@
 
 ### 🔄 2026-06-09 — **Codex session opened; HANDOFF contract adopted**
 
-> Codex read `HANDOFF.md` as the per-session continuity contract. Start every future Codex session by reading this file, use it as the live state handoff, update it at session end when work changes repo/runtime/public posture, and periodically prune completed or stale context while keeping recovery through `git log -p HANDOFF.md`. The current Codex coexistence layer is uncommitted and deliberately scoped: `AGENTS.md`, `CODEX-CC.md`, `.codex/`, `.agents/skills/`, and a narrow `.gitignore` exception for tracked Codex skills. Existing untracked `.claude/scheduled_tasks.lock` and `src/data/arena-mirror/` remain untouched. No Arena runtime was revalidated during this handoff-only update; the last recorded runtime state remains the 2026-06-07 post-AE-31 note below.
+> Codex read `HANDOFF.md` as the per-session continuity contract. Start every future Codex session by reading this file, use it as the live state handoff, update it at session end when work changes repo/runtime/public posture, and periodically prune completed or stale context while keeping recovery through `git log -p HANDOFF.md`. The Codex coexistence layer is committed as `ddb6626` and deliberately scoped: `AGENTS.md`, `CODEX-CC.md`, `.codex/`, `.agents/skills/`, and a narrow `.gitignore` exception for tracked Codex skills. Existing untracked `.claude/scheduled_tasks.lock` and `src/data/arena-mirror/` remain untouched. No Arena runtime was revalidated during the handoff-only update; the last recorded runtime state remains the 2026-06-07 post-AE-31 note below.
 
 ### ✅ 2026-06-07 — **AE-31 LIVE REP FIRED** (the v0.31.0 remaining gate): real guarded lane-launch from the LaneTruth form + UI teardown — **zero Arena-vs-actual discrepancies**
 
@@ -32,7 +32,7 @@
 > - **Lane really serves**: circular-velocity question → **7.67 km/s boxed, correct** (the pre-verified capture-class question).
 > - **Teardown from the UI** — two-click confirm (a deliberate guard, found live) → job `caa0ada1`: `owner-killpg · freed 9.51 GB · pgid_empty · port_dead` (released **observed**, never asserted) · `owner_removed` · `registry_cleared` → **honest revert**: roster "No lane resident — arm one below", run-context `anchored:false · run_started:null`, no process (exact-name pgrep).
 > - The 2 job rows kept as honest history. One false signal caught on my side, not Arena's: `pgrep -f llama-server` matching my own shell wrapper text (the `feedback_cdp_smoke_innertext_traps` class) — re-verified with `pgrep -x`.
-> - **Remaining operator-armed gates after this**: real armed `sft_run` drain · real corpus-request fulfilment · `arena down` mid-metered cloud eval + GS-1 no-restart cap edit · AE-10 behavioral gate on a candidate base serve.
+> - Follow-on live exercises such as real armed `sft_run` drain, corpus-request fulfilment, metered cloud-eval teardown, GS-1 no-restart cap edit, and AE-10 candidate-base behavior are validation/test work for already-shipped surfaces, not Arena v2 spec-completion tasks.
 
 ### ✅ 2026-06-07 — **`fieldkit v0.31.0` RELEASED** — arena-enhancements **v2 cut 4**: **AE-31 guarded lane launch + teardown** (launch-runner cut, AE-R13) + demo recorder extensions
 
@@ -40,7 +40,7 @@
 > - **AE-31** (`ec8cd8e`) — `fieldkit.arena.launcher` (751 lines): `JobKind.LANE_LAUNCH`/`LANE_TEARDOWN` + `GET /api/lane-recipes`; operator-authored lane recipes → **pre-flight brake** (launch lock → recipe → binary → GGUF → memory envelope → fused one-lane/port check; a doomed launch never tears a working lane down) → detached spawn (survives sidecar restarts, atomic owner file) → **verified teardown** (owner-pid kill w/ PID-reuse guard, "released" observed never asserted). Refusals persist as honestly-failed rows (`refused:<reason>`). LaneTruth launch form + teardown buttons, BuildSpine lane wiring, JobsBoard launch cards. 1268 test lines incl. real-process `test_launch_process.py`.
 > - **Recorder extensions** (`4abe639` fieldkit side) — 12 new sanitized stub endpoints, recursive `_scrub_str` host-path scrubber, `--stubs-overlay` showcase merge (23 tests, `test_fixtures.py`).
 > - **Docs catch-up in the release commit**: `arena.md` JobKind row + a new AE-31 launcher section (the audit only checks `__all__`; launcher is a non-re-exported submodule — eyeballed per `feedback_audit_docs_kwarg_blind_spot`).
-> - ▶ **REMAINING GATE (operator-armed, AE-R1-style):** the **real guarded lane-launch from the LaneTruth form** (launch a Kepler recipe → lane lights discovery → teardown from the UI → honest revert) — the real-process offline tests + the committed bakes are the session bar.
+> - The operator-armed real guarded lane-launch gate fired in the 2026-06-07 live rep above.
 
 ### ✅ 2026-06-07 — **DEMO "FULL GLORY" + LINK SWEEP + SCREENGRAB SYNC** (operator-reported blanks/404s/dark-shots all fixed) · AE-31 launch cut committed
 
@@ -218,11 +218,11 @@
 ## Open items (by swimlane)
 
 ### 🤝 Codex / Claude coexistence
-- **Codex layer is uncommitted** — review and commit the new Codex-scoped files when ready: `AGENTS.md`, `CODEX-CC.md`, `.codex/`, `.agents/skills/`, and the `.gitignore` exception. Do not modify `.claude/` for Codex behavior unless explicitly requested.
+- **Codex layer is committed** — current baseline is `ddb6626 chore(codex): add coexisting CLI contract`. Do not modify `.claude/` for Codex behavior unless explicitly requested.
 - **HANDOFF contract for Codex** — read `HANDOFF.md` at session start, update it at session end when continuity changes, and prune stale completed detail periodically. Keep `CODEX-CC.md` for Codex/Claude interoperability changes.
 
 ### 🔬 Arena-enhancements v2 remainder
-- **Cuts 1-4 done + released; AE-31 live rep done.** Remaining per `_SPECS/arena-enhancements-v2.md` and `_IDEAS/arena-smoke-v2-features.md`: AE-28 feed self-description/operator brief as warranted; real armed `sft_run` drain; real corpus-request fulfilled by an actual corpus-synth session; real `arena down` mid-metered cloud eval; GS-1 no-restart cap edit on a real cloud eval; AE-10 behavioral gate once a candidate base serves.
+- **Arena v2 spec-completion work is now closed.** Cuts 1-4 are done + released, AE-31 live rep is done, and AE-28 landed as a narrow feed self-description/source-health disclosure on SFT, Reward, and Corpus. The broad operator-brief/checklist pane was reviewed and intentionally skipped as redundant. Operator-armed live gates remain validation/test work for shipped surfaces, not spec-completion tasks.
 - Discipline unchanged: build and browser-smoke side by side in the running Arena over CDP; rebake `_webui` after `arena-app/` edits; no arena.db schema change unless a spec explicitly calls for it.
 
 ### ✍️ Editorial
@@ -249,6 +249,12 @@
 
 ### 2026-06-09 (Codex session start — HANDOFF contract adopted)
 Codex read `HANDOFF.md` as the per-session continuity contract and recorded the rule: read at session start, update at session end when state changes, and prune stale completed detail periodically. Added a current-state note for the uncommitted Codex coexistence layer (`AGENTS.md`, `CODEX-CC.md`, `.codex/`, `.agents/skills/`, `.gitignore` exception), then pruned stale completed open-item blocks and superseded 2026-06-06 runtime baselines. No Arena runtime revalidation was performed in this handoff-only update. | Manav (with Codex)
+
+### 2026-06-09 (AE-28 source-health disclosure built)
+Completed the real value-add AE-28 slice: added a shared collapsed `FeedHealth` disclosure and wired it into SFT, Reward, and Corpus surfaces. It names source filename/kind, last stamp, producer, read path, poll cadence, and health state; the broad operator-brief/checklist pane was skipped as low ROI because provenance, runtime readiness, corpus liveness, and run-context are already surfaced in-place. Verified with site build + render verifiers, Arena `_webui` bake, cockpit restart in browser-use mode, and CDP smoke on `/arena/build/`, `/arena/sft/`, `/arena/reward/` (one feed-health disclosure each, expandable, zero console errors). | Manav (with Codex)
+
+### 2026-06-09 (Arena v2 handoff pruning)
+Arena v2 open-items were narrowed to real spec-completion work. Operator-armed live exercises (`sft_run` drain, corpus-request fulfilment, metered cloud-eval teardown, GS-1 cap edit, AE-10 candidate-base behavior) are validation/test work for shipped code, not open Arena v2 spec tasks. AE-28 was then completed as the narrow source-health disclosure recorded above. Also corrected the Codex coexistence baseline to committed `ddb6626`. | Manav (with Codex)
 
 ### 2026-06-07 (AE-31 live rep FIRED — zero discrepancies; recipe file is a kept operator asset)
 The v0.31.0 remaining gate closed same-day: authored the first lane recipe (`kepler-q8` → `~/.fieldkit/arena/lane-recipes.json`, loaded per-request so no restart), launched from the LaneTruth form with anchor-on-warm (pre-flight 114.69 GB vs 16.09 est → warm 6.0 s → discovery lit → run anchored — the run-anchor-on-real-serve gate fired with it), verified real serving (7.67 km/s boxed, correct), tore down from the UI (two-click confirm — a guard discovered live, not a bug; `owner-killpg · freed 9.51 GB · port_dead observed`) → honest revert. Worth keeping: (1) the recipe file persists as an operator asset — future launches are one-click; (2) `pgrep -f` self-matches the CC shell wrapper's command text — verify process death with `pgrep -x` (the cdp-smoke-traps class, shell edition). Job rows kept as honest history. Spend $0. | Manav (with Claude)

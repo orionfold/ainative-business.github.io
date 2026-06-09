@@ -1,29 +1,28 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-07",
+  "updated": "2026-06-09",
   "health": "green",
-  "focus": "AE-31 live rep FIRED (the v0.31.0 remaining gate): real guarded kepler-q8 lane-launch from the LaneTruth form (pre-flight brake → warm 6.0s → discovery lit → run anchored on warm) + UI two-click teardown (owner-killpg, port_dead observed) → honest revert — zero Arena-vs-actual discrepancies",
+  "focus": "AE-28 source-health disclosure shipped: SFT, Reward, and Corpus now show collapsed feed source/last-stamp/producer/read-path health in the live Arena cockpit",
   "blockers": [],
   "next": [
-    "Real armed sft_run drain (nemo-train + FK_SFT_RUN_ARMED=1 against the astro recipe — AE-29 live rep)",
-    "Real corpus-request fulfilled by an actual claude-corpus-synth session (AE-27 skill-side loop)",
-    "Real arena down mid-metered cloud eval + GS-1 no-restart cap edit on a real cloud eval",
-    "AE-28 feed self-description + operator brief (low priority)",
-    "Editorial: Phase 2 autonomous-harness launch article (product-writer)"
+    "Editorial: Phase 2 autonomous-harness launch article (product-writer)",
+    "Operator infra: pinned RL lane setup for a future live rl_run when ready",
+    "Second Brain evidence server deployment + first knowledge reindex",
+    "SEO monitor rerun in the next 1-2 week settlement window"
   ],
   "recent": [
-    "AE-31 live rep: first operator lane recipe (kepler-q8 → ~/.fieldkit/arena/lane-recipes.json, kept — one-click future launches); launch job 5419a336 + teardown caa0ada1 kept as honest history",
-    "Run-anchor-on-real-serve gate fired with it (anchor-on-warm → un-anchor on teardown); lane verified really serving (7.67 km/s boxed, correct)",
-    "fieldkit v0.31.0 on PyPI (AE-31 launcher + recorder extensions; offline 1496/19)",
-    "Prior: demo full-glory + 404 sweep + light screengrab sync"
+    "AE-28 built as the narrow value-add slice; broad operator-brief pane intentionally skipped as redundant",
+    "Arena v2 spec-completion work is now closed; live operator-armed gates are validation/test work for shipped surfaces",
+    "CDP smoke passed on /arena/build/, /arena/sft/, /arena/reward/ with one expandable feed-health disclosure each and zero console errors",
+    "Codex coexistence baseline corrected to committed ddb6626"
   ],
-  "session": "S-AE31-rep (live gate)",
+  "session": "S-AE28-source-health",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 24,
+    "arena_features": 25,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,

@@ -3992,6 +3992,62 @@ try {
       }
       .arena-app .standup__staged b { color: var(--arena-ok); }
 
+      /* AE-28 — compact feed self-description / source-health disclosure */
+      .arena-app .feed-health {
+        border: 1px solid color-mix(in oklch, var(--arena-border) 80%, transparent);
+        border-radius: 0.45rem;
+        background: color-mix(in oklch, var(--arena-bg) 82%, transparent);
+      }
+      .arena-app .feed-health[open] { border-color: color-mix(in oklch, var(--arena-accent) 32%, var(--arena-border)); }
+      .arena-app .feed-health__summary {
+        min-height: 2rem; display: flex; align-items: center; gap: 0.45rem;
+        padding: 0.38rem 0.65rem; cursor: pointer; list-style: none;
+        font-family: var(--arena-mono); font-size: 0.58rem; color: var(--arena-text-dim);
+      }
+      .arena-app .feed-health__summary::-webkit-details-marker { display: none; }
+      .arena-app .feed-health__summary::after {
+        content: "+"; margin-left: auto; color: var(--arena-text-dim); font-weight: 700;
+      }
+      .arena-app .feed-health[open] .feed-health__summary::after { content: "-"; }
+      .arena-app .feed-health__dot {
+        width: 0.42rem; height: 0.42rem; border-radius: 50%; flex: 0 0 auto;
+        background: var(--arena-text-dim);
+      }
+      .arena-app .feed-health__dot[data-tone="live"] { background: var(--arena-accent); box-shadow: 0 0 5px var(--arena-accent); }
+      .arena-app .feed-health__dot[data-tone="ok"] { background: var(--arena-ok); }
+      .arena-app .feed-health__dot[data-tone="stale"],
+      .arena-app .feed-health__dot[data-tone="warn"] { background: var(--arena-warn); }
+      .arena-app .feed-health__title {
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .feed-health__state {
+        padding: 0.03rem 0.32rem; border-radius: 0.3rem;
+        border: 1px solid color-mix(in oklch, currentColor 35%, var(--arena-border));
+        color: var(--arena-text-mute);
+      }
+      .arena-app .feed-health[data-tone="live"] .feed-health__state { color: var(--arena-accent); }
+      .arena-app .feed-health[data-tone="ok"] .feed-health__state { color: var(--arena-ok); }
+      .arena-app .feed-health[data-tone="stale"] .feed-health__state,
+      .arena-app .feed-health[data-tone="warn"] .feed-health__state { color: var(--arena-warn); }
+      .arena-app .feed-health__source {
+        min-width: 0; max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        color: var(--arena-text-mute);
+      }
+      .arena-app .feed-health__grid {
+        margin: 0; padding: 0.15rem 0.65rem 0.6rem; display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0.32rem 0.75rem;
+        border-top: 1px solid color-mix(in oklch, var(--arena-border) 65%, transparent);
+      }
+      .arena-app .feed-health__row { display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: 0.45rem; align-items: baseline; }
+      .arena-app .feed-health__row dt {
+        margin: 0; font-family: var(--arena-mono); font-size: 0.54rem;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .feed-health__row dd {
+        margin: 0; min-width: 0; overflow-wrap: anywhere;
+        font-family: var(--arena-mono); font-size: 0.6rem; color: var(--arena-text-mute);
+      }
+
       /* ---------------------------------------------------------------
        *  Reward signal — eval-is-reward gauge (/arena/reward/) — AF-3
        * --------------------------------------------------------------- */

@@ -8,7 +8,8 @@
 // analogue of the rl_run progress strip. The operator can watch a
 // TrainRecipe(backend="nemo") run side-by-side instead of tailing a log.
 //
-// GET /api/sft-progress parses a NeMo driver log + run-dir:
+// GET /api/sft-progress reads the canonical SFT heartbeat first, with legacy
+// driver logs still available as a history source:
 //   • iter / max + a progress bar + ETA + iter/s — is it advancing?
 //   • the loss curve (sparkline) — is it actually learning the format?
 //   • peak GPU memory — the unified-memory OOM-landmine watch;
@@ -21,6 +22,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
 import ProvenanceChip from './ProvenanceChip.jsx';
+import FeedHealth from './FeedHealth.jsx';
 
 const fmtEta = (s) => {
   if (s == null) return '—';
@@ -149,6 +151,8 @@ export default function SftProgressPane() {
   // you're looking at instead of letting a Jun-4 run pass as current (OBS-5).
   const shownRun = runs.find((r) => r.source === (data && data.source));
   const shownTsMs = shownRun && shownRun.mtime != null ? shownRun.mtime * 1000 : null;
+  const sourceKind = rep.feed === 'canonical' ? 'canonical heartbeat' : 'driver log';
+  const feedTone = isRunning ? 'live' : (status === 'failed' ? 'warn' : (shownTsMs != null ? 'ok' : 'idle'));
 
   return (
     <div class="sft">
@@ -169,6 +173,18 @@ export default function SftProgressPane() {
           <ProvenanceChip tsMs={shownTsMs} live={isRunning} runId={rep.run_label || null} />
         </div>
       )}
+
+      <FeedHealth
+        title="SFT feed"
+        tone={feedTone}
+        source={source}
+        sourceKind={sourceKind}
+        lastStampMs={shownTsMs}
+        producer={rep.feed === 'canonical' ? 'fieldkit.training.run' : 'training driver stdout'}
+        reads={rep.feed === 'canonical' ? 'sft-progress heartbeat + checkpoint liveness' : 'driver log + checkpoint dirs'}
+        cadence="3s poll"
+        status={status}
+      />
 
       {/* Live strip — phase, iter progress bar, ETA. */}
       <div class="sft__live" data-running={isRunning} role="status">
