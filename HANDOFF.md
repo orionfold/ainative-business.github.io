@@ -12,6 +12,15 @@
 
 ## Current State
 
+### 2026-06-09 - Advisor proof-start evidence generated
+
+- Began the Orionfold Advisor Unsloth/Arena proof with deterministic, tracked pre-GPU evidence under `evidence/orionfold-advisor/`.
+- `scripts/orionfold_advisor/generate.py` now writes and validates: `domain-gate.json`, `source-audit.json`, `public-corpus-manifest.jsonl`, `advisor-bench-v0.1.jsonl`, and `advisor-bench-v0.1.heldout.jsonl`.
+- Domain gate winner: **Orionfold Advisor**. Corpus manifest currently contains 137 public-safe sources; upcoming articles/products, proof-control specs, handoff/status/operator state, and private config paths are excluded. Source audit records that this checkout exposes one public 14-chapter book surface, not three books.
+- Advisor bench seed: 103 total rows, 28 frozen held-out rows, with >=15 refusal/private-state cases and source-id validation. This is an eval/source-boundary seed, not SFT training data.
+- Corpus correction before RAG: v0.1 captured local repo docs/guides/specs but **missed `src/pages/docs/**` / `https://ainative.business/docs/`**, which is the Book 3 source for **AI Native Platform**. Treat Field Notes as Book 2 (**AI Research on NVIDIA DGX Spark**) source and `src/data/book/chapters/**` as Book 1 (**AI Native Business**) source. `https://orionfold.com/books/` is reference/CTA, not primary training evidence.
+- Next proof step: regenerate the corpus manifest with the Platform docs route included and book-surface/source-role metadata, then build the RAG/recall lane and run the Advisor base-model scout/preflight before any Unsloth Core training.
+
 ### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
 
 - Added tracked specs for the next combined proof run: `_SPECS/orionfold-advisor-unsloth-arena-v1.md` and `_SPECS/orionfold-advisor-dogfood-v1.md`.
@@ -87,6 +96,7 @@ Notes:
 ### Strategy / Growth
 
 - **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
+- Immediate Advisor proof next step: first correct/regenerate the manifest to include `src/pages/docs/**` as Book 3 / AI Native Platform source, then build/score the RAG recall path against `advisor-bench-v0.1*.jsonl` and use `hf-model-scout` for the base-model preflight before Unsloth setup.
 - During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
@@ -114,6 +124,10 @@ Notes:
 - Optional: relocate the old Claude memory namespace symlink into this repo namespace for a cleaner cutover.
 
 ## Recent Decisions
+
+### 2026-06-09 - Advisor proof-start evidence generated
+
+Started the Advisor proof with deterministic pre-GPU evidence: domain gate, public source manifest/audit, and a frozen 103-row Advisor bench seed with 28 held-out rows. Follow-up correction recorded: v0.1 missed `src/pages/docs/**` / `/docs/`, the Book 3 AI Native Platform source; include it before RAG. No model download, training, Arena launch, or public page edit yet. | Manav (with Codex)
 
 ### 2026-06-09 — Arena validation reminders consolidated
 

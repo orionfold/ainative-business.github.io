@@ -1,0 +1,112 @@
+{
+  "book_surfaces": {
+    "missing": [
+      "No second or third book surface is present under src/data/book/chapters"
+    ],
+    "note": "The proof spec mentions verifying 'the three books' if present; this checkout exposes one public book surface.",
+    "present": [
+      "AI Native Business 14-chapter book"
+    ]
+  },
+  "excluded": [
+    {
+      "path": "articles/claw-eval-live-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/dci-corpus-operators-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/field-fixing-the-hermes-harness-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/judge-orchestrated-ensemble-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/lora-fine-tune-nemotron-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/nemo-framework-continued-pretraining-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/nsight-systems-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/scientific-foundation-models-as-tools/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/skill-os-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/spark-gpu-telemetry-prometheus-grafana/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "articles/synthetic-corpus-frameworks-on-spark/article.md",
+      "reason": "article status is upcoming"
+    },
+    {
+      "path": "products/living-model/product.md",
+      "reason": "product status is upcoming"
+    },
+    {
+      "path": "_SPECS/orionfold-advisor-dogfood-v1.md",
+      "reason": "proof-control spec excluded from Advisor corpus"
+    },
+    {
+      "path": "_SPECS/orionfold-advisor-unsloth-arena-v1.md",
+      "reason": "proof-control spec excluded from Advisor corpus"
+    },
+    {
+      "path": ".claude/",
+      "reason": "private/operator state"
+    },
+    {
+      "path": ".codex/",
+      "reason": "private/operator state"
+    },
+    {
+      "path": ".env",
+      "reason": "private/operator state"
+    },
+    {
+      "path": ".git/",
+      "reason": "private/operator state"
+    },
+    {
+      "path": ".agents/",
+      "reason": "private/operator state"
+    },
+    {
+      "path": "HANDOFF.md",
+      "reason": "private/operator state"
+    },
+    {
+      "path": "CODEX-CC.md",
+      "reason": "private/operator state"
+    },
+    {
+      "path": "CLAUDE.md",
+      "reason": "private/operator state"
+    },
+    {
+      "path": "_STATUS.json",
+      "reason": "private/operator state"
+    },
+    {
+      "path": "src/data/arena-mirror/",
+      "reason": "private/operator state"
+    }
+  ],
+  "generated": "2026-06-09",
+  "source_count": 137,
+  "version": "v0.1"
+}

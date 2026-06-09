@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor Unsloth/Arena proof specs authored: main proof plus parallel fieldkit/Arena dogfood ledger",
+  "focus": "Advisor proof-start evidence generated: domain gate, public corpus manifest, source audit, and frozen bench seed",
   "blockers": [],
   "next": [
-    "Execute _SPECS/orionfold-advisor-unsloth-arena-v1.md as a publish-grade small Arena browser-use run",
-    "Use _SPECS/orionfold-advisor-dogfood-v1.md to classify AD-FK and AD-AE findings during the run",
-    "Keep Unsloth public positioning unpublished until the live proof or rejection receipt exists",
-    "Second Brain evidence server deployment + first knowledge reindex"
+    "Regenerate Advisor corpus manifest with src/pages/docs/** as Book 3 / AI Native Platform source",
+    "Build and score the Advisor RAG recall path after the manifest correction",
+    "Run hf-model-scout for Advisor base-model preflight before Unsloth setup",
+    "Keep AD-FK and AD-AE dogfood findings in the companion spec during Arena/browser-use steps"
   ],
   "recent": [
-    "Added Orionfold Advisor proof spec: public corpus, RAG-first, Unsloth Core primary, RL headroom-gated",
-    "Added Advisor dogfood spec with AD-FK and AD-AE ledgers plus Arena browser-use operating contract",
-    "HANDOFF now points the next readiness proof at the Advisor Unsloth/Arena run",
-    "PyPI fieldkit v0.31.0 remains the latest Arena release baseline"
+    "Generated Advisor domain gate: Orionfold Advisor wins without fallback",
+    "Generated 137-source public corpus manifest, then identified missing Platform docs source before RAG",
+    "Generated Advisor bench v0.1: 103 rows total, 28 frozen held-out rows, >=15 refusal cases",
+    "Validated the evidence bundle with scripts/orionfold_advisor/generate.py --validate-only"
   ],
-  "session": "S-advisor-proof-specs",
+  "session": "S-advisor-proof-start",
   "metrics": {
     "articles": 53,
     "models": 6,
