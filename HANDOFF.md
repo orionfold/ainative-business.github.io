@@ -12,6 +12,13 @@
 
 ## Current State
 
+### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
+
+- Added tracked specs for the next combined proof run: `_SPECS/orionfold-advisor-unsloth-arena-v1.md` and `_SPECS/orionfold-advisor-dogfood-v1.md`.
+- Plan: use **Orionfold Advisor** as the default domain over the public Orionfold corpus, keep RAG as the fact/citation layer, use Unsloth Core for SFT/export, then let fieldkit/Arena import, launch, evaluate, score, and publish or reject the candidate.
+- Execution posture: publish-grade small, Arena browser-use first (`:7866` + CDP `:9222`), with every terminal-only workaround classified in the dogfood spec as expected external setup or a fieldkit/Arena finding.
+- Dogfood ledgers are `AD-FK-*` for fieldkit enhancements and `AD-AE-*` for Arena enhancements. Use them during the run before deciding which fixes deserve a fieldkit release or future Arena enhancement spec.
+
 ### 2026-06-09 — Unsloth compete/partner strategy memo drafted
 
 - Created the scaffold `_IDEAS/unsloth-compete-partner-uber-strategy.md` and the internal final memo `_IDEAS/unsloth-compete-partner-analysis.md`.
@@ -30,7 +37,7 @@
 
 - Latest fieldkit release: `fieldkit v0.31.0`, tag `fieldkit/v0.31.0`, PyPI live. It includes AE-31 guarded lane launch/teardown and demo recorder extensions. No arena.db schema change (`user_version` 6).
 - AE-31 live rep fired successfully: first operator lane recipe `kepler-q8` was authored, launch from LaneTruth passed pre-flight, lane served correctly, and UI teardown honestly released the lane. Recipe file is a kept operator asset at `~/.fieldkit/arena/lane-recipes.json`.
-- Arena v2 spec-completion work is closed. Follow-on live exercises (`sft_run` drain, corpus-request fulfilment, metered cloud-eval teardown, GS-1 cap edit, AE-10 candidate-base behavior) are validation/test work for shipped surfaces, not open spec tasks.
+- Arena v2 spec-completion work is closed. The planned end-to-end new-model Arena run is the next readiness proof and should cover the relevant shipped-surface validations as one flow: corpus handoff -> training drain -> manifest/publish -> lane launch/inference -> Arena score/provenance. Metered cloud-eval, GS-1 cap edits, AE-10 candidate-base checks, and RL drain are only in scope if that run explicitly needs them.
 - Public Arena demo and product screenshots were repaired after the light-theme pass; link sweep and render verifiers were green at the last recorded Arena release session.
 
 ### Published Baseline To Preserve
@@ -79,7 +86,8 @@ Notes:
 
 ### Strategy / Growth
 
-- **Unsloth compete-vs-partner U6 optional live Spark proof**: if operator wants it, install/run Unsloth Studio/Core in an isolated lane, train or adapt a tiny model, export/import into fieldkit/Arena, score it, and publish a build receipt. Respect the one-lane DGX Spark memory envelope.
+- **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
+- During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
 ### Editorial
@@ -89,7 +97,7 @@ Notes:
 
 ### Operator-Owned Live Infra
 
-- Future live `rl_run`: install pinned `fieldkit[rl]` plus pinned aarch64/CUDA-13 vLLM lane, set `FK_RL_*` via `scripts/astro_bench/fk-rl-env.sh`, then arm overnight drain when operator is ready. One-lane memory envelope still applies.
+- Planned end-to-end new-model Arena run: use current `fieldkit v0.31.0` / Arena, respect the one-lane DGX Spark memory envelope, and validate the actual training-to-inference path before adding a new release or public proof. Only arm `rl_run` with pinned `fieldkit[rl]`, aarch64/CUDA-13 vLLM, and `FK_RL_*` env if the run is RL-sensitive.
 - `sudo chown` root-owned container-written dirs when needed: `merged-hf-bf16`, `init-lora-r16`, HF-cache `models--Qwen--Qwen3-8B` stub.
 - Second Brain: deploy evidence server over `/home/nvidia/second-brain-mcp/server.py`, `pip install -e fieldkit` in its venv, and run first `/api/knowledge/reindex` to backfill schema/provenance.
 - PSI authenticated key still missing; blocks PageSpeed in `/seo-monitor`.
@@ -102,15 +110,18 @@ Notes:
 
 - Human-eye/Lighthouse pass on LoRA/adapter/dataset detail pages and empty-state listing pages.
 - Low-priority bakeoff gated-catalog footer last-write-wins issue.
-- Patent-strategist W3 fine-tune follow-up when source-side work lands.
 - Deprecate or replace the retired `sync-field-notes` skill body now that the monorepo cutover changed source paths.
 - Optional: relocate the old Claude memory namespace symlink into this repo namespace for a cleaner cutover.
 
 ## Recent Decisions
 
-### 2026-06-09 — HANDOFF compacted
+### 2026-06-09 — Arena validation reminders consolidated
 
-Pruned completed Arena/fieldkit release history and stale task blocks from `HANDOFF.md`. Current-state and open-task continuity remain; full removed history is recoverable through `git log -p HANDOFF.md`. | Manav (with Codex)
+Pruned stale one-off Arena validation reminders into the planned end-to-end new-model Arena run. The next readiness proof should exercise the real training-to-inference path; RL/cloud-eval/cap-edit/candidate-base checks are only in scope if that run needs them. | Manav (with Codex)
+
+### 2026-06-09 — Advisor proof specs authored
+
+Captured the combined Unsloth partner-path + Arena readiness proof in `_SPECS/orionfold-advisor-unsloth-arena-v1.md`, with `_SPECS/orionfold-advisor-dogfood-v1.md` as the parallel fieldkit/Arena dogfood ledger. Defaults locked from planning: Advisor domain, public corpus, RAG-first, Unsloth Core primary, publish-grade small run, Arena browser-use first, RL only after headroom gate. | Manav (with Codex)
 
 ### 2026-06-09 — Unsloth compete/partner memo corrected with bakeoff guardrail
 

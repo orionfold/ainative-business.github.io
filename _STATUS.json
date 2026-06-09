@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "AE-28 source-health disclosure shipped: SFT, Reward, and Corpus now show collapsed feed source/last-stamp/producer/read-path health in the live Arena cockpit",
+  "focus": "Advisor Unsloth/Arena proof specs authored: main proof plus parallel fieldkit/Arena dogfood ledger",
   "blockers": [],
   "next": [
-    "Editorial: Phase 2 autonomous-harness launch article (product-writer)",
-    "Operator infra: pinned RL lane setup for a future live rl_run when ready",
-    "Second Brain evidence server deployment + first knowledge reindex",
-    "SEO monitor rerun in the next 1-2 week settlement window"
+    "Execute _SPECS/orionfold-advisor-unsloth-arena-v1.md as a publish-grade small Arena browser-use run",
+    "Use _SPECS/orionfold-advisor-dogfood-v1.md to classify AD-FK and AD-AE findings during the run",
+    "Keep Unsloth public positioning unpublished until the live proof or rejection receipt exists",
+    "Second Brain evidence server deployment + first knowledge reindex"
   ],
   "recent": [
-    "AE-28 built as the narrow value-add slice; broad operator-brief pane intentionally skipped as redundant",
-    "Arena v2 spec-completion work is now closed; live operator-armed gates are validation/test work for shipped surfaces",
-    "CDP smoke passed on /arena/build/, /arena/sft/, /arena/reward/ with one expandable feed-health disclosure each and zero console errors",
-    "Codex coexistence baseline corrected to committed ddb6626"
+    "Added Orionfold Advisor proof spec: public corpus, RAG-first, Unsloth Core primary, RL headroom-gated",
+    "Added Advisor dogfood spec with AD-FK and AD-AE ledgers plus Arena browser-use operating contract",
+    "HANDOFF now points the next readiness proof at the Advisor Unsloth/Arena run",
+    "PyPI fieldkit v0.31.0 remains the latest Arena release baseline"
   ],
-  "session": "S-AE28-source-health",
+  "session": "S-advisor-proof-specs",
   "metrics": {
     "articles": 53,
     "models": 6,
