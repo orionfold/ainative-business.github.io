@@ -1,12 +1,17 @@
 ---
 project: orionfold-advisor-dogfood
 version: v1.0
-status: DRAFT (companion ledger for Orionfold Advisor proof; unbuilt)
+status: SUPERSEDED 2026-06-09 by `orionfold-local-ai-workbench-v1.md`
 created: 2026-06-09
 authoritative: Spark
 ---
 
 # Orionfold Advisor Dogfood v1.0
+
+> **Superseded for future planning.** Keep this as historical dogfood evidence
+> from the Advisor proof-start. New dogfood and product requirements belong in
+> `_SPECS/orionfold-local-ai-workbench-v1.md`; the revised Advisor model plan is
+> `_SPECS/orionfold-advisor-nvidia-native-v1.md`.
 
 > Parallel tracked dogfood spec for the Orionfold Advisor Unsloth + Arena proof.
 > Its job is to preserve the fieldkit and Arena improvements discovered while
@@ -217,7 +222,8 @@ Finding: Arena Chat can manually smoke an Advisor packet against the Qwen2.5 fal
 Observed during: 2026-06-09 visible browser-use continuation on `/arena/chat/`; the cited factual QA packet `advisor-cited-factual-qa-0003` answered with `Citations: [article_autoresearchbench_on_spark]` and no thinking leakage, while the cockpit top strip still labeled the run context as `Kepler`.
 Expected operator behavior: The operator should be able to run Advisor packets through an Arena preflight/eval surface that records row id, family, expected source ids, actual output, citation/refusal checks, pass/fail state, target lane, and Advisor run context.
 Current workaround: The preflight rows are no longer trapped in Chat: Cortex can run the tracked 8-row preflight against the active lane and display pass/fail/citation counts. The remaining gap is run-context specificity: the cockpit is still oriented by the older Kepler/astrodynamics run context rather than an Advisor proof context.
-2026-06-09 continuation: the visible Cortex `run preflight` control ran Qwen2.5 fallback on `:8091` and produced `evidence/orionfold-advisor/advisor-preflight-v0.1.results.jsonl`. The gate is **failed**, not publishable: 8 rows scored, 4 passed, 4 failed. Failures were `advisor-cited-factual-qa-0003`, `advisor-artifact-release-facts-0034`, `advisor-workflow-routing-0065`, and `advisor-missing-source-refusal-0088`.
+2026-06-09 continuation: the visible Cortex `run preflight` control ran Qwen2.5 fallback on `:8091` and produced `evidence/orionfold-advisor/advisor-preflight-v0.1.results.jsonl`. The initial gate was **failed**, not publishable: 8 rows scored, 4 passed, 4 failed. Failures were `advisor-cited-factual-qa-0003`, `advisor-artifact-release-facts-0034`, `advisor-workflow-routing-0065`, and `advisor-missing-source-refusal-0088`.
+2026-06-09 follow-up diagnosis: prompt/scorer tightening and two visible Cortex reruns narrowed the tracked receipt to 8 rows scored, 5 passed, 3 failed. The prompt now makes private/local-state refusal boundaries explicit and asks for exact retrieved `source_id` values; the scorer now tolerates harmless trailing periods on citation lines and avoids classifying citation source ids as private token leakage. Remaining failures are still real gate failures: `advisor-operator-recommendations-0074` cites `Source 2` instead of `product_orionfold_cortex`, and `advisor-missing-source-refusal-0087` / `advisor-missing-source-refusal-0088` return bare `Citations: []` without refusal language. Do not treat this as a pass or start Unsloth Core setup from it.
 Proposed fix class: eval
 Release posture: next-arena-enhancement
 Evidence: `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.json`; `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.png`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-results-card.json`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-results-card.png`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-scored-failing-run.png`.
@@ -303,7 +309,7 @@ The dogfood track succeeds if:
 
 | Date | Change | Author |
 |---|---|---|
-| 2026-06-09 | Added visible Advisor preflight execution to Cortex: active-lane readiness, `run preflight`, `POST /api/advisor/preflight/run`, and a browser-use smoke against Qwen2.5 on `:8091`. The run is scored and visible but failed: 8 rows, 4 passing, 4 failing. | Manav (with Codex) |
+| 2026-06-09 | Added visible Advisor preflight execution to Cortex: active-lane readiness, `run preflight`, `POST /api/advisor/preflight/run`, and a browser-use smoke against Qwen2.5 on `:8091`. Follow-up diagnosis narrowed the failed gate from 4 passing / 4 failing to 5 passing / 3 failing, but it remains non-publishable. | Manav (with Codex) |
 | 2026-06-09 | Extended the Advisor preflight receipt API and Cortex card to render scored result-row summaries when a real results artifact exists. Live browser smoke still shows the tracked receipt as `not_run` with 0 results, so no batch preflight pass is claimed. | Manav (with Codex) |
 | 2026-06-09 | Added the first live Advisor preflight receipt surface: read-only `/api/advisor/preflight` plus the Cortex card, and logged `AD-AE-14` for the remaining gap between manual Chat packet smoke and scored Advisor preflight/eval rows. | Manav (with Codex) |
 | 2026-06-09 | Companion dogfood spec authored from Codex planning session. Establishes AD-FK and AD-AE ledgers, browser-use operating contract, expected external setup boundary, and closeout rules. | Manav (with Codex) |

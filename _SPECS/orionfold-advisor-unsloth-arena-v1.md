@@ -1,12 +1,18 @@
 ---
 project: orionfold-advisor-unsloth-arena
 version: v1.0
-status: DRAFT (planning decisions captured 2026-06-09; unbuilt)
+status: SUPERSEDED 2026-06-09 by `orionfold-advisor-nvidia-native-v1.md`
 created: 2026-06-09
 authoritative: Spark
 ---
 
 # Orionfold Advisor Unsloth + Arena Proof v1.0
+
+> **Superseded.** Orionfold's NVIDIA Inception GTM path changed the product
+> strategy. Unsloth is no longer a default Advisor track. Preserve this file as
+> planning history only; use `_SPECS/orionfold-advisor-nvidia-native-v1.md` for
+> the flagship Advisor model plan and `_SPECS/orionfold-local-ai-workbench-v1.md`
+> for Arena/fieldkit/workbench positioning.
 
 > The publish-grade, small end-to-end proof that treats the Unsloth partner path
 > as real: Unsloth trains and exports the candidate; fieldkit and Arena import,

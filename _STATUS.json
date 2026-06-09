@@ -3,25 +3,28 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "yellow",
-  "focus": "Advisor preflight now runs visibly in Arena Cortex and failed honestly",
+  "focus": "Starchart Advisor appliance and Workbench pivot specced for NVIDIA-native GTM",
   "blockers": [
-    "Advisor Qwen2.5 preflight gate failed: 8 scored rows, 4 failures"
+    "Advisor Qwen2.5 preflight remains a failed baseline: 8 scored rows, 3 failures"
   ],
   "next": [
-    "Diagnose the four failed Advisor preflight rows through visible Arena surfaces",
-    "Decide whether failures are prompt, scorer, or Qwen2.5 base-model issues",
+    "Run revised base-model scout starting with Nemotron Nano 9B, Nemotron 3 Nano 4B, and Nemotron 3 Nano 30B-A3B",
+    "Turn Starchart v1.1 package shape into concrete harness/corpus-pack/Arena workspace tasks",
+    "Use Qwen3-8B/14B and gpt-oss-20b as open-weight comparison baselines",
     "Add Advisor-specific run-context/proof labeling",
     "Keep or tear down the qwen25-7b-q5km lane on :8091 from Arena LaneTruth",
-    "Do not start Unsloth Core setup until the preflight gate is understood"
+    "Do not resume Unsloth unless it beats the NVIDIA-native baseline"
   ],
   "recent": [
-    "Added active-lane readiness to GET /api/advisor/preflight",
-    "Added visible Cortex run preflight control and POST /api/advisor/preflight/run",
-    "Browser-use run against Qwen2.5 on :8091 wrote advisor-preflight-v0.1.results.jsonl",
-    "Cortex now renders scored state: 8 rows, 4 failing",
-    "Arena restarted in browser-use mode and smoked on /arena/cortex/"
+    "Created _SPECS/orionfold-advisor-nvidia-native-v1.md",
+    "Created _SPECS/orionfold-local-ai-workbench-v1.md",
+    "Marked Unsloth-era Advisor specs as superseded",
+    "Folded Advisor corpus/bench/recall/preflight salvage into the new specs",
+    "Captured preliminary NVIDIA Build + HF model search criteria",
+    "Locked Orionfold Starchart as the product name",
+    "Reframed Starchart as harness + model + retriever + swappable corpus pack + Arena workspace with governed OpenRouter overflow"
   ],
-  "session": "S-advisor-preflight-run",
+  "session": "S-advisor-workbench-pivot",
   "metrics": {
     "articles": 53,
     "models": 6,
