@@ -1,0 +1,31 @@
+{
+  "endpoint": null,
+  "failures": [],
+  "families": {
+    "artifact_release_facts": 1,
+    "book_thesis_synthesis": 1,
+    "cited_factual_qa": 1,
+    "missing_source_refusal": 2,
+    "operator_recommendations": 1,
+    "unsloth_arena_partner_path": 1,
+    "workflow_routing": 1
+  },
+  "gate": {
+    "name": "advisor-generator-preflight",
+    "passed": false,
+    "status": "not_run",
+    "threshold": "all selected rows pass citation/refusal/route checks with no thinking leakage or private-state risk"
+  },
+  "generated": "2026-06-09",
+  "mode": "prompt_packets",
+  "model_target": "Qwen/Qwen3-8B",
+  "notes": [
+    "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
+    "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
+    "Endpoint mode expects a local OpenAI-compatible lane serving the target model."
+  ],
+  "prompt_path": "evidence/orionfold-advisor/advisor-preflight-v0.1.prompts.jsonl",
+  "results_path": null,
+  "row_count": 8,
+  "version": "v0.1"
+}

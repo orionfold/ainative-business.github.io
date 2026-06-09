@@ -3,22 +3,23 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor base-model scout completed; Qwen3-8B is the first preflight target",
+  "focus": "Advisor generator preflight packets staged; Qwen3-8B endpoint scoring is next",
   "blockers": [],
   "next": [
-    "Run 5-10 retrieved-context Advisor preflight questions against Qwen/Qwen3-8B",
+    "Serve Qwen/Qwen3-8B on a local OpenAI-compatible endpoint",
+    "Run scripts/orionfold_advisor/preflight.py --endpoint http://127.0.0.1:<port>",
     "Fallback to Qwen/Qwen2.5-7B-Instruct if Qwen3 leaks thinking, drifts citations, or over-refuses",
     "Repeat Advisor recall through the live Cortex/Arena lane before any publish claim",
     "Design Arena visibility for Advisor manifest, recall, model scout, and preflight receipts"
   ],
   "recent": [
-    "Logged AD-AE-12: Arena has no visible base-model scout/preflight artifact surface yet",
-    "Wrote scratch scout report at /tmp/hf-scout/2026-06-09/advisor-8B/report.md",
-    "Metadata probes recommended Qwen/Qwen3-8B, with Qwen2.5-7B-Instruct as fallback and Mistral v0.3 as control",
-    "Granite 3.3 8B remains manual-review pending local granite GGUF/probe whitelist verification",
-    "No weights downloaded, no training started, and no public pages changed"
+    "Added scripts/orionfold_advisor/preflight.py",
+    "Wrote advisor-preflight-v0.1 prompts/report under evidence/orionfold-advisor",
+    "Preflight gate is not_run because no Qwen3 endpoint was live on :8080/:8000/:8091",
+    "Logged AD-AE-13 for missing Arena preflight receipt and lane-readiness visibility",
+    "No model output, training, or public pages changed"
   ],
-  "session": "S-advisor-model-scout",
+  "session": "S-advisor-preflight-packets",
   "metrics": {
     "articles": 53,
     "models": 6,

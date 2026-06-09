@@ -29,7 +29,8 @@
 - RAG/recall gate added: `scripts/orionfold_advisor/score_recall.py` writes `rag-recall-v0.1.json` and `rag-recall-v0.1.predictions.jsonl`. Local BM25/provenance-chunk baseline over the 181-source manifest passed: all rows source_recall@5 = 0.9885, held-out answerable source_recall@5 = 1.0, 16 refusal rows excluded from recall denominators. Only top-5 miss is one pool workflow-routing row for `doc_fieldkit_docs_api_memory_md`; it is recovered by top-10.
 - Advisor base-model scout completed with `hf-model-scout` metadata probes only; no weights downloaded. Scratch report: `/tmp/hf-scout/2026-06-09/advisor-8B/report.md`; sidecar: `/tmp/hf-scout/2026-06-09/advisor-8B/candidates.json`. Recommendation: start with `Qwen/Qwen3-8B`; fallback `Qwen/Qwen2.5-7B-Instruct`; keep `mistralai/Mistral-7B-Instruct-v0.3` as control. `ibm-granite/granite-3.3-8b-instruct` is manual-review until the local probe whitelist/llama.cpp converter path is verified for `granite`; Gemma/Llama candidates hit approval-gated metadata and were ruled out for the clean publishable flow. Browser-use gap logged as `AD-AE-12`: Arena stayed parked on Cortex because the cockpit has no visible base-model scout/preflight artifact surface yet.
 - Arena browser-use is now up for the Advisor proof. Cortex pane smoke confirmed the local Advisor manifest/bench/recall receipt is **not** visible in Arena yet; logged concrete dogfood finding `AD-AE-11` in `_SPECS/orionfold-advisor-dogfood-v1.md`. Retaken Cortex screenshot at the operator-resized real browser window is staged at `/tmp/orionfold-advisor-dogfood/cortex-no-advisor-recall.png`.
-- Next proof step: run a 5-10 question Advisor generator preflight for `Qwen/Qwen3-8B` with retrieved context before Unsloth Core setup/training. Score citation formatting, missing-source refusal, workflow routing, no live-state invention, and Arena-evaluable answer shape.
+- Advisor retrieved-context generator preflight harness added: `scripts/orionfold_advisor/preflight.py` writes balanced held-out prompt packets and can score a local OpenAI-compatible endpoint. Current tracked receipt: `evidence/orionfold-advisor/advisor-preflight-v0.1.json` plus `advisor-preflight-v0.1.prompts.jsonl` (8 rows across cited QA, artifact, book, workflow routing, operator recommendation, Unsloth/Arena separation, and 2 refusal cases). Gate status is `not_run` because no `Qwen/Qwen3-8B` endpoint was running on `:8080`, `:8000`, or `:8091`; logged Arena visibility/lane-readiness gap `AD-AE-13`.
+- Next proof step: materialize/serve `Qwen/Qwen3-8B` as the target local lane, then rerun `python3 scripts/orionfold_advisor/preflight.py --endpoint http://127.0.0.1:<port>`. Score citation formatting, missing-source refusal, workflow routing, no live-state invention, no `<think>` leakage, and Arena-evaluable answer shape before Unsloth Core setup/training. Use `Qwen/Qwen2.5-7B-Instruct` as fallback only if Qwen3 fails the scored preflight.
 
 ### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
 
@@ -109,8 +110,8 @@ Notes:
 ### Strategy / Growth
 
 - **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
-- Immediate Advisor proof next step: run the `Qwen/Qwen3-8B` Advisor generator preflight with retrieved context before Unsloth setup/training. Use `Qwen/Qwen2.5-7B-Instruct` as fallback if Qwen3 fails due to thinking leakage, citation-format drift, or refusal verbosity. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
-- During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup. Current concrete Arena findings: `AD-AE-11` for missing manifest/bench/recall visibility and `AD-AE-12` for missing base-model scout/preflight visibility.
+- Immediate Advisor proof next step: serve `Qwen/Qwen3-8B` and run the tracked `advisor-preflight-v0.1` packets through `scripts/orionfold_advisor/preflight.py --endpoint ...`. Use `Qwen/Qwen2.5-7B-Instruct` as fallback if Qwen3 fails due to thinking leakage, citation-format drift, or refusal verbosity. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
+- During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup. Current concrete Arena findings: `AD-AE-11` for missing manifest/bench/recall visibility, `AD-AE-12` for missing base-model scout/preflight visibility, and `AD-AE-13` for missing preflight receipt/lane-readiness visibility.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
 ### Editorial
@@ -137,6 +138,10 @@ Notes:
 - Optional: relocate the old Claude memory namespace symlink into this repo namespace for a cleaner cutover.
 
 ## Recent Decisions
+
+### 2026-06-09 - Advisor generator preflight packets staged
+
+Added `scripts/orionfold_advisor/preflight.py` and staged the first tracked `advisor-preflight-v0.1` prompt packets under `evidence/orionfold-advisor/`. The gate is intentionally `not_run`: no `Qwen/Qwen3-8B` OpenAI-compatible endpoint was live on `:8080`, `:8000`, or `:8091`. Logged `AD-AE-13` for missing Arena preflight receipt/lane-readiness visibility. No model output, training, or public page edit yet. | Manav (with Codex)
 
 ### 2026-06-09 - Advisor base-model scout completed
 

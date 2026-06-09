@@ -194,6 +194,16 @@ Current workaround: Run the scout from the terminal with Hugging Face metadata q
 Proposed fix class: observability
 Release posture: next-arena-enhancement
 Evidence: Scratch scout report `/tmp/hf-scout/2026-06-09/advisor-8B/report.md`; sidecar `/tmp/hf-scout/2026-06-09/advisor-8B/candidates.json`; read-only CDP tab query showed active page `Orionfold Arena — Cortex` at `/arena/cortex/`.
+
+ID: AD-AE-13
+Status: proposed
+Finding: Advisor retrieved-context generator preflight packets can now be generated locally, but Arena still has no visible preflight receipt or target-lane readiness card tying the selected held-out questions, retrieved sources, target model, endpoint state, and pass/fail gate together.
+Observed during: 2026-06-09 Advisor generator-preflight continuation after `AD-AE-12`; `scripts/orionfold_advisor/preflight.py` wrote `advisor-preflight-v0.1.prompts.jsonl` and `advisor-preflight-v0.1.json`, but no OpenAI-compatible `Qwen/Qwen3-8B` lane was running on `:8080`, `:8000`, or `:8091`.
+Expected operator behavior: The operator should be able to see a preflight gate in Arena before training starts: selected held-out rows by family, retrieved context/source ids, target base model, endpoint/lane status, scored outputs if run, and whether Qwen3 passes or falls back to Qwen2.5.
+Current workaround: Generate packets from the terminal and later rerun `scripts/orionfold_advisor/preflight.py --endpoint http://127.0.0.1:<port>` after serving `Qwen/Qwen3-8B`; inspect tracked evidence files under `evidence/orionfold-advisor/`.
+Proposed fix class: observability
+Release posture: next-arena-enhancement
+Evidence: `evidence/orionfold-advisor/advisor-preflight-v0.1.prompts.jsonl`; `evidence/orionfold-advisor/advisor-preflight-v0.1.json`.
 ```
 
 ## 7. Expected External Setup vs Dogfood Gap
