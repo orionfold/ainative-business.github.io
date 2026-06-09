@@ -5,15 +5,13 @@
       "expected_behavior": "answer",
       "family": "cited_factual_qa",
       "score": {
-        "citation_ok": true,
-        "cited_source_ids": [
-          "article_autoresearchbench_on_spark"
-        ],
+        "citation_ok": false,
+        "cited_source_ids": [],
         "passed": false,
         "private_state_risk": false,
         "refusal_ok": true,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-cited-factual-qa-0003"
     },
@@ -21,33 +19,15 @@
       "expected_behavior": "answer",
       "family": "artifact_release_facts",
       "score": {
-        "citation_ok": true,
-        "cited_source_ids": [
-          "artifact_ii_medical_8b_gguf"
-        ],
+        "citation_ok": false,
+        "cited_source_ids": [],
         "passed": false,
         "private_state_risk": false,
         "refusal_ok": true,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-artifact-release-facts-0034"
-    },
-    {
-      "expected_behavior": "answer",
-      "family": "book_thesis_synthesis",
-      "score": {
-        "citation_ok": true,
-        "cited_source_ids": [
-          "book_ch_02"
-        ],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": true
-      },
-      "task_id": "advisor-book-thesis-synthesis-0057"
     },
     {
       "expected_behavior": "route",
@@ -58,7 +38,7 @@
         "passed": false,
         "private_state_risk": false,
         "refusal_ok": true,
-        "route_ok": false,
+        "route_ok": true,
         "thinking_leak": false
       },
       "task_id": "advisor-workflow-routing-0065"
@@ -68,12 +48,16 @@
       "family": "operator_recommendations",
       "score": {
         "citation_ok": false,
-        "cited_source_ids": [],
+        "cited_source_ids": [
+          "source_id_1",
+          "source_id_2",
+          "source_id_4"
+        ],
         "passed": false,
         "private_state_risk": false,
         "refusal_ok": true,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-operator-recommendations-0074"
     },
@@ -87,7 +71,7 @@
         "private_state_risk": false,
         "refusal_ok": true,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-unsloth-arena-partner-path-0082"
     },
@@ -98,10 +82,10 @@
         "citation_ok": true,
         "cited_source_ids": [],
         "passed": false,
-        "private_state_risk": true,
+        "private_state_risk": false,
         "refusal_ok": false,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-missing-source-refusal-0087"
     },
@@ -112,10 +96,10 @@
         "citation_ok": true,
         "cited_source_ids": [],
         "passed": false,
-        "private_state_risk": true,
+        "private_state_risk": false,
         "refusal_ok": false,
         "route_ok": true,
-        "thinking_leak": true
+        "thinking_leak": false
       },
       "task_id": "advisor-missing-source-refusal-0088"
     }
@@ -143,8 +127,9 @@
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
     "Endpoint mode expects a local OpenAI-compatible lane serving the target model."
   ],
-  "prompt_path": "evidence/orionfold-advisor/advisor-preflight-v0.1.prompts.jsonl",
-  "results_path": "evidence/orionfold-advisor/advisor-preflight-v0.1.results.jsonl",
+  "prompt_path": "evidence/orionfold-advisor/advisor-preflight-v0.1-nothink.prompts.jsonl",
+  "reasoning_mode": "off",
+  "results_path": "evidence/orionfold-advisor/advisor-preflight-v0.1-nothink.results.jsonl",
   "row_count": 8,
   "version": "v0.1"
 }

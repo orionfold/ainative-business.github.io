@@ -3,28 +3,25 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "yellow",
-  "focus": "Starchart Advisor appliance and Workbench pivot specced for NVIDIA-native GTM",
+  "focus": "Nano 9B /no_think probe ran through visible Cortex: 1/8 but zero thinking leakage; failures now SFT-shaped",
   "blockers": [
-    "Advisor Qwen2.5 preflight remains a failed baseline: 8 scored rows, 3 failures"
+    "Advisor has no passing base preflight: Qwen2.5 5/8, Nano 9B default 0/8, Nano 9B /no_think 1/8",
+    "Arena run context still labels the Advisor proof as Kepler/astrodynamics"
   ],
   "next": [
-    "Run revised base-model scout starting with Nemotron Nano 9B, Nemotron 3 Nano 4B, and Nemotron 3 Nano 30B-A3B",
-    "Turn Starchart v1.1 package shape into concrete harness/corpus-pack/Arena workspace tasks",
-    "Use Qwen3-8B/14B and gpt-oss-20b as open-weight comparison baselines",
+    "Decide: NeMo SFT probe on Nano 9B (/no_think floor, SFT-shaped failures) vs raw-floor probe of Nano-3-4B/30B-A3B",
+    "Add visible NIM/vLLM/TRT launch controls beyond llama-server recipes",
     "Add Advisor-specific run-context/proof labeling",
-    "Keep or tear down the qwen25-7b-q5km lane on :8091 from Arena LaneTruth",
     "Do not resume Unsloth unless it beats the NVIDIA-native baseline"
   ],
   "recent": [
-    "Created _SPECS/orionfold-advisor-nvidia-native-v1.md",
-    "Created _SPECS/orionfold-local-ai-workbench-v1.md",
-    "Marked Unsloth-era Advisor specs as superseded",
-    "Folded Advisor corpus/bench/recall/preflight salvage into the new specs",
-    "Captured preliminary NVIDIA Build + HF model search criteria",
-    "Locked Orionfold Starchart as the product name",
-    "Reframed Starchart as harness + model + retriever + swappable corpus pack + Arena workspace with governed OpenRouter overflow"
+    "Added reasoning_mode path: preflight.py --reasoning-mode off, Arena run endpoint, Cortex run /no_think control",
+    "Rebaked _webui, restarted browser-use Arena, clicked run /no_think in visible Cortex against Nano 9B NIM",
+    "Receipt advisor-preflight-v0.1-nothink.json: 1 passed, 7 failed, thinking_leak 0/8 (was 7/8)",
+    "Classified remaining failures: 4 exact-source-id alias/format, 1 grounding over-refusal, 2 refusal wording",
+    "Both Nano 9B receipts visible in the Cortex runs list; 459 arena tests pass"
   ],
-  "session": "S-advisor-workbench-pivot",
+  "session": "S-advisor-nano9b-nothink",
   "metrics": {
     "articles": 53,
     "models": 6,

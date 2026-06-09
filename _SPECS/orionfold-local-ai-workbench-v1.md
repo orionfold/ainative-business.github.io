@@ -80,6 +80,8 @@ The Advisor workstream produced useful Workbench requirements:
 | Base-model scout lived in `/tmp/hf-scout` outside Arena | Workbench needs model-scout visibility and candidate comparison. |
 | Manual Chat packet smoke was not a scored eval row | Workbench needs visible preflight/eval execution tied to run context. |
 | Qwen2.5 receipt improved from 4/8 to 5/8 but still failed | Workbench must preserve failed receipts, not only successful demos. |
+| Nano 9B NIM could be discovered/pinned but not launched from LaneTruth | Workbench needs first-class NIM/vLLM/TRT lane launch, not only llama-server GGUF recipes. |
+| Nano 9B visible preflight failed 0/8, mostly on reasoning leakage | Workbench needs reasoning-mode controls and failure classification before a candidate is selected. |
 | Cockpit still carried Kepler/astrodynamics run context | Workbench needs artifact-specific run-context labeling. |
 | Prompt/scorer changes changed pass/fail state | Workbench needs versioned evaluator policy and prompt-packet provenance. |
 
@@ -105,6 +107,8 @@ fieldkit release plan.
 | WB-8 | proposed | Evaluator-policy versioning: prompt packet version, scorer version, model output hash, and scorer changelog. | next fieldkit release |
 | WB-9 | proposed | NVIDIA Build catalog ingest: model/runtime metadata from build.nvidia plus HF sidecars. | future spec |
 | WB-10 | proposed | Enterprise demo mode: sanitized sample corpus + canned failed/pass receipts for sales walkthroughs. | product launch input |
+| WB-11 | proposed | NIM/vLLM/TRT launch controls: visible guarded launch/teardown for non-GGUF lanes, including cache/image/env readiness and one-lane memory checks. | next Arena enhancement |
+| WB-12 | proposed | Reasoning-mode controls: make `/no_think`, thinking budgets, and reasoning-content redaction explicit per lane and eval receipt. | next fieldkit/Arena release |
 
 ## 7. Operator Flow
 
@@ -176,3 +180,4 @@ Workbench v1 is credible when:
 | Date | Change | Author |
 |---|---|---|
 | 2026-06-09 | Created the local AI Workbench product spec by separating Arena/fieldkit/workbench positioning from the Advisor model track and folding in Advisor dogfood findings. | Manav (with Codex) |
+| 2026-06-09 | Added Nano 9B dogfood findings: visible Arena could pin a NIM lane but not launch it, and the first Nano 9B Advisor preflight failed 0/8 mostly on reasoning leakage. | Manav (with Codex) |

@@ -1,12 +1,12 @@
 ---
-project: orionfold-starchart-nvidia-native
-version: v1.1
-status: DRAFT (Starchart brand locked; replaces the Unsloth-first Advisor proof)
+project: orionfold-advisor-nvidia-native
+version: v1.2
+status: DRAFT (Advisor brand restored; replaces the Unsloth-first Advisor proof)
 created: 2026-06-09
 authoritative: Spark
 ---
 
-# Orionfold Starchart NVIDIA-Native v1.1
+# Orionfold Advisor NVIDIA-Native v1.2
 
 > Flagship product track: a governed local Advisor appliance on DGX Spark. The
 > package is not just a model; it is a harness + model + retriever + corpus +
@@ -23,8 +23,8 @@ The flagship story is now:
 Get the most quality, governance, and operational leverage out of NVIDIA DGX Spark.
 ```
 
-**Orionfold Starchart** is the first proof of that story. It should be
-positioned as a local enterprise Advisor appliance that understands a governed
+**Orionfold Advisor** is the first proof of that story. It should be
+positioned as a local enterprise advisor appliance that understands a governed
 corpus, cites its sources, refuses private/operator state, and demonstrates how
 Orionfold builds governed AI assets on NVIDIA infrastructure.
 
@@ -33,32 +33,32 @@ third-party acceleration option if it beats the NVIDIA-native path on Advisor
 quality, iteration speed, export reliability, or cost-to-quality. It is not a
 positioning pillar for Advisor v1.
 
-## 2. Brand Lock
+## 2. Brand
 
-Product name: **Orionfold Starchart**.
+Product name: **Orionfold Advisor**.
 
-Category: **Advisor appliance**.
+Category: **governed local AI advisor appliance**.
 
-Use "Advisor" for the capability and appliance category, not as the public
-product name. Existing internal proof artifacts can keep `advisor-*` ids until a
-mechanical rename is worth the churn, but new positioning, receipts, and Arena
-run context should say **Starchart**.
+Use **Orionfold Advisor** as the public product name and keep existing
+`advisor-*` proof ids. Arena run context, receipts, and public positioning should
+say **Advisor**.
 
 Recommended positioning line:
 
 ```text
-Orionfold Starchart is a governed local AI advisor for your enterprise corpus.
+Orionfold Advisor is a governed local AI advisor for your enterprise corpus.
 ```
 
-The name works because the product creates a navigable map of an enterprise
-knowledge universe. The corpus is the star field, Cortex is the charting layer,
-the local model is the navigator, Arena is mission control, and routing governs
-when to consult larger local or hosted instruments.
+The name is direct: the product is the governed advisor itself, not a metaphor
+around the advisor. The corpus supplies the knowledge boundary, Cortex supplies
+the retrieval layer, the local model supplies grounded synthesis, Arena supplies
+the operating surface, and routing governs when to consult larger local or
+hosted instruments.
 
 ## 3. Product Thesis
 
-Orionfold Starchart is not a generic chatbot and not merely a fine-tuned model. It
-is a packaged Advisor appliance:
+Orionfold Advisor is not a generic chatbot and not merely a fine-tuned model. It
+is a packaged advisor appliance:
 
 - **Harness**: deterministic routing, source-boundary policy, budget guardrails,
   evidence capture, and OpenAI-compatible endpoint adapters.
@@ -127,22 +127,22 @@ Responsibilities stay separated:
 
 ## 5. Prior Work To Fold In
 
-Starchart should reuse the strongest patterns already built in the repo:
+Advisor should reuse the strongest patterns already built in the repo:
 
-| Prior asset | Starchart implication |
+| Prior asset | Advisor implication |
 |---|---|
 | Orionfold Cortex / Second Brain | The retriever is a managed memory layer, not a raw vector table. Every corpus rebuild needs coverage, freshness, provenance, recall@k, and a promotion gate. |
-| Machine That Builds Machines | Starchart runs through the same job, budget, memory, cost, and morning-standup discipline as other Spark artifacts. The harness should emit receipts that feed future articles, cards, and book chapters. |
+| Machine That Builds Machines | Advisor runs through the same job, budget, memory, cost, and morning-standup discipline as other Spark artifacts. The harness should emit receipts that feed future articles, cards, and book chapters. |
 | Hermes vertical router | Routing should remain deterministic and auditable where possible: keyword/domain predicates, token-budget thresholds, confidence/failure classes, and one-lane Spark serving. |
 | Hermes cost router | Local-first is not a slogan; measure the leak rate. Escalation to OpenRouter or hosted frontier lanes should be justified by local failure classes and tracked as dollars per task / dollars per quality point. |
-| Orionfold Arena | Arena is the operating surface and system of record for Starchart training, eval, inference, comparison, cost, provenance, and run-context. |
+| Orionfold Arena | Arena is the operating surface and system of record for Advisor training, eval, inference, comparison, cost, provenance, and run-context. |
 | Naive RAG / rerank / bigger-generator grounding | Retrieval often works before generation does. Treat retrieval, grounding, refusal, and citation-format failures as separate failure classes. |
 | NIM-first inference | OpenAI-compatible endpoints are the swap boundary, but NVIDIA-native serving paths deserve priority when they preserve behavior and throughput. |
 | Harnesses / fieldkit MCP | The operator buttons and agent tools should call the same deterministic harness surface. No duplicate "human path" vs "agent path." |
 
 ## 6. Package Shape
 
-Starchart v1 should ship and be sold as a bundle:
+Advisor v1 should ship and be sold as a bundle:
 
 | Component | What ships | Customer-swappable? |
 |---|---|---|
@@ -153,11 +153,11 @@ Starchart v1 should ship and be sold as a bundle:
 | Arena workspace | Run context, lane recipes, preflight button, eval history, cost ledger, screenshots/receipts. | Yes; one workspace per customer corpus or deployment. |
 | Escalation policy | Local-first router, OpenRouter/hosted SOTA allowlist, data-policy constraints, cap-usd, audit log. | Yes, under governance. |
 
-This makes "Orionfold Starchart" portable:
+This makes "Orionfold Advisor" portable:
 
 ```text
-Orionfold default corpus -> Starchart demo
-Customer corpus pack     -> Customer Starchart
+Orionfold default corpus -> Advisor demo
+Customer corpus pack     -> Customer Advisor
 Same harness             -> Same gates, receipts, routing, and Arena controls
 ```
 
@@ -186,8 +186,21 @@ Keep the useful parts from the superseded Unsloth-era work:
   tracked 8-row generator preflight through `POST /api/advisor/preflight/run`.
 - Current Qwen2.5 fallback receipt: failed, non-publishable, 8 rows scored,
   5 passed, 3 failed after prompt/scorer tightening.
+- Current Nano 9B NIM receipt: failed, non-publishable, 8 rows scored,
+  0 passed, 8 failed. Runtime is viable on Spark through cached NIM on `:8000`,
+  but Advisor behavior is not viable without reasoning-mode/policy work.
+- Current Nano 9B `/no_think` receipt (`advisor-preflight-v0.1-nothink.json`,
+  run through the visible Cortex `run /no_think` control per §13.C step 5):
+  failed, non-publishable, 8 rows scored, 1 passed, 7 failed — but the
+  reasoning-leakage class is fully resolved (`thinking_leak` 0/8 vs 7/8).
+  Remaining failures are SFT-shaped: 4 exact-source-id alias/format rows
+  (`Citations: [2]`, `source_id_N` placeholders, Route line without a
+  Citations line), 1 grounding over-refusal (`Citations: []` despite the
+  expected source at retrieval rank 1), and 2 refusal rows missing refusal
+  wording. These are the behavior classes §4 assigns to SFT, so Nano 9B
+  with `/no_think` is a plausible-SFT-headroom candidate, not a pass.
 
-Current failure surface:
+Qwen2.5 failure surface:
 
 | Row | Failure |
 |---|---|
@@ -195,9 +208,18 @@ Current failure surface:
 | `advisor-missing-source-refusal-0087` | returns bare `Citations: []` without refusal language |
 | `advisor-missing-source-refusal-0088` | returns bare `Citations: []` without refusal language |
 
-Interpretation: retrieval is not the main problem. The generator must learn exact
-source-id citation behavior and refusal wording. Prompting helped but did not
-produce a publishable gate.
+Nano 9B failure surface:
+
+| Class | Evidence |
+|---|---|
+| reasoning leakage | `thinking_leak=true` on 7 of 8 rows |
+| citation / route | workflow-routing and several answer rows missed required exact source ids |
+| refusal boundary | both refusal rows failed refusal wording and were flagged for private-state risk |
+
+Interpretation: retrieval is not the main problem. Qwen2.5 mostly needs exact
+source-id and refusal behavior; Nano 9B additionally needs explicit
+reasoning-mode suppression or response redaction before it can be judged as an
+Advisor base.
 
 ## 8. Revised Base-Model Criteria
 
@@ -269,13 +291,13 @@ Use the best Nemotron where it fits the layer:
 The product claim should be:
 
 ```text
-Starchart is trained and governed locally on Spark, with NVIDIA frontier models
+Advisor is trained and governed locally on Spark, with NVIDIA frontier models
 available as optional teachers or enterprise escalation lanes.
 ```
 
 ## 11. Governed Model Routing
 
-Starchart should route across capability tiers, but the routing policy is part of
+Advisor should route across capability tiers, but the routing policy is part of
 the governed harness. It is not a hidden LLM-router by default.
 
 | Tier | Lane | Use when | Governance |
@@ -325,7 +347,7 @@ For OpenRouter specifically, the harness should use:
 
 ## 12. Arena Workspace Requirements
 
-Starchart needs a first-class Arena workspace, not a generic Cortex card:
+Advisor needs a first-class Arena workspace, not a generic Cortex card:
 
 | Surface | Requirement |
 |---|---|
@@ -384,6 +406,8 @@ For each top candidate:
 3. Save scored receipt and screenshot.
 4. Classify failures as retrieval, prompt, citation format, refusal behavior,
    reasoning leakage, or runtime friction.
+5. If the candidate supports reasoning controls, run one explicit no-thinking
+   configuration before judging the base as unsuitable.
 
 No hidden endpoint-only batch result can lock a base model.
 
@@ -417,13 +441,13 @@ only when the local stack needs help."
 
 ## 14. Acceptance Gates
 
-Starchart v1 cannot move to public positioning until:
+Advisor v1 cannot move to public positioning until:
 
 - Retriever recall remains green on public corpus.
 - Local base preflight is at least 7/8 before SFT or shows clear SFT headroom.
 - Post-SFT held-out passes all mandatory privacy/refusal rows.
 - Citation rows use exact `source_id` values.
-- Arena displays the run context as Starchart, not Kepler/astrodynamics.
+- Arena displays the run context as Advisor, not Kepler/astrodynamics.
 - The corpus pack can be swapped from Orionfold default to a synthetic/customer
   fixture without changing harness code.
 - Route tier, provider/model, cost, and privacy policy are visible for every
@@ -442,7 +466,7 @@ Starchart v1 cannot move to public positioning until:
 | OA-NV-4 | Community comparison | Keep Qwen3-8B/14B and gpt-oss-20b as baselines. |
 | OA-NV-5 | Teacher lane | Use Ultra/Super only as hosted/teacher/evaluator unless a local path is proven. |
 | OA-NV-6 | Unsloth | Dropped; re-open only after a measured NVIDIA-native baseline exists. |
-| OA-NV-7 | Product packaging | Ship Starchart as harness + model + retriever + corpus pack + Arena workspace. |
+| OA-NV-7 | Product packaging | Ship Advisor as harness + model + retriever + corpus pack + Arena workspace. |
 | OA-NV-8 | Corpus swap | Default Orionfold corpus proves the pattern; customer corpus packs become the enterprise unit. |
 | OA-NV-9 | Routing | Local-first deterministic routing; OpenRouter is governed overflow, not default execution. |
 | OA-NV-10 | Cost plane | Persist route tier, token counts, price snapshot, and dollars per quality point in Arena. |
@@ -515,6 +539,8 @@ Starchart v1 cannot move to public positioning until:
 
 | Date | Change | Author |
 |---|---|---|
-| 2026-06-09 | Locked the public product name as **Orionfold Starchart**. Kept "Advisor appliance" as the category and preserved existing `advisor-*` internal proof ids until a mechanical rename is justified. | Manav (with Codex) |
-| 2026-06-09 | Reframed Advisor from "model + retriever" into a packaged governed Advisor appliance: harness + model + retriever + corpus pack + Arena workspace. Folded in Cortex, Hermes routing/cost-router, Machine-that-Builds-Machines, Second Brain, NIM/RAG article lessons, and added local-to-hosted routing governance. | Manav (with Codex) |
+| 2026-06-09 | Ran the §13.C step-5 no-thinking probe: added a `reasoning_mode` path through `preflight.py`, the Arena run endpoint, and a visible Cortex `run /no_think` control, then scored Nano 9B NIM with `/no_think` through the cockpit. Receipt failed 1/8 but eliminated reasoning leakage (0/8); remaining failures are SFT-shaped citation/refusal classes. Nano 9B graduates from "unsuitable as served" to "plausible SFT headroom". | Manav (with Claude) |
+| 2026-06-09 | Restored the public product name to **Orionfold Advisor**. Existing `advisor-*` ids stay canonical, and Arena run context should say Advisor. | Manav (with Codex) |
+| 2026-06-09 | Ran the first NVIDIA-native visible preflight: cached Nano 9B NIM served on Spark and failed the 8-row Advisor gate 0/8, mainly from reasoning leakage. | Manav (with Codex) |
+| 2026-06-09 | Reframed Advisor from "model + retriever" into a packaged governed advisor appliance: harness + model + retriever + corpus pack + Arena workspace. Folded in Cortex, Hermes routing/cost-router, Machine-that-Builds-Machines, Second Brain, NIM/RAG article lessons, and added local-to-hosted routing governance. | Manav (with Codex) |
 | 2026-06-09 | Pivoted Advisor away from Unsloth partner proof and into NVIDIA-native flagship model track. Folded in the public corpus, recall, Arena preflight, and Qwen2.5 failure evidence. Added revised base-model scout criteria and preliminary NVIDIA/HF candidate search. | Manav (with Codex) |
