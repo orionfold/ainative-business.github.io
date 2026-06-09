@@ -12,6 +12,13 @@
 
 ## Current State
 
+### 2026-06-09 - Codex Linux sandbox repaired
+
+- Operator installed/loaded the Ubuntu AppArmor `bwrap-userns-restrict` profile for bubblewrap after Codex tools intermittently failed with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`.
+- Verified fixed in this repo: `codex sandbox /bin/true` exits cleanly and `codex sandbox pwd` prints `/home/nvidia/ainative-business.github.io`.
+- Syntax note for current local CLI (`codex-cli 0.138.0`): use `codex sandbox <command>`. Older issue/docs examples using `codex sandbox linux <command>` are stale here and try to execute a command named `linux`.
+- If sandbox failures recur after a Codex restart, next fallback is the known Codex GitHub workaround `[features] use_legacy_landlock = true`; do not enable it unless the AppArmor profile stops working.
+
 ### 2026-06-09 - Advisor proof-start evidence generated
 
 - Began the Orionfold Advisor Unsloth/Arena proof with deterministic, tracked pre-GPU evidence under `evidence/orionfold-advisor/`.
@@ -92,6 +99,7 @@ Notes:
 - Keep Codex project settings under `.codex/` and repo skills under `.agents/skills/`.
 - Log any new Codex/Claude interoperability changes in `CODEX-CC.md`.
 - Keep `HANDOFF.md` compact; prune completed history instead of appending.
+- Codex sandbox health: Ubuntu AppArmor `bwrap-userns-restrict` is loaded and `codex sandbox /bin/true` / `codex sandbox pwd` pass as of 2026-06-09.
 
 ### Strategy / Growth
 
@@ -124,6 +132,10 @@ Notes:
 - Optional: relocate the old Claude memory namespace symlink into this repo namespace for a cleaner cutover.
 
 ## Recent Decisions
+
+### 2026-06-09 - Codex sandbox AppArmor fix applied
+
+Loaded Ubuntu's `bwrap-userns-restrict` AppArmor profile for bubblewrap and verified Codex sandbox commands pass with current syntax (`codex sandbox <command>`). No Codex config change or `use_legacy_landlock` fallback needed yet. | Manav (with Codex)
 
 ### 2026-06-09 - Advisor proof-start evidence generated
 

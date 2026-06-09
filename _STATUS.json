@@ -12,10 +12,10 @@
     "Keep AD-FK and AD-AE dogfood findings in the companion spec during Arena/browser-use steps"
   ],
   "recent": [
+    "Repaired Codex Linux sandbox by loading Ubuntu bwrap-userns-restrict AppArmor profile; codex sandbox tests pass",
     "Generated Advisor domain gate: Orionfold Advisor wins without fallback",
     "Generated 137-source public corpus manifest, then identified missing Platform docs source before RAG",
-    "Generated Advisor bench v0.1: 103 rows total, 28 frozen held-out rows, >=15 refusal cases",
-    "Validated the evidence bundle with scripts/orionfold_advisor/generate.py --validate-only"
+    "Generated Advisor bench v0.1: 103 rows total, 28 frozen held-out rows, >=15 refusal cases"
   ],
   "session": "S-advisor-proof-start",
   "metrics": {
