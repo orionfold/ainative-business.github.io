@@ -168,8 +168,15 @@ def _context_blocks(
     return blocks
 
 
-def _system_prompt() -> str:
-    return (
+REASONING_MODES = ("default", "off")
+
+
+def _system_prompt(reasoning_mode: str = "default") -> str:
+    # Nemotron-family reasoning control: a leading `/no_think` in the system
+    # prompt disables the hidden reasoning trace (spec §13.C step 5). Models
+    # without the control treat it as an inert instruction-like token.
+    prefix = "/no_think\n" if reasoning_mode == "off" else ""
+    return prefix + (
         "You are Orionfold Advisor. Answer only from the retrieved public context. "
         "Do not use private handoff state, live runtime state, local filesystem "
         "state, credentials, or unpublished operator notes. If the retrieved "
@@ -221,6 +228,7 @@ def build_packets(
     top_k: int,
     max_sources: int,
     excerpt_chars: int,
+    reasoning_mode: str = "default",
 ) -> list[dict[str, Any]]:
     manifest = _read_jsonl(MANIFEST_PATH)
     manifest_by_id = {row["source_id"]: row for row in manifest}
@@ -238,7 +246,7 @@ def build_packets(
             excerpt_chars=excerpt_chars,
         )
         messages = [
-            {"role": "system", "content": _system_prompt()},
+            {"role": "system", "content": _system_prompt(reasoning_mode)},
             {"role": "user", "content": _user_prompt(row, blocks)},
         ]
         packets.append(
@@ -381,6 +389,7 @@ def _report(
     endpoint: str | None,
     prompts_path: Path,
     results_path: Path,
+    reasoning_mode: str = "default",
 ) -> dict[str, Any]:
     ran_model = bool(endpoint)
     failures = [row for row in results if not row["score"]["passed"]]
@@ -390,6 +399,7 @@ def _report(
         "version": VERSION,
         "model_target": model,
         "endpoint": endpoint,
+        "reasoning_mode": reasoning_mode,
         "mode": "endpoint" if ran_model else "prompt_packets",
         "prompt_path": prompts_path.relative_to(REPO_ROOT).as_posix(),
         "results_path": results_path.relative_to(REPO_ROOT).as_posix() if ran_model else None,
@@ -428,6 +438,12 @@ def main() -> None:
     parser.add_argument("--excerpt-chars", type=int, default=900)
     parser.add_argument("--max-tokens", type=int, default=700)
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument(
+        "--reasoning-mode",
+        choices=REASONING_MODES,
+        default="default",
+        help="'off' prepends the Nemotron /no_think control to the system prompt",
+    )
     parser.add_argument("--prompts", type=Path, default=PROMPTS_PATH)
     parser.add_argument("--results", type=Path, default=RESULTS_PATH)
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
@@ -445,6 +461,7 @@ def main() -> None:
         top_k=args.top_k,
         max_sources=args.max_sources,
         excerpt_chars=args.excerpt_chars,
+        reasoning_mode=args.reasoning_mode,
     )
     args.prompts.parent.mkdir(parents=True, exist_ok=True)
     _write_jsonl(args.prompts, packets)
@@ -467,6 +484,7 @@ def main() -> None:
         endpoint=args.endpoint,
         prompts_path=args.prompts,
         results_path=args.results,
+        reasoning_mode=args.reasoning_mode,
     )
     _write_json(args.report, report)
     print(f"wrote Advisor preflight prompts -> {args.prompts}")

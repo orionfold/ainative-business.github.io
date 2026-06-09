@@ -130,18 +130,23 @@ export default function KnowledgePane() {
     }
   }
 
-  async function runAdvisorPreflight() {
+  async function runAdvisorPreflight(reasoningMode = 'default') {
     if (advisorBusy || !online) return;
     setAdvisorBusy(true);
     setAdvisorNote('');
     try {
-      const r = await fetch(`${baseRef.current}/api/advisor/preflight/run`, { method: 'POST' });
+      const r = await fetch(`${baseRef.current}/api/advisor/preflight/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reasoning_mode: reasoningMode }),
+      });
       const j = await r.json();
       if (r.ok) {
         setAdvisor(j);
         const status = j && j.report && j.report.gate ? j.report.gate.status : 'scored';
         const rows = j && j.results ? j.results.row_count : 0;
-        setAdvisorNote(`preflight ${status} · ${rows} rows`);
+        const modeTag = reasoningMode === 'off' ? ' · /no_think' : '';
+        setAdvisorNote(`preflight ${status} · ${rows} rows${modeTag}`);
       } else {
         setAdvisorNote(j && j.detail ? j.detail : 'preflight failed');
       }
@@ -266,6 +271,7 @@ export default function KnowledgePane() {
               <div><b>{advisorReport.model_target || '—'}</b><span>target</span></div>
               <div><b>{advisorResults && advisorResults.available ? advisorResults.row_count : 0}</b><span>results</span></div>
               <div><b>{advisorReport.mode || '—'}</b><span>mode</span></div>
+              <div><b>{advisorReport.reasoning_mode || 'default'}</b><span>reasoning</span></div>
             </div>
             <div class="kp__advisor-lane" data-ready={advisorLane.ready === true}>
               <div>
@@ -277,10 +283,19 @@ export default function KnowledgePane() {
                 type="button"
                 class="kp__advisor-run"
                 disabled={!online || advisorBusy || advisorLane.ready !== true}
-                onClick={runAdvisorPreflight}
+                onClick={() => runAdvisorPreflight('default')}
                 title={advisorLane.ready === true ? 'Run the tracked Advisor packets against the active lane' : advisorLane.reason || 'No active lane'}
               >
                 {advisorBusy ? 'running…' : 'run preflight'}
+              </button>
+              <button
+                type="button"
+                class="kp__advisor-run"
+                disabled={!online || advisorBusy || advisorLane.ready !== true}
+                onClick={() => runAdvisorPreflight('off')}
+                title={advisorLane.ready === true ? 'Run with the Nemotron /no_think reasoning-suppression control (writes a -nothink receipt)' : advisorLane.reason || 'No active lane'}
+              >
+                {advisorBusy ? 'running…' : 'run /no_think'}
               </button>
             </div>
             {(advisorNote || (advisorLane && advisorLane.reason)) && (

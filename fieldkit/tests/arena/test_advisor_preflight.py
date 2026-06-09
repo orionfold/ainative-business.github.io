@@ -246,3 +246,26 @@ def test_advisor_preflight_command_threads_active_lane(tmp_path: Path) -> None:
         "--model",
         "qwen25.gguf",
     ]
+
+
+def test_advisor_preflight_command_nothink_uses_suffixed_evidence(tmp_path: Path) -> None:
+    script = tmp_path / "scripts" / "orionfold_advisor" / "preflight.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("#!/usr/bin/env python3\n")
+
+    lane = {
+        "source": "registry",
+        "base_url": "http://127.0.0.1:8000/v1",
+        "model": "nvidia/nemotron-nano-9b-v2",
+        "port": 8000,
+    }
+    cmd = _advisor_preflight_command(tmp_path, lane, "off")
+
+    assert "--reasoning-mode" in cmd
+    assert cmd[cmd.index("--reasoning-mode") + 1] == "off"
+    base = tmp_path / "evidence" / "orionfold-advisor" / "advisor-preflight-v0.1-nothink"
+    assert cmd[cmd.index("--prompts") + 1] == f"{base}.prompts.jsonl"
+    assert cmd[cmd.index("--results") + 1] == f"{base}.results.jsonl"
+    assert cmd[cmd.index("--report") + 1] == f"{base}.json"
+    # The default run must stay untouched — no suffixed paths, no mode flag.
+    assert "--reasoning-mode" not in _advisor_preflight_command(tmp_path, lane)

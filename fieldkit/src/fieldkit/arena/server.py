@@ -1114,6 +1114,16 @@ def create_app(
         rag_eval: bool = True
         dispatch: bool = True
 
+    class AdvisorPreflightRunRequest(BaseModel):
+        """``POST /api/advisor/preflight/run`` — visible-Cortex preflight trigger.
+
+        ``reasoning_mode='off'`` runs the tracked script with the Nemotron
+        ``/no_think`` system control (Advisor spec §13.C step 5) and writes to
+        ``-nothink``-suffixed evidence files so the reasoning-on receipt is
+        preserved alongside it."""
+
+        reasoning_mode: str = Field(default="default", pattern="^(default|off)$")
+
     class KnowledgeQueryRequest(BaseModel):
         """``POST /api/knowledge/query`` — the operator's provenance-filtered
         query console (M10-4/9). Returns chunk text — OPERATOR-PRIVATE, served
@@ -2651,20 +2661,29 @@ def create_app(
         }
 
     @app.post("/api/advisor/preflight/run")
-    async def api_advisor_preflight_run() -> dict[str, Any]:
+    async def api_advisor_preflight_run(
+        body: AdvisorPreflightRunRequest = AdvisorPreflightRunRequest(),
+    ) -> dict[str, Any]:
         """Run the tracked Advisor preflight against Arena's active lane.
 
         The operator triggers this from the visible Cortex card. The server uses
         the same tracked script and writes the normal evidence artifacts, then
         returns the redacted receipt summary. Full prompts and model outputs
-        remain on disk under ``evidence/orionfold-advisor``.
+        remain on disk under ``evidence/orionfold-advisor``. With
+        ``reasoning_mode='off'`` the run uses the Nemotron ``/no_think`` control
+        and ``-nothink``-suffixed evidence files.
         """
         lane = _resolve_active_lane()
         readiness = _advisor_lane_readiness(lane)
         if not readiness["ready"]:
             raise HTTPException(status_code=409, detail=readiness["reason"])
         try:
-            run = await asyncio.to_thread(_run_advisor_preflight_against_lane, root, lane)
+            run = await asyncio.to_thread(
+                _run_advisor_preflight_against_lane,
+                root,
+                lane,
+                body.reasoning_mode,
+            )
         except FileNotFoundError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         except ValueError as exc:
@@ -3151,7 +3170,9 @@ def _advisor_lane_readiness(lane: Mapping[str, Any] | None) -> dict[str, Any]:
     }
 
 
-def _advisor_preflight_command(root: Path, lane: Mapping[str, Any]) -> list[str]:
+def _advisor_preflight_command(
+    root: Path, lane: Mapping[str, Any], reasoning_mode: str = "default"
+) -> list[str]:
     """Build the deterministic Advisor preflight command for an active lane."""
     readiness = _advisor_lane_readiness(lane)
     if not readiness["ready"]:
@@ -3159,7 +3180,7 @@ def _advisor_preflight_command(root: Path, lane: Mapping[str, Any]) -> list[str]
     script = root / "scripts" / "orionfold_advisor" / "preflight.py"
     if not script.is_file():
         raise FileNotFoundError(f"Advisor preflight script not found: {script}")
-    return [
+    cmd = [
         sys.executable,
         str(script),
         "--endpoint",
@@ -3167,11 +3188,28 @@ def _advisor_preflight_command(root: Path, lane: Mapping[str, Any]) -> list[str]
         "--model",
         str(readiness["model"]),
     ]
+    if reasoning_mode != "default":
+        # Suffixed evidence files keep the reasoning-on receipt intact next to
+        # the /no_think rerun; both stay visible in the Cortex runs list.
+        base = _advisor_preflight_dir(root) / "advisor-preflight-v0.1-nothink"
+        cmd += [
+            "--reasoning-mode",
+            reasoning_mode,
+            "--prompts",
+            f"{base}.prompts.jsonl",
+            "--results",
+            f"{base}.results.jsonl",
+            "--report",
+            f"{base}.json",
+        ]
+    return cmd
 
 
-def _run_advisor_preflight_against_lane(root: Path, lane: Mapping[str, Any]) -> dict[str, Any]:
+def _run_advisor_preflight_against_lane(
+    root: Path, lane: Mapping[str, Any], reasoning_mode: str = "default"
+) -> dict[str, Any]:
     """Run the tracked Advisor preflight script and return a redacted receipt."""
-    cmd = _advisor_preflight_command(root, lane)
+    cmd = _advisor_preflight_command(root, lane, reasoning_mode)
     completed = subprocess.run(
         cmd,
         cwd=str(root),
