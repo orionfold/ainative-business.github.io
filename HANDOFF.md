@@ -17,6 +17,7 @@
 - Created the scaffold `_IDEAS/unsloth-compete-partner-uber-strategy.md` and the internal final memo `_IDEAS/unsloth-compete-partner-analysis.md`.
 - Recommendation: do **not** compete with Unsloth on training kernels or generic no-code fine-tuning UI. Position Orionfold as the post-training control plane: **Unsloth trains/exports; Orionfold scores, governs, publishes, and operationalizes.**
 - The memo includes persona lenses, official factbase, adoption/friction signal ledger, Orionfold asset audit, scored surface matrix, partner workflow, content/SEO plan, partnership path, risks, kill criteria, and 30-day plan.
+- Follow-up bakeoff check: `articles/patent-strategist-bakeoff-unsloth-vs-nemo-framework/` intentionally dropped the patent-strategist Unsloth track as the public/default artifact because NeMo won on wall time, patent-strategic chain length, and perplexity. Future Unsloth proof should **not** resurrect that lane; use it as historical baseline or run a fresh small Studio/Core export.
 - No public pages changed. Remaining optional proof is a contained live Spark integration receipt: Unsloth Core/Studio export -> fieldkit manifest -> Arena score -> Field Note.
 
 ### 2026-06-09 — Codex coexistence baseline adopted
@@ -111,6 +112,6 @@ Notes:
 
 Pruned completed Arena/fieldkit release history and stale task blocks from `HANDOFF.md`. Current-state and open-task continuity remain; full removed history is recoverable through `git log -p HANDOFF.md`. | Manav (with Codex)
 
-### 2026-06-09 — Unsloth compete/partner memo drafted
+### 2026-06-09 — Unsloth compete/partner memo corrected with bakeoff guardrail
 
-Completed U1-U5 of the Unsloth strategy workstream in `_IDEAS/unsloth-compete-partner-analysis.md`. Recommendation: avoid direct competition on kernels/no-code training UI; use Unsloth as training/export partner and position Orionfold as the post-training control plane for scoring, governance, publication, and workflow routing. No public pages changed. U6 live Spark proof remains optional/operator-gated. | Manav (with Codex)
+Completed U1-U5 of the Unsloth strategy workstream in `_IDEAS/unsloth-compete-partner-analysis.md`, then folded in the patent-strategist Unsloth-vs-NeMo bakeoff decision: do not use the unpublished patent-strategist Unsloth lane as the next proof artifact. Recommendation remains partner-compatible: Unsloth trains/exports; Arena/fieldkit score, govern, publish, or reject. No public pages changed. U6 live Spark proof remains optional/operator-gated. | Manav (with Codex)
