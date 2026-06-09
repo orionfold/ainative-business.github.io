@@ -1,11 +1,16 @@
 {
+  "book_surface_counts": {
+    "ai_native_business": 14,
+    "ai_native_platform": 44,
+    "ai_research_on_nvidia_dgx_spark": 55
+  },
   "book_surfaces": {
-    "missing": [
-      "No second or third book surface is present under src/data/book/chapters"
-    ],
-    "note": "The proof spec mentions verifying 'the three books' if present; this checkout exposes one public book surface.",
+    "missing": [],
+    "note": "Book surfaces are represented by distinct public website routes, not only src/data/book/chapters/**. RAG ingestion should use book_surface and source_role metadata for filtering.",
     "present": [
-      "AI Native Business 14-chapter book"
+      "Book 1 / AI Native Business: src/data/book/chapters/**",
+      "Book 2 / AI Research on NVIDIA DGX Spark: published Field Notes under articles/*/article.*",
+      "Book 3 / AI Native Platform: src/pages/docs/**"
     ]
   },
   "excluded": [
@@ -107,6 +112,16 @@
     }
   ],
   "generated": "2026-06-09",
-  "source_count": 137,
+  "source_count": 181,
+  "source_role_counts": {
+    "book1_chapter": 14,
+    "book2_field_note": 55,
+    "book3_platform_api_doc": 27,
+    "book3_platform_doc": 17,
+    "public_artifact_manifest": 20,
+    "public_operating_doc": 28,
+    "public_product_page": 3,
+    "public_spec": 17
+  },
   "version": "v0.1"
 }

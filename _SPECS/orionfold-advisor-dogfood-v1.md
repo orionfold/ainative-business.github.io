@@ -172,6 +172,20 @@ Seed finding candidates:
 | AD-AE-9 | proposed | Any lane launch/select step done outside Arena despite a known recipe becomes a lane-lifecycle finding. | next-arena-enhancement |
 | AD-AE-10 | proposed | Any publish/rejection decision not visible in Arena becomes a workflow-completion finding. | future-spec or product article input |
 
+Concrete findings observed during the run:
+
+```text
+ID: AD-AE-11
+Status: proposed
+Finding: Advisor proof-start evidence can be generated and scored locally, but the live Cortex pane cannot display the Advisor public corpus manifest, bench, or recall receipt as a run-specific artifact.
+Observed during: 2026-06-09 Advisor manifest + local RAG recall gate after bringing Arena up in browser-use mode.
+Expected operator behavior: The operator should be able to watch an Advisor/Knowledge/Cortex pane show the 181-source public manifest, source-role/book-surface coverage, bench row counts, and recall gate result before moving to base-model scout.
+Current workaround: Run `scripts/orionfold_advisor/generate.py` and `scripts/orionfold_advisor/score_recall.py` in the terminal, then inspect tracked evidence under `evidence/orionfold-advisor/`. Live Cortex shows no eval runs and no Advisor-specific receipt.
+Proposed fix class: observability
+Release posture: next-arena-enhancement
+Evidence: `/tmp/orionfold-advisor-dogfood/cortex-no-advisor-recall.png`; tracked recall report `evidence/orionfold-advisor/rag-recall-v0.1.json`.
+```
+
 ## 7. Expected External Setup vs Dogfood Gap
 
 Expected external setup is not automatically a defect. Examples:

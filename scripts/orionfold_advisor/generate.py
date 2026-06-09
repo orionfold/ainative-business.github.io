@@ -58,11 +58,13 @@ class Source:
     date_or_version: str
     citation_label: str
     title: str
+    source_role: str
     slug: str | None = None
     status: str | None = None
     artifact_slug: str | None = None
     product_slug: str | None = None
     chapter_id: str | None = None
+    book_surface: str | None = None
 
     def to_json(self) -> dict[str, Any]:
         row = {
@@ -74,8 +76,9 @@ class Source:
             "date_or_version": self.date_or_version,
             "citation_label": self.citation_label,
             "title": self.title,
+            "source_role": self.source_role,
         }
-        for key in ("slug", "status", "artifact_slug", "product_slug", "chapter_id"):
+        for key in ("slug", "status", "artifact_slug", "product_slug", "chapter_id", "book_surface"):
             value = getattr(self, key)
             if value:
                 row[key] = value
@@ -116,6 +119,20 @@ def _frontmatter(path: Path) -> dict[str, Any]:
     return data
 
 
+def _source_title(path: Path, fallback: str | None = None) -> str:
+    fm = _frontmatter(path)
+    if fm.get("title"):
+        return str(fm["title"])
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"^#\s+(.+)$", text, flags=re.MULTILINE)
+    if match:
+        return match.group(1).strip()
+    match = re.search(r"<(?:ApiDocsLayout|DocsLayout)\s+[^>]*title=\"([^\"]+)\"", text)
+    if match:
+        return match.group(1).strip()
+    return fallback or path.stem
+
+
 def _yaml_scalar(path: Path, key: str) -> str | None:
     prefix = f"{key}:"
     for raw in path.read_text(encoding="utf-8").splitlines():
@@ -153,8 +170,10 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version=str(fm.get("date") or "undated"),
                 citation_label=f"Field Note: {fm.get('title') or slug}",
                 title=str(fm.get("title") or slug),
+                source_role="book2_field_note",
                 slug=slug,
                 status=status,
+                book_surface="ai_research_on_nvidia_dgx_spark",
             ),
         )
 
@@ -176,8 +195,10 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version=str(fm.get("date") or "undated"),
                 citation_label=f"Field Note: {fm.get('title') or slug}",
                 title=str(fm.get("title") or slug),
+                source_role="book2_field_note",
                 slug=slug,
                 status=status,
+                book_surface="ai_research_on_nvidia_dgx_spark",
             ),
         )
 
@@ -199,6 +220,7 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version=str(fm.get("date") or fm.get("published_at") or "undated"),
                 citation_label=f"Product: {fm.get('product_name') or fm.get('title') or slug}",
                 title=str(fm.get("title") or fm.get("product_name") or slug),
+                source_role="public_product_page",
                 slug=slug,
                 status=status,
                 product_slug=slug,
@@ -223,6 +245,7 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version=_yaml_scalar(path, "published_at") or "manifest",
                 citation_label=f"Artifact: {slug}",
                 title=title,
+                source_role="public_artifact_manifest",
                 slug=slug,
                 artifact_slug=slug,
             ),
@@ -244,8 +267,10 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version="book-v1",
                 citation_label=f"Book ch. {int(chapter_num) if chapter_num.isdigit() else chapter_num}: {title}",
                 title=title,
+                source_role="book1_chapter",
                 slug=path.stem,
                 chapter_id=chapter_num,
+                book_surface="ai_native_business",
             ),
         )
 
@@ -269,7 +294,32 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version="repo-current",
                 citation_label=f"Doc: {_rel(path)}",
                 title=_rel(path),
+                source_role="public_operating_doc",
                 slug=_slugify(path.stem),
+            ),
+        )
+
+    for path in sorted((REPO_ROOT / "src" / "pages" / "docs").glob("**/*")):
+        if path.suffix not in {".astro", ".mdx"}:
+            continue
+        rel_path = _rel(path)
+        source_id = "doc_" + _slugify(rel_path).replace("-", "_")
+        title = _source_title(path, fallback=rel_path)
+        is_api = "/api/" in rel_path
+        _add_source(
+            sources,
+            Source(
+                source_id=source_id,
+                path_or_url=rel_path,
+                source_class="platform_api_doc" if is_api else "platform_doc",
+                trust_tier="published_orionfold",
+                public_safe=True,
+                date_or_version="repo-current",
+                citation_label=f"Platform Doc: {title}",
+                title=title,
+                source_role="book3_platform_api_doc" if is_api else "book3_platform_doc",
+                slug=_slugify(path.stem if path.stem != "index" else path.parent.name),
+                book_surface="ai_native_platform",
             ),
         )
 
@@ -289,22 +339,34 @@ def collect_sources() -> tuple[list[Source], dict[str, Any]]:
                 date_or_version="repo-current",
                 citation_label=f"Spec: {path.name}",
                 title=path.stem,
+                source_role="public_spec",
                 slug=path.stem,
             ),
         )
+
+    source_role_counts: dict[str, int] = {}
+    book_surface_counts: dict[str, int] = {}
+    for source in sources:
+        source_role_counts[source.source_role] = source_role_counts.get(source.source_role, 0) + 1
+        if source.book_surface:
+            book_surface_counts[source.book_surface] = book_surface_counts.get(source.book_surface, 0) + 1
 
     audit = {
         "generated": date.today().isoformat(),
         "version": VERSION,
         "source_count": len(sources),
+        "source_role_counts": dict(sorted(source_role_counts.items())),
+        "book_surface_counts": dict(sorted(book_surface_counts.items())),
         "excluded": excluded
         + [{"path": p, "reason": "private/operator state"} for p in PRIVATE_PATH_PREFIXES],
         "book_surfaces": {
-            "present": ["AI Native Business 14-chapter book"],
-            "missing": [
-                "No second or third book surface is present under src/data/book/chapters",
+            "present": [
+                "Book 1 / AI Native Business: src/data/book/chapters/**",
+                "Book 2 / AI Research on NVIDIA DGX Spark: published Field Notes under articles/*/article.*",
+                "Book 3 / AI Native Platform: src/pages/docs/**",
             ],
-            "note": "The proof spec mentions verifying 'the three books' if present; this checkout exposes one public book surface.",
+            "missing": [],
+            "note": "Book surfaces are represented by distinct public website routes, not only src/data/book/chapters/**. RAG ingestion should use book_surface and source_role metadata for filtering.",
         },
     }
     return sources, audit
@@ -544,11 +606,22 @@ def validate_outputs(out_dir: Path = OUT_DIR) -> None:
     for row in manifest:
         if not row.get("public_safe"):
             raise AssertionError(f"manifest row is not public_safe: {row['source_id']}")
+        if not row.get("source_role"):
+            raise AssertionError(f"manifest row is missing source_role: {row['source_id']}")
         path = row["path_or_url"]
         if path.startswith(PRIVATE_PATH_PREFIXES):
             raise AssertionError(f"private path leaked into manifest: {path}")
         if Path(path).name in EXCLUDED_SPEC_BASENAMES:
             raise AssertionError(f"proof-control spec leaked into manifest: {path}")
+    required_book_surfaces = {
+        "ai_native_business",
+        "ai_research_on_nvidia_dgx_spark",
+        "ai_native_platform",
+    }
+    found_book_surfaces = {row.get("book_surface") for row in manifest if row.get("book_surface")}
+    missing_book_surfaces = required_book_surfaces - found_book_surfaces
+    if missing_book_surfaces:
+        raise AssertionError(f"manifest missing book_surface values: {sorted(missing_book_surfaces)}")
 
     pool = [json.loads(line) for line in pool_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     heldout = [json.loads(line) for line in heldout_path.read_text(encoding="utf-8").splitlines() if line.strip()]

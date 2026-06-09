@@ -15,7 +15,7 @@
 ### 2026-06-09 - Codex Linux sandbox repaired
 
 - Operator installed/loaded the Ubuntu AppArmor `bwrap-userns-restrict` profile for bubblewrap after Codex tools intermittently failed with `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`.
-- Verified fixed in this repo: `codex sandbox /bin/true` exits cleanly and `codex sandbox pwd` prints `/home/nvidia/ainative-business.github.io`.
+- Verified fixed in this repo: `codex sandbox /bin/true` exits cleanly, `codex sandbox pwd` prints `/home/nvidia/ainative-business.github.io`, and `codex sandbox bash -lc 'printf ok'` prints `ok`.
 - Syntax note for current local CLI (`codex-cli 0.138.0`): use `codex sandbox <command>`. Older issue/docs examples using `codex sandbox linux <command>` are stale here and try to execute a command named `linux`.
 - If sandbox failures recur after a Codex restart, next fallback is the known Codex GitHub workaround `[features] use_legacy_landlock = true`; do not enable it unless the AppArmor profile stops working.
 
@@ -23,10 +23,12 @@
 
 - Began the Orionfold Advisor Unsloth/Arena proof with deterministic, tracked pre-GPU evidence under `evidence/orionfold-advisor/`.
 - `scripts/orionfold_advisor/generate.py` now writes and validates: `domain-gate.json`, `source-audit.json`, `public-corpus-manifest.jsonl`, `advisor-bench-v0.1.jsonl`, and `advisor-bench-v0.1.heldout.jsonl`.
-- Domain gate winner: **Orionfold Advisor**. Corpus manifest currently contains 137 public-safe sources; upcoming articles/products, proof-control specs, handoff/status/operator state, and private config paths are excluded. Source audit records that this checkout exposes one public 14-chapter book surface, not three books.
+- Domain gate winner: **Orionfold Advisor**. Corpus manifest currently contains 181 public-safe sources; upcoming articles/products, proof-control specs, handoff/status/operator state, and private config paths are excluded.
+- Corpus manifest corrected after v0.1: `src/pages/docs/**` / `https://ainative.business/docs/` is now included as Book 3 / **AI Native Platform** source. Manifest rows now include `source_role` for every source and `book_surface` metadata for Book 1 / **AI Native Business** (`src/data/book/chapters/**`), Book 2 / **AI Research on NVIDIA DGX Spark** (published Field Notes), and Book 3 / **AI Native Platform** (`src/pages/docs/**`). `https://orionfold.com/books/` remains reference/CTA, not primary training evidence.
 - Advisor bench seed: 103 total rows, 28 frozen held-out rows, with >=15 refusal/private-state cases and source-id validation. This is an eval/source-boundary seed, not SFT training data.
-- Corpus correction before RAG: v0.1 captured local repo docs/guides/specs but **missed `src/pages/docs/**` / `https://ainative.business/docs/`**, which is the Book 3 source for **AI Native Platform**. Treat Field Notes as Book 2 (**AI Research on NVIDIA DGX Spark**) source and `src/data/book/chapters/**` as Book 1 (**AI Native Business**) source. `https://orionfold.com/books/` is reference/CTA, not primary training evidence.
-- Next proof step: regenerate the corpus manifest with the Platform docs route included and book-surface/source-role metadata, then build the RAG/recall lane and run the Advisor base-model scout/preflight before any Unsloth Core training.
+- RAG/recall gate added: `scripts/orionfold_advisor/score_recall.py` writes `rag-recall-v0.1.json` and `rag-recall-v0.1.predictions.jsonl`. Local BM25/provenance-chunk baseline over the 181-source manifest passed: all rows source_recall@5 = 0.9885, held-out answerable source_recall@5 = 1.0, 16 refusal rows excluded from recall denominators. Only top-5 miss is one pool workflow-routing row for `doc_fieldkit_docs_api_memory_md`; it is recovered by top-10.
+- Arena browser-use is now up for the Advisor proof. Cortex pane smoke confirmed the local Advisor manifest/bench/recall receipt is **not** visible in Arena yet; logged concrete dogfood finding `AD-AE-11` in `_SPECS/orionfold-advisor-dogfood-v1.md`. Retaken Cortex screenshot at the operator-resized real browser window is staged at `/tmp/orionfold-advisor-dogfood/cortex-no-advisor-recall.png`.
+- Next proof step: run the Advisor base-model scout/preflight before any Unsloth Core training.
 
 ### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
 
@@ -66,9 +68,10 @@
 
 ## Live Runtime
 
-Last recorded runtime baseline: post-AE-31 rep, 2026-06-07.
+Last recorded runtime baseline: Advisor proof browser-use bring-up, 2026-06-09.
 
-- Cockpit `:7866` was left up in browser-use mode via `arena-lifecycle restart --browser`; visible CDP Chromium `:9222` was parked on `/arena/models/`.
+- Cockpit `:7866` is up in browser-use mode via `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh up --browser`; visible CDP Chromium `:9222` is parked on `/arena/cortex/`.
+- Codex sandbox workaround: localhost/CDP probes can fail inside sandbox (`EPERM` or false DOWN status). Use escalation for read-only `arena_lifecycle.sh status --browser`, CDP attach, screenshots, and `up --browser` if `/tmp/arena-venv` rebuild needs dependency downloads. Keep screenshots attached with `defaultViewport: null` so the operator-resized real browser window controls framing.
 - GPU lane is free. The `kepler-q8` lane launched during AE-31 was torn down from the UI; run-context is honestly unanchored.
 - `/tmp/arena-venv` fieldkit editable tracked source and read `0.31.0` at last check.
 - Kept arena.db deltas: two honest job rows from the AE-31 rep (`5419a336` lane_launch done, `caa0ada1` lane_teardown done). Prior capture rows remain as history.
@@ -99,12 +102,13 @@ Notes:
 - Keep Codex project settings under `.codex/` and repo skills under `.agents/skills/`.
 - Log any new Codex/Claude interoperability changes in `CODEX-CC.md`.
 - Keep `HANDOFF.md` compact; prune completed history instead of appending.
-- Codex sandbox health: Ubuntu AppArmor `bwrap-userns-restrict` is loaded and `codex sandbox /bin/true` / `codex sandbox pwd` pass as of 2026-06-09.
+- Codex sandbox health: Ubuntu AppArmor `bwrap-userns-restrict` is loaded and `codex sandbox /bin/true` / `codex sandbox pwd` / `codex sandbox bash -lc 'printf ok'` pass as of 2026-06-09.
+- Codex Arena browser-use workaround is recorded in `.agents/skills/arena-lifecycle/SKILL.md`; localhost CDP/status checks may need escalation even for read-only inspection.
 
 ### Strategy / Growth
 
 - **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
-- Immediate Advisor proof next step: first correct/regenerate the manifest to include `src/pages/docs/**` as Book 3 / AI Native Platform source, then build/score the RAG recall path against `advisor-bench-v0.1*.jsonl` and use `hf-model-scout` for the base-model preflight before Unsloth setup.
+- Immediate Advisor proof next step: use `hf-model-scout` for the base-model preflight before Unsloth setup. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
 - During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
@@ -135,11 +139,11 @@ Notes:
 
 ### 2026-06-09 - Codex sandbox AppArmor fix applied
 
-Loaded Ubuntu's `bwrap-userns-restrict` AppArmor profile for bubblewrap and verified Codex sandbox commands pass with current syntax (`codex sandbox <command>`). No Codex config change or `use_legacy_landlock` fallback needed yet. | Manav (with Codex)
+Loaded Ubuntu's `bwrap-userns-restrict` AppArmor profile for bubblewrap and verified Codex sandbox commands pass with current syntax (`codex sandbox <command>`), including `pwd` and `bash -lc 'printf ok'` smoke checks. No Codex config change or `use_legacy_landlock` fallback needed yet. | Manav (with Codex)
 
 ### 2026-06-09 - Advisor proof-start evidence generated
 
-Started the Advisor proof with deterministic pre-GPU evidence: domain gate, public source manifest/audit, and a frozen 103-row Advisor bench seed with 28 held-out rows. Follow-up correction recorded: v0.1 missed `src/pages/docs/**` / `/docs/`, the Book 3 AI Native Platform source; include it before RAG. No model download, training, Arena launch, or public page edit yet. | Manav (with Codex)
+Started the Advisor proof with deterministic pre-GPU evidence: domain gate, public source manifest/audit, a frozen 103-row Advisor bench seed with 28 held-out rows, and a local retrieval-only recall gate. Corrected manifest count is 181 public-safe sources; local BM25/provenance chunks pass source_recall@5 overall (0.9885) and held-out answerable (1.0). No model download, training, Arena launch, or public page edit yet. | Manav (with Codex)
 
 ### 2026-06-09 — Arena validation reminders consolidated
 

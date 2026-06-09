@@ -3,21 +3,22 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor proof-start evidence generated: domain gate, public corpus manifest, source audit, and frozen bench seed",
+  "focus": "Arena browser-use is up for Advisor proof; Cortex gap logged for local recall receipt",
   "blockers": [],
   "next": [
-    "Regenerate Advisor corpus manifest with src/pages/docs/** as Book 3 / AI Native Platform source",
-    "Build and score the Advisor RAG recall path after the manifest correction",
     "Run hf-model-scout for Advisor base-model preflight before Unsloth setup",
+    "Repeat Advisor recall through the live Cortex/Arena lane before any publish claim",
+    "Design Arena visibility for Advisor manifest, bench, and recall receipt under AD-AE-11",
     "Keep AD-FK and AD-AE dogfood findings in the companion spec during Arena/browser-use steps"
   ],
   "recent": [
+    "Brought Arena cockpit up on :7866 with CDP browser-use on :9222 and inspected /arena/cortex/",
+    "Logged AD-AE-11: Cortex cannot yet display the Advisor 181-source manifest, bench, or local recall receipt",
     "Repaired Codex Linux sandbox by loading Ubuntu bwrap-userns-restrict AppArmor profile; codex sandbox tests pass",
-    "Generated Advisor domain gate: Orionfold Advisor wins without fallback",
-    "Generated 137-source public corpus manifest, then identified missing Platform docs source before RAG",
-    "Generated Advisor bench v0.1: 103 rows total, 28 frozen held-out rows, >=15 refusal cases"
+    "Regenerated Advisor public corpus manifest: 181 sources with src/pages/docs/** as Book 3 / AI Native Platform",
+    "Added local Advisor BM25/provenance recall scorer: source_recall@5 0.9885 overall, 1.0 held-out answerable"
   ],
-  "session": "S-advisor-proof-start",
+  "session": "S-advisor-arena-browser-use",
   "metrics": {
     "articles": 53,
     "models": 6,

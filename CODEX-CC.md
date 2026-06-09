@@ -30,6 +30,12 @@ This file is the coexistence contract between Codex CLI and Claude Code for this
 
 - Added persistent Codex guidance in `AGENTS.md` to keep `HANDOFF.md` aggressively pruned between long sessions. The handoff should carry continuity-critical current state, live runtime, build/verify rules, open items, and a short recent-decision log only; completed historical detail remains recoverable via `git log -p HANDOFF.md`.
 
+### 2026-06-09 - Codex Arena browser-use sandbox notes
+
+- Updated the Codex-owned `arena-lifecycle` bridge skill with sandbox-specific browser-use workarounds.
+- Localhost CDP/cockpit checks can fail inside Codex's sandbox (`EPERM` or false down status); rerun read-only CDP/status checks with escalation before concluding Arena is down.
+- Keep screenshot captures attached with `defaultViewport: null` and use the operator-resized real browser window, avoiding fixed viewport overrides that can box the visible Chromium session.
+
 ## Operator Notes
 
 - Start Codex from the repo root to load `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json`, and `.agents/skills/`.
