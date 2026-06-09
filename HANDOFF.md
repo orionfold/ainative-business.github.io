@@ -27,8 +27,9 @@
 - Corpus manifest corrected after v0.1: `src/pages/docs/**` / `https://ainative.business/docs/` is now included as Book 3 / **AI Native Platform** source. Manifest rows now include `source_role` for every source and `book_surface` metadata for Book 1 / **AI Native Business** (`src/data/book/chapters/**`), Book 2 / **AI Research on NVIDIA DGX Spark** (published Field Notes), and Book 3 / **AI Native Platform** (`src/pages/docs/**`). `https://orionfold.com/books/` remains reference/CTA, not primary training evidence.
 - Advisor bench seed: 103 total rows, 28 frozen held-out rows, with >=15 refusal/private-state cases and source-id validation. This is an eval/source-boundary seed, not SFT training data.
 - RAG/recall gate added: `scripts/orionfold_advisor/score_recall.py` writes `rag-recall-v0.1.json` and `rag-recall-v0.1.predictions.jsonl`. Local BM25/provenance-chunk baseline over the 181-source manifest passed: all rows source_recall@5 = 0.9885, held-out answerable source_recall@5 = 1.0, 16 refusal rows excluded from recall denominators. Only top-5 miss is one pool workflow-routing row for `doc_fieldkit_docs_api_memory_md`; it is recovered by top-10.
+- Advisor base-model scout completed with `hf-model-scout` metadata probes only; no weights downloaded. Scratch report: `/tmp/hf-scout/2026-06-09/advisor-8B/report.md`; sidecar: `/tmp/hf-scout/2026-06-09/advisor-8B/candidates.json`. Recommendation: start with `Qwen/Qwen3-8B`; fallback `Qwen/Qwen2.5-7B-Instruct`; keep `mistralai/Mistral-7B-Instruct-v0.3` as control. `ibm-granite/granite-3.3-8b-instruct` is manual-review until the local probe whitelist/llama.cpp converter path is verified for `granite`; Gemma/Llama candidates hit approval-gated metadata and were ruled out for the clean publishable flow. Browser-use gap logged as `AD-AE-12`: Arena stayed parked on Cortex because the cockpit has no visible base-model scout/preflight artifact surface yet.
 - Arena browser-use is now up for the Advisor proof. Cortex pane smoke confirmed the local Advisor manifest/bench/recall receipt is **not** visible in Arena yet; logged concrete dogfood finding `AD-AE-11` in `_SPECS/orionfold-advisor-dogfood-v1.md`. Retaken Cortex screenshot at the operator-resized real browser window is staged at `/tmp/orionfold-advisor-dogfood/cortex-no-advisor-recall.png`.
-- Next proof step: run the Advisor base-model scout/preflight before any Unsloth Core training.
+- Next proof step: run a 5-10 question Advisor generator preflight for `Qwen/Qwen3-8B` with retrieved context before Unsloth Core setup/training. Score citation formatting, missing-source refusal, workflow routing, no live-state invention, and Arena-evaluable answer shape.
 
 ### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
 
@@ -108,8 +109,8 @@ Notes:
 ### Strategy / Growth
 
 - **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
-- Immediate Advisor proof next step: use `hf-model-scout` for the base-model preflight before Unsloth setup. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
-- During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup.
+- Immediate Advisor proof next step: run the `Qwen/Qwen3-8B` Advisor generator preflight with retrieved context before Unsloth setup/training. Use `Qwen/Qwen2.5-7B-Instruct` as fallback if Qwen3 fails due to thinking leakage, citation-format drift, or refusal verbosity. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
+- During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup. Current concrete Arena findings: `AD-AE-11` for missing manifest/bench/recall visibility and `AD-AE-12` for missing base-model scout/preflight visibility.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
 ### Editorial
@@ -137,6 +138,10 @@ Notes:
 
 ## Recent Decisions
 
+### 2026-06-09 - Advisor base-model scout completed
+
+Completed the Advisor base-model scout under `/tmp/hf-scout/2026-06-09/advisor-8B/` with metadata probes only. Recommended `Qwen/Qwen3-8B` for the first retrieved-context generator preflight; fallback is `Qwen/Qwen2.5-7B-Instruct`, with Mistral v0.3 as control. Granite remains manual-review pending local `granite` GGUF/probe whitelist verification; Gemma/Llama were ruled out by approval-gated metadata for this clean publishable flow. No weights downloaded and no public pages changed. | Manav (with Codex)
+
 ### 2026-06-09 - Codex sandbox AppArmor fix applied
 
 Loaded Ubuntu's `bwrap-userns-restrict` AppArmor profile for bubblewrap and verified Codex sandbox commands pass with current syntax (`codex sandbox <command>`), including `pwd` and `bash -lc 'printf ok'` smoke checks. No Codex config change or `use_legacy_landlock` fallback needed yet. | Manav (with Codex)
@@ -144,10 +149,6 @@ Loaded Ubuntu's `bwrap-userns-restrict` AppArmor profile for bubblewrap and veri
 ### 2026-06-09 - Advisor proof-start evidence generated
 
 Started the Advisor proof with deterministic pre-GPU evidence: domain gate, public source manifest/audit, a frozen 103-row Advisor bench seed with 28 held-out rows, and a local retrieval-only recall gate. Corrected manifest count is 181 public-safe sources; local BM25/provenance chunks pass source_recall@5 overall (0.9885) and held-out answerable (1.0). No model download, training, Arena launch, or public page edit yet. | Manav (with Codex)
-
-### 2026-06-09 — Arena validation reminders consolidated
-
-Pruned stale one-off Arena validation reminders into the planned end-to-end new-model Arena run. The next readiness proof should exercise the real training-to-inference path; RL/cloud-eval/cap-edit/candidate-base checks are only in scope if that run needs them. | Manav (with Codex)
 
 ### 2026-06-09 — Advisor proof specs authored
 

@@ -184,6 +184,16 @@ Current workaround: Run `scripts/orionfold_advisor/generate.py` and `scripts/ori
 Proposed fix class: observability
 Release posture: next-arena-enhancement
 Evidence: `/tmp/orionfold-advisor-dogfood/cortex-no-advisor-recall.png`; tracked recall report `evidence/orionfold-advisor/rag-recall-v0.1.json`.
+
+ID: AD-AE-12
+Status: proposed
+Finding: The Advisor base-model scout was completed with metadata probes, but Arena/browser-use did not advance past the Cortex pane because the cockpit has no visible base-model scout or preflight artifact surface.
+Observed during: 2026-06-09 Advisor base-model scout after `AD-AE-11`; the visible CDP Chromium tab remained on `http://127.0.0.1:7866/arena/cortex/` while `hf-model-scout` wrote `/tmp/hf-scout/2026-06-09/advisor-8B/report.md` and `candidates.json`.
+Expected operator behavior: The operator should be able to watch an Advisor/Arena pane show candidate model probes, license/gating status, chat-template and llama.cpp compatibility checks, Spark envelope estimates, the recommended pick, fallbacks, and the next generator-preflight gate.
+Current workaround: Run the scout from the terminal with Hugging Face metadata queries and read the scratch report under `/tmp/hf-scout/`. The cockpit remains parked on Cortex and gives no indication that the model-scout step completed.
+Proposed fix class: observability
+Release posture: next-arena-enhancement
+Evidence: Scratch scout report `/tmp/hf-scout/2026-06-09/advisor-8B/report.md`; sidecar `/tmp/hf-scout/2026-06-09/advisor-8B/candidates.json`; read-only CDP tab query showed active page `Orionfold Arena — Cortex` at `/arena/cortex/`.
 ```
 
 ## 7. Expected External Setup vs Dogfood Gap
