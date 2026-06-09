@@ -217,9 +217,10 @@ Finding: Arena Chat can manually smoke an Advisor packet against the Qwen2.5 fal
 Observed during: 2026-06-09 visible browser-use continuation on `/arena/chat/`; the cited factual QA packet `advisor-cited-factual-qa-0003` answered with `Citations: [article_autoresearchbench_on_spark]` and no thinking leakage, while the cockpit top strip still labeled the run context as `Kepler`.
 Expected operator behavior: The operator should be able to run Advisor packets through an Arena preflight/eval surface that records row id, family, expected source ids, actual output, citation/refusal checks, pass/fail state, target lane, and Advisor run context.
 Current workaround: Use Chat for a single visible smoke and save local screenshot/JSON evidence, without claiming the 8-row Advisor preflight passed.
+2026-06-09 continuation: the read-only `/api/advisor/preflight` receipt now summarizes scored result rows when a real `advisor-preflight*.results.jsonl` artifact exists, and the Cortex card renders those row-level pass/fail/citation counts. The live tracked Advisor receipt still has no scored result artifact, so the visible card remains `not_run` / 0 results.
 Proposed fix class: eval
 Release posture: next-arena-enhancement
-Evidence: `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.json`; `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.png`.
+Evidence: `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.json`; `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.png`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-results-card.json`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-results-card.png`.
 ```
 
 ## 7. Expected External Setup vs Dogfood Gap
@@ -302,5 +303,6 @@ The dogfood track succeeds if:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-09 | Extended the Advisor preflight receipt API and Cortex card to render scored result-row summaries when a real results artifact exists. Live browser smoke still shows the tracked receipt as `not_run` with 0 results, so no batch preflight pass is claimed. | Manav (with Codex) |
 | 2026-06-09 | Added the first live Advisor preflight receipt surface: read-only `/api/advisor/preflight` plus the Cortex card, and logged `AD-AE-14` for the remaining gap between manual Chat packet smoke and scored Advisor preflight/eval rows. | Manav (with Codex) |
 | 2026-06-09 | Companion dogfood spec authored from Codex planning session. Establishes AD-FK and AD-AE ledgers, browser-use operating contract, expected external setup boundary, and closeout rules. | Manav (with Codex) |

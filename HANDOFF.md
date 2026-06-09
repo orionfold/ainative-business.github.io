@@ -36,6 +36,7 @@
 - Browser-use evidence staged under `/tmp/orionfold-advisor-dogfood/`: `arena-current-visible-qwen25.json/png` and `arena-visible-qwen25-safe-refusal-turn.json` plus before/after screenshots. Visible Chat refused a safe private-config-token disclosure prompt with `Citations: []`. Do not claim the full 8-row Advisor batch preflight passed; continue in Arena and treat missing Advisor eval/preflight UI as the blocking dogfood gap.
 - 2026-06-09 continuation built the first visible Advisor preflight receipt surface in Arena: `GET /api/advisor/preflight` reads `evidence/orionfold-advisor/advisor-preflight-v0.1.json` plus packet metadata, and `/arena/cortex/` now shows the Advisor preflight card (8 packets, Qwen3 target, `not_run`, 0 scored results). Baked with `/tmp/arena-venv/bin/fieldkit arena build --repo-root arena-app`, restarted Arena in browser-use mode, and smoked the live Cortex card. Evidence: `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-preflight-card.json/png`.
 - Visible Chat smoke on Qwen2.5 fallback ran one cited-factual Advisor packet (`advisor-cited-factual-qa-0003`) and returned `Citations: [article_autoresearchbench_on_spark]` with no thinking leakage. This is single-turn manual evidence only, not an 8-row preflight pass. Logged `AD-AE-14` because the result is still a chat turn and the cockpit run context remains labeled Kepler.
+- 2026-06-09 continuation extended the Advisor preflight receipt surface to summarize scored result rows when a real `advisor-preflight*.results.jsonl` artifact exists. The live Cortex smoke after restart still shows the tracked receipt as `not_run` with 0 results, so do not claim an Advisor batch preflight pass. Evidence: `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-results-card.json/png`.
 - Next proof step: use Arena browser-use to drive the Advisor lane/eval workflow only. If batch scoring is still needed before Unsloth Core setup, first add or expose an Arena preflight/eval surface; otherwise record terminal-only scoring as an `AD-AE-*` gap, not as the operating path.
 
 ### 2026-06-09 — Orionfold Advisor Unsloth/Arena proof specced
@@ -76,9 +77,9 @@
 
 ## Live Runtime
 
-Last recorded runtime baseline: Advisor proof browser-use bring-up, 2026-06-09.
+Last recorded runtime baseline: Advisor proof browser-use restart, 2026-06-09.
 
-- Cockpit `:7866` is up in browser-use mode via `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh up --browser`; visible CDP Chromium `:9222` is parked on `/arena/cortex/`.
+- Cockpit `:7866` is up in browser-use mode via `.claude/skills/arena-lifecycle/scripts/arena_lifecycle.sh restart --browser`; visible CDP Chromium `:9222` was smoked on `/arena/cortex/` after the Advisor result-summary card change. Last restart pids: cockpit `358255`, browser `358276`.
 - Codex sandbox workaround: localhost/CDP probes can fail inside sandbox (`EPERM` or false DOWN status). Use escalation for read-only `arena_lifecycle.sh status --browser`, CDP attach, screenshots, and `up --browser` if `/tmp/arena-venv` rebuild needs dependency downloads. Keep screenshots attached with `defaultViewport: null` so the operator-resized real browser window controls framing.
 - Current GPU lane: Qwen2.5 fallback on `:8091`, launched through fieldkit's guarded lane launcher from recipe `qwen25-7b-q5km`; Qwen3 was torn down first. Arena active lane is `qwen2.5-7b-instruct-q5_k_m-00001-of-00002.gguf`, source `registry`, run-context anchored at `2026-06-09T13:52:55Z`. Tear it down from Arena LaneTruth or `launcher.teardown_lane(8091)` when done; preserve one-lane discipline.
 - `/tmp/arena-venv` fieldkit editable tracked source and read `0.31.0` at last check.
@@ -116,7 +117,7 @@ Notes:
 ### Strategy / Growth
 
 - **Orionfold Advisor Unsloth/Arena proof**: execute `_SPECS/orionfold-advisor-unsloth-arena-v1.md` as the next publish-grade small run. Default domain = Advisor over the public Orionfold corpus; use Unsloth Core for SFT/export; use Arena/fieldkit for import, launch, eval, RL headroom decision, provenance, and publish/reject receipt. Respect the one-lane DGX Spark memory envelope.
-- Immediate Advisor proof next step: continue from the visible Arena browser with the Qwen2.5 fallback lane already resident on `:8091`. The Cortex card now shows the tracked Advisor preflight packet receipt, but Arena still needs scored result rows, target-lane readiness, pass/fail execution, and Advisor run-context before any batch preflight claim. Drive the next work through Arena Chat/Compare/Jobs/Models only; if more scoring is needed, expose that eval surface first instead of falling back to hidden terminal scoring. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
+- Immediate Advisor proof next step: continue from the visible Arena browser with the Qwen2.5 fallback lane already resident on `:8091`. The Cortex card now shows the tracked Advisor preflight packet receipt and can render scored result-row summaries when a real results artifact exists, but the live tracked receipt is still `not_run` with 0 results. Arena still needs target-lane readiness, pass/fail execution, and Advisor run-context before any batch preflight claim. Drive the next work through Arena Chat/Compare/Jobs/Models only; if more scoring is needed, expose that eval surface first instead of falling back to hidden terminal scoring. RAG recall has a passing local baseline (`source_recall@5=0.9885` overall, `1.0` held-out answerable) but should later be repeated through the live Cortex/Arena lane before publish claims.
 - During the run, update `_SPECS/orionfold-advisor-dogfood-v1.md` with `AD-FK-*` fieldkit and `AD-AE-*` Arena findings. Treat terminal-only workarounds as dogfood findings unless they are expected external setup. Current concrete Arena findings: `AD-AE-11` for missing manifest/bench/recall visibility, `AD-AE-12` for missing base-model scout/preflight visibility, and `AD-AE-13` for missing preflight receipt/lane-readiness visibility.
 - Do not edit public pages for Unsloth positioning until the strategy recommendations are accepted or a live proof exists.
 
@@ -148,6 +149,10 @@ Notes:
 ### 2026-06-09 - Arena pipeline browser-use rule memorialized
 
 Promoted the repeated Advisor/Arena operating lesson into durable repo instructions: `AGENTS.md`, `HANDOFF.md`, `CODEX-CC.md`, and `_SPECS/orionfold-advisor-dogfood-v1.md` now state that Arena/fieldkit/model-pipeline work must be driven through the visible Arena cockpit in browser-use mode first. Headless browser scripts, hidden endpoint batch scoring, and terminal-only API calls are not substitutes for Arena validation; missing cockpit surfaces become `AD-AE-*` / `AD-FK-*` findings. Current live lane is Qwen2.5 fallback on `:8091`, visible in Arena; tracked Advisor preflight receipt is restored to prompt-packet/not-run until an Arena preflight/eval surface exists. | Manav (with Codex)
+
+### 2026-06-09 - Advisor preflight result summaries wired
+
+Extended `/api/advisor/preflight` and the Cortex Advisor card to summarize scored result rows from a real results JSONL artifact without exposing prompt bodies or model outputs. Baked the Arena bundle, restarted browser-use Arena, and smoked `/arena/cortex/`; live state remains `not_run` / 0 results because no tracked scored result artifact exists yet. Focused helper tests pass. | Manav (with Codex)
 
 ### 2026-06-09 - Advisor generator preflight packets staged
 

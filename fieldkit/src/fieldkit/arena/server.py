@@ -3151,6 +3151,7 @@ def _summarize_advisor_results(root: Path, results_path: Any) -> dict[str, Any]:
         return {"available": False, "row_count": 0, "path": results_path}
     row_count = 0
     failures = 0
+    rows: list[dict[str, Any]] = []
     try:
         for line in path.read_text().splitlines():
             if not line.strip():
@@ -3160,15 +3161,32 @@ def _summarize_advisor_results(root: Path, results_path: Any) -> dict[str, Any]:
                 row = json.loads(line)
             except ValueError:
                 continue
-            if row.get("passed") is False or row.get("ok") is False:
+            score = row.get("score") if isinstance(row.get("score"), dict) else {}
+            passed = score.get("passed", row.get("passed", row.get("ok")))
+            if passed is False:
                 failures += 1
+            rows.append({
+                "task_id": row.get("task_id"),
+                "family": row.get("family"),
+                "expected_behavior": row.get("expected_behavior"),
+                "expected_source_ids": row.get("expected_source_ids") or [],
+                "passed": passed,
+                "citation_ok": score.get("citation_ok"),
+                "refusal_ok": score.get("refusal_ok"),
+                "route_ok": score.get("route_ok"),
+                "thinking_leak": score.get("thinking_leak"),
+                "private_state_risk": score.get("private_state_risk"),
+                "cited_source_ids": score.get("cited_source_ids") or [],
+            })
     except OSError:
         return {"available": False, "row_count": 0, "path": results_path}
     return {
         "available": True,
         "row_count": row_count,
         "failures": failures,
+        "passed": row_count > 0 and failures == 0,
         "path": results_path,
+        "rows": rows,
     }
 
 

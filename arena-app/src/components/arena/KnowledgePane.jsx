@@ -265,6 +265,25 @@ export default function KnowledgePane() {
                 </ol>
               </details>
             )}
+            {advisorResults && advisorResults.available && advisorResults.rows && advisorResults.rows.length > 0 && (
+              <details class="kp__advisor-results" open>
+                <summary>
+                  {advisorResults.row_count} scored rows
+                  {advisorResults.failures ? ` · ${advisorResults.failures} failing` : ' · all passing'}
+                </summary>
+                <ol>
+                  {advisorResults.rows.map((row) => (
+                    <li key={row.task_id} data-pass={row.passed === true}>
+                      <code>{row.task_id}</code>
+                      <span>{row.family}</span>
+                      <span>{row.expected_behavior}</span>
+                      <span>{row.passed === true ? 'pass' : row.passed === false ? 'fail' : 'unknown'}</span>
+                      <span>{(row.cited_source_ids || []).length} cited</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
             <p class="kp__advisor-source">
               receipt <code>{advisor.source}</code>
               {advisorResults && advisorResults.available

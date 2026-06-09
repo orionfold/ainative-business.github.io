@@ -3861,11 +3861,24 @@ try {
         font-size: 0.58rem; color: var(--arena-text-dim);
       }
       .arena-app .kp__advisor-packets code { color: var(--arena-text); }
+      .arena-app .kp__advisor-results summary { font-size: 0.66rem; color: var(--arena-text-mute); cursor: pointer; }
+      .arena-app .kp__advisor-results ol {
+        list-style: none; margin: 0.45rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.28rem;
+      }
+      .arena-app .kp__advisor-results li {
+        display: grid; grid-template-columns: minmax(8rem, 1.3fr) minmax(7rem, 1fr) auto auto auto;
+        gap: 0.45rem; align-items: center; font-family: var(--arena-mono);
+        font-size: 0.58rem; color: var(--arena-text-dim);
+      }
+      .arena-app .kp__advisor-results li[data-pass="true"] span:nth-child(4) { color: var(--arena-ok); }
+      .arena-app .kp__advisor-results li[data-pass="false"] span:nth-child(4) { color: var(--arena-warn); }
+      .arena-app .kp__advisor-results code { color: var(--arena-text); }
       .arena-app .kp__advisor-source { margin: 0; font-size: 0.62rem; color: var(--arena-text-dim); }
       .arena-app .kp__advisor-source code { font-family: var(--arena-mono); color: var(--arena-text-mute); }
       @media (max-width: 720px) {
         .arena-app .kp__advisor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         .arena-app .kp__advisor-packets li { grid-template-columns: 1fr; gap: 0.16rem; }
+        .arena-app .kp__advisor-results li { grid-template-columns: 1fr; gap: 0.16rem; }
       }
       /* (b) controls */
       .arena-app .kp__controls {

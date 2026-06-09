@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor preflight receipt is now visible in Arena Cortex",
+  "focus": "Advisor preflight result summaries wired into Arena Cortex",
   "blockers": [],
   "next": [
     "Continue Advisor proof from the visible Arena browser only",
-    "Add scored Advisor preflight rows and pass/fail execution in Arena before batch scoring",
+    "Expose real Advisor preflight pass/fail execution in Arena before batch scoring",
     "Use the current qwen25-7b-q5km lane on :8091 or tear it down from Arena LaneTruth when done",
     "Repeat Advisor recall through the live Cortex/Arena lane before any publish claim",
     "Replace the stale Kepler run-context label with an Advisor run-context surface"
   ],
   "recent": [
-    "Added GET /api/advisor/preflight as a read-only Arena receipt",
-    "Cortex now shows 8 Advisor packets, Qwen3 target, not_run gate, and 0 scored results",
-    "Visible Chat Qwen2.5 smoke passed one cited Advisor packet without thinking leakage",
-    "Logged AD-AE-14 for manual Chat smoke not becoming scored preflight/eval rows",
-    "Arena restarted in browser-use mode after rebaking the cockpit bundle"
+    "Extended GET /api/advisor/preflight to summarize scored result rows",
+    "Cortex can render Advisor result pass/fail rows when a real results artifact exists",
+    "Live Cortex smoke still shows not_run with 0 results; no batch pass claimed",
+    "Added focused helper tests for Advisor receipt parsing",
+    "Arena restarted in browser-use mode and smoked on /arena/cortex/"
   ],
   "session": "S-advisor-preflight-cortex",
   "metrics": {
