@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor generator preflight packets staged; Qwen3-8B endpoint scoring is next",
+  "focus": "Advisor preflight receipt is now visible in Arena Cortex",
   "blockers": [],
   "next": [
-    "Serve Qwen/Qwen3-8B on a local OpenAI-compatible endpoint",
-    "Run scripts/orionfold_advisor/preflight.py --endpoint http://127.0.0.1:<port>",
-    "Fallback to Qwen/Qwen2.5-7B-Instruct if Qwen3 leaks thinking, drifts citations, or over-refuses",
+    "Continue Advisor proof from the visible Arena browser only",
+    "Add scored Advisor preflight rows and pass/fail execution in Arena before batch scoring",
+    "Use the current qwen25-7b-q5km lane on :8091 or tear it down from Arena LaneTruth when done",
     "Repeat Advisor recall through the live Cortex/Arena lane before any publish claim",
-    "Design Arena visibility for Advisor manifest, recall, model scout, and preflight receipts"
+    "Replace the stale Kepler run-context label with an Advisor run-context surface"
   ],
   "recent": [
-    "Added scripts/orionfold_advisor/preflight.py",
-    "Wrote advisor-preflight-v0.1 prompts/report under evidence/orionfold-advisor",
-    "Preflight gate is not_run because no Qwen3 endpoint was live on :8080/:8000/:8091",
-    "Logged AD-AE-13 for missing Arena preflight receipt and lane-readiness visibility",
-    "No model output, training, or public pages changed"
+    "Added GET /api/advisor/preflight as a read-only Arena receipt",
+    "Cortex now shows 8 Advisor packets, Qwen3 target, not_run gate, and 0 scored results",
+    "Visible Chat Qwen2.5 smoke passed one cited Advisor packet without thinking leakage",
+    "Logged AD-AE-14 for manual Chat smoke not becoming scored preflight/eval rows",
+    "Arena restarted in browser-use mode after rebaking the cockpit bundle"
   ],
-  "session": "S-advisor-preflight-packets",
+  "session": "S-advisor-preflight-cortex",
   "metrics": {
     "articles": 53,
     "models": 6,

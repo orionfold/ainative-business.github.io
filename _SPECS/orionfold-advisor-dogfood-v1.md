@@ -35,6 +35,12 @@ done in the terminal, that is either:
 1. expected external setup, or
 2. a dogfood finding recorded here.
 
+This is a hard operating rule for the Advisor proof, not a preference. Do not
+replace visible Arena operation with headless browser scripts, direct endpoint
+batch scoring, or terminal-only API calls. Use those only for deterministic
+artifact preparation when Arena has no surface, then record the missing surface
+as an `AD-AE-*` or `AD-FK-*` finding before continuing.
+
 ## 2. Relationship to the Main Spec
 
 Companion spec:
@@ -196,14 +202,24 @@ Release posture: next-arena-enhancement
 Evidence: Scratch scout report `/tmp/hf-scout/2026-06-09/advisor-8B/report.md`; sidecar `/tmp/hf-scout/2026-06-09/advisor-8B/candidates.json`; read-only CDP tab query showed active page `Orionfold Arena — Cortex` at `/arena/cortex/`.
 
 ID: AD-AE-13
-Status: proposed
+Status: accepted
 Finding: Advisor retrieved-context generator preflight packets can now be generated locally, but Arena still has no visible preflight receipt or target-lane readiness card tying the selected held-out questions, retrieved sources, target model, endpoint state, and pass/fail gate together.
 Observed during: 2026-06-09 Advisor generator-preflight continuation after `AD-AE-12`; `scripts/orionfold_advisor/preflight.py` wrote `advisor-preflight-v0.1.prompts.jsonl` and `advisor-preflight-v0.1.json`, but no OpenAI-compatible `Qwen/Qwen3-8B` lane was running on `:8080`, `:8000`, or `:8091`.
 Expected operator behavior: The operator should be able to see a preflight gate in Arena before training starts: selected held-out rows by family, retrieved context/source ids, target base model, endpoint/lane status, scored outputs if run, and whether Qwen3 passes or falls back to Qwen2.5.
-Current workaround: Generate packets from the terminal and later rerun `scripts/orionfold_advisor/preflight.py --endpoint http://127.0.0.1:<port>` after serving `Qwen/Qwen3-8B`; inspect tracked evidence files under `evidence/orionfold-advisor/`.
+Current workaround: Generate packets from the terminal and inspect tracked evidence files under `evidence/orionfold-advisor/`. 2026-06-09 continuation built the first read-only Arena receipt slice: `GET /api/advisor/preflight` plus a Cortex card showing packet count, family mix, target model, gate status, and whether a scored result artifact exists. Lane-readiness, scored row results, and pass/fail execution are still not first-class Arena surfaces.
 Proposed fix class: observability
 Release posture: next-arena-enhancement
-Evidence: `evidence/orionfold-advisor/advisor-preflight-v0.1.prompts.jsonl`; `evidence/orionfold-advisor/advisor-preflight-v0.1.json`.
+Evidence: `evidence/orionfold-advisor/advisor-preflight-v0.1.prompts.jsonl`; `evidence/orionfold-advisor/advisor-preflight-v0.1.json`; `/tmp/orionfold-advisor-dogfood/arena-cortex-advisor-preflight-card.png`.
+
+ID: AD-AE-14
+Status: proposed
+Finding: Arena Chat can manually smoke an Advisor packet against the Qwen2.5 fallback lane, but the result remains an operator-private chat turn rather than a preflight/eval row tied to an Advisor run context.
+Observed during: 2026-06-09 visible browser-use continuation on `/arena/chat/`; the cited factual QA packet `advisor-cited-factual-qa-0003` answered with `Citations: [article_autoresearchbench_on_spark]` and no thinking leakage, while the cockpit top strip still labeled the run context as `Kepler`.
+Expected operator behavior: The operator should be able to run Advisor packets through an Arena preflight/eval surface that records row id, family, expected source ids, actual output, citation/refusal checks, pass/fail state, target lane, and Advisor run context.
+Current workaround: Use Chat for a single visible smoke and save local screenshot/JSON evidence, without claiming the 8-row Advisor preflight passed.
+Proposed fix class: eval
+Release posture: next-arena-enhancement
+Evidence: `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.json`; `/tmp/orionfold-advisor-dogfood/arena-visible-qwen25-advisor-packet-after.png`.
 ```
 
 ## 7. Expected External Setup vs Dogfood Gap
@@ -286,4 +302,5 @@ The dogfood track succeeds if:
 
 | Date | Change | Author |
 |---|---|---|
+| 2026-06-09 | Added the first live Advisor preflight receipt surface: read-only `/api/advisor/preflight` plus the Cortex card, and logged `AD-AE-14` for the remaining gap between manual Chat packet smoke and scored Advisor preflight/eval rows. | Manav (with Codex) |
 | 2026-06-09 | Companion dogfood spec authored from Codex planning session. Establishes AD-FK and AD-AE ledgers, browser-use operating contract, expected external setup boundary, and closeout rules. | Manav (with Codex) |

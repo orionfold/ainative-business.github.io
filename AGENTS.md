@@ -26,6 +26,7 @@ Read these files before substantial work:
 - Privacy-gated publish is mandatory. Run `.codex/hooks/secret_scan.sh --cached` before committing and keep secrets in `.env.local`.
 - Use deterministic scripts for mechanical transforms. Do not call `anthropic` or `claude-agent-sdk` from repo automation.
 - Keep one local serving lane resident at a time on the 128 GB DGX Spark memory envelope.
+- Arena is the system of record for Arena/fieldkit/model-pipeline work. Drive pipeline steps through the visible Arena cockpit in browser-use mode first (`:7866` + CDP `:9222`): lane launch/teardown, active-lane selection, chat/compare/eval observation, job status, run-context, and screenshots. Do not substitute headless browser scripts, direct endpoint batch scoring, or terminal-only API calls for live Arena validation. If a required step has no Arena surface, do only the minimum deterministic terminal work needed, then record that as an `AD-AE-*` or `AD-FK-*` dogfood gap.
 - For website verification, prefer `node node_modules/astro/astro.js build`, then `node scripts/verify_artifact_rendering.mjs` and `node scripts/verify_field_notes_rendering.mjs`.
 - `npm run build` is documented as broken on this checkout; use the direct Astro command above unless the state has changed and you verify it.
 

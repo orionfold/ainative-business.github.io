@@ -3810,6 +3810,63 @@ try {
       .arena-app .kp__missing summary { font-size: 0.68rem; color: var(--arena-text-mute); cursor: pointer; }
       .arena-app .kp__missing-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
       .arena-app .kp__missing-list code { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn); background: rgba(29,31,37,0.04); border-radius: 0.25rem; padding: 0.08rem 0.35rem; }
+      /* Advisor preflight receipt */
+      .arena-app .kp__advisor {
+        display: flex; flex-direction: column; gap: 0.6rem;
+        padding: 0.8rem 0.9rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
+        background: rgba(29,31,37,0.025);
+      }
+      .arena-app .kp__advisor[data-status="not_run"] { border-color: var(--arena-warn); }
+      .arena-app .kp__advisor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
+      .arena-app .kp__advisor-title {
+        display: block; font-family: var(--arena-mono); font-size: 0.64rem; letter-spacing: 0.12em;
+        text-transform: uppercase; color: var(--arena-text);
+      }
+      .arena-app .kp__advisor-sub {
+        display: block; margin-top: 0.15rem; font-family: var(--arena-mono); font-size: 0.56rem;
+        letter-spacing: 0.08em; text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .kp__advisor-badge {
+        flex: none; font-family: var(--arena-mono); font-size: 0.58rem; letter-spacing: 0.1em;
+        text-transform: uppercase; color: var(--arena-warn); border: 1px solid currentColor;
+        border-radius: 0.5rem; padding: 0.12rem 0.5rem;
+      }
+      .arena-app .kp__advisor-badge[data-pass="true"] { color: var(--arena-ok); }
+      .arena-app .kp__advisor-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem; }
+      .arena-app .kp__advisor-grid > div {
+        min-width: 0; border: 1px solid var(--arena-line); border-radius: 0.4rem;
+        padding: 0.45rem 0.5rem; background: var(--arena-bg, #0a0e14);
+      }
+      .arena-app .kp__advisor-grid b {
+        display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-family: var(--arena-mono); font-size: 0.78rem; color: var(--arena-accent);
+      }
+      .arena-app .kp__advisor-grid span {
+        display: block; margin-top: 0.15rem; font-family: var(--arena-mono); font-size: 0.52rem;
+        letter-spacing: 0.1em; text-transform: uppercase; color: var(--arena-text-dim);
+      }
+      .arena-app .kp__advisor-families { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+      .arena-app .kp__advisor-family {
+        font-family: var(--arena-mono); font-size: 0.56rem; color: var(--arena-text-dim);
+        border: 1px solid var(--arena-line); border-radius: 0.5rem; padding: 0.08rem 0.45rem;
+      }
+      .arena-app .kp__advisor-rule { margin: 0; font-size: 0.68rem; line-height: 1.45; color: var(--arena-text-mute); }
+      .arena-app .kp__advisor-packets summary { font-size: 0.66rem; color: var(--arena-text-mute); cursor: pointer; }
+      .arena-app .kp__advisor-packets ol {
+        list-style: none; margin: 0.45rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.28rem;
+      }
+      .arena-app .kp__advisor-packets li {
+        display: grid; grid-template-columns: minmax(8rem, 1.3fr) minmax(7rem, 1fr) auto auto;
+        gap: 0.45rem; align-items: center; font-family: var(--arena-mono);
+        font-size: 0.58rem; color: var(--arena-text-dim);
+      }
+      .arena-app .kp__advisor-packets code { color: var(--arena-text); }
+      .arena-app .kp__advisor-source { margin: 0; font-size: 0.62rem; color: var(--arena-text-dim); }
+      .arena-app .kp__advisor-source code { font-family: var(--arena-mono); color: var(--arena-text-mute); }
+      @media (max-width: 720px) {
+        .arena-app .kp__advisor-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .arena-app .kp__advisor-packets li { grid-template-columns: 1fr; gap: 0.16rem; }
+      }
       /* (b) controls */
       .arena-app .kp__controls {
         display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;

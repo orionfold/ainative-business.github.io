@@ -36,6 +36,12 @@ This file is the coexistence contract between Codex CLI and Claude Code for this
 - Localhost CDP/cockpit checks can fail inside Codex's sandbox (`EPERM` or false down status); rerun read-only CDP/status checks with escalation before concluding Arena is down.
 - Keep screenshot captures attached with `defaultViewport: null` and use the operator-resized real browser window, avoiding fixed viewport overrides that can box the visible Chromium session.
 
+### 2026-06-09 - Arena pipeline browser-use discipline
+
+- Added a root `AGENTS.md` operating rule that Arena/fieldkit/model-pipeline work must be driven through the visible Arena cockpit in browser-use mode first.
+- Headless browser scripts, hidden endpoint batch scoring, and terminal-only API calls are not acceptable substitutes for Arena validation. If Arena lacks the needed surface, perform only minimal deterministic terminal work and record the gap as an `AD-AE-*` or `AD-FK-*` dogfood finding.
+- Updated `HANDOFF.md` with the same pinned rule so cross-session continuation starts from Arena as the system of record.
+
 ## Operator Notes
 
 - Start Codex from the repo root to load `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json`, and `.agents/skills/`.

@@ -52,6 +52,7 @@ function Spark({ values }) {
 export default function KnowledgePane() {
   const [online, setOnline] = useState(false);
   const [data, setData] = useState(null);
+  const [advisor, setAdvisor] = useState(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [sourceSet, setSourceSet] = useState('articles');
@@ -71,6 +72,10 @@ export default function KnowledgePane() {
       if (r.ok) {
         setData(await r.json());
         setOnline(true);
+      }
+      const ar = await fetch(`${base}/api/advisor/preflight`);
+      if (ar.ok) {
+        setAdvisor(await ar.json());
       }
     } catch (_e) {
       setOnline(false);
@@ -180,6 +185,11 @@ export default function KnowledgePane() {
   const cosineRuns = rag.filter((r) => Number(r.rerank) === 0 && r.recall_at_k != null);
   const trendVals = cosineRuns.map((r) => Number(r.recall_at_k)).reverse();
   const latest = cosineRuns[0];
+  const advisorReport = advisor && advisor.available ? advisor.report || {} : null;
+  const advisorGate = (advisorReport && advisorReport.gate) || {};
+  const advisorFamilies = Object.entries((advisorReport && advisorReport.families) || {});
+  const advisorPackets = (advisor && advisor.packets) || [];
+  const advisorResults = advisor && advisor.results;
 
   return (
     <div class="kp">
@@ -208,6 +218,60 @@ export default function KnowledgePane() {
               {cov.missing.map((s) => <code key={s}>{s}</code>)}
             </div>
           </details>
+        )}
+      </section>
+
+      {/* Advisor proof receipt — read-only packet gate, no scoring or dispatch. */}
+      <section class="kp__advisor" data-status={advisorGate.status || 'missing'}>
+        <header class="kp__advisor-head">
+          <div>
+            <span class="kp__advisor-title">Advisor preflight</span>
+            <span class="kp__advisor-sub">retrieved-context generator gate</span>
+          </div>
+          <span class="kp__advisor-badge" data-pass={advisorGate.passed === true}>
+            {advisorGate.status || 'missing'}
+          </span>
+        </header>
+        {!advisor || advisor.available === false ? (
+          <p class="kp__empty">No Advisor preflight receipt found under evidence/orionfold-advisor.</p>
+        ) : (
+          <>
+            <div class="kp__advisor-grid">
+              <div><b>{advisorReport.row_count ?? advisorPackets.length}</b><span>packets</span></div>
+              <div><b>{advisorReport.model_target || '—'}</b><span>target</span></div>
+              <div><b>{advisorResults && advisorResults.available ? advisorResults.row_count : 0}</b><span>results</span></div>
+              <div><b>{advisorReport.mode || '—'}</b><span>mode</span></div>
+            </div>
+            {advisorFamilies.length > 0 && (
+              <div class="kp__advisor-families">
+                {advisorFamilies.map(([family, n]) => (
+                  <span class="kp__advisor-family" key={family}>{family}: {n}</span>
+                ))}
+              </div>
+            )}
+            <p class="kp__advisor-rule">{advisorGate.threshold || 'No threshold recorded.'}</p>
+            {advisorPackets.length > 0 && (
+              <details class="kp__advisor-packets">
+                <summary>{advisorPackets.length} packet summaries</summary>
+                <ol>
+                  {advisorPackets.map((pkt) => (
+                    <li key={pkt.task_id}>
+                      <code>{pkt.task_id}</code>
+                      <span>{pkt.family}</span>
+                      <span>{pkt.expected_behavior}</span>
+                      <span>{pkt.source_count ?? '—'} sources</span>
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
+            <p class="kp__advisor-source">
+              receipt <code>{advisor.source}</code>
+              {advisorResults && advisorResults.available
+                ? ` · results ${advisorResults.row_count} rows`
+                : ' · no scored result artifact yet'}
+            </p>
+          </>
         )}
       </section>
 

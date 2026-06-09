@@ -2609,6 +2609,43 @@ def create_app(
             raise HTTPException(status_code=503, detail=f"index unavailable: {exc}")
         return {"query": body.query, "provenance": body.provenance, "hits": hits}
 
+    @app.get("/api/advisor/preflight")
+    async def api_advisor_preflight(
+        source: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        """Read-only Advisor generator-preflight receipt.
+
+        This makes the tracked Advisor packet gate visible in Arena without
+        launching a lane, scoring hidden batches, or touching ``arena.db``. It
+        summarizes the report JSON plus packet metadata; full prompt bodies stay
+        in the evidence artifact on disk.
+        """
+        runs = _list_advisor_preflight_reports(root)
+        if source:
+            report_path = _resolve_advisor_preflight_report(root, source)
+        else:
+            report_path = _newest_advisor_preflight_report(root)
+        if report_path is None or not report_path.is_file():
+            return {"available": False, "kind": "advisor_preflight", "runs": runs}
+        try:
+            report = json.loads(report_path.read_text())
+        except (OSError, ValueError):
+            return {"available": False, "kind": "advisor_preflight", "runs": runs}
+
+        prompt_path = report.get("prompt_path")
+        packets = _summarize_advisor_packets(root, prompt_path)
+        results = _summarize_advisor_results(root, report.get("results_path"))
+        return {
+            "available": True,
+            "kind": "advisor_preflight",
+            "source": report_path.name,
+            "runs": runs,
+            "report": report,
+            "packets": packets,
+            "packet_count": len(packets),
+            "results": results,
+        }
+
     # ------------------------------------------------------------------
     # M11 (autonomous harness) — the morning-standup render (AH-3).
     # ------------------------------------------------------------------
@@ -2993,6 +3030,146 @@ def _list_reward_reports(root: Path) -> list:
             item["status"] = "unreadable"
         out.append(item)
     return out
+
+
+def _advisor_preflight_dir(root: Path) -> Path:
+    """Directory holding Orionfold Advisor preflight evidence."""
+    return root / "evidence" / "orionfold-advisor"
+
+
+def _newest_advisor_preflight_report(root: Path) -> Path:
+    """Newest tracked ``advisor-preflight*.json`` report by mtime."""
+    base = _advisor_preflight_dir(root)
+    canonical = base / "advisor-preflight-v0.1.json"
+    try:
+        candidates = sorted(
+            base.glob("advisor-preflight*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return canonical
+    return candidates[0] if candidates else canonical
+
+
+def _resolve_advisor_preflight_report(root: Path, source: str) -> Path | None:
+    """Resolve a selected Advisor preflight report filename safely."""
+    name = Path(source).name
+    if not name.startswith("advisor-preflight") or not name.endswith(".json"):
+        return None
+    p = _advisor_preflight_dir(root) / name
+    return p if p.is_file() else None
+
+
+def _list_advisor_preflight_reports(root: Path) -> list[dict[str, Any]]:
+    """Newest-first summaries of Advisor preflight report JSON files."""
+    base = _advisor_preflight_dir(root)
+    out: list[dict[str, Any]] = []
+    try:
+        paths = sorted(
+            base.glob("advisor-preflight*.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+    except OSError:
+        return out
+    for p in paths:
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        item: dict[str, Any] = {"source": p.name, "mtime": mtime}
+        try:
+            r = json.loads(p.read_text())
+            gate = r.get("gate") or {}
+            item.update({
+                "mode": r.get("mode"),
+                "model_target": r.get("model_target"),
+                "row_count": r.get("row_count"),
+                "status": gate.get("status"),
+                "passed": gate.get("passed"),
+            })
+        except (OSError, ValueError):
+            item["status"] = "unreadable"
+        out.append(item)
+    return out
+
+
+def _resolve_advisor_artifact(root: Path, path_value: Any) -> Path | None:
+    """Resolve a report-declared Advisor artifact inside this repo."""
+    if not path_value:
+        return None
+    p = Path(str(path_value))
+    if p.is_absolute():
+        try:
+            p.relative_to(root)
+        except ValueError:
+            return None
+        return p
+    resolved = (root / p).resolve()
+    try:
+        resolved.relative_to(root.resolve())
+    except ValueError:
+        return None
+    return resolved
+
+
+def _summarize_advisor_packets(root: Path, prompt_path: Any) -> list[dict[str, Any]]:
+    """Summarize Advisor prompt packets without returning full prompt bodies."""
+    path = _resolve_advisor_artifact(root, prompt_path)
+    if path is None or not path.is_file():
+        return []
+    out: list[dict[str, Any]] = []
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return out
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            pkt = json.loads(line)
+        except ValueError:
+            continue
+        sources = pkt.get("retrieved_sources") or []
+        out.append({
+            "task_id": pkt.get("task_id"),
+            "family": pkt.get("family"),
+            "split": pkt.get("split"),
+            "question": pkt.get("question"),
+            "expected_behavior": pkt.get("expected_behavior"),
+            "expected_source_ids": pkt.get("expected_source_ids") or [],
+            "source_count": len(sources) if isinstance(sources, list) else None,
+        })
+    return out
+
+
+def _summarize_advisor_results(root: Path, results_path: Any) -> dict[str, Any]:
+    """Summarize an optional Advisor preflight results JSONL artifact."""
+    path = _resolve_advisor_artifact(root, results_path)
+    if path is None or not path.is_file():
+        return {"available": False, "row_count": 0, "path": results_path}
+    row_count = 0
+    failures = 0
+    try:
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            row_count += 1
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if row.get("passed") is False or row.get("ok") is False:
+                failures += 1
+    except OSError:
+        return {"available": False, "row_count": 0, "path": results_path}
+    return {
+        "available": True,
+        "row_count": row_count,
+        "failures": failures,
+        "path": results_path,
+    }
 
 
 # ---------------------------------------------------------------------------
