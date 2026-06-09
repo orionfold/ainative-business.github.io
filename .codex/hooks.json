@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nvidia/ainative-business.github.io/.codex/hooks/pre_commit_guard.sh",
+            "timeout": 30,
+            "statusMessage": "Checking Codex pre-commit guard"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/nvidia/ainative-business.github.io/.codex/hooks/post_publish.sh",
+            "timeout": 20,
+            "statusMessage": "Checking Codex post-publish nudges"
+          }
+        ]
+      }
+    ]
+  }
+}

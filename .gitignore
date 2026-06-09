@@ -48,6 +48,9 @@ RECONCILE-SPARK-MAC.md
 .sync-active
 supabase/.temp/
 .agents/
+!.agents/
+!.agents/skills/
+!.agents/skills/**
 .playwright-mcp/
 .mcp.json
 output/
