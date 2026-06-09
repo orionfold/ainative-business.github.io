@@ -53,6 +53,8 @@ export default function KnowledgePane() {
   const [online, setOnline] = useState(false);
   const [data, setData] = useState(null);
   const [advisor, setAdvisor] = useState(null);
+  const [advisorBusy, setAdvisorBusy] = useState(false);
+  const [advisorNote, setAdvisorNote] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [sourceSet, setSourceSet] = useState('articles');
@@ -128,6 +130,28 @@ export default function KnowledgePane() {
     }
   }
 
+  async function runAdvisorPreflight() {
+    if (advisorBusy || !online) return;
+    setAdvisorBusy(true);
+    setAdvisorNote('');
+    try {
+      const r = await fetch(`${baseRef.current}/api/advisor/preflight/run`, { method: 'POST' });
+      const j = await r.json();
+      if (r.ok) {
+        setAdvisor(j);
+        const status = j && j.report && j.report.gate ? j.report.gate.status : 'scored';
+        const rows = j && j.results ? j.results.row_count : 0;
+        setAdvisorNote(`preflight ${status} · ${rows} rows`);
+      } else {
+        setAdvisorNote(j && j.detail ? j.detail : 'preflight failed');
+      }
+    } catch (_e) {
+      setAdvisorNote('sidecar unreachable');
+    } finally {
+      setAdvisorBusy(false);
+    }
+  }
+
   function toggleProv(s) {
     setProv((cur) => (cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s]));
   }
@@ -190,6 +214,7 @@ export default function KnowledgePane() {
   const advisorFamilies = Object.entries((advisorReport && advisorReport.families) || {});
   const advisorPackets = (advisor && advisor.packets) || [];
   const advisorResults = advisor && advisor.results;
+  const advisorLane = (advisor && advisor.lane) || {};
 
   return (
     <div class="kp">
@@ -242,6 +267,25 @@ export default function KnowledgePane() {
               <div><b>{advisorResults && advisorResults.available ? advisorResults.row_count : 0}</b><span>results</span></div>
               <div><b>{advisorReport.mode || '—'}</b><span>mode</span></div>
             </div>
+            <div class="kp__advisor-lane" data-ready={advisorLane.ready === true}>
+              <div>
+                <span class="kp__advisor-lane-label">active lane</span>
+                <code>{advisorLane.model || 'not ready'}</code>
+                <span>{advisorLane.base_url || advisorLane.reason || 'no lane'}</span>
+              </div>
+              <button
+                type="button"
+                class="kp__advisor-run"
+                disabled={!online || advisorBusy || advisorLane.ready !== true}
+                onClick={runAdvisorPreflight}
+                title={advisorLane.ready === true ? 'Run the tracked Advisor packets against the active lane' : advisorLane.reason || 'No active lane'}
+              >
+                {advisorBusy ? 'running…' : 'run preflight'}
+              </button>
+            </div>
+            {(advisorNote || (advisorLane && advisorLane.reason)) && (
+              <p class="kp__advisor-note">{advisorNote || advisorLane.reason}</p>
+            )}
             {advisorFamilies.length > 0 && (
               <div class="kp__advisor-families">
                 {advisorFamilies.map(([family, n]) => (

@@ -50,6 +50,8 @@ import json
 import logging
 import os
 import re
+import subprocess
+import sys
 import threading
 import time
 from pathlib import Path
@@ -2635,6 +2637,7 @@ def create_app(
         prompt_path = report.get("prompt_path")
         packets = _summarize_advisor_packets(root, prompt_path)
         results = _summarize_advisor_results(root, report.get("results_path"))
+        lane = _resolve_active_lane()
         return {
             "available": True,
             "kind": "advisor_preflight",
@@ -2644,7 +2647,34 @@ def create_app(
             "packets": packets,
             "packet_count": len(packets),
             "results": results,
+            "lane": _advisor_lane_readiness(lane),
         }
+
+    @app.post("/api/advisor/preflight/run")
+    async def api_advisor_preflight_run() -> dict[str, Any]:
+        """Run the tracked Advisor preflight against Arena's active lane.
+
+        The operator triggers this from the visible Cortex card. The server uses
+        the same tracked script and writes the normal evidence artifacts, then
+        returns the redacted receipt summary. Full prompts and model outputs
+        remain on disk under ``evidence/orionfold-advisor``.
+        """
+        lane = _resolve_active_lane()
+        readiness = _advisor_lane_readiness(lane)
+        if not readiness["ready"]:
+            raise HTTPException(status_code=409, detail=readiness["reason"])
+        try:
+            run = await asyncio.to_thread(_run_advisor_preflight_against_lane, root, lane)
+        except FileNotFoundError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        except RuntimeError as exc:
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+        body = await api_advisor_preflight(source=None)
+        body["run"] = run
+        return body
 
     # ------------------------------------------------------------------
     # M11 (autonomous harness) — the morning-standup render (AH-3).
@@ -3093,6 +3123,73 @@ def _list_advisor_preflight_reports(root: Path) -> list[dict[str, Any]]:
             item["status"] = "unreadable"
         out.append(item)
     return out
+
+
+def _advisor_lane_readiness(lane: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Return the Advisor preflight readiness view for a resolved Arena lane."""
+    lane = lane or {}
+    source = str(lane.get("source") or "none")
+    base_url = str(lane.get("base_url") or "")
+    model = str(lane.get("model") or "")
+    ready = bool(base_url and model and source not in {"none", "ambiguous", "hermes-hint"})
+    if ready:
+        reason = "active lane ready"
+    elif source == "ambiguous":
+        reason = "multiple lanes are live; select one on the Models pane"
+    elif source == "hermes-hint":
+        reason = "only a Hermes config hint is available; no discovered active lane"
+    else:
+        reason = "no active serving lane discovered"
+    return {
+        "ready": ready,
+        "reason": reason,
+        "model": model or None,
+        "base_url": base_url or None,
+        "port": lane.get("port"),
+        "source": source,
+        "drift": lane.get("drift"),
+    }
+
+
+def _advisor_preflight_command(root: Path, lane: Mapping[str, Any]) -> list[str]:
+    """Build the deterministic Advisor preflight command for an active lane."""
+    readiness = _advisor_lane_readiness(lane)
+    if not readiness["ready"]:
+        raise ValueError(str(readiness["reason"]))
+    script = root / "scripts" / "orionfold_advisor" / "preflight.py"
+    if not script.is_file():
+        raise FileNotFoundError(f"Advisor preflight script not found: {script}")
+    return [
+        sys.executable,
+        str(script),
+        "--endpoint",
+        str(readiness["base_url"]),
+        "--model",
+        str(readiness["model"]),
+    ]
+
+
+def _run_advisor_preflight_against_lane(root: Path, lane: Mapping[str, Any]) -> dict[str, Any]:
+    """Run the tracked Advisor preflight script and return a redacted receipt."""
+    cmd = _advisor_preflight_command(root, lane)
+    completed = subprocess.run(
+        cmd,
+        cwd=str(root),
+        text=True,
+        capture_output=True,
+        timeout=1800,
+        check=False,
+    )
+    if completed.returncode != 0:
+        detail = (completed.stderr or completed.stdout or "").strip()
+        if len(detail) > 1200:
+            detail = detail[-1200:]
+        raise RuntimeError(f"Advisor preflight failed with rc={completed.returncode}: {detail}")
+    return {
+        "ok": True,
+        "command": " ".join(Path(part).name if idx == 1 else part for idx, part in enumerate(cmd)),
+        "stdout": completed.stdout.strip().splitlines()[-3:],
+    }
 
 
 def _resolve_advisor_artifact(root: Path, path_value: Any) -> Path | None:

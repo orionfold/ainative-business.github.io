@@ -12,6 +12,8 @@ import os
 from pathlib import Path
 
 from fieldkit.arena.server import (  # noqa: E402
+    _advisor_lane_readiness,
+    _advisor_preflight_command,
     _list_advisor_preflight_reports,
     _newest_advisor_preflight_report,
     _resolve_advisor_preflight_report,
@@ -187,3 +189,60 @@ def test_advisor_preflight_malformed_degrades(tmp_path: Path) -> None:
     path.write_text("{not valid json")
     runs = _list_advisor_preflight_reports(tmp_path)
     assert runs == [{"source": "advisor-preflight-v0.1.json", "mtime": path.stat().st_mtime, "status": "unreadable"}]
+
+
+def test_advisor_lane_readiness_requires_resolved_live_lane() -> None:
+    assert _advisor_lane_readiness({"source": "none", "base_url": "", "model": ""}) == {
+        "ready": False,
+        "reason": "no active serving lane discovered",
+        "model": None,
+        "base_url": None,
+        "port": None,
+        "source": "none",
+        "drift": None,
+    }
+    ambiguous = _advisor_lane_readiness({"source": "ambiguous", "base_url": "", "model": ""})
+    assert ambiguous["ready"] is False
+    assert "select one" in ambiguous["reason"]
+    hint = _advisor_lane_readiness(
+        {"source": "hermes-hint", "base_url": "http://127.0.0.1:8091/v1", "model": "configured"}
+    )
+    assert hint["ready"] is False
+    assert "Hermes config hint" in hint["reason"]
+
+
+def test_advisor_lane_readiness_accepts_discovered_or_registry_lane() -> None:
+    discovered = _advisor_lane_readiness(
+        {
+            "source": "discovered",
+            "base_url": "http://127.0.0.1:8091/v1",
+            "model": "qwen.gguf",
+            "port": 8091,
+        }
+    )
+    assert discovered["ready"] is True
+    assert discovered["model"] == "qwen.gguf"
+    assert discovered["port"] == 8091
+
+
+def test_advisor_preflight_command_threads_active_lane(tmp_path: Path) -> None:
+    script = tmp_path / "scripts" / "orionfold_advisor" / "preflight.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("#!/usr/bin/env python3\n")
+
+    cmd = _advisor_preflight_command(
+        tmp_path,
+        {
+            "source": "registry",
+            "base_url": "http://127.0.0.1:8091/v1",
+            "model": "qwen25.gguf",
+            "port": 8091,
+        },
+    )
+
+    assert cmd[-4:] == [
+        "--endpoint",
+        "http://127.0.0.1:8091/v1",
+        "--model",
+        "qwen25.gguf",
+    ]

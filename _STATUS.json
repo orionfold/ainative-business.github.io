@@ -2,24 +2,26 @@
   "version": 1,
   "project": "spark",
   "updated": "2026-06-09",
-  "health": "green",
-  "focus": "Advisor preflight result summaries wired into Arena Cortex",
-  "blockers": [],
+  "health": "yellow",
+  "focus": "Advisor preflight now runs visibly in Arena Cortex and failed honestly",
+  "blockers": [
+    "Advisor Qwen2.5 preflight gate failed: 8 scored rows, 4 failures"
+  ],
   "next": [
-    "Continue Advisor proof from the visible Arena browser only",
-    "Expose real Advisor preflight pass/fail execution in Arena before batch scoring",
-    "Use the current qwen25-7b-q5km lane on :8091 or tear it down from Arena LaneTruth when done",
-    "Repeat Advisor recall through the live Cortex/Arena lane before any publish claim",
-    "Replace the stale Kepler run-context label with an Advisor run-context surface"
+    "Diagnose the four failed Advisor preflight rows through visible Arena surfaces",
+    "Decide whether failures are prompt, scorer, or Qwen2.5 base-model issues",
+    "Add Advisor-specific run-context/proof labeling",
+    "Keep or tear down the qwen25-7b-q5km lane on :8091 from Arena LaneTruth",
+    "Do not start Unsloth Core setup until the preflight gate is understood"
   ],
   "recent": [
-    "Extended GET /api/advisor/preflight to summarize scored result rows",
-    "Cortex can render Advisor result pass/fail rows when a real results artifact exists",
-    "Live Cortex smoke still shows not_run with 0 results; no batch pass claimed",
-    "Added focused helper tests for Advisor receipt parsing",
+    "Added active-lane readiness to GET /api/advisor/preflight",
+    "Added visible Cortex run preflight control and POST /api/advisor/preflight/run",
+    "Browser-use run against Qwen2.5 on :8091 wrote advisor-preflight-v0.1.results.jsonl",
+    "Cortex now renders scored state: 8 rows, 4 failing",
     "Arena restarted in browser-use mode and smoked on /arena/cortex/"
   ],
-  "session": "S-advisor-preflight-cortex",
+  "session": "S-advisor-preflight-run",
   "metrics": {
     "articles": 53,
     "models": 6,
