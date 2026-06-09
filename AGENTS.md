@@ -32,3 +32,5 @@ Read these files before substantial work:
 ## Session Closeout
 
 For substantial repo sessions, update `HANDOFF.md` and `_STATUS.json` if the work changes live state, public artifacts, release posture, or the operator cockpit beacon. Keep `_STATUS.json` short and factual; do not bump external metrics dates without a real check.
+
+Keep `HANDOFF.md` aggressively pruned between long sessions. It should preserve only continuity-critical current state, live runtime notes, build/verify rules, open items, and a very short recent-decision log. Do not append completed release history or stale task detail; rely on `git log -p HANDOFF.md` for recoverable history.

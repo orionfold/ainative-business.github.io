@@ -25,6 +25,11 @@ This file is the coexistence contract between Codex CLI and Claude Code for this
 - Added a narrow `.gitignore` exception so `.agents/skills/**` is tracked for Codex while other `.agents/` state remains ignored.
 - Left existing untracked `.claude/scheduled_tasks.lock` and `src/data/arena-mirror/` untouched.
 
+
+### 2026-06-09 - HANDOFF pruning discipline
+
+- Added persistent Codex guidance in `AGENTS.md` to keep `HANDOFF.md` aggressively pruned between long sessions. The handoff should carry continuity-critical current state, live runtime, build/verify rules, open items, and a short recent-decision log only; completed historical detail remains recoverable via `git log -p HANDOFF.md`.
+
 ## Operator Notes
 
 - Start Codex from the repo root to load `AGENTS.md`, `.codex/config.toml`, `.codex/hooks.json`, and `.agents/skills/`.
