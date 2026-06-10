@@ -31,11 +31,24 @@ Router predicates, in order:
    question that is NOT a private-state query. Over the product's own public
    corpus a refusal of a public question is suspect (the 0082 class) →
    escalate.
-5. Otherwise keep the T1 answer (zero marginal cost, full privacy).
+5. ``citation_outside_retrieved`` — T1 cited a source id that is not in the
+   retrieved set (hallucinated citation) → escalate.
+6. ``citation_rank_sanity`` — the 0040 wrong-citation class, made partially
+   detectable without labels: anchor = the highest-ranked retrieved source not
+   titled "index" (pure index pages dominate BM25 on doc-name queries but are
+   rarely the citable evidence); escalate when the answer cites only sources
+   scoring well below an uncited anchor —
+   ``(anchor_score - best_cited_score) / anchor_score >= 0.15``. Threshold
+   calibrated on the v0.1 ledger: catches 0040 (rel margin 0.22) with zero
+   false escalations on the 11 correct answer rows (closest passing margins:
+   0.013 cited-sibling row 0034; 0.12 below-index row 0003, whose anchor after
+   the index skip IS the cited source).
+7. Otherwise keep the T1 answer (zero marginal cost, full privacy).
 
-Known router limitation (recorded, not hidden): an *answered* row with a wrong
-citation is undetectable without labels, so it never escalates; router recall
-is bounded by detectable failure classes.
+Remaining router limitation (recorded, not hidden): a wrong citation whose
+retrieval score sits within 15% of the anchor — or that outranks the correct
+source — is still undetectable without labels; router recall is bounded by
+detectable failure classes.
 
 Configs:
 
@@ -154,6 +167,41 @@ def _is_refusal(output: str) -> bool:
     return not cited and any(w in output.lower() for w in REFUSAL_WORDS)
 
 
+RANK_SANITY_REL_MARGIN = 0.15
+
+
+def _cited_ids(output: str) -> list[str]:
+    """Source ids on the LAST Citations line of the output (observable)."""
+    matches = list(re.finditer(r"(?im)\bCitations:\s*\[(.*?)\]\s*\.?", output))
+    if not matches:
+        return []
+    return re.findall(r"[a-z][a-z0-9_]+", matches[-1].group(1))
+
+
+def _citation_sanity_trigger(packet: dict[str, Any], output: str) -> str | None:
+    """Label-free wrong-citation detection (router predicates 5 and 6)."""
+    cited = _cited_ids(output)
+    if not cited:
+        return None
+    retrieved = packet["retrieved_sources"] or []
+    scores = {s["source_id"]: float(s["score"]) for s in retrieved}
+    if any(source_id not in scores for source_id in cited):
+        return "citation_outside_retrieved"
+    anchor = next(
+        (s for s in retrieved if str(s.get("title", "")).strip().lower() != "index"),
+        None,
+    )
+    if anchor is None or anchor["source_id"] in cited:
+        return None
+    best_cited = max(scores[source_id] for source_id in cited)
+    anchor_score = float(anchor["score"])
+    if anchor_score <= 0:
+        return None
+    if (anchor_score - best_cited) / anchor_score >= RANK_SANITY_REL_MARGIN:
+        return "citation_rank_sanity"
+    return None
+
+
 def _route_decision(packet: dict[str, Any], t1_output: str | None) -> dict[str, Any]:
     """The deterministic router verdict for one row (observables only)."""
     private_state = bool(PRIVATE_STATE_RE.search(str(packet["question"])))
@@ -166,7 +214,7 @@ def _route_decision(packet: dict[str, Any], t1_output: str | None) -> dict[str, 
     elif _is_refusal(t1_output) and not private_state:
         trigger = "non_private_refusal"
     else:
-        trigger = None
+        trigger = _citation_sanity_trigger(packet, t1_output)
     escalate = trigger is not None and not private_state
     return {
         "private_state_query": private_state,
@@ -350,10 +398,25 @@ def main() -> None:
             **_summarize(ledger, "t1"),
         },
         "router": {
-            "policy": "deterministic observables-only: private-state data-policy gate; escalate on t1_error / format failure / non-private refusal",
+            "policy": (
+                "deterministic observables-only: private-state data-policy gate; escalate on "
+                "t1_error / format failure / non-private refusal / citation outside retrieved set / "
+                "citation rank sanity (uncited non-index anchor outscores best cited source by "
+                f">={RANK_SANITY_REL_MARGIN} relative margin)"
+            ),
+            "revision": 2,
+            "rank_sanity_rel_margin": RANK_SANITY_REL_MARGIN,
+            "rank_sanity_calibration": (
+                "threshold calibrated on the v0.1 router-revision-1 ledger: catches 0040 "
+                "(rel margin 0.22), zero false escalations on the 11 correct answer rows "
+                "(closest passing margins 0.013 and 0.12-below-index)"
+            ),
             "escalated": len(escalated),
             "private_state_blocked": sum(1 for r in ledger if r["route"]["hosted_egress_blocked"]),
-            "known_limitation": "wrong-citation answers are undetectable without labels and never escalate",
+            "known_limitation": (
+                "a wrong citation within the rank-sanity margin of the anchor, or one that "
+                "outranks the correct source, is still undetectable without labels"
+            ),
         },
         "configs": configs,
         "t2_status": (

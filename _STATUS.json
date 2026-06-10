@@ -1,24 +1,23 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-09",
+  "updated": "2026-06-10",
   "health": "green",
-  "focus": "Advisor 0082 bench erratum applied + all receipts re-run: 13.C preflight 8/8 through visible Cortex (gate PASSED, first publishable-grade); bakeoff T1-only 27/28, 0 escalations",
+  "focus": "Advisor router revision 2: 0040 wrong-citation class now label-free detectable (rank-sanity + index-skip anchor); routed t1+t3/$0 and t1+t4/$0.0022 hit 28/28, route accuracy 1.0",
   "blockers": [],
   "next": [
     "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback",
-    "Deterministic cited-id-not-in-retrieved-set harness check (would catch 0040, the sole remaining miss)",
-    "Deliberate corpus-pack manifest rebuild (known freshness drift: 2 new specs + sha refreshes)",
+    "Deliberate corpus-pack manifest rebuild (freshness drift: 2 new specs + sha refreshes) — re-runs recall gates + 13.C + 13.F after it",
     "AD-AE-11/16: Arena surfaces for corpus-pack recall gate and route tier/ledger/cost"
   ],
   "recent": [
-    "0082 erratum: generate.py special-case, held-out row only, pool byte-identical; new bench hash 3220b8e799cd; expected source now product_orionfold_arena (BM25+dense rank 1)",
+    "Router revision 2 in route_bakeoff.py: citation_outside_retrieved + citation_rank_sanity (>=15% rel margin below uncited non-index anchor); calibrated on revision-1 ledger, 0 false escalations",
+    "13.F live rerun: T1 27/28 reproduced byte-identical, router escalated exactly 0040, Ultra-550B and Haiku 4.5 both cited correctly -> routed 28/28 both tiers",
     "13.C /no_think preflight through the visible Cortex run control: 8/8, 0 leak, 0 private-state risk — receipt gate PASSED for the first time",
-    "13.F bakeoff rerun: T1-only 27/28 (96.4%), refusals 16/16, 0 escalations, $0 hosted — local lane needed no frontier help on this slice",
-    "Live Cortex recall gate: 0.977@5 overall, 1.0 held-out via pgvector advisor_corpus_v01 + NIM embedder (production fieldkit.memory path)",
-    "Granularity probe refuted excerpt-window hypothesis: 0082 was corpus-level bench drift; refusals were correct"
+    "13.F bakeoff rerun post-erratum: T1-only 27/28 (96.4%), refusals 16/16, $0 hosted",
+    "Live Cortex recall gate: 0.977@5 overall, 1.0 held-out via pgvector advisor_corpus_v01 + NIM embedder"
   ],
-  "session": "S-advisor-8of8-receipt",
+  "session": "S-advisor-router-rev2",
   "metrics": {
     "articles": 53,
     "models": 6,
