@@ -3,25 +3,25 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "yellow",
-  "focus": "Nano 9B /no_think probe ran through visible Cortex: 1/8 but zero thinking leakage; failures now SFT-shaped",
+  "focus": "Nemotron-3-Nano-30B-A3B probed through visible Arena: /no_think 5/8, best NVIDIA-native raw floor (ties Qwen2.5)",
   "blockers": [
-    "Advisor has no passing base preflight: Qwen2.5 5/8, Nano 9B default 0/8, Nano 9B /no_think 1/8",
+    "Advisor has no passing base preflight: best floors are Qwen2.5 5/8 and 30B-A3B /no_think 5/8 vs the >=7/8 pre-SFT bar",
     "Arena run context still labels the Advisor proof as Kepler/astrodynamics"
   ],
   "next": [
-    "Decide: NeMo SFT probe on Nano 9B (/no_think floor, SFT-shaped failures) vs raw-floor probe of Nano-3-4B/30B-A3B",
-    "Add visible NIM/vLLM/TRT launch controls beyond llama-server recipes",
-    "Add Advisor-specific run-context/proof labeling",
+    "One bounded exemplar-format pass on 30B-A3B to test if >=7/8 is reachable without SFT",
+    "If SFT still needed, pick the 13.D target: 30B-A3B floor vs Nano 9B documented NeMo path",
+    "Optional cheap probe: Nano-3-4B GGUF with the same lane-recipe pattern",
     "Do not resume Unsloth unless it beats the NVIDIA-native baseline"
   ],
   "recent": [
-    "Added reasoning_mode path: preflight.py --reasoning-mode off, Arena run endpoint, Cortex run /no_think control",
-    "Rebaked _webui, restarted browser-use Arena, clicked run /no_think in visible Cortex against Nano 9B NIM",
-    "Receipt advisor-preflight-v0.1-nothink.json: 1 passed, 7 failed, thinking_leak 0/8 (was 7/8)",
-    "Classified remaining failures: 4 exact-source-id alias/format, 1 grounding over-refusal, 2 refusal wording",
-    "Both Nano 9B receipts visible in the Cortex runs list; 459 arena tests pass"
+    "Downloaded 30B-A3B Q8_0 GGUF (33.6 GB), launched via guarded LaneTruth recipe lane, warm in 14 s",
+    "Default-reasoning preflight 0/8 (thinking leak on all rows, citations mostly correct underneath)",
+    "/no_think preflight 5/8, zero thinking leakage, zero private-state risk",
+    "preflight.py off-mode now also sends chat_template_kwargs enable_thinking=false for Nemotron-3/Qwen3 templates",
+    "Private-state scorer no longer flags tokens echoed from the packet's own prompt (0087 false positive fixed)"
   ],
-  "session": "S-advisor-nano9b-nothink",
+  "session": "S-advisor-nemotron3-30b-floor",
   "metrics": {
     "articles": 53,
     "models": 6,

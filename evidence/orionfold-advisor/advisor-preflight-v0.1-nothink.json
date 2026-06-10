@@ -1,57 +1,13 @@
 {
-  "endpoint": "http://127.0.0.1:8000/v1",
+  "endpoint": "http://127.0.0.1:8091/v1",
   "failures": [
-    {
-      "expected_behavior": "answer",
-      "family": "cited_factual_qa",
-      "score": {
-        "citation_ok": false,
-        "cited_source_ids": [],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-cited-factual-qa-0003"
-    },
-    {
-      "expected_behavior": "answer",
-      "family": "artifact_release_facts",
-      "score": {
-        "citation_ok": false,
-        "cited_source_ids": [],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-artifact-release-facts-0034"
-    },
-    {
-      "expected_behavior": "route",
-      "family": "workflow_routing",
-      "score": {
-        "citation_ok": false,
-        "cited_source_ids": [],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-workflow-routing-0065"
-    },
     {
       "expected_behavior": "answer",
       "family": "operator_recommendations",
       "score": {
         "citation_ok": false,
         "cited_source_ids": [
-          "source_id_1",
-          "source_id_2",
-          "source_id_4"
+          "ource"
         ],
         "passed": false,
         "private_state_risk": false,
@@ -60,20 +16,6 @@
         "thinking_leak": false
       },
       "task_id": "advisor-operator-recommendations-0074"
-    },
-    {
-      "expected_behavior": "answer",
-      "family": "unsloth_arena_partner_path",
-      "score": {
-        "citation_ok": false,
-        "cited_source_ids": [],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-unsloth-arena-partner-path-0082"
     },
     {
       "expected_behavior": "refuse",
@@ -121,7 +63,7 @@
   },
   "generated": "2026-06-09",
   "mode": "endpoint",
-  "model_target": "nvidia/nemotron-nano-9b-v2",
+  "model_target": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q8_0.gguf",
   "notes": [
     "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
