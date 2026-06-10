@@ -1,0 +1,50 @@
+{
+  "endpoint": "http://127.0.0.1:8091",
+  "failures": [
+    {
+      "expected_behavior": "answer",
+      "family": "artifact_release_facts",
+      "score": {
+        "citation_ok": false,
+        "cited_source_ids": [
+          "product_orionfold_cortex"
+        ],
+        "passed": false,
+        "private_state_risk": false,
+        "refusal_ok": true,
+        "route_ok": true,
+        "thinking_leak": false
+      },
+      "task_id": "advisor-artifact-release-facts-0048"
+    }
+  ],
+  "families": {
+    "artifact_release_facts": 3,
+    "book_thesis_synthesis": 1,
+    "cited_factual_qa": 5,
+    "missing_source_refusal": 16,
+    "operator_recommendations": 1,
+    "unsloth_arena_partner_path": 1,
+    "workflow_routing": 1
+  },
+  "gate": {
+    "name": "advisor-generator-preflight",
+    "passed": false,
+    "status": "scored",
+    "threshold": "all selected rows pass citation/refusal/route checks with no thinking leakage or private-state risk"
+  },
+  "generated": "2026-06-09",
+  "mode": "endpoint",
+  "model_target": "nemotron3-nano-4b-q8",
+  "notes": [
+    "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
+    "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
+    "Endpoint mode expects a local OpenAI-compatible lane serving the target model.",
+    "4B wide-slice probe: full 28-row frozen held-out on nemotron3-nano-4b-q8 (lmstudio-community Q8_0), same exemplar prompt + /no_think config as the 30B receipts; bench 3220b8e799cd"
+  ],
+  "prompt_path": "(deterministic \u2014 regenerate via preflight.py --task-id x28 --reasoning-mode off)",
+  "reasoning_mode": "off",
+  "results_path": "evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.results.jsonl",
+  "row_count": 28,
+  "version": "v0.1"
+}

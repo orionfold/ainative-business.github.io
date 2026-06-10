@@ -431,6 +431,14 @@ def _report(
     ran_model = bool(endpoint)
     failures = [row for row in results if not row["score"]["passed"]]
     family_counts = Counter(packet["family"] for packet in packets)
+
+    def _repo_relative(path: Path) -> str:
+        # Receipts normally live under the repo; probe runs may write to /tmp.
+        try:
+            return path.relative_to(REPO_ROOT).as_posix()
+        except ValueError:
+            return path.as_posix()
+
     return {
         "generated": date.today().isoformat(),
         "version": VERSION,
@@ -438,8 +446,8 @@ def _report(
         "endpoint": endpoint,
         "reasoning_mode": reasoning_mode,
         "mode": "endpoint" if ran_model else "prompt_packets",
-        "prompt_path": prompts_path.relative_to(REPO_ROOT).as_posix(),
-        "results_path": results_path.relative_to(REPO_ROOT).as_posix() if ran_model else None,
+        "prompt_path": _repo_relative(prompts_path),
+        "results_path": _repo_relative(results_path) if ran_model else None,
         "row_count": len(packets),
         "families": dict(sorted(family_counts.items())),
         "gate": {
