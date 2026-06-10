@@ -67,6 +67,10 @@
       "reason": "proof-control spec excluded from Advisor corpus"
     },
     {
+      "path": "_SPECS/orionfold-advisor-nvidia-native-v1.md",
+      "reason": "proof-control spec excluded from Advisor corpus"
+    },
+    {
       "path": "_SPECS/orionfold-advisor-unsloth-arena-v1.md",
       "reason": "proof-control spec excluded from Advisor corpus"
     },
@@ -112,7 +116,7 @@
     }
   ],
   "generated": "2026-06-09",
-  "source_count": 181,
+  "source_count": 182,
   "source_role_counts": {
     "book1_chapter": 14,
     "book2_field_note": 55,
@@ -121,7 +125,7 @@
     "public_artifact_manifest": 20,
     "public_operating_doc": 28,
     "public_product_page": 3,
-    "public_spec": 17
+    "public_spec": 18
   },
   "version": "v0.1"
 }

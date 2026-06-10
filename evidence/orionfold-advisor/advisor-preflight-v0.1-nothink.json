@@ -18,7 +18,7 @@
   },
   "generated": "2026-06-09",
   "mode": "endpoint",
-  "model_target": "NVIDIA-Nemotron-3-Nano-4B-Q8_0.gguf",
+  "model_target": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q8_0.gguf",
   "notes": [
     "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",

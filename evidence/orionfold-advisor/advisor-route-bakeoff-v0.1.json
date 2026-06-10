@@ -3,11 +3,11 @@
     "t1+t3": {
       "answer_rows": 12,
       "citation_correct": 12,
-      "escalated_rows": 1,
+      "escalated_rows": 2,
       "hosted_cost_usd": 0.0,
       "hosted_tokens": {
-        "completion": 314,
-        "prompt": 1832
+        "completion": 859,
+        "prompt": 3604
       },
       "pass": 28,
       "pass_rate": 1.0,
@@ -15,18 +15,18 @@
       "quality_delta_points": 3.57,
       "refusal_correct": 16,
       "refusal_rows": 16,
-      "route_accuracy": 1.0,
+      "route_accuracy": 0.9643,
       "thinking_leaks": 0,
       "usd_per_quality_point": 0.0
     },
     "t1+t4": {
       "answer_rows": 12,
       "citation_correct": 12,
-      "escalated_rows": 1,
-      "hosted_cost_usd": 0.002226,
+      "escalated_rows": 2,
+      "hosted_cost_usd": 0.005477,
       "hosted_tokens": {
-        "completion": 43,
-        "prompt": 2011
+        "completion": 304,
+        "prompt": 3957
       },
       "pass": 28,
       "pass_rate": 1.0,
@@ -34,9 +34,9 @@
       "quality_delta_points": 3.57,
       "refusal_correct": 16,
       "refusal_rows": 16,
-      "route_accuracy": 1.0,
+      "route_accuracy": 0.9643,
       "thinking_leaks": 0,
-      "usd_per_quality_point": 0.000624
+      "usd_per_quality_point": 0.001534
     },
     "t1-only": {
       "answer_rows": 12,
@@ -58,7 +58,7 @@
   "generated": "2026-06-09",
   "ledger_path": "evidence/orionfold-advisor/advisor-route-bakeoff-v0.1.ledger.jsonl",
   "router": {
-    "escalated": 1,
+    "escalated": 2,
     "known_limitation": "a wrong citation within the rank-sanity margin of the anchor, or one that outranks the correct source, is still undetectable without labels",
     "policy": "deterministic observables-only: private-state data-policy gate; escalate on t1_error / format failure / non-private refusal / citation outside retrieved set / citation rank sanity (uncited non-index anchor outscores best cited source by >=0.15 relative margin)",
     "private_state_blocked": 0,

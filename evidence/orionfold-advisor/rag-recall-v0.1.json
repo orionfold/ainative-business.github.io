@@ -8,15 +8,15 @@
     "artifact_release_facts": {
       "answerable_n": 23,
       "chunk_recall": {
-        "@1": 0.7391,
+        "@1": 0.7826,
         "@10": 1.0,
-        "@3": 1.0,
-        "@5": 1.0
+        "@3": 0.9565,
+        "@5": 0.9565
       },
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.7391,
+        "@1": 0.7826,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -28,29 +28,29 @@
         "@1": 0.9286,
         "@10": 1.0,
         "@3": 0.9286,
-        "@5": 1.0
+        "@5": 0.9286
       },
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
         "@1": 0.9286,
         "@10": 1.0,
-        "@3": 1.0,
+        "@3": 0.9286,
         "@5": 1.0
       }
     },
     "cited_factual_qa": {
       "answerable_n": 28,
       "chunk_recall": {
-        "@1": 0.7857,
+        "@1": 0.8214,
         "@10": 1.0,
-        "@3": 1.0,
-        "@5": 1.0
+        "@3": 0.9286,
+        "@5": 0.9643
       },
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.7857,
+        "@1": 0.8214,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -93,15 +93,15 @@
     "unsloth_arena_partner_path": {
       "answerable_n": 6,
       "chunk_recall": {
-        "@1": 0.6667,
+        "@1": 0.5,
         "@10": 1.0,
-        "@3": 1.0,
-        "@5": 1.0
+        "@3": 0.6667,
+        "@5": 0.8333
       },
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.6667,
+        "@1": 0.5,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -112,8 +112,8 @@
       "chunk_recall": {
         "@1": 0.0,
         "@10": 0.875,
-        "@3": 0.5,
-        "@5": 0.75
+        "@3": 0.125,
+        "@5": 0.5
       },
       "refusal_n": 0,
       "source_misses_at_5": [
@@ -126,17 +126,17 @@
           "task_id": "advisor-workflow-routing-0068",
           "top5_source_ids": [
             "spec_index",
+            "spec_orionfold_local_ai_workbench_v1",
             "doc_fieldkit_docs_api_harness_md",
             "doc_fieldkit_docs_api_arena_md",
-            "doc_fieldkit_changelog_md",
-            "doc_flows_the_machine_that_builds_machines_md"
+            "doc_fieldkit_changelog_md"
           ]
         }
       ],
       "source_recall": {
         "@1": 0.0,
         "@10": 1.0,
-        "@3": 0.75,
+        "@3": 0.625,
         "@5": 0.875
       }
     }
@@ -147,7 +147,7 @@
       "chunk_recall": {
         "@1": 0.75,
         "@10": 1.0,
-        "@3": 1.0,
+        "@3": 0.9167,
         "@5": 1.0
       },
       "refusal_n": 16,
@@ -162,10 +162,10 @@
     "pool": {
       "answerable_n": 75,
       "chunk_recall": {
-        "@1": 0.7333,
+        "@1": 0.7467,
         "@10": 0.9867,
-        "@3": 0.9333,
-        "@5": 0.9733
+        "@3": 0.84,
+        "@5": 0.8933
       },
       "refusal_n": 0,
       "source_misses_at_5": [
@@ -178,22 +178,22 @@
           "task_id": "advisor-workflow-routing-0068",
           "top5_source_ids": [
             "spec_index",
+            "spec_orionfold_local_ai_workbench_v1",
             "doc_fieldkit_docs_api_harness_md",
             "doc_fieldkit_docs_api_arena_md",
-            "doc_fieldkit_changelog_md",
-            "doc_flows_the_machine_that_builds_machines_md"
+            "doc_fieldkit_changelog_md"
           ]
         }
       ],
       "source_recall": {
-        "@1": 0.7333,
+        "@1": 0.7467,
         "@10": 1.0,
-        "@3": 0.9733,
+        "@3": 0.9467,
         "@5": 0.9867
       }
     }
   },
-  "chunk_count": 1912,
+  "chunk_count": 1918,
   "chunk_overlap": 40,
   "chunk_tokens": 220,
   "gate": {
@@ -203,15 +203,15 @@
   },
   "generated": "2026-06-09",
   "manifest_path": "evidence/orionfold-advisor/public-corpus-manifest.jsonl",
-  "manifest_sha256_12": "cc3cb2f08bee",
+  "manifest_sha256_12": "6b1e832d099c",
   "method": "local-bm25-provenance-chunks",
   "metrics": {
     "answerable_n": 87,
     "chunk_recall": {
-      "@1": 0.7356,
+      "@1": 0.7471,
       "@10": 0.9885,
-      "@3": 0.9425,
-      "@5": 0.977
+      "@3": 0.8506,
+      "@5": 0.908
     },
     "missing_expected_sources": [],
     "refusal_n": 16,
@@ -225,17 +225,17 @@
         "task_id": "advisor-workflow-routing-0068",
         "top5_source_ids": [
           "spec_index",
+          "spec_orionfold_local_ai_workbench_v1",
           "doc_fieldkit_docs_api_harness_md",
           "doc_fieldkit_docs_api_arena_md",
-          "doc_fieldkit_changelog_md",
-          "doc_flows_the_machine_that_builds_machines_md"
+          "doc_fieldkit_changelog_md"
         ]
       }
     ],
     "source_recall": {
-      "@1": 0.7356,
+      "@1": 0.7471,
       "@10": 1.0,
-      "@3": 0.977,
+      "@3": 0.954,
       "@5": 0.9885
     }
   },
@@ -245,7 +245,7 @@
     "BM25 chunks include citation/provenance metadata so source-id and citation-label lookups are measurable before embedding."
   ],
   "row_count": 103,
-  "source_count": 181,
+  "source_count": 182,
   "split": "all",
   "top_k": [
     1,

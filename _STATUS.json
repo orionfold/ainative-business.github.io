@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Advisor 4B dense-fallback probe (OA-NV-2): guarded LaneTruth swap to Nemotron-3-Nano-4B Q8, visible-Cortex preflight scored 8/8, wide held-out 27/28 — equal floor to the 30B; base selection now a fully-informed operator call",
+  "focus": "Advisor pre-SFT gates CLOSED: base selection decided (30B serve / 4B train), corpus-pack manifest rebuilt with proof-control exclusion, all gates green on final corpus (13.C 8/8, routed bakeoff 28/28 both tiers)",
   "blockers": [],
   "next": [
-    "Operator: base-selection decision — 30B-A3B (cleaner substance, MoE) vs 4B dense (trainable, 2s warm, SFT-shaped residue), or 30B-serve/4B-train split",
-    "Deliberate corpus-pack manifest rebuild (freshness drift: 2 new specs + sha refreshes) — re-runs recall gates + 13.C + 13.F after it",
-    "AD-AE-11/16: Arena surfaces for corpus-pack recall gate and route tier/ledger/cost"
+    "Plan the 4B SFT lane: SFT-vs-RLVR decision rule + headroom gate; target = the 4B's citation-alias/bare-answer residue; init baseline = advisor-preflight-4b-wide-v0.1",
+    "Spec 10 corpus pane: surface the coverage/freshness + proof-control-boundary story from the rebuild (extends AD-AE-11)",
+    "AD-AE-16: Arena routing surface for route tier/ledger/cost"
   ],
   "recent": [
-    "4B probe: lmstudio Q8 GGUF, guarded teardown-first lane swap (job e53dba65, warm 2s), Cortex /no_think 8/8 scored; wide 28-row 27/28, refusals 16/16, 0 leak — sole miss 0048 hallucinated citation",
-    "Router rev 2 catches BOTH models' misses by different predicates: 30B/0040 rank-sanity, 4B/0048 membership; 4B alias residue (0074 source_2 on citation line) also escalates",
-    "Router revision 2 in route_bakeoff.py: citation_outside_retrieved + citation_rank_sanity; 13.F routed 28/28 both hosted tiers, route accuracy 1.0",
-    "13.C /no_think preflight through the visible Cortex run control: 8/8, 0 leak — receipt gate PASSED (30B receipt now in git history under the 4B overwrite)",
-    "Live Cortex recall gate: 0.977@5 overall, 1.0 held-out via pgvector advisor_corpus_v01 + NIM embedder"
+    "Base selection (operator): 30B-A3B = serving lane, 4B dense = training base; guarded LaneTruth swap back to the 30B (job 7ba9e412)",
+    "Manifest rebuild caught eval contamination: the Advisor proof-control spec entered its own retrieval corpus, false-escalating the router and regressing routed t1+t4; excluded via EXCLUDED_SPEC_BASENAMES (operator approved), Workbench spec retained",
+    "Final corpus 182 sources, manifest 6b1e832d099c, bench unchanged 3220b8e799cd; BM25 0.9885@5, live Cortex 0.977@5 / 1.0 held-out (639 chunks)",
+    "13.C visible-Cortex /no_think preflight on the 30B: 8/8, 0 leak, 0 private-state risk on the final corpus",
+    "13.F bakeoff: T1-only 27/28; routed t1+t3 AND t1+t4 28/28 ($0 / $0.0055); route accuracy 0.9643 (one harmless Workbench-spec false escalation, recorded)"
   ],
-  "session": "S-advisor-4b-probe",
+  "session": "S-advisor-base-pick-corpus-rebuild",
   "metrics": {
     "articles": 53,
     "models": 6,

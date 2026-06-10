@@ -8,9 +8,9 @@
     },
     "report": "evidence/orionfold-advisor/rag-recall-v0.1.json",
     "source_recall": {
-      "@1": 0.7356,
+      "@1": 0.7471,
       "@10": 1.0,
-      "@3": 0.977,
+      "@3": 0.954,
       "@5": 0.9885
     }
   },
@@ -23,7 +23,7 @@
     "artifact_release_facts": {
       "answerable_n": 23,
       "chunk_recall": {
-        "@1": 0.9565,
+        "@1": 0.913,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -31,7 +31,7 @@
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.9565,
+        "@1": 0.913,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -109,7 +109,7 @@
       "chunk_recall": {
         "@1": 0.5,
         "@10": 1.0,
-        "@3": 0.875,
+        "@3": 0.75,
         "@5": 0.875
       },
       "refusal_n": 0,
@@ -140,15 +140,15 @@
     "unsloth_arena_partner_path": {
       "answerable_n": 6,
       "chunk_recall": {
-        "@1": 1.0,
+        "@1": 0.5,
         "@10": 1.0,
-        "@3": 1.0,
-        "@5": 1.0
+        "@3": 0.5,
+        "@5": 0.5
       },
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 1.0,
+        "@1": 0.5,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -176,15 +176,15 @@
     "heldout": {
       "answerable_n": 12,
       "chunk_recall": {
-        "@1": 1.0,
+        "@1": 0.9167,
         "@10": 1.0,
-        "@3": 1.0,
-        "@5": 1.0
+        "@3": 0.9167,
+        "@5": 0.9167
       },
       "refusal_n": 16,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 1.0,
+        "@1": 0.9167,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -193,10 +193,10 @@
     "pool": {
       "answerable_n": 75,
       "chunk_recall": {
-        "@1": 0.84,
+        "@1": 0.8,
         "@10": 1.0,
-        "@3": 0.96,
-        "@5": 0.9733
+        "@3": 0.92,
+        "@5": 0.9467
       },
       "refusal_n": 0,
       "source_misses_at_5": [
@@ -232,7 +232,7 @@
         }
       ],
       "source_recall": {
-        "@1": 0.84,
+        "@1": 0.8,
         "@10": 1.0,
         "@3": 0.9733,
         "@5": 0.9733
@@ -246,15 +246,15 @@
   },
   "generated": "2026-06-09",
   "manifest_path": "evidence/orionfold-advisor/public-corpus-manifest.jsonl",
-  "manifest_sha256_12": "cc3cb2f08bee",
+  "manifest_sha256_12": "6b1e832d099c",
   "method": "live-cortex-pgvector-dense",
   "metrics": {
     "answerable_n": 87,
     "chunk_recall": {
-      "@1": 0.8621,
+      "@1": 0.8161,
       "@10": 1.0,
-      "@3": 0.9655,
-      "@5": 0.977
+      "@3": 0.9195,
+      "@5": 0.9425
     },
     "missing_expected_sources": [],
     "refusal_n": 16,
@@ -291,7 +291,7 @@
       }
     ],
     "source_recall": {
-      "@1": 0.8621,
+      "@1": 0.8161,
       "@10": 1.0,
       "@3": 0.977,
       "@5": 0.977
@@ -303,7 +303,7 @@
     "Refusal rows have no expected public source ids and are excluded from recall denominators."
   ],
   "row_count": 103,
-  "source_count": 181,
+  "source_count": 182,
   "split": "all",
   "stack": {
     "chunk_pool_per_query": 80,

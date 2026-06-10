@@ -45,6 +45,12 @@ PRIVATE_PATH_PREFIXES = (
 EXCLUDED_SPEC_BASENAMES = {
     "orionfold-advisor-unsloth-arena-v1.md",
     "orionfold-advisor-dogfood-v1.md",
+    # 2026-06-09: the active Advisor proof-control spec defines this bench, its
+    # gates, and the 0082 erratum — leaving it retrievable put the bench's own
+    # design text into eval context (2 router false escalations, a T4 quality
+    # regression). The Workbench spec stays: it is a product spec, not
+    # proof-control.
+    "orionfold-advisor-nvidia-native-v1.md",
 }
 
 
