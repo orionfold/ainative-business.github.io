@@ -3,22 +3,22 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor 13.F routing probe DONE: T1 26/28 on full held-out, governed escalation measured+capped, 0082 reclassified as excerpt/bench drift; AD-AE-15 fixed",
+  "focus": "Advisor live Cortex recall gate PASSED (0.977@5, 1.0 held-out via pgvector+NIM embedder); granularity-pass assumption refuted — 0082 is corpus-level bench drift",
   "blockers": [],
   "next": [
-    "Re-run RAG recall through the live Cortex/Arena lane before any publish claim",
-    "Excerpt/retrieval granularity pass: 900-char window hid 0082's supporting passage; consider larger/multi excerpts per source",
+    "Operator decision: bench erratum for frozen held-out row 0082 (expected source can't ground the expected answer); sole barrier to a clean 8/8 receipt",
     "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback",
+    "AD-AE-11 extended: corpus-pack ingest + live recall gate need an Arena surface (spec 10 corpus pane)",
     "AD-AE-16: surface route tier/ledger/cost in Arena (spec 12 panes)"
   ],
   "recent": [
-    "13.F route bakeoff: T1-only 26/28 (refusals 16/16, 0 leak); router escalated exactly the 1 detectable failure; route accuracy 27/28",
-    "Ultra-550B ($0) and Claude Haiku 4.5 ($0.0022 capped) BOTH refused 0082 on the same context — sole failure is excerpt-window drift, not over-refusal; quality delta 0",
-    "SFT deferral reinforced: over-refusal class not systematic on the wider slice; next lever is retrieval, not the generator",
-    "AD-AE-15 fixed in fieldkit [Unreleased]: RLVR spine stage vertical-scoped; 462 arena tests green; live Advisor spine honest",
-    "Marketing-grade 2x Build-pane screengrab retaken post-fix at /tmp/orionfold-advisor-dogfood/arena-build-advisor-spine-2x.png"
+    "Live recall gate: 181-source corpus pack ingested into own pgvector table advisor_corpus_v01 via production fieldkit.memory path; MemoryIndex.query cosine dense",
+    "source_recall@5 0.977 overall, 1.0 held-out answerable, 1.0@10 everywhere; dense beats BM25 @1 (0.85 vs 0.75); 2 pool misses recover @10",
+    "Spec 14 'retriever recall remains green on public corpus' pre-publish condition now met on the live lane, not just the BM25 proxy",
+    "Granularity probe: 0082's expected article (4,492 words) has ZERO Arena/scoring/governance/provenance/publish content — refusals were correct, no excerpt change shipped",
+    "13.F route bakeoff: T1-only 26/28 (refusals 16/16, 0 leak); governed escalation measured+capped"
   ],
-  "session": "S-advisor-routing-probe-done",
+  "session": "S-advisor-live-recall-gate",
   "metrics": {
     "articles": 53,
     "models": 6,
