@@ -3,25 +3,25 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor exemplar-format pass: 30B-A3B /no_think now 7/8 through visible Cortex — meets the >=7/8 pre-SFT bar without training",
+  "focus": "Advisor: 7/8 pre-SFT bar met; SFT deferred, routing probe adopted; Arena run context now says Advisor (AD-AE-14 fixed)",
   "blockers": [
     "Receipt gate (8/8) still failed: row 0082 over-refuses an answerable question (expected source at retrieval rank 1)",
-    "Arena run context still labels the Advisor proof as Kepler/astrodynamics (AD-AE-14, an explicit spec gate)"
+    "AD-AE-15: build-spine RLVR stage renders Kepler's rl-000 under the Advisor spine (no vertical filter on rl_run rows)"
   ],
   "next": [
-    "Decide SFT vs proceed-to-routing-probe for the 0082 grounding over-refusal class (no further prompt tuning)",
+    "Design + run the spec 13.F route bakeoff: T1 local 30B lane, governed escalation tiers, cost ledger, route accuracy",
     "Re-run RAG recall through the live Cortex/Arena lane before any publish claim",
-    "Fix AD-AE-14 Advisor run-context labeling",
-    "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback"
+    "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback",
+    "SFT re-enters only if a wider slice shows the 0082 over-refusal class is systematic"
   ],
   "recent": [
-    "Added one exact-citation + one refusal-sentence example to the tracked preflight system prompt (one bounded iteration)",
-    "Re-ran /no_think from the visible Cortex run control: 7/8, zero leakage, zero private-state risk",
-    "Both SFT-shaped classes resolved by prompt contract; five answer rows cite five distinct exact source ids",
-    "New sole failure: 0082 grounding over-refusal — same class Nano 9B showed",
-    "30B-A3B now leads the Advisor base standings on behavior floor; MoE trainability remains the open risk"
+    "Exemplar-format pass through visible Cortex: 30B-A3B /no_think 7/8, zero leakage — both SFT-shaped classes fixed by prompt contract",
+    "Decision: defer SFT, proceed to routing probe with 7/8 as the documented pre-SFT floor",
+    "AD-AE-14 fixed: Advisor build-manifest + FK_ARENA_* env anchors; run context, spine, and bench provenance say Advisor",
+    "fieldkit [Unreleased]: reward-report reader now honors FK_ARENA_REWARD_DIR (was hardcoded astro); 459 arena tests green",
+    "New finding AD-AE-15: RLVR spine stage leaks Kepler rl_run rows across run contexts"
   ],
-  "session": "S-advisor-exemplar-pass-7of8",
+  "session": "S-advisor-routing-path-adopted",
   "metrics": {
     "articles": 53,
     "models": 6,

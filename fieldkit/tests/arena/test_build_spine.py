@@ -92,7 +92,7 @@ def test_build_live_reward_lights_smoke_stage(
     # a passing av10-preflight → done + the held-out headline + gate pass.
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
-    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = tmp_path / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(_REWARD))
     with TestClient(_app(tmp_path)) as client:
@@ -110,7 +110,7 @@ def test_build_running_reward_marks_smoke_active(
 ) -> None:
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
-    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = tmp_path / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(dict(_REWARD, status="running", scored=3, total=8)))
     with TestClient(_app(tmp_path)) as client:
@@ -126,7 +126,7 @@ def test_build_manifest_fills_no_feed_stages_and_label(
     # vertical label + the human-gate text; it must NOT clobber a live signal.
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
-    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = tmp_path / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(_REWARD))
     manifest = {
@@ -146,7 +146,7 @@ def test_build_manifest_fills_no_feed_stages_and_label(
             "smoke": {"headline": "SHOULD-NOT-WIN", "gate": "AV-10 preflight"},
         },
     }
-    (tmp_path / "evidence" / "astrodynamics" / "build-manifest.json").write_text(
+    (tmp_path / "reward-signal" / "build-manifest.json").write_text(
         json.dumps(manifest)
     )
     with TestClient(_app(tmp_path)) as client:
@@ -182,8 +182,8 @@ def test_build_manifest_bench_id_files_absent_stays_blank(
             "bench": {"state": "done", "headline": "astro-bench v0.1 · 120+44"},
         },
     }
-    (tmp_path / "evidence" / "astrodynamics").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "evidence" / "astrodynamics" / "build-manifest.json").write_text(
+    (tmp_path / "reward-signal").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "reward-signal" / "build-manifest.json").write_text(
         json.dumps(manifest)
     )
     with TestClient(_app(tmp_path)) as client:
@@ -238,7 +238,7 @@ def test_build_manifest_overrides_gate_consequence(
     _no_scout(monkeypatch, tmp_path)
     _no_sft(monkeypatch, tmp_path)
     monkeypatch.setenv("FK_ARENA_CORPUS_DIR", str(tmp_path / "no-corpus"))
-    p = tmp_path / "evidence" / "astrodynamics" / "build-manifest.json"
+    p = tmp_path / "reward-signal" / "build-manifest.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(
         json.dumps(
@@ -393,7 +393,7 @@ def test_build_bench_stage_lit_by_provenance(
 
 
 def _manifest_with_artifacts(tmp_path: Path, stage: str, artifacts: list) -> None:
-    d = tmp_path / "evidence" / "astrodynamics"
+    d = tmp_path / "reward-signal"
     d.mkdir(parents=True, exist_ok=True)
     (d / "build-manifest.json").write_text(
         json.dumps({
@@ -415,7 +415,7 @@ def test_inventory_verifies_matching_line_count(
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
     _no_sft(monkeypatch, tmp_path)
-    d = tmp_path / "evidence" / "astrodynamics"
+    d = tmp_path / "reward-signal"
     d.mkdir(parents=True, exist_ok=True)
     (d / "corpus.jsonl").write_text("\n".join('{"prompt": "p%d"}' % i for i in range(600)) + "\n")
     _manifest_with_artifacts(tmp_path, "corpus", [{"path": "corpus.jsonl", "rows": 600}])
@@ -438,7 +438,7 @@ def test_inventory_flags_count_drift_and_missing_file(
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
     _no_sft(monkeypatch, tmp_path)
-    d = tmp_path / "evidence" / "astrodynamics"
+    d = tmp_path / "reward-signal"
     d.mkdir(parents=True, exist_ok=True)
     (d / "short.jsonl").write_text('{"a":1}\n{"a":2}\n')  # 2 rows, claims 600
     _manifest_with_artifacts(
@@ -460,7 +460,7 @@ def test_inventory_directory_file_claim_and_binary_size_only(
     _no_hermes(monkeypatch)
     _no_scout(monkeypatch, tmp_path)
     _no_sft(monkeypatch, tmp_path)
-    d = tmp_path / "evidence" / "astrodynamics"
+    d = tmp_path / "reward-signal"
     quants = tmp_path / "quants"
     quants.mkdir(parents=True, exist_ok=True)
     for n in ("a.gguf", "b.gguf"):

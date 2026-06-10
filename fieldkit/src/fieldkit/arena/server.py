@@ -3006,7 +3006,15 @@ def create_app(
 
 
 def _reward_reports_dir(root: Path) -> Path:
-    """Directory holding the reward-signal report JSONs (AF-3/AF-9)."""
+    """Directory holding the reward-signal report JSONs (AF-3/AF-9).
+
+    Env-anchored (``FK_ARENA_REWARD_DIR``) with the astrodynamics evidence dir
+    as default, mirroring ``_corpus_reports_dir`` — so a non-Kepler run context
+    (e.g. Advisor) doesn't render Kepler's AV-10 receipts under its own build
+    spine or reward gauge."""
+    env = os.environ.get("FK_ARENA_REWARD_DIR")
+    if env:
+        return Path(os.path.expanduser(env))
     return root / "evidence" / "astrodynamics"
 
 

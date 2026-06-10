@@ -43,7 +43,7 @@ _FIXTURE = {
 
 
 def _write_report(repo_root: Path) -> Path:
-    p = repo_root / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = repo_root / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(_FIXTURE))
     return p
@@ -67,7 +67,7 @@ def test_reward_signal_passes_through_running_status(tmp_path: Path) -> None:
     # AF-9 live mode: a mid-flight report carries status/scored/total — the
     # endpoint returns the report verbatim, so the pane can stream the run.
     running = dict(_FIXTURE, status="running", scored=1, total=8)
-    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = tmp_path / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(running))
     app = create_app(repo_root=tmp_path, telemetry_interval=2.0)
@@ -90,7 +90,7 @@ def test_reward_signal_absent_is_clean_empty(tmp_path: Path) -> None:
 
 
 def _write_named(repo_root: Path, name: str, mtime: float, **over: object) -> Path:
-    p = repo_root / "evidence" / "astrodynamics" / name
+    p = repo_root / "reward-signal" / name
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps({**_FIXTURE, **over}))
     import os
@@ -148,7 +148,7 @@ def test_reward_signal_source_traversal_rejected(tmp_path: Path) -> None:
 
 
 def test_reward_signal_malformed_degrades(tmp_path: Path) -> None:
-    p = tmp_path / "evidence" / "astrodynamics" / "av10-preflight.json"
+    p = tmp_path / "reward-signal" / "av10-preflight.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text("{not valid json")
     app = create_app(repo_root=tmp_path, telemetry_interval=2.0)

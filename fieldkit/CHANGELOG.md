@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+- **`FK_ARENA_REWARD_DIR` now anchors the reader side too.** The cockpit's
+  reward-report *reader* (`_reward_reports_dir` — feeds the reward gauge, the
+  AV-10 preflight card, and the build-spine Smoke stage) was hardcoded to
+  `evidence/astrodynamics` while the writer
+  (`fieldkit.arena.lane.reward_signal_writer`) already honored
+  `FK_ARENA_REWARD_DIR`. A non-Kepler run context (e.g. the Orionfold Advisor
+  proof, AD-AE-14) rendered Kepler's AV-10 receipts under its own build spine.
+  The reader now resolves the same env var with the astrodynamics default,
+  mirroring `FK_ARENA_CORPUS_DIR`. Known remaining gap: the build-spine RLVR
+  stage reads the newest `rl_run` row from the shared `arena.db` with no
+  vertical filter, so a prior vertical's RL receipt can still render under a
+  new run context (tracked as AD-AE-15).
+
 ## [0.31.0] — 2026-06-07
 
 The fourth arena-enhancements **v2** cut: **AE-31 guarded lane launch + teardown**

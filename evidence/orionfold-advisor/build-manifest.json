@@ -1,0 +1,56 @@
+{
+  "vertical": "advisor",
+  "label": "Advisor",
+  "bench_id": "advisor-bench",
+  "updated": "2026-06-09",
+  "_note": "Operator-authored build spine for the Orionfold Advisor proof (AD-AE-14 fix; spec _SPECS/orionfold-advisor-nvidia-native-v1.md). Read by GET /api/build + /api/run-context via FK_ARENA_BUILD_DIR pointed at this dir (set in .env.local, sourced by arena_lifecycle.sh). Stage `artifacts` paths are relative to this dir and AE-26-verified against disk, `rows` claims a JSONL line count. Honest states only: no base is locked and nothing is publishable until the §14 gates pass.",
+  "stages": {
+    "scout": {
+      "state": "pending",
+      "headline": "30B-A3B leads 7/8 · base not locked",
+      "detail": "raw floors via visible Cortex preflight: Nano 9B /no_think 1/8 · Qwen2.5-7B 5/8 (comparison) · Nemotron-3-Nano-30B-A3B /no_think + format exemplar 7/8 — §14 ≥7/8 pre-SFT bar met without training",
+      "gate": "base lock",
+      "gate_state": "pending"
+    },
+    "bench": {
+      "state": "done",
+      "headline": "advisor-bench v0.1 · 75 pool + 28 held-out",
+      "detail": "frozen held-out · ≥15 refusal/private-state boundary cases · eval seed, not SFT data",
+      "gate_state": "pass",
+      "artifacts": [
+        {"path": "advisor-bench-v0.1.jsonl", "rows": 75},
+        {"path": "advisor-bench-v0.1.heldout.jsonl", "rows": 28}
+      ]
+    },
+    "corpus": {
+      "state": "done",
+      "headline": "181 public-safe sources · recall@5 0.9885",
+      "detail": "public-corpus-manifest with source_role + book_surface metadata · private/operator state excluded · local BM25 recall gate green (1.0 held-out answerable); live Cortex-lane recall re-run still owed before publish claims",
+      "gate": "recall gate",
+      "gate_state": "pass",
+      "artifacts": [
+        {"path": "public-corpus-manifest.jsonl", "rows": 181}
+      ]
+    },
+    "sft": {
+      "state": "pending",
+      "headline": "deferred — 7/8 floor met without training",
+      "detail": "sole open class is the 0082 grounding over-refusal; SFT re-enters only with wider-slice signal (30B-A3B is MoE, NeMo SFT path unproven)",
+      "gate_state": "pending"
+    },
+    "rlvr": {
+      "state": "pending",
+      "headline": "not armed",
+      "detail": "RL only if a future SFT receipt is neither saturated nor sparse (spec §13.E)",
+      "gate": "held-out-win promote",
+      "gate_state": "pending"
+    },
+    "publish": {
+      "state": "pending",
+      "headline": "routing probe + live recall + 8/8 receipt first",
+      "detail": "§13.F route bakeoff (T1 local → governed escalation) → §14 gates → publish or rejection receipt; no public Advisor positioning until then",
+      "gate": "publish receipt",
+      "gate_state": "pending"
+    }
+  }
+}
