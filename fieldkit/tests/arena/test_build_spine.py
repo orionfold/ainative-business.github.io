@@ -493,3 +493,109 @@ def test_inventory_absent_when_nothing_declared(
     with TestClient(_app(tmp_path)) as client:
         st = _stage(client, "corpus")
         assert "inventory" not in st
+
+
+# ---------------------------------------------------------------------------
+# AD-AE-15 — arena.db is shared across verticals; the RLVR stage must not
+# render another vertical's rl_run under this spine. Identity is result-carried
+# (payload.bench_id prefix ↔ spine bench_id, or result.vertical/domain ↔ spine
+# vertical) — no schema change.
+
+
+def _seed_rl_run(tmp_path: Path, payload: dict, result: dict, status: str = "done") -> str:
+    from fieldkit.arena.store import ArenaStore
+
+    db = tmp_path / "arena.db"
+    store = ArenaStore(db)
+    store.initialize()
+    try:
+        store.enqueue_job({
+            "id": "rl-job-1",
+            "kind": "rl_run",
+            "status": status,
+            "trigger": "test",
+            "priority": 0,
+            "payload_json": json.dumps(payload),
+            "dedup_key": None,
+            "result_json": json.dumps(result),
+            "error": None,
+            "attempt": 0,
+            "enqueued_at": "2026-06-09T00:00:00Z",
+            "dispatched_at": None,
+            "finished_at": "2026-06-09T00:10:00Z",
+            "arq_job_id": None,
+        })
+    finally:
+        store.close()
+    return str(db)
+
+
+def _app_with_db(tmp_path: Path, db: str):
+    return create_app(repo_root=tmp_path, db=db, telemetry_interval=2.0)
+
+
+def _advisor_manifest(tmp_path: Path) -> None:
+    d = tmp_path / "reward-signal"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "build-manifest.json").write_text(
+        json.dumps({"vertical": "advisor", "label": "Advisor", "bench_id": "advisor-bench"})
+    )
+
+
+def test_rlvr_stage_hides_other_verticals_rl_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Kepler's done rl_run (astro bench_id + vertical) must NOT light the
+    # Advisor spine's RLVR card.
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    _advisor_manifest(tmp_path)
+    db = _seed_rl_run(
+        tmp_path,
+        {"bench_id": "astro-bench-v0.1"},
+        {"selected_heldout_score": 0.958333, "selected_step": 0, "vertical": "astrodynamics"},
+    )
+    with TestClient(_app_with_db(tmp_path, db)) as client:
+        rlvr = _stage(client, "rlvr")
+        assert rlvr["state"] == "pending"
+        assert "96%" not in rlvr["headline"]
+
+
+def test_rlvr_stage_shows_matching_verticals_rl_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The same row IS visible when the spine matches by bench_id prefix
+    # (manifest "astro-bench" ↔ job "astro-bench-v0.1") or by vertical.
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    d = tmp_path / "reward-signal"
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "build-manifest.json").write_text(
+        json.dumps({"vertical": "astrodynamics", "label": "Kepler", "bench_id": "astro-bench"})
+    )
+    db = _seed_rl_run(
+        tmp_path,
+        {"bench_id": "astro-bench-v0.1"},
+        {"selected_heldout_score": 0.958333, "selected_step": 0, "vertical": "astrodynamics"},
+    )
+    with TestClient(_app_with_db(tmp_path, db)) as client:
+        rlvr = _stage(client, "rlvr")
+        assert rlvr["state"] == "done"
+        assert "96%" in rlvr["headline"]
+
+
+def test_rlvr_stage_unidentified_job_hidden_from_scoped_spine(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # A legacy rl_run carrying no bench_id/vertical identity must not match a
+    # spine that has one (strict — report≠reality beats best-guess).
+    _no_hermes(monkeypatch)
+    _no_scout(monkeypatch, tmp_path)
+    _no_sft(monkeypatch, tmp_path)
+    _advisor_manifest(tmp_path)
+    db = _seed_rl_run(tmp_path, {}, {"selected_heldout_score": 0.9, "selected_step": 1})
+    with TestClient(_app_with_db(tmp_path, db)) as client:
+        rlvr = _stage(client, "rlvr")
+        assert rlvr["state"] == "pending"

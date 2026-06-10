@@ -4039,10 +4039,42 @@ def _bench_provenance(
     }
 
 
-def _newest_rl_run(db_path: str) -> dict[str, Any] | None:
-    """The most-recent ``rl_run`` job row as a public dict, else ``None``.
+def _rl_run_matches(job: dict[str, Any], vertical: str | None, bench_id: str | None) -> bool:
+    """Whether an ``rl_run`` job row belongs to the spine's vertical (AD-AE-15).
 
-    ``list_jobs`` returns newest-first, so the first ``rl_run`` is the latest.
+    arena.db is shared across verticals, so the newest ``rl_run`` may be another
+    vertical's — Kepler's ``rl-000 · 96%`` rendering DONE under the Advisor spine
+    was the report≠reality finding. Identity is result-carried (no schema
+    change): the job's ``payload.bench_id`` (e.g. ``astro-bench-v0.1``) prefix-
+    matches the spine's ``bench_id`` (e.g. ``astro-bench``), or the job result's
+    ``domain`` equals the spine's ``vertical``. A job carrying neither identity
+    does not match a spine that has one."""
+    if vertical is None and bench_id is None:
+        return True
+    payload = job.get("payload") or {}
+    result = job.get("result") or {}
+    job_bench = payload.get("bench_id") or result.get("bench_id")
+    if bench_id and isinstance(job_bench, str) and job_bench:
+        if job_bench.startswith(bench_id) or bench_id.startswith(job_bench):
+            return True
+    # rl_run rows carry the vertical as ``result.vertical`` (done rows) or
+    # ``result.domain`` (failed rows) — accept either, payload as fallback.
+    for key in ("vertical", "domain"):
+        job_domain = result.get(key) or payload.get(key)
+        if vertical and isinstance(job_domain, str):
+            if job_domain.strip().lower() == vertical.strip().lower():
+                return True
+    return False
+
+
+def _newest_rl_run(
+    db_path: str, *, vertical: str | None = None, bench_id: str | None = None
+) -> dict[str, Any] | None:
+    """The most-recent ``rl_run`` job row for this vertical, else ``None``.
+
+    ``list_jobs`` returns newest-first, so the first matching ``rl_run`` is the
+    latest. ``vertical`` / ``bench_id`` scope the read to the spine's vertical
+    (AD-AE-15); both ``None`` keeps the unscoped legacy read.
     Best-effort: a missing/cold db yields ``None``."""
     try:
         from fieldkit.arena.store import ArenaStore
@@ -4059,7 +4091,9 @@ def _newest_rl_run(db_path: str) -> dict[str, Any] | None:
         for row in rows:
             kind = row["kind"] if "kind" in row.keys() else None
             if kind == "rl_run":
-                return _job_to_public(row)
+                job = _job_to_public(row)
+                if _rl_run_matches(job, vertical, bench_id):
+                    return job
     except Exception as exc:  # noqa: BLE001 — build-spine nicety, never fatal
         _log.debug("newest rl_run read failed: %s", exc)
     return None
@@ -4473,10 +4507,13 @@ def _build_lane_stage(db_path: str) -> dict[str, Any]:
     return base
 
 
-def _build_rlvr_stage(db_path: str) -> dict[str, Any]:
+def _build_rlvr_stage(
+    db_path: str, vertical: str | None = None, bench_id: str | None = None
+) -> dict[str, Any]:
     """C5 RLVR — read live from the newest ``rl_run`` job row's ``result_json``
-    (the held-out-gated GRPO loop). Held-out-selected step + score on done; the
-    live step on running; queued/failed surfaced honestly."""
+    (the held-out-gated GRPO loop), scoped to this spine's vertical (AD-AE-15).
+    Held-out-selected step + score on done; the live step on running;
+    queued/failed surfaced honestly; another vertical's run stays invisible."""
     base = {
         "key": "rlvr", "code": "C5", "label": "RLVR",
         "state": "pending", "headline": "—",
@@ -4488,7 +4525,7 @@ def _build_rlvr_stage(db_path: str) -> dict[str, Any]:
         ),
         "href": "../jobs/", "source": "jobs", "live": True,
     }
-    job = _newest_rl_run(db_path)
+    job = _newest_rl_run(db_path, vertical=vertical, bench_id=bench_id)
     if job is None:
         return base
     status = job.get("status")
@@ -4947,7 +4984,7 @@ def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
         _build_sft_stage(),
         _build_smoke_stage(root),
         _build_lane_stage(db_path),
-        _build_rlvr_stage(db_path),
+        _build_rlvr_stage(db_path, vertical, bench_id),
         _build_publish_stage(),
     ]
     stages = [_merge_build_stage(s, m_stages.get(s["key"])) for s in auto]

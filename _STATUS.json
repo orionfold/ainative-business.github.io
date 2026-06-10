@@ -3,25 +3,22 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor: 7/8 pre-SFT bar met; SFT deferred, routing probe adopted; Arena run context now says Advisor (AD-AE-14 fixed)",
-  "blockers": [
-    "Receipt gate (8/8) still failed: row 0082 over-refuses an answerable question (expected source at retrieval rank 1)",
-    "AD-AE-15: build-spine RLVR stage renders Kepler's rl-000 under the Advisor spine (no vertical filter on rl_run rows)"
-  ],
+  "focus": "Advisor 13.F routing probe DONE: T1 26/28 on full held-out, governed escalation measured+capped, 0082 reclassified as excerpt/bench drift; AD-AE-15 fixed",
+  "blockers": [],
   "next": [
-    "Design + run the spec 13.F route bakeoff: T1 local 30B lane, governed escalation tiers, cost ledger, route accuracy",
     "Re-run RAG recall through the live Cortex/Arena lane before any publish claim",
+    "Excerpt/retrieval granularity pass: 900-char window hid 0082's supporting passage; consider larger/multi excerpts per source",
     "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback",
-    "SFT re-enters only if a wider slice shows the 0082 over-refusal class is systematic"
+    "AD-AE-16: surface route tier/ledger/cost in Arena (spec 12 panes)"
   ],
   "recent": [
-    "Exemplar-format pass through visible Cortex: 30B-A3B /no_think 7/8, zero leakage — both SFT-shaped classes fixed by prompt contract",
-    "Decision: defer SFT, proceed to routing probe with 7/8 as the documented pre-SFT floor",
-    "AD-AE-14 fixed: Advisor build-manifest + FK_ARENA_* env anchors; run context, spine, and bench provenance say Advisor",
-    "fieldkit [Unreleased]: reward-report reader now honors FK_ARENA_REWARD_DIR (was hardcoded astro); 459 arena tests green",
-    "New finding AD-AE-15: RLVR spine stage leaks Kepler rl_run rows across run contexts"
+    "13.F route bakeoff: T1-only 26/28 (refusals 16/16, 0 leak); router escalated exactly the 1 detectable failure; route accuracy 27/28",
+    "Ultra-550B ($0) and Claude Haiku 4.5 ($0.0022 capped) BOTH refused 0082 on the same context — sole failure is excerpt-window drift, not over-refusal; quality delta 0",
+    "SFT deferral reinforced: over-refusal class not systematic on the wider slice; next lever is retrieval, not the generator",
+    "AD-AE-15 fixed in fieldkit [Unreleased]: RLVR spine stage vertical-scoped; 462 arena tests green; live Advisor spine honest",
+    "Marketing-grade 2x Build-pane screengrab retaken post-fix at /tmp/orionfold-advisor-dogfood/arena-build-advisor-spine-2x.png"
   ],
-  "session": "S-advisor-routing-path-adopted",
+  "session": "S-advisor-routing-probe-done",
   "metrics": {
     "articles": 53,
     "models": 6,

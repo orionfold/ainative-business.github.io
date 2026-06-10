@@ -15,10 +15,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `FK_ARENA_REWARD_DIR`. A non-Kepler run context (e.g. the Orionfold Advisor
   proof, AD-AE-14) rendered Kepler's AV-10 receipts under its own build spine.
   The reader now resolves the same env var with the astrodynamics default,
-  mirroring `FK_ARENA_CORPUS_DIR`. Known remaining gap: the build-spine RLVR
-  stage reads the newest `rl_run` row from the shared `arena.db` with no
-  vertical filter, so a prior vertical's RL receipt can still render under a
-  new run context (tracked as AD-AE-15).
+  mirroring `FK_ARENA_CORPUS_DIR`.
+- **Build-spine RLVR stage is vertical-scoped (AD-AE-15).** `arena.db` is
+  shared across verticals, so the RLVR card read the *newest* `rl_run` row
+  unfiltered — Kepler's `rl-000 · 96% held-out` rendered DONE under the
+  Advisor spine (report≠reality). The read is now scoped by result-carried
+  identity (no schema change): the job's `payload.bench_id` prefix-matches the
+  spine's manifest `bench_id`, or the result's `vertical`/`domain` equals the
+  spine's vertical. A job carrying neither identity stays invisible to a
+  scoped spine; an unscoped (no-manifest) spine keeps the legacy newest-row
+  read.
 
 ## [0.31.0] — 2026-06-07
 
