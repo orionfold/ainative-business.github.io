@@ -968,7 +968,9 @@ export default function ChatLane() {
               {evalMode.has_context && (
                 <span class="eval-badge eval-badge--ctx">📎 context attached ({evalMode.context_tokens || 0} tok)</span>
               )}
-              {prompt.trim() !== (evalMode.question || '').trim() && (
+              {/* An empty composer is not an edit — after send the composer
+                  clears while the chip stays pinned (AD-AE-17 smoke nit). */}
+              {prompt.trim().length > 0 && prompt.trim() !== (evalMode.question || '').trim() && (
                 <span class="eval-chip__edited">✎ edited — still scored vs original gold</span>
               )}
             </span>

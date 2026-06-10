@@ -14,7 +14,7 @@
   "recent": [
     "AD-AE-17 fix: BenchSpec.reasoning_mode rider + benches.reasoning_chat_kwargs mirror of preflight.py; chat/compare eval forward the kwargs to local lanes only (hosted tiers were measured without it); eval_context carries reasoning_mode",
     "478 arena tests green (4 new); live CDP smoke: row 0087 through the visible chat eval drawer on the 4B-SFT-v0.2 lane refused at 100% with ~30 tok and no reasoning box (was ~2k-char think chain + fabricated HANDOFF content)",
-    "Nit logged: eval chip shows 'edited' on an untouched drawer pick (display-level only)",
+    "Edited-chip nit FIXED: empty composer no longer reads as an edit (ChatLane + CompareDuel guard, webui rebaked, three-state CDP smoke green)",
     "advisor-publish-receipt-v0.1.json stands: PROMOTED 4B-SFT-v0.2, 9/9 gates verified",
     "Cortex advisor panes (corpus/routing/receipt) + advisor-bench eval surface shipped in the prior session"
   ],
