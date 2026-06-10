@@ -1,23 +1,23 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-09",
+  "updated": "2026-06-10",
   "health": "green",
-  "focus": "4B SFT lane PLANNED (_IDEAS/advisor-4b-sft-lane-v1.md): SFT-only path locked by decision rule, RLVR expected skipped; residue quantified offline (6/12 answer rows: 5 alias + 1 bare)",
+  "focus": "4B SFT lane steps 1+0+2 executed: residue-aware scorer shipped, init re-baselined on final corpus (26/28 scored / 23/28 strict), and the export path PROVEN end-to-end (trained nemotron_h -> GGUF -> lane -> preflight 8/8)",
   "blockers": [],
   "next": [
-    "Execute the 4B SFT lane plan step 0-2: re-baseline wide slice on final corpus, residue-aware scorer rev, export-path smoke (nemotron_h trained-export to GGUF is the unproven long pole)",
-    "Then SFT corpus (~600-1200 rows, 30B teacher, verify-then-keep) + NeMo SFT smoke + Arena-visible receipts + recorded headroom-gate skip",
+    "4B SFT lane step 3: deterministic SFT corpus (~600-1200 rows, 30B teacher sequential one-lane, verify-then-keep, anti-exemplar-echo rows) then step 4 real SFT on the proven path",
+    "Step 5-6: Arena-visible post-SFT receipts + router re-run + recorded 13.E headroom skip",
     "Spec 10 corpus pane: surface the coverage/freshness + proof-control-boundary story from the rebuild (extends AD-AE-11)",
     "AD-AE-16: Arena routing surface for route tier/ledger/cost"
   ],
   "recent": [
-    "4B SFT lane plan authored as living doc; SFT-vs-RLVR rule applied at plan time (trajectories generatable + outputs enumerable -> SFT-only; init 27/28 scored / 22/28 residue-strict, above the RL Goldilocks band)",
-    "Offline residue scan of advisor-preflight-4b-wide-v0.1: alias rows 0003/0034/0040/0048/0074 + bare-answer 0057; alias origin = preflight packet 'Source N:' labels",
-    "Base selection (operator): 30B-A3B = serving lane, 4B dense = training base; guarded LaneTruth swap back to the 30B (job 7ba9e412)",
-    "Final corpus 182 sources, manifest 6b1e832d099c, bench unchanged 3220b8e799cd; all gates green (13.C 8/8, routed bakeoff 28/28 both tiers)"
+    "Export-path smoke green in one night: BF16 -> mcore -> 10-step LoRA -> merge -> HF export -> Q8_0 GGUF -> guarded lane -> 8/8 preflight; 4 NeMo-lane gotchas encoded in scripts (trust_remote_code, SPECIAL_11 vocab inflation, eval wedge, GenerationConfig strict save)",
+    "Canonical 4B init on final corpus: wide 26/28 scored / 23/28 strict, refusals 16/16, 0 leak; BOTH misses are exemplar-id echoes outside the retrieved set - router rev-2 catches them by construction; RLVR skip stands",
+    "Residue-aware scorer rev (alias_residue/bare_answer/strict_passed, additive) validated byte-for-byte vs the pre-rebuild receipt",
+    "Toy-trained smoke model fixed the 0003 exemplar-echo miss (8/8 vs init 7/8; in-distribution caveat) - directional signal that small SFT moves citation discipline"
   ],
-  "session": "S-advisor-4b-sft-plan",
+  "session": "S-advisor-4b-sft-exec-1",
   "metrics": {
     "articles": 53,
     "models": 6,
