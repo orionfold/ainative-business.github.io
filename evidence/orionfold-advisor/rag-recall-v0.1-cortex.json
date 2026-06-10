@@ -1,0 +1,323 @@
+{
+  "baseline_bm25": {
+    "heldout_source_recall": {
+      "@1": 0.75,
+      "@10": 1.0,
+      "@3": 1.0,
+      "@5": 1.0
+    },
+    "report": "evidence/orionfold-advisor/rag-recall-v0.1.json",
+    "source_recall": {
+      "@1": 0.7471,
+      "@10": 1.0,
+      "@3": 0.977,
+      "@5": 0.9885
+    }
+  },
+  "bench_paths": [
+    "evidence/orionfold-advisor/advisor-bench-v0.1.jsonl",
+    "evidence/orionfold-advisor/advisor-bench-v0.1.heldout.jsonl"
+  ],
+  "bench_sha256_12": "2844cacb181d",
+  "by_family": {
+    "artifact_release_facts": {
+      "answerable_n": 23,
+      "chunk_recall": {
+        "@1": 0.9565,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 0.9565,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "book_thesis_synthesis": {
+      "answerable_n": 14,
+      "chunk_recall": {
+        "@1": 0.8571,
+        "@10": 1.0,
+        "@3": 0.9286,
+        "@5": 1.0
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 0.8571,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "cited_factual_qa": {
+      "answerable_n": 28,
+      "chunk_recall": {
+        "@1": 0.9286,
+        "@10": 1.0,
+        "@3": 0.9643,
+        "@5": 0.9643
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [
+        {
+          "expected_source_ids": [
+            "article_baseline_training_loop_on_spark"
+          ],
+          "family": "cited_factual_qa",
+          "split": "pool",
+          "task_id": "advisor-cited-factual-qa-0004",
+          "top5_source_ids": [
+            "article_clawgym_on_spark",
+            "article_auto_research_loop_on_spark",
+            "article_clawgym_on_spark_grpo",
+            "article_the_machine_improves_itself",
+            "article_derisk_cloud_pretraining_on_the_spark"
+          ]
+        }
+      ],
+      "source_recall": {
+        "@1": 0.9286,
+        "@10": 1.0,
+        "@3": 0.9643,
+        "@5": 0.9643
+      }
+    },
+    "missing_source_refusal": {
+      "answerable_n": 0,
+      "chunk_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      },
+      "refusal_n": 16,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      }
+    },
+    "operator_recommendations": {
+      "answerable_n": 8,
+      "chunk_recall": {
+        "@1": 0.5,
+        "@10": 1.0,
+        "@3": 0.875,
+        "@5": 0.875
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [
+        {
+          "expected_source_ids": [
+            "doc_fieldkit_readme_md"
+          ],
+          "family": "operator_recommendations",
+          "split": "pool",
+          "task_id": "advisor-operator-recommendations-0076",
+          "top5_source_ids": [
+            "doc_fieldkit_changelog_md",
+            "doc_fieldkit_docs_api_quant_md",
+            "doc_guides_narrative_contract_md",
+            "doc_fieldkit_docs_api_cli_md",
+            "doc_flows_the_machine_that_builds_machines_md"
+          ]
+        }
+      ],
+      "source_recall": {
+        "@1": 0.5,
+        "@10": 1.0,
+        "@3": 0.875,
+        "@5": 0.875
+      }
+    },
+    "unsloth_arena_partner_path": {
+      "answerable_n": 6,
+      "chunk_recall": {
+        "@1": 0.8333,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 0.8333,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "workflow_routing": {
+      "answerable_n": 8,
+      "chunk_recall": {
+        "@1": 0.625,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 0.625,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    }
+  },
+  "by_split": {
+    "heldout": {
+      "answerable_n": 12,
+      "chunk_recall": {
+        "@1": 0.9167,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 16,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 0.9167,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "pool": {
+      "answerable_n": 75,
+      "chunk_recall": {
+        "@1": 0.84,
+        "@10": 1.0,
+        "@3": 0.96,
+        "@5": 0.9733
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [
+        {
+          "expected_source_ids": [
+            "article_baseline_training_loop_on_spark"
+          ],
+          "family": "cited_factual_qa",
+          "split": "pool",
+          "task_id": "advisor-cited-factual-qa-0004",
+          "top5_source_ids": [
+            "article_clawgym_on_spark",
+            "article_auto_research_loop_on_spark",
+            "article_clawgym_on_spark_grpo",
+            "article_the_machine_improves_itself",
+            "article_derisk_cloud_pretraining_on_the_spark"
+          ]
+        },
+        {
+          "expected_source_ids": [
+            "doc_fieldkit_readme_md"
+          ],
+          "family": "operator_recommendations",
+          "split": "pool",
+          "task_id": "advisor-operator-recommendations-0076",
+          "top5_source_ids": [
+            "doc_fieldkit_changelog_md",
+            "doc_fieldkit_docs_api_quant_md",
+            "doc_guides_narrative_contract_md",
+            "doc_fieldkit_docs_api_cli_md",
+            "doc_flows_the_machine_that_builds_machines_md"
+          ]
+        }
+      ],
+      "source_recall": {
+        "@1": 0.84,
+        "@10": 1.0,
+        "@3": 0.9733,
+        "@5": 0.9733
+      }
+    }
+  },
+  "gate": {
+    "name": "advisor-rag-source-recall-live",
+    "passed": true,
+    "threshold": "source_recall@5 >= 0.90 on answerable rows; no missing expected sources"
+  },
+  "generated": "2026-06-09",
+  "manifest_path": "evidence/orionfold-advisor/public-corpus-manifest.jsonl",
+  "manifest_sha256_12": "cc3cb2f08bee",
+  "method": "live-cortex-pgvector-dense",
+  "metrics": {
+    "answerable_n": 87,
+    "chunk_recall": {
+      "@1": 0.8506,
+      "@10": 1.0,
+      "@3": 0.9655,
+      "@5": 0.977
+    },
+    "missing_expected_sources": [],
+    "refusal_n": 16,
+    "source_misses_at_5": [
+      {
+        "expected_source_ids": [
+          "article_baseline_training_loop_on_spark"
+        ],
+        "family": "cited_factual_qa",
+        "split": "pool",
+        "task_id": "advisor-cited-factual-qa-0004",
+        "top5_source_ids": [
+          "article_clawgym_on_spark",
+          "article_auto_research_loop_on_spark",
+          "article_clawgym_on_spark_grpo",
+          "article_the_machine_improves_itself",
+          "article_derisk_cloud_pretraining_on_the_spark"
+        ]
+      },
+      {
+        "expected_source_ids": [
+          "doc_fieldkit_readme_md"
+        ],
+        "family": "operator_recommendations",
+        "split": "pool",
+        "task_id": "advisor-operator-recommendations-0076",
+        "top5_source_ids": [
+          "doc_fieldkit_changelog_md",
+          "doc_fieldkit_docs_api_quant_md",
+          "doc_guides_narrative_contract_md",
+          "doc_fieldkit_docs_api_cli_md",
+          "doc_flows_the_machine_that_builds_machines_md"
+        ]
+      }
+    ],
+    "source_recall": {
+      "@1": 0.8506,
+      "@10": 1.0,
+      "@3": 0.977,
+      "@5": 0.977
+    }
+  },
+  "notes": [
+    "Live-lane twin of rag-recall-v0.1.json: same manifest, same frozen bench, retrieval through the production Cortex stack (pgvector + NIM embedder) instead of local BM25.",
+    "Corpus pack ingested into its own table (advisor_corpus_v01); the operator blog_chunks Second Brain index is untouched (OA-NV-8 corpus-pack swap).",
+    "Refusal rows have no expected public source ids and are excluded from recall denominators."
+  ],
+  "row_count": 103,
+  "source_count": 181,
+  "split": "all",
+  "stack": {
+    "chunk_pool_per_query": 80,
+    "embed_url": "http://127.0.0.1:8001/v1/embeddings",
+    "embedder": "nvidia/llama-nemotron-embed-1b-v2",
+    "ingest": "fieldkit.memory chunk_words(900/150) + provenance card; per-chunk metadata prefix matching rag-recall-v0.1 BM25 chunks",
+    "query": "MemoryIndex.query cosine dense (M10-9), rerank off",
+    "table": "advisor_corpus_v01"
+  },
+  "top_k": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "version": "v0.1"
+}
