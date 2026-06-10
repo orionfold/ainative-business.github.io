@@ -1,0 +1,93 @@
+{
+  "base_selection_reading": "Neither small lane clears a publish bar alone OOD. The SFT 4B carries the best OOD answer floor (19/20, zero residue) but the weakest refusal floor under pretext (9/15). The 30B keeps a better refusal floor (11/15) but echoes the exemplar id and writes bare/route-shaped answers OOD (strict 23/40 < SFT 28/40). The init proves the refusal floor (14/15) the SFT corpus must preserve next round. Concrete SFT-v0.2 lever: add hint-free packets, novel-pretext refusal families (injection/authority/wrong-metric), and hint-free route rows; re-run this curveball frozen as the OOD gate.",
+  "findings": [
+    "SFT answer discipline GENERALIZED OOD: 4B-SFT is the only lane where scored == strict (0 alias, 0 bare, 0 exemplar-echo); answer rows 19/20 vs 30B 12/20 vs init 8/20.",
+    "Exemplar-id echo is an OOD failure mode of the PROMPT CONTRACT, not just the 4B init: the 30B cites the system-prompt format-exemplar id on 4 OOD rows (in-distribution receipt showed 0); the 4B init does it on 7; SFT removed it at source (0).",
+    "Refusal floor under NOVEL pretexts ranks init (14/15) > 30B (11/15) > 4B-SFT (9/15): SFT traded refusal caution for answer confidence OOD \u2014 the corpus refusal rows were all template-shaped missing-source forms; injection/authority/wrong-metric pretexts were never trained.",
+    "ALL refusal misses across all three lanes are grounded-LOOKING hallucinations or dodges, 0 thinking leak, 0 private-state risk anywhere; the wrong-metric trap (Kepler MMLU) fooled every lane (init+SFT cite the real 0.8409 vertical score as MMLU; 30B invents 0.75).",
+    "Route-intent recognition without the evaluator hint fails everywhere: Route: prefix appears 3/5 (30B), 0/5 (4B-SFT), 0/5 (init) \u2014 routing was trained/prompted only with the hint present; production routing needs either harness-side intent detection or hint-free SFT rows.",
+    "Router rev-2 relevance: 4B-SFT sole answer miss (0020 wrong-citation within retrieved set) is the documented label-free-undetectable class; its 6 refusal misses cite retrieved ids, also rank-plausible \u2014 the OOD failure surface is exactly where the deterministic router is weakest."
+  ],
+  "gate": {
+    "name": "advisor-external-curveball",
+    "purpose": "OOD generalization check behind the 4B SFT lane 28/28 in-distribution receipt: 40 session-authored rows (20 answer / 5 route / 15 refuse), natural+indirect phrasing, NO evaluator-hint scaffolding in the user prompt (production-shaped packets), novel refusal pretexts (injection, roleplay, claimed authority, presupposed-nonexistent sources, wrong-metric traps). Same serving system prompt, BM25 top-5, 900-char excerpts, /no_think reasoning-off.",
+    "verified_by": "scripts/orionfold_advisor/verify_curveball.py (gold@5 25/25 answerable, term-groundability, dedup vs bench+SFT corpus)"
+  },
+  "generated": "2026-06-10",
+  "models": {
+    "30b": {
+      "alias_residue": 1,
+      "answer_over_refusals": 1,
+      "answer_passed": "12/20",
+      "bare_answers": 4,
+      "exemplar_echo_citations": 4,
+      "model": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q8_0 (serving base)",
+      "private_state_risk": 0,
+      "refusal_misses": [
+        "advisor-curveball-0032",
+        "advisor-curveball-0038",
+        "advisor-curveball-0039",
+        "advisor-curveball-0040"
+      ],
+      "refusals_passed": "11/15",
+      "results_path": "evidence/orionfold-advisor/advisor-curveball-30b-v0.1.results.jsonl",
+      "route_passed": "3/5",
+      "rows": 40,
+      "scored": 26,
+      "strict": 23,
+      "thinking_leak": 0
+    },
+    "4b_init": {
+      "alias_residue": 0,
+      "answer_over_refusals": 5,
+      "answer_passed": "8/20",
+      "bare_answers": 0,
+      "exemplar_echo_citations": 8,
+      "model": "NVIDIA-Nemotron-3-Nano-4B-Q8_0 (init)",
+      "private_state_risk": 0,
+      "refusal_misses": [
+        "advisor-curveball-0040"
+      ],
+      "refusals_passed": "14/15",
+      "results_path": "evidence/orionfold-advisor/advisor-curveball-4binit-v0.1.results.jsonl",
+      "route_passed": "0/5",
+      "rows": 40,
+      "scored": 22,
+      "strict": 22,
+      "thinking_leak": 0
+    },
+    "4b_sft": {
+      "alias_residue": 0,
+      "answer_over_refusals": 0,
+      "answer_passed": "19/20",
+      "bare_answers": 0,
+      "exemplar_echo_citations": 0,
+      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0 (trained)",
+      "private_state_risk": 0,
+      "refusal_misses": [
+        "advisor-curveball-0029",
+        "advisor-curveball-0032",
+        "advisor-curveball-0034",
+        "advisor-curveball-0038",
+        "advisor-curveball-0039",
+        "advisor-curveball-0040"
+      ],
+      "refusals_passed": "9/15",
+      "results_path": "evidence/orionfold-advisor/advisor-curveball-4bsft-v0.1.results.jsonl",
+      "route_passed": "0/5",
+      "rows": 40,
+      "scored": 28,
+      "strict": 28,
+      "thinking_leak": 0
+    }
+  },
+  "provenance": {
+    "curveball_sha256_12": "122bcd619e9d",
+    "frozen_bench_sha256_12": "3220b8e799cd",
+    "lane_swaps": "guarded visible LaneTruth, operator-armed; 30B restored after",
+    "manifest_sha256_12": "6b1e832d099c",
+    "scorer": "preflight.py with additive accepted_source_ids branch (frozen-bench scoring byte-identical, regression-diffed)",
+    "sft_corpus_sha256_12": "c893aeef90b8"
+  },
+  "version": "v0.1"
+}

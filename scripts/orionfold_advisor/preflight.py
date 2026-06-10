@@ -68,7 +68,11 @@ def _write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
             fh.write(json.dumps(row, sort_keys=True) + "\n")
 
 
-def _select_rows(rows: list[dict[str, Any]], task_ids: list[str]) -> list[dict[str, Any]]:
+def _select_rows(
+    rows: list[dict[str, Any]], task_ids: list[str], select_all: bool = False
+) -> list[dict[str, Any]]:
+    if select_all:
+        return list(rows)
     if task_ids:
         by_id = {row["task_id"]: row for row in rows}
         missing = [task_id for task_id in task_ids if task_id not in by_id]
@@ -200,7 +204,9 @@ def _system_prompt(reasoning_mode: str = "default") -> str:
     )
 
 
-def _user_prompt(row: dict[str, Any], blocks: list[dict[str, Any]]) -> str:
+def _user_prompt(
+    row: dict[str, Any], blocks: list[dict[str, Any]], evaluator_hint: bool = True
+) -> str:
     context = "\n\n".join(
         (
             f"Source {idx}: {block['source_id']}\n"
@@ -223,6 +229,14 @@ def _user_prompt(row: dict[str, Any], blocks: list[dict[str, Any]]) -> str:
             "Use exact source_id values from the retrieved context in the final Citations line. "
             "Do not cite Source 1, Source 2, labels, titles, or bracketed source_id notes."
         )
+    if not evaluator_hint:
+        # Production-shaped packet (external-curveball runs): no family line and
+        # no per-row evaluator coaching — the system prompt alone carries the
+        # contract, as it would for a real user question.
+        return (
+            f"Question: {row['question']}\n\n"
+            f"Retrieved public context:\n{context or '(none)'}"
+        )
     return (
         f"Question: {row['question']}\n\n"
         f"Expected behavior family for evaluator: {row['family']} / {expected_behavior}\n\n"
@@ -238,10 +252,13 @@ def build_packets(
     max_sources: int,
     excerpt_chars: int,
     reasoning_mode: str = "default",
+    bench_path: Path = HELDOUT_PATH,
+    select_all: bool = False,
+    evaluator_hint: bool = True,
 ) -> list[dict[str, Any]]:
     manifest = _read_jsonl(MANIFEST_PATH)
     manifest_by_id = {row["source_id"]: row for row in manifest}
-    rows = _select_rows(_read_jsonl(HELDOUT_PATH), task_ids)
+    rows = _select_rows(_read_jsonl(bench_path), task_ids, select_all=select_all)
     chunks = build_chunks(manifest, DEFAULT_CHUNK_TOKENS, DEFAULT_CHUNK_OVERLAP)
 
     packets: list[dict[str, Any]] = []
@@ -256,7 +273,7 @@ def build_packets(
         )
         messages = [
             {"role": "system", "content": _system_prompt(reasoning_mode)},
-            {"role": "user", "content": _user_prompt(row, blocks)},
+            {"role": "user", "content": _user_prompt(row, blocks, evaluator_hint=evaluator_hint)},
         ]
         packets.append(
             {
@@ -267,6 +284,7 @@ def build_packets(
                 "question": row["question"],
                 "expected_behavior": row["expected_behavior"],
                 "expected_source_ids": row.get("source_ids") or [],
+                "accepted_source_ids": row.get("accepted_source_ids") or [],
                 "expected_answer": row.get("expected_answer"),
                 "retrieved_sources": blocks,
                 "messages": messages,
@@ -353,7 +371,20 @@ def _score_output(packet: dict[str, Any], output: str) -> dict[str, Any]:
     if expected_behavior == "refuse":
         citation_ok = citation_ok and not cited_ids
     else:
-        citation_ok = citation_ok and all(source_id in cited_ids or source_id in output for source_id in expected)
+        # Curveball rows may carry accepted_source_ids — a documented set of
+        # defensibly-correct citation targets (e.g. an artifact card and the
+        # build article describing the same release). When present, credit a
+        # citation of any accepted id. Frozen-bench rows never carry the field,
+        # so their scoring is unchanged.
+        accepted = list(packet.get("accepted_source_ids") or [])
+        if accepted:
+            citation_ok = citation_ok and any(
+                source_id in cited_ids or source_id in output for source_id in accepted
+            )
+        else:
+            citation_ok = citation_ok and all(
+                source_id in cited_ids or source_id in output for source_id in expected
+            )
 
     refusal_words = (
         "not support",
@@ -453,6 +484,8 @@ def _report(
     prompts_path: Path,
     results_path: Path,
     reasoning_mode: str = "default",
+    bench_path: Path = HELDOUT_PATH,
+    evaluator_hint: bool = True,
 ) -> dict[str, Any]:
     ran_model = bool(endpoint)
     failures = [row for row in results if not row["score"]["passed"]]
@@ -474,6 +507,8 @@ def _report(
         "model_target": model,
         "endpoint": endpoint,
         "reasoning_mode": reasoning_mode,
+        "bench_path": _repo_relative(bench_path),
+        "evaluator_hint": evaluator_hint,
         "mode": "endpoint" if ran_model else "prompt_packets",
         "prompt_path": _repo_relative(prompts_path),
         "results_path": _repo_relative(results_path) if ran_model else None,
@@ -534,6 +569,25 @@ def main() -> None:
             "chat_template_kwargs={'enable_thinking': false} for Nemotron-3/Qwen3-style templates"
         ),
     )
+    parser.add_argument(
+        "--bench",
+        type=Path,
+        default=HELDOUT_PATH,
+        help="Alternate bench JSONL (same row schema); default is the frozen held-out",
+    )
+    parser.add_argument(
+        "--all-rows",
+        action="store_true",
+        help="Score every row in the bench file instead of the 8-row family selection",
+    )
+    parser.add_argument(
+        "--no-evaluator-hint",
+        action="store_true",
+        help=(
+            "Drop the per-row family/evaluator-instruction lines from the user prompt "
+            "(production-shaped packets for external-curveball runs)"
+        ),
+    )
     parser.add_argument("--prompts", type=Path, default=PROMPTS_PATH)
     parser.add_argument("--results", type=Path, default=RESULTS_PATH)
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
@@ -552,6 +606,9 @@ def main() -> None:
         max_sources=args.max_sources,
         excerpt_chars=args.excerpt_chars,
         reasoning_mode=args.reasoning_mode,
+        bench_path=args.bench,
+        select_all=args.all_rows,
+        evaluator_hint=not args.no_evaluator_hint,
     )
     args.prompts.parent.mkdir(parents=True, exist_ok=True)
     _write_jsonl(args.prompts, packets)
@@ -576,6 +633,8 @@ def main() -> None:
         prompts_path=args.prompts,
         results_path=args.results,
         reasoning_mode=args.reasoning_mode,
+        bench_path=args.bench,
+        evaluator_hint=not args.no_evaluator_hint,
     )
     _write_json(args.report, report)
     print(f"wrote Advisor preflight prompts -> {args.prompts}")

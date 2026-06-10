@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "4B SFT lane COMPLETE: 777-row corpus -> 270-iter LoRA on the proven export path -> post-SFT 28/28 scored AND strict (init 26/23), router clean, 13.E RLVR skip recorded; runtime restored to the 30B",
+  "focus": "Advisor external-curveball OOD check DONE: frozen 40-row session-authored bench, all 3 lanes scored via operator-armed LaneTruth swaps; 4B-SFT best OOD floor (28/40, scored==strict, 0 residue) but pretext-refusals regressed (9/15 vs init 14/15); 30B exemplar-echoes OOD (26/40)",
   "blockers": [],
   "next": [
-    "Decide trained-4B role vs 30B serving base: external-curveball/OOD check is the honest gate before any swap or publish (in-distribution caveat recorded)",
-    "Spec 10 corpus pane (extends AD-AE-11; now also SFT-corpus handoff ran terminal-side)",
-    "AD-AE-16: Arena routing surface for route tier/ledger/cost (spec 12)",
+    "Operator decision on OOD verdict: ship 30B serving as-is, run SFT-v0.2 (hint-free packets + novel-pretext refusal + hint-free route families), and/or harden the serving prompt contract (exemplar-echo is prompt-level, hits the 30B too)",
+    "Spec 10 corpus pane (extends AD-AE-11; SFT-corpus handoff + curveball eval both ran terminal-side)",
+    "AD-AE-16: Arena routing surface (spec 12); OOD failures concentrate in the router's label-free-undetectable class",
     "14 publish/reject receipt assembly when the operator calls it"
   ],
   "recent": [
-    "Post-SFT receipts: visible Cortex /no_think 8/8 (init 7/8); wide 28/28 scored + 28/28 strict (init 26/28 + 23/28); refusals 16/16, 0 leak, 0 risk, 0 alias, 0 bare, 0 citation-outside-retrieved",
-    "Router rev-2 on SFT lane: t1-only 28/28, routed t1+t3 $0 and t1+t4 $0.0033 both 28/28; init's 0074 false escalation vanished as predicted; sole escalation = known 0082 over-caution",
-    "Train: 270 LoRA iters / ~21 min, val loss 0.5073 (PPL 1.66); merge -> shadow export -> Q8_0 4.0 GB; guarded LaneTruth swaps both ways with screenshots; nemo-train stopped",
-    "13.E receipt advisor-sft-headroom-v0.1.json: post-SFT 100%/100% >> Goldilocks band -> RLVR SKIPPED, ship SFT-only (provenance: manifest 6b1e832d099c, bench 3220b8e799cd, corpus c893aeef90b8)"
+    "Curveball bench advisor-curveball-v0.1.jsonl (sha 122bcd619e9d): 20 answer / 5 route / 15 refuse, no evaluator-hint packets, novel refusal pretexts; deterministic gate verify_curveball.py green (gold@5 25/25, 0 bench/SFT-corpus overlap)",
+    "Receipts: 30B 26/40 scored / 23 strict (refusals 11/15); 4B-SFT 28/40 / 28 strict (answers 19/20, refusals 9/15); 4B-init 22/40 / 22 strict (refusals 14/15); 0 leak / 0 private-state risk everywhere",
+    "SFT discipline generalized OOD: only scored==strict lane, 0 exemplar-echo (init 7 rows, 30B 4 rows -> echo is a prompt-contract failure mode); wrong-metric Kepler-MMLU trap fooled all three lanes",
+    "Lane swaps through visible LaneTruth (operator-armed), 30B serving lane restored; preflight.py gained additive --bench/--all-rows/--no-evaluator-hint + accepted_source_ids scoring (frozen-bench packets regression-diffed byte-identical)"
   ],
-  "session": "S-advisor-4b-sft-exec-2",
+  "session": "S-advisor-curveball-ood",
   "metrics": {
     "articles": 53,
     "models": 6,
