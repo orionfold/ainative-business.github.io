@@ -30,6 +30,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   gate matrix) — each rendered as a Cortex card beside the Advisor preflight.
 
 ### Fixed
+- **Eval mode replays the bench's measured reasoning control (AD-AE-17).**
+  Chat/compare eval mode replayed the Advisor packets' system contract
+  (including the `/no_think` token) but never sent
+  `chat_template_kwargs={"enable_thinking": false}` — and Nemotron-3/Qwen3
+  templates ignore the bare token, so advisor rows ran thinking-ON in eval
+  mode (operator-witnessed fabrication on a frozen refusal row that the same
+  lane refuses cleanly under `preflight.py --reasoning-mode off`). New
+  `BenchSpec.reasoning_mode` rider (`"off"` on `advisor-bench`) +
+  `benches.reasoning_chat_kwargs()` mirror of `preflight.py _chat`; the chat
+  and compare handlers forward the kwargs to **local lanes only** (hosted
+  tiers were measured without the kwarg in the §13.F bakeoff, so omitting it
+  there also replicates measurement), and `eval_context` surfaces
+  `reasoning_mode` in the start events. Benches without a rider keep
+  byte-identical payloads.
 - **`FK_ARENA_REWARD_DIR` now anchors the reader side too.** The cockpit's
   reward-report *reader* (`_reward_reports_dir` — feeds the reward gauge, the
   AV-10 preflight card, and the build-spine Smoke stage) was hardcoded to

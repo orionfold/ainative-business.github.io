@@ -3,7 +3,7 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Advisor publish readiness COMPLETE — §14 publish receipt assembled with all 9 gates verified (verdict: PROMOTED 4B-SFT-v0.2); Advisor evals loaded into the Arena chat/compare bench picker; Cortex gained corpus-pack, routing/cost, and publish-receipt cards (AD-AE-11 read surface + AD-AE-16 closed)",
+  "focus": "AD-AE-17 FIXED — chat/compare eval mode now replays the bench's measured reasoning control (BenchSpec reasoning_mode rider -> chat_template_kwargs enable_thinking=false on local lanes); fabrication row 0087 re-run live: clean refusal, no think chain, advisor_contract 100%",
   "blockers": [],
   "next": [
     "Public positioning artifacts when the operator calls it (product page / HF card / field note via product-writer + hf-publisher) — the §14 contract is green",
@@ -12,13 +12,13 @@
     "Optional v0.3 lever: Route:-prefix boundary on which-doc-defines-X phrasings + the one over-refusal class"
   ],
   "recent": [
-    "advisor-publish-receipt-v0.1.json: deterministic assembler re-verifies every gate claim against tracked receipts (fails on drift); PROMOTED 4B-SFT-v0.2, 30B retained as teacher, 6 lanes dispositioned with reasons",
-    "OA-NV-8 corpus-pack swap gate: score_recall.py gained --manifest/--pool/--heldout (default path regression-clean), synthetic 3-source Helios fixture pack passes the unchanged scorer 1.0@5",
-    "advisor-bench in the Arena eval surface: 89 measured rows (28 held-out hint-free + 40 cb1 + 21 cb2), packets replayed with the system contract via new EvalPrompt.system_prompt, deterministic advisor_contract scorer; live chat-eval smoke: urgency-pretext refusal scored 100% on the serving lane",
-    "Cortex panes over GET /api/advisor/{corpus,routing,receipt}: manifest 182/6b1e832d099c + recall chips + swap fixture + SFT handoff; routing 28/28x3 configs + T4 governance + per-escalation tier/provider/cost/verdict; receipt card with 9 gate chips",
-    "474 arena tests green; webui rebaked twice + CDP-smoked side-by-side; screenshots staged in /tmp/orionfold-advisor-dogfood/"
+    "AD-AE-17 fix: BenchSpec.reasoning_mode rider + benches.reasoning_chat_kwargs mirror of preflight.py; chat/compare eval forward the kwargs to local lanes only (hosted tiers were measured without it); eval_context carries reasoning_mode",
+    "478 arena tests green (4 new); live CDP smoke: row 0087 through the visible chat eval drawer on the 4B-SFT-v0.2 lane refused at 100% with ~30 tok and no reasoning box (was ~2k-char think chain + fabricated HANDOFF content)",
+    "Nit logged: eval chip shows 'edited' on an untouched drawer pick (display-level only)",
+    "advisor-publish-receipt-v0.1.json stands: PROMOTED 4B-SFT-v0.2, 9/9 gates verified",
+    "Cortex advisor panes (corpus/routing/receipt) + advisor-bench eval surface shipped in the prior session"
   ],
-  "session": "S-advisor-publish-readiness",
+  "session": "S-advisor-ad-ae-17-fix",
   "metrics": {
     "articles": 53,
     "models": 6,

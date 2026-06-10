@@ -2244,6 +2244,173 @@ def test_compare_eval_block_scores_both_sides(
     assert score["eval"]["b"]["score"] == 0.0
 
 
+# --- AD-AE-17 — eval mode replays the bench's measured reasoning control ---
+
+
+@pytest.fixture
+def advisor_tree(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Minimal Advisor evidence dir (one held-out row + its measured packet)
+    wired through the FK_ARENA_ADVISOR_DIR root override."""
+    from fieldkit.arena import benches
+
+    root = tmp_path / "advisor-evidence"
+    _write_eval_jsonl(
+        root / "advisor-bench-v0.1.heldout.jsonl",
+        [{
+            "task_id": "advisor-qa-0001", "split": "heldout",
+            "family": "cited_factual_qa", "expected_behavior": "answer",
+            "question": "What does artifact_x ship?",
+            "expected_answer": "It ships Y. Citations: [artifact_x]",
+            "expected_citations": ["artifact_x"], "source_ids": ["artifact_x"],
+        }],
+    )
+    _write_eval_jsonl(
+        root / "advisor-preflight-4b-wide-nohint-v0.1.prompts.jsonl",
+        [{
+            "task_id": "advisor-qa-0001",
+            "messages": [
+                {"role": "system", "content": "/no_think\nYou are Orionfold Advisor."},
+                {"role": "user", "content": (
+                    "Question: What does artifact_x ship?\n\n"
+                    "Retrieved public context:\nSource 1: artifact_x\nExcerpt: ships Y."
+                )},
+            ],
+        }],
+    )
+    monkeypatch.setenv("FK_ARENA_ADVISOR_DIR", str(root))
+    benches._CACHE.clear()
+    yield root
+    benches._CACHE.clear()
+
+
+class _KwargRecordingClient:
+    """Stub that records the (messages, kwargs) of every chat_stream call."""
+
+    def __init__(self, answer: str) -> None:
+        self._answer = answer
+        self.calls: list[tuple[list[dict[str, str]], dict]] = []
+
+    def chat_stream(self, messages, **kwargs):
+        self.calls.append((list(messages), dict(kwargs)))
+        yield self._answer
+
+
+def _drive_chat(body, monkeypatch, stub, db_path: str) -> list[dict[str, str]]:
+    from fieldkit.arena.server import chat_event_stream
+
+    monkeypatch.setattr(
+        "fieldkit.arena.server._chat_client_factory", lambda resident: stub
+    )
+    hub = TelemetryHub(interval=0.1)
+    resident = {"id": "resident", "model": "qwen", "base_url": "http://127.0.0.1:8080/v1"}
+
+    async def _run():
+        events = []
+        gen = chat_event_stream(hub=hub, request=_FakeRequest(), body=body,
+                                resident=resident, db_path=db_path)
+        async for ev in gen:
+            events.append(ev)
+            if ev["event"] == "done":
+                break
+        await gen.aclose()
+        return events
+
+    return asyncio.run(_run())
+
+
+def test_chat_eval_mode_replays_reasoning_kwargs_on_local_lane(
+    repo_root: Path, advisor_tree: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An Advisor eval row through chat sends BOTH measured reasoning controls
+    to the local lane — the /no_think system contract AND
+    ``chat_template_kwargs={"enable_thinking": False}`` — and surfaces
+    ``reasoning_mode`` in the start event's eval_context (AD-AE-17: without
+    the kwarg, Nemotron-3 templates think anyway and the row can fabricate)."""
+    from types import SimpleNamespace
+
+    stub = _KwargRecordingClient("It ships Y. Citations: [artifact_x]")
+    body = SimpleNamespace(
+        prompt="What does artifact_x ship?", session_id=None, rubric_id=None,
+        max_tokens=64, temperature=0.0, lane="local:resident",
+        bench_id="advisor-bench", eval_qid="advisor-qa-0001",
+    )
+    events = _drive_chat(body, monkeypatch, stub, str(tmp_path / "arena.db"))
+    start = json.loads(events[0]["data"])
+    assert start["eval_context"]["system_attached"] is True
+    assert start["eval_context"]["reasoning_mode"] == "off"
+    messages, kwargs = stub.calls[0]
+    assert messages[0]["role"] == "system"
+    assert messages[0]["content"].startswith("/no_think")
+    assert kwargs["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_chat_eval_mode_no_rider_for_unridden_bench(
+    repo_root: Path, eval_tree: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Benches without a reasoning rider keep the exact pre-AD-AE-17 payload —
+    no ``chat_template_kwargs``, no ``reasoning_mode`` in eval_context."""
+    from types import SimpleNamespace
+
+    stub = _KwargRecordingClient("Answer: B")
+    body = SimpleNamespace(
+        prompt="Q1?", session_id=None, rubric_id=None,
+        max_tokens=64, temperature=0.0, lane="local:resident",
+        bench_id="medmcqa", eval_qid="mm-1",
+    )
+    events = _drive_chat(body, monkeypatch, stub, str(tmp_path / "arena.db"))
+    start = json.loads(events[0]["data"])
+    assert "reasoning_mode" not in start["eval_context"]
+    messages, kwargs = stub.calls[0]
+    assert [m["role"] for m in messages] == ["user"]
+    assert "chat_template_kwargs" not in kwargs
+
+
+def test_compare_eval_mode_reasoning_kwargs_local_side_only(
+    repo_root: Path, advisor_tree: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Compare forwards the rider to the LOCAL side only; the hosted side keeps
+    the measured no-kwarg shape (§13.F bakeoff tiers ran without it)."""
+    from types import SimpleNamespace
+
+    from fieldkit.arena.server import compare_event_stream
+
+    a = _KwargRecordingClient("It ships Y. Citations: [artifact_x]")
+    b = _KwargRecordingClient("Hosted: ships Y. Citations: [artifact_x]")
+    monkeypatch.setattr(
+        "fieldkit.arena.server._chat_client_factory", lambda resident: a
+    )
+    monkeypatch.setattr(
+        "fieldkit.arena.server._compare_b_factory", lambda: (b, None)
+    )
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
+
+    hub = TelemetryHub(interval=0.1)
+    body = SimpleNamespace(
+        prompt="What does artifact_x ship?", lane_a="local:resident",
+        lane_b="openrouter", rubric_id=None, max_tokens=64, temperature=0.0,
+        bench_id="advisor-bench", eval_qid="advisor-qa-0001", judge=None,
+    )
+    resident = {"id": "resident", "model": "qwen", "base_url": "http://127.0.0.1:8080/v1"}
+
+    async def _drive():
+        events = []
+        gen = compare_event_stream(hub=hub, request=_FakeRequest(), body=body,
+                                   resident=resident,
+                                   db_path=str(tmp_path / "arena.db"))
+        async for ev in gen:
+            events.append(ev)
+            if ev["event"] == "score":
+                break
+        await gen.aclose()
+        return events
+
+    asyncio.run(_drive())
+    _, kwargs_a = a.calls[0]
+    _, kwargs_b = b.calls[0]
+    assert kwargs_a["chat_template_kwargs"] == {"enable_thinking": False}
+    assert "chat_template_kwargs" not in kwargs_b
+
+
 def test_trip_sentinels_includes_running_lane_launch(tmp_path: Path, monkeypatch) -> None:
     """AE-31 — a running lane_launch polls the same per-job sentinel during its
     warm-poll: a sidecar SIGTERM must abort the poll (the job), never hang the

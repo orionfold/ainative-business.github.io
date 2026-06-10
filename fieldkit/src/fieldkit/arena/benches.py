@@ -174,6 +174,18 @@ class BenchSpec:
     #: shape instead of re-deriving retrieval. The receipts are deterministic
     #: and lane-independent (regression-diffed byte-identical across lanes).
     packet_files: tuple[str, ...] = ()
+    #: AD-AE-17 — the bench's measured *reasoning mode*. The Advisor receipts
+    #: were scored with ``preflight.py --reasoning-mode off``, which sends BOTH
+    #: the ``/no_think`` system token (already inside the packet's system
+    #: message) AND ``chat_template_kwargs={"enable_thinking": false}`` —
+    #: Nemotron-3/Qwen3-style chat templates ignore the bare token, so without
+    #: the kwarg an eval-mode chat/compare run replays the contract but the
+    #: model thinks anyway (operator-witnessed fabrication on row 0087).
+    #: ``"off"`` makes the chat/compare eval handlers forward the kwargs (local
+    #: lanes only — hosted tiers were measured *without* it in the §13.F
+    #: bakeoff, so omitting it there also replicates measurement) via
+    #: :func:`reasoning_chat_kwargs`. ``None`` = no rider (every other bench).
+    reasoning_mode: str | None = None
 
 
 BENCHES: dict[str, BenchSpec] = {
@@ -289,8 +301,18 @@ BENCHES: dict[str, BenchSpec] = {
             "advisor-curveball-4bsft-v0.1.prompts.jsonl",
             "advisor-curveball2-4bsft2-v0.1.prompts.jsonl",
         ),
+        reasoning_mode="off",
     ),
 }
+
+
+def reasoning_chat_kwargs(spec: BenchSpec) -> dict[str, Any] | None:
+    """Extra OpenAI-compat payload kwargs replicating ``spec``'s measured
+    reasoning control (AD-AE-17) — keep in sync with
+    ``scripts/orionfold_advisor/preflight.py _chat`` (the canonical scorer)."""
+    if spec.reasoning_mode == "off":
+        return {"chat_template_kwargs": {"enable_thinking": False}}
+    return None
 
 
 # ---------------------------------------------------------------------------

@@ -624,6 +624,23 @@ def test_advisor_prompts_replay_measured_packets(advisor_root: Path) -> None:
     assert res["prompts"][0]["split"] == "heldout"
 
 
+def test_advisor_bench_reasoning_rider_kwargs() -> None:
+    """AD-AE-17 — Advisor receipts were measured reasoning-off; the rider must
+    replay BOTH controls (the /no_think token rides in the packet system
+    message, the chat-template kwarg rides here). Every other bench keeps a
+    byte-identical payload (no rider)."""
+    spec = benches.BENCHES["advisor-bench"]
+    assert spec.reasoning_mode == "off"
+    assert benches.reasoning_chat_kwargs(spec) == {
+        "chat_template_kwargs": {"enable_thinking": False}
+    }
+    assert all(
+        benches.reasoning_chat_kwargs(s) is None
+        for bid, s in benches.BENCHES.items()
+        if bid != "advisor-bench"
+    )
+
+
 def test_advisor_contract_scoring_answer_rows(advisor_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     def _boom(*a, **k):  # pragma: no cover
         raise AssertionError("advisor_contract must not construct a judge")

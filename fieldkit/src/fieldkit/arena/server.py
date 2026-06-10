@@ -5489,25 +5489,28 @@ def _next_ord(store: Any, session_id: str) -> int:
 
 def _resolve_eval_prompt(
     body: Any,
-) -> tuple[str | None, dict[str, Any] | None, str | None]:
+) -> tuple[str | None, dict[str, Any] | None, str | None, dict[str, Any] | None]:
     """If ``body`` carries ``bench_id`` + ``eval_qid``, return the canonical
     model prompt (context-prepended, edit-aware), an ``eval_context`` block to
-    surface in the ``start`` event, and the bench row's measured *system*
-    prompt (Advisor packets carry one; every other bench yields ``None``).
-    Returns ``(None, None, None)`` otherwise / on a missing bench so the
+    surface in the ``start`` event, the bench row's measured *system* prompt
+    (Advisor packets carry one; every other bench yields ``None``), and the
+    bench's reasoning-kwargs rider (AD-AE-17 — extra OpenAI-compat payload
+    kwargs the callers forward to LOCAL lanes so eval mode replicates the
+    measured reasoning control; hosted tiers were measured without it).
+    Returns ``(None, None, None, None)`` otherwise / on a missing bench so the
     caller falls back to ``body.prompt``."""
     bench_id = getattr(body, "bench_id", None)
     qid = getattr(body, "eval_qid", None)
     if not bench_id or not qid:
-        return None, None, None
+        return None, None, None, None
     from fieldkit.arena import benches as _benches
 
     loaded = _benches.load_bench(bench_id)
     if loaded is None:
-        return None, None, None
+        return None, None, None, None
     prompt = loaded.by_qid.get(qid)
     if prompt is None:
-        return None, None, None
+        return None, None, None, None
     model_prompt = _benches.build_model_prompt(prompt, getattr(body, "prompt", "") or "")
     eval_context = {
         "bench_id": bench_id,
@@ -5519,7 +5522,14 @@ def _resolve_eval_prompt(
     }
     if prompt.system_prompt:
         eval_context["system_attached"] = True
-    return model_prompt, eval_context, prompt.system_prompt
+    if loaded.spec.reasoning_mode:
+        eval_context["reasoning_mode"] = loaded.spec.reasoning_mode
+    return (
+        model_prompt,
+        eval_context,
+        prompt.system_prompt,
+        _benches.reasoning_chat_kwargs(loaded.spec),
+    )
 
 
 def _guard_prompt_ctx(
@@ -5674,7 +5684,9 @@ async def chat_event_stream(
         # v0.3 eval mode — run the bench's canonical context-prepended prompt
         # so the score matches measurement conditions. The persisted user turn
         # above keeps the displayed prompt; only the model sees the prepend.
-        eval_model_prompt, eval_context, eval_system = _resolve_eval_prompt(body)
+        eval_model_prompt, eval_context, eval_system, eval_chat_kwargs = (
+            _resolve_eval_prompt(body)
+        )
         effective_prompt = eval_model_prompt if eval_model_prompt is not None else body.prompt
         if eval_model_prompt is not None:
             ceiling = (
@@ -5719,6 +5731,11 @@ async def chat_event_stream(
             "max_tokens": int(getattr(body, "max_tokens", 4096)),
             "temperature": float(getattr(body, "temperature", 0.0)),
         }
+        # AD-AE-17 — replay the bench's measured reasoning control on local
+        # lanes (e.g. ``chat_template_kwargs={"enable_thinking": false}`` for
+        # Advisor rows; OpenRouter keeps the measured hosted shape: no kwarg).
+        if eval_chat_kwargs and lane["kind"] != "openrouter":
+            kwargs.update(eval_chat_kwargs)
 
         # Stream the chat off a worker thread so the asyncio loop stays
         # free for the SSE writer. The httpx-backed ``chat_stream`` is
@@ -6598,6 +6615,7 @@ async def _stream_one_side(
     max_tokens: int,
     temperature: float,
     system_prompt: str | None = None,
+    extra_chat_kwargs: dict[str, Any] | None = None,
 ) -> "AsyncIterator[Tuple[str, dict[str, Any] | str]]":
     """Pull tokens off ``client.chat_stream`` and yield ``(kind, payload)``.
 
@@ -6630,6 +6648,9 @@ async def _stream_one_side(
                 + [{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature,
+                # AD-AE-17 — the bench's measured reasoning control (e.g.
+                # ``chat_template_kwargs``) rides into the payload verbatim.
+                **(extra_chat_kwargs or {}),
             ):
                 if piece:
                     loop.call_soon_threadsafe(
@@ -6822,7 +6843,9 @@ async def compare_event_stream(
         # v0.3 eval mode — both sides receive the bench's canonical
         # context-prepended prompt so the per-side scores match measurement
         # conditions. ``eval_context`` rides the start events for transparency.
-        eval_model_prompt, eval_context, eval_system = _resolve_eval_prompt(body)
+        eval_model_prompt, eval_context, eval_system, eval_chat_kwargs = (
+            _resolve_eval_prompt(body)
+        )
         effective_prompt = (
             eval_model_prompt if eval_model_prompt is not None else body.prompt
         )
@@ -6986,6 +7009,11 @@ async def compare_event_stream(
                 max_tokens=max_tokens,
                 temperature=temperature,
                 system_prompt=eval_system,
+                # AD-AE-17 — local sides replay the measured reasoning kwargs;
+                # hosted tiers were measured without them (§13.F bakeoff shape).
+                extra_chat_kwargs=(
+                    eval_chat_kwargs if lane["kind"] != "openrouter" else None
+                ),
             ):
                 if kind == "token":
                     yield {"event": f"token_{suffix}", "data": json.dumps(payload)}
