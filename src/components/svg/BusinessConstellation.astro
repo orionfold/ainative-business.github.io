@@ -5,7 +5,14 @@
  * 3D sphere gradients, galaxy drift, edge-terminated bezier curves, external labels
  */
 ---
-<svg viewBox="0 0 560 400" xmlns="http://www.w3.org/2000/svg" class="bc w-full mx-auto" data-svg-animate>
+<svg
+  viewBox="0 0 560 400"
+  xmlns="http://www.w3.org/2000/svg"
+  class="bc w-full mx-auto"
+  data-svg-animate
+  role="img"
+  aria-label="Constellation of four ainative product nodes — Agents, Workflows, Documents, Knowledge — connected to six business outcomes: revenue growth, customer success, operations excellence, cost efficiency, business intelligence, and compliance and governance"
+>
   <defs>
     <!-- Soft glow filter for Agents hero node -->
     <filter id="bc-glow">
@@ -92,21 +99,21 @@
 
     <!-- Cross connections (6% opacity, 0.7px) -->
     <!-- Agents → Compliance -->
-    <path data-bc-conn="ag-comp" d="M311.7,153.2 Q400,165 466.3,187.1" fill="none" stroke="var(--svg-accent-blue)" stroke-opacity="0.06" stroke-width="0.7"/>
+    <path data-bc-conn="ag-comp" d="M311.7,153.2 Q400,165 466.3,187.1" fill="none" stroke="var(--svg-accent-blue)" stroke-opacity="0.06" stroke-width="0.5"/>
     <!-- Workflows → Revenue -->
-    <path data-bc-conn="wf-rev" d="M189.6,192.7 Q155,135 127.4,86.7" fill="none" stroke="var(--svg-accent-teal)" stroke-opacity="0.06" stroke-width="0.7"/>
+    <path data-bc-conn="wf-rev" d="M189.6,192.7 Q155,135 127.4,86.7" fill="none" stroke="var(--svg-accent-teal)" stroke-opacity="0.06" stroke-width="0.5"/>
     <!-- Documents → Customer Success -->
-    <path data-bc-conn="doc-cus" d="M373.4,194.9 Q410,150 436.6,89.2" fill="none" stroke="var(--svg-accent-purple)" stroke-opacity="0.06" stroke-width="0.7"/>
+    <path data-bc-conn="doc-cus" d="M373.4,194.9 Q410,150 436.6,89.2" fill="none" stroke="var(--svg-accent-purple)" stroke-opacity="0.06" stroke-width="0.5"/>
     <!-- Knowledge → Business Intelligence -->
-    <path data-bc-conn="kb-bi" d="M304.7,289.0 Q370,310 439.3,321.5" fill="none" stroke="var(--svg-accent-orange)" stroke-opacity="0.06" stroke-width="0.7"/>
+    <path data-bc-conn="kb-bi" d="M304.7,289.0 Q370,310 439.3,321.5" fill="none" stroke="var(--svg-accent-orange)" stroke-opacity="0.06" stroke-width="0.5"/>
   </g>
 
   <!-- ═══ CONNECTIONS: Inner ↔ Inner (dashed diamond, edge-terminated) ═══ -->
   <g class="svg-reveal svg-reveal-d4">
-    <line data-bc-line="ag-wf" x1="255.7" y1="169.8" x2="222.7" y2="198.1" class="bc-inner-conn" stroke="var(--svg-accent-blue)" stroke-opacity="0.08" stroke-width="0.8"/>
-    <line data-bc-line="ag-doc" x1="304.3" y1="169.8" x2="337.3" y2="198.1" class="bc-inner-conn" stroke="var(--svg-accent-blue)" stroke-opacity="0.08" stroke-width="0.8"/>
-    <line data-bc-line="wf-kb" x1="222.7" y1="231.9" x2="260.3" y2="264.1" class="bc-inner-conn" stroke="var(--svg-accent-teal)" stroke-opacity="0.06" stroke-width="0.8"/>
-    <line data-bc-line="doc-kb" x1="337.3" y1="231.9" x2="299.7" y2="264.1" class="bc-inner-conn" stroke="var(--svg-accent-purple)" stroke-opacity="0.06" stroke-width="0.8"/>
+    <line data-bc-line="ag-wf" x1="255.7" y1="169.8" x2="222.7" y2="198.1" class="bc-inner-conn" stroke="var(--svg-accent-blue)" stroke-opacity="0.08" stroke-width="1"/>
+    <line data-bc-line="ag-doc" x1="304.3" y1="169.8" x2="337.3" y2="198.1" class="bc-inner-conn" stroke="var(--svg-accent-blue)" stroke-opacity="0.08" stroke-width="1"/>
+    <line data-bc-line="wf-kb" x1="222.7" y1="231.9" x2="260.3" y2="264.1" class="bc-inner-conn" stroke="var(--svg-accent-teal)" stroke-opacity="0.06" stroke-width="1"/>
+    <line data-bc-line="doc-kb" x1="337.3" y1="231.9" x2="299.7" y2="264.1" class="bc-inner-conn" stroke="var(--svg-accent-purple)" stroke-opacity="0.06" stroke-width="1"/>
   </g>
 
   <!-- ═══ PARTICLES (flowing along bezier paths) ═══ -->
@@ -142,10 +149,10 @@
       <animate attributeName="r" values="32;35;32" dur="4s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.15;0.06;0.15" dur="4s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="280" cy="149" r="32" fill="url(#bc-sphere-blue)" stroke="var(--svg-accent-blue)" stroke-opacity="0.4" stroke-width="1.2" filter="url(#bc-glow)"/>
+    <circle cx="280" cy="149" r="32" fill="url(#bc-sphere-blue)" stroke="var(--svg-accent-blue)" stroke-opacity="0.4" stroke-width="1" filter="url(#bc-glow)"/>
     <!-- Bot icon -->
     <g transform="translate(280,149) scale(1.6)">
-      <rect x="-10" y="-4" width="20" height="14" rx="3.5" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.1" vector-effect="non-scaling-stroke"/>
+      <rect x="-10" y="-4" width="20" height="14" rx="3.5" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1" vector-effect="non-scaling-stroke"/>
       <circle cx="-4" cy="3" r="1.8" fill="var(--svg-accent-blue)"/>
       <circle cx="4" cy="3" r="1.8" fill="var(--svg-accent-blue)"/>
       <line x1="0" y1="-4" x2="0" y2="-9" stroke="var(--svg-accent-blue)" stroke-width="1" vector-effect="non-scaling-stroke"/>
@@ -164,8 +171,8 @@
     <circle cx="203" cy="215" r="26" fill="url(#bc-sphere-teal)" stroke="var(--svg-accent-teal)" stroke-opacity="0.4" stroke-width="1"/>
     <!-- Fork/branch icon -->
     <g transform="translate(203,215) scale(1.3)">
-      <path d="M-8,0 L0,0 L8,-6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
-      <path d="M0,0 L8,6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      <path d="M-8,0 L0,0 L8,-6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      <path d="M0,0 L8,6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
       <circle cx="8" cy="-6" r="1.5" fill="var(--svg-accent-teal)"/>
       <circle cx="8" cy="6" r="1.5" fill="var(--svg-accent-teal)"/>
       <circle cx="-8" cy="0" r="1.5" fill="var(--svg-accent-teal)"/>
@@ -184,9 +191,9 @@
     <!-- Document icon -->
     <g transform="translate(357,215) scale(1.3)">
       <rect x="-6" y="-9" width="12" height="18" rx="1.5" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1" vector-effect="non-scaling-stroke"/>
-      <line x1="-3" y1="-4" x2="3" y2="-4" stroke="var(--svg-accent-purple)" stroke-width="0.8" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
-      <line x1="-3" y1="0" x2="2" y2="0" stroke="var(--svg-accent-purple)" stroke-width="0.8" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
-      <line x1="-3" y1="4" x2="0" y2="4" stroke="var(--svg-accent-purple)" stroke-width="0.8" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
+      <line x1="-3" y1="-4" x2="3" y2="-4" stroke="var(--svg-accent-purple)" stroke-width="1" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
+      <line x1="-3" y1="0" x2="2" y2="0" stroke="var(--svg-accent-purple)" stroke-width="1" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
+      <line x1="-3" y1="4" x2="0" y2="4" stroke="var(--svg-accent-purple)" stroke-width="1" stroke-opacity="0.6" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Label below circle -->
     <text x="357" y="252" text-anchor="middle" fill="var(--svg-accent-purple)" font-size="8.5" font-family="var(--font-body)" font-weight="600">Documents</text>
@@ -203,7 +210,7 @@
     <g transform="translate(280,281) scale(1.3)">
       <circle cx="0" cy="-2" r="6" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1" vector-effect="non-scaling-stroke"/>
       <line x1="-3" y1="6" x2="3" y2="6" stroke="var(--svg-accent-orange)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
-      <line x1="-2" y1="8.5" x2="2" y2="8.5" stroke="var(--svg-accent-orange)" stroke-width="0.8" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      <line x1="-2" y1="8.5" x2="2" y2="8.5" stroke="var(--svg-accent-orange)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Label below circle -->
     <text x="280" y="318" text-anchor="middle" fill="var(--svg-accent-orange)" font-size="8.5" font-family="var(--font-body)" font-weight="600">Knowledge</text>
@@ -217,10 +224,10 @@
       <animate attributeName="r" values="25;28;25" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="115" cy="65" r="25" fill="url(#bc-sphere-blue)" stroke="var(--svg-accent-blue)" stroke-opacity="0.4" stroke-width="0.8" filter="url(#bc-glow-soft)"/>
+    <circle cx="115" cy="65" r="25" fill="url(#bc-sphere-blue)" stroke="var(--svg-accent-blue)" stroke-opacity="0.4" stroke-width="1" filter="url(#bc-glow-soft)"/>
     <!-- Trending up icon -->
     <g transform="translate(115,65) scale(1.25)">
-      <path d="M-9,5 L-3,-3 L3,1 L9,-7" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="M-9,5 L-3,-3 L3,1 L9,-7" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <path d="M5,-7 L9,-7 L9,-3" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Labels below circle -->
@@ -234,10 +241,10 @@
       <animate attributeName="r" values="21;24;21" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="445" cy="70" r="21" fill="url(#bc-sphere-teal)" stroke="var(--svg-accent-teal)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <circle cx="445" cy="70" r="21" fill="url(#bc-sphere-teal)" stroke="var(--svg-accent-teal)" stroke-opacity="0.4" stroke-width="1"/>
     <!-- Checkmark icon -->
     <g transform="translate(445,70) scale(1.05)">
-      <path d="M-7,0 L-2,5 L8,-6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="M-7,0 L-2,5 L8,-6" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Labels below circle -->
     <text x="445" y="102" text-anchor="middle" fill="var(--svg-accent-teal)" font-size="7.5" font-family="var(--font-body)">Customer</text>
@@ -250,7 +257,7 @@
       <animate attributeName="r" values="19;22;19" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="70" cy="190" r="19" fill="url(#bc-sphere-teal)" stroke="var(--svg-accent-teal)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <circle cx="70" cy="190" r="19" fill="url(#bc-sphere-teal)" stroke="var(--svg-accent-teal)" stroke-opacity="0.4" stroke-width="1"/>
     <!-- Gear icon -->
     <g transform="translate(70,190) scale(0.95)">
       <circle cx="0" cy="0" r="6.5" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1" vector-effect="non-scaling-stroke"/>
@@ -267,10 +274,10 @@
       <animate attributeName="r" values="23;26;23" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="100" cy="320" r="23" fill="url(#bc-sphere-orange)" stroke="var(--svg-accent-orange)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <circle cx="100" cy="320" r="23" fill="url(#bc-sphere-orange)" stroke="var(--svg-accent-orange)" stroke-opacity="0.4" stroke-width="1"/>
     <!-- Down-trend icon -->
     <g transform="translate(100,320) scale(1.15)">
-      <path d="M-9,-5 L-3,2 L3,-2 L9,7" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+      <path d="M-9,-5 L-3,2 L3,-2 L9,7" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
       <path d="M5,7 L9,7 L9,3" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Labels below circle -->
@@ -284,7 +291,7 @@
       <animate attributeName="r" values="21;24;21" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="460" cy="325" r="21" fill="url(#bc-sphere-purple)" stroke="var(--svg-accent-purple)" stroke-opacity="0.4" stroke-width="0.8"/>
+    <circle cx="460" cy="325" r="21" fill="url(#bc-sphere-purple)" stroke="var(--svg-accent-purple)" stroke-opacity="0.4" stroke-width="1"/>
     <!-- Bar chart icon -->
     <g transform="translate(460,325) scale(1.05)">
       <rect x="-8" y="0" width="4" height="8" rx="0.5" fill="var(--svg-accent-purple)" opacity="0.6"/>
@@ -302,11 +309,11 @@
       <animate attributeName="r" values="25;28;25" dur="6s" repeatCount="indefinite"/>
       <animate attributeName="stroke-opacity" values="0.12;0.05;0.12" dur="6s" repeatCount="indefinite"/>
     </circle>
-    <circle cx="490" cy="195" r="25" fill="url(#bc-sphere-purple)" stroke="var(--svg-accent-purple)" stroke-opacity="0.4" stroke-width="0.8" filter="url(#bc-glow-soft)"/>
+    <circle cx="490" cy="195" r="25" fill="url(#bc-sphere-purple)" stroke="var(--svg-accent-purple)" stroke-opacity="0.4" stroke-width="1" filter="url(#bc-glow-soft)"/>
     <!-- Shield with check icon -->
     <g transform="translate(490,195) scale(1.25)">
       <path d="M0,-9 L7,-5.5 L7,1.5 C7,6.5 0,10 0,10 C0,10 -7,6.5 -7,1.5 L-7,-5.5 Z" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1" vector-effect="non-scaling-stroke"/>
-      <path d="M-3,1.5 L-0.5,4 L4.5,-2" fill="none" stroke="var(--svg-accent-purple)" stroke-width="0.9" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
+      <path d="M-3,1.5 L-0.5,4 L4.5,-2" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </g>
     <!-- Labels below circle -->
     <text x="490" y="231" text-anchor="middle" fill="var(--svg-accent-purple)" font-size="7.5" font-family="var(--font-body)">Compliance</text>

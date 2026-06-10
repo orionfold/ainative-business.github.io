@@ -11,7 +11,24 @@ const bars = [
   { year: '2030', value: 52.62, height: 170 },
 ];
 ---
-<svg viewBox="0 0 460 260" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-sm mx-auto" data-svg-animate>
+<svg
+  viewBox="0 0 460 260"
+  xmlns="http://www.w3.org/2000/svg"
+  class="w-full max-w-sm mx-auto"
+  data-svg-animate
+  role="img"
+  aria-label="Bar chart of AI agent market size growing from 7.63 billion dollars in 2025 to 52.62 billion dollars in 2030"
+>
+  <defs>
+    <linearGradient id="mg-wash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--svg-accent-blue)" stop-opacity="0.07" />
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.01" />
+    </linearGradient>
+  </defs>
+
+  <!-- Atmospheric wash behind the plot -->
+  <rect x="30" y="14" width="420" height="186" rx="8" fill="url(#mg-wash)" stroke="none" />
+
   <!-- Grid lines -->
   <g class="svg-reveal">
     <line x1="40" y1="200" x2="440" y2="200" stroke="var(--svg-stroke)" stroke-width="0.5" />

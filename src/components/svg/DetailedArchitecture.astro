@@ -4,7 +4,14 @@
  * OKLCH palette with scroll-reveal animations, inline SVG icons, animated connectors
  */
 ---
-<svg viewBox="0 0 960 680" xmlns="http://www.w3.org/2000/svg" class="w-full mx-auto" data-svg-animate>
+<svg
+  viewBox="0 0 960 680"
+  xmlns="http://www.w3.org/2000/svg"
+  class="w-full mx-auto"
+  data-svg-animate
+  role="img"
+  aria-label="Three-layer detailed architecture: a React 19 browser layer with 39 operator surfaces, a Next.js 16 server layer with 31 service modules including the permission gate and cost engine, and an external layer of local SQLite storage, runtime backends, and SSE streaming — local-first, your data stays on your machine"
+>
   <defs>
     <linearGradient id="da-browser-grad" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0%" stop-color="var(--svg-accent-teal)" stop-opacity="0.2" />
@@ -50,15 +57,15 @@
 
   <!-- Standalone pills: Home + ⌘K -->
   <g class="svg-reveal svg-reveal-d1" font-family="var(--font-mono)" font-size="10.5">
-    <rect x="770" y="28" width="62" height="22" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.75" />
+    <rect x="770" y="28" width="62" height="22" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5" />
     <text x="801" y="43" fill="var(--svg-accent-teal)" text-anchor="middle">Home</text>
-    <rect x="840" y="28" width="46" height="22" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.75" />
+    <rect x="840" y="28" width="46" height="22" rx="4" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="0.5" />
     <text x="863" y="43" fill="var(--svg-accent-teal)" text-anchor="middle">⌘K</text>
   </g>
 
   <!-- ── WORK card (6 surfaces) ── -->
   <g class="svg-reveal svg-reveal-d1">
-    <rect x="42" y="56" width="410" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="42" y="56" width="410" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="42" y="56" width="3" height="80" rx="1.5" fill="var(--svg-accent-blue)" />
     <text x="62" y="72" fill="var(--svg-accent-blue)" font-family="var(--font-mono)" font-size="9" font-weight="600" letter-spacing="1.2">WORK</text>
   </g>
@@ -81,7 +88,7 @@
 
   <!-- ── MANAGE card (4 surfaces) ── -->
   <g class="svg-reveal svg-reveal-d2">
-    <rect x="464" y="56" width="248" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="464" y="56" width="248" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="464" y="56" width="3" height="80" rx="1.5" fill="var(--svg-accent-green-alt)" />
     <text x="484" y="72" fill="var(--svg-accent-green-alt)" font-family="var(--font-mono)" font-size="9" font-weight="600" letter-spacing="1.2">MANAGE</text>
   </g>
@@ -100,7 +107,7 @@
 
   <!-- ── CONFIGURE card (3 surfaces) ── -->
   <g class="svg-reveal svg-reveal-d2">
-    <rect x="724" y="56" width="204" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="724" y="56" width="204" height="80" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="724" y="56" width="3" height="80" rx="1.5" fill="var(--svg-accent-orange)" />
     <text x="744" y="72" fill="var(--svg-accent-orange)" font-family="var(--font-mono)" font-size="9" font-weight="600" letter-spacing="1.2">CONFIGURE</text>
   </g>
@@ -125,8 +132,8 @@
   <!-- ═══════════════════════════════════════════ -->
   <g class="svg-reveal svg-reveal-d3">
     <!-- Animated flowing dashes -->
-    <line x1="240" y1="176" x2="240" y2="210" stroke="var(--svg-connector)" stroke-width="1.2" class="connector-flow" />
-    <line x1="700" y1="176" x2="700" y2="210" stroke="var(--svg-connector)" stroke-width="1.2" class="connector-flow" />
+    <line x1="240" y1="176" x2="240" y2="210" stroke="var(--svg-connector)" stroke-width="1.5" class="connector-flow" />
+    <line x1="700" y1="176" x2="700" y2="210" stroke="var(--svg-connector)" stroke-width="1.5" class="connector-flow" />
     <!-- Labels with padding from lines -->
     <text x="250" y="198" fill="var(--svg-connector-label)" font-family="var(--font-mono)" font-size="9">Server Components (direct DB queries)</text>
     <text x="710" y="198" fill="var(--svg-connector-label)" font-family="var(--font-mono)" font-size="9">API Routes</text>
@@ -151,7 +158,7 @@
   <!-- Service grid — Row 1 -->
   <!-- Drizzle ORM -->
   <g class="ring-expand svg-reveal-d4">
-    <rect x="42" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="42" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="42" y="250" width="3" height="60" rx="1.5" fill="var(--svg-accent-teal)" />
     <g transform="translate(54, 266) scale(1.2)" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <ellipse cx="12" cy="5" rx="9" ry="3" />
@@ -163,7 +170,7 @@
 
   <!-- Runtime Registry -->
   <g class="ring-expand svg-reveal-d4">
-    <rect x="262" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="262" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="262" y="250" width="3" height="60" rx="1.5" fill="var(--svg-accent-blue)" />
     <g transform="translate(274, 266) scale(1.2)" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <rect x="4" y="4" width="16" height="16" rx="2" />
@@ -178,7 +185,7 @@
 
   <!-- SSE Stream -->
   <g class="ring-expand svg-reveal-d4">
-    <rect x="482" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="482" y="250" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="482" y="250" width="3" height="60" rx="1.5" fill="var(--svg-accent-purple)" />
     <g transform="translate(494, 266) scale(1.2)" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 20h.01" />
@@ -192,7 +199,7 @@
 
   <!-- Profile Engine -->
   <g class="ring-expand svg-reveal-d4">
-    <rect x="702" y="250" width="220" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="702" y="250" width="220" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="702" y="250" width="3" height="60" rx="1.5" fill="var(--svg-accent-orange)" />
     <g transform="translate(714, 266) scale(1.2)" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="8" r="5" />
@@ -205,7 +212,7 @@
   <!-- Service grid — Row 2 -->
   <!-- Scheduler Engine -->
   <g class="ring-expand svg-reveal-d5">
-    <rect x="42" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="42" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="42" y="322" width="3" height="60" rx="1.5" fill="var(--svg-accent-green-alt)" />
     <g transform="translate(54, 338) scale(1.2)" fill="none" stroke="var(--svg-accent-green-alt)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10" />
@@ -217,7 +224,7 @@
 
   <!-- Workflow Engine -->
   <g class="ring-expand svg-reveal-d5">
-    <rect x="262" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="262" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="262" y="322" width="3" height="60" rx="1.5" fill="var(--svg-accent-pink)" />
     <g transform="translate(274, 338) scale(1.2)" fill="none" stroke="var(--svg-accent-pink)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="6" y1="3" x2="6" y2="15" />
@@ -231,7 +238,7 @@
 
   <!-- Permission Gate -->
   <g class="ring-expand svg-reveal-d5">
-    <rect x="482" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="482" y="322" width="208" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="482" y="322" width="3" height="60" rx="1.5" fill="var(--svg-accent-red)" />
     <g transform="translate(494, 338) scale(1.2)" fill="none" stroke="var(--svg-accent-red)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -242,7 +249,7 @@
 
   <!-- Doc Processor -->
   <g class="ring-expand svg-reveal-d5">
-    <rect x="702" y="322" width="220" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="702" y="322" width="220" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="702" y="322" width="3" height="60" rx="1.5" fill="var(--svg-accent-cyan)" />
     <g transform="translate(714, 338) scale(1.2)" fill="none" stroke="var(--svg-accent-cyan)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -257,7 +264,7 @@
   <!-- Service grid — Row 3 (NEW — centered 3 cards) -->
   <!-- Chat Engine -->
   <g class="ring-expand svg-reveal-d6">
-    <rect x="112" y="394" width="228" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="112" y="394" width="228" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="112" y="394" width="3" height="60" rx="1.5" fill="var(--svg-accent-purple)" />
     <!-- MessageCircle icon -->
     <g transform="translate(124, 410) scale(1.2)" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -269,7 +276,7 @@
 
   <!-- Environment Scanner -->
   <g class="ring-expand svg-reveal-d6">
-    <rect x="356" y="394" width="248" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="356" y="394" width="248" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="356" y="394" width="3" height="60" rx="1.5" fill="var(--svg-accent-green-alt)" />
     <!-- Search/scan icon -->
     <g transform="translate(368, 410) scale(1.2)" fill="none" stroke="var(--svg-accent-green-alt)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -282,7 +289,7 @@
 
   <!-- Cost Engine -->
   <g class="ring-expand svg-reveal-d6">
-    <rect x="620" y="394" width="228" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="620" y="394" width="228" height="60" rx="6" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="620" y="394" width="3" height="60" rx="1.5" fill="var(--svg-accent-orange)" />
     <!-- DollarSign icon -->
     <g transform="translate(632, 410) scale(1.2)" fill="none" stroke="var(--svg-accent-orange)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -303,9 +310,9 @@
   <!-- ═══════════════════════════════════════════ -->
   <g class="svg-reveal svg-reveal-d6">
     <!-- Animated flowing dashes -->
-    <line x1="170" y1="484" x2="170" y2="518" stroke="var(--svg-connector)" stroke-width="1.2" class="connector-flow" />
-    <line x1="480" y1="484" x2="480" y2="518" stroke="var(--svg-connector)" stroke-width="1.2" class="connector-flow" />
-    <line x1="760" y1="484" x2="760" y2="518" stroke="var(--svg-connector)" stroke-width="1.2" class="connector-flow" />
+    <line x1="170" y1="484" x2="170" y2="518" stroke="var(--svg-connector)" stroke-width="1.5" class="connector-flow" />
+    <line x1="480" y1="484" x2="480" y2="518" stroke="var(--svg-connector)" stroke-width="1.5" class="connector-flow" />
+    <line x1="760" y1="484" x2="760" y2="518" stroke="var(--svg-connector)" stroke-width="1.5" class="connector-flow" />
     <!-- Labels with padding -->
     <text x="180" y="505" fill="var(--svg-connector-label)" font-family="var(--font-mono)" font-size="9">SQLite queries</text>
     <text x="490" y="505" fill="var(--svg-connector-label)" font-family="var(--font-mono)" font-size="9">Runtime API</text>
@@ -327,7 +334,7 @@
 
   <!-- ~/.ainative/ -->
   <g class="svg-reveal svg-reveal-d7">
-    <rect x="42" y="560" width="270" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="42" y="560" width="270" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="42" y="560" width="3" height="52" rx="1.5" fill="var(--svg-accent-teal)" />
     <g transform="translate(54, 574) scale(1.0)" fill="none" stroke="var(--svg-accent-teal)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <line x1="22" y1="12" x2="2" y2="12" />
@@ -341,7 +348,7 @@
 
   <!-- Runtime Backends -->
   <g class="svg-reveal svg-reveal-d7">
-    <rect x="326" y="560" width="310" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="326" y="560" width="310" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="326" y="560" width="3" height="52" rx="1.5" fill="var(--svg-accent-blue)" />
     <g transform="translate(338, 574) scale(1.0)" fill="none" stroke="var(--svg-accent-blue)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -352,7 +359,7 @@
 
   <!-- EventSource -->
   <g class="svg-reveal svg-reveal-d7">
-    <rect x="650" y="560" width="272" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="0.75" />
+    <rect x="650" y="560" width="272" height="52" rx="5" fill="var(--svg-card-fill)" stroke="var(--svg-card-stroke)" stroke-width="1" />
     <rect x="650" y="560" width="3" height="52" rx="1.5" fill="var(--svg-accent-purple)" />
     <g transform="translate(662, 574) scale(1.0)" fill="none" stroke="var(--svg-accent-purple)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />

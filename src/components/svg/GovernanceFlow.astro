@@ -4,7 +4,17 @@
  * Shows the human-in-the-loop permission cycle
  */
 ---
-<svg viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg" class="w-full max-w-2xl mx-auto" data-svg-animate>
+<svg
+  viewBox="0 0 800 180"
+  xmlns="http://www.w3.org/2000/svg"
+  class="w-full max-w-2xl mx-auto"
+  data-svg-animate
+  role="img"
+  aria-label="Five-step governance flow: the agent requests a tool, canUseTool polls for approval, a notification alerts the inbox, the human reviews and decides, then the tool executes"
+>
+  <!-- Atmospheric wash behind the step lane -->
+  <rect x="4" y="22" width="792" height="100" rx="10" fill="url(#gf-wash)" stroke="none" />
+
   <!-- Steps -->
   <g class="svg-reveal">
     <!-- Step 1: Agent requests -->
@@ -42,6 +52,10 @@
   </g>
 
   <defs>
+    <linearGradient id="gf-wash" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--svg-accent-blue)" stop-opacity="0.08" />
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.01" />
+    </linearGradient>
     <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
       <polygon points="0 0, 8 3, 0 6" fill="var(--svg-accent-blue)" />
     </marker>

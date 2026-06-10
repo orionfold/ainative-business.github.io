@@ -65,6 +65,13 @@ const yTicks = [2000, 4000, 6000, 8000];
   role="img"
   aria-label="Cumulative lines of code across 11 commits reaching 7,435 on a single day"
 >
+  <defs>
+    <linearGradient id="bc-area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="var(--svg-accent-blue)" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.04" />
+    </linearGradient>
+  </defs>
+
   <!-- Panel background -->
   <rect
     x="40" y="20" width="720" height="260" rx="10"
@@ -111,8 +118,7 @@ const yTicks = [2000, 4000, 6000, 8000];
   <!-- Stepped area fill -->
   <path
     d={pathD}
-    fill="var(--svg-accent-blue)"
-    fill-opacity="0.18"
+    fill="url(#bc-area)"
     class="svg-reveal svg-reveal-d1"
   />
 

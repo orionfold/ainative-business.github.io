@@ -36,6 +36,13 @@ const xFor = (v: number) => trackX0 + (v / scaleMax) * trackW;
   role="img"
   aria-label="Infrastructure leverage: 7,435 lines of domain code built on 31,000–57,000 lines of inherited platform"
 >
+  <defs>
+    <linearGradient id="il-domain-bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="var(--svg-accent-blue)" stop-opacity="0.95" />
+      <stop offset="100%" stop-color="var(--svg-accent-blue)" stop-opacity="0.55" />
+    </linearGradient>
+  </defs>
+
   <!-- Panel background -->
   <rect x="20" y="20" width="680" height="480" rx="10"
         fill="var(--svg-bg)" stroke="var(--svg-stroke)" stroke-width="1" />
@@ -78,8 +85,7 @@ const xFor = (v: number) => trackX0 + (v / scaleMax) * trackW;
     <rect
       x={trackX0} y="92"
       width={xFor(7435) - trackX0} height="28" rx="2"
-      fill="var(--svg-accent-blue)"
-      fill-opacity="0.95"
+      fill="url(#il-domain-bar)"
     />
     <text
       x={xFor(7435) + 8} y="111"
