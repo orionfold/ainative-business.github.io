@@ -1,0 +1,133 @@
+{
+  "bench_sha256_12": "3220b8e799cd",
+  "corpus_path": "/home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.1.jsonl",
+  "corpus_sha256_12": "c893aeef90b8",
+  "counters": {
+    "dedup_corpus_skipped": 6,
+    "gold_not_retrieved_skipped": 90,
+    "reject_alias_residue": 44,
+    "reject_citation_outside_retrieved": 6,
+    "teacher_calls": 594
+  },
+  "examples": [
+    {
+      "question": "Which published Field Note covers \"Adaptive Turn Clipping on a Single Spark \u2014 A\u00b2TGPO, Studied from Source\", and what exact source id should a supported answer cite?",
+      "target": "The retrieved public context includes a field note titled \u201cAdaptive Turn Clipping on a Single Spark \u2014 A\u00b2TGPO, Studied from Source\u201d which directly matches the query. This note is identified by the source id article_a2tgpo_turn_clipping_on_spark.\nCitations: [article_a2tgpo_turn_clipping_on_spark]",
+      "task_id": "advisor-sft-cited-factual-qa-0000"
+    },
+    {
+      "question": "Where should a user be routed for guidance on \"_FLOWS/the-machine-that-builds-machines.md\"? Name the governing public source.",
+      "target": "Route: _FLOWS/the-machine-that-builds-machines.md governs this request because it is explicitly listed as the canonical origin\u2011instruction and artifact map for the _FLOWS/ stream, and the excerpt confirms that active guidance has been moved to the _GUIDES/ directory while the original _FLOWS/ document remains the authoritative source for that stream.\nCitations: [doc_flows_the_machine_that_builds_m",
+      "task_id": "advisor-sft-workflow-routing-0282"
+    },
+    {
+      "question": "What is the live GPU lane in today's HANDOFF right now?",
+      "target": "The retrieved public context does not support this question. It asks about private or live operator state. Citations: []",
+      "task_id": "advisor-sft-missing-source-refusal-0544"
+    }
+  ],
+  "generated": "2026-06-10",
+  "knobs": {
+    "excerpt_chars": 900,
+    "limit_per_family": 0,
+    "refusal_share_target": 0.3,
+    "top_k": 3
+  },
+  "manifest_sha256_12": "6b1e832d099c",
+  "notes": [
+    "Packets reuse preflight.py serving format verbatim (Source N labels kept; train through them to exact-id citations).",
+    "Targets are no-think style: teacher bodies are drafted with reasoning off; Citations/Route/refusal scaffolding is deterministic.",
+    "Bench (103 rows) is eval-only; generated questions are deduped against bench questions and expected answers.",
+    "Gold citation ids are known by construction and required to be in the retrieved set; rows where retrieval misses the gold are skipped, not force-fed.",
+    "The corpus jsonl is training data under /home/nvidia/data (untracked); this report carries its sha for provenance."
+  ],
+  "purpose": "Advisor 4B SFT corpus (plan step 3) \u2014 deterministic generator + 30B teacher, verify-then-keep",
+  "refusal_share": 0.2999,
+  "rejects": 50,
+  "rejects_path": "/home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.1.rejects.jsonl",
+  "rows_kept": 777,
+  "rows_kept_by_family": {
+    "alias_trap": 50,
+    "artifact_release_facts": 72,
+    "book_thesis_synthesis": 60,
+    "cited_factual_qa": 150,
+    "exemplar_echo_trap": 42,
+    "missing_source_refusal": 233,
+    "operator_recommendations": 80,
+    "workflow_routing": 90
+  },
+  "spice_bounds": [
+    {
+      "bound": 220,
+      "family": "cited_factual_qa",
+      "quota": 150,
+      "saturation": 0.682,
+      "sources": 55,
+      "templates": 4
+    },
+    {
+      "bound": 92,
+      "family": "artifact_release_facts",
+      "quota": 80,
+      "saturation": 0.87,
+      "sources": 23,
+      "templates": 4
+    },
+    {
+      "bound": 70,
+      "family": "book_thesis_synthesis",
+      "quota": 60,
+      "saturation": 0.857,
+      "sources": 14,
+      "templates": 5
+    },
+    {
+      "bound": 189,
+      "family": "workflow_routing",
+      "quota": 90,
+      "saturation": 0.476,
+      "sources": 63,
+      "templates": 3
+    },
+    {
+      "bound": 147,
+      "family": "operator_recommendations",
+      "quota": 80,
+      "saturation": 0.544,
+      "sources": 49,
+      "templates": 3
+    },
+    {
+      "bound": 178,
+      "family": "alias_trap",
+      "quota": 50,
+      "saturation": 0.281,
+      "sources": 89,
+      "templates": 2
+    },
+    {
+      "bound": 66,
+      "family": "exemplar_echo_trap",
+      "quota": 50,
+      "saturation": 0.758,
+      "sources": 22,
+      "templates": 3
+    },
+    {
+      "bound": 308,
+      "family": "missing_source_refusal",
+      "quota": 240,
+      "saturation": 0.779,
+      "sources": 22,
+      "templates": 14
+    }
+  ],
+  "teacher": {
+    "endpoint": "http://127.0.0.1:8091",
+    "max_tokens": 700,
+    "model": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q8_0.gguf",
+    "reasoning_mode": "off",
+    "temperature": 0.0
+  },
+  "version": "v0.1"
+}

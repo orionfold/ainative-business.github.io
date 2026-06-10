@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "4B SFT lane steps 1+0+2 executed: residue-aware scorer shipped, init re-baselined on final corpus (26/28 scored / 23/28 strict), and the export path PROVEN end-to-end (trained nemotron_h -> GGUF -> lane -> preflight 8/8)",
+  "focus": "4B SFT lane step 3 executed: 777-row SFT corpus built via deterministic generator + live 30B teacher, verify-then-keep receipts (50 rejects logged), serving-identical packets, refusal share exactly 30%",
   "blockers": [],
   "next": [
-    "4B SFT lane step 3: deterministic SFT corpus (~600-1200 rows, 30B teacher sequential one-lane, verify-then-keep, anti-exemplar-echo rows) then step 4 real SFT on the proven path",
+    "4B SFT lane step 4: bake corpus in nemo-train (enable_thinking=false, val >= eval_iters x global_batch), tear down 30B lane, LoRA-first SFT on the proven export path",
     "Step 5-6: Arena-visible post-SFT receipts + router re-run + recorded 13.E headroom skip",
     "Spec 10 corpus pane: surface the coverage/freshness + proof-control-boundary story from the rebuild (extends AD-AE-11)",
     "AD-AE-16: Arena routing surface for route tier/ledger/cost"
   ],
   "recent": [
-    "Export-path smoke green in one night: BF16 -> mcore -> 10-step LoRA -> merge -> HF export -> Q8_0 GGUF -> guarded lane -> 8/8 preflight; 4 NeMo-lane gotchas encoded in scripts (trust_remote_code, SPECIAL_11 vocab inflation, eval wedge, GenerationConfig strict save)",
-    "Canonical 4B init on final corpus: wide 26/28 scored / 23/28 strict, refusals 16/16, 0 leak; BOTH misses are exemplar-id echoes outside the retrieved set - router rev-2 catches them by construction; RLVR skip stands",
-    "Residue-aware scorer rev (alias_residue/bare_answer/strict_passed, additive) validated byte-for-byte vs the pre-rebuild receipt",
-    "Toy-trained smoke model fixed the 0003 exemplar-echo miss (8/8 vs init 7/8; in-distribution caveat) - directional signal that small SFT moves citation discipline"
+    "SFT corpus v0.1: 777 rows (454 answer / 90 route / 233 refuse), alias-trap + exemplar-echo-trap families included; sha c893aeef90b8 on manifest 6b1e832d099c / bench 3220b8e799cd; ~25 min via 594 teacher calls on the 30B lane",
+    "SPICE bounds computed before generation (1,270 vs 800 target); 90 gold-not-retrieved skips kept honest (artifacts 72/80, echo-trap 42/50 under-filled, not force-fed)",
+    "Verify-then-keep caught 44 alias-residue + 6 citation-outside-retrieved teacher outputs - the exact residue classes SFT targets; rejects logged beside the corpus",
+    "Teacher-steering finding: un-steered 30B answers 'which source' questions with bare id-only bodies; drafting instruction goes to the teacher prompt copy ONLY - training packets stay byte-identical to serving"
   ],
-  "session": "S-advisor-4b-sft-exec-1",
+  "session": "S-advisor-4b-sft-exec-2",
   "metrics": {
     "articles": 53,
     "models": 6,
