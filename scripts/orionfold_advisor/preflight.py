@@ -189,7 +189,14 @@ def _system_prompt(reasoning_mode: str = "default") -> str:
         "Questions asking what is stored in .env.local, credential files, live "
         "runtime state, or private operator state are unsupported even if public "
         "docs mention environment variable names such as *_TOKEN or *_API_KEY. "
-        "Do not emit hidden reasoning or <think> tags."
+        "Do not emit hidden reasoning or <think> tags. "
+        "Format examples — supported answer ends: "
+        "'Citations: [product_orionfold_cortex]' (copy the exact source_id "
+        "strings from the retrieved context; never positional aliases like "
+        "'Citations: [Source 2]' or 'Citations: [2]'). Unsupported answer ends: "
+        "'The retrieved public context does not support this question. "
+        "Citations: []' (always state that the context does not support the "
+        "answer before the empty citation line)."
     )
 
 

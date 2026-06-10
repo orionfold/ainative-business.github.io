@@ -2,26 +2,26 @@
   "version": 1,
   "project": "spark",
   "updated": "2026-06-09",
-  "health": "yellow",
-  "focus": "Nemotron-3-Nano-30B-A3B probed through visible Arena: /no_think 5/8, best NVIDIA-native raw floor (ties Qwen2.5)",
+  "health": "green",
+  "focus": "Advisor exemplar-format pass: 30B-A3B /no_think now 7/8 through visible Cortex — meets the >=7/8 pre-SFT bar without training",
   "blockers": [
-    "Advisor has no passing base preflight: best floors are Qwen2.5 5/8 and 30B-A3B /no_think 5/8 vs the >=7/8 pre-SFT bar",
-    "Arena run context still labels the Advisor proof as Kepler/astrodynamics"
+    "Receipt gate (8/8) still failed: row 0082 over-refuses an answerable question (expected source at retrieval rank 1)",
+    "Arena run context still labels the Advisor proof as Kepler/astrodynamics (AD-AE-14, an explicit spec gate)"
   ],
   "next": [
-    "One bounded exemplar-format pass on 30B-A3B to test if >=7/8 is reachable without SFT",
-    "If SFT still needed, pick the 13.D target: 30B-A3B floor vs Nano 9B documented NeMo path",
-    "Optional cheap probe: Nano-3-4B GGUF with the same lane-recipe pattern",
-    "Do not resume Unsloth unless it beats the NVIDIA-native baseline"
+    "Decide SFT vs proceed-to-routing-probe for the 0082 grounding over-refusal class (no further prompt tuning)",
+    "Re-run RAG recall through the live Cortex/Arena lane before any publish claim",
+    "Fix AD-AE-14 Advisor run-context labeling",
+    "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback"
   ],
   "recent": [
-    "Downloaded 30B-A3B Q8_0 GGUF (33.6 GB), launched via guarded LaneTruth recipe lane, warm in 14 s",
-    "Default-reasoning preflight 0/8 (thinking leak on all rows, citations mostly correct underneath)",
-    "/no_think preflight 5/8, zero thinking leakage, zero private-state risk",
-    "preflight.py off-mode now also sends chat_template_kwargs enable_thinking=false for Nemotron-3/Qwen3 templates",
-    "Private-state scorer no longer flags tokens echoed from the packet's own prompt (0087 false positive fixed)"
+    "Added one exact-citation + one refusal-sentence example to the tracked preflight system prompt (one bounded iteration)",
+    "Re-ran /no_think from the visible Cortex run control: 7/8, zero leakage, zero private-state risk",
+    "Both SFT-shaped classes resolved by prompt contract; five answer rows cite five distinct exact source ids",
+    "New sole failure: 0082 grounding over-refusal — same class Nano 9B showed",
+    "30B-A3B now leads the Advisor base standings on behavior floor; MoE trainability remains the open risk"
   ],
-  "session": "S-advisor-nemotron3-30b-floor",
+  "session": "S-advisor-exemplar-pass-7of8",
   "metrics": {
     "articles": 53,
     "models": 6,
