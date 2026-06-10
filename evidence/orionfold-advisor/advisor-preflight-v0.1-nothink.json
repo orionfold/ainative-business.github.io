@@ -1,26 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:8091/v1",
-  "failures": [
-    {
-      "expected_behavior": "answer",
-      "family": "cited_factual_qa",
-      "score": {
-        "alias_residue": true,
-        "bare_answer": false,
-        "citation_ok": false,
-        "cited_source_ids": [
-          "product_orionfold_cortex"
-        ],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "strict_passed": false,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-cited-factual-qa-0003"
-    }
-  ],
+  "failures": [],
   "families": {
     "artifact_release_facts": 1,
     "book_thesis_synthesis": 1,
@@ -32,13 +12,13 @@
   },
   "gate": {
     "name": "advisor-generator-preflight",
-    "passed": false,
+    "passed": true,
     "status": "scored",
     "threshold": "all selected rows pass citation/refusal/route checks with no thinking leakage or private-state risk"
   },
-  "generated": "2026-06-09",
+  "generated": "2026-06-10",
   "mode": "endpoint",
-  "model_target": "NVIDIA-Nemotron-3-Nano-4B-Q8_0.gguf",
+  "model_target": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0.gguf",
   "notes": [
     "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
@@ -49,28 +29,9 @@
   "results_path": "evidence/orionfold-advisor/advisor-preflight-v0.1-nothink.results.jsonl",
   "row_count": 8,
   "strict": {
-    "flagged": [
-      {
-        "alias_residue": true,
-        "bare_answer": false,
-        "passed": false,
-        "task_id": "advisor-cited-factual-qa-0003"
-      },
-      {
-        "alias_residue": true,
-        "bare_answer": false,
-        "passed": true,
-        "task_id": "advisor-artifact-release-facts-0034"
-      },
-      {
-        "alias_residue": true,
-        "bare_answer": false,
-        "passed": true,
-        "task_id": "advisor-book-thesis-synthesis-0057"
-      }
-    ],
+    "flagged": [],
     "note": "residue-aware strict metric (alias_residue + bare_answer), additive over the original gate",
-    "strict_passed_count": 5
+    "strict_passed_count": 8
   },
   "version": "v0.1"
 }

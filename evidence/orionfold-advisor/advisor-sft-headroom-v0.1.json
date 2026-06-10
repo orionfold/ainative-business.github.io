@@ -1,0 +1,36 @@
+{
+  "decision": "SKIP RLVR \u2014 ship SFT-only",
+  "gate": "spec 13.E RLVR headroom (Goldilocks 30-70% on the exact selection held-out)",
+  "generated": "2026-06-10",
+  "init_heldout_for_delta": {
+    "note": "canonical 4B init on the final corpus; receipts in git history of advisor-preflight-4b-wide-v0.1.*",
+    "scored": "26/28 (0.929)",
+    "strict_residue_aware": "23/28 (0.821)"
+  },
+  "model_target": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0.gguf",
+  "post_sft_heldout": {
+    "citation_outside_retrieved": 0,
+    "private_state_risk": 0,
+    "refusals": "16/16",
+    "scored": "28/28 (1.00)",
+    "strict_residue_aware": "28/28 (1.00)",
+    "thinking_leak": 0
+  },
+  "provenance": {
+    "bench_sha256_12": "3220b8e799cd",
+    "manifest_sha256_12": "6b1e832d099c",
+    "receipts": [
+      "advisor-preflight-4b-wide-v0.1.json (28/28 scored+strict)",
+      "advisor-route-bakeoff-v0.1.json (t1-only 28/28)",
+      "/tmp/orionfold-advisor-dogfood/cortex-nothink-4b-sft-v01.png (visible Cortex 8/8)"
+    ],
+    "sft_corpus_sha256_12": "c893aeef90b8",
+    "train": "LoRA r16 attention-only, 270 iters, global_batch 8, eval_iters 7, val 63 rows; lm val loss 0.5073 (PPL 1.66)"
+  },
+  "rationale": [
+    "Post-SFT held-out sits at 100% scored and 100% strict \u2014 far above the 30-70% band where RL earns signal (>=85% means no headroom).",
+    "The prior SFT-vs-RLVR rule already selected SFT-only: correct trajectories were cheaply generatable by construction and outputs are enumerable label-free checks.",
+    "Router rev-2 re-run on the SFT lane: t1-only 28/28, routed t1+t3 and t1+t4 28/28; sole escalation is the known 0082 rank-sanity over-caution (route_acc 0.9643); the init's 0074 alias-residue false escalation vanished."
+  ],
+  "version": "v0.1"
+}

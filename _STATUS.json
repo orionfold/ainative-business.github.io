@@ -3,19 +3,19 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "4B SFT lane step 3 executed: 777-row SFT corpus built via deterministic generator + live 30B teacher, verify-then-keep receipts (50 rejects logged), serving-identical packets, refusal share exactly 30%",
+  "focus": "4B SFT lane COMPLETE: 777-row corpus -> 270-iter LoRA on the proven export path -> post-SFT 28/28 scored AND strict (init 26/23), router clean, 13.E RLVR skip recorded; runtime restored to the 30B",
   "blockers": [],
   "next": [
-    "4B SFT lane step 4: bake corpus in nemo-train (enable_thinking=false, val >= eval_iters x global_batch), tear down 30B lane, LoRA-first SFT on the proven export path",
-    "Step 5-6: Arena-visible post-SFT receipts + router re-run + recorded 13.E headroom skip",
-    "Spec 10 corpus pane: surface the coverage/freshness + proof-control-boundary story from the rebuild (extends AD-AE-11)",
-    "AD-AE-16: Arena routing surface for route tier/ledger/cost"
+    "Decide trained-4B role vs 30B serving base: external-curveball/OOD check is the honest gate before any swap or publish (in-distribution caveat recorded)",
+    "Spec 10 corpus pane (extends AD-AE-11; now also SFT-corpus handoff ran terminal-side)",
+    "AD-AE-16: Arena routing surface for route tier/ledger/cost (spec 12)",
+    "14 publish/reject receipt assembly when the operator calls it"
   ],
   "recent": [
-    "SFT corpus v0.1: 777 rows (454 answer / 90 route / 233 refuse), alias-trap + exemplar-echo-trap families included; sha c893aeef90b8 on manifest 6b1e832d099c / bench 3220b8e799cd; ~25 min via 594 teacher calls on the 30B lane",
-    "SPICE bounds computed before generation (1,270 vs 800 target); 90 gold-not-retrieved skips kept honest (artifacts 72/80, echo-trap 42/50 under-filled, not force-fed)",
-    "Verify-then-keep caught 44 alias-residue + 6 citation-outside-retrieved teacher outputs - the exact residue classes SFT targets; rejects logged beside the corpus",
-    "Teacher-steering finding: un-steered 30B answers 'which source' questions with bare id-only bodies; drafting instruction goes to the teacher prompt copy ONLY - training packets stay byte-identical to serving"
+    "Post-SFT receipts: visible Cortex /no_think 8/8 (init 7/8); wide 28/28 scored + 28/28 strict (init 26/28 + 23/28); refusals 16/16, 0 leak, 0 risk, 0 alias, 0 bare, 0 citation-outside-retrieved",
+    "Router rev-2 on SFT lane: t1-only 28/28, routed t1+t3 $0 and t1+t4 $0.0033 both 28/28; init's 0074 false escalation vanished as predicted; sole escalation = known 0082 over-caution",
+    "Train: 270 LoRA iters / ~21 min, val loss 0.5073 (PPL 1.66); merge -> shadow export -> Q8_0 4.0 GB; guarded LaneTruth swaps both ways with screenshots; nemo-train stopped",
+    "13.E receipt advisor-sft-headroom-v0.1.json: post-SFT 100%/100% >> Goldilocks band -> RLVR SKIPPED, ship SFT-only (provenance: manifest 6b1e832d099c, bench 3220b8e799cd, corpus c893aeef90b8)"
   ],
   "session": "S-advisor-4b-sft-exec-2",
   "metrics": {
