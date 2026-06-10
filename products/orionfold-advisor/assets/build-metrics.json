@@ -1,0 +1,59 @@
+{
+  "build_window": {
+    "since": "2026-06-09T04:00:00+00:00",
+    "until": "2026-06-10T11:30:00+00:00"
+  },
+  "tokens": {
+    "by_model": {
+      "claude-fable-5": {
+        "input_tokens": 159306,
+        "output_tokens": 645475,
+        "cache_creation_input_tokens": 2237774,
+        "cache_read_input_tokens": 115831600,
+        "turns": 871
+      }
+    },
+    "totals": {
+      "input_tokens": 159306,
+      "output_tokens": 645475,
+      "cache_creation_input_tokens": 2237774,
+      "cache_read_input_tokens": 115831600,
+      "total_all": 118874155,
+      "fresh_in_out": 804781
+    },
+    "assistant_turns": 871,
+    "sessions_touched": 10
+  },
+  "loc": {
+    "by_ext": {
+      ".py": {
+        "files": 10,
+        "lines": 4051
+      },
+      ".sh": {
+        "files": 2,
+        "lines": 256
+      }
+    },
+    "total_lines": 4307,
+    "total_files": 12
+  },
+  "tests": {
+    "test_files": 2,
+    "test_cases": 54
+  },
+  "wall_clock": {
+    "first_commit": {
+      "hash": "0f99ceb48",
+      "time": "2026-06-09T04:34:18-07:00",
+      "subject": "Add Orionfold Advisor proof specs"
+    },
+    "last_commit": {
+      "hash": "707a41c04",
+      "time": "2026-06-10T10:29:41-07:00",
+      "subject": "fix(arena-app): eval chip no longer claims 'edited' after sending an untouched pick"
+    },
+    "commit_count": 31,
+    "elapsed_hours": 29.92
+  }
+}

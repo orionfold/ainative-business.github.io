@@ -59,6 +59,13 @@ _STUB_ENDPOINTS = (
     "api/lane-recipes",
     "api/guardrail-config",
     "api/prices",
+    # Advisor read surfaces (Cortex cards: preflight, corpus pack, routing &
+    # cost, publish receipt) — pure reads over tracked public evidence, added
+    # so the demo's Cortex pane renders the vertical-proof cards.
+    "api/advisor/preflight",
+    "api/advisor/corpus",
+    "api/advisor/routing",
+    "api/advisor/receipt",
 )
 
 #: Host-specific keys stripped from every captured stub — same discipline as
@@ -74,6 +81,10 @@ _FORBIDDEN_STUB_KEYS = frozenset(
         "repo_root",
         "db",
         "db_path",
+        # Advisor stub payloads carry the probed lane URL under this key
+        # (preflight `report.endpoint`, routing `t1.endpoint`) — same
+        # no-local-URLs discipline as base_url.
+        "endpoint",
     }
 )
 

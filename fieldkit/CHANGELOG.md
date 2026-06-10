@@ -7,6 +7,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **Advisor read surfaces in the demo recorder.** `fieldkit arena record` now
+  bakes the four Cortex Advisor stubs (`api/advisor/{preflight,corpus,routing,receipt}`)
+  so the sidecar-less `/arena/demo/` renders the vertical-proof cards; the stub
+  sanitizer additionally strips `endpoint` keys (probed lane URLs) under the
+  same no-local-URLs discipline as `base_url`.
 - **Advisor release benches in the Arena eval surface.** New `advisor-bench`
   registry entry (`fieldkit.arena.benches`): the frozen 28-row held-out plus
   both external OOD curveballs (40 + 21 rows) browse beside the published

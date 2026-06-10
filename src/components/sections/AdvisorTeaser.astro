@@ -1,0 +1,69 @@
+---
+import { getCollection } from 'astro:content';
+import SectionLabel from '../ui/SectionLabel.astro';
+
+// Homepage launch teaser for Orionfold Advisor — the governed local advisor
+// appliance, sibling to the Arena and Cortex teasers. Reads the product
+// collection so the headline metrics stay honest (mined, never hand-typed
+// here). Renders nothing if the product isn't present. Text-left / image-right
+// to alternate against the Cortex teaser above.
+const products = await getCollection('products');
+const advisor = products.find((p) => p.id === 'orionfold-advisor') ?? null;
+
+const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+const b = advisor?.data.build;
+const hoursLabel = b ? (Number.isInteger(b.wall_clock_hours) ? `${b.wall_clock_hours}` : b.wall_clock_hours.toFixed(1)) : '';
+const shot = advisor ? `/products/${advisor.id}/${advisor.data.features[0]?.screenshot?.replace(/^\/+/, '') ?? 'screenshots/01-advisor-preflight.png'}` : '';
+const storyHref = advisor ? `/products/${advisor.id}/` : '/products/';
+const modelUrl = advisor?.data.download_url ?? 'https://huggingface.co/Orionfold/Advisor-GGUF';
+---
+{advisor && (
+  <section class="py-24 px-6">
+    <div class="max-w-6xl mx-auto">
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <SectionLabel text="Now shipping · Advisor" />
+          <h2 data-animate class="mt-4 mb-3">{advisor.data.product_name}</h2>
+          <p data-animate class="text-text-muted text-lg leading-relaxed mb-6" style="transition-delay: 80ms">
+            {advisor.data.tagline}
+          </p>
+          {b && (
+            <div data-animate class="flex flex-wrap gap-6 mb-7" style="transition-delay: 120ms">
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{hoursLabel}h</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">spec to promoted lane</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">{fmt(b.lines_of_code)}</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">lines of harness</div>
+              </div>
+              <div>
+                <div class="font-display font-bold text-2xl text-text">9/9</div>
+                <div class="font-mono text-[0.65rem] tracking-widest uppercase text-text-muted">publish gates green</div>
+              </div>
+            </div>
+          )}
+          <div data-animate class="flex flex-wrap gap-3" style="transition-delay: 160ms">
+            <a
+              href={storyHref}
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-6 py-2.5 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+            >
+              Read the launch
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+            <a
+              href={modelUrl}
+              rel="noopener"
+              class="inline-flex items-center gap-2 font-mono text-xs tracking-[0.12em] uppercase text-primary border border-primary/30 px-6 py-2.5 rounded-md hover:bg-primary/10 transition-colors"
+            >
+              Get the model ↓
+            </a>
+          </div>
+        </div>
+        <a href={storyHref} data-animate class="block rounded-xl border border-border overflow-hidden bg-surface-overlay" style="transition-delay: 120ms" aria-label={`${advisor.data.product_name} — launch story`}>
+          <img src={shot} alt={`${advisor.data.product_name} preflight gate in the Arena cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+        </a>
+      </div>
+    </div>
+  </section>
+)}

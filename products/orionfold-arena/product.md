@@ -60,6 +60,15 @@ features:
   - name: "The Lab"
     benefit: "A living board of what's shipped, what's next, and what's being explored, with a built-together timeline mined from the commit log."
     screenshot: "screenshots/10-lab.png"
+  - name: "Guarded lane lifecycle"
+    benefit: "Launch and tear down serving lanes from the cockpit with a teardown-first confirm, an envelope pre-flight, and an anchor on warm — one resident model in 128 GB, enforced visibly."
+    screenshot: "screenshots/12-lanetruth-guarded.png"
+  - name: "Measured benches in the eval drawer"
+    benefit: "Registered benches replay their measured packets — system contract and reasoning control included — so a row picked in chat scores against exactly what the tracked receipts measured."
+    screenshot: "screenshots/13-eval-bench-drawer.png"
+  - name: "Vertical-proof cards on Cortex"
+    benefit: "A model lane's whole promotion case on one screen: generator preflight, corpus pack with recall gates, routing costs per config, and the publish receipt with its gate chips."
+    screenshot: "screenshots/14-advisor-proof-cards.png"
 ---
 
 ## A cockpit for the models on your own machine
@@ -342,6 +351,54 @@ explored, alongside a "built together" timeline generated from the arena commit
 history. Operator-private notes live here too — and, like everything sensitive in
 the Arena, they're on the forbidden-to-mirror list, so they never reach the public
 export.
+
+### Guarded lane lifecycle
+
+![LaneTruth — the resident serving lane ACTIVE with a guarded launch form: teardown-first confirm and anchor-on-warm](screenshots/12-lanetruth-guarded.png)
+
+*One resident model is the law of unified memory — LaneTruth makes the swap safe
+and visible.*
+
+The lane lifecycle moved into the cockpit after launch: LaneTruth discovers
+what's actually serving (a probe, not a config assertion), and operator-authored
+recipes launch through a guarded pre-flight — envelope check, one-lane rule,
+teardown-first confirmation, anchor on warm. Every serving-lane swap in the
+[Orionfold Advisor](/products/orionfold-advisor/) proof — eight recipes,
+including the promotion of a trained 4B over a 30B — ran through this surface,
+each one screenshotted from the UI rather than reconstructed from a shell
+history.
+
+### Measured benches in the eval drawer
+
+![The eval drawer with a registered bench selected — 89 measured rows with family filters](screenshots/13-eval-bench-drawer.png)
+
+*Pick a measured row and the chat replays the exact packet the receipts were
+scored on.*
+
+The eval drawer grew a bench registry: a registered bench carries its measured
+packets — retrieval context, system contract, even the reasoning-mode control
+the receipts were measured with — and a deterministic scorer that runs the
+moment the turn lands. The Advisor's 89 rows (frozen held-out plus two frozen
+curveball benches) are pickable with family filters, and a live turn scores
+against gold instantly, no judge model in the loop. Dogfooding earned this
+feature its sharpest fix: replaying a frozen refusal row through chat with the
+wrong reasoning mode produced a fabricated answer the receipts had never seen —
+so benches now carry their measured controls with them, and chat replays
+measurement conditions by construction.
+
+### Vertical-proof cards on Cortex
+
+![Four Advisor cards on the Cortex pane — preflight 8/8, publish receipt PROMOTED, corpus pack with recall gates, routing & cost](screenshots/14-advisor-proof-cards.png)
+
+*A model lane's whole promotion case — preflight, corpus, routing, verdict — as
+read-only cards over tracked evidence.*
+
+The Cortex pane now renders a vertical proof end to end: the generator
+preflight card (run it against the active lane with one click), the corpus pack
+with its manifest hash and both recall gates, per-config routing costs with
+every hosted escalation's tier/provider/cost/verdict, and the publish receipt
+with its nine gate chips. The cards are pure reads over evidence files tracked
+in the repo — the cockpit renders the proof, it doesn't re-state it.
 
 ## Built on a year of compounding work
 

@@ -3,25 +3,25 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "AD-AE-17 FIXED — chat/compare eval mode now replays the bench's measured reasoning control (BenchSpec reasoning_mode rider -> chat_template_kwargs enable_thinking=false on local lanes); fabrication row 0087 re-run live: clean refusal, no think chain, advisor_contract 100%",
+  "focus": "Orionfold Advisor PUBLIC LAUNCH — Orionfold/Advisor-GGUF + Advisor-bench live on HF, product page + home teaser shipped, flagship article 'The Refusal Floor Is Trainable' published (+2 upcoming series placeholders), Arena product/article/demo refreshed with the Advisor-era surfaces",
   "blockers": [],
   "next": [
-    "Public positioning artifacts when the operator calls it (product page / HF card / field note via product-writer + hf-publisher) — the §14 contract is green",
+    "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)",
-    "Optional v0.3 lever: Route:-prefix boundary on which-doc-defines-X phrasings + the one over-refusal class"
+    "Optional v0.3 lever: Route:-prefix boundary + the one over-refusal class (freeze curveball-v0.3 first)"
   ],
   "recent": [
-    "AD-AE-17 fix: BenchSpec.reasoning_mode rider + benches.reasoning_chat_kwargs mirror of preflight.py; chat/compare eval forward the kwargs to local lanes only (hosted tiers were measured without it); eval_context carries reasoning_mode",
-    "478 arena tests green (4 new); live CDP smoke: row 0087 through the visible chat eval drawer on the 4B-SFT-v0.2 lane refused at 100% with ~30 tok and no reasoning box (was ~2k-char think chain + fabricated HANDOFF content)",
-    "Edited-chip nit FIXED: empty composer no longer reads as an edit (ChatLane + CompareDuel guard, webui rebaked, three-state CDP smoke green)",
-    "advisor-publish-receipt-v0.1.json stands: PROMOTED 4B-SFT-v0.2, 9/9 gates verified",
-    "Cortex advisor panes (corpus/routing/receipt) + advisor-bench eval surface shipped in the prior session"
+    "HF: Orionfold/Advisor-GGUF (Q8_0 4.0 GB, NVIDIA license tag, OOD-first card) + Orionfold/Advisor-bench (pool/heldout/curveballs/corpus-manifest, sha-pinned) both live",
+    "products/orionfold-advisor launch page: mined build metrics (2 days, 871 turns, 118.9M tok @ 97.4% cache, 4307 LOC, 54 tests) + 7-shot tour; AdvisorTeaser on home",
+    "Article: The Refusal Floor Is Trainable (frozen-curveball method, 30B prompt 8/21+3 fabrications vs 4B trained 18/21+9/9) + 2 upcoming placeholders",
+    "Arena product article +3 toured features (guarded lanes, measured benches, vertical-proof cards); arena demo re-recorded with the 4 advisor stubs (endpoint-key sanitizer added)",
+    "4B-SFT-v0.2 stays the serving lane; 42 tok/s decode measured for the card"
   ],
-  "session": "S-advisor-ad-ae-17-fix",
+  "session": "S-advisor-public-launch",
   "metrics": {
-    "articles": 53,
-    "models": 6,
+    "articles": 54,
+    "models": 7,
     "software_released": 7,
     "arena_features": 27,
     "fieldkit_modules": 18,
