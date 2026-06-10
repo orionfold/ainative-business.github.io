@@ -42,6 +42,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--hf-model", required=True)
     p.add_argument("--megatron-path", required=True)
     p.add_argument("--torch-dtype", default="bfloat16", choices=["float32", "float16", "bfloat16"])
+    p.add_argument("--trust-remote-code", action="store_true",
+                   help="Models shipping custom config/modeling code (e.g. Nemotron-3-Nano-4B) need this")
     return p.parse_args()
 
 
@@ -60,7 +62,9 @@ def main() -> int:
     torch_dtype = dtype_map[args.torch_dtype]
 
     print(f"Loading HF model bridge: {args.hf_model}")
-    bridge = AutoBridge.from_hf_pretrained(args.hf_model, torch_dtype=torch_dtype)
+    bridge = AutoBridge.from_hf_pretrained(
+        args.hf_model, torch_dtype=torch_dtype, trust_remote_code=args.trust_remote_code
+    )
 
     print("Building Megatron provider (with weight-load plumbing)...")
     provider = bridge.to_megatron_provider(load_weights=True)
