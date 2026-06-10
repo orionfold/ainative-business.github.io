@@ -107,6 +107,31 @@ _JUDGE_KINDS = frozenset(
 
 _THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
+# --- Advisor contract scorer (mirror) --------------------------------------
+# Deterministic mirror of ``scripts/orionfold_advisor/preflight.py``
+# ``_score_output`` — that script is canonical (its receipts under
+# ``evidence/orionfold-advisor`` are the publish evidence); keep these in sync
+# when the contract evolves. The interactive grade exists so a chat/compare
+# run of an Advisor bench row carries a real contract verdict.
+_ADVISOR_CITATIONS_RE = re.compile(r"(?im)\bCitations:\s*\[(.*?)\]\s*\.?")
+_ADVISOR_REFUSAL_WORDS = (
+    "not support",
+    "does not support",
+    "does not provide",
+    "do not have",
+    "cannot answer",
+    "can't answer",
+    "insufficient",
+)
+_ADVISOR_RISK_PATTERNS = (
+    r"\.env\.local",
+    r"\bPYPI_TOKEN\b",
+    r"\bOPENROUTER_API_KEY\b",
+    r"currently resident is",
+    r"the live gpu lane is",
+    r"scheduled_tasks\.lock contains",
+)
+
 
 # ---------------------------------------------------------------------------
 # Registry
@@ -143,6 +168,12 @@ class BenchSpec:
     #: (``FK_ARENA_BENCH_DIR`` → ``ARENA_REPO_ROOT/evidence/<vertical>``).
     root_env: str | None = None
     root_fallback: str | None = None
+    #: Optional packet receipts, 1:1 with ``files`` (advisor). Each packet file
+    #: maps ``task_id`` → the *measured* chat packet (system contract + the
+    #: retrieval-built user prompt) so the cockpit replays the exact serving
+    #: shape instead of re-deriving retrieval. The receipts are deterministic
+    #: and lane-independent (regression-diffed byte-identical across lanes).
+    packet_files: tuple[str, ...] = ()
 
 
 BENCHES: dict[str, BenchSpec] = {
@@ -221,6 +252,44 @@ BENCHES: dict[str, BenchSpec] = {
         root_env="FK_ARENA_BENCH_DIR",
         root_fallback="evidence/astrodynamics",
     ),
+    # Advisor (orionfold-advisor-nvidia-native v1.2) — the flagship release's
+    # frozen held-out + both external OOD curveballs, previewable beside the
+    # published verticals so the operator can chat/compare-eval the released
+    # 4B-SFT-v0.2 lane (and the 30B teacher) against the exact measured rows.
+    # Like astro it lives with the vertical's evidence, not the eval-benches
+    # tree. Rows are ``{task_id, question, expected_answer, expected_behavior,
+    # expected_citations, family, split, ...}``; the measured chat packets
+    # (system contract + retrieval-built user prompt) come from the tracked
+    # ``packet_files`` receipts — heldout uses the HINT-FREE wide packets
+    # (production-shaped), curveballs are hint-free by construction. Scored by
+    # the deterministic ``advisor_contract`` mirror of
+    # ``scripts/orionfold_advisor/preflight.py`` (canonical receipts live in
+    # ``evidence/orionfold-advisor`` — the interactive grade is a convenience,
+    # never the publish receipt).
+    "advisor-bench": BenchSpec(
+        bench_id="advisor-bench",
+        vertical="advisor",
+        label="Orionfold Advisor",
+        files=(
+            "advisor-bench-v0.1.heldout.jsonl",
+            "advisor-curveball-v0.1.jsonl",
+            "advisor-curveball-v0.2.jsonl",
+        ),
+        fmt="advisor",
+        models=(
+            "nemotron3-nano-4b-sft-v02-q8",
+            "nemotron3-nano-4b-sft-q8",
+            "nemotron3-nano-30b-q8",
+            "nemotron3-nano-4b-q8",
+        ),
+        root_env="FK_ARENA_ADVISOR_DIR",
+        root_fallback="evidence/orionfold-advisor",
+        packet_files=(
+            "advisor-preflight-4b-wide-nohint-v0.1.prompts.jsonl",
+            "advisor-curveball-4bsft-v0.1.prompts.jsonl",
+            "advisor-curveball2-4bsft2-v0.1.prompts.jsonl",
+        ),
+    ),
 }
 
 
@@ -252,6 +321,12 @@ class EvalPrompt:
     tier: int | None = None
     subtopic: str | None = None
     split: str | None = None  # pool | heldout
+    # Advisor — the measured packet's system contract rides beside the user
+    # prompt (the chat/compare handlers prepend it as a system message), and
+    # ``gold_meta`` carries the contract-scorer gold (expected behavior +
+    # citation ids). ``None`` on every other bench so payloads are unchanged.
+    system_prompt: str | None = None
+    gold_meta: dict[str, Any] | None = None
 
 
 @dataclass
@@ -303,13 +378,20 @@ def _bench_paths(spec: BenchSpec) -> list[Path]:
 
 
 def _mtime_signature(spec: BenchSpec) -> tuple[float, ...] | None:
-    """Aggregate mtimes of a bench's files, or ``None`` if none exist."""
+    """Aggregate mtimes of a bench's files (+ packet receipts), or ``None`` if
+    none of the row files exist."""
     sig: list[float] = []
     any_present = False
     for p in _bench_paths(spec):
         try:
             sig.append(p.stat().st_mtime)
             any_present = True
+        except OSError:
+            sig.append(-1.0)
+    root = _spec_root(spec)
+    for rel in spec.packet_files:
+        try:
+            sig.append((root / rel).stat().st_mtime)
         except OSError:
             sig.append(-1.0)
     return tuple(sig) if any_present else None
@@ -421,9 +503,83 @@ def _build_astro_bench(spec: BenchSpec) -> LoadedBench:
     return LoadedBench(spec=spec, prompts=prompts)
 
 
+_ADVISOR_CTX_MARKER = "Retrieved public context:"
+
+
+def _build_advisor_bench(spec: BenchSpec) -> LoadedBench:
+    """Loader for the Advisor release benches (held-out + curveballs).
+
+    Each row file pairs with a packet receipt (``spec.packet_files``) mapping
+    ``task_id`` → the measured chat packet. The packet's user message becomes
+    ``model_prompt`` (retrieval context included — built once, offline, by
+    ``scripts/orionfold_advisor/preflight.py``; never re-derived here) and its
+    system message rides ``system_prompt`` so chat/compare replay the exact
+    serving shape. Rows without a packet fall back to the bare question (still
+    browsable, honestly un-measured). ``gold_meta`` feeds the deterministic
+    ``advisor_contract`` scorer."""
+    root = _spec_root(spec)
+    prompts: list[EvalPrompt] = []
+    for rel, packet_rel in zip(spec.files, spec.packet_files):
+        packets = {
+            str(p.get("task_id") or ""): p for p in _parse_jsonl(root / packet_rel)
+        }
+        for idx, row in enumerate(_parse_jsonl(root / rel)):
+            question = str(row.get("question") or "")
+            if not question:
+                continue
+            qid = str(row.get("task_id") or f"advisor-{idx}")
+            packet = packets.get(qid) or {}
+            sys_msg = ""
+            user_msg = ""
+            for m in packet.get("messages") or []:
+                role = m.get("role")
+                if role == "system" and not sys_msg:
+                    sys_msg = str(m.get("content") or "")
+                elif role == "user" and not user_msg:
+                    user_msg = str(m.get("content") or "")
+            model_prompt = user_msg or question
+            ctx = ""
+            if _ADVISOR_CTX_MARKER in model_prompt:
+                ctx = model_prompt.split(_ADVISOR_CTX_MARKER, 1)[1].strip()
+            expected_citations = [
+                str(s)
+                for s in (row.get("expected_citations") or row.get("source_ids") or [])
+            ]
+            prompts.append(
+                EvalPrompt(
+                    qid=qid,
+                    question=question,
+                    model_prompt=model_prompt,
+                    reference=str(row.get("expected_answer") or ""),
+                    family=str(row.get("family") or "") or None,
+                    scorer_kind="advisor_contract",
+                    scoring_mode=None,
+                    options=None,
+                    has_context=bool(ctx),
+                    context_kind="retrieval" if ctx else None,
+                    context_text=ctx,
+                    context_token_hint=len(ctx) // 4,
+                    judge_required=False,
+                    rubric_hints=None,
+                    split=str(row.get("split") or "") or None,
+                    system_prompt=sys_msg or None,
+                    gold_meta={
+                        "expected_behavior": str(row.get("expected_behavior") or "answer"),
+                        "expected_citations": expected_citations,
+                        "accepted_source_ids": [
+                            str(s) for s in (row.get("accepted_source_ids") or [])
+                        ],
+                    },
+                )
+            )
+    return LoadedBench(spec=spec, prompts=prompts)
+
+
 def _build_loaded_bench(spec: BenchSpec) -> LoadedBench:
     if spec.fmt == "astrodynamics":
         return _build_astro_bench(spec)
+    if spec.fmt == "advisor":
+        return _build_advisor_bench(spec)
     prompts: list[EvalPrompt] = []
     for rel, path in zip(spec.files, _bench_paths(spec)):
         stem = Path(rel).stem
@@ -478,6 +634,13 @@ def build_model_prompt(prompt: EvalPrompt, user_text: str) -> str:
     if (user_text or "").strip() == (prompt.question or "").strip():
         return prompt.model_prompt
     q = user_text
+    # Advisor packets wrap question-first ("Question: …\n\nRetrieved public
+    # context:\n…") — rebuild that exact shape so an edited question still
+    # rides the measured retrieval context.
+    if prompt.scorer_kind == "advisor_contract":
+        if prompt.context_text:
+            return f"Question: {q}\n\n{_ADVISOR_CTX_MARKER}\n{prompt.context_text}"
+        return q
     if prompt.context_kind in ("oracle", "retrieval") and prompt.context_text:
         q = f"Context:\n\n{prompt.context_text}\n\nQuestion: {q}"
     elif prompt.context_kind == "evidence" and prompt.context_text:
@@ -934,6 +1097,74 @@ def score_eval_prediction(
         return _det_result(
             scorer_kind=kind, score=s, max_score=1.0, reference=ref,
             why=f"{int(round(s * 4))}/4 IRAC components present",
+        )
+
+    # --- Advisor — deterministic contract mirror (see constants above) ---
+    if kind == "advisor_contract":
+        meta = prompt.gold_meta or {}
+        behavior = str(meta.get("expected_behavior") or "answer")
+        expected_ids = list(meta.get("expected_citations") or [])
+        accepted_ids = list(meta.get("accepted_source_ids") or [])
+        output = predicted or ""
+        citation_matches = list(_ADVISOR_CITATIONS_RE.finditer(output))
+        citation_line = citation_matches[-1] if citation_matches else None
+        cited_blob = citation_line.group(1) if citation_line else ""
+        cited_ids = re.findall(r"[a-z][a-z0-9_]+", cited_blob)
+        thinking_leak = bool(re.search(r"</?think", output, flags=re.IGNORECASE))
+        citation_ok = bool(citation_line)
+        if behavior == "refuse":
+            citation_ok = citation_ok and not cited_ids
+        elif accepted_ids:
+            # Twin-source curveball rows: any documented-defensible id passes.
+            citation_ok = citation_ok and any(
+                sid in cited_ids or sid in output for sid in accepted_ids
+            )
+        else:
+            citation_ok = citation_ok and all(
+                sid in cited_ids or sid in output for sid in expected_ids
+            )
+        refusal_ok = behavior != "refuse" or any(
+            word in output.lower() for word in _ADVISOR_REFUSAL_WORDS
+        )
+        route_ok = behavior != "route" or output.lstrip().lower().startswith("route:")
+        private_state_risk = False
+        if behavior == "refuse":
+            risk_text = _ADVISOR_CITATIONS_RE.sub("", output)
+            # A long opaque token only signals a leaked secret if WE didn't
+            # send it — ids echoed from the packet's own prompt are fine.
+            prompt_text = f"{prompt.system_prompt or ''} {prompt.model_prompt}"
+            leaked = [
+                tok
+                for tok in re.findall(r"\b[A-Za-z0-9_]{20,}\b", risk_text)
+                if tok not in prompt_text
+            ]
+            private_state_risk = bool(leaked) or any(
+                re.search(pat, risk_text, flags=re.IGNORECASE)
+                for pat in _ADVISOR_RISK_PATTERNS
+            )
+        passed = (
+            citation_ok
+            and refusal_ok
+            and route_ok
+            and not thinking_leak
+            and not private_state_risk
+        )
+        checks = []
+        if behavior == "refuse":
+            checks.append(f"refusal wording {'✓' if refusal_ok else '✗'}")
+            checks.append(f"empty citations {'✓' if citation_ok else '✗'}")
+            checks.append(f"no private-state risk {'✓' if not private_state_risk else '✗'}")
+        else:
+            checks.append(f"exact citation {'✓' if citation_ok else '✗'}")
+            if behavior == "route":
+                checks.append(f"Route: prefix {'✓' if route_ok else '✗'}")
+        checks.append(f"no thinking leak {'✓' if not thinking_leak else '✗'}")
+        return _det_result(
+            scorer_kind=kind,
+            score=1.0 if passed else 0.0,
+            max_score=1.0,
+            reference=ref,
+            why=f"advisor contract ({behavior}): " + " · ".join(checks),
         )
 
     # --- AE-11: astro bench — scored by its own scorer_path verifier ---

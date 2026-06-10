@@ -262,9 +262,9 @@ def _top_chunks(scored: list[tuple[float, Chunk]], top_k: int) -> list[dict[str,
     return rows
 
 
-def _load_rows(split: str) -> list[dict[str, Any]]:
-    pool = _read_jsonl(POOL_PATH)
-    heldout = _read_jsonl(HELDOUT_PATH)
+def _load_rows(split: str, pool_path: Path, heldout_path: Path) -> list[dict[str, Any]]:
+    pool = _read_jsonl(pool_path)
+    heldout = _read_jsonl(heldout_path)
     if split == "pool":
         return pool
     if split == "heldout":
@@ -278,10 +278,16 @@ def score_recall(
     top_k_values: tuple[int, ...],
     chunk_tokens: int,
     chunk_overlap: int,
+    # OA-NV-8 corpus-pack swap: the pack (manifest + gold bench) is data, the
+    # scorer is harness. Defaults are the Orionfold public pack; a customer /
+    # synthetic fixture pack swaps in by path with zero code change.
+    manifest_path: Path = MANIFEST_PATH,
+    pool_path: Path = POOL_PATH,
+    heldout_path: Path = HELDOUT_PATH,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    manifest = _read_jsonl(MANIFEST_PATH)
+    manifest = _read_jsonl(manifest_path)
     source_ids = {row["source_id"] for row in manifest}
-    rows = _load_rows(split)
+    rows = _load_rows(split, pool_path, heldout_path)
     chunks = build_chunks(manifest, chunk_tokens, chunk_overlap)
     max_k = max(top_k_values)
 
@@ -367,8 +373,8 @@ def score_recall(
                 raw = bucket[metric_name][key]
                 bucket[metric_name][key] = None if n == 0 else round(raw / n, 4)
 
-    manifest_hash = hashlib.sha256(MANIFEST_PATH.read_bytes()).hexdigest()[:12]
-    bench_hash = hashlib.sha256(POOL_PATH.read_bytes() + HELDOUT_PATH.read_bytes()).hexdigest()[:12]
+    manifest_hash = hashlib.sha256(manifest_path.read_bytes()).hexdigest()[:12]
+    bench_hash = hashlib.sha256(pool_path.read_bytes() + heldout_path.read_bytes()).hexdigest()[:12]
     report = {
         "generated": date.today().isoformat(),
         "version": VERSION,
@@ -377,10 +383,10 @@ def score_recall(
         "top_k": list(top_k_values),
         "chunk_tokens": chunk_tokens,
         "chunk_overlap": chunk_overlap,
-        "manifest_path": MANIFEST_PATH.relative_to(REPO_ROOT).as_posix(),
+        "manifest_path": manifest_path.relative_to(REPO_ROOT).as_posix(),
         "bench_paths": [
-            POOL_PATH.relative_to(REPO_ROOT).as_posix(),
-            HELDOUT_PATH.relative_to(REPO_ROOT).as_posix(),
+            pool_path.relative_to(REPO_ROOT).as_posix(),
+            heldout_path.relative_to(REPO_ROOT).as_posix(),
         ],
         "manifest_sha256_12": manifest_hash,
         "bench_sha256_12": bench_hash,
@@ -415,6 +421,11 @@ def main() -> None:
     parser.add_argument("--chunk-overlap", type=int, default=DEFAULT_CHUNK_OVERLAP)
     parser.add_argument("--report", type=Path, default=REPORT_PATH)
     parser.add_argument("--predictions", type=Path, default=PREDICTIONS_PATH)
+    # OA-NV-8 corpus-pack swap (spec §14): point the same scorer at a different
+    # pack — customer/synthetic manifest + gold bench — with no code change.
+    parser.add_argument("--manifest", type=Path, default=MANIFEST_PATH)
+    parser.add_argument("--pool", type=Path, default=POOL_PATH)
+    parser.add_argument("--heldout", type=Path, default=HELDOUT_PATH)
     args = parser.parse_args()
 
     if args.chunk_tokens <= 0:
@@ -427,6 +438,9 @@ def main() -> None:
         top_k_values=DEFAULT_TOP_K,
         chunk_tokens=args.chunk_tokens,
         chunk_overlap=args.chunk_overlap,
+        manifest_path=args.manifest.resolve(),
+        pool_path=args.pool.resolve(),
+        heldout_path=args.heldout.resolve(),
     )
     args.report.parent.mkdir(parents=True, exist_ok=True)
     _write_json(args.report, report)

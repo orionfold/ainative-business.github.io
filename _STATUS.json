@@ -3,27 +3,27 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Advisor 4B-SFT-v0.2 PROMOTED to the serving lane (operator, on curveball-v0.2 evidence: 18/21 refusals 9/9 risk 0 vs 30B 8/21 refusals 3/9 risk 3); SFT-v0.2 lane complete \u2014 827-row 3-lever corpus, frozen pre-registered OOD gate, both 28/28 wides held",
+  "focus": "Advisor publish readiness COMPLETE — §14 publish receipt assembled with all 9 gates verified (verdict: PROMOTED 4B-SFT-v0.2); Advisor evals loaded into the Arena chat/compare bench picker; Cortex gained corpus-pack, routing/cost, and publish-receipt cards (AD-AE-11 read surface + AD-AE-16 closed)",
   "blockers": [],
   "next": [
-    "Spec 10 corpus pane (extends AD-AE-11; SFT-corpus handoff + curveball eval still terminal-side)",
-    "AD-AE-16 Arena routing surface (spec 12)",
-    "14 publish/reject receipt assembly when the operator calls it",
-    "Optional v0.3 lever: Route:-prefix boundary on which-doc-defines-X phrasings (all misses citation-correct) + the one over-refusal class"
+    "Public positioning artifacts when the operator calls it (product page / HF card / field note via product-writer + hf-publisher) — the §14 contract is green",
+    "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
+    "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)",
+    "Optional v0.3 lever: Route:-prefix boundary on which-doc-defines-X phrasings + the one over-refusal class"
   ],
   "recent": [
-    "PROMOTION: guarded teardown-first LaneTruth swap \u2014 4B-SFT-v0.2 serves on :8091 (warm 2 s, ~12 GB vs 30B ~40 GB); visible Cortex /no_think re-anchored 8/8; 30B stays on disk as teacher/comparison; supersedes the 06-09 '30B serves, 4B trains' split",
-    "sft_corpus.py v0.2: 50/50 hint alternation (teacher always hinted), 3 new hint-free refusal families on the v0.1 miss classes (injection 60, absent-source 55, wrong-metric 35 with metric-absence verified), route templates natural + quota 120; 827 rows sha e096aa6b12cc, 0 overlap with bench + both curveballs",
-    "Curveball-v0.2 frozen PRE-training (21 rows sha 4b6cac85e41f, 6 novel pretext classes + 2 probes): 4B-SFT-v0.2 18/21 scored==strict, refusals 9/9, 0 risk; 30B serving baseline 8/21, refusals 3/9, 3 private_state_risk \u2014 the trained lane, not the prompt, carries the refusal floor",
-    "Curveball-v0.1 re-run 36/40 scored==strict (refusals 15/15 \u2014 regression FIXED above init 14/15; class-near-distribution caveat); hinted wide HELD 28/28, NEW hint-free wide 28/28, Cortex /no_think 8/8, router t1-only 28/28 (t4 PASS $0.0033; t3 NGC call timed out, recorded honestly)",
-    "Train 285 iters ~21 min val PPL 1.60 -> Q8_0 4.0 GB; recipe nemotron3-nano-4b-sft-v02-q8 (8th); operator-armed teardown + restore through visible LaneTruth; 13.E v0.2 RLVR skip recorded; nemo-train stopped"
+    "advisor-publish-receipt-v0.1.json: deterministic assembler re-verifies every gate claim against tracked receipts (fails on drift); PROMOTED 4B-SFT-v0.2, 30B retained as teacher, 6 lanes dispositioned with reasons",
+    "OA-NV-8 corpus-pack swap gate: score_recall.py gained --manifest/--pool/--heldout (default path regression-clean), synthetic 3-source Helios fixture pack passes the unchanged scorer 1.0@5",
+    "advisor-bench in the Arena eval surface: 89 measured rows (28 held-out hint-free + 40 cb1 + 21 cb2), packets replayed with the system contract via new EvalPrompt.system_prompt, deterministic advisor_contract scorer; live chat-eval smoke: urgency-pretext refusal scored 100% on the serving lane",
+    "Cortex panes over GET /api/advisor/{corpus,routing,receipt}: manifest 182/6b1e832d099c + recall chips + swap fixture + SFT handoff; routing 28/28x3 configs + T4 governance + per-escalation tier/provider/cost/verdict; receipt card with 9 gate chips",
+    "474 arena tests green; webui rebaked twice + CDP-smoked side-by-side; screenshots staged in /tmp/orionfold-advisor-dogfood/"
   ],
-  "session": "S-advisor-sft-v02-promoted",
+  "session": "S-advisor-publish-readiness",
   "metrics": {
     "articles": 53,
     "models": 6,
     "software_released": 7,
-    "arena_features": 25,
+    "arena_features": 27,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,

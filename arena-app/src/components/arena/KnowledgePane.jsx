@@ -55,6 +55,11 @@ export default function KnowledgePane() {
   const [advisor, setAdvisor] = useState(null);
   const [advisorBusy, setAdvisorBusy] = useState(false);
   const [advisorNote, setAdvisorNote] = useState('');
+  // Advisor corpus pane (spec §10, AD-AE-11) + routing surface (spec §12, AD-AE-16)
+  const [corpus, setCorpus] = useState(null);
+  const [routing, setRouting] = useState(null);
+  // §14 publish/reject receipt card (spec §12 Receipt)
+  const [receipt, setReceipt] = useState(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [sourceSet, setSourceSet] = useState('articles');
@@ -78,6 +83,18 @@ export default function KnowledgePane() {
       const ar = await fetch(`${base}/api/advisor/preflight`);
       if (ar.ok) {
         setAdvisor(await ar.json());
+      }
+      const cr = await fetch(`${base}/api/advisor/corpus`);
+      if (cr.ok) {
+        setCorpus(await cr.json());
+      }
+      const rr = await fetch(`${base}/api/advisor/routing`);
+      if (rr.ok) {
+        setRouting(await rr.json());
+      }
+      const pr = await fetch(`${base}/api/advisor/receipt`);
+      if (pr.ok) {
+        setReceipt(await pr.json());
       }
     } catch (_e) {
       setOnline(false);
@@ -349,6 +366,177 @@ export default function KnowledgePane() {
                 ? ` · results ${advisorResults.row_count} rows`
                 : ' · no scored result artifact yet'}
             </p>
+          </>
+        )}
+      </section>
+
+      {/* Advisor publish/reject receipt — spec §12 Receipt card. Read-only
+          projection of the §14 verdict assembled by publish_receipt.py. */}
+      {receipt && receipt.available && (
+        <section class="kp__advisor" data-status="ok">
+          <header class="kp__advisor-head">
+            <div>
+              <span class="kp__advisor-title">Advisor publish receipt</span>
+              <span class="kp__advisor-sub">§14 verdict — every gate re-verified against evidence at assembly</span>
+            </div>
+            <span class="kp__advisor-badge" data-pass={receipt.decision && receipt.decision.verdict === 'PROMOTED'}>
+              {receipt.decision ? receipt.decision.verdict : '—'}
+            </span>
+          </header>
+          <div class="kp__advisor-lane" data-ready={true}>
+            <div>
+              <span class="kp__advisor-lane-label">promoted lane</span>
+              <code>{receipt.decision && receipt.decision.model}</code>
+              <span>{receipt.decision && receipt.decision.role}</span>
+            </div>
+          </div>
+          <div class="kp__advisor-families">
+            {Object.entries(receipt.gates || {}).map(([g, v]) => (
+              <span class="kp__advisor-family" key={g} data-pass={v.passed === true}>
+                {v.passed === true ? '✓' : '✗'} {g.replace(/_/g, ' ')}
+              </span>
+            ))}
+          </div>
+          {receipt.decision && (receipt.decision.why || []).length > 0 && (
+            <details class="kp__advisor-packets">
+              <summary>why promoted · {(receipt.lanes_considered || []).length} lanes considered</summary>
+              <ol>
+                {receipt.decision.why.map((w, i) => <li key={i}><span>{w}</span></li>)}
+              </ol>
+            </details>
+          )}
+          <p class="kp__advisor-source">
+            receipt <code>advisor-publish-receipt-{receipt.version}.json</code>
+            {' · '}manifest <code>{receipt.provenance && receipt.provenance.manifest_sha256_12}</code>
+            {' · '}bench <code>{receipt.provenance && receipt.provenance.bench_sha256_12}</code>
+          </p>
+        </section>
+      )}
+
+      {/* Advisor corpus pack — spec §10 corpus pane (AD-AE-11). Read-only:
+          manifest digest, both recall-gate receipts, the OA-NV-8 swap fixture,
+          and the SFT-corpus handoff reports. */}
+      <section class="kp__advisor" data-status={corpus && corpus.available ? 'ok' : 'missing'}>
+        <header class="kp__advisor-head">
+          <div>
+            <span class="kp__advisor-title">Advisor corpus pack</span>
+            <span class="kp__advisor-sub">manifest · recall gates · swap fixture · SFT handoff</span>
+          </div>
+          <span
+            class="kp__advisor-badge"
+            data-pass={!!(corpus && corpus.recall_live && corpus.recall_live.gate_passed)}
+          >
+            {corpus && corpus.recall_live && corpus.recall_live.available
+              ? (corpus.recall_live.gate_passed ? 'recall green' : 'recall FAILING')
+              : 'no recall receipt'}
+          </span>
+        </header>
+        {!corpus || corpus.available === false ? (
+          <p class="kp__empty">No corpus-pack manifest found under evidence/orionfold-advisor.</p>
+        ) : (
+          <>
+            <div class="kp__advisor-grid">
+              <div><b>{corpus.manifest.source_count}</b><span>sources</span></div>
+              <div><b>{corpus.manifest.sha256_12}</b><span>manifest</span></div>
+              <div><b>{corpus.recall_bm25.available ? corpus.recall_bm25.source_recall['@5'] : '—'}</b><span>bm25 @5</span></div>
+              <div><b>{corpus.recall_live.available ? corpus.recall_live.source_recall['@5'] : '—'}</b><span>live @5</span></div>
+              <div><b>{corpus.recall_live.available ? corpus.recall_live.heldout_source_recall['@5'] : '—'}</b><span>held-out @5</span></div>
+            </div>
+            {corpus.swap_fixture && corpus.swap_fixture.available && (
+              <p class="kp__advisor-rule">
+                OA-NV-8 corpus swap: synthetic fixture pack ({corpus.swap_fixture.source_count} sources,
+                {' '}{corpus.swap_fixture.row_count} gold rows) through the same scorer —{' '}
+                {corpus.swap_fixture.gate_passed ? 'gate PASS' : 'gate FAIL'} @5 ={' '}
+                {corpus.swap_fixture.source_recall['@5']} (manifest {corpus.swap_fixture.manifest_sha256_12})
+              </p>
+            )}
+            {(corpus.sft_corpora || []).length > 0 && (
+              <div class="kp__advisor-families">
+                {corpus.sft_corpora.map((s) => (
+                  <span class="kp__advisor-family" key={s.version}>
+                    SFT {s.version}: {s.rows_kept} rows · {s.rejects} rejects · sha {s.corpus_sha256_12}
+                  </span>
+                ))}
+              </div>
+            )}
+            {corpus.manifest.by_class && (
+              <details class="kp__advisor-packets">
+                <summary>source composition</summary>
+                <div class="kp__advisor-families">
+                  {Object.entries(corpus.manifest.by_class).map(([k, n]) => (
+                    <span class="kp__advisor-family" key={k}>{k}: {n}</span>
+                  ))}
+                </div>
+              </details>
+            )}
+          </>
+        )}
+      </section>
+
+      {/* Advisor routing & cost — spec §12 route-tier/ledger surface (AD-AE-16).
+          Read-only projection of the §13.F bakeoff receipt + hosted-escalation
+          ledger; the bakeoff itself stays a deterministic tracked script. */}
+      <section class="kp__advisor" data-status={routing && routing.available ? 'ok' : 'missing'}>
+        <header class="kp__advisor-head">
+          <div>
+            <span class="kp__advisor-title">Advisor routing &amp; cost</span>
+            <span class="kp__advisor-sub">governed escalation — tiers, providers, spend, data policy</span>
+          </div>
+          <span
+            class="kp__advisor-badge"
+            data-pass={!!(routing && routing.available && routing.configs && Object.values(routing.configs).every((c) => c.pass_rate === 1))}
+          >
+            {routing && routing.available
+              ? `router rev ${routing.router ? routing.router.revision : '—'}`
+              : 'no bakeoff receipt'}
+          </span>
+        </header>
+        {!routing || routing.available === false ? (
+          <p class="kp__empty">No route-bakeoff receipt found under evidence/orionfold-advisor.</p>
+        ) : (
+          <>
+            <div class="kp__advisor-grid">
+              {Object.entries(routing.configs || {}).map(([cfg, c]) => (
+                <div key={cfg}>
+                  <b>{c.pass}/{routing.slice ? routing.slice.rows : '—'}</b>
+                  <span>{cfg} · ${Number(c.hosted_cost_usd || 0).toFixed(4)}</span>
+                </div>
+              ))}
+              <div>
+                <b>{routing.private_state_blocked}</b>
+                <span>private-state blocked</span>
+              </div>
+            </div>
+            {routing.governance && (
+              <p class="kp__advisor-rule">
+                T4 governance: allowed {routing.governance.allowed_models.join(', ')} · cap ${routing.governance.cap_usd} ·{' '}
+                {routing.governance.data_policy}
+              </p>
+            )}
+            {(routing.escalations || []).length > 0 && (
+              <details class="kp__advisor-results" open>
+                <summary>{routing.escalations.length} hosted escalation{routing.escalations.length === 1 ? '' : 's'}</summary>
+                <ol>
+                  {routing.escalations.map((e) => (
+                    <li key={e.task_id}>
+                      <code>{e.task_id}</code>
+                      <span>{e.trigger}</span>
+                      {(e.tiers || []).map((t) => (
+                        <span key={t.config} data-pass={t.passed === true}>
+                          {t.config}: {t.model} · {t.status || (t.passed === true ? 'pass' : t.passed === false ? 'fail' : '—')}
+                          {t.cost_usd != null ? ` · $${Number(t.cost_usd).toFixed(4)}` : ''}
+                        </span>
+                      ))}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            )}
+            {routing.router && (
+              <p class="kp__advisor-source">
+                policy: {routing.router.policy}
+              </p>
+            )}
           </>
         )}
       </section>

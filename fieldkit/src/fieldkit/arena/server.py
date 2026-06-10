@@ -46,6 +46,7 @@ and imported lazily inside :func:`create_app` and :func:`serve` — so
 # Every annotation in this file is therefore a real runtime object.
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
@@ -2695,6 +2696,48 @@ def create_app(
         body["run"] = run
         return body
 
+    @app.get("/api/advisor/corpus")
+    async def api_advisor_corpus() -> dict[str, Any]:
+        """Read-only Advisor corpus-pack pane (spec §10, closes AD-AE-11).
+
+        Surfaces the tracked corpus-pack state — manifest digest + composition,
+        both recall-gate receipts (local BM25 and the live Cortex/pgvector
+        lane), the OA-NV-8 corpus-swap fixture receipt, and the SFT-corpus
+        handoff reports — without touching the retriever, the GPU, or
+        ``arena.db``. Pure read over ``evidence/orionfold-advisor``;
+        ``{available: false}`` blocks degrade per artifact on a fresh box.
+        """
+        return _advisor_corpus_projection(root)
+
+    @app.get("/api/advisor/receipt")
+    async def api_advisor_receipt() -> dict[str, Any]:
+        """Read-only Advisor publish/reject receipt card (spec §12 Receipt).
+
+        Projects ``advisor-publish-receipt-v0.1.json`` — the §14 verdict, the
+        per-gate matrix, lane verdicts, and provenance hashes — so the
+        publish decision is visible in the cockpit. The receipt itself is
+        assembled (and every claim re-verified against evidence) by
+        ``scripts/orionfold_advisor/publish_receipt.py``.
+        """
+        receipt = _advisor_read_json(
+            _advisor_preflight_dir(root), "advisor-publish-receipt-v0.1.json"
+        )
+        if not receipt:
+            return {"available": False, "kind": "advisor_publish_receipt"}
+        return {"available": True, **receipt}
+
+    @app.get("/api/advisor/routing")
+    async def api_advisor_routing() -> dict[str, Any]:
+        """Read-only Advisor routing/cost surface (spec §12, closes AD-AE-16).
+
+        Projects the §13.F route-bakeoff receipt + ledger: per-config pass
+        rates and hosted cost, the deterministic router policy + revision, the
+        T4 governance block (allowed models, cap, data policy), and every
+        hosted escalation with tier/provider/model/cost/verdict. Pure read —
+        the bakeoff itself stays a deterministic tracked script.
+        """
+        return _advisor_routing_projection(root)
+
     # ------------------------------------------------------------------
     # M11 (autonomous harness) — the morning-standup render (AH-3).
     # ------------------------------------------------------------------
@@ -3330,6 +3373,165 @@ def _summarize_advisor_results(root: Path, results_path: Any) -> dict[str, Any]:
         "passed": row_count > 0 and failures == 0,
         "path": results_path,
         "rows": rows,
+    }
+
+
+def _advisor_read_json(base: Path, name: str) -> dict[str, Any] | None:
+    """One evidence JSON, or ``None`` (absent / unparseable degrades, no 500)."""
+    p = base / name
+    if not p.is_file():
+        return None
+    try:
+        value = json.loads(p.read_text())
+    except (OSError, ValueError):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _advisor_recall_digest(report: dict[str, Any] | None) -> dict[str, Any]:
+    """A recall receipt → the chips the corpus pane renders."""
+    if not report:
+        return {"available": False}
+    metrics = report.get("metrics") or {}
+    heldout = (report.get("by_split") or {}).get("heldout") or {}
+    gate = report.get("gate") or {}
+    return {
+        "available": True,
+        "generated": report.get("generated"),
+        "method": report.get("method"),
+        "source_count": report.get("source_count"),
+        "chunk_count": report.get("chunk_count"),
+        "row_count": report.get("row_count"),
+        "manifest_sha256_12": report.get("manifest_sha256_12"),
+        "bench_sha256_12": report.get("bench_sha256_12"),
+        "source_recall": metrics.get("source_recall") or {},
+        "heldout_source_recall": heldout.get("source_recall") or {},
+        "misses_at_5": len(metrics.get("source_misses_at_5") or []),
+        "gate_passed": bool(gate.get("passed")),
+        "gate_threshold": gate.get("threshold"),
+    }
+
+
+def _advisor_corpus_projection(root: Path) -> dict[str, Any]:
+    """Spec §10 corpus pane (AD-AE-11) — tracked corpus-pack state, pure read."""
+    base = _advisor_preflight_dir(root)
+    manifest_path = base / "public-corpus-manifest.jsonl"
+    manifest: dict[str, Any] = {"available": False}
+    if manifest_path.is_file():
+        try:
+            rows = [
+                json.loads(line)
+                for line in manifest_path.read_text().splitlines()
+                if line.strip()
+            ]
+            by_class: dict[str, int] = {}
+            by_role: dict[str, int] = {}
+            for r in rows:
+                by_class[str(r.get("source_class"))] = by_class.get(str(r.get("source_class")), 0) + 1
+                by_role[str(r.get("source_role"))] = by_role.get(str(r.get("source_role")), 0) + 1
+            manifest = {
+                "available": True,
+                "source_count": len(rows),
+                "sha256_12": hashlib.sha256(manifest_path.read_bytes()).hexdigest()[:12],
+                "by_class": dict(sorted(by_class.items(), key=lambda kv: -kv[1])),
+                "by_role": dict(sorted(by_role.items(), key=lambda kv: -kv[1])),
+            }
+        except (OSError, ValueError):
+            manifest = {"available": False}
+    sft_reports = []
+    for name in ("advisor-sft-corpus-v0.1.json", "advisor-sft-corpus-v0.2.json"):
+        rep = _advisor_read_json(base, name)
+        if not rep:
+            continue
+        sft_reports.append(
+            {
+                "version": rep.get("version"),
+                "generated": rep.get("generated"),
+                "rows_kept": rep.get("rows_kept"),
+                "rejects": rep.get("rejects"),
+                "refusal_share": rep.get("refusal_share"),
+                "corpus_sha256_12": rep.get("corpus_sha256_12"),
+                "manifest_sha256_12": rep.get("manifest_sha256_12"),
+                "bench_sha256_12": rep.get("bench_sha256_12"),
+                "teacher_model": (rep.get("teacher") or {}).get("model"),
+            }
+        )
+    return {
+        "available": manifest.get("available", False),
+        "kind": "advisor_corpus",
+        "manifest": manifest,
+        "recall_bm25": _advisor_recall_digest(_advisor_read_json(base, "rag-recall-v0.1.json")),
+        "recall_live": _advisor_recall_digest(
+            _advisor_read_json(base, "rag-recall-v0.1-cortex.json")
+        ),
+        # OA-NV-8 — the corpus-pack swap demonstration (synthetic fixture pack
+        # through the same scorer, data-only swap).
+        "swap_fixture": _advisor_recall_digest(
+            _advisor_read_json(base, "advisor-corpus-swap-fixture-v0.1.json")
+        ),
+        "sft_corpora": sft_reports,
+    }
+
+
+def _advisor_routing_projection(root: Path) -> dict[str, Any]:
+    """Spec §12 routing/cost surface (AD-AE-16) — §13.F bakeoff receipt + ledger."""
+    base = _advisor_preflight_dir(root)
+    report = _advisor_read_json(base, "advisor-route-bakeoff-v0.1.json")
+    if not report:
+        return {"available": False, "kind": "advisor_routing"}
+    escalations: list[dict[str, Any]] = []
+    blocked = 0
+    ledger_path = base / "advisor-route-bakeoff-v0.1.ledger.jsonl"
+    if ledger_path.is_file():
+        try:
+            for line in ledger_path.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                route = row.get("route") or {}
+                if route.get("hosted_egress_blocked"):
+                    blocked += 1
+                if not route.get("escalate"):
+                    continue
+                tiers = []
+                for cfg, esc in (row.get("escalations") or {}).items():
+                    if not isinstance(esc, dict):
+                        continue
+                    score = esc.get("score") if isinstance(esc.get("score"), dict) else {}
+                    tiers.append(
+                        {
+                            "config": cfg,
+                            "model": esc.get("model"),
+                            "status": esc.get("status"),
+                            "cost_usd": esc.get("cost_usd"),
+                            "passed": score.get("passed"),
+                        }
+                    )
+                escalations.append(
+                    {
+                        "task_id": row.get("task_id"),
+                        "trigger": route.get("trigger"),
+                        "tiers": tiers,
+                    }
+                )
+        except OSError:
+            pass
+    return {
+        "available": True,
+        "kind": "advisor_routing",
+        "generated": report.get("generated"),
+        "version": report.get("version"),
+        "slice": report.get("slice"),
+        "t1": report.get("t1"),
+        "t2_status": report.get("t2_status"),
+        "configs": report.get("configs"),
+        "router": report.get("router"),
+        "governance": report.get("t4_governance"),
+        "escalations": escalations,
+        "private_state_blocked": blocked,
     }
 
 
@@ -5285,23 +5487,27 @@ def _next_ord(store: Any, session_id: str) -> int:
     return len(rows)
 
 
-def _resolve_eval_prompt(body: Any) -> tuple[str | None, dict[str, Any] | None]:
+def _resolve_eval_prompt(
+    body: Any,
+) -> tuple[str | None, dict[str, Any] | None, str | None]:
     """If ``body`` carries ``bench_id`` + ``eval_qid``, return the canonical
-    model prompt (context-prepended, edit-aware) + an ``eval_context`` block to
-    surface in the ``start`` event. Returns ``(None, None)`` otherwise / on a
-    missing bench so the caller falls back to ``body.prompt``."""
+    model prompt (context-prepended, edit-aware), an ``eval_context`` block to
+    surface in the ``start`` event, and the bench row's measured *system*
+    prompt (Advisor packets carry one; every other bench yields ``None``).
+    Returns ``(None, None, None)`` otherwise / on a missing bench so the
+    caller falls back to ``body.prompt``."""
     bench_id = getattr(body, "bench_id", None)
     qid = getattr(body, "eval_qid", None)
     if not bench_id or not qid:
-        return None, None
+        return None, None, None
     from fieldkit.arena import benches as _benches
 
     loaded = _benches.load_bench(bench_id)
     if loaded is None:
-        return None, None
+        return None, None, None
     prompt = loaded.by_qid.get(qid)
     if prompt is None:
-        return None, None
+        return None, None, None
     model_prompt = _benches.build_model_prompt(prompt, getattr(body, "prompt", "") or "")
     eval_context = {
         "bench_id": bench_id,
@@ -5311,7 +5517,9 @@ def _resolve_eval_prompt(body: Any) -> tuple[str | None, dict[str, Any] | None]:
         "kind": prompt.context_kind,
         "token_hint": prompt.context_token_hint,
     }
-    return model_prompt, eval_context
+    if prompt.system_prompt:
+        eval_context["system_attached"] = True
+    return model_prompt, eval_context, prompt.system_prompt
 
 
 def _guard_prompt_ctx(
@@ -5466,7 +5674,7 @@ async def chat_event_stream(
         # v0.3 eval mode — run the bench's canonical context-prepended prompt
         # so the score matches measurement conditions. The persisted user turn
         # above keeps the displayed prompt; only the model sees the prepend.
-        eval_model_prompt, eval_context = _resolve_eval_prompt(body)
+        eval_model_prompt, eval_context, eval_system = _resolve_eval_prompt(body)
         effective_prompt = eval_model_prompt if eval_model_prompt is not None else body.prompt
         if eval_model_prompt is not None:
             ceiling = (
@@ -5502,7 +5710,11 @@ async def chat_event_stream(
         hub.report_inflight(inflight=True, tok_per_s=None, ttft_ms=None, lane_id=lane_id)
 
         client = lane["client"]
-        messages = [{"role": "user", "content": effective_prompt}]
+        # Advisor eval rows replay the measured system contract; every other
+        # path keeps the bare user message.
+        messages = (
+            [{"role": "system", "content": eval_system}] if eval_system else []
+        ) + [{"role": "user", "content": effective_prompt}]
         kwargs = {
             "max_tokens": int(getattr(body, "max_tokens", 4096)),
             "temperature": float(getattr(body, "temperature", 0.0)),
@@ -6385,6 +6597,7 @@ async def _stream_one_side(
     hub: "TelemetryHub",
     max_tokens: int,
     temperature: float,
+    system_prompt: str | None = None,
 ) -> "AsyncIterator[Tuple[str, dict[str, Any] | str]]":
     """Pull tokens off ``client.chat_stream`` and yield ``(kind, payload)``.
 
@@ -6409,7 +6622,12 @@ async def _stream_one_side(
     def _producer() -> None:
         try:
             for piece in client.chat_stream(
-                [{"role": "user", "content": prompt}],
+                (
+                    [{"role": "system", "content": system_prompt}]
+                    if system_prompt
+                    else []
+                )
+                + [{"role": "user", "content": prompt}],
                 max_tokens=max_tokens,
                 temperature=temperature,
             ):
@@ -6604,7 +6822,7 @@ async def compare_event_stream(
         # v0.3 eval mode — both sides receive the bench's canonical
         # context-prepended prompt so the per-side scores match measurement
         # conditions. ``eval_context`` rides the start events for transparency.
-        eval_model_prompt, eval_context = _resolve_eval_prompt(body)
+        eval_model_prompt, eval_context, eval_system = _resolve_eval_prompt(body)
         effective_prompt = (
             eval_model_prompt if eval_model_prompt is not None else body.prompt
         )
@@ -6767,6 +6985,7 @@ async def compare_event_stream(
                 hub=hub,
                 max_tokens=max_tokens,
                 temperature=temperature,
+                system_prompt=eval_system,
             ):
                 if kind == "token":
                     yield {"event": f"token_{suffix}", "data": json.dumps(payload)}

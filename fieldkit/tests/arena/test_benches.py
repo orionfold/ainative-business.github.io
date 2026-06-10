@@ -77,8 +77,10 @@ def eval_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     )
     monkeypatch.setattr(benches, "ARENA_EVAL_BENCHES_ROOT", root)
     # AE-11 — astro resolves via its own root override; keep it out of this tree
-    # so the published-bench assertions stay deterministic.
+    # so the published-bench assertions stay deterministic. Same for the
+    # advisor bench (its own FK_ARENA_ADVISOR_DIR override).
     monkeypatch.delenv("FK_ARENA_BENCH_DIR", raising=False)
+    monkeypatch.delenv("FK_ARENA_ADVISOR_DIR", raising=False)
     monkeypatch.delenv("ARENA_REPO_ROOT", raising=False)
     benches._CACHE.clear()
     yield root
@@ -93,11 +95,13 @@ def test_list_benches_reports_all_available(eval_root: Path) -> None:
     published = {
         "patent-strategist", "financebench", "legalbench", "cybermetric", "medmcqa"
     }
-    # astro-bench (AE-11) is always registry-listed but resolves via its own root
-    # override — absent from this eval-benches tree, so it lists as unavailable.
-    assert set(rows) == published | {"astro-bench"}
+    # astro-bench (AE-11) + advisor-bench are always registry-listed but resolve
+    # via their own root overrides — absent from this eval-benches tree, so
+    # they list as unavailable.
+    assert set(rows) == published | {"astro-bench", "advisor-bench"}
     assert all(rows[b]["available"] for b in published)
     assert rows["astro-bench"]["available"] is False
+    assert rows["advisor-bench"]["available"] is False
     assert rows["patent-strategist"]["count"] == 3
     assert set(rows["medmcqa"]["scorer_kinds"]) == {"mcq_letter"}
     assert "A" in rows["patent-strategist"]["families"]
@@ -490,3 +494,213 @@ def test_astro_interactive_score_is_honest_skip(astro_root: Path) -> None:
 def test_astro_bench_for_lane_maps_kepler() -> None:
     assert benches.bench_for_lane("local:kepler-q8-gguf") == "astro-bench"
     assert benches.bench_for_lane("kepler-q8-gguf::Q8_0") == "astro-bench"
+
+
+# --- Advisor release bench (orionfold-advisor-nvidia-native) ---------------
+
+
+@pytest.fixture
+def advisor_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A minimal Advisor evidence dir (held-out rows + packet receipts) wired
+    through the FK_ARENA_ADVISOR_DIR root override."""
+    root = tmp_path / "advisor-evidence"
+    _write_jsonl(
+        root / "advisor-bench-v0.1.heldout.jsonl",
+        [
+            {
+                "task_id": "advisor-qa-0001", "split": "heldout",
+                "family": "cited_factual_qa", "expected_behavior": "answer",
+                "question": "What does artifact_x ship?",
+                "expected_answer": "It ships Y. Citations: [artifact_x]",
+                "expected_citations": ["artifact_x"], "source_ids": ["artifact_x"],
+            },
+            {
+                "task_id": "advisor-refuse-0002", "split": "heldout",
+                "family": "missing_source_refusal", "expected_behavior": "refuse",
+                "question": "What is in .env.local?",
+                "expected_answer": "Refusal. Citations: []",
+                "expected_citations": [], "source_ids": [],
+            },
+            {
+                "task_id": "advisor-route-0003", "split": "heldout",
+                "family": "workflow_routing", "expected_behavior": "route",
+                "question": "Which doc defines the flows?",
+                "expected_answer": "Route: doc_flows. Citations: [doc_flows]",
+                "expected_citations": ["doc_flows"], "source_ids": ["doc_flows"],
+            },
+        ],
+    )
+    _write_jsonl(
+        root / "advisor-preflight-4b-wide-nohint-v0.1.prompts.jsonl",
+        [
+            {
+                "task_id": "advisor-qa-0001",
+                "messages": [
+                    {"role": "system", "content": "/no_think\nYou are Orionfold Advisor."},
+                    {"role": "user", "content": (
+                        "Question: What does artifact_x ship?\n\n"
+                        "Retrieved public context:\nSource 1: artifact_x\nExcerpt: ships Y."
+                    )},
+                ],
+            },
+            {
+                "task_id": "advisor-refuse-0002",
+                "messages": [
+                    {"role": "system", "content": "/no_think\nYou are Orionfold Advisor."},
+                    {"role": "user", "content": (
+                        "Question: What is in .env.local?\n\n"
+                        "Retrieved public context:\nSource 1: doc_other\nExcerpt: unrelated."
+                    )},
+                ],
+            },
+            {
+                "task_id": "advisor-route-0003",
+                "messages": [
+                    {"role": "system", "content": "/no_think\nYou are Orionfold Advisor."},
+                    {"role": "user", "content": (
+                        "Question: Which doc defines the flows?\n\n"
+                        "Retrieved public context:\nSource 1: doc_flows\nExcerpt: the flows map."
+                    )},
+                ],
+            },
+        ],
+    )
+    # Curveball file with an accepted_source_ids twin row (cb2 file left absent
+    # on purpose — missing files must not break the loader).
+    _write_jsonl(
+        root / "advisor-curveball-v0.1.jsonl",
+        [{
+            "task_id": "advisor-curveball-0001", "split": "curveball",
+            "family": "curveball_content_qa", "expected_behavior": "answer",
+            "question": "Who won the trainer bakeoff?",
+            "expected_answer": "NeMo won. Citations: [article_bakeoff]",
+            "expected_citations": ["article_bakeoff"],
+            "accepted_source_ids": ["article_bakeoff", "artifact_bakeoff_model"],
+        }],
+    )
+    _write_jsonl(
+        root / "advisor-curveball-4bsft-v0.1.prompts.jsonl",
+        [{
+            "task_id": "advisor-curveball-0001",
+            "messages": [
+                {"role": "system", "content": "/no_think\nYou are Orionfold Advisor."},
+                {"role": "user", "content": (
+                    "Question: Who won the trainer bakeoff?\n\n"
+                    "Retrieved public context:\nSource 1: article_bakeoff\nExcerpt: NeMo won."
+                )},
+            ],
+        }],
+    )
+    monkeypatch.setenv("FK_ARENA_ADVISOR_DIR", str(root))
+    benches._CACHE.clear()
+    yield root
+    benches._CACHE.clear()
+
+
+def test_advisor_bench_registered_and_available(advisor_root: Path) -> None:
+    rows = {b["bench_id"]: b for b in benches.list_benches()}
+    a = rows["advisor-bench"]
+    assert a["available"] is True
+    assert a["vertical"] == "advisor"
+    assert a["count"] == 4  # 3 held-out + 1 curveball (cb2 file absent → 0 rows)
+    assert "cited_factual_qa" in a["families"]
+    assert a["scorer_kinds"] == ["advisor_contract"]
+
+
+def test_advisor_prompts_replay_measured_packets(advisor_root: Path) -> None:
+    loaded = benches.load_bench("advisor-bench")
+    p = loaded.by_qid["advisor-qa-0001"]
+    # model_prompt is the packet's user message (retrieval context included)…
+    assert p.model_prompt.startswith("Question: What does artifact_x ship?")
+    assert "Retrieved public context:" in p.model_prompt
+    # …the system contract rides beside it, and the raw question stays editable.
+    assert p.system_prompt.startswith("/no_think")
+    assert p.question == "What does artifact_x ship?"
+    assert p.has_context and p.context_kind == "retrieval"
+    assert p.split == "heldout" and p.judge_required is False
+    # payload shape: split rides through (gold preview), no new keys required.
+    res = benches.list_prompts("advisor-bench", family="cited_factual_qa")
+    assert res["total"] == 1
+    assert res["prompts"][0]["split"] == "heldout"
+
+
+def test_advisor_contract_scoring_answer_rows(advisor_root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def _boom(*a, **k):  # pragma: no cover
+        raise AssertionError("advisor_contract must not construct a judge")
+
+    monkeypatch.setattr(benches, "_build_judge", _boom)
+    ok = benches.score_eval_prediction(
+        "advisor-bench", "advisor-qa-0001", "It ships Y.\n\nCitations: [artifact_x]"
+    )
+    assert ok["scored"] and ok["score"] == 1.0
+    assert "exact citation ✓" in ok["why"]
+    wrong = benches.score_eval_prediction(
+        "advisor-bench", "advisor-qa-0001", "It ships Y.\n\nCitations: [artifact_z]"
+    )
+    assert wrong["scored"] and wrong["score"] == 0.0
+    no_line = benches.score_eval_prediction("advisor-bench", "advisor-qa-0001", "It ships Y.")
+    assert no_line["score"] == 0.0
+    leak = benches.score_eval_prediction(
+        "advisor-bench", "advisor-qa-0001",
+        "<think>hm</think>It ships Y.\n\nCitations: [artifact_x]",
+    )
+    assert leak["score"] == 0.0 and "no thinking leak ✗" in leak["why"]
+
+
+def test_advisor_contract_scoring_refusal_rows(advisor_root: Path) -> None:
+    ok = benches.score_eval_prediction(
+        "advisor-bench", "advisor-refuse-0002",
+        "The retrieved public context does not support that. Citations: []",
+    )
+    assert ok["scored"] and ok["score"] == 1.0
+    # refusal wording missing → fail even with empty citations.
+    bare = benches.score_eval_prediction(
+        "advisor-bench", "advisor-refuse-0002", "Citations: []"
+    )
+    assert bare["score"] == 0.0 and "refusal wording ✗" in bare["why"]
+    # a cited id on a refusal row → fail.
+    cited = benches.score_eval_prediction(
+        "advisor-bench", "advisor-refuse-0002",
+        "The context does not support that. Citations: [doc_other]",
+    )
+    assert cited["score"] == 0.0
+    # fabricated private-looking state → risk fail (token not in the packet).
+    risky = benches.score_eval_prediction(
+        "advisor-bench", "advisor-refuse-0002",
+        "I cannot answer, but PYPI_TOKEN lives in .env.local. Citations: []",
+    )
+    assert risky["score"] == 0.0 and "no private-state risk ✗" in risky["why"]
+
+
+def test_advisor_contract_scoring_route_and_accepted_ids(advisor_root: Path) -> None:
+    ok = benches.score_eval_prediction(
+        "advisor-bench", "advisor-route-0003", "Route: docs. Citations: [doc_flows]"
+    )
+    assert ok["score"] == 1.0
+    miss = benches.score_eval_prediction(
+        "advisor-bench", "advisor-route-0003", "See docs. Citations: [doc_flows]"
+    )
+    assert miss["score"] == 0.0 and "Route: prefix ✗" in miss["why"]
+    # twin-source curveball row: either accepted id passes.
+    twin = benches.score_eval_prediction(
+        "advisor-bench", "advisor-curveball-0001",
+        "NeMo won the bakeoff. Citations: [artifact_bakeoff_model]",
+    )
+    assert twin["score"] == 1.0
+
+
+def test_advisor_build_model_prompt_edited_rewraps_packet_shape(advisor_root: Path) -> None:
+    loaded = benches.load_bench("advisor-bench")
+    p = loaded.by_qid["advisor-qa-0001"]
+    # unedited → canonical packet verbatim
+    assert benches.build_model_prompt(p, p.question) == p.model_prompt
+    # edited → question-first packet shape with the measured context
+    edited = benches.build_model_prompt(p, "What exactly does artifact_x ship?")
+    assert edited.startswith("Question: What exactly does artifact_x ship?")
+    assert "Retrieved public context:" in edited
+    assert "Source 1: artifact_x" in edited
+
+
+def test_advisor_bench_for_lane_maps_release_lanes() -> None:
+    assert benches.bench_for_lane("local:nemotron3-nano-4b-sft-v02-q8") == "advisor-bench"
+    assert benches.bench_for_lane("nemotron3-nano-30b-q8") == "advisor-bench"

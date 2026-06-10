@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **Advisor release benches in the Arena eval surface.** New `advisor-bench`
+  registry entry (`fieldkit.arena.benches`): the frozen 28-row held-out plus
+  both external OOD curveballs (40 + 21 rows) browse beside the published
+  verticals in the chat/compare eval drawer. Rows replay the *measured* chat
+  packets from the tracked `packet_files` receipts — the system contract rides
+  a new `EvalPrompt.system_prompt` field that the chat/compare handlers
+  prepend as a real system message (every other bench unchanged) — and are
+  scored instantly by the new deterministic `advisor_contract` scorer, a
+  mirror of `scripts/orionfold_advisor/preflight.py` (citation exactness,
+  refusal wording, `Route:` prefix, thinking leak, private-state risk;
+  `accepted_source_ids` twin-row credit included). Edited questions re-wrap in
+  the packet's own question-first shape.
+- **Advisor corpus pane, routing surface, and publish-receipt card**
+  (spec §10 + §12; closes the AD-AE-11 read surface and AD-AE-16). Three
+  read-only endpoints — `GET /api/advisor/corpus` (manifest digest +
+  composition, both recall-gate receipts, the OA-NV-8 corpus-swap fixture
+  receipt, SFT-corpus handoff reports), `GET /api/advisor/routing` (§13.F
+  bakeoff configs/costs, router policy + revision, T4 governance, every hosted
+  escalation with tier/provider/model/cost/verdict, private-state-blocked
+  count), and `GET /api/advisor/receipt` (the §14 publish/reject verdict +
+  gate matrix) — each rendered as a Cortex card beside the Advisor preflight.
+
 ### Fixed
 - **`FK_ARENA_REWARD_DIR` now anchors the reader side too.** The cockpit's
   reward-report *reader* (`_reward_reports_dir` — feeds the reward gauge, the

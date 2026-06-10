@@ -1,0 +1,137 @@
+{
+  "decision": {
+    "decided_by": "operator (Manav), 2026-06-10 \u2014 recorded in HANDOFF Recent Decisions",
+    "lane_recipe": "nemotron3-nano-4b-sft-v02-q8",
+    "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+    "role": "Orionfold Advisor serving lane (DGX Spark, llama.cpp Q8_0, ~12 GB resident, warm ~2 s)",
+    "verdict": "PROMOTED",
+    "why": [
+      "Frozen pre-registered OOD gate (curveball-v0.2): 18/21 scored==strict with refusals 9/9 across all novel pretext classes and 0 private-state risk \u2014 vs the 30B prompt-only serving baseline's 8/21 with refusals 3/9 and 3 fabricated private-looking-state rows on the identical bench. The trained lane, not the prompt contract, carries the refusal floor.",
+      "Frozen held-out: 28/28 scored AND strict on BOTH hinted and hint-free (production-shaped) packets \u2014 0 alias residue, 0 bare answers, 0 citation-outside-retrieved, refusals 16/16, 0 leak, 0 risk.",
+      "Curveball-v0.1 re-run 36/40 scored==strict with the SFT-v0.1 refusal regression FIXED (15/15, above the un-trained init's 14/15).",
+      "Router rev-2: t1-only 28/28; routed t1+t3 ($0) and t1+t4 ($0.0033) both 28/28 under the governed escalation policy.",
+      "Operational: ~12 GB resident / warm ~2 s vs the 30B's ~40 GB / ~14 s \u2014 more unified-memory headroom for the retriever and harness."
+    ]
+  },
+  "gates": {
+    "arena_run_context_advisor": {
+      "evidence": "AD-AE-14 FIXED \u2014 evidence/orionfold-advisor/build-manifest.json + FK_ARENA_* anchors in .env.local; cockpit run chip shows Advisor",
+      "passed": true
+    },
+    "base_preflight_floor": {
+      "evidence": "4B init 7/8 visible-Cortex /no_think on the final corpus (git history of advisor-preflight-v0.1-nothink.json, 2026-06-10 step 0) \u2014 meets the \u22657/8-or-SFT-headroom bar; 30B reached 8/8 post-erratum",
+      "passed": true
+    },
+    "corpus_pack_swap": {
+      "evidence": "advisor-corpus-swap-fixture-v0.1.json \u2014 synthetic 3-source customer-style fixture pack (corpus-pack-fixture/) through the UNCHANGED score_recall.py: gate PASS, 1.0@5; data-only swap (OA-NV-8)",
+      "passed": true
+    },
+    "exact_source_id_citations": {
+      "evidence": "strict metric (alias_residue + bare_answer + citation_outside_retrieved) 28/28; curveball-v0.2 receipts scored==strict",
+      "passed": true
+    },
+    "final_receipt": {
+      "evidence": "this artifact (advisor-publish-receipt-v0.1.json) \u2014 assembled and re-verified from the tracked receipts by scripts/orionfold_advisor/publish_receipt.py",
+      "passed": true
+    },
+    "hosted_disabled_for_private": {
+      "evidence": "deterministic data-policy gate: private-state queries never escalate (hosted_egress_blocked), T4 requires explicit allowed-model list + cap_usd + key; data_policy: 'public-corpus packets only; private-state queries never leave the box'",
+      "passed": true
+    },
+    "post_sft_privacy_refusal_rows": {
+      "evidence": "advisor-preflight-4b-wide-v0.1.json + -nohint: refusals 16/16, 0 thinking leak, 0 private-state risk, 28/28 scored+strict on both packet shapes",
+      "passed": true
+    },
+    "retriever_recall_green": {
+      "evidence": "rag-recall-v0.1-cortex.json \u2014 live pgvector+NIM-embedder lane 0.977@5 overall, 1.0 held-out answerable, 1.0@10; BM25 proxy 0.9885@5 (rag-recall-v0.1.json)",
+      "passed": true
+    },
+    "route_tier_cost_privacy_visible": {
+      "evidence": "advisor-route-bakeoff-v0.1.{json,ledger.jsonl} \u2014 every hosted escalation carries tier/provider/model/cost/verdict; Arena-visible via the Cortex 'Advisor routing & cost' pane (/api/advisor/routing, AD-AE-16 closed 2026-06-10)",
+      "passed": true
+    }
+  },
+  "generated": "2026-06-10",
+  "honest_caveats": [
+    "The SFT corpus shares the bench's template machinery family (deduped question text, in-distribution); the 28/28 receipts prove residue trained away on the frozen held-out \u2014 OOD evidence is the curveball pair, where 3/21 v0.2 rows still miss.",
+    "Route: prefix on 'which doc defines X' phrasings remains a soft class (curveball route 2/5; all misses citation-correct) \u2014 possibly a contract question, queued as an optional v0.3 lever.",
+    "One over-refusal class remains OOD (safe direction).",
+    "Router rev-2's known limitation stands: a wrong citation within the rank-sanity margin of (or outranking) the correct source is undetectable without labels.",
+    "The routed t1+t3 28/28 on the SFT-v0.2 session stands on T1's pass \u2014 the T3 hosted call timed out NGC-side that session (t1+t4 verified the escalated row PASS).",
+    "The 0082 rank-sanity escalation is a known over-caution (route_accuracy 0.9643): T1 was already right; both hosted tiers agreed; ~$0.003 cost."
+  ],
+  "kind": "advisor_publish_receipt",
+  "lanes_considered": [
+    {
+      "base": "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16 + LoRA r16 SFT-v0.2 (827-row corpus e096aa6b12cc), merged, Q8_0",
+      "evidence": [
+        "advisor-preflight-v0.1-nothink.json (visible Cortex /no_think 8/8)",
+        "advisor-preflight-4b-wide{,-nohint}-v0.1.json (28/28 scored+strict both)",
+        "advisor-curveball2-compare-v0.1.json (frozen OOD gate 18/21, refusals 9/9)",
+        "advisor-route-bakeoff-v0.1.json (t1-only 28/28)"
+      ],
+      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+      "verdict": "PROMOTED \u2014 serving lane"
+    },
+    {
+      "model": "NVIDIA-Nemotron-3-Nano-30B-A3B-Q8_0.gguf",
+      "verdict": "REJECTED for serving \u2014 RETAINED as corpus-generation teacher and comparison lane (on disk, recipe nemotron3-nano-30b-q8)",
+      "why": "Cleanest in-distribution receipts (8/8 preflight post-exemplar-pass, 27/28 wide) but the frozen curveball-v0.2 gate broke its prompt-only contract: 8/21 scored, refusals 3/9, 3 private_state_risk rows (fabricated credential-file format, fabricated prior-session content, live-port inference) and 4 exemplar-echo rows on curveball-v0.1. \u00a713.D MoE trainability remains unprobed \u2014 deliberately sidestepped by training the dense 4B."
+    },
+    {
+      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0.gguf",
+      "verdict": "SUPERSEDED by v0.2",
+      "why": "First trained lane: 28/28 held-out scored+strict, but the curveball-v0.1 OOD check exposed a refusal-floor regression under novel pretexts (9/15 vs the init's 14/15). The three v0.2 corpus levers (hint alternation, hint-free novel-pretext refusal families, natural route templates) were built from exactly this receipt."
+    },
+    {
+      "model": "NVIDIA-Nemotron-3-Nano-4B Q8_0 (un-trained init)",
+      "verdict": "REJECTED as serving lane \u2014 retained as the SFT training base",
+      "why": "26/28 scored / 23/28 strict on the final corpus with SFT-shaped residue (positional aliasing, bare answers, exemplar-id echo); 22/40 on curveball-v0.1 OOD. Dense and cheap to train: exactly the \u00a713.D base it became."
+    },
+    {
+      "model": "nemotron-nano-9b-v2 (NIM, cached DGX Spark image)",
+      "verdict": "REJECTED as Advisor base (v1)",
+      "why": "0/8 default (7/8 thinking leak) \u2192 1/8 with /no_think (leak resolved, SFT-shaped citation/refusal failures remain). Runtime viable on Spark; behavior not viable without the SFT investment the 4B already won."
+    },
+    {
+      "model": "Qwen2.5-7B-Instruct Q5_K_M",
+      "verdict": "REJECTED \u2014 comparison baseline only",
+      "why": "5/8 after boundary tightening; open-weight control per \u00a79, never a NVIDIA-native flagship candidate."
+    }
+  ],
+  "ood_gates": {
+    "curveball_v01": {
+      "caveat": "class-near-distribution for v0.2 (its failure classes were trained, instances disjoint)",
+      "promoted_lane": "36/40 scored==strict; answers 19/20, refusals 15/15, route 2/5",
+      "sha256_12": "122bcd619e9d"
+    },
+    "curveball_v02_frozen_pre_registered": {
+      "baseline_30b": "8/21; refusals 3/9; 3 private_state_risk rows",
+      "promoted_lane": "18/21 scored==strict; refusals 9/9 across all novel pretext classes; 0 private-state risk; sole answer miss is an over-refusal (safe direction)",
+      "sha256_12": "4b6cac85e41f"
+    }
+  },
+  "open_findings": [
+    "AD-AE-11 partially closed: corpus-pack state is Arena-visible (Cortex 'Advisor corpus pack' pane, 2026-06-10); import/swap CONTROLS and pgvector re-ingest from the cockpit remain spec-\u00a710 future work.",
+    "AD-AE-12 open: no base-model scout/preflight visibility for the Advisor vertical beyond the generic scout panel.",
+    "AD-AE-13 built; minor display gap: terminal-run wide receipts show as '0 results' on the Cortex card until a card-run refreshes it.",
+    "AD-AE-16 closed (read surface): route tiers/providers/costs/policy visible; live per-query route ledger (spec \u00a712 Ledger row-level persistence) remains future work.",
+    "WB-11 open: visible LaneTruth can discover/pin NIM lanes but cannot launch them through the guarded UI."
+  ],
+  "provenance": {
+    "bench_sha256_12": "3220b8e799cd",
+    "curveball_v01_sha256_12": "122bcd619e9d",
+    "curveball_v02_sha256_12": "4b6cac85e41f",
+    "manifest_sha256_12": "6b1e832d099c",
+    "serving": "llama.cpp (local build 856c3ad, nemotron_h), recipe nemotron3-nano-4b-sft-v02-q8, :8091, /no_think system control",
+    "sft_corpus_v02_sha256_12": "e096aa6b12cc",
+    "train": "LoRA r16 attention-only, 285 iters, global_batch 8, eval_iters 8, val 64 rows; lm val loss 0.4706 (PPL 1.60)"
+  },
+  "rl_decision": {
+    "gate": "spec \u00a713.E Goldilocks 30-70% \u2014 post-SFT held-out 100%/100%, far above the band; remaining OOD soft spots are demonstration-shaped, not verify\u226bdemonstrate",
+    "v0.1": "SKIP RLVR \u2014 ship SFT-only",
+    "v0.2": "SKIP RLVR \u2014 ship SFT-only (v0.2)"
+  },
+  "spec": "_SPECS/orionfold-advisor-nvidia-native-v1.md \u00a714",
+  "version": "v0.1"
+}

@@ -18,6 +18,9 @@ const DETERMINISTIC_KINDS = new Set([
   // AE-11 — astro is non-judge (unit-aware numeric); the interactive grader
   // honest-skips it, but it's never a judge backend, so the judge picker hides.
   'astro_numeric_match',
+  // Advisor — deterministic citation/refusal/route contract mirror of the
+  // offline preflight scorer; never a judge.
+  'advisor_contract',
 ]);
 
 // Model slugs each bench maps to — mirror of the backend registry.
@@ -29,6 +32,14 @@ const BENCH_MODELS = {
   medmcqa: ['ii-medical-8b-gguf'],
   // AE-11 — the astro bench maps to the Kepler GGUF lanes.
   'astro-bench': ['kepler-q8-gguf', 'kepler-gguf', 'kepler'],
+  // Advisor — the released 4B-SFT-v0.2 serving lane + the comparison lanes
+  // (lane-recipe slugs; the 30B teacher and the un-trained 4B init).
+  'advisor-bench': [
+    'nemotron3-nano-4b-sft-v02-q8',
+    'nemotron3-nano-4b-sft-q8',
+    'nemotron3-nano-30b-q8',
+    'nemotron3-nano-4b-q8',
+  ],
 };
 
 function norm(s) {
@@ -76,6 +87,7 @@ export function scorerLabel(kind) {
       contains: 'contains',
       irac_structure: 'IRAC',
       astro_numeric_match: 'numeric · unit-aware ±2%',
+      advisor_contract: 'citation/refusal contract',
       patent_claim_validity: 'judge · claim validity',
       office_action_argument: 'judge · office action',
       judge_rubric: 'judge · correctness',

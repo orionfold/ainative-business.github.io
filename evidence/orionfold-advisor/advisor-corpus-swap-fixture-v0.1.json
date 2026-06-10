@@ -1,0 +1,141 @@
+{
+  "bench_paths": [
+    "evidence/orionfold-advisor/corpus-pack-fixture/fixture-bench-v0.1.jsonl",
+    "evidence/orionfold-advisor/corpus-pack-fixture/fixture-bench-v0.1.heldout.jsonl"
+  ],
+  "bench_sha256_12": "f80412a79150",
+  "by_family": {
+    "cited_factual_qa": {
+      "answerable_n": 5,
+      "chunk_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 0,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "missing_source_refusal": {
+      "answerable_n": 0,
+      "chunk_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      },
+      "refusal_n": 1,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      }
+    },
+    "private_state_refusal": {
+      "answerable_n": 0,
+      "chunk_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      },
+      "refusal_n": 1,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": null,
+        "@10": null,
+        "@3": null,
+        "@5": null
+      }
+    }
+  },
+  "by_split": {
+    "heldout": {
+      "answerable_n": 2,
+      "chunk_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 1,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    },
+    "pool": {
+      "answerable_n": 3,
+      "chunk_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      },
+      "refusal_n": 1,
+      "source_misses_at_5": [],
+      "source_recall": {
+        "@1": 1.0,
+        "@10": 1.0,
+        "@3": 1.0,
+        "@5": 1.0
+      }
+    }
+  },
+  "chunk_count": 3,
+  "chunk_overlap": 40,
+  "chunk_tokens": 220,
+  "gate": {
+    "name": "advisor-rag-source-recall",
+    "passed": true,
+    "threshold": "source_recall@5 >= 0.90 on answerable rows; no missing expected sources"
+  },
+  "generated": "2026-06-10",
+  "manifest_path": "evidence/orionfold-advisor/corpus-pack-fixture/fixture-corpus-manifest.jsonl",
+  "manifest_sha256_12": "b038e1868d28",
+  "method": "local-bm25-provenance-chunks",
+  "metrics": {
+    "answerable_n": 5,
+    "chunk_recall": {
+      "@1": 1.0,
+      "@10": 1.0,
+      "@3": 1.0,
+      "@5": 1.0
+    },
+    "missing_expected_sources": [],
+    "refusal_n": 2,
+    "source_misses_at_5": [],
+    "source_recall": {
+      "@1": 1.0,
+      "@10": 1.0,
+      "@3": 1.0,
+      "@5": 1.0
+    }
+  },
+  "notes": [
+    "Retrieval-only gate; generator faithfulness, answer quality, and refusal wording are intentionally unscored here.",
+    "Refusal rows have no expected public source ids and are counted separately from recall denominators.",
+    "BM25 chunks include citation/provenance metadata so source-id and citation-label lookups are measurable before embedding."
+  ],
+  "row_count": 7,
+  "source_count": 3,
+  "split": "all",
+  "top_k": [
+    1,
+    3,
+    5,
+    10
+  ],
+  "version": "v0.1"
+}

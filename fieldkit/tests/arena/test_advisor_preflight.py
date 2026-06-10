@@ -269,3 +269,150 @@ def test_advisor_preflight_command_nothink_uses_suffixed_evidence(tmp_path: Path
     assert cmd[cmd.index("--report") + 1] == f"{base}.json"
     # The default run must stay untouched — no suffixed paths, no mode flag.
     assert "--reasoning-mode" not in _advisor_preflight_command(tmp_path, lane)
+
+
+# --- corpus pane (spec §10, AD-AE-11) + routing surface (spec §12, AD-AE-16) --
+
+
+def _write_corpus_evidence(repo_root: Path) -> Path:
+    base = repo_root / "evidence" / "orionfold-advisor"
+    base.mkdir(parents=True, exist_ok=True)
+    _write_jsonl(
+        base / "public-corpus-manifest.jsonl",
+        [
+            {"source_id": "a", "source_class": "field_note", "source_role": "article"},
+            {"source_id": "b", "source_class": "field_note", "source_role": "article"},
+            {"source_id": "c", "source_class": "product_doc", "source_role": "product"},
+        ],
+    )
+    recall = {
+        "generated": "2026-06-10",
+        "method": "local-bm25-provenance-chunks",
+        "source_count": 3,
+        "chunk_count": 9,
+        "row_count": 7,
+        "manifest_sha256_12": "abc123def456",
+        "bench_sha256_12": "fed654cba321",
+        "metrics": {"source_recall": {"@1": 0.9, "@5": 1.0}, "source_misses_at_5": []},
+        "by_split": {"heldout": {"source_recall": {"@5": 1.0}}},
+        "gate": {"passed": True, "threshold": ">= 0.90"},
+    }
+    (base / "rag-recall-v0.1.json").write_text(json.dumps(recall))
+    (base / "rag-recall-v0.1-cortex.json").write_text(json.dumps(recall))
+    (base / "advisor-corpus-swap-fixture-v0.1.json").write_text(json.dumps(recall))
+    (base / "advisor-sft-corpus-v0.2.json").write_text(
+        json.dumps(
+            {
+                "version": "v0.2",
+                "generated": "2026-06-10",
+                "rows_kept": 827,
+                "rejects": 48,
+                "refusal_share": 0.3,
+                "corpus_sha256_12": "e096aa6b12cc",
+                "manifest_sha256_12": "abc123def456",
+                "bench_sha256_12": "fed654cba321",
+                "teacher": {"model": "30B-teacher"},
+            }
+        )
+    )
+    return base
+
+
+def test_advisor_corpus_projection_reads_pack_state(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _advisor_corpus_projection
+
+    _write_corpus_evidence(tmp_path)
+    proj = _advisor_corpus_projection(tmp_path)
+    assert proj["available"] is True
+    assert proj["manifest"]["source_count"] == 3
+    assert proj["manifest"]["by_class"] == {"field_note": 2, "product_doc": 1}
+    assert proj["recall_bm25"]["gate_passed"] is True
+    assert proj["recall_live"]["source_recall"]["@5"] == 1.0
+    assert proj["recall_live"]["heldout_source_recall"]["@5"] == 1.0
+    assert proj["swap_fixture"]["available"] is True
+    assert proj["sft_corpora"][0]["rows_kept"] == 827
+    assert proj["sft_corpora"][0]["teacher_model"] == "30B-teacher"
+
+
+def test_advisor_corpus_projection_degrades_on_fresh_box(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _advisor_corpus_projection
+
+    proj = _advisor_corpus_projection(tmp_path)
+    assert proj["available"] is False
+    assert proj["recall_bm25"]["available"] is False
+    assert proj["sft_corpora"] == []
+
+
+def test_advisor_routing_projection_reads_bakeoff_and_ledger(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _advisor_routing_projection
+
+    base = tmp_path / "evidence" / "orionfold-advisor"
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "advisor-route-bakeoff-v0.1.json").write_text(
+        json.dumps(
+            {
+                "generated": "2026-06-10",
+                "version": "v0.1",
+                "slice": {"rows": 28},
+                "t1": {"pass": 28},
+                "t2_status": "skipped",
+                "configs": {"t1-only": {"pass": 28, "pass_rate": 1.0, "hosted_cost_usd": 0.0}},
+                "router": {"revision": 2, "policy": "deterministic observables-only"},
+                "t4_governance": {
+                    "allowed_models": ["anthropic/claude-haiku-4.5"],
+                    "cap_usd": 1.0,
+                    "data_policy": "public-corpus packets only",
+                },
+            }
+        )
+    )
+    _write_jsonl(
+        base / "advisor-route-bakeoff-v0.1.ledger.jsonl",
+        [
+            {
+                "task_id": "advisor-0082",
+                "route": {"escalate": True, "trigger": "citation_rank_sanity"},
+                "escalations": {
+                    "t1+t4": {
+                        "model": "anthropic/claude-haiku-4.5",
+                        "cost_usd": 0.0033,
+                        "score": {"passed": True},
+                    }
+                },
+            },
+            {
+                "task_id": "advisor-0090",
+                "route": {"escalate": False, "hosted_egress_blocked": True},
+            },
+        ],
+    )
+    proj = _advisor_routing_projection(tmp_path)
+    assert proj["available"] is True
+    assert proj["configs"]["t1-only"]["pass"] == 28
+    assert proj["governance"]["cap_usd"] == 1.0
+    assert proj["private_state_blocked"] == 1
+    assert len(proj["escalations"]) == 1
+    esc = proj["escalations"][0]
+    assert esc["task_id"] == "advisor-0082" and esc["trigger"] == "citation_rank_sanity"
+    assert esc["tiers"][0]["model"] == "anthropic/claude-haiku-4.5"
+    assert esc["tiers"][0]["passed"] is True
+
+
+def test_advisor_routing_projection_degrades_without_receipt(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _advisor_routing_projection
+
+    proj = _advisor_routing_projection(tmp_path)
+    assert proj == {"available": False, "kind": "advisor_routing"}
+
+
+def test_advisor_receipt_endpoint_reads_publish_receipt(tmp_path: Path) -> None:
+    from fieldkit.arena.server import _advisor_read_json, _advisor_preflight_dir
+
+    base = tmp_path / "evidence" / "orionfold-advisor"
+    base.mkdir(parents=True, exist_ok=True)
+    assert _advisor_read_json(_advisor_preflight_dir(tmp_path), "advisor-publish-receipt-v0.1.json") is None
+    (base / "advisor-publish-receipt-v0.1.json").write_text(
+        json.dumps({"kind": "advisor_publish_receipt", "decision": {"verdict": "PROMOTED"}})
+    )
+    receipt = _advisor_read_json(_advisor_preflight_dir(tmp_path), "advisor-publish-receipt-v0.1.json")
+    assert receipt["decision"]["verdict"] == "PROMOTED"
