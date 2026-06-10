@@ -14,7 +14,12 @@
 
 ## Current State
 
-### 2026-06-10 — Orionfold Advisor PUBLIC LAUNCH (this session)
+### 2026-06-10 — SVG legacy debt cleared + orionfold.com brand realignment (this session)
+
+- **`verify_svg.sh` legacy debt CLEARED** (was Open Items → Cleanup): 105 violations → 0 across the 12 old signature components. role/aria on every legacy `<svg>`, stroke-widths snapped to the {0.5,1,1.5,2} scale, referenced atmospheric gradients added where missing; orphaned `FeatureVelocity.astro` + `FieldkitConstellation.astro` deleted (unreferenced since the pre-cutover redesign). Commit `ad6a092`.
+- **Marketing site realigned to the orionfold.com parent brand** (operator-directed): new spec `_SPECS/orionfold-brand-alignment-v1.md`. Tokens extracted from live orionfold.com → `src/styles/global.css` `@theme`: cool 260-hue neutrals, indigo primary `oklch(55% .18 260)`, orbit-gold `oklch(70% .14 82)`, navy→blue→gold hero ramp, SVG accents re-tuned (blue=brand indigo, orange=gold). Ported `.of-surface`/`.of-pressable` card idiom and applied to the home-page cards; hero gained the gold orb; field-notes hardcoded Airtable dark1 hexes → semantic vars. **`design-system-v1.md` (Airtable) re-scoped to operator panes (`arena-app/`) only** — index updated. Build 537 pages green; artifact/field-notes/SVG verifiers green; browser-smoked home/field-notes/article/artifacts at 1440px.
+
+### 2026-06-10 — Orionfold Advisor PUBLIC LAUNCH
 
 - **HF artifacts live**: [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF) (4B-SFT-v0.2 Q8_0 4.0 GB as `model-Q8_0.gguf`; `license: other` + nvidia-nemotron-open-model-license link; OOD-first card — headline eval is curveball-v0.2 85.7%, Spark-tested 42 tok/s measured live, 4 bounded known-drift entries, Methods → product page + evidence dir; pushed via `hf_push_resilient.py`, ~16 min) and [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench) (pool 75 / frozen heldout 28 / curveball-v0.1 40 / curveball-v0.2 21 / corpus-manifest 182, all sha12-pinned in the card; results table for 3 lanes). verify_stage 7/8 — the sole FAIL is check 4 (Methods must be a field-notes URL; the Advisor's methods doc is deliberately the product page), operator-accepted at the push gate. Artifact manifest `src/content/artifacts/advisor-gguf.yaml` written (no `article:` — product page is the methods surface).
 - **Website launch shipped**: `products/orionfold-advisor/` (positioning per spec §2/§3; mined build block — 2 days/29.9 h, 10 sessions, 871 turns, 118.9M tokens 97.4% cache, 4,307 LOC `scripts/orionfold_advisor/`, 54 advisor tests, all Claude Fable 5; 7-feature tour: 5 fresh 2x clips + 2 authentic dogfood captures) + `AdvisorTeaser` on the home page (after CortexTeaser; reads the products collection) + fieldkit arena module blurb refresh. `verify_product_article.sh` PASS, build 537 pages green, both render verifiers green.
@@ -68,7 +73,6 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 - Optional §10 corpus *controls* (import/swap + cockpit-driven pgvector re-ingest; read pane shipped). Optional §12 live per-query route-ledger persistence (bakeoff read surface shipped). Optional v0.3 lever: `Route:`-prefix boundary + one over-refusal class — **freeze curveball-v0.3 before any v0.3 training**.
 - AD-AE-13 display gap stands: terminal-run wide receipts show "0 results" on the Cortex card until a card run.
 - WB-11: LaneTruth can discover/pin NIM lanes but not launch them through the guarded UI.
-- `verify_svg.sh` legacy debt: ~105 violations in old signature components (MarketGrowth, SystemArchitecture, BuildCascade, …) predate the validator; new work must pass, old components need a cleanup pass someday.
 
 ### Operator-Owned Live Infra
 
@@ -84,6 +88,10 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 - Human-eye/Lighthouse pass on LoRA/adapter/dataset detail pages; bakeoff gated-catalog footer last-write-wins; deprecate retired `sync-field-notes` skill body; optional Claude memory-namespace symlink relocation.
 
 ## Recent Decisions
+
+### 2026-06-10 - Marketing site follows orionfold.com; Airtable system scoped to operator panes
+
+The Airtable-derived design system (design-system-v1) had been applied site-wide; the operator directed that it stay appropriate for the Arena app UI only, while the rest of ainative.business reads as a natural extension of the redesigned orionfold.com parent brand. Tokens were extracted from the live parent site (indigo primary, orbit gold, cool 260-hue neutrals, of-surface card idiom) and applied at the token layer — the two sites already shared structure (nav idiom, blur orbs, Geist fonts), so the realignment is recorded in `_SPECS/orionfold-brand-alignment-v1.md` and reversible via git. | Manav (with Claude)
 
 ### 2026-06-10 - Advisor public launch executed (full scope, operator-approved)
 

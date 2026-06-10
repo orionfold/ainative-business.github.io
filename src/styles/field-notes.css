@@ -742,32 +742,32 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
   background: color-mix(in oklch, var(--color-primary) 12%, transparent);
 }
 .card__series-badge[data-series="foundations"] {
-  color: #0B76B7; /* cyan dark1 — small text never sits on mid (§2.1) */
+  color: color-mix(in oklch, var(--svg-accent-cyan) 78%, black); /* cyan dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-cyan) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-cyan) 8%, transparent);
 }
 .card__series-badge[data-series="second-brain"] {
-  color: #06A09B; /* teal dark1 — small text never sits on mid (§2.1) */
+  color: color-mix(in oklch, var(--svg-accent-teal) 82%, black); /* teal dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-teal) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-teal) 8%, transparent);
 }
 .card__series-badge[data-series="llm-wiki"] {
-  color: #6B1CB0; /* purple dark1 — small text never sits on mid (§2.1) */
+  color: var(--svg-accent-purple); /* purple dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-purple) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-purple) 8%, transparent);
 }
 .card__series-badge[data-series="machine-that-builds-machines"] {
-  color: #338A17; /* green dark1 — small text never sits on mid (§2.1) */
+  color: var(--svg-accent-green-alt); /* green dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-green) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-green) 10%, transparent);
 }
 .card__series-badge[data-series="looking-beyond-spark"] {
-  color: #D74D26; /* orange dark1 — small text never sits on mid (§2.1) */
+  color: color-mix(in oklch, var(--svg-accent-orange) 78%, black); /* orange dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-orange) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-orange) 9%, transparent);
 }
 .card__series-badge[data-series="frontier-scout"] {
-  color: #B2158B; /* pink dark1 — small text never sits on mid (§2.1) */
+  color: var(--svg-accent-pink); /* pink dark1 — small text never sits on mid (§2.1) */
   border-color: color-mix(in oklch, var(--svg-accent-pink) 50%, var(--color-border));
   background: color-mix(in oklch, var(--svg-accent-pink) 9%, transparent);
 }
@@ -1052,12 +1052,12 @@ a.metric:hover { background: color-mix(in oklch, var(--color-primary) 6%, var(--
   color: var(--color-text);
 }
 .article__series-badge[data-series="ai-native-platform"] .article__series-badge-name { color: var(--color-primary); }
-.article__series-badge[data-series="foundations"] .article__series-badge-name { color: #0B76B7; }
-.article__series-badge[data-series="second-brain"] .article__series-badge-name { color: #06A09B; }
-.article__series-badge[data-series="llm-wiki"] .article__series-badge-name { color: #6B1CB0; }
-.article__series-badge[data-series="machine-that-builds-machines"] .article__series-badge-name { color: #338A17; }
-.article__series-badge[data-series="looking-beyond-spark"] .article__series-badge-name { color: #D74D26; }
-.article__series-badge[data-series="frontier-scout"] .article__series-badge-name { color: #B2158B; }
+.article__series-badge[data-series="foundations"] .article__series-badge-name { color: color-mix(in oklch, var(--svg-accent-cyan) 78%, black); }
+.article__series-badge[data-series="second-brain"] .article__series-badge-name { color: color-mix(in oklch, var(--svg-accent-teal) 82%, black); }
+.article__series-badge[data-series="llm-wiki"] .article__series-badge-name { color: var(--svg-accent-purple); }
+.article__series-badge[data-series="machine-that-builds-machines"] .article__series-badge-name { color: var(--svg-accent-green-alt); }
+.article__series-badge[data-series="looking-beyond-spark"] .article__series-badge-name { color: color-mix(in oklch, var(--svg-accent-orange) 78%, black); }
+.article__series-badge[data-series="frontier-scout"] .article__series-badge-name { color: var(--svg-accent-pink); }
 
 .article__meta {
   font-family: var(--font-mono);

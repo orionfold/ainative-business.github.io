@@ -3,7 +3,7 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Orionfold Advisor PUBLIC LAUNCH — Orionfold/Advisor-GGUF + Advisor-bench live on HF, product page + home teaser shipped, flagship article 'The Refusal Floor Is Trainable' published (+2 upcoming series placeholders), Arena product/article/demo refreshed with the Advisor-era surfaces",
+  "focus": "Design-language session: verify_svg.sh legacy debt cleared (105→0 across 12 old signature components) and the marketing site realigned to the orionfold.com parent brand (indigo+gold token system, of-surface card idiom); Airtable system re-scoped to Arena operator panes only",
   "blockers": [],
   "next": [
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
@@ -12,13 +12,13 @@
     "Optional v0.3 lever: Route:-prefix boundary + the one over-refusal class (freeze curveball-v0.3 first)"
   ],
   "recent": [
-    "HF: Orionfold/Advisor-GGUF (Q8_0 4.0 GB, NVIDIA license tag, OOD-first card) + Orionfold/Advisor-bench (pool/heldout/curveballs/corpus-manifest, sha-pinned) both live",
-    "products/orionfold-advisor launch page: mined build metrics (2 days, 871 turns, 118.9M tok @ 97.4% cache, 4307 LOC, 54 tests) + 7-shot tour; AdvisorTeaser on home",
-    "Article: The Refusal Floor Is Trainable (frozen-curveball method, 30B prompt 8/21+3 fabrications vs 4B trained 18/21+9/9) + 2 upcoming placeholders",
-    "Arena product article +3 toured features (guarded lanes, measured benches, vertical-proof cards); arena demo re-recorded with the 4 advisor stubs (endpoint-key sanitizer added)",
-    "4B-SFT-v0.2 stays the serving lane; 42 tok/s decode measured for the card"
+    "verify_svg.sh 105 violations → 0: aria/role, stroke-width scale, referenced gradients across 12 legacy signature components; 2 orphans deleted (ad6a092)",
+    "Marketing site follows orionfold.com: tokens extracted from the live parent site into global.css @theme; hero navy→blue→gold ramp; .of-surface/.of-pressable cards on home; _SPECS/orionfold-brand-alignment-v1.md",
+    "design-system-v1 (Airtable) re-scoped to arena-app operator panes only; _SPECS/index.md updated",
+    "Build 537 pages + artifact/field-notes/SVG verifiers green; home/field-notes/article/artifacts browser-smoked",
+    "HF: Orionfold/Advisor-GGUF + Advisor-bench live (prior session); 4B-SFT-v0.2 stays the serving lane"
   ],
-  "session": "S-advisor-public-launch",
+  "session": "S-orionfold-brand-realign",
   "metrics": {
     "articles": 54,
     "models": 7,

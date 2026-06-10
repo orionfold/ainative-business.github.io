@@ -55,7 +55,7 @@ const shot = arena ? `/products/${arena.id}/${arena.data.features[0]?.screenshot
             </a>
           </div>
         </div>
-        <a href="/arena/demo/" data-animate class="block rounded-xl border border-border overflow-hidden bg-surface-overlay" style="transition-delay: 120ms" aria-label={`${arena.data.product_name} — live preview`}>
+        <a href="/arena/demo/" data-animate class="of-surface of-pressable block rounded-xl overflow-hidden" style="transition-delay: 120ms" aria-label={`${arena.data.product_name} — live preview`}>
           <img src={shot} alt={`${arena.data.product_name} cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
         </a>
       </div>

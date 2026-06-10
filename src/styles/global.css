@@ -30,49 +30,56 @@
   src: url('/fonts/geist-mono-latin-wght-normal.woff2') format('woff2');
 }
 
-/* ── Design Tokens — _SPECS/design-system-v1.md light theme (LIGHT-ONLY since 2026-06-06) ──
-   Airtable-derived light system; spark accent = orange (§6: #F7653B / ink #D74D26 / soft #FEE2D5).
-   `html[data-theme="light"]` is pinned in Layout.astro so legacy light-scoped component
-   overrides keep applying; the dark palette is gone (recoverable via git history). */
+/* ── Design Tokens — Orionfold parent-brand alignment (LIGHT-ONLY since 2026-06-06) ──
+   Realigned 2026-06-10 to orionfold.com's redesigned token system so ainative.business
+   reads as a natural extension of the parent brand: cool 260-hue neutrals, indigo
+   primary oklch(55% .18 260), orbit-gold accent oklch(70% .14 82). The Airtable-derived
+   system (_SPECS/design-system-v1.md) remains the standard for OPERATOR PANES (Arena
+   cockpit / arena-app) only — do not port these marketing tokens into arena-app.
+   `html[data-theme="light"]` stays pinned in Layout.astro so legacy light-scoped
+   component overrides keep applying; prior palettes recoverable via git history. */
 @theme {
-  --color-surface: #F7F8FA;           /* canvas */
-  --color-surface-raised: #FFFFFF;    /* surface — cards, header */
-  --color-surface-overlay: #F2F4F7;   /* surface-2 — inset chips, wells */
-  --color-text: #1D1F25;              /* ink */
-  --color-text-muted: #5C6470;        /* mute */
-  --color-text-dim: #8A919C;          /* faint */
-  --color-primary: #D74D26;           /* accent-ink — text-safe spark orange */
-  --color-primary-dim: #FEE2D5;       /* accent-soft — pill/chip fills */
-  --color-primary-glow: rgba(247, 101, 59, 0.22);
-  --color-success: #338A17;           /* green-ink */
-  --color-success-dim: #D1F7C4;       /* green-soft */
-  --color-success-glow: rgba(17, 175, 34, 0.22);
-  --color-border: #E4E7EC;
+  --color-surface: oklch(98% 0.005 260);            /* canvas */
+  --color-surface-raised: #FFFFFF;                  /* surface — cards, header */
+  --color-surface-overlay: oklch(96.5% 0.008 260);  /* surface-2 — inset chips, wells */
+  --color-text: oklch(15% 0.02 260);                /* ink */
+  --color-text-muted: oklch(45% 0.03 260);          /* mute */
+  --color-text-dim: oklch(56% 0.025 260);           /* faint */
+  --color-primary: oklch(55% 0.18 260);             /* orionfold indigo */
+  --color-primary-dim: oklch(55% 0.18 260 / 0.10);  /* pill/chip fills */
+  --color-primary-glow: oklch(55% 0.18 260 / 0.20);
+  --color-orbit-gold: oklch(70% 0.14 82);           /* orionfold gold accent */
+  --color-orbit-ink: oklch(27% 0.06 260);           /* deep navy ink */
+  --color-success: oklch(45% 0.15 170);
+  --color-success-dim: oklch(45% 0.15 170 / 0.12);
+  --color-success-glow: oklch(45% 0.15 170 / 0.22);
+  --color-border: oklch(80% 0.02 260 / 0.25);
 
-  /* ── SVG semantic tokens (light) ── */
+  /* ── SVG semantic tokens (light, cool 260-hue neutrals) ── */
   --svg-card-fill: #FFFFFF;
-  --svg-card-stroke: #E4E7EC;
-  --svg-bg: #F2F4F7;
-  --svg-bg-inner: #F7F8FA;
-  --svg-bg-inner-stroke: #EEF0F4;
-  --svg-stroke: #E4E7EC;
-  --svg-text-bright: #1D1F25;
-  --svg-text-dim: #6E7682;
-  --svg-text-muted: #5C6470;
-  --svg-text-extra-dim: #8A919C;
-  --svg-text-faint: #9CA3AE;
-  --svg-connector: #8A919C;
-  --svg-connector-label: #5C6470;
-  /* Airtable Blocks palette (design-system §2.1) — mid flavors for shapes/strokes */
-  --svg-accent-blue: #1283DA;
-  --svg-accent-teal: #02AAA4;
-  --svg-accent-green: #11AF22;
-  --svg-accent-green-alt: #338A17;
-  --svg-accent-cyan: #01A9DB;
-  --svg-accent-purple: #7C39ED;
-  --svg-accent-orange: #F7653B;
-  --svg-accent-red: #EF3061;
-  --svg-accent-pink: #E929BA;
+  --svg-card-stroke: oklch(88% 0.015 260);
+  --svg-bg: oklch(96.5% 0.008 260);
+  --svg-bg-inner: oklch(98% 0.005 260);
+  --svg-bg-inner-stroke: oklch(93% 0.012 260);
+  --svg-stroke: oklch(88% 0.015 260);
+  --svg-text-bright: oklch(15% 0.02 260);
+  --svg-text-dim: oklch(50% 0.03 260);
+  --svg-text-muted: oklch(45% 0.03 260);
+  --svg-text-extra-dim: oklch(58% 0.025 260);
+  --svg-text-faint: oklch(65% 0.02 260);
+  --svg-connector: oklch(58% 0.025 260);
+  --svg-connector-label: oklch(45% 0.03 260);
+  /* Categorical diagram accents, re-tuned to the orionfold instrument feel:
+     blue = brand indigo, orange = orbit gold; others cooled to match. */
+  --svg-accent-blue: oklch(50% 0.16 260);
+  --svg-accent-teal: oklch(55% 0.11 200);
+  --svg-accent-green: oklch(52% 0.14 150);
+  --svg-accent-green-alt: oklch(45% 0.15 170);
+  --svg-accent-cyan: oklch(58% 0.11 220);
+  --svg-accent-purple: oklch(50% 0.18 290);
+  --svg-accent-orange: oklch(62% 0.13 82);
+  --svg-accent-red: oklch(55% 0.20 20);
+  --svg-accent-pink: oklch(55% 0.18 340);
 
   --font-display: "Geist Sans", system-ui, sans-serif;
   --font-body: "Geist Sans", system-ui, sans-serif;
@@ -417,12 +424,65 @@ html[data-theme="light"] body::before {
   opacity: 0.015;
 }
 
-/* ── Hero gradient text — spark accent ramp (design-system §6) ── */
+/* ── Hero gradient text — orionfold navy → royal blue → gold ramp ── */
 html[data-theme="light"] .hero-gradient-text {
-  background: linear-gradient(135deg, #D74D26, #F7653B, #E08D00);
+  background: linear-gradient(135deg, #003356, #1952af, oklch(59% 0.13 82));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+/* ── Orionfold card surface idiom (ported from orionfold.com) ──
+   .of-surface: primary-tinted hairline border, soft vertical sheen, long low
+   shadow, corner glow washes (indigo + gold) and a faint dot-grid texture.
+   .of-pressable: hover lift toward primary. Apply to marketing cards only —
+   arena-app keeps the Airtable operator-pane language. */
+.of-surface {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid color-mix(in oklch, var(--color-border) 76%, var(--color-primary) 24%);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--color-surface-raised) 94%, white 6%), var(--color-surface-raised)),
+    var(--color-surface-raised);
+  box-shadow: 0 28px 70px -44px oklch(18% 0.08 260 / 0.42), inset 0 1px rgba(255, 255, 255, 0.62);
+}
+.of-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.72;
+  background:
+    radial-gradient(circle at 18% 18%, var(--color-primary-glow), transparent 24rem),
+    radial-gradient(circle at 84% 8%, oklch(70% 0.14 82 / 0.1), transparent 20rem);
+}
+.of-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.24;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.52) 0 1px, transparent 1.4px),
+    linear-gradient(135deg, transparent 0 46%, rgba(52, 110, 205, 0.07) 46% 46.4%, transparent 46.4% 100%);
+  background-position: 0 0, 50%;
+  background-size: 84px 84px, 100% 100%;
+}
+.of-pressable {
+  transition: border-color 0.22s, background-color 0.22s, box-shadow 0.22s, transform 0.22s;
+}
+.of-pressable:hover {
+  border-color: color-mix(in oklch, var(--color-primary) 38%, var(--color-border));
+  background-color: color-mix(in oklch, var(--color-primary) 4%, var(--color-surface-raised));
+  box-shadow: 0 18px 42px -32px var(--color-primary);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .of-pressable { transition: none; }
+  .of-pressable:hover { transform: none; }
 }
 
 /* ── Smooth theme transitions (added by JS after first paint) ── */

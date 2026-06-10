@@ -59,7 +59,7 @@ const gaps = [
     <!-- Capability gaps -->
     <div data-animate-stagger class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       {gaps.map(({ icon, title, description }) => (
-        <div data-animate class="rounded-xl border border-border bg-surface-raised p-5 text-center">
+        <div data-animate class="of-surface rounded-xl p-5 text-center">
           <div class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 text-primary mb-3" set:html={icon} />
           <div class="font-semibold text-sm mb-1">{title}</div>
           <p class="text-xs text-text-muted leading-relaxed">{description}</p>
