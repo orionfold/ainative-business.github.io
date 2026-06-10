@@ -62,6 +62,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--global-batch", type=int, default=8)
     p.add_argument("--save-interval", type=int, default=10)
     p.add_argument("--most-recent-k", type=int, default=3)
+    p.add_argument(
+        "--eval-iters",
+        type=int,
+        default=-1,
+        help=(
+            "Override eval_iters for non-smoke runs; size so that "
+            "eval_iters x global_batch <= validation rows or end-of-train "
+            "validation wedges forever. -1 keeps the recipe default."
+        ),
+    )
     return p.parse_args()
 
 
@@ -122,6 +132,8 @@ def main() -> int:
     # Size eval to what the split can actually feed.
     if args.smoke > 0:
         cfg.train.eval_iters = 0
+    elif args.eval_iters >= 0:
+        cfg.train.eval_iters = args.eval_iters
 
     cfg.optimizer.lr = args.lr
     cfg.optimizer.min_lr = 0.0
