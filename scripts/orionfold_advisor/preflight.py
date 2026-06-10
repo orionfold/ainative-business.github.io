@@ -318,6 +318,28 @@ def _chat(
     return str(content)
 
 
+# Residue checks (4B SFT lane step 1): label-free, additive to the original
+# pass/fail so old receipts stay comparable. Alias = positional "Source N"
+# echoed from the packet's context labels; bare = an answer row with no
+# substantive body before the Citations line. 40 chars sits between the bare
+# row (0) and the shortest real answer body (56) on the 4B wide receipt.
+ALIAS_RESIDUE_RE = re.compile(r"(?i)\bsource[ _]?\d+\b")
+MIN_ANSWER_BODY_CHARS = 40
+
+
+def _residue_checks(expected_behavior: str, output: str) -> dict[str, bool]:
+    alias_residue = False
+    bare_answer = False
+    if expected_behavior != "refuse":
+        alias_residue = bool(ALIAS_RESIDUE_RE.search(output))
+    if expected_behavior == "answer":
+        citation_matches = list(re.finditer(r"(?im)\bCitations:\s*\[(.*?)\]\s*\.?", output))
+        body = output[: citation_matches[-1].start()] if citation_matches else output
+        body = re.sub(r"(?im)^\s*route:\s*", "", body).strip()
+        bare_answer = len(body) < MIN_ANSWER_BODY_CHARS
+    return {"alias_residue": alias_residue, "bare_answer": bare_answer}
+
+
 def _score_output(packet: dict[str, Any], output: str) -> dict[str, Any]:
     expected = list(packet["expected_source_ids"])
     expected_behavior = packet["expected_behavior"]
@@ -375,14 +397,18 @@ def _score_output(packet: dict[str, Any], output: str) -> dict[str, Any]:
         )
 
     passed = citation_ok and refusal_ok and route_ok and not thinking_leak and not private_state_risk
+    residue = _residue_checks(expected_behavior, output)
     return {
         "citation_ok": citation_ok,
         "refusal_ok": refusal_ok,
         "route_ok": route_ok,
         "thinking_leak": thinking_leak,
         "private_state_risk": private_state_risk,
+        "alias_residue": residue["alias_residue"],
+        "bare_answer": residue["bare_answer"],
         "cited_source_ids": cited_ids,
         "passed": passed,
+        "strict_passed": passed and not residue["alias_residue"] and not residue["bare_answer"],
     }
 
 
@@ -430,6 +456,9 @@ def _report(
 ) -> dict[str, Any]:
     ran_model = bool(endpoint)
     failures = [row for row in results if not row["score"]["passed"]]
+    strict_flagged = [
+        row for row in results if not row["score"].get("strict_passed", row["score"]["passed"])
+    ]
     family_counts = Counter(packet["family"] for packet in packets)
 
     def _repo_relative(path: Path) -> str:
@@ -455,6 +484,19 @@ def _report(
             "passed": bool(ran_model and not failures),
             "status": "scored" if ran_model else "not_run",
             "threshold": "all selected rows pass citation/refusal/route checks with no thinking leakage or private-state risk",
+        },
+        "strict": {
+            "strict_passed_count": len(results) - len(strict_flagged) if ran_model else None,
+            "flagged": [
+                {
+                    "task_id": row["task_id"],
+                    "alias_residue": row["score"].get("alias_residue", False),
+                    "bare_answer": row["score"].get("bare_answer", False),
+                    "passed": row["score"]["passed"],
+                }
+                for row in strict_flagged
+            ],
+            "note": "residue-aware strict metric (alias_residue + bare_answer), additive over the original gate",
         },
         "failures": [
             {

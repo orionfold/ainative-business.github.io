@@ -3,8 +3,10 @@
   "failures": [
     {
       "expected_behavior": "answer",
-      "family": "artifact_release_facts",
+      "family": "cited_factual_qa",
       "score": {
+        "alias_residue": true,
+        "bare_answer": false,
         "citation_ok": false,
         "cited_source_ids": [
           "product_orionfold_cortex"
@@ -13,6 +15,26 @@
         "private_state_risk": false,
         "refusal_ok": true,
         "route_ok": true,
+        "strict_passed": false,
+        "thinking_leak": false
+      },
+      "task_id": "advisor-cited-factual-qa-0003"
+    },
+    {
+      "expected_behavior": "answer",
+      "family": "artifact_release_facts",
+      "score": {
+        "alias_residue": true,
+        "bare_answer": false,
+        "citation_ok": false,
+        "cited_source_ids": [
+          "product_orionfold_cortex"
+        ],
+        "passed": false,
+        "private_state_risk": false,
+        "refusal_ok": true,
+        "route_ok": true,
+        "strict_passed": false,
         "thinking_leak": false
       },
       "task_id": "advisor-artifact-release-facts-0048"
@@ -35,16 +57,51 @@
   },
   "generated": "2026-06-09",
   "mode": "endpoint",
-  "model_target": "nemotron3-nano-4b-q8",
+  "model_target": "NVIDIA-Nemotron-3-Nano-4B-Q8_0.gguf",
   "notes": [
     "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
-    "Endpoint mode expects a local OpenAI-compatible lane serving the target model.",
-    "4B wide-slice probe: full 28-row frozen held-out on nemotron3-nano-4b-q8 (lmstudio-community Q8_0), same exemplar prompt + /no_think config as the 30B receipts; bench 3220b8e799cd"
+    "Endpoint mode expects a local OpenAI-compatible lane serving the target model."
   ],
-  "prompt_path": "(deterministic \u2014 regenerate via preflight.py --task-id x28 --reasoning-mode off)",
+  "prompt_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.prompts.jsonl",
   "reasoning_mode": "off",
-  "results_path": "evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.results.jsonl",
+  "results_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.results.jsonl",
   "row_count": 28,
+  "strict": {
+    "flagged": [
+      {
+        "alias_residue": true,
+        "bare_answer": false,
+        "passed": false,
+        "task_id": "advisor-cited-factual-qa-0003"
+      },
+      {
+        "alias_residue": true,
+        "bare_answer": false,
+        "passed": true,
+        "task_id": "advisor-artifact-release-facts-0034"
+      },
+      {
+        "alias_residue": true,
+        "bare_answer": false,
+        "passed": true,
+        "task_id": "advisor-artifact-release-facts-0040"
+      },
+      {
+        "alias_residue": true,
+        "bare_answer": false,
+        "passed": false,
+        "task_id": "advisor-artifact-release-facts-0048"
+      },
+      {
+        "alias_residue": true,
+        "bare_answer": false,
+        "passed": true,
+        "task_id": "advisor-book-thesis-synthesis-0057"
+      }
+    ],
+    "note": "residue-aware strict metric (alias_residue + bare_answer), additive over the original gate",
+    "strict_passed_count": 23
+  },
   "version": "v0.1"
 }
