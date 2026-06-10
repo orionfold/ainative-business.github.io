@@ -1,23 +1,23 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-10",
+  "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor pre-SFT gates CLOSED: base selection decided (30B serve / 4B train), corpus-pack manifest rebuilt with proof-control exclusion, all gates green on final corpus (13.C 8/8, routed bakeoff 28/28 both tiers)",
+  "focus": "4B SFT lane PLANNED (_IDEAS/advisor-4b-sft-lane-v1.md): SFT-only path locked by decision rule, RLVR expected skipped; residue quantified offline (6/12 answer rows: 5 alias + 1 bare)",
   "blockers": [],
   "next": [
-    "Plan the 4B SFT lane: SFT-vs-RLVR decision rule + headroom gate; target = the 4B's citation-alias/bare-answer residue; init baseline = advisor-preflight-4b-wide-v0.1",
+    "Execute the 4B SFT lane plan step 0-2: re-baseline wide slice on final corpus, residue-aware scorer rev, export-path smoke (nemotron_h trained-export to GGUF is the unproven long pole)",
+    "Then SFT corpus (~600-1200 rows, 30B teacher, verify-then-keep) + NeMo SFT smoke + Arena-visible receipts + recorded headroom-gate skip",
     "Spec 10 corpus pane: surface the coverage/freshness + proof-control-boundary story from the rebuild (extends AD-AE-11)",
     "AD-AE-16: Arena routing surface for route tier/ledger/cost"
   ],
   "recent": [
+    "4B SFT lane plan authored as living doc; SFT-vs-RLVR rule applied at plan time (trajectories generatable + outputs enumerable -> SFT-only; init 27/28 scored / 22/28 residue-strict, above the RL Goldilocks band)",
+    "Offline residue scan of advisor-preflight-4b-wide-v0.1: alias rows 0003/0034/0040/0048/0074 + bare-answer 0057; alias origin = preflight packet 'Source N:' labels",
     "Base selection (operator): 30B-A3B = serving lane, 4B dense = training base; guarded LaneTruth swap back to the 30B (job 7ba9e412)",
-    "Manifest rebuild caught eval contamination: the Advisor proof-control spec entered its own retrieval corpus, false-escalating the router and regressing routed t1+t4; excluded via EXCLUDED_SPEC_BASENAMES (operator approved), Workbench spec retained",
-    "Final corpus 182 sources, manifest 6b1e832d099c, bench unchanged 3220b8e799cd; BM25 0.9885@5, live Cortex 0.977@5 / 1.0 held-out (639 chunks)",
-    "13.C visible-Cortex /no_think preflight on the 30B: 8/8, 0 leak, 0 private-state risk on the final corpus",
-    "13.F bakeoff: T1-only 27/28; routed t1+t3 AND t1+t4 28/28 ($0 / $0.0055); route accuracy 0.9643 (one harmless Workbench-spec false escalation, recorded)"
+    "Final corpus 182 sources, manifest 6b1e832d099c, bench unchanged 3220b8e799cd; all gates green (13.C 8/8, routed bakeoff 28/28 both tiers)"
   ],
-  "session": "S-advisor-base-pick-corpus-rebuild",
+  "session": "S-advisor-4b-sft-plan",
   "metrics": {
     "articles": 53,
     "models": 6,
