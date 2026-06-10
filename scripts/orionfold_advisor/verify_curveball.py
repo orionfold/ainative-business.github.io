@@ -25,6 +25,7 @@ reported warning for bench-author review.
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import sys
@@ -38,8 +39,9 @@ BENCH_PATHS = (
     EVIDENCE_DIR / "advisor-bench-v0.1.jsonl",
     EVIDENCE_DIR / "advisor-bench-v0.1.heldout.jsonl",
 )
-SFT_CORPUS_PATH = Path(
-    "/home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.1.jsonl"
+SFT_CORPUS_PATHS = (
+    Path("/home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.1.jsonl"),
+    Path("/home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.2.jsonl"),
 )
 REQUIRED_FIELDS = (
     "task_id",
@@ -59,7 +61,22 @@ def _norm_question(text: str) -> str:
 
 
 def main() -> int:
-    rows = _read_jsonl(CURVEBALL_PATH)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--bench",
+        type=Path,
+        default=CURVEBALL_PATH,
+        help="Curveball bench JSONL to verify (default: the frozen v0.1)",
+    )
+    parser.add_argument(
+        "--other-curveball",
+        type=Path,
+        action="append",
+        default=[],
+        help="Additional frozen curveball file(s) the bench must not collide with",
+    )
+    args = parser.parse_args()
+    rows = _read_jsonl(args.bench)
     manifest_ids = {row["source_id"] for row in _read_jsonl(MANIFEST_PATH)}
     errors: list[str] = []
     warnings: list[str] = []
@@ -102,7 +119,7 @@ def main() -> int:
         max_sources=5,
         excerpt_chars=900,
         reasoning_mode="off",
-        bench_path=CURVEBALL_PATH,
+        bench_path=args.bench,
         select_all=True,
         evaluator_hint=False,
     )
@@ -150,21 +167,23 @@ def main() -> int:
 
     # 6. dedup
     other_questions: set[str] = set()
-    for path in BENCH_PATHS:
+    for path in tuple(BENCH_PATHS) + tuple(args.other_curveball):
         for row in _read_jsonl(path):
             other_questions.add(_norm_question(row["question"]))
-    corpus_note = "checked"
-    if SFT_CORPUS_PATH.exists():
-        with SFT_CORPUS_PATH.open(encoding="utf-8") as fh:
+    checked_corpora: list[str] = []
+    for corpus_path in SFT_CORPUS_PATHS:
+        if not corpus_path.exists():
+            warnings.append(f"sft corpus dedup skipped: {corpus_path} not found")
+            continue
+        checked_corpora.append(corpus_path.name)
+        with corpus_path.open(encoding="utf-8") as fh:
             for line in fh:
                 if line.strip():
                     corpus_row = json.loads(line)
                     question = corpus_row.get("question")
                     if question:
                         other_questions.add(_norm_question(str(question)))
-    else:
-        corpus_note = f"SKIPPED (missing {SFT_CORPUS_PATH})"
-        warnings.append(f"sft corpus dedup skipped: {SFT_CORPUS_PATH} not found")
+    corpus_note = f"checked ({', '.join(checked_corpora)})" if checked_corpora else "SKIPPED (no corpus found)"
     for row in rows:
         if _norm_question(row["question"]) in other_questions:
             errors.append(f"{row['task_id']}: question collides with bench/SFT corpus")

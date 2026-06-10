@@ -3,21 +3,21 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Advisor external-curveball OOD check DONE: frozen 40-row session-authored bench, all 3 lanes scored via operator-armed LaneTruth swaps; 4B-SFT best OOD floor (28/40, scored==strict, 0 residue) but pretext-refusals regressed (9/15 vs init 14/15); 30B exemplar-echoes OOD (26/40)",
+  "focus": "Advisor SFT-v0.2 COMPLETE (operator: '30B serves + SFT-v0.2, no quality compromise'): 827-row corpus on all 3 levers, frozen curveball-v0.2 OOD gate authored pre-training; v0.2 4B = 18/21 refusals 9/9 risk 0 vs 30B 8/21 refusals 3/9 risk 3; both 28/28 wides held (hinted + new hint-free)",
   "blockers": [],
   "next": [
-    "Operator decision on OOD verdict: ship 30B serving as-is, run SFT-v0.2 (hint-free packets + novel-pretext refusal + hint-free route families), and/or harden the serving prompt contract (exemplar-echo is prompt-level, hits the 30B too)",
-    "Spec 10 corpus pane (extends AD-AE-11; SFT-corpus handoff + curveball eval both ran terminal-side)",
-    "AD-AE-16: Arena routing surface (spec 12); OOD failures concentrate in the router's label-free-undetectable class",
-    "14 publish/reject receipt assembly when the operator calls it"
+    "Operator decision (a2): promote 4B-SFT-v0.2 to the serving lane (wins every measured OOD axis) or keep 30B and harden its prompt contract (fabricated private-looking state 3x under novel pretexts)",
+    "Optional v0.3 lever: Route:-prefix boundary on which-doc-defines-X phrasings (all misses citation-correct; maybe a contract question)",
+    "Spec 10 corpus pane (extends AD-AE-11; SFT-corpus handoff + curveball eval still terminal-side)",
+    "AD-AE-16 Arena routing surface (spec 12); then 14 publish/reject receipt assembly when the operator calls it"
   ],
   "recent": [
-    "Curveball bench advisor-curveball-v0.1.jsonl (sha 122bcd619e9d): 20 answer / 5 route / 15 refuse, no evaluator-hint packets, novel refusal pretexts; deterministic gate verify_curveball.py green (gold@5 25/25, 0 bench/SFT-corpus overlap)",
-    "Receipts: 30B 26/40 scored / 23 strict (refusals 11/15); 4B-SFT 28/40 / 28 strict (answers 19/20, refusals 9/15); 4B-init 22/40 / 22 strict (refusals 14/15); 0 leak / 0 private-state risk everywhere",
-    "SFT discipline generalized OOD: only scored==strict lane, 0 exemplar-echo (init 7 rows, 30B 4 rows -> echo is a prompt-contract failure mode); wrong-metric Kepler-MMLU trap fooled all three lanes",
-    "Lane swaps through visible LaneTruth (operator-armed), 30B serving lane restored; preflight.py gained additive --bench/--all-rows/--no-evaluator-hint + accepted_source_ids scoring (frozen-bench packets regression-diffed byte-identical)"
+    "sft_corpus.py v0.2: 50/50 hint alternation (teacher always hinted), 3 new hint-free refusal families on the v0.1 miss classes (injection 60, absent-source 55, wrong-metric 35 with metric-absence verified), route templates natural + quota 120; 827 rows sha e096aa6b12cc, 0 overlap with bench + both curveballs",
+    "Curveball-v0.2 frozen PRE-training (21 rows sha 4b6cac85e41f, 6 novel pretext classes + 2 probes): 4B-SFT-v0.2 18/21 scored==strict, refusals 9/9, 0 risk; 30B serving baseline 8/21, refusals 3/9, 3 private_state_risk — the trained lane, not the prompt, carries the refusal floor",
+    "Curveball-v0.1 re-run 36/40 scored==strict (refusals 15/15 — regression FIXED above init 14/15; class-near-distribution caveat); hinted wide HELD 28/28, NEW hint-free wide 28/28, Cortex /no_think 8/8, router t1-only 28/28 (t4 PASS $0.0033; t3 NGC call timed out, recorded honestly)",
+    "Train 285 iters ~21 min val PPL 1.60 -> Q8_0 4.0 GB; recipe nemotron3-nano-4b-sft-v02-q8 (8th); operator-armed teardown + restore through visible LaneTruth; 13.E v0.2 RLVR skip recorded; nemo-train stopped"
   ],
-  "session": "S-advisor-curveball-ood",
+  "session": "S-advisor-sft-v02",
   "metrics": {
     "articles": 53,
     "models": 6,

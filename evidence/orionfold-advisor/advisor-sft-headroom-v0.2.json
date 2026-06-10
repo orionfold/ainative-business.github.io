@@ -1,0 +1,43 @@
+{
+  "decision": "SKIP RLVR — ship SFT-only (v0.2)",
+  "gate": "spec 13.E RLVR headroom (Goldilocks 30-70% on the exact selection held-out)",
+  "generated": "2026-06-10",
+  "init_for_delta": {
+    "note": "the SFT-v0.1 lane is the comparison init for v0.2; its frozen-held-out receipts were already saturated — the v0.2 levers target OOD behavior, not held-out headroom",
+    "sft_v01_heldout": "28/28 scored+strict (hinted)",
+    "sft_v01_curveball_v01": "28/40 scored+strict (refusals 9/15)"
+  },
+  "model_target": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+  "post_sft_heldout": {
+    "hint_free_wide": "28/28 scored, 28/28 strict, refusals 16/16 (NEW production-shaped receipt)",
+    "hinted_wide": "28/28 scored, 28/28 strict, refusals 16/16",
+    "private_state_risk": 0,
+    "thinking_leak": 0
+  },
+  "ood_after_sft": {
+    "curveball_v01_rerun": "36/40 scored==strict — answers 19/20, refusals 15/15 (regression fixed, above init 14/15), route 2/5 (class-near-distribution caveat: its failure classes were trained, instances disjoint)",
+    "curveball_v02_frozen": "18/21 scored==strict — refusals 9/9 novel pretexts, 0 risk; 30B serving baseline 8/21 with 3 private_state_risk rows"
+  },
+  "provenance": {
+    "bench_sha256_12": "3220b8e799cd",
+    "curveball_v01_sha256_12": "122bcd619e9d",
+    "curveball_v02_sha256_12": "4b6cac85e41f",
+    "manifest_sha256_12": "6b1e832d099c",
+    "receipts": [
+      "advisor-preflight-4b-wide-v0.1.json (hinted 28/28)",
+      "advisor-preflight-4b-wide-nohint-v0.1.json (hint-free 28/28)",
+      "advisor-route-bakeoff-v0.1.json (t1-only 28/28; t4 PASS $0.0033; t3 hosted call timed out NGC-side, routed score falls back to the passing T1 row)",
+      "advisor-curveball-4bsft2-v0.1.json (curveball-v0.1 re-run 36/40)",
+      "advisor-curveball2-compare-v0.1.json (frozen v0.2 gate, both lanes)",
+      "/tmp/orionfold-advisor-dogfood/cortex-nothink-4b-sft-v02.png (visible Cortex 8/8)"
+    ],
+    "sft_corpus_sha256_12": "e096aa6b12cc",
+    "train": "LoRA r16 attention-only, 285 iters, global_batch 8, eval_iters 8, val 64 rows; lm val loss 0.4706 (PPL 1.60)"
+  },
+  "rationale": [
+    "Post-SFT held-out is 100% scored and strict on BOTH hinted and hint-free packets — far above the 30-70% band where RL earns signal.",
+    "The SFT-vs-RLVR prior still selects SFT-only: every v0.2 lever (hint robustness, refusal pretext classes, route phrasing) had cheaply generatable correct trajectories and label-free enumerable checks.",
+    "Remaining OOD soft spots (Route: prefix on which-doc-defines-X phrasings; one over-refusal) are demonstration-shaped, not verify≫demonstrate-shaped — more SFT data or prompt-contract work, not RL."
+  ],
+  "version": "v0.2"
+}

@@ -1,7 +1,7 @@
 {
   "bench_path": "evidence/orionfold-advisor/advisor-bench-v0.1.heldout.jsonl",
   "endpoint": "http://127.0.0.1:8091",
-  "evaluator_hint": true,
+  "evaluator_hint": false,
   "failures": [],
   "families": {
     "artifact_release_facts": 3,
@@ -26,9 +26,9 @@
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
     "Endpoint mode expects a local OpenAI-compatible lane serving the target model."
   ],
-  "prompt_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.prompts.jsonl",
+  "prompt_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-nohint-v0.1.prompts.jsonl",
   "reasoning_mode": "off",
-  "results_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-v0.1.results.jsonl",
+  "results_path": "../../evidence/orionfold-advisor/advisor-preflight-4b-wide-nohint-v0.1.results.jsonl",
   "row_count": 28,
   "strict": {
     "flagged": [],

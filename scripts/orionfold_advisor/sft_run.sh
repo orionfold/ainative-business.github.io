@@ -23,6 +23,7 @@ set -euo pipefail
 : "${HF_SNAPSHOT:=$(ls -d /home/nvidia/data/.hf-cache/hub/models--nvidia--NVIDIA-Nemotron-3-Nano-4B-BF16/snapshots/*/ 2>/dev/null | head -1)}"
 : "${SMOKE_ROOT:=/home/nvidia/data/aifn-train-lora/advisor-4b-smoke}"
 : "${RUNS_ROOT:=/home/nvidia/data/aifn-train-lora/advisor-4b-sft}"
+: "${CORPUS_VERSION:=v0.2}"
 : "${STAGES:=bake,train,merge,export,gguf}"
 : "${TRAIN_ITERS:=270}"
 : "${EVAL_ITERS:=8}"
@@ -31,14 +32,22 @@ set -euo pipefail
 : "${LLAMA_CPP:=/home/nvidia/llama.cpp}"
 
 REPO=/home/nvidia/ainative-business.github.io
-CORPUS="$RUNS_ROOT/corpus/advisor-sft-corpus-v0.1.jsonl"
+CORPUS="$RUNS_ROOT/corpus/advisor-sft-corpus-${CORPUS_VERSION}.jsonl"
 MCORE_BASE="$SMOKE_ROOT/mcore-base"
 SHADOW_HF="$SMOKE_ROOT/hf-base-fixed"
-DATASET_DIR="$RUNS_ROOT/dataset"
-RUN_DIR="$RUNS_ROOT/runs-sft"
-MERGED_MCORE="$RUNS_ROOT/merged-mcore"
-MERGED_HF="$RUNS_ROOT/merged-hf-bf16"
-GGUF_OUT="$RUNS_ROOT/NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0.gguf"
+if [[ "$CORPUS_VERSION" == "v0.1" ]]; then
+    # v0.1 artifacts predate version-suffixed dirs; keep their original paths.
+    DATASET_DIR="$RUNS_ROOT/dataset"
+    RUN_DIR="$RUNS_ROOT/runs-sft"
+    MERGED_MCORE="$RUNS_ROOT/merged-mcore"
+    MERGED_HF="$RUNS_ROOT/merged-hf-bf16"
+else
+    DATASET_DIR="$RUNS_ROOT/dataset-${CORPUS_VERSION}"
+    RUN_DIR="$RUNS_ROOT/runs-sft-${CORPUS_VERSION}"
+    MERGED_MCORE="$RUNS_ROOT/merged-mcore-${CORPUS_VERSION}"
+    MERGED_HF="$RUNS_ROOT/merged-hf-bf16-${CORPUS_VERSION}"
+fi
+GGUF_OUT="$RUNS_ROOT/NVIDIA-Nemotron-3-Nano-4B-advisor-sft-${CORPUS_VERSION}-Q8_0.gguf"
 LOG_DIR="$RUNS_ROOT/logs"
 mkdir -p "$LOG_DIR"
 
@@ -121,5 +130,5 @@ if has_stage gguf; then
     log "[gguf] $(du -h "$GGUF_OUT" | cut -f1) written"
 fi
 
-log "[done] stages: $STAGES"
-log "[next] launch via guarded LaneTruth (recipe nemotron3-nano-4b-sft-q8 -> $GGUF_OUT) + step-5 receipts"
+log "[done] stages: $STAGES (corpus $CORPUS_VERSION)"
+log "[next] launch via guarded LaneTruth (lane recipe pointing at $GGUF_OUT) + post-SFT receipts"

@@ -77,7 +77,7 @@
     "citation_correct": 12,
     "config": "exemplar-format system prompt + reasoning off (the 7/8 receipt config)",
     "endpoint": "http://127.0.0.1:8091",
-    "model": "nemotron3-nano-4b-sft-q8",
+    "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
     "pass": 28,
     "pass_rate": 1.0,
     "private_state_risks": 0,

@@ -1,5 +1,7 @@
 {
+  "bench_path": "evidence/orionfold-advisor/advisor-bench-v0.1.heldout.jsonl",
   "endpoint": "http://127.0.0.1:8091/v1",
+  "evaluator_hint": true,
   "failures": [],
   "families": {
     "artifact_release_facts": 1,
@@ -18,7 +20,7 @@
   },
   "generated": "2026-06-10",
   "mode": "endpoint",
-  "model_target": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.1-Q8_0.gguf",
+  "model_target": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
   "notes": [
     "Prompt packets are generated from the frozen held-out bench and public corpus manifest.",
     "This is a generator behavior gate; retrieval recall remains tracked separately in rag-recall-v0.1.json.",
