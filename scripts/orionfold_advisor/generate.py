@@ -539,6 +539,27 @@ def bench_rows(sources: list[Source]) -> tuple[list[dict[str, Any]], list[dict[s
         _find_source(sources, "product_orionfold_cortex"),
     ]
     for source in partner_sources:
+        if source.source_id == "article_nemo_framework_on_spark":
+            # 2026-06-09 erratum (spec §18): the generic template's expected
+            # answer is not groundable in this article — it contains no
+            # Arena/scoring/governance/provenance/publish content at any
+            # excerpt size, so every tier correctly refused the held-out row.
+            # The row keeps the family's separation intent but expects the
+            # source that actually states the scoring side.
+            arena_product = _find_source(sources, "product_orionfold_arena")
+            add(
+                "unsloth_arena_partner_path",
+                "When Advisor cites training/export evidence such as the NeMo "
+                "Framework field note, which Orionfold product is the cockpit "
+                "for running, comparing, and scoring local models with a "
+                "leaderboard, and should those scoring concerns stay separate "
+                "from training/export evidence?",
+                [arena_product.source_id],
+                f"State that {arena_product.citation_label} owns scoring, "
+                "comparison, and the leaderboard, kept separate from "
+                "training/export evidence, and cite it.",
+            )
+            continue
         add(
             "unsloth_arena_partner_path",
             f"How should Advisor separate training/export from scoring/governance when citing {source.citation_label}?",

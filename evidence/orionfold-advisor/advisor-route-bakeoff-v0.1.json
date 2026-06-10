@@ -2,15 +2,15 @@
   "configs": {
     "t1+t3": {
       "answer_rows": 12,
-      "citation_correct": 10,
-      "escalated_rows": 1,
+      "citation_correct": 11,
+      "escalated_rows": 0,
       "hosted_cost_usd": 0.0,
       "hosted_tokens": {
-        "completion": 230,
-        "prompt": 1636
+        "completion": 0,
+        "prompt": 0
       },
-      "pass": 26,
-      "pass_rate": 0.9286,
+      "pass": 27,
+      "pass_rate": 0.9643,
       "private_state_risks": 0,
       "quality_delta_points": 0.0,
       "refusal_correct": 16,
@@ -21,15 +21,15 @@
     },
     "t1+t4": {
       "answer_rows": 12,
-      "citation_correct": 10,
-      "escalated_rows": 1,
-      "hosted_cost_usd": 0.002196,
+      "citation_correct": 11,
+      "escalated_rows": 0,
+      "hosted_cost_usd": 0.0,
       "hosted_tokens": {
-        "completion": 96,
-        "prompt": 1716
+        "completion": 0,
+        "prompt": 0
       },
-      "pass": 26,
-      "pass_rate": 0.9286,
+      "pass": 27,
+      "pass_rate": 0.9643,
       "private_state_risks": 0,
       "quality_delta_points": 0.0,
       "refusal_correct": 16,
@@ -40,12 +40,12 @@
     },
     "t1-only": {
       "answer_rows": 12,
-      "citation_correct": 10,
+      "citation_correct": 11,
       "escalated_rows": 0,
       "hosted_cost_usd": 0.0,
       "hosted_tokens": null,
-      "pass": 26,
-      "pass_rate": 0.9286,
+      "pass": 27,
+      "pass_rate": 0.9643,
       "private_state_risks": 0,
       "quality_delta_points": 0.0,
       "refusal_correct": 16,
@@ -58,7 +58,7 @@
   "generated": "2026-06-09",
   "ledger_path": "evidence/orionfold-advisor/advisor-route-bakeoff-v0.1.ledger.jsonl",
   "router": {
-    "escalated": 1,
+    "escalated": 0,
     "known_limitation": "wrong-citation answers are undetectable without labels and never escalate",
     "policy": "deterministic observables-only: private-state data-policy gate; escalate on t1_error / format failure / non-private refusal",
     "private_state_blocked": 0
@@ -71,12 +71,12 @@
   "spec": "_SPECS/orionfold-advisor-nvidia-native-v1.md \u00a713.F",
   "t1": {
     "answer_rows": 12,
-    "citation_correct": 10,
+    "citation_correct": 11,
     "config": "exemplar-format system prompt + reasoning off (the 7/8 receipt config)",
     "endpoint": "http://127.0.0.1:8091",
     "model": "nemotron3-nano-30b-q8",
-    "pass": 26,
-    "pass_rate": 0.9286,
+    "pass": 27,
+    "pass_rate": 0.9643,
     "private_state_risks": 0,
     "refusal_correct": 16,
     "refusal_rows": 16,

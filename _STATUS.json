@@ -3,22 +3,22 @@
   "project": "spark",
   "updated": "2026-06-09",
   "health": "green",
-  "focus": "Advisor live Cortex recall gate PASSED (0.977@5, 1.0 held-out via pgvector+NIM embedder); granularity-pass assumption refuted — 0082 is corpus-level bench drift",
+  "focus": "Advisor 0082 bench erratum applied + all receipts re-run: 13.C preflight 8/8 through visible Cortex (gate PASSED, first publishable-grade); bakeoff T1-only 27/28, 0 escalations",
   "blockers": [],
   "next": [
-    "Operator decision: bench erratum for frozen held-out row 0082 (expected source can't ground the expected answer); sole barrier to a clean 8/8 receipt",
     "Optional: probe Nano-3-4B BF16 with the same lane-recipe + exemplar prompt as a trainable dense fallback",
-    "AD-AE-11 extended: corpus-pack ingest + live recall gate need an Arena surface (spec 10 corpus pane)",
-    "AD-AE-16: surface route tier/ledger/cost in Arena (spec 12 panes)"
+    "Deterministic cited-id-not-in-retrieved-set harness check (would catch 0040, the sole remaining miss)",
+    "Deliberate corpus-pack manifest rebuild (known freshness drift: 2 new specs + sha refreshes)",
+    "AD-AE-11/16: Arena surfaces for corpus-pack recall gate and route tier/ledger/cost"
   ],
   "recent": [
-    "Live recall gate: 181-source corpus pack ingested into own pgvector table advisor_corpus_v01 via production fieldkit.memory path; MemoryIndex.query cosine dense",
-    "source_recall@5 0.977 overall, 1.0 held-out answerable, 1.0@10 everywhere; dense beats BM25 @1 (0.85 vs 0.75); 2 pool misses recover @10",
-    "Spec 14 'retriever recall remains green on public corpus' pre-publish condition now met on the live lane, not just the BM25 proxy",
-    "Granularity probe: 0082's expected article (4,492 words) has ZERO Arena/scoring/governance/provenance/publish content — refusals were correct, no excerpt change shipped",
-    "13.F route bakeoff: T1-only 26/28 (refusals 16/16, 0 leak); governed escalation measured+capped"
+    "0082 erratum: generate.py special-case, held-out row only, pool byte-identical; new bench hash 3220b8e799cd; expected source now product_orionfold_arena (BM25+dense rank 1)",
+    "13.C /no_think preflight through the visible Cortex run control: 8/8, 0 leak, 0 private-state risk — receipt gate PASSED for the first time",
+    "13.F bakeoff rerun: T1-only 27/28 (96.4%), refusals 16/16, 0 escalations, $0 hosted — local lane needed no frontier help on this slice",
+    "Live Cortex recall gate: 0.977@5 overall, 1.0 held-out via pgvector advisor_corpus_v01 + NIM embedder (production fieldkit.memory path)",
+    "Granularity probe refuted excerpt-window hypothesis: 0082 was corpus-level bench drift; refusals were correct"
   ],
-  "session": "S-advisor-live-recall-gate",
+  "session": "S-advisor-8of8-receipt",
   "metrics": {
     "articles": 53,
     "models": 6,

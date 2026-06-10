@@ -8,7 +8,7 @@
     },
     "report": "evidence/orionfold-advisor/rag-recall-v0.1.json",
     "source_recall": {
-      "@1": 0.7471,
+      "@1": 0.7356,
       "@10": 1.0,
       "@3": 0.977,
       "@5": 0.9885
@@ -18,7 +18,7 @@
     "evidence/orionfold-advisor/advisor-bench-v0.1.jsonl",
     "evidence/orionfold-advisor/advisor-bench-v0.1.heldout.jsonl"
   ],
-  "bench_sha256_12": "2844cacb181d",
+  "bench_sha256_12": "3220b8e799cd",
   "by_family": {
     "artifact_release_facts": {
       "answerable_n": 23,
@@ -140,7 +140,7 @@
     "unsloth_arena_partner_path": {
       "answerable_n": 6,
       "chunk_recall": {
-        "@1": 0.8333,
+        "@1": 1.0,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -148,7 +148,7 @@
       "refusal_n": 0,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.8333,
+        "@1": 1.0,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -176,7 +176,7 @@
     "heldout": {
       "answerable_n": 12,
       "chunk_recall": {
-        "@1": 0.9167,
+        "@1": 1.0,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -184,7 +184,7 @@
       "refusal_n": 16,
       "source_misses_at_5": [],
       "source_recall": {
-        "@1": 0.9167,
+        "@1": 1.0,
         "@10": 1.0,
         "@3": 1.0,
         "@5": 1.0
@@ -251,7 +251,7 @@
   "metrics": {
     "answerable_n": 87,
     "chunk_recall": {
-      "@1": 0.8506,
+      "@1": 0.8621,
       "@10": 1.0,
       "@3": 0.9655,
       "@5": 0.977
@@ -291,7 +291,7 @@
       }
     ],
     "source_recall": {
-      "@1": 0.8506,
+      "@1": 0.8621,
       "@10": 1.0,
       "@3": 0.977,
       "@5": 0.977

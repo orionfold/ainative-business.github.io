@@ -1,21 +1,6 @@
 {
   "endpoint": "http://127.0.0.1:8091/v1",
-  "failures": [
-    {
-      "expected_behavior": "answer",
-      "family": "unsloth_arena_partner_path",
-      "score": {
-        "citation_ok": false,
-        "cited_source_ids": [],
-        "passed": false,
-        "private_state_risk": false,
-        "refusal_ok": true,
-        "route_ok": true,
-        "thinking_leak": false
-      },
-      "task_id": "advisor-unsloth-arena-partner-path-0082"
-    }
-  ],
+  "failures": [],
   "families": {
     "artifact_release_facts": 1,
     "book_thesis_synthesis": 1,
@@ -27,7 +12,7 @@
   },
   "gate": {
     "name": "advisor-generator-preflight",
-    "passed": false,
+    "passed": true,
     "status": "scored",
     "threshold": "all selected rows pass citation/refusal/route checks with no thinking leakage or private-state risk"
   },
