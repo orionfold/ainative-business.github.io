@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Grounded Eval v1 COMPLETE (Phases 3+4): gold-vs-actual chips + forced toggle + same-lane ±Cortex ablation duel live-smoked in the cockpit; offline runner run_pack.py produced the FIRST FULL RECEIPT — grounded 30% vs ungrounded 20% (lift +12.5% on answer rows), GE-1 over-refusal quantified at 9/16 answer rows; Grounded (live Cortex) receipt tier on the leaderboard",
+  "focus": "Grounded Eval v1 COMPLETE end-to-end: Phases 3+4 (gold-vs-actual UI, ±Cortex ablation duel, run_pack receipts, leaderboard tier) + pack filled to all 60-row quotas via grounded-eval-synth (validator 0 failures); 60-row receipt quantifies the v0.3 levers — 22/51 over-refusals (GE-1) + 12/51 k=3 retrieval misses (NEW GE-3)",
   "blockers": [],
   "next": [
-    "OPERATOR GATE: review draft pack + spec + GE-1 (now quantified) / GE-2 / AD-FK-2 findings",
-    "After review: fill pack quotas to 60 via /grounded-eval-synth, then FREEZE v0.1 before any Advisor v0.3 training",
-    "v0.3 over-refusal lever case is measured: lookup 0/5, howto 0/4, synthesis 0/3 grounded — freeze curveball-v0.3 + grounded-v0.1 first",
-    "AD-FK-2: interactive resident-lane eval grades persist cross_vertical=1 — invisible to the live island; resolve resident→lane id at score time",
+    "OPERATOR GATE: review the 60-row draft + GE-1/GE-2/GE-3/AD-FK-2, then freeze v0.1 (verify_pack.py --freeze) BEFORE any Advisor v0.3 training",
+    "v0.3 levers now measured per journey: over-refusal class (lookup 0/15, howto 0/12, synthesis 0/12 grounded) + retrieval k/query handling for operator phrasings",
+    "Superseded-content refusal probes -> ext set once grounded_contract learns refuse-or-cite-current",
+    "AD-FK-2: resolve resident lane -> bench id at score time so interactive grades reach the live island",
     "AD-FK-1: exempt OpenAICompat container lanes from the AE-R13 one-lane envelope"
   ],
   "recent": [
-    "±Cortex ablation duel: retrieval_a/b in compare, packet built once and replayed on flagged sides; B-side fabricated 'Spark 2.0' while A cited exactly — lift made visible",
-    "GroundedSources.jsx shared chips: ✓/✗ gold-retrieved badge, ◆ gold chips, ◇ not-retrieved gold — retrieval misses visible before scoring",
-    "run_pack.py --mode both: 20 rows × 2 arms vs :8091, per-journey/per-component receipt at evidence/grounded-eval/results/",
-    "GET /api/grounded/receipts + GroundedReceiptPanel leaderboard tier (pack sha + corpus pill + journey bars + lift); grounded never shares a rollup with frozen-packet groups",
-    "arena suite 512 green; receipt matches the live cockpit turns row-for-row"
+    "grounded-eval-synth: 40 rows authored in 3 gated batches, every key_fact grep-verified verbatim in gold bodies; quotas exact (15/12/12/12/9)",
+    "60-row both-arm receipt: grounded 11/60 vs ungrounded 9/60, refusals 9/9; receipts under evidence/grounded-eval/results/",
+    "±Cortex ablation duel live-smoked: grounded side cites exactly, ungrounded side fabricates — lift visible in one screenshot",
+    "Grounded (live Cortex) leaderboard receipt tier + /api/grounded/receipts; grounded never shares a rollup with frozen-packet groups",
+    "arena suite 512 green; gold-vs-actual chips + forced toggle CDP-verified"
   ],
-  "session": "S-grounded-eval-v1-phase3-4",
+  "session": "S-grounded-eval-v1-complete",
   "metrics": {
     "articles": 54,
     "models": 7,
