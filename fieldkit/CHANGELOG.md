@@ -7,6 +7,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **Grounded eval bench — the first LIVE-retrieval bench (grounded-eval-v1).**
+  New `cortex-grounded` BenchSpec (`fmt="grounded"`, `live_retrieval=True`,
+  rows from `evidence/grounded-eval/` via `FK_ARENA_GROUNDED_DIR`): rows
+  carry only the operator-journey question + gold pins (gold sources,
+  accepted citations, deterministic `key_facts`); chat/compare eval mode
+  builds the packet through the live Cortex stack at send time
+  (`cortex_chat.build_packet`) and forces retrieval — Cortex down is a hard
+  error, never an ungrounded turn scored as grounded. Compare eval rows
+  build the packet ONCE and replay it on both sides (a fair A/B by
+  construction); the receipt rides `start`/`start_a` with gold-vs-actual
+  `retrieval_hit`. New deterministic `grounded_contract` scorer
+  (`score_eval_prediction(..., retrieval=receipt)`): retrieval-hit +
+  citation-integrity (cited ⊆ retrieved ∧ ⊇ accepted, `require_all` for
+  synthesis rows) + key-facts (contains / regex / numeric-with-tolerance) +
+  hygiene; a lost receipt degrades `retrieval_hit` to *unknown* flagged in
+  `why` (in-memory turn→receipt map, no arena.db churn). 13 new tests
+  (arena suite 507).
 - **Cortex-grounded chat — live retrieval over the Advisor corpus pack.**
   `POST /api/chat/stream` takes `retrieval: true` (free prompt only; eval
   rows still replay their measured frozen packets): the new

@@ -1670,6 +1670,9 @@ def create_app(
                     judge_backend=judge_backend,
                     judge_model=judge_model,
                     resident=resident,
+                    # grounded rows: the live retrieval receipt stashed at
+                    # stream time (None → retrieval_hit degrades to unknown).
+                    retrieval=_GROUNDED_RECEIPTS.get(int(body.turn_id)),
                 )
                 bench_id = body.bench_id
             elif body.judge is not None:
@@ -5525,6 +5528,22 @@ def _next_ord(store: Any, session_id: str) -> int:
     return len(rows)
 
 
+# grounded-eval-v1 §5 — live retrieval receipts by assistant ``turn_id``, so
+# ``POST /api/chat/score`` can feed the ``grounded_contract`` scorer's
+# ``retrieval_hit`` component. In-memory by design (no arena.db churn): the
+# canonical receipts are the offline runner's files; losing this map across a
+# restart degrades the interactive grade honestly (``retrieval_hit`` unknown,
+# flagged in ``why``) rather than silently passing.
+_GROUNDED_RECEIPTS: dict[int, dict[str, Any]] = {}
+_GROUNDED_RECEIPTS_CAP = 128
+
+
+def _remember_retrieval_receipt(turn_id: int, receipt: dict[str, Any]) -> None:
+    while len(_GROUNDED_RECEIPTS) >= _GROUNDED_RECEIPTS_CAP:
+        _GROUNDED_RECEIPTS.pop(next(iter(_GROUNDED_RECEIPTS)))
+    _GROUNDED_RECEIPTS[turn_id] = receipt
+
+
 def _resolve_eval_prompt(
     body: Any,
 ) -> tuple[str | None, dict[str, Any] | None, str | None, dict[str, Any] | None]:
@@ -5562,6 +5581,17 @@ def _resolve_eval_prompt(
         eval_context["system_attached"] = True
     if loaded.spec.reasoning_mode:
         eval_context["reasoning_mode"] = loaded.spec.reasoning_mode
+    # grounded-eval-v1 §8 — live-retrieval benches carry no packet receipt;
+    # the chat handler must build the packet through the live Cortex stack and
+    # force retrieval. Gold source ids ride along so the UI can render
+    # gold-vs-actual source chips next to the live retrieval chips.
+    if getattr(loaded.spec, "live_retrieval", False):
+        eval_context["live_retrieval"] = True
+        gold_ids = (prompt.gold_meta or {}).get("gold_source_ids") or []
+        if gold_ids:
+            eval_context["gold_source_ids"] = [str(s) for s in gold_ids]
+        if prompt.family:
+            eval_context["journey"] = prompt.family
     return (
         model_prompt,
         eval_context,
@@ -5729,17 +5759,24 @@ async def chat_event_stream(
         effective_prompt = eval_model_prompt if eval_model_prompt is not None else body.prompt
 
         # v0.4 Cortex-grounded chat — live retrieval from the Advisor corpus
-        # pack. Eval mode wins (bench rows replay their measured frozen
-        # packet); a retrieval failure is a hard error, not a silent
-        # ungrounded turn (report ≠ reality is an integrity bug).
+        # pack. Eval mode wins for frozen-packet benches (their rows replay
+        # the measured packet); a LIVE-retrieval bench row (grounded-eval-v1)
+        # is the opposite — it FORCES retrieval and builds the packet through
+        # the live stack on the canonical question. Either way a retrieval
+        # failure is a hard error, not a silent ungrounded turn
+        # (report ≠ reality is an integrity bug).
         retrieval_packet: dict[str, Any] | None = None
-        if getattr(body, "retrieval", False) and eval_model_prompt is None:
+        live_eval = bool(eval_context and eval_context.get("live_retrieval"))
+        if live_eval or (getattr(body, "retrieval", False) and eval_model_prompt is None):
             from fieldkit.arena.cortex_chat import CortexUnavailable, build_packet
 
+            retrieval_query = (
+                eval_model_prompt if live_eval and eval_model_prompt else body.prompt
+            )
             try:
                 retrieval_packet = await asyncio.to_thread(
                     build_packet,
-                    body.prompt,
+                    retrieval_query,
                     root=Path(repo_root) if repo_root else Path.cwd(),
                 )
             except CortexUnavailable as exc:
@@ -5751,6 +5788,21 @@ async def chat_event_stream(
                 }
                 return
             effective_prompt = retrieval_packet["user_prompt"]
+            if live_eval:
+                # Surface the gold-vs-actual read at stream time: the grounded
+                # scorer recomputes this from the receipt, but the start event
+                # should already show a retrieval miss, not hide it until the
+                # score lands.
+                gold_ids = list(eval_context.get("gold_source_ids") or [])
+                if gold_ids:
+                    got = {
+                        str(s.get("source_id") or "")
+                        for s in retrieval_packet["retrieval"]["sources"]
+                    }
+                    retrieval_packet["retrieval"]["gold_source_ids"] = gold_ids
+                    retrieval_packet["retrieval"]["retrieval_hit"] = bool(
+                        got.intersection(gold_ids)
+                    )
 
         if eval_model_prompt is not None or retrieval_packet is not None:
             ceiling = (
@@ -5969,6 +6021,8 @@ async def chat_event_stream(
                 tokens_estimated=tokens_estimated,
             )
         )
+        if retrieval_packet is not None:
+            _remember_retrieval_receipt(int(turn_id), retrieval_packet["retrieval"])
         hub.report_inflight(
             inflight=False,
             tok_per_s=tok_per_s,
@@ -6926,6 +6980,41 @@ async def compare_event_stream(
         effective_prompt = (
             eval_model_prompt if eval_model_prompt is not None else body.prompt
         )
+        # grounded-eval-v1 §8 — a live-retrieval bench row builds its packet
+        # through the live Cortex stack ONCE and both sides replay it (same
+        # question → same retrieval → a fair A/B by construction). Cortex down
+        # = hard error; replaying the bare question would be an ungrounded
+        # turn scored as grounded (report ≠ reality).
+        compare_retrieval: dict[str, Any] | None = None
+        if eval_context is not None and eval_context.get("live_retrieval"):
+            from fieldkit.arena.cortex_chat import CortexUnavailable, build_packet
+
+            _cg_root = os.environ.get("ARENA_REPO_ROOT")
+            try:
+                _cg_packet = await asyncio.to_thread(
+                    build_packet,
+                    eval_model_prompt or body.prompt,
+                    root=Path(os.path.expanduser(_cg_root)) if _cg_root else Path.cwd(),
+                )
+            except CortexUnavailable as exc:
+                yield {
+                    "event": "error",
+                    "data": json.dumps(
+                        {"detail": f"Cortex retrieval unavailable: {exc}"}
+                    ),
+                }
+                return
+            effective_prompt = _cg_packet["user_prompt"]
+            eval_system = eval_system or _cg_packet["system"]
+            eval_chat_kwargs = eval_chat_kwargs or _cg_packet["chat_kwargs"]
+            compare_retrieval = _cg_packet["retrieval"]
+            gold_ids = list(eval_context.get("gold_source_ids") or [])
+            if gold_ids:
+                got = {
+                    str(s.get("source_id") or "") for s in compare_retrieval["sources"]
+                }
+                compare_retrieval["gold_source_ids"] = gold_ids
+                compare_retrieval["retrieval_hit"] = bool(got.intersection(gold_ids))
         if eval_model_prompt is not None:
             ceilings = [
                 _ONDEMAND_CTX
@@ -6951,6 +7040,11 @@ async def compare_event_stream(
             head_extra = (
                 {"run_id": run_id, "rubric_id": rubric_id} if side == "A" else {}
             )
+            if compare_retrieval is not None:
+                # grounded eval row — both sides replay the same live packet;
+                # the receipt (sources, manifest sha, gold-vs-actual hit) rides
+                # each side's start event for the UI's source chips.
+                head_extra = {**head_extra, "retrieval": compare_retrieval}
 
             def _status(phase: str, detail: str):
                 return {
@@ -7263,10 +7357,12 @@ async def compare_event_stream(
             a_eval = _benches.score_eval_prediction(
                 bench_id, qid, a_done["content"],
                 judge_backend=j_backend, judge_model=j_model, resident=resident,
+                retrieval=compare_retrieval,
             )
             b_eval = _benches.score_eval_prediction(
                 bench_id, qid, b_done["content"],
                 judge_backend=j_backend, judge_model=j_model, resident=resident,
+                retrieval=compare_retrieval,
             )
             for side, ev, lane_sid in (("A", a_eval, lane_a_id), ("B", b_eval, lane_b_id)):
                 if ev.get("scored"):

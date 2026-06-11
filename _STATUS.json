@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Grounded Eval v1 decided + Phase 1 built: new spec for operator-journey evals of Cortex-grounded Advisor chat (live retrieval->packet->answer->citations scored as one unit), deterministic miner + pack validator + grounded-eval-synth skill, 20-row pilot pack authored & validated (0 failures)",
+  "focus": "Grounded Eval v1 Phases 1+2 shipped in one session: spec + miner/validator/synth skill + 20-row pilot pack, then the first LIVE-retrieval bench (cortex-grounded) + grounded_contract scorer wired into chat/compare eval — live-smoked in the cockpit (1.0 pass path + two real findings: GE-1 over-refusal on operator phrasing, GE-2 excerpt window drops measurement facts)",
   "blockers": [],
   "next": [
-    "OPERATOR GATE: review _SPECS/grounded-eval-v1.md + evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl (20 rows) before Phase 2",
-    "Grounded Eval Phase 2: cortex-grounded BenchSpec + grounded_contract scorer + live-packet chat eval mode + per-side compare retrieval (±Cortex ablation duel); CDP smoke session",
+    "OPERATOR GATE: review draft pack + spec + GE-1/GE-2 findings (HANDOFF Current State)",
+    "Grounded Eval Phase 3/4: gold-vs-actual chips + ablation toggles UI, offline runner run_pack.py + grounding-lift, grounded leaderboard tier",
     "Fill pack quotas to 60 via /grounded-eval-synth, then FREEZE v0.1 before any Advisor v0.3 training",
-    "AD-FK-1: exempt OpenAICompat container lanes (the :8001 embedder) from the AE-R13 one-lane envelope — guard behavior change, needs its own test",
-    "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)"
+    "GE-2 lever: packet excerpt selection misses results tables — any fix is an OA-NV-8 packet swap, re-gate before adopting",
+    "AD-FK-1: exempt OpenAICompat container lanes from the AE-R13 one-lane envelope"
   ],
   "recent": [
-    "_SPECS/grounded-eval-v1.md ACTIVE — 5 journey archetypes (lookup/howto/synthesis/troubleshoot/refusal), deterministic gate w/ judge advisory, frozen pack + living ext set, corpus-generic pack contract for customer corpora",
-    "scripts/grounded_eval/mine_candidates.py — deterministic journey-tagged seeds, 1066 candidates over the 182-source manifest",
-    "scripts/grounded_eval/verify_pack.py — mechanical gates (gold-in-manifest, key-facts verbatim in gold bodies, title-echo, near-dup, hint phrases) + --freeze sha12 receipt",
-    "New skill grounded-eval-synth (claude-corpus-synth pattern) authored the 20-row pilot: facts verified verbatim, collision-checked against all 89 frozen bench questions",
-    "Pack stays out of every retrieval corpus; spec basename joins EXCLUDED_SPEC_BASENAMES at next corpus build (proof-control discipline)"
+    "cortex-grounded BenchSpec live_retrieval=True — eval mode builds the packet through the live Cortex stack at send time; Cortex down = hard error",
+    "grounded_contract scorer: retrieval-hit + citation-integrity (cited⊆retrieved) + key-facts + hygiene; lost receipt degrades honestly to unknown",
+    "compare eval rows build the packet once and replay it on both sides (fair A/B); receipt on start_a with gold-vs-actual retrieval_hit",
+    "13 new tests, arena suite 507 green; 4 live cockpit eval turns: cg-troubleshoot-0003 PASS 1.0, three 0.0s decomposed into GE-1/GE-2",
+    "GE-2: rag_eval recall 0.977 and curveball 85.7 both blind to the excerpt-window gap — the grounded layer saw it on row 3"
   ],
-  "session": "S-grounded-eval-v1-phase1",
+  "session": "S-grounded-eval-v1-phase2",
   "metrics": {
     "articles": 54,
     "models": 7,

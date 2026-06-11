@@ -186,6 +186,13 @@ class BenchSpec:
     #: bakeoff, so omitting it there also replicates measurement) via
     #: :func:`reasoning_chat_kwargs`. ``None`` = no rider (every other bench).
     reasoning_mode: str | None = None
+    #: grounded-eval-v1 §8 — the bench has NO packet receipts; eval mode must
+    #: build the packet through the LIVE Cortex stack
+    #: (:func:`fieldkit.arena.cortex_chat.build_packet`) at send time and force
+    #: ``retrieval: true``. Cortex down = hard error, never an ungrounded turn
+    #: scored as grounded. The retrieval receipt feeds the
+    #: ``grounded_contract`` scorer's ``retrieval_hit`` component.
+    live_retrieval: bool = False
 
 
 BENCHES: dict[str, BenchSpec] = {
@@ -302,6 +309,35 @@ BENCHES: dict[str, BenchSpec] = {
             "advisor-curveball2-4bsft2-v0.1.prompts.jsonl",
         ),
         reasoning_mode="off",
+    ),
+    # grounded-eval-v1 — operator-journey QA over the live Cortex corpus pack.
+    # The first LIVE-retrieval bench: rows carry only the question + gold pins
+    # (gold sources, accepted citations, key facts); the packet is built
+    # per-run through pgvector + the NIM embedder, so a score here moves when
+    # ANY of {model, corpus pack, embedder, chunking, packet contract} moves —
+    # by design, and never conflated with the frozen packet benches above.
+    # Files: frozen pack OR pre-freeze draft, plus the living extension set
+    # (missing files load as empty — the loader tags each row's split).
+    "cortex-grounded": BenchSpec(
+        bench_id="cortex-grounded",
+        vertical="advisor",
+        label="Cortex Grounded QA",
+        files=(
+            "cortex-grounded-v0.1.jsonl",
+            "cortex-grounded-v0.1.draft.jsonl",
+            "cortex-grounded-ext.jsonl",
+        ),
+        fmt="grounded",
+        models=(
+            "nemotron3-nano-4b-sft-v02-q8",
+            "nemotron3-nano-4b-sft-q8",
+            "nemotron3-nano-30b-q8",
+            "nemotron3-nano-4b-q8",
+        ),
+        root_env="FK_ARENA_GROUNDED_DIR",
+        root_fallback="evidence/grounded-eval",
+        reasoning_mode="off",
+        live_retrieval=True,
     ),
 }
 
@@ -597,11 +633,69 @@ def _build_advisor_bench(spec: BenchSpec) -> LoadedBench:
     return LoadedBench(spec=spec, prompts=prompts)
 
 
+def _build_grounded_bench(spec: BenchSpec) -> LoadedBench:
+    """Loader for grounded eval packs (grounded-eval-v1 §4).
+
+    Rows are ``{task_id, journey, question, expected_behavior,
+    gold_source_ids, accepted_citation_ids, require_all_citations, key_facts,
+    expected_answer, in_sft_corpus}``. ``model_prompt`` stays the bare
+    question — the packet is built LIVE at send time
+    (``spec.live_retrieval``), never replayed from a receipt. ``journey``
+    rides ``family`` so the drawer filter browses journeys; the file's
+    freeze state rides ``split`` (frozen / draft / ext). ``gold_meta`` feeds
+    the deterministic ``grounded_contract`` scorer."""
+    root = _spec_root(spec)
+    prompts: list[EvalPrompt] = []
+    for rel in spec.files:
+        name = Path(rel).name
+        split = "ext" if name.endswith("-ext.jsonl") else (
+            "draft" if ".draft." in name else "frozen"
+        )
+        for idx, row in enumerate(_parse_jsonl(root / rel)):
+            question = str(row.get("question") or "")
+            if not question:
+                continue
+            facts = [f for f in (row.get("key_facts") or []) if isinstance(f, dict)]
+            prompts.append(
+                EvalPrompt(
+                    qid=str(row.get("task_id") or f"cg-{split}-{idx}"),
+                    question=question,
+                    model_prompt=question,
+                    reference=str(row.get("expected_answer") or ""),
+                    family=str(row.get("journey") or "") or None,
+                    scorer_kind="grounded_contract",
+                    scoring_mode=None,
+                    options=None,
+                    has_context=False,  # context is live-built, not canonical
+                    context_kind=None,
+                    context_text="",
+                    context_token_hint=0,
+                    judge_required=False,
+                    rubric_hints=None,
+                    split=split,
+                    gold_meta={
+                        "expected_behavior": str(row.get("expected_behavior") or "answer"),
+                        "gold_source_ids": [str(s) for s in (row.get("gold_source_ids") or [])],
+                        "accepted_citation_ids": [
+                            str(s) for s in (row.get("accepted_citation_ids") or [])
+                        ],
+                        "require_all_citations": bool(row.get("require_all_citations")),
+                        "key_facts": facts,
+                        "journey": str(row.get("journey") or ""),
+                        "in_sft_corpus": row.get("in_sft_corpus"),
+                    },
+                )
+            )
+    return LoadedBench(spec=spec, prompts=prompts)
+
+
 def _build_loaded_bench(spec: BenchSpec) -> LoadedBench:
     if spec.fmt == "astrodynamics":
         return _build_astro_bench(spec)
     if spec.fmt == "advisor":
         return _build_advisor_bench(spec)
+    if spec.fmt == "grounded":
+        return _build_grounded_bench(spec)
     prompts: list[EvalPrompt] = []
     for rel, path in zip(spec.files, _bench_paths(spec)):
         stem = Path(rel).stem
@@ -1056,6 +1150,40 @@ def _judge_result(
     }
 
 
+def _grounded_fact_pass(fact: dict[str, Any], answer: str) -> bool:
+    """One ``key_facts`` gate against the answer channel (grounded-eval-v1 §5).
+
+    ``contains``: case-insensitive substring, any-of ``value``+``alt``.
+    ``regex``: search. ``numeric``: any number in the answer within
+    ``rel_tol`` (default 2%) of ``value``'s first number."""
+    kind = fact.get("kind")
+    value = str(fact.get("value") or "")
+    if kind == "regex":
+        try:
+            return bool(re.search(value, answer))
+        except re.error:
+            return False
+    if kind == "numeric":
+        m = re.search(r"-?\d+(?:\.\d+)?", value.replace(",", ""))
+        if not m:
+            return False
+        gold = float(m.group(0))
+        tol = float(fact.get("rel_tol") or 0.02)
+        for n in re.findall(r"-?\d+(?:\.\d+)?", answer.replace(",", "")):
+            try:
+                if gold == 0.0:
+                    if float(n) == 0.0:
+                        return True
+                elif abs(float(n) - gold) / abs(gold) <= tol:
+                    return True
+            except ValueError:
+                continue
+        return False
+    needles = [value] + [str(a) for a in (fact.get("alt") or [])]
+    low = answer.lower()
+    return any(n and n.lower() in low for n in needles)
+
+
 def score_eval_prediction(
     bench_id: str,
     qid: str,
@@ -1064,6 +1192,7 @@ def score_eval_prediction(
     judge_backend: str | None = None,
     judge_model: str | None = None,
     resident: dict[str, Any] | None = None,
+    retrieval: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Score ``predicted`` against the gold for ``(bench_id, qid)``.
 
@@ -1072,6 +1201,12 @@ def score_eval_prediction(
     ``scored`` is ``False`` (with a ``reason``) when scoring can't proceed —
     missing row, judge unavailable, context overflow, or an unreconstructable
     structured reference (patent Family B ranked lists).
+
+    ``retrieval`` is the live retrieval receipt for grounded rows
+    (grounded-eval-v1 §5) — the ``retrieval`` block the chat stream emitted in
+    its ``start`` event. ``None`` degrades the ``retrieval_hit`` component to
+    *unknown* (gate scored on the remaining components, flagged in ``why``) —
+    never a silent pass, never a fail for a receipt the harness lost.
     """
     from fieldkit.eval import (
         RUBRIC_CORRECTNESS,
@@ -1187,6 +1322,108 @@ def score_eval_prediction(
             max_score=1.0,
             reference=ref,
             why=f"advisor contract ({behavior}): " + " · ".join(checks),
+        )
+
+    # --- Grounded — deterministic live-retrieval contract (grounded-eval-v1 §5) ---
+    if kind == "grounded_contract":
+        meta = prompt.gold_meta or {}
+        behavior = str(meta.get("expected_behavior") or "answer")
+        gold_ids = [str(s) for s in (meta.get("gold_source_ids") or [])]
+        accepted_ids = [str(s) for s in (meta.get("accepted_citation_ids") or [])] or gold_ids
+        require_all = bool(meta.get("require_all_citations"))
+        key_facts = list(meta.get("key_facts") or [])
+        output = predicted or ""
+
+        citation_matches = list(_ADVISOR_CITATIONS_RE.finditer(output))
+        citation_line = citation_matches[-1] if citation_matches else None
+        cited_ids = re.findall(
+            r"[a-z][a-z0-9_]+", citation_line.group(1) if citation_line else ""
+        )
+        thinking_leak = bool(re.search(r"</?think", output, flags=re.IGNORECASE))
+
+        # 1. retrieval_hit — only measurable with a live receipt; refusal rows
+        # skip (there is no gold source to retrieve).
+        retrieved_ids: list[str] | None = None
+        if retrieval is not None:
+            retrieved_ids = [
+                str(s.get("source_id") or "")
+                for s in (retrieval.get("sources") or [])
+            ]
+        retrieval_hit: bool | None
+        if behavior == "refuse" or not gold_ids:
+            retrieval_hit = True
+        elif retrieved_ids is None:
+            retrieval_hit = None  # unknown — degrade honestly, never silently pass
+        else:
+            retrieval_hit = any(g in retrieved_ids for g in gold_ids)
+
+        # 2. citation integrity.
+        citation_ok = bool(citation_line)
+        if behavior == "refuse":
+            citation_ok = citation_ok and not cited_ids
+            refusal_ok = any(w in output.lower() for w in _ADVISOR_REFUSAL_WORDS)
+        else:
+            refusal_ok = True
+            if require_all:
+                citation_ok = citation_ok and all(
+                    sid in cited_ids for sid in accepted_ids
+                )
+            else:
+                citation_ok = citation_ok and any(
+                    sid in cited_ids for sid in accepted_ids
+                )
+            # Cited ids must come from the live packet, not be invented.
+            if retrieved_ids is not None:
+                citation_ok = citation_ok and all(
+                    sid in retrieved_ids for sid in cited_ids
+                )
+
+        # 3. key facts — all must pass against the answer channel.
+        facts_ok = all(_grounded_fact_pass(f, pred) for f in key_facts)
+
+        # 4. hygiene — refusal rows also get the private-state pattern scan
+        # (pattern-only: the live packet text isn't available here, so the
+        # advisor scorer's prompt-echo exemption doesn't apply).
+        private_state_risk = behavior == "refuse" and any(
+            re.search(pat, _ADVISOR_CITATIONS_RE.sub("", output), flags=re.IGNORECASE)
+            for pat in _ADVISOR_RISK_PATTERNS
+        )
+
+        passed = (
+            retrieval_hit is not False
+            and citation_ok
+            and refusal_ok
+            and facts_ok
+            and not thinking_leak
+            and not private_state_risk
+        )
+        checks = []
+        if behavior == "refuse":
+            checks.append(f"refusal wording {'✓' if refusal_ok else '✗'}")
+            checks.append(f"empty citations {'✓' if citation_ok else '✗'}")
+            checks.append(
+                f"no private-state risk {'✓' if not private_state_risk else '✗'}"
+            )
+        else:
+            checks.append(
+                "retrieval hit "
+                + ("?" if retrieval_hit is None else ("✓" if retrieval_hit else "✗"))
+            )
+            checks.append(f"citation {'✓' if citation_ok else '✗'}")
+            checks.append(
+                f"key facts {sum(_grounded_fact_pass(f, pred) for f in key_facts)}"
+                f"/{len(key_facts)} {'✓' if facts_ok else '✗'}"
+            )
+        checks.append(f"no thinking leak {'✓' if not thinking_leak else '✗'}")
+        why = f"grounded contract ({behavior}): " + " · ".join(checks)
+        if retrieval_hit is None and behavior != "refuse":
+            why += " · (no live retrieval receipt — retrieval_hit unscored)"
+        return _det_result(
+            scorer_kind=kind,
+            score=1.0 if passed else 0.0,
+            max_score=1.0,
+            reference=ref,
+            why=why,
         )
 
     # --- AE-11: astro bench — scored by its own scorer_path verifier ---

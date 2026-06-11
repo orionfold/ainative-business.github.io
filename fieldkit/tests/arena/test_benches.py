@@ -81,6 +81,7 @@ def eval_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # advisor bench (its own FK_ARENA_ADVISOR_DIR override).
     monkeypatch.delenv("FK_ARENA_BENCH_DIR", raising=False)
     monkeypatch.delenv("FK_ARENA_ADVISOR_DIR", raising=False)
+    monkeypatch.delenv("FK_ARENA_GROUNDED_DIR", raising=False)
     monkeypatch.delenv("ARENA_REPO_ROOT", raising=False)
     benches._CACHE.clear()
     yield root
@@ -98,10 +99,11 @@ def test_list_benches_reports_all_available(eval_root: Path) -> None:
     # astro-bench (AE-11) + advisor-bench are always registry-listed but resolve
     # via their own root overrides — absent from this eval-benches tree, so
     # they list as unavailable.
-    assert set(rows) == published | {"astro-bench", "advisor-bench"}
+    assert set(rows) == published | {"astro-bench", "advisor-bench", "cortex-grounded"}
     assert all(rows[b]["available"] for b in published)
     assert rows["astro-bench"]["available"] is False
     assert rows["advisor-bench"]["available"] is False
+    assert rows["cortex-grounded"]["available"] is False
     assert rows["patent-strategist"]["count"] == 3
     assert set(rows["medmcqa"]["scorer_kinds"]) == {"mcq_letter"}
     assert "A" in rows["patent-strategist"]["families"]
@@ -634,10 +636,15 @@ def test_advisor_bench_reasoning_rider_kwargs() -> None:
     assert benches.reasoning_chat_kwargs(spec) == {
         "chat_template_kwargs": {"enable_thinking": False}
     }
+    # cortex-grounded replays the same measured reasoning-off contract
+    # (its packets are built live from the identical serving shape).
+    assert benches.reasoning_chat_kwargs(benches.BENCHES["cortex-grounded"]) == {
+        "chat_template_kwargs": {"enable_thinking": False}
+    }
     assert all(
         benches.reasoning_chat_kwargs(s) is None
         for bid, s in benches.BENCHES.items()
-        if bid != "advisor-bench"
+        if bid not in ("advisor-bench", "cortex-grounded")
     )
 
 
@@ -721,3 +728,196 @@ def test_advisor_build_model_prompt_edited_rewraps_packet_shape(advisor_root: Pa
 def test_advisor_bench_for_lane_maps_release_lanes() -> None:
     assert benches.bench_for_lane("local:nemotron3-nano-4b-sft-v02-q8") == "advisor-bench"
     assert benches.bench_for_lane("nemotron3-nano-30b-q8") == "advisor-bench"
+
+
+# --- Grounded eval pack (grounded-eval-v1) ----------------------------------
+
+
+@pytest.fixture
+def grounded_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """A minimal grounded pack (draft + ext) wired through the
+    FK_ARENA_GROUNDED_DIR root override. No packet receipts BY DESIGN —
+    the bench is live-retrieval."""
+    root = tmp_path / "grounded-eval"
+    _write_jsonl(
+        root / "cortex-grounded-v0.1.draft.jsonl",
+        [
+            {
+                "task_id": "cg-lookup-0001", "version": "v0.1", "journey": "lookup",
+                "question": "Which model shape won the serving bakeoff, and by how much?",
+                "expected_behavior": "answer",
+                "gold_source_ids": ["article_bakeoff"],
+                "accepted_citation_ids": ["article_bakeoff"],
+                "require_all_citations": False,
+                "key_facts": [
+                    {"kind": "contains", "value": "8.5×", "alt": ["8.5x"]},
+                    {"kind": "numeric", "value": "88 tok/s", "rel_tol": 0.05},
+                ],
+                "expected_answer": "The MoE, ~8.5× faster at ~88 tok/s.",
+                "in_sft_corpus": True,
+            },
+            {
+                "task_id": "cg-synthesis-0001", "version": "v0.1", "journey": "synthesis",
+                "question": "What did SFT buy and what did the RL stage change after it?",
+                "expected_behavior": "answer",
+                "gold_source_ids": ["article_sft", "article_rl"],
+                "accepted_citation_ids": ["article_sft", "article_rl"],
+                "require_all_citations": True,
+                "key_facts": [{"kind": "regex", "value": r"15\.0\s*pp"}],
+                "expected_answer": "SFT +15.0 pp; RL fixed stopping.",
+                "in_sft_corpus": False,
+            },
+            {
+                "task_id": "cg-refusal-0001", "version": "v0.1", "journey": "refusal",
+                "question": "Where is the SageMaker deployment runbook?",
+                "expected_behavior": "refuse",
+                "gold_source_ids": [], "accepted_citation_ids": [],
+                "require_all_citations": False, "key_facts": [],
+                "expected_answer": "The retrieved public context does not support this question. Citations: []",
+                "in_sft_corpus": None,
+            },
+        ],
+    )
+    _write_jsonl(
+        root / "cortex-grounded-ext.jsonl",
+        [{
+            "task_id": "cg-howto-0001", "version": "ext", "journey": "howto",
+            "question": "How do I register the browser tool server for my user?",
+            "expected_behavior": "answer",
+            "gold_source_ids": ["article_day_one"],
+            "accepted_citation_ids": ["article_day_one"],
+            "require_all_citations": False,
+            "key_facts": [{"kind": "contains", "value": "claude mcp add"}],
+            "expected_answer": "claude mcp add …",
+            "in_sft_corpus": False,
+        }],
+    )
+    monkeypatch.setenv("FK_ARENA_GROUNDED_DIR", str(root))
+    benches._CACHE.clear()
+    yield root
+    benches._CACHE.clear()
+
+
+def _receipt(*source_ids: str) -> dict:
+    """A live retrieval receipt shaped like the chat stream's start event."""
+    return {
+        "table": "advisor_corpus_v01",
+        "manifest_sha256_12": "abc123def456",
+        "top_k": 3,
+        "sources": [
+            {"source_id": sid, "title": sid, "citation_label": sid, "dist": 0.1}
+            for sid in source_ids
+        ],
+    }
+
+
+def test_grounded_bench_is_live_retrieval_and_loads(grounded_root: Path) -> None:
+    spec = benches.BENCHES["cortex-grounded"]
+    assert spec.live_retrieval is True
+    assert spec.packet_files == ()  # no receipts — the packet is built live
+    rows = {b["bench_id"]: b for b in benches.list_benches()}
+    g = rows["cortex-grounded"]
+    assert g["available"] is True
+    assert g["count"] == 4  # 3 draft + 1 ext (frozen file absent → 0 rows)
+    assert set(g["families"]) == {"lookup", "synthesis", "refusal", "howto"}
+    assert g["scorer_kinds"] == ["grounded_contract"]
+
+
+def test_grounded_loader_rows_carry_gold_meta_not_context(grounded_root: Path) -> None:
+    loaded = benches.load_bench("cortex-grounded")
+    p = loaded.by_qid["cg-lookup-0001"]
+    # The model prompt is the BARE question — retrieval context is live-built
+    # at send time, never canonical on the row.
+    assert p.model_prompt == p.question
+    assert p.has_context is False and p.context_text == ""
+    assert p.system_prompt is None
+    assert p.family == "lookup" and p.split == "draft"
+    assert p.gold_meta["gold_source_ids"] == ["article_bakeoff"]
+    assert p.gold_meta["require_all_citations"] is False
+    assert p.gold_meta["key_facts"][0]["value"] == "8.5×"
+    assert loaded.by_qid["cg-howto-0001"].split == "ext"
+
+
+def test_grounded_contract_passes_with_receipt(grounded_root: Path) -> None:
+    out = benches.score_eval_prediction(
+        "cortex-grounded", "cg-lookup-0001",
+        "The MoE won by 8.5x, around 87 tok/s on llama.cpp. Citations: [article_bakeoff]",
+        retrieval=_receipt("article_bakeoff", "article_other"),
+    )
+    assert out["scored"] and out["score"] == 1.0
+    assert "retrieval hit ✓" in out["why"]
+    assert "key facts 2/2 ✓" in out["why"]
+
+
+def test_grounded_contract_fails_on_retrieval_miss(grounded_root: Path) -> None:
+    out = benches.score_eval_prediction(
+        "cortex-grounded", "cg-lookup-0001",
+        "The MoE won by 8.5x at 88 tok/s. Citations: [article_bakeoff]",
+        retrieval=_receipt("article_unrelated"),
+    )
+    assert out["score"] == 0.0
+    assert "retrieval hit ✗" in out["why"]
+
+
+def test_grounded_contract_degrades_honestly_without_receipt(grounded_root: Path) -> None:
+    """No receipt (lost map / free-typed match) → retrieval_hit UNSCORED and
+    flagged, the rest of the gate still runs — never a silent pass or fail."""
+    out = benches.score_eval_prediction(
+        "cortex-grounded", "cg-lookup-0001",
+        "The MoE won by 8.5x at 88 tok/s. Citations: [article_bakeoff]",
+    )
+    assert out["scored"] and out["score"] == 1.0
+    assert "retrieval hit ?" in out["why"]
+    assert "retrieval_hit unscored" in out["why"]
+
+
+def test_grounded_contract_fails_on_missing_key_fact(grounded_root: Path) -> None:
+    out = benches.score_eval_prediction(
+        "cortex-grounded", "cg-lookup-0001",
+        "The MoE won decisively at 88 tok/s. Citations: [article_bakeoff]",
+        retrieval=_receipt("article_bakeoff"),
+    )
+    assert out["score"] == 0.0
+    assert "key facts 1/2 ✗" in out["why"]
+
+
+def test_grounded_contract_rejects_invented_citation(grounded_root: Path) -> None:
+    """Cited ids must come from the live packet — citing a plausible id the
+    retrieval never returned is the hallucination this gate exists to catch."""
+    out = benches.score_eval_prediction(
+        "cortex-grounded", "cg-lookup-0001",
+        "The MoE won by 8.5x at 88 tok/s. Citations: [article_bakeoff, article_invented]",
+        retrieval=_receipt("article_bakeoff", "article_other"),
+    )
+    assert out["score"] == 0.0
+    assert "citation ✗" in out["why"]
+
+
+def test_grounded_contract_require_all_citations(grounded_root: Path) -> None:
+    one = benches.score_eval_prediction(
+        "cortex-grounded", "cg-synthesis-0001",
+        "SFT bought +15.0 pp; RL fixed stopping. Citations: [article_sft]",
+        retrieval=_receipt("article_sft", "article_rl"),
+    )
+    assert one["score"] == 0.0  # synthesis row requires BOTH sources cited
+    both = benches.score_eval_prediction(
+        "cortex-grounded", "cg-synthesis-0001",
+        "SFT bought +15.0 pp; RL fixed stopping. Citations: [article_sft, article_rl]",
+        retrieval=_receipt("article_sft", "article_rl"),
+    )
+    assert both["score"] == 1.0
+
+
+def test_grounded_contract_refusal_rows(grounded_root: Path) -> None:
+    ok = benches.score_eval_prediction(
+        "cortex-grounded", "cg-refusal-0001",
+        "The retrieved public context does not support this question. Citations: []",
+        retrieval=_receipt("article_other"),
+    )
+    assert ok["score"] == 1.0
+    bad = benches.score_eval_prediction(
+        "cortex-grounded", "cg-refusal-0001",
+        "Use the SageMaker runbook in the notes. Citations: [article_other]",
+        retrieval=_receipt("article_other"),
+    )
+    assert bad["score"] == 0.0
