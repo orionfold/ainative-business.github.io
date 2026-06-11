@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Orphan-screenshot audit executed: 23 orphans -> 0 across every image surface — 5 untoured-surface shots placed as a 'What the board grew into' tour on the arena-control-plane page, 18 stale/superseded deleted, kepler-gguf gained positioning (bare catalog slug fixed), 01-cockpit retaken post-Path-A",
+  "focus": "Grounded Eval v1 decided + Phase 1 built: new spec for operator-journey evals of Cortex-grounded Advisor chat (live retrieval->packet->answer->citations scored as one unit), deterministic miner + pack validator + grounded-eval-synth skill, 20-row pilot pack authored & validated (0 failures)",
   "blockers": [],
   "next": [
+    "OPERATOR GATE: review _SPECS/grounded-eval-v1.md + evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl (20 rows) before Phase 2",
+    "Grounded Eval Phase 2: cortex-grounded BenchSpec + grounded_contract scorer + live-packet chat eval mode + per-side compare retrieval (±Cortex ablation duel); CDP smoke session",
+    "Fill pack quotas to 60 via /grounded-eval-synth, then FREEZE v0.1 before any Advisor v0.3 training",
     "AD-FK-1: exempt OpenAICompat container lanes (the :8001 embedder) from the AE-R13 one-lane envelope — guard behavior change, needs its own test",
-    "Path B: live-tier cockpit:advisor_contract eval runs against the :8091 serving lane (narrated-session story)",
-    "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
-    "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
-    "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
+    "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)"
   ],
   "recent": [
-    "Orphan audit: basename cross-reference over products/articles/public/arena-app image surfaces; 23 orphans found, 0 remain",
-    "arena-control-plane page gained a 5-shot 'What the board grew into' section (build spine, jobs+RL dispatch, reward gauge, cloud-eval guardrails, standup) — verify_product_article PASS",
-    "Deleted 18: 3 superseded control-plane shots, cortex 08-catalog-page (circular self-shot), dgx-rig.jpg, 13 stale public/screenshots from old product releases",
-    "kepler-gguf positioning: shipped + synced to arena-app (22/22), _webui rebaked, CDP-verified on catalog card + detail page",
-    "01-cockpit.png retaken at 3840x1848 @2x — post-Path-A counts (artifacts 22, articles 67, benches 4, runs 78), Advisor v0.2 lane resident"
+    "_SPECS/grounded-eval-v1.md ACTIVE — 5 journey archetypes (lookup/howto/synthesis/troubleshoot/refusal), deterministic gate w/ judge advisory, frozen pack + living ext set, corpus-generic pack contract for customer corpora",
+    "scripts/grounded_eval/mine_candidates.py — deterministic journey-tagged seeds, 1066 candidates over the 182-source manifest",
+    "scripts/grounded_eval/verify_pack.py — mechanical gates (gold-in-manifest, key-facts verbatim in gold bodies, title-echo, near-dup, hint phrases) + --freeze sha12 receipt",
+    "New skill grounded-eval-synth (claude-corpus-synth pattern) authored the 20-row pilot: facts verified verbatim, collision-checked against all 89 frozen bench questions",
+    "Pack stays out of every retrieval corpus; spec basename joins EXCLUDED_SPEC_BASENAMES at next corpus build (proof-control discipline)"
   ],
-  "session": "S-orphan-screenshot-audit",
+  "session": "S-grounded-eval-v1-phase1",
   "metrics": {
     "articles": 54,
     "models": 7,
