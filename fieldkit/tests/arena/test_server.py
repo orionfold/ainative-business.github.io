@@ -2551,3 +2551,21 @@ def test_chat_eval_mode_wins_over_retrieval(
     start = json.loads(events[0]["data"])
     assert "eval_context" in start
     assert "retrieval" not in start
+
+
+def test_compare_options_carries_retrieval_source(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The options payload labels the corpus pack ``retrieval: true`` chat
+    grounds in — degrading to ``available: False`` on a manifest-less box so
+    the UI can warn instead of implying a grounded lane exists."""
+    import fieldkit.arena.server as srv
+
+    monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
+    monkeypatch.setattr(srv, "_openrouter_catalog", lambda *a, **k: [])
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        data = client.get("/api/compare/options").json()
+        src = data["retrieval_source"]
+        assert src["available"] is False  # fixture repo has no manifest
+        assert src["table"]  # table name still surfaced for the warn label

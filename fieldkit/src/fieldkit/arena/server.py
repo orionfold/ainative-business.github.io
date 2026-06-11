@@ -1779,7 +1779,7 @@ def create_app(
         entry carries per-million prices so the client can preview cost and the
         meter can price the chosen model. ``has_key`` tells the UI whether
         OpenRouter lanes will actually stream or fall to the no-key stub."""
-        from fieldkit.arena.cortex_chat import is_advisor_model
+        from fieldkit.arena.cortex_chat import is_advisor_model, retrieval_source
 
         resident = _resolve_active_lane()
         local: list[dict[str, Any]] = []
@@ -1871,6 +1871,9 @@ def create_app(
             "catalog_size": len(catalog),
             "live_catalog": bool(_openrouter_catalog()),
             "judge": _benches.judge_availability(resident),
+            # v0.4 — which corpus pack ``retrieval: true`` chat grounds in
+            # (the pack is swappable; the UI labels the toggle from this).
+            "retrieval_source": retrieval_source(root),
         }
 
     @app.post("/api/local/load")

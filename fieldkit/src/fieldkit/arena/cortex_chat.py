@@ -44,6 +44,7 @@ __all__ = [
     "CortexUnavailable",
     "build_packet",
     "is_advisor_model",
+    "retrieval_source",
 ]
 
 #: Corpus-pack table the live recall gate measured (OA-NV-8 swap unit).
@@ -197,6 +198,28 @@ def _load_manifest(root: Path) -> tuple[list[dict[str, Any]], str]:
     ]
     _MANIFEST_CACHE[str(path)] = (mtime, rows, sha12)
     return rows, sha12
+
+
+def retrieval_source(root: Path) -> dict[str, Any]:
+    """The corpus pack free-prompt retrieval is currently wired to.
+
+    Surfaced in ``GET /api/compare/options`` so the chat UI can show the
+    grounding source *before* any turn is sent — the pack is the OA-NV-8
+    swappable unit (``ARENA_ADVISOR_TABLE`` + the manifest on disk), so the
+    label must come from live config, never be hardcoded client-side.
+    ``{available: False}`` on a fresh box with no manifest.
+    """
+    try:
+        manifest, sha = _load_manifest(root)
+    except CortexUnavailable as exc:
+        return {"available": False, "table": ADVISOR_TABLE, "detail": str(exc)}
+    return {
+        "available": True,
+        "table": ADVISOR_TABLE,
+        "manifest_sha256_12": sha,
+        "sources": len(manifest),
+        "top_k": TOP_K,
+    }
 
 
 def build_packet(

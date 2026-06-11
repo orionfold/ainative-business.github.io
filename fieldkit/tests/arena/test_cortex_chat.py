@@ -199,3 +199,30 @@ def test_is_advisor_model_matches_promoted_gguf_and_recipe_ids() -> None:
     assert is_advisor_model("nemotron3-nano-4b-advisor-sft-v02-q8::Q8_0")
     assert not is_advisor_model("Qwen3-30B-A3B-Q4_K_M.gguf")
     assert not is_advisor_model(None)
+
+
+# ---------------------------------------------------------------------------
+# Retrieval-source surface (swappable corpus pack label)
+# ---------------------------------------------------------------------------
+
+
+def test_retrieval_source_reports_the_active_pack(corpus_root: Path) -> None:
+    from fieldkit.arena.cortex_chat import retrieval_source
+
+    src = retrieval_source(corpus_root)
+    assert src["available"] is True
+    assert src["table"] == ADVISOR_TABLE
+    assert src["sources"] == 3
+    manifest_bytes = (
+        corpus_root / "evidence/orionfold-advisor/public-corpus-manifest.jsonl"
+    ).read_bytes()
+    assert src["manifest_sha256_12"] == hashlib.sha256(manifest_bytes).hexdigest()[:12]
+
+
+def test_retrieval_source_degrades_without_a_manifest(tmp_path: Path) -> None:
+    from fieldkit.arena.cortex_chat import retrieval_source
+
+    src = retrieval_source(tmp_path)
+    assert src["available"] is False
+    assert src["table"] == ADVISOR_TABLE
+    assert "manifest missing" in src["detail"]

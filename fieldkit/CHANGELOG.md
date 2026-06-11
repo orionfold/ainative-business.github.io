@@ -19,9 +19,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   on local lanes). The `start` SSE event carries a `retrieval` receipt
   (table, manifest sha, deduped source cards with cosine distance); a dead
   Cortex stack is a hard `error` event, never a silent ungrounded turn.
-  `GET /api/compare/options` flags advisor-tuned lanes (`advisor: true`)
-  and the ChatLane UI defaults a "🧠 Cortex retrieval" toggle ON for them,
-  rendering per-turn grounded source chips from the receipt.
+  `GET /api/compare/options` flags advisor-tuned lanes (`advisor: true`),
+  carries a `retrieval_source` block (the active corpus pack: table +
+  manifest sha + source count — the pack is the swappable OA-NV-8 unit, so
+  the label comes from live config), and the ChatLane UI defaults a
+  "🧠 Cortex retrieval" toggle ON for advisor lanes, labels the toggle with
+  the active pack, and renders per-turn grounded source chips from the
+  receipt.
 - **Advisor read surfaces in the demo recorder.** `fieldkit arena record` now
   bakes the four Cortex Advisor stubs (`api/advisor/{preflight,corpus,routing,receipt}`)
   so the sidecar-less `/arena/demo/` renders the vertical-proof cards; the stub

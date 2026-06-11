@@ -190,6 +190,7 @@ export default function ChatLane() {
     groups: { frontier: [], open: [], project_base: [] },
     all: [],
     has_key: false,
+    retrieval_source: null,
   });
   const [selectedLane, setSelectedLane] = useState('local:resident');
   const [warmLanes, setWarmLanes] = useState(['local:resident']);
@@ -251,7 +252,11 @@ export default function ChatLane() {
             frontier: [], open: [], project_base: [],
           };
           const all = data.openrouter || [];
-          setLaneOptions({ local, groups, all, has_key: !!data.has_key });
+          setLaneOptions({
+            local, groups, all,
+            has_key: !!data.has_key,
+            retrieval_source: data.retrieval_source || null,
+          });
           const warm = local.filter((o) => o.warm).map((o) => o.id);
           if (!warm.includes('local:resident')) warm.push('local:resident');
           setWarmLanes(warm);
@@ -945,6 +950,23 @@ export default function ChatLane() {
           />
           🧠 Cortex retrieval
         </label>
+        {cortexOn && !evalMode && laneOptions.retrieval_source && (
+          laneOptions.retrieval_source.available ? (
+            <span
+              class="chat-modelbar__cortex-src"
+              title={`Grounding corpus pack — swappable (ARENA_ADVISOR_TABLE + manifest) · manifest ${laneOptions.retrieval_source.manifest_sha256_12} · top-${laneOptions.retrieval_source.top_k}`}
+            >
+              ⛁ {laneOptions.retrieval_source.table} · {laneOptions.retrieval_source.sources} src · {laneOptions.retrieval_source.manifest_sha256_12}
+            </span>
+          ) : (
+            <span
+              class="chat-modelbar__cortex-src chat-modelbar__cortex-src--warn"
+              title={laneOptions.retrieval_source.detail || 'corpus manifest missing'}
+            >
+              ⛁ {laneOptions.retrieval_source.table} · manifest missing
+            </span>
+          )
+        )}
         {benches.some((b) => b.available) && (
           <button
             type="button"
