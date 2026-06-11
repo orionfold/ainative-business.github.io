@@ -52,8 +52,9 @@
 
 Last recorded runtime baseline: Cortex-chat wiring session, 2026-06-10.
 
-- Cockpit `:7866` UP in browser-use mode (pid 3003789, fresh `_webui` bake), visible CDP Chromium `:9222` UP (pid 3003806). Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). **`pgvector` (:5432) + `nim-embed-nemotron` (:8001) containers UP** — the grounded-chat path needs both; a dead stack surfaces as a visible chat error. 30B down-but-on-disk; `fk-nim-8000` + `nemo-train` stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
+- Cockpit `:7866` UP in browser-use mode (pid 3056766, fresh `_webui` bake incl. the retrieval-source label), visible CDP Chromium `:9222` UP (pid 3056793). Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). **`pgvector` (:5432) + `nim-embed-nemotron` (:8001) containers UP** — the grounded-chat path needs both; a dead stack surfaces as a visible chat error. 30B down-but-on-disk; `fk-nim-8000` + `nemo-train` stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
 - This session's lane-adjacent terminal actions: restarted `nim-embed-nemotron` (step 0), 3 SSE chat calls on `:7866` for the grounded/refusal smoke (logged per pipeline discipline).
+- ⚠ Untracked leftover: `src/data/arena-mirror/leaderboard.json` (M2 seed mirror, 2026-05-30, not gitignored) — predates this session; decide next session whether to track, regenerate, or delete.
 - `.env.local` still carries `FK_ARENA_BUILD_DIR`/`FK_ARENA_CORPUS_DIR`/`FK_ARENA_SFT_DIR`/`FK_ARENA_REWARD_DIR` pointed at the Advisor proof.
 - `/tmp/fk` and `/tmp/fk-test` venvs are GONE (reboot); `/tmp/arena-venv` (fieldkit editable + huggingface_hub 1.18 + `hf` CLI) is the working HF/publish venv this session used. HF pushes need `HF_HOME=/home/nvidia/data/.hf-cache HF_HUB_DISABLE_XET=1`.
 - Tear down when done: `:8091` lane from visible LaneTruth first, then `arena_lifecycle.sh down --browser`.
