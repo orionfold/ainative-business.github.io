@@ -2569,3 +2569,151 @@ def test_compare_options_carries_retrieval_source(
         src = data["retrieval_source"]
         assert src["available"] is False  # fixture repo has no manifest
         assert src["table"]  # table name still surfaced for the warn label
+
+
+# ---------------------------------------------------------------------------
+# grounded-eval-v1 §8 — free-prompt ±Cortex ablation duel (per-side retrieval)
+# ---------------------------------------------------------------------------
+
+
+def _drive_compare(body, monkeypatch, stub_a, stub_b, db_path: str) -> list[dict[str, str]]:
+    from fieldkit.arena.server import compare_event_stream
+
+    monkeypatch.setattr(
+        "fieldkit.arena.server._chat_client_factory", lambda resident: stub_a
+    )
+    monkeypatch.setattr(
+        "fieldkit.arena.server._compare_b_factory", lambda: (stub_b, None)
+    )
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
+    hub = TelemetryHub(interval=0.1)
+    resident = {
+        "id": "resident-brain",
+        "model": "qwen-fixture",
+        "base_url": "http://127.0.0.1:8080/v1",
+    }
+
+    async def _run():
+        events = []
+        gen = compare_event_stream(
+            hub=hub, request=_FakeRequest(), body=body,
+            resident=resident, db_path=db_path,
+        )
+        async for ev in gen:
+            events.append(ev)
+            if ev["event"] in ("score", "error"):
+                break
+        await gen.aclose()
+        return events
+
+    return asyncio.run(_run())
+
+
+def test_compare_ablation_grounds_only_flagged_side(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``retrieval_a: true`` on a free prompt grounds ONLY side A: A streams
+    the packet (system contract + retrieved context + reasoning-off rider) and
+    its start event carries the receipt; B streams the bare prompt with no
+    receipt. The score event labels the ablation so the verdict is honest."""
+    import copy
+    from types import SimpleNamespace
+
+    calls: list[str] = []
+
+    def _fake_build_packet(question, *, root, **_kw):
+        calls.append(question)
+        return copy.deepcopy(_CANNED_PACKET)
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _fake_build_packet)
+
+    stub_a = _KwargRecordingClient("Pinned to Qwen3-30B-A3B. Citations: [src_a]")
+    stub_b = _KwargRecordingClient("Ungrounded guess.")
+    stub_b.api_key = "fake-key-so-no-stub"
+    body = SimpleNamespace(
+        prompt="hermes brain?", lane_b="openrouter", rubric_id="generic-correctness",
+        max_tokens=64, temperature=0.0, retrieval_a=True, retrieval_b=False,
+    )
+    events = _drive_compare(body, monkeypatch, stub_a, stub_b, str(repo_root / "arena.db"))
+
+    # Packet built exactly ONCE (shared across flagged sides by construction).
+    assert calls == ["hermes brain?"]
+
+    start_a = json.loads([e for e in events if e["event"] == "start_a"][0]["data"])
+    start_b = json.loads([e for e in events if e["event"] == "start_b"][0]["data"])
+    assert start_a["retrieval"]["table"] == "advisor_corpus_v01"
+    assert start_a["retrieval"]["sources"][0]["source_id"] == "src_a"
+    assert start_a["retrieval"]["truncated"] is False
+    assert "retrieval" not in start_b
+
+    # A got the packet contract; B got the bare prompt, no system, no rider.
+    msgs_a, kwargs_a = stub_a.calls[0]
+    assert msgs_a[0]["role"] == "system"
+    assert msgs_a[0]["content"].startswith("/no_think")
+    assert "Retrieved public context" in msgs_a[1]["content"]
+    assert kwargs_a["chat_template_kwargs"] == {"enable_thinking": False}
+    msgs_b, _kwargs_b = stub_b.calls[0]
+    assert msgs_b[0]["role"] == "user"
+    assert msgs_b[0]["content"] == "hermes brain?"
+
+    score = json.loads(events[-1]["data"])
+    assert score["retrieval_ablation"] == {"a": True, "b": False}
+
+
+def test_compare_ablation_cortex_down_is_a_hard_error(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cortex down on an ablation duel errors BEFORE any side streams — an
+    ungrounded side must never be presented as the grounded arm."""
+    from types import SimpleNamespace
+
+    from fieldkit.arena.cortex_chat import CortexUnavailable
+
+    def _down(question, *, root, **_kw):
+        raise CortexUnavailable("pgvector connect failed (…)")
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _down)
+
+    stub_a = _KwargRecordingClient("never")
+    stub_b = _KwargRecordingClient("never")
+    stub_b.api_key = "fake-key-so-no-stub"
+    body = SimpleNamespace(
+        prompt="hermes brain?", lane_b="openrouter", rubric_id=None,
+        max_tokens=64, temperature=0.0, retrieval_a=False, retrieval_b=True,
+    )
+    events = _drive_compare(body, monkeypatch, stub_a, stub_b, str(repo_root / "arena.db"))
+    kinds = [ev["event"] for ev in events]
+    assert "error" in kinds and "start_a" not in kinds
+    err = json.loads([ev for ev in events if ev["event"] == "error"][0]["data"])
+    assert "Cortex retrieval unavailable" in err["detail"]
+    assert stub_a.calls == [] and stub_b.calls == []
+
+
+def test_compare_eval_mode_ignores_per_side_flags(
+    repo_root: Path, advisor_tree: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Eval mode wins: a frozen-packet bench row replays its measured packet
+    even when an ablation flag is set — per-side live retrieval never
+    contaminates an eval, and the score event carries no ablation label."""
+    from types import SimpleNamespace
+
+    def _never(question, *, root, **_kw):  # pragma: no cover - must not run
+        raise AssertionError("live retrieval ran inside eval mode")
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _never)
+
+    stub_a = _KwargRecordingClient("It ships Y. Citations: [artifact_x]")
+    stub_b = _KwargRecordingClient("It ships Y. Citations: [artifact_x]")
+    stub_b.api_key = "fake-key-so-no-stub"
+    body = SimpleNamespace(
+        prompt="What does artifact_x ship?", lane_b="openrouter", rubric_id=None,
+        max_tokens=64, temperature=0.0,
+        bench_id="advisor-bench", eval_qid="advisor-qa-0001",
+        retrieval_a=True, retrieval_b=True,
+    )
+    events = _drive_compare(body, monkeypatch, stub_a, stub_b, str(repo_root / "arena.db"))
+    start_a = json.loads([e for e in events if e["event"] == "start_a"][0]["data"])
+    assert "eval_context" in start_a
+    assert "retrieval" not in start_a
+    score = json.loads(events[-1]["data"])
+    assert "retrieval_ablation" not in score

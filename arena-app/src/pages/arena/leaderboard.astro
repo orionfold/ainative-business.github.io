@@ -15,6 +15,7 @@ import leaderboard from '../../data/arena-mirror/leaderboard.json';
 import { getCollection } from 'astro:content';
 import EvalBenchLive from '../../components/arena/EvalBenchLive.jsx';
 import FrontierScatter from '../../components/arena/FrontierScatter.jsx';
+import GroundedReceiptPanel from '../../components/arena/GroundedReceiptPanel.jsx';
 import LiveLeaderboard from '../../components/arena/LiveLeaderboard.jsx';
 import { recommendedVariant } from '../../lib/arena/model-prompts.mjs';
 // Lane label comes from the shared formatter so the SSR bench table and the
@@ -219,6 +220,11 @@ const fmtTime = (iso: string) => {
          mirror). The newest real bench evidence ranks here the moment an
          eval_rerun lands, instead of waiting for a mirror rebuild. -->
     <EvalBenchLive client:only="preact" />
+    <!-- grounded-eval-v1 §8 — the Grounded (live Cortex) receipt tier:
+         journey breakdown + ±Cortex grounding lift + corpus-pack pill, read
+         from the offline run_pack.py receipts (canonical evidence). Grounded
+         numbers never share a rollup with the frozen-packet groups. -->
+    <GroundedReceiptPanel client:only="preact" />
     {benchGroups.length === 0 ? (
       <div class="empty">
         <p>No bench rows yet — run <code>fieldkit arena mirror</code> on your Spark to seed the leaderboard.</p>

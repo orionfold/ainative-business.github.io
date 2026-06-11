@@ -1,0 +1,185 @@
+{
+  "run": "2026-06-11-2014-nvidia-nemotron-3-nano-4b-advisor-sft-v0-2-q8-0--both",
+  "started_utc": "2026-06-11T20:14:55+00:00",
+  "pack": "evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl",
+  "pack_sha256_12": "d13a8daf6856",
+  "base_url": "http://127.0.0.1:8091/v1",
+  "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+  "mode": "both",
+  "max_tokens": 1024,
+  "corpus": {
+    "table": "advisor_corpus_v01",
+    "manifest_sha256_12": "6b1e832d099c"
+  },
+  "modes": {
+    "retrieval": {
+      "overall": {
+        "n": 20,
+        "passed": 6,
+        "pass_rate": 0.3
+      },
+      "per_journey": {
+        "howto": {
+          "n": 4,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "lookup": {
+          "n": 5,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "refusal": {
+          "n": 4,
+          "passed": 4,
+          "pass_rate": 1.0
+        },
+        "synthesis": {
+          "n": 3,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "troubleshoot": {
+          "n": 4,
+          "passed": 2,
+          "pass_rate": 0.5
+        }
+      },
+      "per_component": {
+        "retrieval_hit": {
+          "pass": 14,
+          "fail": 2,
+          "unknown": 0
+        },
+        "citation": {
+          "pass": 3,
+          "fail": 13,
+          "unknown": 0
+        },
+        "key_facts": {
+          "pass": 2,
+          "fail": 14,
+          "unknown": 0
+        },
+        "no_thinking_leak": {
+          "pass": 20,
+          "fail": 0,
+          "unknown": 0
+        },
+        "refusal_wording": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        },
+        "empty_citations": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        },
+        "no_private_state_risk": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        }
+      }
+    },
+    "no_retrieval": {
+      "overall": {
+        "n": 20,
+        "passed": 4,
+        "pass_rate": 0.2
+      },
+      "per_journey": {
+        "howto": {
+          "n": 4,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "lookup": {
+          "n": 5,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "refusal": {
+          "n": 4,
+          "passed": 4,
+          "pass_rate": 1.0
+        },
+        "synthesis": {
+          "n": 3,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "troubleshoot": {
+          "n": 4,
+          "passed": 0,
+          "pass_rate": 0.0
+        }
+      },
+      "per_component": {
+        "retrieval_hit": {
+          "pass": 0,
+          "fail": 0,
+          "unknown": 16
+        },
+        "citation": {
+          "pass": 0,
+          "fail": 16,
+          "unknown": 0
+        },
+        "key_facts": {
+          "pass": 0,
+          "fail": 16,
+          "unknown": 0
+        },
+        "no_thinking_leak": {
+          "pass": 20,
+          "fail": 0,
+          "unknown": 0
+        },
+        "refusal_wording": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        },
+        "empty_citations": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        },
+        "no_private_state_risk": {
+          "pass": 4,
+          "fail": 0,
+          "unknown": 0
+        }
+      }
+    }
+  },
+  "grounding_lift": {
+    "overall": 0.1,
+    "answer_rows": 0.125,
+    "per_row": {
+      "cg-lookup-0001": 0,
+      "cg-lookup-0002": 0,
+      "cg-lookup-0003": 0,
+      "cg-lookup-0004": 0,
+      "cg-lookup-0005": 0,
+      "cg-howto-0001": 0,
+      "cg-howto-0002": 0,
+      "cg-howto-0003": 0,
+      "cg-howto-0004": 0,
+      "cg-synthesis-0001": 0,
+      "cg-synthesis-0002": 0,
+      "cg-synthesis-0003": 0,
+      "cg-troubleshoot-0001": 0,
+      "cg-troubleshoot-0002": 0,
+      "cg-troubleshoot-0003": 1,
+      "cg-troubleshoot-0004": 1,
+      "cg-refusal-0001": 0,
+      "cg-refusal-0002": 0,
+      "cg-refusal-0003": 0,
+      "cg-refusal-0004": 0
+    },
+    "note": "lift = pass(retrieval) − pass(no_retrieval); refusal rows usually 0 (refusing is easier without context)"
+  }
+}

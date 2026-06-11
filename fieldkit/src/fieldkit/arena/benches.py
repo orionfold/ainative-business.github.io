@@ -940,6 +940,10 @@ def list_benches() -> list[dict[str, Any]]:
     silently hide a vertical."""
     out: list[dict[str, Any]] = []
     for spec in BENCHES.values():
+        # grounded-eval-v1 §8 — included only when set so the published
+        # benches' payload shape is unchanged; the UI uses it to force the
+        # Cortex toggle ON (with honest labelling) when a row is picked.
+        live = {"live_retrieval": True} if spec.live_retrieval else {}
         loaded = load_bench(spec.bench_id)
         if loaded is None:
             out.append(
@@ -952,6 +956,7 @@ def list_benches() -> list[dict[str, Any]]:
                     "families": [],
                     "scorer_kinds": [],
                     "models": list(spec.models),
+                    **live,
                 }
             )
             continue
@@ -967,6 +972,7 @@ def list_benches() -> list[dict[str, Any]]:
                 "families": families,
                 "scorer_kinds": scorer_kinds,
                 "models": list(spec.models),
+                **live,
             }
         )
     return out

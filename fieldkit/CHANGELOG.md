@@ -7,6 +7,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **±Cortex ablation duel — per-side live retrieval in compare
+  (grounded-eval-v1 §8 Phase 3).** `POST /api/compare/stream` takes
+  `retrieval_a` / `retrieval_b` (free prompt only; eval mode wins): the
+  packet is built ONCE through the live Cortex stack and replayed on every
+  flagged side, so the SAME lane can run grounded vs ungrounded on one
+  question and the score gap reads as the per-question grounding lift. The
+  receipt rides each grounded side's `start_{a,b}` event; the `score` event
+  carries a `retrieval_ablation: {a, b}` label so the verdict banner stays
+  honest. Cortex down is a hard error before either side streams.
+  `benches.list_benches()` now marks live-retrieval benches
+  (`live_retrieval: true`) so the cockpit can force (and honestly label)
+  the Cortex toggle on grounded eval rows. 4 new tests.
+- **Grounded receipt projection — `GET /api/grounded/receipts`
+  (grounded-eval-v1 §7/§8 Phase 4).** Read-only projection of the offline
+  runner's `summary.json` receipts under `evidence/grounded-eval/results/`
+  (newest first): pass rate per journey / per component, the ±Cortex
+  grounding lift, pack + corpus-manifest shas. Feeds the leaderboard's
+  "Grounded (live Cortex)" receipt tier; summaries carry no question/answer
+  text by construction. 1 new test.
 - **Grounded eval bench — the first LIVE-retrieval bench (grounded-eval-v1).**
   New `cortex-grounded` BenchSpec (`fmt="grounded"`, `live_retrieval=True`,
   rows from `evidence/grounded-eval/` via `FK_ARENA_GROUNDED_DIR`): rows

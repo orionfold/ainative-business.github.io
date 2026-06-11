@@ -990,6 +990,15 @@ def create_app(
         bench_id: Optional[str] = Field(default=None, max_length=80)
         eval_qid: Optional[str] = Field(default=None, max_length=120)
         judge: Optional[JudgeSpec] = None
+        # grounded-eval-v1 §8 ablation duel — free-prompt per-side Cortex
+        # retrieval, so the SAME lane can run grounded vs ungrounded on one
+        # question (per-question grounding lift). The packet is built ONCE
+        # and replayed on every flagged side (same question → same retrieval
+        # → a fair ±Cortex A/B). Ignored in eval mode: a live-retrieval bench
+        # row's retrieval contract is canonical (both sides grounded), and
+        # frozen-packet rows never retrieve.
+        retrieval_a: bool = False
+        retrieval_b: bool = False
 
     class ChatScoreRequest(BaseModel):
         """``POST /api/chat/score`` body — grade a completed chat turn.
@@ -2758,6 +2767,46 @@ def create_app(
         the bakeoff itself stays a deterministic tracked script.
         """
         return _advisor_routing_projection(root)
+
+    @app.get("/api/grounded/receipts")
+    async def api_grounded_receipts(
+        limit: int = Query(default=3, ge=1, le=20),
+    ) -> dict[str, Any]:
+        """Read-only grounded-eval receipt projection (grounded-eval-v1 §7/§8).
+
+        Projects the offline runner's per-run ``summary.json`` receipts under
+        ``evidence/grounded-eval/results/`` (newest first) — pass rate per
+        journey / per component, the ±Cortex grounding lift, pack + corpus
+        manifest shas — so the leaderboard's Grounded tier renders from the
+        canonical receipt FILES, never from interactive grades (advisor
+        precedent). Pure read: no retriever, no GPU, no ``arena.db``;
+        ``{available: false}`` on a box with no runs. Summaries carry no
+        question/answer text by construction (run_pack.py writes those only
+        into ``results.jsonl``, which this endpoint never reads).
+        """
+        grounded_root = Path(
+            os.path.expanduser(
+                os.environ.get("FK_ARENA_GROUNDED_DIR")
+                or str(Path(root) / "evidence" / "grounded-eval")
+            )
+        )
+        results_dir = grounded_root / "results"
+        runs: list[dict[str, Any]] = []
+        if results_dir.is_dir():
+            for sm in sorted(
+                results_dir.glob("*/summary.json"),
+                key=lambda p: p.stat().st_mtime,
+                reverse=True,
+            )[:limit]:
+                try:
+                    runs.append(json.loads(sm.read_text(encoding="utf-8")))
+                except (OSError, ValueError):
+                    continue  # a torn write never breaks the pane
+        return {
+            "available": bool(runs),
+            "dir": str(results_dir),
+            "runs": runs,
+        }
 
     # ------------------------------------------------------------------
     # M11 (autonomous harness) — the morning-standup render (AH-3).
@@ -7028,6 +7077,63 @@ async def compare_event_stream(
             if eval_context is not None:
                 eval_context["truncated"] = _ev_trunc
 
+        # grounded-eval-v1 §8 — per-side prompt/system/kwargs/receipt. Eval
+        # mode keeps both sides identical (the maps just mirror the shared
+        # values); the free-prompt ablation duel below diverges them.
+        side_prompt: dict[str, str] = {"A": effective_prompt, "B": effective_prompt}
+        side_system: dict[str, Any] = {"A": eval_system, "B": eval_system}
+        side_kwargs: dict[str, Any] = {"A": eval_chat_kwargs, "B": eval_chat_kwargs}
+        side_retrieval: dict[str, dict[str, Any] | None] = {
+            "A": compare_retrieval,
+            "B": compare_retrieval,
+        }
+        want_retrieval = {
+            "A": bool(getattr(body, "retrieval_a", False)),
+            "B": bool(getattr(body, "retrieval_b", False)),
+        }
+        if eval_model_prompt is None and any(want_retrieval.values()):
+            # Free-prompt ±Cortex ablation: build the packet ONCE through the
+            # live stack and replay it on every flagged side — same question,
+            # same retrieval, so on-vs-off measures grounding, not retrieval
+            # variance. Cortex down = hard error (never a silent ungrounded
+            # side presented as grounded).
+            from fieldkit.arena.cortex_chat import CortexUnavailable, build_packet
+
+            _ab_root = os.environ.get("ARENA_REPO_ROOT")
+            try:
+                _ab_packet = await asyncio.to_thread(
+                    build_packet,
+                    body.prompt,
+                    root=Path(os.path.expanduser(_ab_root)) if _ab_root else Path.cwd(),
+                )
+            except CortexUnavailable as exc:
+                yield {
+                    "event": "error",
+                    "data": json.dumps(
+                        {"detail": f"Cortex retrieval unavailable: {exc}"}
+                    ),
+                }
+                return
+            ceilings = [
+                _ONDEMAND_CTX
+                if ln["kind"] == "local_ondemand"
+                else int(ln.get("context_length") or 8192)
+                for ln in (lane_a, lane_b)
+            ]
+            _ab_prompt, _ab_trunc = _guard_prompt_ctx(
+                _ab_packet["user_prompt"], max_tokens=max_tokens, ceiling=min(ceilings)
+            )
+            for _side, _want in want_retrieval.items():
+                if not _want:
+                    continue
+                side_prompt[_side] = _ab_prompt
+                side_system[_side] = _ab_packet["system"]
+                side_kwargs[_side] = _ab_packet["chat_kwargs"]
+                side_retrieval[_side] = {
+                    **_ab_packet["retrieval"],
+                    "truncated": _ab_trunc,
+                }
+
         async def _emit_side(side: str, lane: dict[str, Any]):
             """Yield one side's start/token/done SSE events; record its done
             payload (+ OpenRouter cost) into ``side_done[side]``.
@@ -7040,11 +7146,12 @@ async def compare_event_stream(
             head_extra = (
                 {"run_id": run_id, "rubric_id": rubric_id} if side == "A" else {}
             )
-            if compare_retrieval is not None:
-                # grounded eval row — both sides replay the same live packet;
-                # the receipt (sources, manifest sha, gold-vs-actual hit) rides
-                # each side's start event for the UI's source chips.
-                head_extra = {**head_extra, "retrieval": compare_retrieval}
+            if side_retrieval[side] is not None:
+                # grounded turn — eval rows replay one shared live packet on
+                # both sides; ablation duels ground only the flagged side(s).
+                # The receipt (sources, manifest sha, gold-vs-actual hit) rides
+                # each grounded side's start event for the UI's source chips.
+                head_extra = {**head_extra, "retrieval": side_retrieval[side]}
 
             def _status(phase: str, detail: str):
                 return {
@@ -7115,7 +7222,7 @@ async def compare_event_stream(
                         }
                     ),
                 }
-                chunks = _stub_no_key_chunks(effective_prompt)
+                chunks = _stub_no_key_chunks(side_prompt[side])
                 for chunk in chunks:
                     yield {
                         "event": f"token_{suffix}",
@@ -7172,18 +7279,18 @@ async def compare_event_stream(
             done = None
             async for kind, payload in _stream_one_side(
                 client=lane["client"],
-                prompt=effective_prompt,
+                prompt=side_prompt[side],
                 side=side,
                 lane_id=lane["lane_id"],
                 request=request,
                 hub=hub,
                 max_tokens=max_tokens,
                 temperature=temperature,
-                system_prompt=eval_system,
+                system_prompt=side_system[side],
                 # AD-AE-17 — local sides replay the measured reasoning kwargs;
                 # hosted tiers were measured without them (§13.F bakeoff shape).
                 extra_chat_kwargs=(
-                    eval_chat_kwargs if lane["kind"] != "openrouter" else None
+                    side_kwargs[side] if lane["kind"] != "openrouter" else None
                 ),
             ):
                 if kind == "token":
@@ -7357,12 +7464,12 @@ async def compare_event_stream(
             a_eval = _benches.score_eval_prediction(
                 bench_id, qid, a_done["content"],
                 judge_backend=j_backend, judge_model=j_model, resident=resident,
-                retrieval=compare_retrieval,
+                retrieval=side_retrieval["A"],
             )
             b_eval = _benches.score_eval_prediction(
                 bench_id, qid, b_done["content"],
                 judge_backend=j_backend, judge_model=j_model, resident=resident,
-                retrieval=compare_retrieval,
+                retrieval=side_retrieval["B"],
             )
             for side, ev, lane_sid in (("A", a_eval, lane_a_id), ("B", b_eval, lane_b_id)):
                 if ev.get("scored"):
@@ -7418,6 +7525,13 @@ async def compare_event_stream(
         }
         if eval_payload is not None:
             score_event["eval"] = eval_payload
+        if any(want_retrieval.values()) and eval_model_prompt is None:
+            # ±Cortex ablation duel — label which side(s) were grounded so the
+            # verdict banner can say "A grounded vs B ungrounded" honestly.
+            score_event["retrieval_ablation"] = {
+                "a": want_retrieval["A"],
+                "b": want_retrieval["B"],
+            }
 
         # Reconcile the top instrument rail to this duel's *resting* state.
         # The rail's tok/s + TTFT are sticky to the last ping, which during a

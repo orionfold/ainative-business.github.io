@@ -7,6 +7,7 @@ import {
   benchLabel,
   advisorBenchDisplay,
   advisorLaneDisplay,
+  groundedBenchDisplay,
   pct,
   fmtTok,
   scoreColor,
@@ -36,7 +37,9 @@ const benchMetric = (bench_id: string) => {
   return m ? m[1] : '';
 };
 
-const benchDisplay = advisorBenchDisplay(g.bench_id);
+// Friendly heads: the Advisor flagship and the Grounded (live Cortex) tier
+// both translate their bench id for the operator; the raw id stays visible.
+const benchDisplay = advisorBenchDisplay(g.bench_id) || groundedBenchDisplay(g.bench_id);
 ---
 <div class={`bench-group${benchDisplay ? ' bench-group--flagship' : ''}`}>
   <div class="bench-group__head">

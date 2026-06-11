@@ -16,7 +16,7 @@
 
 import { useEffect, useState } from 'preact/hooks';
 import { resolveSidecarUrl, isPublicMirrorHost } from '../../lib/arena/sidecar.mjs';
-import { pct, benchLabel, scoreColor, laneModel, laneSuffix, laneSource } from '../../lib/arena/leaderboard-format.mjs';
+import { pct, benchLabel, scoreColor, laneModel, laneSuffix, laneSource, groundedBenchDisplay } from '../../lib/arena/leaderboard-format.mjs';
 import SourceBadge from './SourceBadge.jsx';
 import { useRunContext } from './ProvenanceChip.jsx';
 import { anchorMs } from '../../lib/arena/run-context.mjs';
@@ -81,20 +81,34 @@ export default function EvalBenchLive() {
 
   return (
     <div class="evalbench">
-      {groups.map((g) => (
+      {groups.map((g) => {
+        // grounded-eval-v1 §8 — the Grounded tier gets a friendly head + an
+        // honest tag; its numbers never share a rollup with frozen-packet
+        // groups (they're separate groups by construction — this labels WHY).
+        const grounded = groundedBenchDisplay(g.bench_id);
+        return (
         <div class="bench-group" key={g.bench_id}>
           <div class="bench-group__head">
-            <span class="bench-group__id">{benchLabel(g.bench_id)}</span>
+            {grounded ? (
+              <span class="bench-group__id" title={grounded.sub}>
+                {grounded.title}
+                <span class="bench-group__raw">{grounded.sub}</span>
+              </span>
+            ) : (
+              <span class="bench-group__id">{benchLabel(g.bench_id)}</span>
+            )}
             <span
               class="evalbench__live-tag"
-              title="projected live from done eval_rerun jobs — scored through the bench's own scorer_path verifier; the groups below are the cached mirror snapshot"
+              title={grounded
+                ? 'live-retrieval scores — the packet is built through the live Cortex stack per turn, so this number moves when the model, corpus pack, embedder, or packet contract moves. Never comparable to frozen-packet gates.'
+                : 'projected live from done eval_rerun jobs — scored through the bench\'s own scorer_path verifier; the groups below are the cached mirror snapshot'}
             >
-              ● live · eval runs
+              {grounded ? '● live Cortex retrieval' : '● live · eval runs'}
             </span>
             <span class="bench-group__count">
               {g.rows.length} lanes · {g.rows.reduce((s, r) => s + (r.n_runs || 0), 0)} runs
             </span>
-            <span class="bench-group__metric">metric · mean_normalized (scorer_path)</span>
+            <span class="bench-group__metric">metric · {grounded ? grounded.metric : 'mean_normalized (scorer_path)'}</span>
           </div>
           <table class="ranktable">
             <thead>
@@ -154,7 +168,8 @@ export default function EvalBenchLive() {
             </tbody>
           </table>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

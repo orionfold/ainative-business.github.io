@@ -1224,6 +1224,38 @@ try {
         margin-top: 0.15rem;
       }
 
+      /* grounded-eval-v1 §8 — the Grounded (live Cortex) receipt tier card. */
+      .grounded-receipt .bench-group__head { border-left: 3px solid var(--arena-ok); }
+      .grounded-receipt__body {
+        border: 1px solid var(--arena-line);
+        border-top: 0;
+        border-left: 3px solid color-mix(in oklch, var(--arena-ok) 45%, transparent);
+        background: var(--arena-panel);
+        padding: 0.65rem 0.85rem 0.75rem;
+        margin-bottom: 1.1rem;
+      }
+      .grounded-receipt__arms {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.9rem;
+        font-family: var(--arena-mono);
+        font-size: 0.68rem;
+        color: var(--arena-text-mute);
+        margin-bottom: 0.55rem;
+      }
+      .grounded-receipt__arm b { color: var(--arena-ok); font-weight: 700; }
+      .grounded-receipt__arm--off b { color: var(--arena-text-dim); }
+      .grounded-receipt__arm--lift b { color: var(--arena-accent-glow); }
+      .grounded-receipt__stamp { margin-left: auto; font-size: 0.62rem; }
+      .grounded-receipt__journeys { margin-bottom: 0 !important; }
+      .grounded-receipt__components {
+        font-family: var(--arena-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.03em;
+        margin: 0.55rem 0 0;
+      }
+
       .scorebar {
         position: relative;
         display: flex;
@@ -1886,6 +1918,36 @@ try {
       }
       .arena-app .chat-turn__source code { font-family: inherit; }
       .arena-app .chat-turn__source--none { color: var(--arena-warn); }
+      /* grounded-eval-v1 §8 — gold-vs-actual chips on grounded eval rows. */
+      .arena-app .chat-turn__source--gold {
+        color: var(--arena-ok);
+        border-color: color-mix(in oklch, var(--arena-ok) 45%, var(--arena-line));
+      }
+      .arena-app .chat-turn__source--goldmiss {
+        color: var(--arena-warn);
+        border-style: dashed;
+        border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+      }
+      .arena-app .chat-turn__goldhit {
+        font-family: var(--arena-mono);
+        font-size: 0.6rem;
+        font-weight: 600;
+        padding: 0.1rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid var(--arena-line);
+        white-space: nowrap;
+      }
+      .arena-app .chat-turn__goldhit--ok {
+        color: var(--arena-ok);
+        border-color: color-mix(in oklch, var(--arena-ok) 45%, var(--arena-line));
+      }
+      .arena-app .chat-turn__goldhit--miss {
+        color: var(--arena-warn);
+        border-color: color-mix(in oklch, var(--arena-warn) 45%, var(--arena-line));
+      }
+      /* Forced-ON Cortex toggle on a live-retrieval bench row. */
+      .arena-app .chat-modelbar__cortex--forced { color: var(--arena-ok); }
+      .arena-app .chat-modelbar__cortex--forced input { cursor: not-allowed; }
 
       /* Cockpit hero CTA (replaced the removed prompt box). */
       .arena-app .cockpit-hero__cta {
@@ -1948,6 +2010,24 @@ try {
         cursor: pointer;
       }
       .arena-app .compare-duel__allmodels input { accent-color: var(--arena-accent); }
+      /* grounded-eval-v1 §8 — per-side ±Cortex ablation toggles. */
+      .arena-app .compare-duel__cortex-toggles {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+      }
+      .arena-app .compare-duel__cortex-toggles label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-family: var(--arena-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        color: var(--arena-text-mute);
+        cursor: pointer;
+      }
+      .arena-app .compare-duel__cortex-toggles label.is-on { color: var(--side-accent); }
+      .arena-app .compare-duel__cortex-toggles input { accent-color: var(--side-accent); }
 
       /* On-demand local load progress in the side body. */
       .arena-app .compare-side__loading {
@@ -5522,6 +5602,8 @@ try {
       .arena-app .eval-badge--tier { color: var(--arena-accent-glow); border-color: var(--arena-accent-dim); }
       .arena-app .eval-badge--sub { color: var(--arena-text-dim); border-color: var(--arena-line); }
       .arena-app .eval-badge--gold { color: var(--arena-warn); border-color: color-mix(in oklch, var(--arena-warn) 40%, var(--arena-line)); font-weight: 600; }
+      /* grounded-eval-v1 §8 — live-retrieval bench rows (packet built at send time). */
+      .arena-app .eval-badge--live { color: var(--arena-ok); border-color: color-mix(in oklch, var(--arena-ok) 40%, var(--arena-line)); }
 
       /* AE-10 — scout candidates panel on the Compare pane. */
       .arena-app .scout-panel { margin: 0 0 0.85rem; padding: 0; overflow: hidden; }

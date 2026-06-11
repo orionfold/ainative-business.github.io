@@ -72,6 +72,51 @@ def test_resolve_eval_prompt_untouched_for_packet_benches(grounded_root: Path) -
     assert arena_server._resolve_eval_prompt(body) == (None, None, None, None)
 
 
+def test_list_benches_marks_live_retrieval(grounded_root: Path) -> None:
+    """The bench listing carries ``live_retrieval`` ONLY on grounded benches —
+    the UI forces (and honestly labels) the Cortex toggle from this; published
+    benches' payload shape stays unchanged."""
+    rows = {b["bench_id"]: b for b in benches.list_benches()}
+    assert rows["cortex-grounded"]["live_retrieval"] is True
+    for bench_id, row in rows.items():
+        if bench_id != "cortex-grounded":
+            assert "live_retrieval" not in row
+
+
+def test_grounded_receipts_endpoint_projects_newest_summaries(
+    grounded_root: Path, tmp_path: Path,
+) -> None:
+    """``GET /api/grounded/receipts`` projects the offline runner's
+    ``summary.json`` receipts newest-first (the leaderboard Grounded tier's
+    data source), degrading to ``available: false`` on a box with no runs."""
+    import os
+    import time
+
+    from fastapi.testclient import TestClient
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    app = arena_server.create_app(repo_root=str(repo), telemetry_interval=2.0)
+    with TestClient(app) as client:
+        body = client.get("/api/grounded/receipts").json()
+        assert body["available"] is False and body["runs"] == []
+
+        results = grounded_root / "results"
+        for i, tag in enumerate(["run-old", "run-new"]):
+            d = results / tag
+            d.mkdir(parents=True)
+            (d / "summary.json").write_text(json.dumps({"run": tag, "modes": {}}))
+            os.utime(d / "summary.json", (time.time() + i, time.time() + i))
+        (results / "torn" ).mkdir()
+        (results / "torn" / "summary.json").write_text("{not json")  # never breaks the pane
+
+        body = client.get("/api/grounded/receipts?limit=1").json()
+        assert body["available"] is True
+        assert [r["run"] for r in body["runs"]] == ["run-new"]
+        body = client.get("/api/grounded/receipts").json()
+        assert [r["run"] for r in body["runs"]] == ["run-new", "run-old"]
+
+
 def test_retrieval_receipt_map_is_bounded() -> None:
     arena_server._GROUNDED_RECEIPTS.clear()
     cap = arena_server._GROUNDED_RECEIPTS_CAP

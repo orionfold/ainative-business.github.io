@@ -42,6 +42,7 @@ import {
 } from '../../lib/arena/evals.mjs';
 import EvalPromptDrawer from './EvalPromptDrawer.jsx';
 import EvalScore, { ReferencePanel } from './EvalScore.jsx';
+import GroundedSources from './GroundedSources.jsx';
 import JudgeSelect from './JudgeSelect.jsx';
 
 // ---------------------------------------------------------------------------
@@ -299,6 +300,9 @@ export default function ChatLane() {
       question: p.question,
       family: p.family,
       judge_required: p.judge_required,
+      // grounded-eval-v1 §8 — live-retrieval bench rows FORCE the Cortex
+      // packet at send time (server-side); the toggle renders as forced-ON.
+      live_retrieval: !!benches.find((b) => b.bench_id === benchId)?.live_retrieval,
     });
     composerRef.current?.focus();
   };
@@ -937,20 +941,24 @@ export default function ChatLane() {
         ) : null}
         <span class="chat-lane__topbar-spacer" />
         <label
-          class={`chat-modelbar__cortex${cortexOn && !evalMode ? ' chat-modelbar__cortex--on' : ''}`}
+          class={`chat-modelbar__cortex${
+            (evalMode?.live_retrieval || (cortexOn && !evalMode)) ? ' chat-modelbar__cortex--on' : ''
+          }${evalMode?.live_retrieval ? ' chat-modelbar__cortex--forced' : ''}`}
           title={evalMode
-            ? 'Eval rows replay their measured frozen packet — live retrieval is ignored'
+            ? (evalMode.live_retrieval
+              ? 'Grounded bench row — live Cortex retrieval is FORCED: the packet is built through the live stack (pgvector + NIM embedder) at send time'
+              : 'Eval rows replay their measured frozen packet — live retrieval is ignored')
             : 'Ground this chat in the Advisor corpus pack — live Cortex retrieval (pgvector + NIM embedder) over the frozen 182-source manifest'}
         >
           <input
             type="checkbox"
-            checked={cortexOn}
+            checked={evalMode ? !!evalMode.live_retrieval : cortexOn}
             disabled={streaming || !!evalMode}
             onChange={(ev) => setCortexOn(ev.currentTarget.checked)}
           />
-          🧠 Cortex retrieval
+          🧠 Cortex retrieval{evalMode?.live_retrieval ? ' · forced' : ''}
         </label>
-        {cortexOn && !evalMode && laneOptions.retrieval_source && (
+        {(evalMode ? !!evalMode.live_retrieval : cortexOn) && laneOptions.retrieval_source && (
           laneOptions.retrieval_source.available ? (
             <span
               class="chat-modelbar__cortex-src"
@@ -1029,6 +1037,11 @@ export default function ChatLane() {
               <span class={`eval-badge ${evalMode.judge_required ? 'eval-badge--judge' : 'eval-badge--det'}`}>
                 {evalMode.scorer_kind}
               </span>
+              {evalMode.live_retrieval && (
+                <span class="eval-badge eval-badge--live" title="Live-retrieval bench row — the packet is built through the live Cortex stack at send time (no frozen receipt)">
+                  🧠 live retrieval
+                </span>
+              )}
               {evalMode.reference && <span class="eval-badge eval-badge--ref">◆ reference loaded</span>}
               {evalMode.has_context && (
                 <span class="eval-badge eval-badge--ctx">📎 context attached ({evalMode.context_tokens || 0} tok)</span>
@@ -1307,23 +1320,7 @@ function TurnCard({ turn, streaming, isLast, canRegenerate, onCopy, onRegenerate
       } ${turn.error ? 'chat-turn--error' : ''}`}
     >
       <div class="chat-turn__role">Brain</div>
-      {turn.retrieval && (
-        <div class="chat-turn__sources" title={`Live Cortex retrieval · ${turn.retrieval.table} · manifest ${turn.retrieval.manifest_sha256_12} · top-${turn.retrieval.top_k}`}>
-          <span class="chat-turn__sources-label">🧠 grounded</span>
-          {(turn.retrieval.sources || []).map((s) => (
-            <span
-              key={s.source_id}
-              class="chat-turn__source"
-              title={`${s.citation_label || s.title} · cos dist ${s.dist}`}
-            >
-              <code>{s.source_id}</code>
-            </span>
-          ))}
-          {(turn.retrieval.sources || []).length === 0 && (
-            <span class="chat-turn__source chat-turn__source--none">no sources retrieved</span>
-          )}
-        </div>
-      )}
+      {turn.retrieval && <GroundedSources retrieval={turn.retrieval} />}
       {turn.reasoning && turn.reasoning.length > 0 && (
         <details
           class="chat-turn__think"

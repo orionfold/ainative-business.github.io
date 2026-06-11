@@ -115,6 +115,23 @@ export function advisorLaneDisplay(benchId, laneId) {
   };
 }
 
+// ---- Grounded display layer (grounded-eval-v1 §8) ---------------------------
+// cortex-grounded scores measure the LIVE loop (query → pgvector → packet →
+// answer → citations) — a grounded number moves when ANY of {model, corpus
+// pack, embedder, packet contract} moves, so it must never read as (or share
+// a rollup with) a frozen-packet model gate. Matches the bench id and a
+// future live tier (`cockpit:cortex-grounded`).
+export const isGroundedBench = (benchId) => /(^|:)cortex-grounded$/.test(String(benchId || ''));
+
+export const groundedBenchDisplay = (benchId) =>
+  isGroundedBench(benchId)
+    ? {
+        title: 'Grounded (live Cortex) — operator-journey contract',
+        sub: String(benchId),
+        metric: 'live query → pgvector → packet → answer · grounded_contract',
+      }
+    : null;
+
 export const scoreColor = (s) => {
   // OKLCH so the inline style scales cleanly against the design system.
   if (s == null) return 'oklch(0.55 0 0)'; // neutral grey — throughput-only row

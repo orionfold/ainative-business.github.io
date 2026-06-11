@@ -37,6 +37,7 @@ import {
 } from '../../lib/arena/evals.mjs';
 import EvalPromptDrawer from './EvalPromptDrawer.jsx';
 import EvalScore, { ReferencePanel } from './EvalScore.jsx';
+import GroundedSources from './GroundedSources.jsx';
 import JudgeSelect from './JudgeSelect.jsx';
 import ScoutPanel from './ScoutPanel.jsx';
 
@@ -100,6 +101,7 @@ function makeEmptySide() {
     loadStatus: null, // { phase, model, detail } while an on-demand lane loads
     score: null, // { total, checks } — deterministic rubric (free-prompt mode)
     evalScore: null, // { scored, score, max, normalized, scorer_kind, why } — eval mode
+    retrieval: null, // grounded-eval-v1 §8 — live retrieval receipt off start_{a,b}
     state: 'idle', // idle | streaming | done | error
   };
 }
@@ -114,7 +116,14 @@ export default function CompareDuel() {
     groups: { frontier: [], open: [], project_base: [] },
     all: [],
     has_key: false,
+    retrieval_source: null,
   });
+  // grounded-eval-v1 §8 — free-prompt ±Cortex ablation duel: per-side live
+  // retrieval, so the SAME lane can run grounded vs ungrounded on one
+  // question. Ignored in eval mode (a bench row's retrieval contract wins).
+  const [retrievalA, setRetrievalA] = useState(false);
+  const [retrievalB, setRetrievalB] = useState(false);
+  const [ablation, setAblation] = useState(null); // {a,b} echoed off the score event
   const [laneA, setLaneA] = useState('local:resident');
   const [laneB, setLaneB] = useState('openrouter');
   const [showAllModels, setShowAllModels] = useState(false);
@@ -199,7 +208,13 @@ export default function CompareDuel() {
             project_base: [],
           };
           const all = data.openrouter || [];
-          setLaneOptions({ local, groups, all, has_key: !!data.has_key });
+          setLaneOptions({
+            local,
+            groups,
+            all,
+            has_key: !!data.has_key,
+            retrieval_source: data.retrieval_source || null,
+          });
           // Seed warm set from the server's view (resident + any loaded slot).
           const warm = local.filter((o) => o.warm).map((o) => o.id);
           if (!warm.includes('local:resident')) warm.push('local:resident');
@@ -260,6 +275,7 @@ export default function CompareDuel() {
     setNPrefs(0);
     setError(null);
     setEvalRef(null);
+    setAblation(null);
   };
 
   const send = async () => {
@@ -292,7 +308,12 @@ export default function CompareDuel() {
                 eval_qid: evalMode.qid,
                 judge: { backend: judgeBackend },
               }
-            : {}),
+            : {
+                // ±Cortex ablation duel — per-side live retrieval (free
+                // prompt only; the server ignores these in eval mode anyway).
+                ...(retrievalA ? { retrieval_a: true } : {}),
+                ...(retrievalB ? { retrieval_b: true } : {}),
+              }),
         }),
       });
     } catch (err) {
@@ -345,6 +366,7 @@ export default function CompareDuel() {
             lane_id: payload.lane_id,
             model: payload.model,
             base_url: payload.base_url,
+            retrieval: payload.retrieval || null,
             loadStatus: null,
           }));
         } else if (ev.event === 'token_a') {
@@ -381,6 +403,7 @@ export default function CompareDuel() {
             model: payload.model,
             base_url: payload.base_url,
             no_key: !!payload.no_key,
+            retrieval: payload.retrieval || null,
             loadStatus: null,
           }));
         } else if (ev.event === 'token_b') {
@@ -414,6 +437,7 @@ export default function CompareDuel() {
           // AF-27(a) — what the rubric measured ("format" for the defaults);
           // the verdict banner labels itself from this.
           setRubricScope(payload.rubric_scope || null);
+          setAblation(payload.retrieval_ablation || null);
           setA((prev) => ({ ...prev, score: payload.a }));
           setB((prev) => ({ ...prev, score: payload.b }));
           // Quality for the sparkline: gold-match normalized in eval mode, else
@@ -625,6 +649,34 @@ export default function CompareDuel() {
             onChange={setLaneB}
           />
         </label>
+        {!evalMode && laneOptions.retrieval_source?.available && (
+          <span class="compare-duel__field compare-duel__field--cortex">
+            <span class="compare-duel__field-label">🧠 Cortex</span>
+            <span
+              class="compare-duel__cortex-toggles"
+              title={`±Cortex ablation duel — ground a side in the corpus pack (live retrieval, packet built once and shared) · ⛁ ${laneOptions.retrieval_source.table} · ${laneOptions.retrieval_source.sources} src · ${laneOptions.retrieval_source.manifest_sha256_12}`}
+            >
+              <label class={retrievalA ? 'is-on' : ''} style="--side-accent:#338A17">
+                <input
+                  type="checkbox"
+                  checked={retrievalA}
+                  disabled={streaming}
+                  onChange={(ev) => setRetrievalA(ev.currentTarget.checked)}
+                />
+                A
+              </label>
+              <label class={retrievalB ? 'is-on' : ''} style="--side-accent:#2750AE">
+                <input
+                  type="checkbox"
+                  checked={retrievalB}
+                  disabled={streaming}
+                  onChange={(ev) => setRetrievalB(ev.currentTarget.checked)}
+                />
+                B
+              </label>
+            </span>
+          </span>
+        )}
         {evalMode ? (
           <span class="compare-duel__field compare-duel__field--evalnote">
             <span class="compare-duel__field-label">Scoring</span>
@@ -718,6 +770,18 @@ export default function CompareDuel() {
         a.evalScore && b.evalScore && <WinnerBanner a={a} b={b} evalMode />
       ) : (
         a.score && b.score && <WinnerBanner a={a} b={b} scope={rubricScope} />
+      )}
+
+      {/* grounded-eval-v1 §8 — label the ±Cortex ablation so the verdict
+          reads as a grounding comparison, not a model comparison. */}
+      {ablation && (
+        <p class="compare-duel__automatch">
+          🧠 ±Cortex ablation duel — A {ablation.a ? 'grounded' : 'ungrounded'} ·
+          B {ablation.b ? 'grounded' : 'ungrounded'}
+          {ablation.a !== ablation.b && (
+            <span class="dim"> · same question, one packet: the score gap is the grounding lift on this question</span>
+          )}
+        </p>
       )}
 
       {/* AF-27(b) — say WHY the verdict is reference-based on a free prompt. */}
@@ -1133,6 +1197,7 @@ function SideCard({ side, accent, state, streaming, title, needsLoad, onLoad }) 
           <span class="compare-side__warn">no OPENROUTER_API_KEY</span>
         </div>
       )}
+      {state.retrieval && <GroundedSources retrieval={state.retrieval} />}
       {state.reasoning && state.reasoning.length > 0 && (
         <details class="compare-side__think">
           <summary>
