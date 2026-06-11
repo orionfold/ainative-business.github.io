@@ -23,15 +23,33 @@ import uPlot from 'uplot';
 import 'uplot/dist/uPlot.min.css';
 
 // Per-group point colors (OKLCH) — cycles for multi/leaderboard modes.
+// The flagship group is excluded from the cycle (it has its own treatment).
 const GROUP_COLORS = [
   '#1283DA', // blue mid
   '#11AF22', // green mid
   '#E08D00', // yellow mid
   '#E929BA', // pink mid
   '#01A9DB', // cyan mid
+  '#EF3061', // red mid (--red)
 ];
 const FRONTIER_COLOR = '#E08D00'; // --arena-gold
 const REC_COLOR = '#E08D00';
+
+// Flagship treatment — the house model never color-collides with the cycling
+// palette: dedicated violet (--violet) + a diamond marker painted in a draw
+// hook, i.e. ABOVE the gold frontier polyline, so it reads as the flagship
+// both as a scatter dot and where it sits on the frontier itself.
+const FLAGSHIP_GROUP = 'advisor-gguf';
+const FLAGSHIP_COLOR = '#7C39ED'; // --violet
+const FLAGSHIP_EDGE = '#EDE2FE'; // --violet-soft edge so the diamond pops on the dark pane
+
+// Group → color, shared by the series builder and the legend. The flagship
+// is excluded from the cycle so palette wrap never collides with it.
+function colorFor(g, groups) {
+  if (g === FLAGSHIP_GROUP) return FLAGSHIP_COLOR;
+  const nonFlagship = groups.filter((x) => x !== FLAGSHIP_GROUP);
+  return GROUP_COLORS[nonFlagship.indexOf(g) % GROUP_COLORS.length];
+}
 
 function qualityOf(p) {
   if (typeof p.score === 'number') return { norm: p.score, raw: p.score, kind: 'score' };
@@ -101,13 +119,17 @@ export default function FrontierScatter({ points = [], mode = 'multi', title = '
     const xs = resolved.map((p) => p.x);
 
     // One series per group (native per-group colors + legend), each y array
-    // non-null only at that group's indices.
-    const groupSeries = groups.map((g, gi) => ({
+    // non-null only at that group's indices. The flagship's round dots are
+    // suppressed — its diamonds are painted in the draw hook, above the
+    // frontier polyline.
+    const groupSeries = groups.map((g) => ({
       label: g,
-      stroke: GROUP_COLORS[gi % GROUP_COLORS.length],
-      fill: GROUP_COLORS[gi % GROUP_COLORS.length],
+      stroke: colorFor(g, groups),
+      fill: colorFor(g, groups),
       paths: () => null,
-      points: { show: true, size: 9, width: 0 },
+      points: g === FLAGSHIP_GROUP
+        ? { show: false }
+        : { show: true, size: 9, width: 0 },
     }));
     const groupData = groups.map((g) => resolved.map((p) => ((p.group || title || 'set') === g ? p.y : null)));
 
@@ -133,7 +155,9 @@ export default function FrontierScatter({ points = [], mode = 'multi', title = '
         stroke: REC_COLOR,
         fill: REC_COLOR,
         paths: () => null,
-        points: { show: true, size: 15, width: 2 },
+        // Transparent interior — uPlot's default point fill is the page
+        // background, which occluded the very dot the ring highlights.
+        points: { show: true, size: 15, width: 2, fill: 'rgba(0,0,0,0)' },
       },
     ];
 
@@ -166,6 +190,34 @@ export default function FrontierScatter({ points = [], mode = 'multi', title = '
       ],
       series,
       hooks: {
+        // Flagship diamonds — painted after every series, so they sit above
+        // the gold frontier polyline (and the sweet-spot ring still shows
+        // around them: ring radius ~7.5 css px vs diamond half-diagonal 6).
+        draw: [
+          (u) => {
+            const dpr = window.devicePixelRatio || 1;
+            const s = 6 * dpr; // half-diagonal
+            const ctx = u.ctx;
+            ctx.save();
+            resolved.forEach((p) => {
+              if ((p.group || title || 'set') !== FLAGSHIP_GROUP) return;
+              const cx = u.valToPos(p.x, 'x', true);
+              const cy = u.valToPos(p.y, 'y', true);
+              ctx.beginPath();
+              ctx.moveTo(cx, cy - s);
+              ctx.lineTo(cx + s, cy);
+              ctx.lineTo(cx, cy + s);
+              ctx.lineTo(cx - s, cy);
+              ctx.closePath();
+              ctx.fillStyle = FLAGSHIP_COLOR;
+              ctx.fill();
+              ctx.lineWidth = 1.5 * dpr;
+              ctx.strokeStyle = FLAGSHIP_EDGE;
+              ctx.stroke();
+            });
+            ctx.restore();
+          },
+        ],
         setCursor: [
           (u) => {
             const { idx } = u.cursor;
@@ -221,9 +273,12 @@ export default function FrontierScatter({ points = [], mode = 'multi', title = '
       <div class="frontier-plot" ref={plotEl} />
       <div class="frontier-tip" ref={tipRef} style="display:none" />
       <div class="frontier-legend">
-        {legendGroups.map((g, i) => (
+        {legendGroups.map((g) => (
           <span class="frontier-legend__item">
-            <span class="frontier-legend__swatch" style={`background:${GROUP_COLORS[i % GROUP_COLORS.length]}`} />
+            <span
+              class={`frontier-legend__swatch${g === FLAGSHIP_GROUP ? ' frontier-legend__swatch--flagship' : ''}`}
+              style={`background:${colorFor(g, legendGroups)}${g === FLAGSHIP_GROUP ? `;box-shadow:0 0 0 1px ${FLAGSHIP_EDGE}` : ''}`}
+            />
             {mode === 'single' ? 'variants' : g}
           </span>
         ))}
