@@ -951,6 +951,14 @@ def create_app(
         # event. Scoring is a separate ``POST /api/chat/score`` call.
         bench_id: Optional[str] = Field(default=None, max_length=80)
         eval_qid: Optional[str] = Field(default=None, max_length=120)
+        # v0.4 Cortex-grounded chat — when true (and not in eval mode) the
+        # server retrieves live from the Advisor corpus pack
+        # (``advisor_corpus_v01`` via :mod:`fieldkit.arena.cortex_chat`),
+        # builds the production packet (k=3, 900-char excerpts, ``Source N:``
+        # labels, packet system prompt), and surfaces a ``retrieval`` block in
+        # the ``start`` event. Eval mode wins when both are set — bench rows
+        # replay their measured frozen packet, never a live retrieval.
+        retrieval: bool = False
 
     class CompareRequest(BaseModel):
         """``POST /api/compare/stream`` body — spec §4.3.
@@ -1481,6 +1489,7 @@ def create_app(
                 body=body,
                 resident=resident,
                 db_path=db_path,
+                repo_root=root,
             ),
             ping=15,
         )
@@ -1770,6 +1779,8 @@ def create_app(
         entry carries per-million prices so the client can preview cost and the
         meter can price the chosen model. ``has_key`` tells the UI whether
         OpenRouter lanes will actually stream or fall to the no-key stub."""
+        from fieldkit.arena.cortex_chat import is_advisor_model
+
         resident = _resolve_active_lane()
         local: list[dict[str, Any]] = []
         if resident and resident.get("base_url"):
@@ -1781,6 +1792,9 @@ def create_app(
                     "base_url": resident.get("base_url"),
                     "on_demand": False,
                     "warm": True,
+                    # v0.4 — advisor-tuned lanes get the Cortex retrieval
+                    # toggle defaulted ON in the chat UI.
+                    "advisor": is_advisor_model(resident.get("model")),
                 }
             )
         # On-demand article-series models — roster LlamaServerLane lanes whose
@@ -1811,6 +1825,7 @@ def create_app(
                                 "model": rid,
                                 "on_demand": True,
                                 "warm": _LOCAL_SERVER_MANAGER.loaded_id == rid,
+                                "advisor": is_advisor_model(rid),
                             }
                         )
         except Exception as exc:  # noqa: BLE001
@@ -5558,6 +5573,7 @@ async def chat_event_stream(
     body: Any,
     resident: dict[str, Any],
     db_path: str,
+    repo_root: "Path | None" = None,
 ) -> "AsyncIterator[dict[str, str]]":
     """Async generator powering ``/api/chat/stream``.
 
@@ -5688,7 +5704,32 @@ async def chat_event_stream(
             _resolve_eval_prompt(body)
         )
         effective_prompt = eval_model_prompt if eval_model_prompt is not None else body.prompt
-        if eval_model_prompt is not None:
+
+        # v0.4 Cortex-grounded chat — live retrieval from the Advisor corpus
+        # pack. Eval mode wins (bench rows replay their measured frozen
+        # packet); a retrieval failure is a hard error, not a silent
+        # ungrounded turn (report ≠ reality is an integrity bug).
+        retrieval_packet: dict[str, Any] | None = None
+        if getattr(body, "retrieval", False) and eval_model_prompt is None:
+            from fieldkit.arena.cortex_chat import CortexUnavailable, build_packet
+
+            try:
+                retrieval_packet = await asyncio.to_thread(
+                    build_packet,
+                    body.prompt,
+                    root=Path(repo_root) if repo_root else Path.cwd(),
+                )
+            except CortexUnavailable as exc:
+                yield {
+                    "event": "error",
+                    "data": json.dumps(
+                        {"detail": f"Cortex retrieval unavailable: {exc}"}
+                    ),
+                }
+                return
+            effective_prompt = retrieval_packet["user_prompt"]
+
+        if eval_model_prompt is not None or retrieval_packet is not None:
             ceiling = (
                 _ONDEMAND_CTX
                 if lane["kind"] == "local_ondemand"
@@ -5701,6 +5742,8 @@ async def chat_event_stream(
             )
             if eval_context is not None:
                 eval_context["truncated"] = truncated
+            if retrieval_packet is not None:
+                retrieval_packet["retrieval"]["truncated"] = truncated
 
         # Emit the start event with the metadata the client needs to
         # render the lane chip / paint the session header.
@@ -5712,6 +5755,8 @@ async def chat_event_stream(
         }
         if eval_context is not None:
             start_payload["eval_context"] = eval_context
+        if retrieval_packet is not None:
+            start_payload["retrieval"] = retrieval_packet["retrieval"]
         yield {
             "event": "start",
             "data": json.dumps(start_payload),
@@ -5722,10 +5767,14 @@ async def chat_event_stream(
         hub.report_inflight(inflight=True, tok_per_s=None, ttft_ms=None, lane_id=lane_id)
 
         client = lane["client"]
-        # Advisor eval rows replay the measured system contract; every other
+        # Advisor eval rows replay the measured system contract; Cortex
+        # retrieval carries the production packet system prompt; every other
         # path keeps the bare user message.
+        system_msg = eval_system or (
+            retrieval_packet["system"] if retrieval_packet is not None else None
+        )
         messages = (
-            [{"role": "system", "content": eval_system}] if eval_system else []
+            [{"role": "system", "content": system_msg}] if system_msg else []
         ) + [{"role": "user", "content": effective_prompt}]
         kwargs = {
             "max_tokens": int(getattr(body, "max_tokens", 4096)),
@@ -5734,8 +5783,13 @@ async def chat_event_stream(
         # AD-AE-17 — replay the bench's measured reasoning control on local
         # lanes (e.g. ``chat_template_kwargs={"enable_thinking": false}`` for
         # Advisor rows; OpenRouter keeps the measured hosted shape: no kwarg).
-        if eval_chat_kwargs and lane["kind"] != "openrouter":
-            kwargs.update(eval_chat_kwargs)
+        # Cortex retrieval rides the same rule: the packet was measured
+        # reasoning-off.
+        chat_kwargs_rider = eval_chat_kwargs or (
+            retrieval_packet["chat_kwargs"] if retrieval_packet is not None else None
+        )
+        if chat_kwargs_rider and lane["kind"] != "openrouter":
+            kwargs.update(chat_kwargs_rider)
 
         # Stream the chat off a worker thread so the asyncio loop stays
         # free for the SSE writer. The httpx-backed ``chat_stream`` is

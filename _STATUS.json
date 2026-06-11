@@ -1,29 +1,29 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-06-10",
+  "updated": "2026-06-11",
   "health": "green",
-  "focus": "/fieldkit/ landing un-froze: page read a retired version mirror frozen at v0.13.0 for 18 releases — now reads canonical _version.py (v0.31.0); 18 module summaries rebalanced reader-facing; audit_landing.py grew version-source + summary-balance gates",
+  "focus": "Cortex-grounded Advisor chat wired into Arena: free-prompt chat now retrieves live from the frozen corpus pack (pgvector advisor_corpus_v01 + NIM embedder), builds the byte-compatible production packet, and shows grounded source chips + retrieval receipt per turn",
   "blockers": [],
   "next": [
-    "Rebake arena _webui to pick up the FieldkitModules tagline sync (copy-only)",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)",
     "Optional v0.3 lever: Route:-prefix boundary + the one over-refusal class (freeze curveball-v0.3 first)"
   ],
   "recent": [
-    "/fieldkit/ live version v0.13.0 → v0.31.0: index.astro reads fieldkit/src/fieldkit/_version.py; orphaned mirror deleted; sync-field-notes mirror logic retired",
-    "18 docs/api summaries rewritten 96–222 chars (training was ~780; internal M*/H*/Bet codenames stripped); taglines trimmed; arena-app FieldkitModules synced 13→18 modules",
-    "fieldkit-curator audit_landing.py 4→6 checks (landing_version_source, doc_summary_balance, dual-copy tagline audit) — 6/6 PASS",
-    "Build 537 pages + artifact/field-notes verifiers green"
+    "fieldkit.arena.cortex_chat: live retrieval packet builder (k=3 unique sources, 900-char excerpts, /no_think contract) + ChatRequest.retrieval; Cortex down = hard SSE error",
+    "ChatLane: Cortex retrieval toggle (defaults ON for advisor lanes via options advisor flag) + per-turn grounded source chips w/ manifest-sha receipt",
+    "Step 0 receipts: advisor_corpus_v01 intact (646 chunks/183 slugs), embedder restarted, live recall rescore 0.977@5 gate PASS (matches 2026-06-09)",
+    "13 new tests, arena suite 490 green; _webui + public demo rebaked (clears the pending FieldkitModules copy rebake)",
+    "Live smoke: grounded answer w/ exact citation @45 tok/s; urgency-pretext .env.local probe refused w/ empty citations"
   ],
-  "session": "S-fieldkit-landing-unfreeze",
+  "session": "S-cortex-chat-wiring",
   "metrics": {
     "articles": 54,
     "models": 7,
     "software_released": 7,
-    "arena_features": 27,
+    "arena_features": 28,
     "fieldkit_modules": 18,
     "gsc_indexed": 24,
     "gsc_submitted": 183,

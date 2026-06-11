@@ -14,7 +14,13 @@
 
 ## Current State
 
-### 2026-06-10 — /fieldkit/ landing un-froze (v0.13.0 → v0.31.0) + module-copy rebalance (this session)
+### 2026-06-10 — Cortex-grounded Advisor chat wired into Arena (this session)
+
+- **Free-prompt chat can now retrieve live from the Advisor corpus pack** — closes the launch-era gap where the full retrieval loop existed only through eval-row replays. New `fieldkit.arena.cortex_chat` (packet builder: pgvector `advisor_corpus_v01` + NIM embedder via `MemoryIndex`, chunk→top-3-unique-source dedup, 900-char query-centered excerpts, verbatim `/no_think` system contract + `enable_thinking:false` rider — byte-compatible with `preflight.py` production packets). `ChatRequest.retrieval: bool`; eval mode wins; Cortex down = hard SSE `error`, never a silent ungrounded turn. `start` event carries a `retrieval` receipt (table + manifest sha `6b1e832d099c` + source cards w/ cosine dist). `/api/compare/options` flags `advisor: true` lanes; ChatLane defaults a "🧠 Cortex retrieval" toggle ON for them + renders grounded source chips per turn. 13 new tests (10 packet-builder + 3 chat-stream), arena suite 490 green; `_webui` rebaked (also clears the pending FieldkitModules copy rebake) + demo rebaked/deployed/verified.
+- **Step-0 stack verification receipts**: `advisor_corpus_v01` intact (646 chunks / 183 slugs); `nim-embed-nemotron` restarted (was exited 25 h); live recall rescored `--skip-ingest`: source_recall@5 **0.977, gate pass** — identical to the 2026-06-09 receipt. Fixed `score_recall_live.py` signature drift (`_load_rows` gained pool/heldout args after the live script was written).
+- **Live smoke (API + CDP browser)**: Hermes-brain question → grounded answer, exact `Citations: [article_the_hermes_harness_on_spark]`, 45 tok/s; urgency-pretext `.env.local` probe → clean refusal `Citations: []`. UI smoke: toggle ON by default on the advisor resident lane, chips render. Noted: fieldkit-v0.5 question hit the known safe-direction over-refusal drift (cited changelog sources but refused) — model behavior, not wiring.
+
+### 2026-06-10 — /fieldkit/ landing un-froze (v0.13.0 → v0.31.0) + module-copy rebalance
 
 - **Live `/fieldkit/` page was 18 releases stale**: `index.astro` read the retired two-repo-era mirror `fieldkit/_version.py` (frozen at 0.13.0 since the cutover) while releases bumped only the canonical `fieldkit/src/fieldkit/_version.py`. Page now reads the canonical file directly; mirror deleted; `sync-field-notes` mirror logic retired in scripts + SKILL.md (do not resurrect).
 - **Module-card copy rebalanced** (operator-directed): all 18 `fieldkit/docs/api/*.md` `summary:` lines rewritten reader-facing at 96–222 chars (`training` was ~780; `arena`/`harness` read like internal ship logs with M*/H*/Bet codenames — detail stays in doc bodies). Taglines trimmed (`arena` 71→38 chars) and the arena-app `FieldkitModules.astro` copy synced 13→18 modules. NOTE: arena-app `_webui` rebake pending next cockpit session (copy-only change).
@@ -44,10 +50,10 @@
 
 ## Live Runtime
 
-Last recorded runtime baseline: public-launch session, 2026-06-10.
+Last recorded runtime baseline: Cortex-chat wiring session, 2026-06-10.
 
-- Cockpit `:7866` UP in browser-use mode (pid 2269863), visible CDP Chromium `:9222` UP (pid 957106). Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). 30B down-but-on-disk; `fk-nim-8000` + `nim-embed-nemotron` + `nemo-train` containers stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
-- This session touched no lanes and no arena.db rows beyond the demo recorder's read-only capture; two direct `/v1/chat/completions` calls on `:8091` measured 42 tok/s for the HF card (logged here as the minimum deterministic terminal action — the number is on the public card).
+- Cockpit `:7866` UP in browser-use mode (pid 3003789, fresh `_webui` bake), visible CDP Chromium `:9222` UP (pid 3003806). Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). **`pgvector` (:5432) + `nim-embed-nemotron` (:8001) containers UP** — the grounded-chat path needs both; a dead stack surfaces as a visible chat error. 30B down-but-on-disk; `fk-nim-8000` + `nemo-train` stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
+- This session's lane-adjacent terminal actions: restarted `nim-embed-nemotron` (step 0), 3 SSE chat calls on `:7866` for the grounded/refusal smoke (logged per pipeline discipline).
 - `.env.local` still carries `FK_ARENA_BUILD_DIR`/`FK_ARENA_CORPUS_DIR`/`FK_ARENA_SFT_DIR`/`FK_ARENA_REWARD_DIR` pointed at the Advisor proof.
 - `/tmp/fk` and `/tmp/fk-test` venvs are GONE (reboot); `/tmp/arena-venv` (fieldkit editable + huggingface_hub 1.18 + `hf` CLI) is the working HF/publish venv this session used. HF pushes need `HF_HOME=/home/nvidia/data/.hf-cache HF_HUB_DISABLE_XET=1`.
 - Tear down when done: `:8091` lane from visible LaneTruth first, then `arena_lifecycle.sh down --browser`.

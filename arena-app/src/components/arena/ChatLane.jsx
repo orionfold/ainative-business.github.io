@@ -203,6 +203,11 @@ export default function ChatLane() {
   const [judgeBackend, setJudgeBackend] = useState('local');
   const [evalMode, setEvalMode] = useState(null);
   const [evalDrawerOpen, setEvalDrawerOpen] = useState(false);
+  // v0.4 — Cortex-grounded chat: live retrieval from the Advisor corpus pack
+  // (advisor_corpus_v01). Auto-defaults ON when the selected lane is
+  // advisor-tuned (options carry `advisor: true`); ignored in eval mode —
+  // bench rows replay their measured frozen packet, never a live retrieval.
+  const [cortexOn, setCortexOn] = useState(false);
 
   const tailRef = useRef(null);
   const composerRef = useRef(null);
@@ -266,6 +271,15 @@ export default function ChatLane() {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  const isAdvisorLane = (laneId) =>
+    !!(laneOptions.local || []).find((o) => o.id === laneId)?.advisor;
+
+  // Default the Cortex toggle to the lane's nature on every lane switch (and
+  // on the initial options load) — the operator can still flip it per turn.
+  useEffect(() => {
+    setCortexOn(isAdvisorLane(selectedLane));
+  }, [selectedLane, laneOptions]);
 
   const pickEvalPrompt = (p, benchId) => {
     setPrompt(p.question);
@@ -351,6 +365,8 @@ export default function ChatLane() {
     const evalSnapshot = evalMode;
     const judgeSnapshot = judgeBackend;
     const laneSnapshot = selectedLane;
+    // Eval mode wins over live retrieval (mirrors the server's precedence).
+    const cortexSnapshot = cortexOn && !evalSnapshot;
 
     // AbortController integration — Stop/Esc abort.
     const ctrl = new AbortController();
@@ -378,6 +394,7 @@ export default function ChatLane() {
           ...(evalSnapshot
             ? { bench_id: evalSnapshot.bench_id, eval_qid: evalSnapshot.qid }
             : {}),
+          ...(cortexSnapshot ? { retrieval: true } : {}),
         }),
         signal: ctrl.signal,
       });
@@ -441,6 +458,18 @@ export default function ChatLane() {
               lane_id: meta.lane_id || prev?.lane_id,
               context_length: prev?.context_length || null,
             }));
+            // v0.4 — pin the live-retrieval receipt (sources, table, manifest
+            // sha) on the assistant card being filled.
+            if (meta.retrieval) {
+              setTurns((prev) => {
+                const next = prev.slice();
+                const last = next[next.length - 1];
+                if (last && last.role === 'assistant') {
+                  next[next.length - 1] = { ...last, retrieval: meta.retrieval };
+                }
+                return next;
+              });
+            }
           } catch (_e) {}
         } else if (ev.event === 'token') {
           try {
@@ -902,6 +931,20 @@ export default function ChatLane() {
           <span class="chat-modelbar__warm">● loaded</span>
         ) : null}
         <span class="chat-lane__topbar-spacer" />
+        <label
+          class={`chat-modelbar__cortex${cortexOn && !evalMode ? ' chat-modelbar__cortex--on' : ''}`}
+          title={evalMode
+            ? 'Eval rows replay their measured frozen packet — live retrieval is ignored'
+            : 'Ground this chat in the Advisor corpus pack — live Cortex retrieval (pgvector + NIM embedder) over the frozen 182-source manifest'}
+        >
+          <input
+            type="checkbox"
+            checked={cortexOn}
+            disabled={streaming || !!evalMode}
+            onChange={(ev) => setCortexOn(ev.currentTarget.checked)}
+          />
+          🧠 Cortex retrieval
+        </label>
         {benches.some((b) => b.available) && (
           <button
             type="button"
@@ -1242,6 +1285,23 @@ function TurnCard({ turn, streaming, isLast, canRegenerate, onCopy, onRegenerate
       } ${turn.error ? 'chat-turn--error' : ''}`}
     >
       <div class="chat-turn__role">Brain</div>
+      {turn.retrieval && (
+        <div class="chat-turn__sources" title={`Live Cortex retrieval · ${turn.retrieval.table} · manifest ${turn.retrieval.manifest_sha256_12} · top-${turn.retrieval.top_k}`}>
+          <span class="chat-turn__sources-label">🧠 grounded</span>
+          {(turn.retrieval.sources || []).map((s) => (
+            <span
+              key={s.source_id}
+              class="chat-turn__source"
+              title={`${s.citation_label || s.title} · cos dist ${s.dist}`}
+            >
+              <code>{s.source_id}</code>
+            </span>
+          ))}
+          {(turn.retrieval.sources || []).length === 0 && (
+            <span class="chat-turn__source chat-turn__source--none">no sources retrieved</span>
+          )}
+        </div>
+      )}
       {turn.reasoning && turn.reasoning.length > 0 && (
         <details
           class="chat-turn__think"

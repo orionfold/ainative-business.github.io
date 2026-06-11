@@ -330,7 +330,7 @@ def main() -> None:
     args = parser.parse_args()
 
     manifest = _read_jsonl(MANIFEST_PATH)
-    rows = _load_rows("all")
+    rows = _load_rows("all", POOL_PATH, HELDOUT_PATH)
     index = MemoryIndex(table=TABLE)
 
     if not args.skip_ingest:

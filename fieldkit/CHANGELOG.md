@@ -7,6 +7,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **Cortex-grounded chat — live retrieval over the Advisor corpus pack.**
+  `POST /api/chat/stream` takes `retrieval: true` (free prompt only; eval
+  rows still replay their measured frozen packets): the new
+  `fieldkit.arena.cortex_chat` module retrieves through the production
+  Cortex stack (pgvector `advisor_corpus_v01` + NIM embedder — the lane the
+  `advisor-rag-source-recall-live` gate passed at 0.977@5), dedupes chunk
+  hits to the top-3 unique manifest sources, and builds the byte-compatible
+  production packet (900-char query-centered excerpts, `Source N:` labels,
+  the measured `/no_think` system contract + `enable_thinking: false` rider
+  on local lanes). The `start` SSE event carries a `retrieval` receipt
+  (table, manifest sha, deduped source cards with cosine distance); a dead
+  Cortex stack is a hard `error` event, never a silent ungrounded turn.
+  `GET /api/compare/options` flags advisor-tuned lanes (`advisor: true`)
+  and the ChatLane UI defaults a "🧠 Cortex retrieval" toggle ON for them,
+  rendering per-turn grounded source chips from the receipt.
 - **Advisor read surfaces in the demo recorder.** `fieldkit arena record` now
   bakes the four Cortex Advisor stubs (`api/advisor/{preflight,corpus,routing,receipt}`)
   so the sidecar-less `/arena/demo/` renders the vertical-proof cards; the stub

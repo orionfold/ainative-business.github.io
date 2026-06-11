@@ -2431,3 +2431,123 @@ def test_trip_sentinels_includes_running_lane_launch(tmp_path: Path, monkeypatch
 
     assert _trip_running_eval_sentinels(str(db)) == 1
     assert eval_sentinel_for(launch_id).exists()
+
+
+# ---------------------------------------------------------------------------
+# v0.4 — Cortex-grounded chat (live retrieval over the Advisor corpus pack)
+# ---------------------------------------------------------------------------
+
+
+_CANNED_PACKET = {
+    "system": "/no_think\nYou are Orionfold Advisor. …",
+    "user_prompt": (
+        "Question: hermes brain?\n\n"
+        "Retrieved public context:\nSource 1: src_a\nLabel: Field Note: Alpha\n"
+        "Class: field_note / book2_field_note\nTitle: Alpha\nExcerpt: pinned."
+    ),
+    "chat_kwargs": {"chat_template_kwargs": {"enable_thinking": False}},
+    "retrieval": {
+        "table": "advisor_corpus_v01",
+        "manifest_sha256_12": "6b1e832d099c",
+        "top_k": 3,
+        "chunk_pool": 80,
+        "sources": [
+            {"source_id": "src_a", "title": "Alpha",
+             "citation_label": "Field Note: Alpha", "dist": 0.1}
+        ],
+    },
+}
+
+
+def test_chat_retrieval_grounds_free_prompt(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``retrieval: true`` on a free prompt sends the packet system contract +
+    the retrieved-context user prompt + the reasoning-off rider to the local
+    lane, and pins the retrieval receipt on the ``start`` event."""
+    from types import SimpleNamespace
+
+    import copy
+
+    captured: list[str] = []
+
+    def _fake_build_packet(question, *, root, **_kw):
+        captured.append(question)
+        return copy.deepcopy(_CANNED_PACKET)
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _fake_build_packet)
+
+    stub = _KwargRecordingClient("Pinned to Qwen3-30B-A3B. Citations: [src_a]")
+    body = SimpleNamespace(
+        prompt="hermes brain?", session_id=None, rubric_id=None,
+        max_tokens=64, temperature=0.0, lane="local:resident",
+        retrieval=True,
+    )
+    events = _drive_chat(body, monkeypatch, stub, str(tmp_path / "arena.db"))
+
+    assert captured == ["hermes brain?"]
+    start = json.loads(events[0]["data"])
+    assert start["retrieval"]["table"] == "advisor_corpus_v01"
+    assert start["retrieval"]["sources"][0]["source_id"] == "src_a"
+    assert start["retrieval"]["truncated"] is False
+
+    messages, kwargs = stub.calls[0]
+    assert messages[0]["role"] == "system"
+    assert messages[0]["content"].startswith("/no_think")
+    assert messages[1]["content"].startswith("Question: hermes brain?")
+    assert "Retrieved public context" in messages[1]["content"]
+    assert kwargs["chat_template_kwargs"] == {"enable_thinking": False}
+
+
+def test_chat_retrieval_failure_is_a_hard_error(
+    repo_root: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dead Cortex stack yields an ``error`` event and NO generation — an
+    ungrounded turn must never masquerade as a grounded one."""
+    from types import SimpleNamespace
+
+    from fieldkit.arena.cortex_chat import CortexUnavailable
+
+    def _down(question, *, root, **_kw):
+        raise CortexUnavailable("pgvector connect failed (…)")
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _down)
+
+    stub = _KwargRecordingClient("should never stream")
+    body = SimpleNamespace(
+        prompt="hermes brain?", session_id=None, rubric_id=None,
+        max_tokens=64, temperature=0.0, lane="local:resident",
+        retrieval=True,
+    )
+    events = _drive_chat(body, monkeypatch, stub, str(tmp_path / "arena.db"))
+
+    kinds = [ev["event"] for ev in events]
+    assert "error" in kinds and "token" not in kinds
+    err = json.loads([ev for ev in events if ev["event"] == "error"][0]["data"])
+    assert "Cortex retrieval unavailable" in err["detail"]
+    assert stub.calls == []
+
+
+def test_chat_eval_mode_wins_over_retrieval(
+    repo_root: Path, advisor_tree: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``bench_id``+``eval_qid`` replay the measured frozen packet even when
+    ``retrieval`` is also set — live retrieval never contaminates an eval."""
+    from types import SimpleNamespace
+
+    def _never(question, *, root, **_kw):  # pragma: no cover - must not run
+        raise AssertionError("live retrieval ran inside eval mode")
+
+    monkeypatch.setattr("fieldkit.arena.cortex_chat.build_packet", _never)
+
+    stub = _KwargRecordingClient("It ships Y. Citations: [artifact_x]")
+    body = SimpleNamespace(
+        prompt="What does artifact_x ship?", session_id=None, rubric_id=None,
+        max_tokens=64, temperature=0.0, lane="local:resident",
+        bench_id="advisor-bench", eval_qid="advisor-qa-0001",
+        retrieval=True,
+    )
+    events = _drive_chat(body, monkeypatch, stub, str(tmp_path / "arena.db"))
+    start = json.loads(events[0]["data"])
+    assert "eval_context" in start
+    assert "retrieval" not in start

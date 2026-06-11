@@ -1775,6 +1775,42 @@ try {
         cursor: pointer;
       }
       .arena-app .chat-modelbar__allmodels input { accent-color: var(--arena-accent); }
+      /* v0.4 — Cortex-grounded chat toggle + per-turn retrieval receipt. */
+      .arena-app .chat-modelbar__cortex {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--arena-mono);
+        font-size: 0.62rem;
+        color: var(--arena-text-mute);
+        cursor: pointer;
+      }
+      .arena-app .chat-modelbar__cortex input { accent-color: var(--arena-accent); }
+      .arena-app .chat-modelbar__cortex--on { color: var(--arena-ok); }
+      .arena-app .chat-turn__sources {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.35rem;
+        margin: 0.2rem 0 0.4rem;
+      }
+      .arena-app .chat-turn__sources-label {
+        font-family: var(--arena-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        color: var(--arena-ok);
+      }
+      .arena-app .chat-turn__source {
+        font-family: var(--arena-mono);
+        font-size: 0.62rem;
+        padding: 0.1rem 0.45rem;
+        background: var(--arena-bg-deep);
+        border: 1px solid var(--arena-line);
+        border-radius: 999px;
+        color: var(--arena-text-mute);
+      }
+      .arena-app .chat-turn__source code { font-family: inherit; }
+      .arena-app .chat-turn__source--none { color: var(--arena-warn); }
 
       /* Cockpit hero CTA (replaced the removed prompt box). */
       .arena-app .cockpit-hero__cta {
