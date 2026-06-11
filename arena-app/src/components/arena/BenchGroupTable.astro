@@ -1,0 +1,108 @@
+---
+// One bench-anchored leaderboard group (head + rank table). Extracted from
+// leaderboard.astro so the flagship Advisor group can render ABOVE the AF-28
+// live island while the rest stay below it — same markup either side.
+import {
+  laneLabel,
+  benchLabel,
+  advisorBenchDisplay,
+  advisorLaneDisplay,
+  pct,
+  fmtTok,
+  scoreColor,
+} from '../../lib/arena/leaderboard-format.mjs';
+
+type Row = {
+  bench_id: string;
+  lane_id: string;
+  manifest_slug: string | null;
+  n_runs: number;
+  mean_score: number;
+  median_tok_per_s: number | null;
+  mean_ttft_ms: number | null;
+  human_pref_winrate: number | null;
+  last_run_at: string;
+};
+
+interface Props {
+  group: { bench_id: string; rows: Row[] };
+}
+
+const { group: g } = Astro.props;
+
+const benchMetric = (bench_id: string) => {
+  // Pulled from the M2 importer's bench_id convention: <slug>:<metric_or_check>.
+  const m = bench_id.match(/:([a-z0-9_-]+)$/);
+  return m ? m[1] : '';
+};
+
+const benchDisplay = advisorBenchDisplay(g.bench_id);
+---
+<div class={`bench-group${benchDisplay ? ' bench-group--flagship' : ''}`}>
+  <div class="bench-group__head">
+    {benchDisplay ? (
+      <span class="bench-group__id" title={benchDisplay.sub}>
+        {benchDisplay.title}
+        <span class="bench-group__raw">{benchDisplay.sub}</span>
+      </span>
+    ) : (
+      <span class="bench-group__id">{benchLabel(g.bench_id)}</span>
+    )}
+    <span class="bench-group__count">{g.rows.length} lanes · {g.rows.reduce((s, r) => s + r.n_runs, 0)} runs</span>
+    <span class="bench-group__metric">metric · {benchDisplay ? benchDisplay.metric : (benchMetric(g.bench_id) || 'mean_score')}</span>
+  </div>
+  <table class="ranktable">
+    <thead>
+      <tr>
+        <th class="rankcol-rank">Rank</th>
+        <th class="rankcol-lane">Lane</th>
+        <th class="rankcol-score">Quality</th>
+        <th class="rankcol-tok">Throughput</th>
+        <th class="rankcol-num">Runs</th>
+      </tr>
+    </thead>
+    <tbody>
+      {g.rows.map((r, i) => {
+        const rank = i + 1;
+        const badgeClass = rank < 4 ? `rank-badge--${rank}` : '';
+        const pctVal = pct(r.mean_score);
+        const color = scoreColor(r.mean_score);
+        const adv = advisorLaneDisplay(g.bench_id, r.lane_id);
+        return (
+          <tr>
+            <td class="rankcol-rank">
+              <span class={`rank-badge ${badgeClass}`}>{rank}</span>
+            </td>
+            <td class="rankcol-lane">
+              <div class="lane-cell">
+                <span class="lane-cell__top">
+                  <span class="lane-cell__id">{adv ? adv.name : laneLabel(r.lane_id)}</span>
+                  {adv && adv.pills.map((p) => (
+                    <span class={`lane-pill lane-pill--${p.kind}`}>{p.label}</span>
+                  ))}
+                </span>
+                {adv ? (
+                  <span class="lane-cell__slug">{adv.raw}</span>
+                ) : (
+                  r.manifest_slug && <span class="lane-cell__slug">{r.manifest_slug}</span>
+                )}
+              </div>
+            </td>
+            <td class="rankcol-score">
+              <div class="scorebar" style={`--scorebar-color: ${color};`}>
+                <span class="scorebar__track">
+                  <span class="scorebar__fill" style={`width: ${pctVal}%`}></span>
+                </span>
+                <span class="scorebar__value">{pctVal}%</span>
+              </div>
+            </td>
+            <td class="rankcol-tok mono" style="color: var(--arena-text-mute);">
+              {r.median_tok_per_s != null ? `${fmtTok(r.median_tok_per_s)} tok/s` : <span class="dim">—</span>}
+            </td>
+            <td class="rankcol-num mono" style="color: var(--arena-text-mute);">{r.n_runs}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>

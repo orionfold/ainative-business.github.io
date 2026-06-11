@@ -1144,6 +1144,13 @@ try {
         gap: 0.15rem;
         min-width: 0;
       }
+      .lane-cell__top {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-wrap: wrap;
+        min-width: 0;
+      }
       .lane-cell__id {
         font-family: var(--arena-mono);
         font-size: 0.88rem;
@@ -1158,6 +1165,63 @@ try {
         font-size: 0.66rem;
         color: var(--arena-text-dim);
         letter-spacing: 0.05em;
+      }
+
+      /* Lane pills — the advisor display layer (friendly names keep the raw
+         receipt id as the slug line; pills carry role/gate at a glance). */
+      .lane-pill {
+        font-family: var(--arena-mono);
+        font-size: 0.56rem;
+        font-weight: 700;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 1px 7px;
+        border-radius: 999px;
+        white-space: nowrap;
+        border: 1px solid var(--arena-line);
+        color: var(--arena-text-mute);
+      }
+      .lane-pill--flagship {
+        color: #b9a0f7;
+        background: rgba(124, 57, 237, 0.14);
+        border-color: rgba(124, 57, 237, 0.55);
+      }
+      .lane-pill--ok {
+        color: #6fd17c;
+        background: rgba(17, 175, 34, 0.10);
+        border-color: rgba(17, 175, 34, 0.40);
+      }
+      .lane-pill--warn {
+        color: #e0ae54;
+        background: rgba(224, 141, 0, 0.10);
+        border-color: rgba(224, 141, 0, 0.40);
+      }
+      .lane-pill--dim {
+        color: var(--arena-text-dim);
+        background: transparent;
+        border-style: dashed;
+      }
+      .lane-pill--gate {
+        color: var(--arena-text-mute);
+        background: var(--arena-panel-2);
+        text-transform: none;
+        letter-spacing: 0.04em;
+      }
+
+      /* Flagship bench group — violet accent matching the frontier diamond. */
+      .bench-group--flagship .bench-group__head {
+        border-left: 3px solid #7c39ed;
+      }
+      .bench-group--flagship .ranktable {
+        border-left: 3px solid rgba(124, 57, 237, 0.45);
+      }
+      .bench-group__raw {
+        display: block;
+        font-size: 0.6rem;
+        font-weight: 400;
+        color: var(--arena-text-dim);
+        letter-spacing: 0.05em;
+        margin-top: 0.15rem;
       }
 
       .scorebar {

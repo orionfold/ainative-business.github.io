@@ -54,6 +54,67 @@ export const laneSource = (id) =>
 export const laneModel = (id) => laneLabel(id).replace(/^openrouter(::|-)/, '');
 export const benchLabel = (id) => String(id || '').replace(/^cockpit:/, '');
 
+// ---- Advisor display layer -------------------------------------------------
+// The advisor_contract bench rows carry receipt-shaped ids
+// (`4b-sft-v0.2::curveball-v0.2::the-refusal-floor-is-trainable`) that are
+// exact but cryptic. These helpers translate them for the operator WITHOUT
+// touching the data: the raw lane id is always returned alongside and the
+// caller keeps it visible as the secondary line (report = reality).
+// Matches both the bench-anchored id and a future live tier
+// (`cockpit:advisor_contract`).
+export const isAdvisorBench = (benchId) => /(^|:)advisor_contract$/.test(String(benchId || ''));
+
+export const advisorBenchDisplay = (benchId) =>
+  isAdvisorBench(benchId)
+    ? {
+        title: 'Orionfold Advisor — refusal-floor contract',
+        sub: String(benchId),
+        metric: 'frozen OOD curveballs',
+      }
+    : null;
+
+// Lane stub → operator-facing name + pills. Kinds map to .lane-pill--<kind>.
+const ADVISOR_LANES = {
+  '4b-sft-v0.2': {
+    name: 'Advisor 4B — trained (SFT v0.2)',
+    pills: [
+      { label: '◆ flagship', kind: 'flagship' },
+      { label: 'promoted lane', kind: 'ok' },
+    ],
+  },
+  '4b-sft-v0.1': {
+    name: 'Advisor 4B — trained (SFT v0.1)',
+    pills: [{ label: 'superseded', kind: 'dim' }],
+  },
+  '4b-init': {
+    name: 'Nemotron 4B — untrained base',
+    pills: [{ label: 'baseline', kind: 'dim' }],
+  },
+  '30b-prompted': {
+    name: 'Nemotron 30B — teacher · prompt-only',
+    pills: [{ label: 'teacher', kind: 'warn' }],
+  },
+};
+const ADVISOR_GATES = {
+  'curveball-v0.1': 'curveball v0.1',
+  'curveball-v0.2': 'curveball v0.2',
+};
+
+export function advisorLaneDisplay(benchId, laneId) {
+  if (!isAdvisorBench(benchId)) return null;
+  const [stub, gate] = String(laneId || '').split('::');
+  const lane = ADVISOR_LANES[stub];
+  if (!lane) return null;
+  const gateLabel = ADVISOR_GATES[gate] || gate || null;
+  return {
+    name: lane.name,
+    pills: gateLabel
+      ? [...lane.pills, { label: `frozen OOD · ${gateLabel}`, kind: 'gate' }]
+      : lane.pills,
+    raw: String(laneId),
+  };
+}
+
 export const scoreColor = (s) => {
   // OKLCH so the inline style scales cleanly against the design system.
   if (s == null) return 'oklch(0.55 0 0)'; // neutral grey — throughput-only row
