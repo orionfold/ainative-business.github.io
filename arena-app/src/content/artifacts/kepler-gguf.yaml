@@ -8,6 +8,11 @@ variants:
   - Q5_K_M
   - Q6_K
   - Q8_0
+spark_tokens_per_sec:
+  Q4_K_M: 33.06
+  Q5_K_M: 28.06
+  Q6_K: 24.6
+  Q8_0: 21.07
 vertical_eval:
   Q4_K_M: 0.75
   Q5_K_M: 0.75

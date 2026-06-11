@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Arena hardening batch shipped 3 of 4 queued actions: catalog drift guard verifier (22/22 manifests byte-matched), _webui HTML now Cache-Control: no-cache (stale-rebake trap killed at source), frontier head tag honest (6 models x 25 builds, CDP-verified), and fieldkit arena import no longer writes the repo-root mirror by default",
+  "focus": "Arena hardening batch CLOSED 4/4: kepler tok/s measured per variant via operator-armed lane swap (Q4 33.06 / Q5 28.06 / Q6 24.6 / Q8 21.07), frontier chart now 7 models x 29 builds with every quality-bearing model; new AD-FK-1 finding — one-lane guard counts the Cortex embedder as a resident lane",
   "blockers": [],
   "next": [
-    "Hardening item 4: measure kepler-gguf tok/s per variant (operator-armed lane swap; advisor holds the box) -> manifest -> chart carries all 6 quality-bearing models",
+    "AD-FK-1: exempt OpenAICompat container lanes (the :8001 embedder) from the AE-R13 one-lane envelope — guard behavior change, needs its own test",
     "Path B: live-tier cockpit:advisor_contract eval runs against the :8091 serving lane (narrated-session story)",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
   ],
   "recent": [
-    "scripts/verify_arena_catalog_sync.mjs: every src/content/artifacts yaml must byte-match its arena-app copy; wired into the CLAUDE.md verify chain + hf-publisher post-push tail",
-    "fieldkit.arena.server serves _webui HTML with Cache-Control: no-cache (ETag 304s stay cheap); CDP Network.setCacheDisabled workaround retired; wire-verified live",
-    "Leaderboard SSR now applies the island quality filter: head tag 7x30 -> 6x25 (hermes-profile has 5 quality-less lanes, not the projected 4)",
-    "import_artifacts(write_mirror=) defaults False; CLI opt-in --mirror; ends the recurring src/data/arena-mirror leftover; docs + CHANGELOG updated",
-    "Arena suite 495 passed (+2 tests); _webui rebaked + sidecar restarted; demo rebuilt/deployed, 691 links ok"
+    "kepler-gguf spark_tokens_per_sec measured on the freed box (llama-bench -ngl 99 -p 64 -n 64 -r 2, tg avg; receipts at data/quants/Kepler/tok-bench-2026-06-11/)",
+    "Frontier chart CDP-verified 7 models x 29 builds, kepler in the legend — plain reload, no cache workaround needed (yesterday's no-cache fix holds)",
+    "Advisor lane relaunched THROUGH the guarded LaneTruth UI (recipe select + anchor-on-warm, ACTIVE in 6s), wire-verified serving the v0.2 GGUF",
+    "AD-FK-1 logged: one-lane guard refuses chat-lane launch while nim-embed-nemotron is up; teardown_first would reap the docker port; workaround = operator docker stop/start around the launch",
+    "Demo redeployed + main build 538 pages + all three verifiers green (catalog sync 22/22)"
   ],
-  "session": "S-arena-hardening-batch",
+  "session": "S-kepler-toks-lane-swap",
   "metrics": {
     "articles": 54,
     "models": 7,
