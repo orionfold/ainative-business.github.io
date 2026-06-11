@@ -25,3 +25,22 @@ license:
   model: apache-2.0
 article: articles/the-gate-before-the-gpu/
 published_at: "2026-06-05T20:17:04Z"
+positioning:
+  headline: >-
+    A numeric astrodynamics reasoner — one verifiable boxed number out, served
+    local on a DGX Spark for $0 a query
+  problem: >-
+    Orbital-mechanics questions ("a satellite orbits at 7,000 km altitude —
+    what's its period?") want a single checkable number, and a frontier API is
+    an expensive way to get one. Kepler is a greenfield Qwen3-8B vertical
+    built gate-first on one Spark: the recommended Q8_0 scores 88.6% on the
+    frozen astro-bench held-out (n=44, boxed ±2%) and 84.1% on the no-hint
+    curveball set, with the SFT-only method chosen by cheap inference-time
+    gates before any RL spend — the build story behind the weights.
+  use_cases:
+    - Local numeric Q&A over astrodynamics and quantitative astrophysics — periods, transfers, orbital elements — with boxed, verifiable answers
+    - A worked example of gate-driven method selection (base preflight → SFT gate → RL-headroom gate) for greenfield verticals
+    - A measured four-variant quant ladder (Q4_K_M→Q8_0) for quality-vs-throughput tradeoffs on unified-memory hardware
+  audience: >-
+    Spark operators who want a $0 local astro reasoner with bench receipts,
+    and builders studying how to decide SFT vs RLVR before spending the run.

@@ -14,7 +14,16 @@
 
 ## Current State
 
-### 2026-06-11 — Arena hardening batch: 3 of 4 queued actions + mirror-default fix shipped (this session)
+### 2026-06-11 — Orphan-screenshot audit executed: 23 orphans cleared, 5 reused, kepler positioning + 01-cockpit retake (this session)
+
+- **Audit swept all image surfaces** (products canonical+public, `public/screenshots/`, `arena-app/public/`, article screenshot/asset dirs, evidence dirs minus vendored repo-snapshots/run post-states) with a basename cross-reference against every page/source file: **23 orphans found, now 0 on every surface**.
+- **5 placed — new "What the board grew into" section on `products/arena-control-plane/`**: the e2e-smoke-era 3120×2000 shots of untoured surfaces (`04-build-spine`, `08-settings-guardrails`, `09-jobs-guardrails-rl`, `10-reward-gauge`, `11-standup`) now tour the post-launch growth (3-kind dispatch row, vertical build spine, eval-is-reward gauge, cloud-eval guardrails, stage-only standup) — each ≥75-char alt + italic caption per the audit bar; the "Get it" roadmap paragraph updated to point at the landed section. `verify_product_article.sh` PASS.
+- **18 deleted** (git rm, dual copies in lockstep): 3 superseded control-plane duplicates (`05-chat`/`06-compare-duel`/`07-leaderboard` — fresher equivalents live in the orionfold-arena tour; 07 showed the 2026-05-28 pre-Advisor leaderboard), cortex `08-catalog-page.png` (a screenshot of the website's own artifact page — circular), `arena-app/public/dgx-rig.jpg` (zero references), and 13 stale `public/screenshots/` shots from old ainative product releases no docs page cites.
+- **Kepler positioning gap closed**: canonical `kepler-gguf.yaml` gained `positioning:` (headline/problem/use_cases/audience drawn from the published gate-before-the-gpu numbers — 88.6% held-out, 84.1% curveball, gate-cascade story); byte-copied to arena-app (drift guard 22/22), `_webui` rebaked, CDP-verified live: catalog card shows the headline instead of the bare slug, detail page renders it.
+- **`01-cockpit.png` retaken** against the live cockpit (3840×1848 @2x via `browser.newContext({deviceScaleFactor:2})` — note: a raw CDP `Emulation.setDeviceMetricsOverride` on an existing page does NOT survive into `page.screenshot`, first attempt came out 1x): now shows post-Path-A counts (artifacts 22 · articles 67 · benches 4 · runs scored 78) with the Advisor v0.2 lane resident and run-context armed. Both dual copies synced.
+- Verify chain green: 538 pages, both render verifiers, catalog sync 22/22, demo rebuilt/deployed (33 product screenshots in sync — count dropped from 37 by the 4 product-side deletions), links verified.
+
+### 2026-06-11 — Arena hardening batch: 3 of 4 queued actions + mirror-default fix shipped
 
 - **Item 1 — catalog drift guard SHIPPED**: new `scripts/verify_arena_catalog_sync.mjs` (every `src/content/artifacts/*.yaml` must byte-match its `arena-app/` copy; orphans + missing both fail; exit = drift count) — runs beside the render verifiers, added to the CLAUDE.md verify chain; currently 22/22 in sync. `hf-publisher` SKILL.md Step 7 post-push tail now leads with "sync manifest → arena-app + rebake + mirror + run the verifier".
 - **Item 2 — stale-HTML trap killed at the source**: `fieldkit.arena.server` `_webui` mount now serves HTML with `Cache-Control: no-cache` (new `_webui_static_files()` StaticFiles subclass; ETag keeps revalidation a cheap 304; hashed `/assets/*` untouched). Wire-verified live post-restart: HTML carries `no-cache`+etag, JS asset carries no cache-control. The CDP `Network.setCacheDisabled` workaround is no longer needed for post-bake verification.
@@ -109,8 +118,7 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 
 ### Editorial / Series
 
-- **NEXT TASK (queued 2026-06-11, operator-directed): orphan-screenshot audit + reuse.** Sweep the project folders (`products/*/screenshots/`, `products/*/assets/`, `articles/*/`, `public/products/`, `public/screenshots/`, `arena-app/public/`, evidence dirs) for screenshots no page references. For each orphan: if usable on a product page, marketing surface, or article, place it WITH a proper descriptive alt + italic caption (per the 21-shot audit bar: ≥75-char alt + caption); otherwise list it for deletion. Also fold in: `01-cockpit.png` shows pre-Path-A counts (artifacts 18, runs 16, kepler active lane) — retake or accept; `kepler-gguf` catalog card shows a bare slug (manifest has no `positioning:` field — content gap found during the 04-models retake).
-
+- ~~Orphan-screenshot audit + reuse~~ — **DONE 2026-06-11** (see Current State: 23→0 orphans, 5 reused on the control-plane page, kepler `positioning:` shipped, `01-cockpit.png` retaken post-Path-A).
 - Write the two queued Advisor series pieces in place (promote `status: upcoming` → `published`): `gates-before-the-advisor`, `governed-routing-with-receipts`.
 - Phase 2 launch (`product-writer` for the autonomous-harness cockpit) and Living-model launch posture unchanged.
 

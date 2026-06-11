@@ -3,7 +3,7 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Arena hardening batch CLOSED 4/4: kepler tok/s measured per variant via operator-armed lane swap (Q4 33.06 / Q5 28.06 / Q6 24.6 / Q8 21.07), frontier chart now 7 models x 29 builds with every quality-bearing model; new AD-FK-1 finding — one-lane guard counts the Cortex embedder as a resident lane",
+  "focus": "Orphan-screenshot audit executed: 23 orphans -> 0 across every image surface — 5 untoured-surface shots placed as a 'What the board grew into' tour on the arena-control-plane page, 18 stale/superseded deleted, kepler-gguf gained positioning (bare catalog slug fixed), 01-cockpit retaken post-Path-A",
   "blockers": [],
   "next": [
     "AD-FK-1: exempt OpenAICompat container lanes (the :8001 embedder) from the AE-R13 one-lane envelope — guard behavior change, needs its own test",
@@ -13,13 +13,13 @@
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
   ],
   "recent": [
-    "kepler-gguf spark_tokens_per_sec measured on the freed box (llama-bench -ngl 99 -p 64 -n 64 -r 2, tg avg; receipts at data/quants/Kepler/tok-bench-2026-06-11/)",
-    "Frontier chart CDP-verified 7 models x 29 builds, kepler in the legend — plain reload, no cache workaround needed (yesterday's no-cache fix holds)",
-    "Advisor lane relaunched THROUGH the guarded LaneTruth UI (recipe select + anchor-on-warm, ACTIVE in 6s), wire-verified serving the v0.2 GGUF",
-    "AD-FK-1 logged: one-lane guard refuses chat-lane launch while nim-embed-nemotron is up; teardown_first would reap the docker port; workaround = operator docker stop/start around the launch",
-    "Demo redeployed + main build 538 pages + all three verifiers green (catalog sync 22/22)"
+    "Orphan audit: basename cross-reference over products/articles/public/arena-app image surfaces; 23 orphans found, 0 remain",
+    "arena-control-plane page gained a 5-shot 'What the board grew into' section (build spine, jobs+RL dispatch, reward gauge, cloud-eval guardrails, standup) — verify_product_article PASS",
+    "Deleted 18: 3 superseded control-plane shots, cortex 08-catalog-page (circular self-shot), dgx-rig.jpg, 13 stale public/screenshots from old product releases",
+    "kepler-gguf positioning: shipped + synced to arena-app (22/22), _webui rebaked, CDP-verified on catalog card + detail page",
+    "01-cockpit.png retaken at 3840x1848 @2x — post-Path-A counts (artifacts 22, articles 67, benches 4, runs 78), Advisor v0.2 lane resident"
   ],
-  "session": "S-kepler-toks-lane-swap",
+  "session": "S-orphan-screenshot-audit",
   "metrics": {
     "articles": 54,
     "models": 7,

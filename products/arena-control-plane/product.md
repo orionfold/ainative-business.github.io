@@ -236,15 +236,87 @@ shape: spec the surface, build it over what exists, drive it live, fix what the
 walk-through reveals, ship. Point it at your own shelf of models and your own
 Spark and the same loop applies.
 
+## What the board grew into
+
+The launch promised that later phases would extend *this* jobs table rather than
+invent their own queue. They did. The surfaces below shipped in the weeks after
+the sprint — each one another kind of work flowing through the same dispatcher,
+the same single-lane envelope, the same harness rails.
+
+![The grown jobs board: dispatch slots for an eval re-run, a base-model fine-tune smoke, and a recipe-driven training run sit above the four-column board, whose done and failed cards carry real astro-bench eval and rl_run results](screenshots/09-jobs-guardrails-rl.png)
+
+*The dispatch row grew from one job kind to three: re-eval a lane, smoke-test a
+base model fine-tune, or launch a training run from a recipe contract — all
+draining through the same four columns.*
+
+The board's biggest growth is what it can start. Alongside the original
+lane-times-bench re-eval, the dispatch row gained a **fine-tune smoke** slot — a
+base model plus a small gold bench, capped at twenty rows, to answer "is this
+base worth training?" before any long run — and a **training run** slot that
+takes a recipe file (the `TrainRecipe` contract) and launches it as a job. The
+banner above the form states the division of labor plainly: you dispatch here,
+on demand, one lane at a time; what the overnight cron ran is reviewed in
+Standup.
+
+![The vertical build pipeline pane: Kepler's build spine rendered as stage cards — scout, bench, corpus, SFT-init, smoke, lane, and RLVR — with seven of eight stages complete and a bench-provenance strip above them](screenshots/04-build-spine.png)
+
+*A whole vertical build as one spine: each stage card carries its receipts, and
+the bench-provenance strip pins exactly which frozen bench scored what.*
+
+When those training jobs belong to a vertical — a domain model being scouted,
+benched, corpus-fed, fine-tuned, and RL-polished — the **Build** pane assembles
+them into a spine. Each stage is a card with its own receipts; the strip above
+pins bench provenance so a score is never separable from the frozen bench that
+produced it. This is the machine-that-builds-machines view: the board dispatches
+the stages, the spine shows the build they add up to.
+
+![The reward-signal pane: one verifier gauge across the build showing a 96 percent step-zero reward baseline, a zero percent truncation rate, and a gate reading HOLD — read-only, never dispatches](screenshots/10-reward-gauge.png)
+
+*Eval-is-reward, made visible: the same bench verifier that scores the
+leaderboard is the reward signal the training run optimizes — one gauge watches
+both.*
+
+The **Reward** pane closes the conceptual loop the launch article only gestured
+at. The bench verifier *is* the reward: the gauge shows the SFT warm-start's
+step-zero baseline (does it produce boxed, scorable answers at all?) and then
+the live reward as an RL run trains, with a gate that holds promotion until the
+signal is clean. The pane is read-only by design — it watches, it never
+dispatches.
+
+![The cloud-eval guardrails settings: a per-run cost cap and a stall timeout that arm at dispatch time as an immutable snapshot, above a price-coverage table listing the metered cloud models the cap can act on](screenshots/08-settings-guardrails.png)
+
+*Bounds on metered work: a cost cap and a stall window arm themselves at
+dispatch — born from a real cloud eval that once hung for hours accruing
+uncapped spend.*
+
+Dispatching cloud comparisons earned the board **guardrails**. A per-run cost
+cap and a stall timeout now arm at dispatch time as an immutable snapshot on the
+job — the fix for a real OpenRouter eval that once hung for two and a half hours
+holding the lane and accruing uncapped spend. Local Spark lanes run unguarded
+and unaffected; the bounds exist exactly where the meter does.
+
+![The morning standup digest: eleven jobs ran overnight, zero regressed, three failed honestly, the queue drained, and total spend was five cents of a five-dollar governor — stage-only, with no push path](screenshots/11-standup.png)
+
+*The overnight loop's report card: ran, regressed, failed, queued, and spend —
+the cron drains and stages, then stops at this gate for the operator to review
+and promote.*
+
+And the promised cron layer landed as **Standup** — a read-only morning digest
+of what the overnight drain ran, regressed, and staged. The loop is
+*stage-only*: it sweeps the queue, runs the work, and stops at this gate. It has
+no push path; you review, then promote. Eleven jobs, zero regressions, three
+honest failures, five cents of spend against a five-dollar governor — that is
+what delegated overnight work looks like when the board doing it was built to be
+left running.
+
 ## Get it
 
-The control plane ships inside `fieldkit` v0.16.0 — the first packaged Arena
-release — so it arrives with the cockpit: start the sidecar and open
-`/arena/jobs/` to dispatch re-evaluations, scan for regressions, and watch the
-board drain. A live web preview of the Arena runs at
-[`/arena/demo/`](/arena/demo/). It is the **pane** the rest of the roadmap lands
-into: each later phase extends *this* jobs table rather than inventing its own
-queue — a cron layer that drains it overnight, a hook that enqueues a re-eval the
-moment you publish, and eventually a training job that flows its result back to
-the leaderboard, closing the loop the board was built to make visible. Bring your
-own models and your own benches; the control plane is waiting to dispatch them.
+The control plane ships inside `fieldkit` — it arrived in v0.16.0, the first
+packaged Arena release, and every surface above extends the same install: start
+the sidecar and open `/arena/jobs/` to dispatch re-evaluations, scan for
+regressions, and watch the board drain. A live web preview of the Arena runs at
+[`/arena/demo/`](/arena/demo/). The roadmap the launch sketched — a cron layer
+draining the queue overnight, training jobs flowing their results back to the
+leaderboard — is the section you just read, landed on the same jobs table it
+promised to extend. Bring your own models and your own benches; the control
+plane is waiting to dispatch them.
