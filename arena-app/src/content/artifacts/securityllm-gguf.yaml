@@ -9,6 +9,7 @@ variants:
   - Q6_K
   - Q8_0
   - F16
+recommended_variant: Q4_K_M
 perplexity:
   F16: 7.3009
   Q4_K_M: 7.3998
@@ -34,3 +35,32 @@ license:
   model: apache-2.0
 article: articles/becoming-a-cyber-curator-on-spark/
 published_at: "2026-05-15T16:30:12Z"
+positioning:
+  headline: A 7B cybersecurity chat model, quantized to run offline on a consumer GPU
+  problem: >-
+    ZySec-AI's SecurityLLM is a 7B security-domain chat model (Zephyr format).
+    This release ships five GGUF variants (Q4_K_M at 4.1 GB and 47.7 tok/s up to
+    F16) so it runs offline on consumer hardware, each carrying a four-axis
+    Spark-measured card: wikitext-2 perplexity, sustained tok/s, thermal-envelope
+    minutes, and a CyberMetric score. Unusually, the smallest quant (Q4_K_M) tops
+    the bench — Orionfold's contribution is the distribution + measurement layer
+    that surfaces that; ZySec-AI did the security fine-tune.
+  use_cases:
+    - Offline security-domain chat and concept Q&A on consumer hardware
+    - A study aid for security certifications and terminology
+    - Picking a quant variant by workload shape, not just RAM budget
+  audience: >-
+    Local-LLM power users and security learners who want an offline cybersecurity
+    chat model on a consumer GPU — for study and exploration, not operational
+    security decisions.
+known_drift:
+  - item: CyberMetric accuracy is modest (4-choice MCQ, n=50)
+    bound: >-
+      CyberMetric (n=50, mcq_letter) lands 34–40% — above the 25% random baseline
+      for 4-choice MCQ but modest, and the 50-question sample makes the variant
+      ordering statistically loose. A 7B ceiling, not a quant failure.
+  - item: Not a security tool or advisory source
+    bound: >-
+      A 7B chat model inherited from the upstream base — for study and concept
+      Q&A, not vulnerability assessment, incident response, or operational
+      decisions. No security-grade validation is claimed.

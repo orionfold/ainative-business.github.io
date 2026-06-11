@@ -1,0 +1,42 @@
+slug: orionfold-cortex
+kind: harness
+class: recall-harness
+base_model: "fieldkit.memory · pgvector(vectors/blog_chunks) · NIM llama-nemotron-embed-1b-v2"
+hf_repo: Orionfold/cortex
+# Reserved namespace, nothing pushed to the Hub. A recall harness distributes as
+# `pip install "fieldkit[arena]"` code that builds the index on-box — there is no
+# downloadable bundle. The detail page shows the local install path, not a
+# `snapshot_download` that would 404. (The spark-hermes-* harnesses ARE pushed.)
+catalog_only: true
+variants:
+  - "cosine-only · top_k=5 · GB10 measured baseline"
+recommended_variant: "cosine-only · top_k=5 · GB10 measured baseline"
+# Measured live through the Arena cockpit (M8 reindex+rag_eval drain, 2026-06-03)
+# against the in-repo 44-question qa-eval gold set. Byte-matched to the
+# rag_eval_runs row — NOT hand-typed. Cosine-only: rerank has no GB10 profile.
+vertical_eval_name: "qa-eval.jsonl · 44 held-out Q · chunk-recall@5 / slug-recall@5 (cosine-only, GB10)"
+vertical_eval:
+  "chunk-recall@5": 0.4091
+  "slug-recall@5": 0.7273
+license:
+  tier: free
+  model: apache-2.0
+article: products/orionfold-cortex/
+published_at: "2026-06-03T11:09:00Z"
+positioning:
+  headline: A local memory layer that gates its own recall
+  problem: "A raw pgvector table drifts silently and carries no trust card on its chunks — you cannot tell a Spark-measured fact from an external claim, and a re-index can quietly drop recall with no alarm. Orionfold Cortex wraps the index with stamped provenance, a coverage report, and a recall@k promotion gate, all dispatched and watched through the Arena control plane. The machine manages its own memory."
+  use_cases:
+    - Re-index a multi-source corpus (article · lineage · eval · scout · deep_research) with provenance stamped per chunk, dispatched from the cockpit
+    - Score chunk-recall@k + slug-recall@k against an in-repo gold set, gated like-for-like against the prior index so a rebuild can't silently regress recall
+    - Query the Second Brain with a provenance/trust-tier filter — cited hits a hosted RAG can't honestly attribute
+  audience: "DGX Spark operators running a private, local-first RAG recall layer they drive, not a SaaS."
+known_drift:
+  - item: Reranker absent on GB10
+    bound: "the cosine-only score over top-5 retrieval is the floor, not the reranked ceiling; 1 reranker lane is unsupported on GB10 (NGC 410-gone, no -dgx-spark profile), so rerank=True hard-raises rather than mislabel a score (R22)."
+  - item: Generator-side metrics not in this lane
+    bound: "3 of 3 generator-side scores (faithfulness / correctness / refusal-rate) are left null — they need the generator NIM; this is the retrieval-only recall measurement."
+  - item: Source-class population
+    bound: "the multi-source provenance schema is live across 5 classes (article · lineage · eval · scout · deep_research) but only the article class is populated today — 313/313 chunks across 49 published articles; the other 4 ingest paths are wired but unpopulated."
+  - item: Gold-set size
+    bound: "recall is measured over 44 qa-eval rows, not a large-N guarantee."

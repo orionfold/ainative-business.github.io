@@ -220,6 +220,50 @@ const artifacts = defineCollection({
     // (mirrors src/content.config.ts; detail pages branch on this to show the
     // local install path instead of a `snapshot_download`). Default false.
     catalog_only: z.boolean().optional(),
+    // Bench-specific optional fields (mirrors src/content.config.ts). Quant
+    // manifests leave them undefined; bench manifests with all fields populated
+    // fill the detail page; with none they degrade to a text-only page.
+    shapes: z
+      .array(
+        z.object({
+          code: z.string(),
+          label: z.string(),
+          count: z.number().int().positive(),
+          scorer: z.enum(['deterministic', 'structural', 'judge']),
+          source: z.string(),
+        }),
+      )
+      .optional(),
+    modes: z.array(z.enum(['closed', 'retrieval', 'oracle', 'judge'])).optional(),
+    results: z.record(z.string(), z.record(z.string(), z.number())).optional(),
+    results_provenance: z
+      .object({
+        model: z.string(),
+        article_anchor: z.string().optional(),
+      })
+      .optional(),
+    samples: z
+      .array(
+        z.object({
+          shape: z.string(),
+          question: z.string(),
+          oracle_context: z.string().optional(),
+          gold_label: z.string(),
+        }),
+      )
+      .optional(),
+    sources: z
+      .array(
+        z.object({
+          key: z.string(),
+          name: z.string(),
+          url: z.string().url(),
+          blurb: z.string(),
+        }),
+      )
+      .optional(),
+    how_to_load: z.string().optional(),
+    citation: z.string().optional(),
     // Customer-problem positioning. Surfaces above the measurement table on
     // the catalog page so a visitor sees the value prop before the data.
     // Mirrors `ModelCard.positioning` / `ArtifactManifest.positioning` in
@@ -235,6 +279,9 @@ const artifacts = defineCollection({
     // bakeoff-style multi-stack releases (Unsloth + NeMo siblings) read as
     // distinct artifacts, not duplicates.
     stack_origin: z.enum(['unsloth', 'nemo', 'axolotl', 'verl', 'peft']).optional(),
+    // Per-lane positioning one-liner for multi-lane releases (BF16 + GGUF
+    // siblings) — mirrors src/content.config.ts.
+    lane_summary: z.string().optional(),
     // Bounded drift / known limitations. Every entry MUST carry a `bound`
     // (count or fraction) — unbounded narrative drift is not card-ready.
     // NB: no forward-looking roadmap (no `fix_eta` / no "v4 will fix this")
@@ -243,6 +290,17 @@ const artifacts = defineCollection({
       item: z.string(),
       bound: z.string(),
     })).default([]),
+    // Cross-lane siblings of the same release (e.g. BF16 ↔ GGUF) — mirrors
+    // src/content.config.ts.
+    siblings: z
+      .array(
+        z.object({
+          slug: z.string(),
+          hf_repo: z.string().optional(),
+          hook: z.string(),
+        }),
+      )
+      .optional(),
     // Open-in-Colab / Open-in-Kaggle runnable on-ramps. Mirrors
     // `ModelCard.notebooks` / `ArtifactManifest.notebooks` in `fieldkit.publish`.
     // The catalog card renders the same badge row the HF README shows, directly

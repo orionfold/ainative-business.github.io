@@ -3,22 +3,22 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Cortex-grounded Advisor chat wired into Arena: free-prompt chat now retrieves live from the frozen corpus pack (pgvector advisor_corpus_v01 + NIM embedder), builds the byte-compatible production packet, and shows grounded source chips + retrieval receipt per turn",
+  "focus": "Arena artifact-catalog drift cleared: advisor/kepler/cortex manifests synced into the arena-app copy (frozen since the 2026-05-29 cutover), schema ported, mirror regenerated — Advisor now on the frontier chart, models catalog, and detail pages, verified live over CDP",
   "blockers": [],
   "next": [
+    "Author the missing kind:bench manifest for Orionfold/Advisor-bench from the evidence dir (real shapes/results, not invented)",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
-    "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)",
-    "Optional v0.3 lever: Route:-prefix boundary + the one over-refusal class (freeze curveball-v0.3 first)"
+    "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
   ],
   "recent": [
-    "fieldkit.arena.cortex_chat: live retrieval packet builder (k=3 unique sources, 900-char excerpts, /no_think contract) + ChatRequest.retrieval; Cortex down = hard SSE error",
-    "ChatLane: Cortex retrieval toggle (defaults ON for advisor lanes via options advisor flag) + per-turn grounded source chips w/ manifest-sha receipt",
-    "Step 0 receipts: advisor_corpus_v01 intact (646 chunks/183 slugs), embedder restarted, live recall rescore 0.977@5 gate PASS (matches 2026-06-09)",
-    "13 new tests, arena suite 490 green; _webui + public demo rebaked (clears the pending FieldkitModules copy rebake)",
-    "Live smoke: grounded answer w/ exact citation @45 tok/s; urgency-pretext .env.local probe refused w/ empty citations"
+    "arena-app artifacts collection synced to canonical: +advisor-gguf/+kepler-gguf/+orionfold-cortex, 8 stale manifests refreshed, schema ported (bench fields, lane_summary, siblings)",
+    "advisor-gguf.yaml enriched with positioning/published_at/article from the launch copy (renders on main /artifacts/ + Arena card)",
+    "Leaderboard mirror regenerated (2026-05-28 → 2026-06-11): live rows 2→21, kepler::Q8_0 ranks",
+    "CDP-verified: frontier chart 7 models · 30 builds w/ advisor sweet-spot point; models page shows all 3 new cards; demo rebaked + deployed",
+    "Gotcha: sidecar serves _webui w/o Cache-Control — Chromium can render a stale pre-bake page; verify with cache disabled"
   ],
-  "session": "S-cortex-chat-wiring",
+  "session": "S-arena-catalog-drift",
   "metrics": {
     "articles": 54,
     "models": 7,

@@ -9,3 +9,132 @@ license:
   model: cc-by-4.0
 article: articles/patent-strategist-v1-baseline-on-spark/
 published_at: "2026-05-19T21:52:34Z"
+
+# Bench-specific fields below — schema-driven, all optional.
+# Drive BenchSignature, BenchBracketTable, BenchSampleRow, BenchSources.
+
+shapes:
+  - code: A
+    label: Claim drafting + validity
+    count: 50
+    scorer: judge
+    source: bigpatent
+  - code: B
+    label: Prior-art ranking
+    count: 40
+    scorer: deterministic
+    source: patentmatch
+  - code: C
+    label: C-family landscape
+    count: 20
+    scorer: judge
+    source: bigpatent
+  - code: D-irac
+    label: MPEP-grounded IRAC structure
+    count: 10
+    scorer: structural
+    source: mpep
+  - code: D-mcq
+    label: MPEP-grounded multiple choice
+    count: 40
+    scorer: deterministic
+    source: mpep
+  - code: D-oa
+    label: Office-action argument
+    count: 10
+    scorer: judge
+    source: mpep
+  - code: E
+    label: Patent strategy free-text
+    count: 30
+    scorer: judge
+    source: bigpatent
+
+modes:
+  - closed
+  - retrieval
+  - oracle
+
+results:
+  D-mcq:
+    closed: 0.625
+    retrieval: 0.850
+    oracle: 0.950
+  D-irac:
+    closed: 1.000
+    retrieval: 1.000
+    oracle: 1.000
+  B:
+    closed: 0.018
+    retrieval: 0.000
+    oracle: 0.017
+  overall:
+    closed: 0.397
+    retrieval: 0.489
+    oracle: 0.541
+
+results_provenance:
+  model: "DeepSeek-R1-0528-Qwen3-8B Q5_K_M (llama.cpp, temp 0.6)"
+  article_anchor: "#what-the-numbers-say"
+
+sources:
+  - key: mpep
+    name: USPTO MPEP
+    url: https://www.uspto.gov/web/offices/pac/mpep/
+    blurb: "2,047 MPEP subsections — 4,437 RAG chunks — seeds the D-* shape rows. Public-domain U.S. government work."
+  - key: patentmatch
+    name: HPI-Naumann PatentMatch
+    url: https://huggingface.co/datasets/pakuvis/PatentMatch
+    blurb: "25,340 EPO claim ↔ prior-art pairs — seeds the B shape rows. CC-BY-4.0."
+  - key: bigpatent
+    name: BIGPATENT
+    url: https://huggingface.co/datasets/big_patent
+    blurb: "1.3M U.S. patent abstracts — seeds the A, C, and E shape rows. CC-BY-4.0."
+
+samples:
+  - shape: A
+    question: "Given this multilayer printed-board IPC-H abstract (stacked capacitive coupling layers — dielectric between power and ground planes), identify a single 'white-space' angle adjacent to the granted claim that would survive prior-art and § 103 scrutiny."
+    oracle_context: "BIGPATENT abstract (IPC class H): A multilayer printed board comprising a plurality of capacitive coupling layers each consisting of a dielectric layer and a power supply layer…"
+    gold_label: "A strong white-space angle is a dynamically tunable version of the capacitive coupling layer in which the dielectric is a variable-permittivity material (e.g., barium strontium titanate) whose capacitance can be modulated in-situ by a control voltage — preserving the stacked-layer geometry while adding active tuning."
+  - shape: B
+    question: "You're preparing an invalidity search for EP2640036A1 claim 70699_1. Draft exactly five prior-art retrieval queries for the claim below, each targeting a distinct patentably-material element."
+    oracle_context: "EPO claim 70699_1 (application EP2640036A1): The method of claim 6 further comprising receiving a list of functions of each of the plurality of devices…"
+    gold_label: '["device cooperation service information registration combined device function operation definition file", "predetermined device function list retrieval multi-device operation composition detection", …]'
+  - shape: C
+    question: "Based on the IPC-H multilayer printed-board technology disclosed (stacked capacitive coupling layers with dielectric between power and ground planes), map the surrounding IPC-class landscape relevant for FTO and cross-licensing."
+    oracle_context: "BIGPATENT abstract (IPC class H): A multilayer printed board comprising a plurality of capacitive coupling layers…"
+    gold_label: "The embedded-capacitance multilayer PCB landscape in IPC H05K clusters around three sub-segments: (1) discrete embedded capacitor insertion (Sanmina, TTM, Viasystems legacy), (2) planar/distributed embedded capacitance (3M C-Ply, Oak-Mitsui FaradFlex), and (3) active-tunable embedded reactive structures…"
+  - shape: D-irac
+    question: "FACT PATTERN: Applicant claims a method of converting all sulfur compounds in industrial effluent to H₂S as an intermediate step before removal. Examiner issues a final § 103 rejection. Applicant offers a pre-filing declaration by Dr. Reyes (independent expert) expressing strong skepticism that the conversion approach would solve effluent remediation. Apply IRAC to evaluate whether this declaration constitutes sufficient evidence of nonobviousness under MPEP 716.05."
+    oracle_context: "MPEP 716.05 Skepticism of Experts: 'Expressions of disbelief by experts constitute strong evidence of nonobviousness…'"
+    gold_label: "Issue / Rule / Application / Conclusion structure required. Issue: whether Dr. Reyes's pre-filing declaration constitutes sufficient evidence of nonobviousness. Rule: MPEP 716.05 — expert disbelief is strong evidence. Application: Reyes is independent and expressed strong, pre-filing skepticism about the very mechanism. Conclusion: declaration suffices to rebut prima facie obviousness."
+  - shape: D-mcq
+    question: "Under MPEP 716.05, evidence of expert skepticism is primarily relevant to rebutting a prima facie case under which statutory basis for rejection? (A) § 101 — patent-eligible subject matter. (B) § 102 — novelty. (C) § 103 — nonobviousness, because expressions of disbelief by experts constitute strong evidence of nonobviousness. (D) § 112 — enablement."
+    oracle_context: "MPEP 716.05 Skepticism of Experts: 'Expressions of disbelief by experts constitute strong evidence of nonobviousness…'"
+    gold_label: "C"
+  - shape: D-oa
+    question: "Draft an office-action response for U.S. Application 18/241,774 (biodegradable hydrogel via cross-linking). Claim 1: cross-linked biodegradable hydrogel using a type-II photoinitiator. Examiner rejects under § 103 over Chen (type-I photoinitiator) + Patel (related cross-linker). Argue why the substitution lacks a reasonable expectation of success."
+    oracle_context: "MPEP 716.05 Skepticism of Experts (cited in support of unexpected results / lack of reasonable expectation)…"
+    gold_label: "Applicant respectfully traverses the § 103 rejection over Chen/Patel because the examiner has not established a reasonable expectation of success in substituting a type II photoinitiator for Chen's type I photoinitiator — the photochemical mechanism is materially different (energy transfer vs. fragmentation), and Patel does not teach or suggest type-II behavior in this matrix…"
+  - shape: E
+    question: "Translate this patent abstract language into plain English for a PCB layout engineer: 'a plurality of capacitive coupling layers each consisting of a dielectric layer and a power supply layer and a ground layer arranged in stacked relation.'"
+    oracle_context: "BIGPATENT abstract (IPC class H): A multilayer printed board comprising a plurality of capacitive coupling layers…"
+    gold_label: "Each 'capacitive coupling layer' is a three-layer sandwich embedded inside the PCB stackup: a power plane and a ground plane face each other across a thin insulating (dielectric) layer. Because the two planes are conductors separated by an insulator at very close distance, the sandwich behaves like a built-in capacitor distributed across the board…"
+
+how_to_load: |
+  from datasets import load_dataset
+  ds = load_dataset("Orionfold/patent-strategist-bench-v0.1", split="train")
+  print(ds)  # 200 rows × 13 columns
+
+  # Filter to MPEP-grounded MCQs only:
+  mcq = ds.filter(lambda r: r["shape"] == "D-mcq")
+
+citation: |
+  @dataset{patent_strategist_bench_2026,
+    title  = {Patent-Strategist Bench v0.1: a 200-question seven-shape benchmark for patent-prosecution reasoning},
+    author = {Sehgal, Manav and Orionfold},
+    year   = {2026},
+    month  = {5},
+    url    = {https://huggingface.co/datasets/Orionfold/patent-strategist-bench-v0.1},
+    note   = {Companion to "Patent-Strategist v1 baseline on Spark", ainative.business/field-notes/patent-strategist-v1-baseline-on-spark/}
+  }

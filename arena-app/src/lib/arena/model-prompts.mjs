@@ -20,6 +20,10 @@ const PROMPTS_BY_SLUG = {
     'Triage this alert: outbound DNS to a newly-registered domain every 60s from a finance workstation. Likely technique + first 3 response steps.',
   'ii-medical-8b-gguf':
     'A 58-year-old presents with crushing substernal chest pain radiating to the left arm. Give the differential and the immediate work-up.',
+  'advisor-gguf':
+    'From the retrieved sources only: what does the corpus say about running one serving lane at a time in 128 GB? Cite exact source_ids — refuse with empty citations if the packet doesn\'t cover it.',
+  'kepler-gguf':
+    'A planet orbits a 1.2-solar-mass star at 2.5 AU. Work out its orbital period in years and give the final answer in a \\boxed{}.',
 };
 
 const PROMPTS_BY_KEYWORD = [
@@ -28,6 +32,8 @@ const PROMPTS_BY_KEYWORD = [
   [/legal|law|saul/i, 'Apply IRAC to the enforceability of a buried arbitration clause.'],
   [/security|cyber|threat/i, 'Triage a suspicious outbound-DNS beacon and give the first response steps.'],
   [/medical|clinical|health/i, 'Give the differential and immediate work-up for acute substernal chest pain.'],
+  [/advisor|cortex|corpus/i, 'Answer from the retrieved sources with exact source_id citations — or refuse with empty citations if they don\'t cover it.'],
+  [/kepler|astro|orbital/i, 'Work out the orbital period of a planet at 2.5 AU around a 1.2-solar-mass star and box the answer.'],
 ];
 
 /** Best example prompt for an artifact (accepts a slug string or `data`). */
@@ -72,5 +78,7 @@ export function verticalOf(data = {}) {
   if (/saul|legal|law/.test(hay)) return 'legal';
   if (/security|cyber/.test(hay)) return 'cyber';
   if (/medical|clinical|ii-medical/.test(hay)) return 'medical';
+  if (/advisor|cortex/.test(hay)) return 'advisor';
+  if (/kepler|astro/.test(hay)) return 'astro';
   return 'general';
 }

@@ -1,7 +1,7 @@
 # Orionfold Arena — the project's first App Artifact (P7 distribution).
 # The operator cockpit ships INSIDE the fieldkit wheel (`pip install
 # fieldkit[arena]` → `fieldkit arena up`) and as a public web preview at
-# ainative.business/arena/. hf_repo names the planned Orionfold HF Space (the
+# ainative.business/arena/ (landing) with the live demo at /arena/demo/. hf_repo names the planned Orionfold HF Space (the
 # secondary discovery surface); the Spark detail page renders the live-preview
 # CTA for `arena_run` kind, so it never hard-links a not-yet-uploaded Space.
 slug: orionfold-arena

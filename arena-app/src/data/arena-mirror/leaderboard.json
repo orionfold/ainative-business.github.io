@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-28T21:28:08Z",
+  "generated_at": "2026-06-11T09:40:57Z",
   "source": "fieldkit arena mirror (M6 exporter)",
   "schema_version": 2,
   "rows": [
@@ -12,7 +12,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
@@ -23,7 +25,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
@@ -34,7 +38,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -45,7 +51,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -56,7 +64,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -67,7 +77,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -78,7 +90,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -89,7 +103,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -100,7 +116,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -111,7 +129,9 @@
       "median_tok_per_s": 23.9,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -122,7 +142,9 @@
       "median_tok_per_s": 83.5,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -133,7 +155,9 @@
       "median_tok_per_s": 55.0,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     }
   ],
   "bench_rows": [
@@ -146,7 +170,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
@@ -157,7 +183,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
@@ -168,7 +196,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -179,7 +209,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -190,7 +222,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -201,7 +235,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -212,7 +248,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -223,7 +261,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
@@ -234,7 +274,9 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -245,7 +287,9 @@
       "median_tok_per_s": 23.9,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -256,7 +300,9 @@
       "median_tok_per_s": 83.5,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "picking-the-hermes-brain-on-spark:hermes_brain",
@@ -267,7 +313,9 @@
       "median_tok_per_s": 55.0,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     }
   ],
   "live_rows": [
@@ -275,12 +323,14 @@
       "bench_id": "cockpit:patent_claim_validity",
       "lane_id": "resident-brain",
       "manifest_slug": null,
-      "n_runs": 2,
-      "mean_score": 0.5,
-      "median_tok_per_s": 88.0817443115537,
-      "mean_ttft_ms": 100.1290544954827,
+      "n_runs": 7,
+      "mean_score": 0.42857142857142855,
+      "median_tok_per_s": 89.28985315795019,
+      "mean_ttft_ms": 139.9198278554,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
     },
     {
       "bench_id": "cockpit:patent_claim_validity",
@@ -291,7 +341,256 @@
       "median_tok_per_s": 27.25157694383146,
       "mean_ttft_ms": 3179.4645479967585,
       "human_pref_winrate": null,
-      "last_run_at": "2026-05-28T21:28:08Z"
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "resident-brain",
+      "manifest_slug": null,
+      "n_runs": 7,
+      "mean_score": 0.8571428571428571,
+      "median_tok_per_s": 97.93606584213693,
+      "mean_ttft_ms": 134.13492585719465,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "openrouter-frontier",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": 0.0,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "openrouter::openai/gpt-4o-mini",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.0,
+      "median_tok_per_s": 200.53278295930005,
+      "mean_ttft_ms": 792.386171000544,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "openrouter::stepfun/step-3.7-flash",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.0,
+      "median_tok_per_s": 239.6065513244001,
+      "mean_ttft_ms": 6529.952059001516,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "securityllm-gguf::Q4_K_M",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": 48.870108370790724,
+      "mean_ttft_ms": 82.45349699973303,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "saul-7b-instruct-v1-gguf::Q4_K_M",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.0,
+      "median_tok_per_s": 46.508011264254634,
+      "mean_ttft_ms": 62.01130999943416,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "ii-medical-8b-gguf::Q4_K_M",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": 44.48090991801903,
+      "mean_ttft_ms": 66.64160400032415,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "finance-chat-gguf::Q5_K_M",
+      "manifest_slug": null,
+      "n_runs": 4,
+      "mean_score": 1.0,
+      "median_tok_per_s": 16.13824257925149,
+      "mean_ttft_ms": 1039.9778772499815,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "manifest_slug": null,
+      "n_runs": 7,
+      "mean_score": 1.0,
+      "median_tok_per_s": 8.115526137669663,
+      "mean_ttft_ms": 21464.442854999903,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 0.01485,
+      "cost_per_quality_point": 0.01485
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "manifest_slug": null,
+      "n_runs": 4,
+      "mean_score": 1.0,
+      "median_tok_per_s": 41.05069725705218,
+      "mean_ttft_ms": 151.59523200037484,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "manifest_slug": null,
+      "n_runs": 3,
+      "mean_score": 1.0,
+      "median_tok_per_s": 98.96605881928028,
+      "mean_ttft_ms": 3588.0779526667843,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "openrouter::anthropic/claude-opus-4.8-fast",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": 158.00572166836102,
+      "mean_ttft_ms": 1262.360897999315,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:patent_claim_validity",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "manifest_slug": null,
+      "n_runs": 2,
+      "mean_score": 0.5,
+      "median_tok_per_s": 26436.968959107056,
+      "mean_ttft_ms": 84262.89077399997,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "finance-chat-gguf::F16",
+      "manifest_slug": null,
+      "n_runs": 2,
+      "mean_score": 1.0,
+      "median_tok_per_s": 18.883891822403513,
+      "mean_ttft_ms": 171.93077800038736,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "kepler::Q8_0",
+      "manifest_slug": null,
+      "n_runs": 4,
+      "mean_score": 1.0,
+      "median_tok_per_s": 8.607221935498591,
+      "mean_ttft_ms": 240.99488425417803,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 0.0,
+      "cost_per_quality_point": 0.0
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "openrouter::deepseek/deepseek-r1-0528",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.0,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 1.8e-05,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "manifest_slug": null,
+      "n_runs": 4,
+      "mean_score": 1.0,
+      "median_tok_per_s": 24.59746123965426,
+      "mean_ttft_ms": 157502.7129742266,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 0.0001105,
+      "cost_per_quality_point": 0.0001105
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "discovered:8091",
+      "manifest_slug": null,
+      "n_runs": 4,
+      "mean_score": 1.0,
+      "median_tok_per_s": 28.813444494397295,
+      "mean_ttft_ms": 450.0865799944336,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 0.0,
+      "cost_per_quality_point": 0.0
+    },
+    {
+      "bench_id": "cockpit:generic-correctness",
+      "lane_id": "openrouter::anthropic/claude-haiku-4.5",
+      "manifest_slug": null,
+      "n_runs": 2,
+      "mean_score": 1.0,
+      "median_tok_per_s": 111.3979526733745,
+      "mean_ttft_ms": 1111.9890724996822,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T09:40:57Z",
+      "mean_cost_usd": 0.001281,
+      "cost_per_quality_point": 0.001281
     }
   ],
   "compare_runs": [
@@ -328,6 +627,303 @@
       "lane_a_id": "resident-brain",
       "lane_b_id": "openrouter-frontier",
       "created_at": "2026-05-28T20:13:27Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-5ca95fa16ae6",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter-frontier",
+      "created_at": "2026-05-29T04:04:50Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-0a3d26ecdebc",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-4o-mini",
+      "created_at": "2026-05-29T04:22:19Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-c149fe69bccf",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::stepfun/step-3.7-flash",
+      "created_at": "2026-05-29T04:23:55Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-73258e9b5fff",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "securityllm-gguf::Q4_K_M",
+      "created_at": "2026-05-29T04:40:55Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-d6196c68681e",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "saul-7b-instruct-v1-gguf::Q4_K_M",
+      "created_at": "2026-05-29T04:42:16Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-a54ddf98e98c",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "finance-chat-gguf::Q4_K_M",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-05-29T05:25:00Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-f3095a4e4faa",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "ii-medical-8b-gguf::Q4_K_M",
+      "created_at": "2026-05-29T08:37:59Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-c3d4cd3a4090",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "finance-chat-gguf::Q5_K_M",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T09:53:00Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-61ad54acc2c9",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "finance-chat-gguf::Q5_K_M",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T09:54:39Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-136d750ca2b7",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "finance-chat-gguf::Q5_K_M",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T09:57:11Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-924af5a52852",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "finance-chat-gguf::Q5_K_M",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T09:58:18Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-b234669fbef5",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "lane_b_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "created_at": "2026-05-30T10:06:37Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-eee698df889f",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "lane_b_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "created_at": "2026-05-30T10:29:56Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-a40e3578ca60",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "lane_b_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "created_at": "2026-05-30T10:45:23Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-17a9ab54d357",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "lane_b_id": "openrouter::anthropic/claude-opus-4.8-fast",
+      "created_at": "2026-05-30T15:04:13Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-53544da26c57",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T18:24:51Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-105f08d7ad64",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T18:47:41Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-7b02d78c3b74",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T18:47:52Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-dba59f622a62",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T20:28:40Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-79aebaad3949",
+      "rubric_id": "patent_claim_validity",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-05-30T20:31:10Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-e39e389cac18",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "finance-chat-gguf::F16",
+      "created_at": "2026-05-30T20:34:07Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-98e8672ef808",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "resident-brain",
+      "lane_b_id": "finance-chat-gguf::F16",
+      "created_at": "2026-05-30T20:35:06Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-1f6a63540921",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::deepseek/deepseek-r1-0528",
+      "created_at": "2026-06-05T16:46:43Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-ba1460630340",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::deepseek/deepseek-r1-0528",
+      "created_at": "2026-06-05T16:48:05Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-58cf4745ca77",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "resident-brain",
+      "created_at": "2026-06-05T16:52:59Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-c9c295d910c8",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-06-05T16:56:57Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-b5101789e934",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-06-05T16:58:27Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-fb11c745eba4",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-06-05T17:01:34Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-d0c516f4d8b0",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "kepler::Q8_0",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-06-05T17:12:03Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-a5d1d2f05d64",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "discovered:8091",
+      "lane_b_id": "openrouter::anthropic/claude-haiku-4.5",
+      "created_at": "2026-06-06T17:08:30Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-bdb443fd3576",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "discovered:8091",
+      "lane_b_id": "openrouter::anthropic/claude-haiku-4.5",
+      "created_at": "2026-06-07T01:46:16Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-be91109ebdf0",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "discovered:8091",
+      "lane_b_id": "openrouter::openai/gpt-5.5-pro",
+      "created_at": "2026-06-10T16:55:44Z",
+      "publishable": 1,
+      "redacted_prompt": null
+    },
+    {
+      "id": "cr-058264d5dce1",
+      "rubric_id": "generic-correctness",
+      "lane_a_id": "discovered:8091",
+      "lane_b_id": "openrouter::qwen/qwen3-8b",
+      "created_at": "2026-06-10T16:57:50Z",
       "publishable": 1,
       "redacted_prompt": null
     }
@@ -377,6 +973,546 @@
       "ttft_ms": 3023.3812869992107,
       "tok_per_s": 24.213970542256597,
       "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-5ca95fa16ae6",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 2340,
+      "ttft_ms": 140.40665799984708,
+      "tok_per_s": 53.54106050479611,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-5ca95fa16ae6",
+      "side": "B",
+      "lane_id": "openrouter-frontier",
+      "tokens_out": 57,
+      "ttft_ms": 0.0,
+      "tok_per_s": null,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-0a3d26ecdebc",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 302,
+      "ttft_ms": 186.12957900040783,
+      "tok_per_s": 79.8171716956791,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-0a3d26ecdebc",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-4o-mini",
+      "tokens_out": 43,
+      "ttft_ms": 792.386171000544,
+      "tok_per_s": 200.53278295930005,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-c149fe69bccf",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 709,
+      "ttft_ms": 136.50841399976343,
+      "tok_per_s": 91.16751849046824,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-c149fe69bccf",
+      "side": "B",
+      "lane_id": "openrouter::stepfun/step-3.7-flash",
+      "tokens_out": 112,
+      "ttft_ms": 6529.952059001516,
+      "tok_per_s": 239.6065513244001,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-73258e9b5fff",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 78,
+      "ttft_ms": 145.984168000723,
+      "tok_per_s": 97.93606584213693,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-73258e9b5fff",
+      "side": "B",
+      "lane_id": "securityllm-gguf::Q4_K_M",
+      "tokens_out": 78,
+      "ttft_ms": 82.45349699973303,
+      "tok_per_s": 48.870108370790724,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-d6196c68681e",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 1452,
+      "ttft_ms": 119.78182900020329,
+      "tok_per_s": 89.24382224534686,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-d6196c68681e",
+      "side": "B",
+      "lane_id": "saul-7b-instruct-v1-gguf::Q4_K_M",
+      "tokens_out": 26,
+      "ttft_ms": 62.01130999943416,
+      "tok_per_s": 46.508011264254634,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-a54ddf98e98c",
+      "side": "A",
+      "lane_id": "finance-chat-gguf::Q4_K_M",
+      "tokens_out": 416,
+      "ttft_ms": 106.93662500125356,
+      "tok_per_s": 37.740544101483216,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-f3095a4e4faa",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 1128,
+      "ttft_ms": 113.8809840012982,
+      "tok_per_s": 89.99427050758938,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-f3095a4e4faa",
+      "side": "B",
+      "lane_id": "ii-medical-8b-gguf::Q4_K_M",
+      "tokens_out": 1297,
+      "ttft_ms": 66.64160400032415,
+      "tok_per_s": 44.48090991801903,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-c3d4cd3a4090",
+      "side": "A",
+      "lane_id": "finance-chat-gguf::Q5_K_M",
+      "tokens_out": 5,
+      "ttft_ms": 529.688004000036,
+      "tok_per_s": 12.128163043417642,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-c3d4cd3a4090",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 1,
+      "ttft_ms": 5647.146067999984,
+      "tok_per_s": 8.115526137669663,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-61ad54acc2c9",
+      "side": "A",
+      "lane_id": "finance-chat-gguf::Q5_K_M",
+      "tokens_out": 15,
+      "ttft_ms": 246.15613100002065,
+      "tok_per_s": 28.138048914666253,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-61ad54acc2c9",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 0,
+      "ttft_ms": 41122.999972000005,
+      "tok_per_s": 0.0,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-136d750ca2b7",
+      "side": "A",
+      "lane_id": "finance-chat-gguf::Q5_K_M",
+      "tokens_out": 19,
+      "ttft_ms": 1437.3858980000023,
+      "tok_per_s": 16.322679834346292,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-136d750ca2b7",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 1,
+      "ttft_ms": 9276.443577999999,
+      "tok_per_s": 7.608468398801431,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-924af5a52852",
+      "side": "A",
+      "lane_id": "finance-chat-gguf::Q5_K_M",
+      "tokens_out": 18,
+      "ttft_ms": 1946.681475999867,
+      "tok_per_s": 15.953805324156686,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-924af5a52852",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 1,
+      "ttft_ms": 46196.07150199999,
+      "tok_per_s": 6.906764017784863,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-b234669fbef5",
+      "side": "A",
+      "lane_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "tokens_out": 1078,
+      "ttft_ms": 156.58894100010912,
+      "tok_per_s": 40.78129664751549,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-b234669fbef5",
+      "side": "B",
+      "lane_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "tokens_out": 720,
+      "ttft_ms": 4083.8619159999325,
+      "tok_per_s": 158.37240802965923,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-eee698df889f",
+      "side": "A",
+      "lane_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "tokens_out": 667,
+      "ttft_ms": 150.88473900004828,
+      "tok_per_s": 41.32009786658887,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-eee698df889f",
+      "side": "B",
+      "lane_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "tokens_out": 133,
+      "ttft_ms": 2807.5485260001187,
+      "tok_per_s": 67.94555437514312,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-a40e3578ca60",
+      "side": "A",
+      "lane_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "tokens_out": 652,
+      "ttft_ms": 147.1152220001386,
+      "tok_per_s": 37.76762567625934,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-a40e3578ca60",
+      "side": "B",
+      "lane_id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "tokens_out": 109,
+      "ttft_ms": 3872.823416000301,
+      "tok_per_s": 98.96605881928028,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-17a9ab54d357",
+      "side": "A",
+      "lane_id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "tokens_out": 1796,
+      "ttft_ms": 151.79202600120334,
+      "tok_per_s": 41.992116927207945,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-17a9ab54d357",
+      "side": "B",
+      "lane_id": "openrouter::anthropic/claude-opus-4.8-fast",
+      "tokens_out": 953,
+      "ttft_ms": 1262.360897999315,
+      "tok_per_s": 158.00572166836102,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-105f08d7ad64",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 441,
+      "ttft_ms": 132.47405899892328,
+      "tok_per_s": 98.9065354555164,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-105f08d7ad64",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 38,
+      "ttft_ms": 5075.847507992876,
+      "tok_per_s": 353.1084208595172,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-7b02d78c3b74",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 434,
+      "ttft_ms": 119.71846599772107,
+      "tok_per_s": 96.57293720542522,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-7b02d78c3b74",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 28,
+      "ttft_ms": 8416.581882003811,
+      "tok_per_s": 236.15193460197634,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-dba59f622a62",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 2979,
+      "ttft_ms": 151.8116570005077,
+      "tok_per_s": 100.73072300531618,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-dba59f622a62",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 0,
+      "ttft_ms": null,
+      "tok_per_s": null,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-79aebaad3949",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 1241,
+      "ttft_ms": 184.9492069959524,
+      "tok_per_s": 110.38257017710113,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-79aebaad3949",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 381,
+      "ttft_ms": 84262.89077399997,
+      "tok_per_s": 26436.968959107056,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-e39e389cac18",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 474,
+      "ttft_ms": 158.99193999939598,
+      "tok_per_s": 109.45342725563108,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-e39e389cac18",
+      "side": "B",
+      "lane_id": "finance-chat-gguf::F16",
+      "tokens_out": 72,
+      "ttft_ms": 218.43156999966595,
+      "tok_per_s": 16.795478535696976,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-98e8672ef808",
+      "side": "A",
+      "lane_id": "resident-brain",
+      "tokens_out": 543,
+      "ttft_ms": 127.48820600245381,
+      "tok_per_s": 122.34167726435706,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-98e8672ef808",
+      "side": "B",
+      "lane_id": "finance-chat-gguf::F16",
+      "tokens_out": 131,
+      "ttft_ms": 125.42998600110877,
+      "tok_per_s": 20.97230510911005,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-1f6a63540921",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 78,
+      "ttft_ms": 253.37433198001236,
+      "tok_per_s": 8.660569785293548,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-ba1460630340",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 83,
+      "ttft_ms": 249.88420901354402,
+      "tok_per_s": 8.499693086447468,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-ba1460630340",
+      "side": "B",
+      "lane_id": "openrouter::deepseek/deepseek-r1-0528",
+      "tokens_out": 0,
+      "ttft_ms": null,
+      "tok_per_s": null,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-58cf4745ca77",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 83,
+      "ttft_ms": 245.46761601231992,
+      "tok_per_s": 8.391413568844849,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-c9c295d910c8",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 181,
+      "ttft_ms": 225.20805802196264,
+      "tok_per_s": 8.083301557978636,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-b5101789e934",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 54,
+      "ttft_ms": 260.5368240037933,
+      "tok_per_s": 22.398502223069965,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-b5101789e934",
+      "side": "B",
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "tokens_out": 309,
+      "ttft_ms": 77199.89335798891,
+      "tok_per_s": 37.12980395860598,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-fb11c745eba4",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 78,
+      "ttft_ms": 233.96520799724385,
+      "tok_per_s": 8.657265605356956,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-fb11c745eba4",
+      "side": "B",
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "tokens_out": 378,
+      "ttft_ms": 232143.20994296577,
+      "tok_per_s": 25.201153377754665,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-d0c516f4d8b0",
+      "side": "A",
+      "lane_id": "kepler::Q8_0",
+      "tokens_out": 83,
+      "ttft_ms": 219.59329600213096,
+      "tok_per_s": 8.557178265640227,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-d0c516f4d8b0",
+      "side": "B",
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "tokens_out": 387,
+      "ttft_ms": 319134.4659999595,
+      "tok_per_s": 23.993769101553855,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-a5d1d2f05d64",
+      "side": "A",
+      "lane_id": "discovered:8091",
+      "tokens_out": 78,
+      "ttft_ms": 220.0888740001119,
+      "tok_per_s": 9.704158118675558,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-a5d1d2f05d64",
+      "side": "B",
+      "lane_id": "openrouter::anthropic/claude-haiku-4.5",
+      "tokens_out": 362,
+      "ttft_ms": 909.255432000009,
+      "tok_per_s": 124.9796946836526,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-bdb443fd3576",
+      "side": "A",
+      "lane_id": "discovered:8091",
+      "tokens_out": 208,
+      "ttft_ms": 200.7136680003896,
+      "tok_per_s": 15.574677208253394,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-bdb443fd3576",
+      "side": "B",
+      "lane_id": "openrouter::anthropic/claude-haiku-4.5",
+      "tokens_out": 139,
+      "ttft_ms": 1314.7227129993553,
+      "tok_per_s": 97.81621066309643,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-be91109ebdf0",
+      "side": "A",
+      "lane_id": "discovered:8091",
+      "tokens_out": 396,
+      "ttft_ms": 691.7958719859598,
+      "tok_per_s": 43.516910857330245,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-be91109ebdf0",
+      "side": "B",
+      "lane_id": "openrouter::openai/gpt-5.5-pro",
+      "tokens_out": 78,
+      "ttft_ms": 34516.00947500265,
+      "tok_per_s": 625.7478940677448,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-058264d5dce1",
+      "side": "A",
+      "lane_id": "discovered:8091",
+      "tokens_out": 525,
+      "ttft_ms": 687.747905991273,
+      "tok_per_s": 42.0522117805412,
+      "unified_peak_gb": null
+    },
+    {
+      "compare_run_id": "cr-058264d5dce1",
+      "side": "B",
+      "lane_id": "openrouter::qwen/qwen3-8b",
+      "tokens_out": 18,
+      "ttft_ms": 1533.2825959922047,
+      "tok_per_s": 0.2042686254239072,
+      "unified_peak_gb": null
     }
   ],
   "rubric_scores": [
@@ -415,6 +1551,510 @@
       "total": 1.0,
       "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
       "scored_at": "2026-05-28T20:13:46Z"
+    },
+    {
+      "id": 5,
+      "compare_run_id": "cr-5ca95fa16ae6",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-29T04:05:34Z"
+    },
+    {
+      "id": 6,
+      "compare_run_id": "cr-5ca95fa16ae6",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-29T04:05:34Z"
+    },
+    {
+      "id": 7,
+      "compare_run_id": "cr-0a3d26ecdebc",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:22:24Z"
+    },
+    {
+      "id": 8,
+      "compare_run_id": "cr-0a3d26ecdebc",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:22:24Z"
+    },
+    {
+      "id": 9,
+      "compare_run_id": "cr-c149fe69bccf",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:24:10Z"
+    },
+    {
+      "id": 10,
+      "compare_run_id": "cr-c149fe69bccf",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:24:10Z"
+    },
+    {
+      "id": 11,
+      "compare_run_id": "cr-73258e9b5fff",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": false, \"why\": \"regex unmatched ['[A-Za-z0-9]']\"}]",
+      "scored_at": "2026-05-29T04:41:01Z"
+    },
+    {
+      "id": 12,
+      "compare_run_id": "cr-73258e9b5fff",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-29T04:41:01Z"
+    },
+    {
+      "id": 13,
+      "compare_run_id": "cr-d6196c68681e",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:42:37Z"
+    },
+    {
+      "id": 14,
+      "compare_run_id": "cr-d6196c68681e",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-29T04:42:37Z"
+    },
+    {
+      "id": 15,
+      "compare_run_id": "cr-f3095a4e4faa",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-29T08:38:44Z"
+    },
+    {
+      "id": 16,
+      "compare_run_id": "cr-f3095a4e4faa",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-29T08:38:44Z"
+    },
+    {
+      "id": 17,
+      "compare_run_id": "cr-c3d4cd3a4090",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:53:07Z"
+    },
+    {
+      "id": 18,
+      "compare_run_id": "cr-c3d4cd3a4090",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:53:07Z"
+    },
+    {
+      "id": 19,
+      "compare_run_id": "cr-61ad54acc2c9",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:55:21Z"
+    },
+    {
+      "id": 20,
+      "compare_run_id": "cr-61ad54acc2c9",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:55:21Z"
+    },
+    {
+      "id": 21,
+      "compare_run_id": "cr-136d750ca2b7",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:57:23Z"
+    },
+    {
+      "id": 22,
+      "compare_run_id": "cr-136d750ca2b7",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:57:23Z"
+    },
+    {
+      "id": 23,
+      "compare_run_id": "cr-924af5a52852",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:59:08Z"
+    },
+    {
+      "id": 24,
+      "compare_run_id": "cr-924af5a52852",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T09:59:08Z"
+    },
+    {
+      "id": 25,
+      "compare_run_id": "cr-b234669fbef5",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched '35 U.S.C.'\"}]",
+      "scored_at": "2026-05-30T10:07:17Z"
+    },
+    {
+      "id": 26,
+      "compare_run_id": "cr-b234669fbef5",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
+      "scored_at": "2026-05-30T10:07:17Z"
+    },
+    {
+      "id": 27,
+      "compare_run_id": "cr-eee698df889f",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched '35 U.S.C.'\"}]",
+      "scored_at": "2026-05-30T10:30:19Z"
+    },
+    {
+      "id": 28,
+      "compare_run_id": "cr-eee698df889f",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched '35 U.S.C.'\"}]",
+      "scored_at": "2026-05-30T10:30:19Z"
+    },
+    {
+      "id": 29,
+      "compare_run_id": "cr-a40e3578ca60",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched '35 U.S.C.'\"}]",
+      "scored_at": "2026-05-30T10:45:47Z"
+    },
+    {
+      "id": 30,
+      "compare_run_id": "cr-a40e3578ca60",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched '35 U.S.C.'\"}]",
+      "scored_at": "2026-05-30T10:45:47Z"
+    },
+    {
+      "id": 31,
+      "compare_run_id": "cr-17a9ab54d357",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
+      "scored_at": "2026-05-30T15:05:05Z"
+    },
+    {
+      "id": 32,
+      "compare_run_id": "cr-17a9ab54d357",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'anticipation'\"}]",
+      "scored_at": "2026-05-30T15:05:05Z"
+    },
+    {
+      "id": 33,
+      "compare_run_id": "cr-105f08d7ad64",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T18:47:51Z"
+    },
+    {
+      "id": 34,
+      "compare_run_id": "cr-105f08d7ad64",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T18:47:51Z"
+    },
+    {
+      "id": 35,
+      "compare_run_id": "cr-7b02d78c3b74",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T18:48:05Z"
+    },
+    {
+      "id": 36,
+      "compare_run_id": "cr-7b02d78c3b74",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T18:48:05Z"
+    },
+    {
+      "id": 37,
+      "compare_run_id": "cr-dba59f622a62",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
+      "scored_at": "2026-05-30T20:30:39Z"
+    },
+    {
+      "id": 38,
+      "compare_run_id": "cr-dba59f622a62",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": false, \"why\": \"none of ['anticipation', 'obviousness', 'written description', 'enablement', '\\u00a7 102', '\\u00a7 103', '\\u00a7 112', '35 U.S.C.'] in answer\"}]",
+      "scored_at": "2026-05-30T20:30:39Z"
+    },
+    {
+      "id": 39,
+      "compare_run_id": "cr-79aebaad3949",
+      "side": "A",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
+      "scored_at": "2026-05-30T20:32:45Z"
+    },
+    {
+      "id": 40,
+      "compare_run_id": "cr-79aebaad3949",
+      "side": "B",
+      "rubric_id": "patent_claim_validity",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"substring\", \"ok\": true, \"why\": \"matched 'obviousness'\"}]",
+      "scored_at": "2026-05-30T20:32:45Z"
+    },
+    {
+      "id": 41,
+      "compare_run_id": "cr-e39e389cac18",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T20:34:25Z"
+    },
+    {
+      "id": 42,
+      "compare_run_id": "cr-e39e389cac18",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T20:34:25Z"
+    },
+    {
+      "id": 43,
+      "compare_run_id": "cr-98e8672ef808",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T20:35:17Z"
+    },
+    {
+      "id": 44,
+      "compare_run_id": "cr-98e8672ef808",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-05-30T20:35:17Z"
+    },
+    {
+      "id": 45,
+      "compare_run_id": "cr-ba1460630340",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T16:50:33Z"
+    },
+    {
+      "id": 46,
+      "compare_run_id": "cr-ba1460630340",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 0.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": false, \"why\": \"regex unmatched ['[A-Za-z0-9]']\"}]",
+      "scored_at": "2026-06-05T16:50:33Z"
+    },
+    {
+      "id": 47,
+      "compare_run_id": "cr-b5101789e934",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T16:59:55Z"
+    },
+    {
+      "id": 48,
+      "compare_run_id": "cr-b5101789e934",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T16:59:55Z"
+    },
+    {
+      "id": 49,
+      "compare_run_id": "cr-fb11c745eba4",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T17:05:51Z"
+    },
+    {
+      "id": 50,
+      "compare_run_id": "cr-fb11c745eba4",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T17:05:51Z"
+    },
+    {
+      "id": 51,
+      "compare_run_id": "cr-d0c516f4d8b0",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T17:17:48Z"
+    },
+    {
+      "id": 52,
+      "compare_run_id": "cr-d0c516f4d8b0",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-05T17:17:48Z"
+    },
+    {
+      "id": 53,
+      "compare_run_id": "cr-a5d1d2f05d64",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-06T17:08:43Z"
+    },
+    {
+      "id": 54,
+      "compare_run_id": "cr-a5d1d2f05d64",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-06T17:08:43Z"
+    },
+    {
+      "id": 61,
+      "compare_run_id": "cr-bdb443fd3576",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-07T01:46:32Z"
+    },
+    {
+      "id": 62,
+      "compare_run_id": "cr-bdb443fd3576",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-07T01:46:32Z"
+    },
+    {
+      "id": 63,
+      "compare_run_id": "cr-be91109ebdf0",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-10T16:56:29Z"
+    },
+    {
+      "id": 64,
+      "compare_run_id": "cr-be91109ebdf0",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-10T16:56:29Z"
+    },
+    {
+      "id": 65,
+      "compare_run_id": "cr-058264d5dce1",
+      "side": "A",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-10T16:59:33Z"
+    },
+    {
+      "id": 66,
+      "compare_run_id": "cr-058264d5dce1",
+      "side": "B",
+      "rubric_id": "generic-correctness",
+      "total": 1.0,
+      "checks_json": "[{\"name\": \"check_1\", \"kind\": \"regex\", \"ok\": true, \"why\": \"ok\"}]",
+      "scored_at": "2026-06-10T16:59:33Z"
     }
   ],
   "human_prefs": [
@@ -431,9 +2071,135 @@
       "winner": "B",
       "note": null,
       "created_at": "2026-05-28T20:14:53Z"
+    },
+    {
+      "id": "hp-725453f7d71a",
+      "compare_run_id": "cr-c3d4cd3a4090",
+      "winner": "A",
+      "note": null,
+      "created_at": "2026-05-30T09:54:16Z"
     }
   ],
   "lanes": [
+    {
+      "id": "nim-incumbent::brain-bakeoff",
+      "kind": "NIMLane",
+      "model": "nim-incumbent",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "qwen3-30b-moe-llamacpp-q4km::brain-bakeoff",
+      "kind": "LlamaServerLane",
+      "model": "qwen3-30b-moe-llamacpp-q4km",
+      "manifest_slug": null,
+      "recommended": 1
+    },
+    {
+      "id": "qwen3-30b-moe-vllm-fp8::brain-bakeoff",
+      "kind": "VLLMLane",
+      "model": "qwen3-30b-moe-vllm-fp8",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "local-only::hermes-cost-routing-local-and-openrouter",
+      "kind": "BenchVariant",
+      "model": "local-only",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "cost-routed::hermes-cost-routing-local-and-openrouter",
+      "kind": "BenchVariant",
+      "model": "cost-routed",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "frontier-only::hermes-cost-routing-local-and-openrouter",
+      "kind": "BenchVariant",
+      "model": "frontier-only",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "brain::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "brain",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "cyber::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "cyber",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "finance::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "finance",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "legal::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "legal",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "medical::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "medical",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "patent::hermes-vertical-router-on-spark",
+      "kind": "BenchVariant",
+      "model": "patent",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter-frontier",
+      "kind": "RemoteLane",
+      "model": "anthropic/claude-opus-4.1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::stepfun/step-3.7-flash",
+      "kind": "RemoteLane",
+      "model": "stepfun/step-3.7-flash",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::openai/gpt-4o-mini",
+      "kind": "RemoteLane",
+      "model": "openai/gpt-4o-mini",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "local:ii-medical-8b-gguf::Q8_0",
+      "kind": "LlamaServerLane",
+      "model": "ii-medical-8b-gguf::Q8_0",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "local:patent-strategist-v3-nemo-gguf::Q5_K_M",
+      "kind": "LlamaServerLane",
+      "model": "x",
+      "manifest_slug": null,
+      "recommended": 0
+    },
     {
       "id": "finance-chat-gguf::Q4_K_M",
       "kind": "LlamaServerLane",
@@ -442,30 +2208,9 @@
       "recommended": 0
     },
     {
-      "id": "finance-chat-gguf::Q5_K_M",
-      "kind": "LlamaServerLane",
-      "model": "AdaptLLM/finance-chat@Q5_K_M",
-      "manifest_slug": "finance-chat-gguf",
-      "recommended": 0
-    },
-    {
-      "id": "finance-chat-gguf::Q6_K",
-      "kind": "LlamaServerLane",
-      "model": "AdaptLLM/finance-chat@Q6_K",
-      "manifest_slug": "finance-chat-gguf",
-      "recommended": 0
-    },
-    {
       "id": "finance-chat-gguf::Q8_0",
       "kind": "LlamaServerLane",
       "model": "AdaptLLM/finance-chat@Q8_0",
-      "manifest_slug": "finance-chat-gguf",
-      "recommended": 0
-    },
-    {
-      "id": "finance-chat-gguf::F16",
-      "kind": "LlamaServerLane",
-      "model": "AdaptLLM/finance-chat@F16",
       "manifest_slug": "finance-chat-gguf",
       "recommended": 0
     },
@@ -526,6 +2271,13 @@
       "recommended": 1
     },
     {
+      "id": "orionfold-arena::nav",
+      "kind": "arena_run",
+      "model": "fieldkit[arena] \u00b7 Astro + FastAPI sidecar",
+      "manifest_slug": "orionfold-arena",
+      "recommended": 1
+    },
+    {
       "id": "patent-strategist-bench-v0.1::nav",
       "kind": "BenchSpec",
       "model": "n/a",
@@ -538,13 +2290,6 @@
       "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
       "manifest_slug": "patent-strategist-notebooks",
       "recommended": 1
-    },
-    {
-      "id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
-      "kind": "LlamaServerLane",
-      "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B@Q4_K_M",
-      "manifest_slug": "patent-strategist-v3-nemo-gguf",
-      "recommended": 0
     },
     {
       "id": "patent-strategist-v3-nemo-gguf::Q5_K_M",
@@ -621,7 +2366,7 @@
       "kind": "LlamaServerLane",
       "model": "ZySec-AI/SecurityLLM@Q4_K_M",
       "manifest_slug": "securityllm-gguf",
-      "recommended": 0
+      "recommended": 1
     },
     {
       "id": "securityllm-gguf::Q5_K_M",
@@ -687,30 +2432,86 @@
       "recommended": 1
     },
     {
-      "id": "nim-incumbent::brain-bakeoff",
-      "kind": "NIMLane",
-      "model": "nim-incumbent",
+      "id": "finance-chat-gguf::Q5_K_M",
+      "kind": "LlamaServerLane",
+      "model": "finance-chat-gguf::Q5_K_M",
       "manifest_slug": null,
       "recommended": 0
     },
     {
-      "id": "qwen3-30b-moe-llamacpp-q4km::brain-bakeoff",
+      "id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "kind": "RemoteLane",
+      "model": "nvidia/nemotron-nano-9b-v2",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
       "kind": "LlamaServerLane",
-      "model": "qwen3-30b-moe-llamacpp-q4km",
+      "model": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::anthropic/claude-opus-4.8-fast",
+      "kind": "RemoteLane",
+      "model": "anthropic/claude-opus-4.8-fast",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "finance-chat-gguf::F16",
+      "kind": "LlamaServerLane",
+      "model": "finance-chat-gguf::F16",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "kepler-q8-gguf",
+      "kind": "LlamaServerLane",
+      "model": "kepler-Q8_0",
       "manifest_slug": null,
       "recommended": 1
     },
     {
-      "id": "qwen3-30b-moe-vllm-fp8::brain-bakeoff",
-      "kind": "VLLMLane",
-      "model": "qwen3-30b-moe-vllm-fp8",
+      "id": "qwen3-8b-stock",
+      "kind": "OpenRouterLane",
+      "model": "qwen/qwen3-8b",
       "manifest_slug": null,
       "recommended": 0
     },
     {
-      "id": "openrouter-frontier",
+      "id": "deepseek-r1",
+      "kind": "OpenRouterLane",
+      "model": "deepseek/deepseek-r1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::deepseek/deepseek-r1-0528",
       "kind": "RemoteLane",
-      "model": "anthropic/claude-opus-4.1",
+      "model": "deepseek/deepseek-r1-0528",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "kepler::Q8_0",
+      "kind": "LlamaServerLane",
+      "model": "kepler::Q8_0",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "claude-haiku-45",
+      "kind": "OpenRouterLane",
+      "model": "anthropic/claude-haiku-4.5",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::anthropic/claude-haiku-4.5",
+      "kind": "RemoteLane",
+      "model": "anthropic/claude-haiku-4.5",
       "manifest_slug": null,
       "recommended": 0
     },
@@ -722,67 +2523,131 @@
       "recommended": 0
     },
     {
-      "id": "local-only::hermes-cost-routing-local-and-openrouter",
-      "kind": "BenchVariant",
-      "model": "local-only",
+      "id": "finance-chat-gguf::Q6_K",
+      "kind": "LlamaServerLane",
+      "model": "finance-chat-gguf::Q6_K",
       "manifest_slug": null,
       "recommended": 0
     },
     {
-      "id": "cost-routed::hermes-cost-routing-local-and-openrouter",
-      "kind": "BenchVariant",
-      "model": "cost-routed",
+      "id": "openrouter::openai/gpt-5.5-pro",
+      "kind": "RemoteLane",
+      "model": "openai/gpt-5.5-pro",
       "manifest_slug": null,
       "recommended": 0
     },
     {
-      "id": "frontier-only::hermes-cost-routing-local-and-openrouter",
-      "kind": "BenchVariant",
-      "model": "frontier-only",
+      "id": "openrouter::qwen/qwen3-8b",
+      "kind": "RemoteLane",
+      "model": "qwen/qwen3-8b",
       "manifest_slug": null,
       "recommended": 0
     },
     {
-      "id": "brain::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "brain",
+      "id": "discovered:8091",
+      "kind": "LlamaServerLane",
+      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
       "manifest_slug": null,
       "recommended": 0
+    }
+  ],
+  "openrouter_price_snapshot": [
+    {
+      "snapshot_id": "h6-baseline",
+      "model_id": "deepseek/deepseek-r1",
+      "price_per_m_input_usd": 0.4,
+      "price_per_m_output_usd": 2.0,
+      "source": "operator-manual (e2e-smoke C1 \u2014 AF-29 price-table gap)",
+      "captured_at": "2026-06-06T00:00:00Z"
     },
     {
-      "id": "cyber::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "cyber",
-      "manifest_slug": null,
-      "recommended": 0
+      "snapshot_id": "h6-baseline",
+      "model_id": "anthropic/claude-haiku-4.5",
+      "price_per_m_input_usd": 1.0,
+      "price_per_m_output_usd": 5.0,
+      "source": "operator-manual (e2e-smoke C1 \u2014 AF-29 price-table gap)",
+      "captured_at": "2026-06-06T00:00:00Z"
     },
     {
-      "id": "finance::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "finance",
-      "manifest_slug": null,
-      "recommended": 0
+      "snapshot_id": "or-refresh-2026-06-06",
+      "model_id": "anthropic/claude-haiku-4.5",
+      "price_per_m_input_usd": 1.0,
+      "price_per_m_output_usd": 5.0,
+      "source": "openrouter-api",
+      "captured_at": "2026-06-06T19:52:56Z"
     },
     {
-      "id": "legal::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "legal",
-      "manifest_slug": null,
-      "recommended": 0
+      "snapshot_id": "or-refresh-2026-06-06",
+      "model_id": "qwen/qwen3-8b",
+      "price_per_m_input_usd": 0.05,
+      "price_per_m_output_usd": 0.4,
+      "source": "openrouter-api",
+      "captured_at": "2026-06-06T19:52:56Z"
     },
     {
-      "id": "medical::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "medical",
-      "manifest_slug": null,
-      "recommended": 0
+      "snapshot_id": "or-refresh-2026-06-06",
+      "model_id": "deepseek/deepseek-r1",
+      "price_per_m_input_usd": 0.7,
+      "price_per_m_output_usd": 2.5,
+      "source": "openrouter-api",
+      "captured_at": "2026-06-06T19:52:56Z"
     },
     {
-      "id": "patent::hermes-vertical-router-on-spark",
-      "kind": "BenchVariant",
-      "model": "patent",
-      "manifest_slug": null,
-      "recommended": 0
+      "snapshot_id": "h6-baseline",
+      "model_id": "openai/gpt-4o-mini",
+      "price_per_m_input_usd": 0.15,
+      "price_per_m_output_usd": 0.6,
+      "source": "h6_evidence",
+      "captured_at": "2026-05-28T14:32:06.836115+00:00"
+    },
+    {
+      "snapshot_id": "h6-baseline",
+      "model_id": "anthropic/claude-opus-4.1",
+      "price_per_m_input_usd": 15.0,
+      "price_per_m_output_usd": 75.0,
+      "source": "h6_evidence",
+      "captured_at": "2026-05-28T14:32:06.836115+00:00"
+    }
+  ],
+  "rag_eval_runs": [
+    {
+      "id": "5c586029702144d4a6dafda8e252766b",
+      "reindex_run_id": null,
+      "qa_set": "qa-eval.jsonl",
+      "recall_at_k": 0.4091,
+      "slug_recall_at_k": 0.7273,
+      "faithfulness": null,
+      "mean_correctness": null,
+      "refusal_rate": null,
+      "rerank": 0,
+      "status": "done",
+      "created_at": "2026-06-03T11:04:21Z"
+    },
+    {
+      "id": "a7a4b1e127c14d80ade915f2c1c0a43d",
+      "reindex_run_id": null,
+      "qa_set": "qa-eval.jsonl",
+      "recall_at_k": 0.4091,
+      "slug_recall_at_k": 0.7273,
+      "faithfulness": null,
+      "mean_correctness": null,
+      "refusal_rate": null,
+      "rerank": 0,
+      "status": "done",
+      "created_at": "2026-06-03T11:09:21Z"
+    },
+    {
+      "id": "a8fe5c73865740a9833063410345343e",
+      "reindex_run_id": null,
+      "qa_set": "qa-eval.jsonl",
+      "recall_at_k": 0.4091,
+      "slug_recall_at_k": 0.7273,
+      "faithfulness": null,
+      "mean_correctness": null,
+      "refusal_rate": null,
+      "rerank": 0,
+      "status": "done",
+      "created_at": "2026-06-07T08:33:09Z"
     }
   ]
 }
