@@ -5228,6 +5228,28 @@ def _assemble_build(root: Path, db_path: str) -> dict[str, Any]:
     }
 
 
+def _webui_static_files(directory: str) -> Any:
+    """Build the StaticFiles app that serves the baked ``_webui/`` bundle.
+
+    HTML responses carry ``Cache-Control: no-cache`` so browsers revalidate
+    on every navigation (ETag keeps that cheap) instead of heuristically
+    caching pages across ``fieldkit arena build`` rebakes — a bare
+    ``StaticFiles`` mount sends no Cache-Control at all, and Chrome served
+    stale pre-bake cockpit HTML two sessions running. Hashed ``/assets/*``
+    keep the default (no header) since their names change on rebuild.
+    """
+    from fastapi.staticfiles import StaticFiles
+
+    class _NoCacheHTMLStaticFiles(StaticFiles):
+        async def get_response(self, path: str, scope: Any) -> Any:
+            response = await super().get_response(path, scope)
+            if "text/html" in (response.headers.get("content-type") or ""):
+                response.headers["cache-control"] = "no-cache"
+            return response
+
+    return _NoCacheHTMLStaticFiles(directory=directory, html=True)
+
+
 def _mount_packaged_webui(app: Any) -> bool:
     """Mount the packaged ``_webui/`` static bundle at ``/arena`` if present.
 
@@ -5243,11 +5265,9 @@ def _mount_packaged_webui(app: Any) -> bool:
         index = webui.joinpath("index.html")
         if not index.is_file():
             return False
-        from fastapi.staticfiles import StaticFiles
-
         app.mount(
             "/arena",
-            StaticFiles(directory=str(webui), html=True),
+            _webui_static_files(str(webui)),
             name="arena-webui",
         )
         return True

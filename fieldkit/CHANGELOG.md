@@ -53,6 +53,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   count), and `GET /api/advisor/receipt` (the §14 publish/reject verdict +
   gate matrix) — each rendered as a Cortex card beside the Advisor preflight.
 
+### Changed
+- **Cockpit HTML is served `Cache-Control: no-cache`.** The sidecar's `_webui`
+  mount was a bare `StaticFiles` (no Cache-Control at all), so Chrome
+  heuristic-cached cockpit HTML across `fieldkit arena build` rebakes and
+  served stale pre-bake pages two sessions running (the operator-witnessed
+  "rebaked but unchanged" trap). HTML responses now carry `no-cache` — the
+  browser revalidates every navigation and the existing ETag keeps that a
+  cheap 304; hashed `/assets/*` keep their default caching since their names
+  change per rebuild. Removes the need for the CDP `Network.setCacheDisabled`
+  workaround when verifying post-bake pages.
+- **`fieldkit arena import` no longer writes the repo-root mirror by
+  default.** `import_artifacts(write_mirror=...)` now defaults `False` and
+  the CLI flag is opt-in `--mirror` (`--no-mirror` still accepted as the off
+  form). Nothing on the main site reads `src/data/arena-mirror/` — the
+  tracked mirror is `fieldkit arena mirror` into `arena-app/` — and the
+  default-on write left an untracked root-level turd after every import.
+
 ### Fixed
 - **Eval mode replays the bench's measured reasoning control (AD-AE-17).**
   Chat/compare eval mode replayed the Advisor packets' system contract

@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Advisor on the leaderboard (Path A executed): deterministic rollup of the launch curveball receipts into bench group the-refusal-floor-is-trainable:advisor_contract (trained-4B 85.7% above the 30B teacher 38.1%, CDP-verified live) + advisor-bench-v0.1 kind:bench manifest shipped to both catalog copies",
+  "focus": "Arena hardening batch shipped 3 of 4 queued actions: catalog drift guard verifier (22/22 manifests byte-matched), _webui HTML now Cache-Control: no-cache (stale-rebake trap killed at source), frontier head tag honest (6 models x 25 builds, CDP-verified), and fieldkit arena import no longer writes the repo-root mirror by default",
   "blockers": [],
   "next": [
+    "Hardening item 4: measure kepler-gguf tok/s per variant (operator-armed lane swap; advisor holds the box) -> manifest -> chart carries all 6 quality-bearing models",
     "Path B: live-tier cockpit:advisor_contract eval runs against the :8091 serving lane (narrated-session story)",
-    "Arena hardening batch (HANDOFF Open Items): catalog drift guard script, Cache-Control on _webui HTML, frontier head-tag honesty, kepler tok/s measurement",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
   ],
   "recent": [
-    "scripts/orionfold_advisor/leaderboard_rollup.py: transform-only rollup of 6 curveball results.jsonl receipts -> advisor_contract_results.json (lane x gate, gates never conflated, shas self-verified against the frozen pins)",
-    "fieldkit arena import -> rebuild-leaderboard -> mirror: bench rows 12->18; CDP-verified the new group ranks trained-4B above the 30B teacher with 42 tok/s only on the promoted lane",
-    "advisor-bench-v0.1.yaml authored from the live HF card (5 shapes incl. 182-source corpus manifest, sha pins, real sample rows) + reciprocal sibling on advisor-gguf; byte-copied into arena-app per dual-copy discipline",
-    "Main build 538 pages (+1 bench detail page) + both render verifiers green; demo rebaked/deployed/links verified",
-    "Found why src/data/arena-mirror/ keeps reappearing: fieldkit arena import writes it by default; use --no-mirror"
+    "scripts/verify_arena_catalog_sync.mjs: every src/content/artifacts yaml must byte-match its arena-app copy; wired into the CLAUDE.md verify chain + hf-publisher post-push tail",
+    "fieldkit.arena.server serves _webui HTML with Cache-Control: no-cache (ETag 304s stay cheap); CDP Network.setCacheDisabled workaround retired; wire-verified live",
+    "Leaderboard SSR now applies the island quality filter: head tag 7x30 -> 6x25 (hermes-profile has 5 quality-less lanes, not the projected 4)",
+    "import_artifacts(write_mirror=) defaults False; CLI opt-in --mirror; ends the recurring src/data/arena-mirror leftover; docs + CHANGELOG updated",
+    "Arena suite 495 passed (+2 tests); _webui rebaked + sidecar restarted; demo rebuilt/deployed, 691 links ok"
   ],
-  "session": "S-advisor-leaderboard-path-a",
+  "session": "S-arena-hardening-batch",
   "metrics": {
     "articles": 54,
     "models": 7,

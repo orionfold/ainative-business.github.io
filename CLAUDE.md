@@ -38,7 +38,9 @@ author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on 
 
 `node node_modules/astro/astro.js build` (485 pages; `npm run build` is broken on this checkout
 per the SMB-symlink memory) → `node scripts/verify_artifact_rendering.mjs` +
-`node scripts/verify_field_notes_rendering.mjs`. `build:og` is CI-only (needs Chrome).
+`node scripts/verify_field_notes_rendering.mjs` +
+`node scripts/verify_arena_catalog_sync.mjs` (artifact manifests must byte-match their
+`arena-app/` copies). `build:og` is CI-only (needs Chrome).
 
 ## Status beacon (Agency cockpit, 2026-06-06)
 

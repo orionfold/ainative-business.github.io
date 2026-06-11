@@ -91,10 +91,14 @@ def import_existing(
         "--refresh-hf",
         help="Hit the HuggingFace API for each Orionfold/ repo (default: cache-only).",
     ),
-    no_mirror: bool = typer.Option(
+    mirror: bool = typer.Option(
         False,
-        "--no-mirror",
-        help="Skip writing src/data/arena-mirror/leaderboard.json.",
+        "--mirror/--no-mirror",
+        help=(
+            "Also write src/data/arena-mirror/leaderboard.json under the repo "
+            "root (default: off — the tracked mirror is `fieldkit arena mirror` "
+            "into arena-app; nothing on the main site reads the root copy)."
+        ),
     ),
     json_out: bool = typer.Option(
         False, "--json", help="Emit the row-count report as JSON."
@@ -111,7 +115,7 @@ def import_existing(
         db_path=db,
         dry_run=dry_run,
         refresh_hf=refresh_hf,
-        write_mirror=not no_mirror,
+        write_mirror=mirror,
     )
     if json_out:
         typer.echo(_json.dumps(report.as_dict(), indent=2))

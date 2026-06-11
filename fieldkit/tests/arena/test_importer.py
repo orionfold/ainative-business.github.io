@@ -321,6 +321,20 @@ def test_importer_is_idempotent_on_second_run(fixture_repo, tmp_path, no_hermes)
     assert first.leaderboard_rows == second.leaderboard_rows
 
 
+def test_import_default_writes_no_root_mirror(fixture_repo, tmp_path, no_hermes):
+    """`write_mirror` defaults to False (2026-06-11 hardening): nothing on the
+    main site reads the repo-root mirror, and the default-on write kept
+    leaving an untracked src/data/arena-mirror/ behind after every import."""
+    db = tmp_path / "arena.db"
+    import_artifacts(
+        repo_root=fixture_repo,
+        db_path=db,
+        dry_run=False,
+        refresh_hf=False,
+    )
+    assert not (fixture_repo / "src/data/arena-mirror").exists()
+
+
 def test_mirror_leaderboard_writes_non_empty(fixture_repo, tmp_path, no_hermes):
     db = tmp_path / "arena.db"
     import_artifacts(

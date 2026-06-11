@@ -70,6 +70,9 @@ const liveSorted = [...liveRows].sort((a, b) => b.mean_score - a.mean_score);
 const frontierArtifacts = (await getCollection('artifacts')).filter(
   (a) => a.data.spark_tokens_per_sec && Object.keys(a.data.spark_tokens_per_sec).length > 0
 );
+// Quality-less variants (tok/s measured but no ppl/vertical_eval — e.g. the
+// hermes profile lanes) are dropped by the island's quality filter, so drop
+// them here too: the head-tag counts must match what actually renders.
 const frontierPoints = frontierArtifacts.flatMap((a) => {
   const d = a.data;
   const rec = recommendedVariant(d);
@@ -84,7 +87,8 @@ const frontierPoints = frontierArtifacts.flatMap((a) => {
       group: d.slug,
       recommended: v === rec,
     }));
-});
+}).filter((p) => p.ppl != null || p.evalScore != null);
+const frontierModelCount = new Set(frontierPoints.map((p) => p.group)).size;
 
 const benchCount = benchGroups.length;
 const laneCount = new Set([
@@ -160,7 +164,7 @@ const fmtTime = (iso: string) => {
     <section class="bezel bezel--lit lb-frontier" data-pane="frontier">
       <header class="bezel__head">
         <span class="bezel__head-title">Cost / quality efficiency frontier</span>
-        <span class="bezel__head-tag bezel__head-tag--live">{frontierArtifacts.length} models · {frontierPoints.length} builds</span>
+        <span class="bezel__head-tag bezel__head-tag--live">{frontierModelCount} models · {frontierPoints.length} builds</span>
       </header>
       <div class="bezel__body">
         <p class="lb-frontier__lede">

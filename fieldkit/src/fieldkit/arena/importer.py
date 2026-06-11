@@ -885,7 +885,7 @@ def import_artifacts(
     db_path: str | os.PathLike[str] | None = None,
     dry_run: bool = False,
     refresh_hf: bool = False,
-    write_mirror: bool = True,
+    write_mirror: bool = False,
     hf_cache_dir: str | os.PathLike[str] | None = None,
 ) -> ImportReport:
     """Walk the repo and populate ``~/.fieldkit/arena.db``.
@@ -907,8 +907,12 @@ def import_artifacts(
         cache (or fill an empty row). Default False so M2 doesn't require
         network.
     write_mirror
-        If True (default), write ``src/data/arena-mirror/leaderboard.json``
-        from the seeded leaderboard rows. Set False in test runs.
+        If True, write ``src/data/arena-mirror/leaderboard.json`` under
+        ``repo_root`` from the seeded leaderboard rows. Default False
+        (since 2026-06-11): nothing on the main site reads that path — the
+        tracked mirror lives at ``arena-app/src/data/arena-mirror/`` via
+        ``fieldkit arena mirror`` — and the default-on write kept leaving
+        an untracked ``src/data/arena-mirror/`` turd at the repo root.
     hf_cache_dir
         Override the default ``~/.fieldkit/arena_cache/hf`` cache root.
         Mainly for tests; the live path is what operators want.

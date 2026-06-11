@@ -194,6 +194,7 @@ Anchored: `^Traceback` (line-start), `HTTP/X.Y" 4XX` (proper request-log format)
 
 The easy-to-forget tail. Compounds across releases — every skipped item is a future "wait, why isn't the stats page updated" thread.
 
+- [ ] **Sync the manifest into the Arena cockpit copy** — `arena-app/src/content/artifacts/` is a SEPARATE copy of `src/content/artifacts/` (the cockpit's catalog, frontier chart, detail pages, and command palette all build from it; it froze silently for 13 days in 2026-06 and dropped Advisor from every cockpit surface). After writing/updating the canonical `<slug>.yaml`: `cp` it byte-identical into arena-app, rebake `_webui` (`fieldkit arena build --repo-root arena-app`), refresh the mirror (`fieldkit arena mirror --repo-root arena-app`), then run `node scripts/verify_arena_catalog_sync.mjs` (must exit 0).
 - [ ] **Update `HANDOFF.md`** — live URL + variant table (size, ppl, tok/s, vertical-eval) + actual upload time + any new lessons. Per `[[feedback_handoff_md_update_protocol]]`.
 - [ ] **Write a descriptive commit subject** — `feat(field-notes): publish Orionfold/<slug>` + a body summarizing the variant table is the change narrative (commit subjects are the changelog in this monorepo). The old two-repo Mac `/sync-field-notes` + SYNC-HANDOFF / mirror-handshake ceremony is retired — author directly here.
 - [ ] **Refresh `src/data/field-notes/project-stats.json`** — invoke the `nvidia-learn-stats` skill. Per `[[feedback_refresh_stats_on_publish]]` — the home "At a glance" infographic drifts silently otherwise.

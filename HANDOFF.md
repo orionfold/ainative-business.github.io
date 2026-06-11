@@ -14,7 +14,16 @@
 
 ## Current State
 
-### 2026-06-11 — Advisor on the leaderboard (Path A executed) + Advisor-bench manifest shipped (this session)
+### 2026-06-11 — Arena hardening batch: 3 of 4 queued actions + mirror-default fix shipped (this session)
+
+- **Item 1 — catalog drift guard SHIPPED**: new `scripts/verify_arena_catalog_sync.mjs` (every `src/content/artifacts/*.yaml` must byte-match its `arena-app/` copy; orphans + missing both fail; exit = drift count) — runs beside the render verifiers, added to the CLAUDE.md verify chain; currently 22/22 in sync. `hf-publisher` SKILL.md Step 7 post-push tail now leads with "sync manifest → arena-app + rebake + mirror + run the verifier".
+- **Item 2 — stale-HTML trap killed at the source**: `fieldkit.arena.server` `_webui` mount now serves HTML with `Cache-Control: no-cache` (new `_webui_static_files()` StaticFiles subclass; ETag keeps revalidation a cheap 304; hashed `/assets/*` untouched). Wire-verified live post-restart: HTML carries `no-cache`+etag, JS asset carries no cache-control. The CDP `Network.setCacheDisabled` workaround is no longer needed for post-bake verification.
+- **Item 3 — frontier head-tag honest**: leaderboard SSR now applies the island's quality filter (`ppl != null || evalScore != null`) to `frontierPoints` and counts models from surviving groups. CDP-verified live: head tag reads **6 models · 25 builds** (was 7·30). NOTE: the queue entry projected 26 — miscount; `spark-hermes-profile` has **5** quality-less tok/s lanes, not 4 (verified by script over the manifests; nothing else dropped).
+- **Mirror-default hardened** (the recurring `src/data/arena-mirror/` leftover): `import_artifacts(write_mirror=)` defaults **False**; CLI flag is now opt-in `--mirror` (`--no-mirror` kept as the off form). New test pins the default; `fieldkit/docs/api/arena.md` kwarg table updated; CHANGELOG [Unreleased] carries both behavior changes under `### Changed`.
+- Arena suite **495 passed** (+2 new tests); `_webui` rebaked + sidecar restarted via lifecycle script; demo rebuilt/deployed/verified (691 links ok, head tag honest in the demo bundle too).
+- **Item 4 (Kepler tok/s per variant) still queued** — needs an operator-armed lane swap (advisor holds the box); see Open Items.
+
+### 2026-06-11 — Advisor on the leaderboard (Path A executed) + Advisor-bench manifest shipped
 
 - **Path A runbook executed end-to-end** (was QUEUED operator-approved): new deterministic rollup `scripts/orionfold_advisor/leaderboard_rollup.py` (transform-only; reads the 6 curveball results.jsonl receipts, refusal basis = strict-passed among refuse rows to match the published `curveball2-compare` "3/9"; bench shas self-verified against the frozen pins `122bcd619e9d`/`4b6cac85e41f`; tok/s read from the canonical manifest, not hardcoded) → `articles/the-refusal-floor-is-trainable/evidence/advisor_contract_results.json` (6 lane×gate rows, gates never conflated: 4b-sft-v0.2 0.90/0.857, 4b-sft-v0.1 0.70, 4b-init 0.55, 30b-prompted 0.575/0.381).
 - **Import chain run**: `fieldkit arena import` (idempotent, re-run verified) → `rebuild-leaderboard` (bench rows 12→18) → `mirror --repo-root arena-app`. **CDP-verified live** (cache disabled): bench group `the-refusal-floor-is-trainable:advisor_contract` renders 6 lanes, trained-4B ranked above the 30B teacher (85.7% vs 38.1%), 42 tok/s only on the promoted lane.
@@ -67,11 +76,11 @@
 
 ## Live Runtime
 
-Last recorded runtime baseline: Path A leaderboard session, 2026-06-11.
+Last recorded runtime baseline: hardening-batch session, 2026-06-11.
 
-- Cockpit `:7866` UP in browser-use mode (pid 3272750, fresh `_webui` bake incl. the `advisor_contract` leaderboard group + `advisor-bench-v0.1` catalog entry), visible CDP Chromium `:9222` UP (pid 3272768), parked on `/arena/leaderboard/`. Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). **`pgvector` (:5432) + `nim-embed-nemotron` (:8001) containers UP** — the grounded-chat path needs both; a dead stack surfaces as a visible chat error. 30B down-but-on-disk; `fk-nim-8000` + `nemo-train` stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
-- This session's lane-adjacent terminal actions: `fieldkit arena import`/`rebuild-leaderboard`/`mirror` ×2 (deterministic receipt import, logged per pipeline discipline); no serving-lane changes.
-- `src/data/arena-mirror/` is written BY DEFAULT by `fieldkit arena import` (that's where the recurring leftover comes from) — deleted again this session; pass `--no-mirror` or harden the default. The tracked mirror lives at `arena-app/src/data/arena-mirror/leaderboard.json`.
+- Cockpit `:7866` UP in browser-use mode (pid 3469160, fresh `_webui` bake incl. the honest frontier head tag, serving HTML `Cache-Control: no-cache`), visible CDP Chromium `:9222` UP (pid 3469177), parked on `/arena/leaderboard/`. Serving lane: llama-server `nemotron3-nano-4b-sft-v02-q8` on `:8091` (the PROMOTED Advisor lane, ~12 GB, `--jinja`). **`pgvector` (:5432) + `nim-embed-nemotron` (:8001) containers UP** — the grounded-chat path needs both; a dead stack surfaces as a visible chat error. 30B down-but-on-disk; `fk-nim-8000` + `nemo-train` stopped (restartable). Recipes 8 in `~/.fieldkit/arena/lane-recipes.json`.
+- This session's terminal actions: pytest, `_webui` rebake, lifecycle restart, demo rebuild/deploy — no serving-lane changes.
+- ~~`src/data/arena-mirror/` written by default~~ — FIXED 2026-06-11: `fieldkit arena import` no longer writes the root mirror unless `--mirror` is passed. The tracked mirror lives at `arena-app/src/data/arena-mirror/leaderboard.json`.
 - `.env.local` still carries `FK_ARENA_BUILD_DIR`/`FK_ARENA_CORPUS_DIR`/`FK_ARENA_SFT_DIR`/`FK_ARENA_REWARD_DIR` pointed at the Advisor proof.
 - `/tmp/fk` and `/tmp/fk-test` venvs are GONE (reboot); `/tmp/arena-venv` (fieldkit editable + huggingface_hub 1.18 + `hf` CLI) is the working HF/publish venv this session used. HF pushes need `HF_HOME=/home/nvidia/data/.hf-cache HF_HUB_DISABLE_XET=1`.
 - Tear down when done: `:8091` lane from visible LaneTruth first, then `arena_lifecycle.sh down --browser`.
@@ -82,6 +91,7 @@ Last recorded runtime baseline: Path A leaderboard session, 2026-06-11.
 node node_modules/astro/astro.js build          # 538 pages
 node scripts/verify_artifact_rendering.mjs
 node scripts/verify_field_notes_rendering.mjs
+node scripts/verify_arena_catalog_sync.mjs   # artifact yamls byte-match arena-app copies
 # arena demo rebake (when arena-app or fixtures change):
 ARENA_DEMO=1 node arena-app/node_modules/astro/astro.js build --root arena-app
 node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
@@ -101,11 +111,8 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 ### Advisor / Arena
 
 - **Path A DONE 2026-06-11** (rollup + import + bench manifest + CDP verify — see Current State). Path B (live tier, `cockpit:advisor_contract` via eval runs against the serving lane on `:8091`) stays open as the ongoing narrated-session story; AF-28 projects done `eval_rerun` jobs without a rebuild.
-- **Arena hardening queued from the 2026-06-11 drift session** (lessons → actions; ordered by leverage):
-  1. **Catalog drift guard** — the dual-copy trap WILL recur (it sat silent 13 days; only memory + this doc prevent it now, and Codex sessions read neither skill memory). Add a deterministic check that every `src/content/artifacts/*.yaml` byte-matches `arena-app/src/content/artifacts/<same>.yaml` (new `scripts/verify_arena_catalog_sync.mjs` run beside the render verifiers, or a fieldkit test), AND add "sync manifests → arena-app + rebake + mirror" to the `hf-publisher` skill's post-push tail so the copy happens at publish time, not on discovery.
-  2. **Kill the stale-document trap at the source** — sidecar serves `_webui` via bare `StaticFiles` (`server.py:5246`), no `Cache-Control`, so Chrome heuristic-caches HTML across rebakes (bit 2 sessions running). Add `Cache-Control: no-cache` (etag revalidation stays cheap) for HTML responses in `fieldkit.arena.server`; hashed `/assets/*` can stay cacheable. Small change + test; removes the need for the CDP cache-disable workaround.
-  3. **Frontier head-tag honesty** — `/arena/leaderboard/` SSR counts artifacts with `spark_tokens_per_sec` ("7 models · 30 builds") but the island drops quality-less points client-side (`spark-hermes-profile`'s 4 lanes have tok/s but no ppl/eval → 6 models · 26 points actually render). Align the SSR count with renderable points (require a quality metric in the page filter).
-  4. **Kepler missing from the frontier chart for a real reason** — `kepler-gguf` has `vertical_eval` for 4 quants but no `spark_tokens_per_sec` (never measured). Measure tok/s per variant on a Spark llama.cpp lane (operator-armed lane swap; advisor currently holds the box) → add to the canonical manifest → resync per item 1. Then the chart carries all 6 quality-bearing models.
+- **Arena hardening batch: items 1–3 + mirror-default DONE 2026-06-11** (see Current State). Remaining:
+  4. **Kepler missing from the frontier chart for a real reason** — `kepler-gguf` has `vertical_eval` for 4 quants but no `spark_tokens_per_sec` (never measured). Measure tok/s per variant on a Spark llama.cpp lane (**operator-armed lane swap**; advisor currently holds the box) → add to the canonical manifest → resync (the new `verify_arena_catalog_sync.mjs` enforces the copy). Then the chart carries all 6 quality-bearing models — currently 6 models · 25 builds (kepler absent, hermes-profile's 5 quality-less lanes correctly excluded).
 - Optional §10 corpus *controls* (import/swap + cockpit-driven pgvector re-ingest; read pane shipped). Optional §12 live per-query route-ledger persistence (bakeoff read surface shipped). Optional v0.3 lever: `Route:`-prefix boundary + one over-refusal class — **freeze curveball-v0.3 before any v0.3 training**.
 - AD-AE-13 display gap stands: terminal-run wide receipts show "0 results" on the Cortex card until a card run.
 - WB-11: LaneTruth can discover/pin NIM lanes but not launch them through the guarded UI.

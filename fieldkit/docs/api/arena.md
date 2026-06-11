@@ -653,7 +653,7 @@ The records `ChatTurnRecord` / `CompareRunRecord` / `RubricScoreRecord` / `Human
 
 ### M2 — `import_artifacts(repo_root, db_path, dry_run, refresh_hf, write_mirror, hf_cache_dir)`
 
-The deterministic-Python spine of `fieldkit arena import`. Walks the repo's `src/content/artifacts/`, `articles/*/`, `notebooks/*/exports/**`, `~/.hermes/config.yaml`, and (optionally) the HuggingFace API into `~/.fieldkit/arena.db`, then writes `src/data/arena-mirror/leaderboard.json` so the cockpit landing (M3) ships non-empty.
+The deterministic-Python spine of `fieldkit arena import`. Walks the repo's `src/content/artifacts/`, `articles/*/`, `notebooks/*/exports/**`, `~/.hermes/config.yaml`, and (optionally) the HuggingFace API into `~/.fieldkit/arena.db`. Opt in with `write_mirror=True` (CLI `--mirror`) to also drop a `src/data/arena-mirror/leaderboard.json` snapshot under the repo root — the tracked, published mirror is produced by `fieldkit arena mirror` instead.
 
 | Kwarg | Default | What it does |
 |---|---|---|
@@ -661,7 +661,7 @@ The deterministic-Python spine of `fieldkit arena import`. Walks the repo's `src
 | `db_path` | `~/.fieldkit/arena.db` | SQLite to populate. Ignored when `dry_run=True` (`:memory:` is used). |
 | `dry_run` | `False` | Plan-only mode: in-memory SQLite, no on-disk writes, the report's row counts reflect what *would* have landed. |
 | `refresh_hf` | `False` | Hit the HF API once per `Orionfold/` repo + write a 24h cache to `~/.fieldkit/arena_cache/hf/`. Default `False` keeps the importer offline-safe. |
-| `write_mirror` | `True` | Write `src/data/arena-mirror/leaderboard.json` from the seeded leaderboard rows. Set `False` in test runs. |
+| `write_mirror` | `False` | Opt-in: write `src/data/arena-mirror/leaderboard.json` under `repo_root` from the seeded leaderboard rows. Off by default since 2026-06-11 — nothing on the main site reads the root copy (use `fieldkit arena mirror` for the tracked arena-app mirror). |
 | `hf_cache_dir` | `~/.fieldkit/arena_cache/hf` | Override the HF cache root (mainly for tests). |
 
 Returns an `ImportReport` with the post-upsert row counts + a `warnings` list (every malformed-manifest or unknown-bench-shape goes here rather than raising). The report's counts are *post-upsert totals*, NOT rows written this run — so a re-run with identical inputs returns the same numbers (the M2 idempotency gate).

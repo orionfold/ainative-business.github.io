@@ -162,6 +162,38 @@ def test_webui_dir_is_inside_package() -> None:
     assert d.parent.name == "arena"
 
 
+def test_webui_html_is_no_cache_but_assets_stay_cacheable(tmp_path: Path) -> None:
+    """HTML from the _webui mount must carry `Cache-Control: no-cache` so the
+    browser revalidates across rebakes (Chrome heuristic-cached stale cockpit
+    HTML two sessions running); hashed assets keep the default (no header)."""
+    import httpx
+    from fastapi import FastAPI
+
+    from fieldkit.arena.server import _webui_static_files
+
+    (tmp_path / "index.html").write_text("<html>cockpit</html>")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "app.abc.js").write_text("console.log(1)")
+
+    app = FastAPI()
+    app.mount("/arena", _webui_static_files(str(tmp_path)), name="arena-webui")
+
+    import anyio
+
+    async def _exercise() -> None:
+        transport = httpx.ASGITransport(app=app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://t") as client:
+            html = await client.get("/arena/")
+            assert html.status_code == 200
+            assert html.headers.get("cache-control") == "no-cache"
+            assert html.headers.get("etag")  # revalidation stays cheap
+            asset = await client.get("/arena/assets/app.abc.js")
+            assert asset.status_code == 200
+            assert "cache-control" not in asset.headers
+
+    anyio.run(_exercise)
+
+
 def test_mount_degrades_gracefully_without_bundle(tmp_path, monkeypatch) -> None:
     """`_mount_packaged_webui` returns False (API-only) when no bundle exists,
     so a fieldkit installed without a baked _webui/ still serves the API."""
