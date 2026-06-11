@@ -6,7 +6,8 @@
   "focus": "Arena artifact-catalog drift cleared: advisor/kepler/cortex manifests synced into the arena-app copy (frozen since the 2026-05-29 cutover), schema ported, mirror regenerated — Advisor now on the frontier chart, models catalog, and detail pages, verified live over CDP",
   "blockers": [],
   "next": [
-    "Author the missing kind:bench manifest for Orionfold/Advisor-bench from the evidence dir (real shapes/results, not invented)",
+    "QUEUED (approved): Advisor onto the leaderboard via Path A — rollup launch receipts into articles/the-refusal-floor-is-trainable/evidence/advisor_contract_results.json, import → rebuild → mirror → rebake (runbook in HANDOFF Open Items)",
+    "Author the missing kind:bench manifest for Orionfold/Advisor-bench from the same receipts (folded into Path A session)",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
