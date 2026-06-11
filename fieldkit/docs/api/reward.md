@@ -1,7 +1,7 @@
 ---
 module: reward
 title: fieldkit.reward
-summary: The verifier→reward adapter (RLVR Phase 3) — Reward, RewardAdapter, group_advantage, RewardError. The eval harness IS the reward model — a thin adapter that turns any fieldkit.eval scorer into a (success, failure_class, auxiliary) reward, reusing lineage.FailureLabel. No learned reward model.
+summary: The verifier-to-reward adapter for RLVR — turns any fieldkit.eval scorer into a reward signal with failure classes. The eval harness is the reward model; nothing is learned.
 order: 17
 ---
 

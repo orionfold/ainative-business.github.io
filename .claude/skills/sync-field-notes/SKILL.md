@@ -25,7 +25,7 @@ The "Source" column is relative to the cache clone root `~/.cache/ai-field-notes
 | Screenshots | `articles/<slug>/screenshots/` | `articles/<slug>/screenshots/` |
 | Evidence images | `articles/<slug>/evidence/*.{png,jpg,jpeg,svg,gif,webp}` | `articles/<slug>/evidence/` |
 | Fieldkit module reference | `fieldkit/docs/api/*.md` | `fieldkit/docs/api/*.md` |
-| Fieldkit version pin | `fieldkit/src/fieldkit/_version.py` | `fieldkit/_version.py` |
+| Fieldkit version pin | ~~`fieldkit/src/fieldkit/_version.py` → `fieldkit/_version.py`~~ | RETIRED 2026-06-10 — the landing page reads the canonical `fieldkit/src/fieldkit/_version.py` directly; never recreate the mirror (it froze the live page at v0.13.0 for 18 releases) |
 | Fieldkit landing page sections (Install / Quickstart / CLI) | `src/pages/fieldkit/index.astro` | `src/pages/fieldkit/index.astro` (only the named `<section>` bodies are replaced) |
 | Signature SVG components | `src/components/svg/*.astro` | `src/components/field-notes/svg/*.astro` |
 | Article-sequence manifest | (derived from the cache clone's `git log`, no on-disk source) | `src/data/field-notes/sequence.json` |

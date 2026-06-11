@@ -14,7 +14,13 @@
 
 ## Current State
 
-### 2026-06-10 — SVG legacy debt cleared + orionfold.com brand realignment (this session)
+### 2026-06-10 — /fieldkit/ landing un-froze (v0.13.0 → v0.31.0) + module-copy rebalance (this session)
+
+- **Live `/fieldkit/` page was 18 releases stale**: `index.astro` read the retired two-repo-era mirror `fieldkit/_version.py` (frozen at 0.13.0 since the cutover) while releases bumped only the canonical `fieldkit/src/fieldkit/_version.py`. Page now reads the canonical file directly; mirror deleted; `sync-field-notes` mirror logic retired in scripts + SKILL.md (do not resurrect).
+- **Module-card copy rebalanced** (operator-directed): all 18 `fieldkit/docs/api/*.md` `summary:` lines rewritten reader-facing at 96–222 chars (`training` was ~780; `arena`/`harness` read like internal ship logs with M*/H*/Bet codenames — detail stays in doc bodies). Taglines trimmed (`arena` 71→38 chars) and the arena-app `FieldkitModules.astro` copy synced 13→18 modules. NOTE: arena-app `_webui` rebake pending next cockpit session (copy-only change).
+- **`audit_landing.py` upgraded 4→6 checks**: new `landing_version_source` (canonical version path + no mirror) and `doc_summary_balance` (60–260 chars, no internal codenames); `module_taglines` now audits BOTH component copies + a ≤56-char cap. 6/6 PASS; build 537 pages green + both render verifiers green.
+
+### 2026-06-10 — SVG legacy debt cleared + orionfold.com brand realignment
 
 - **`verify_svg.sh` legacy debt CLEARED** (was Open Items → Cleanup): 105 violations → 0 across the 12 old signature components. role/aria on every legacy `<svg>`, stroke-widths snapped to the {0.5,1,1.5,2} scale, referenced atmospheric gradients added where missing; orphaned `FeatureVelocity.astro` + `FieldkitConstellation.astro` deleted (unreferenced since the pre-cutover redesign). Commit `ad6a092`.
 - **Marketing site realigned to the orionfold.com parent brand** (operator-directed): new spec `_SPECS/orionfold-brand-alignment-v1.md`. Tokens extracted from live orionfold.com → `src/styles/global.css` `@theme`: cool 260-hue neutrals, indigo primary `oklch(55% .18 260)`, orbit-gold `oklch(70% .14 82)`, navy→blue→gold hero ramp, SVG accents re-tuned (blue=brand indigo, orange=gold). Ported `.of-surface`/`.of-pressable` card idiom and applied to the home-page cards; hero gained the gold orb; field-notes hardcoded Airtable dark1 hexes → semantic vars. **`design-system-v1.md` (Airtable) re-scoped to operator panes (`arena-app/`) only** — index updated. Build 537 pages green; artifact/field-notes/SVG verifiers green; browser-smoked home/field-notes/article/artifacts at 1440px.

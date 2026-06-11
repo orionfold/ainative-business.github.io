@@ -1,7 +1,7 @@
 ---
 module: publish
 title: fieldkit.publish
-summary: HuggingFace push surface — `ModelCard` (frontmatter + body renderer), `ArtifactManifest` (Phase-2 sync record), `HFHubAdapter` (lazy huggingface_hub wrapper, dry-run by default), `publish_quant` orchestrator. Every Orionfold artifact card carries the same Spark-tested measurement quad (perplexity, tok/s, thermal envelope, optional vertical-eval) — this module is what makes that shape deterministic.
+summary: The HuggingFace push surface — model-card renderer, artifact manifest, and a dry-run-by-default hub adapter, so every Orionfold card ships with the same Spark-tested measurement quad.
 order: 8
 ---
 

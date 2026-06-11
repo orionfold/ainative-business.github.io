@@ -1,7 +1,7 @@
 ---
 module: arena
 title: fieldkit.arena
-summary: Operator cockpit for the DGX Spark — FastAPI sidecar on 127.0.0.1:7866 with SSE telemetry/chat/compare streams, a SQLite-backed `~/.fieldkit/arena.db`, and a static-mirror exporter that publishes a leak-proof leaderboard slice to `ainative.business/arena/`. Sibling to `fieldkit.harness` (Hermes = agent harness; Arena = operator harness). M2 ships the SQLite store + retroactive importer; M3 ships the FastAPI app + telemetry SSE; M4 ships the chat island; M5 ships side-by-side compare; **M6 (this release) ships the leak-proof mirror exporter** (`fieldkit.arena.mirror.export_publishable_slice` with hardcoded allowlist; regression test pins zero chat-content leaks); M7 lands the launch article + Mac sync per `_SPECS/spark-arena-v1.md`.
+summary: Operator cockpit for the Spark — a local FastAPI sidecar streaming telemetry, chat, and side-by-side compares over a SQLite store, with a leak-proof mirror that publishes the leaderboard to this site.
 order: 13
 ---
 

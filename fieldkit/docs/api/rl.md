@@ -1,7 +1,7 @@
 ---
 module: rl
 title: fieldkit.rl
-summary: The closed-loop RLVR driver (Phase 3, the engine) — GRPOConfig, RLLoop, RLLoopError. Wraps the proven hand-rolled REINFORCE-with-KL loop (not Unsloth/NeMo-RL); held-out-every-≤10-steps hard gate with held-out-only checkpoint selection; ≥100-row corpus floor; pinned vLLM. Orchestration ships; GPU seams inject.
+summary: Closed-loop RLVR driver — a GRPO-style REINFORCE-with-KL loop gated by held-out-only checkpoint selection and a minimum-corpus floor. Orchestration ships; GPU seams inject.
 order: 18
 ---
 

@@ -336,19 +336,14 @@ def landing_section_changes() -> list[tuple[str, str]]:
 
 
 def fieldkit_version_change() -> tuple[bool, str | None, str | None]:
-    """(changed, source_version_str, target_version_str) — version drift check."""
-    if not FIELDKIT_VERSION_SOURCE.exists():
-        return False, None, None
-    src_text = FIELDKIT_VERSION_SOURCE.read_text(encoding="utf8")
-    tgt_text = FIELDKIT_VERSION_TARGET.read_text(encoding="utf8") if FIELDKIT_VERSION_TARGET.exists() else ""
+    """(changed, source_version_str, target_version_str) — version drift check.
 
-    def extract(text: str) -> str | None:
-        import re
-        m = re.search(r'__version__\s*=\s*"([^"]+)"', text)
-        return m.group(1) if m else None
-
-    return (file_hash(FIELDKIT_VERSION_SOURCE) != file_hash(FIELDKIT_VERSION_TARGET)
-            if FIELDKIT_VERSION_TARGET.exists() else True), extract(src_text), extract(tgt_text)
+    RETIRED (2026-06-10): always reports no change. The `fieldkit/_version.py`
+    mirror is gone — `src/pages/fieldkit/index.astro` reads the package's
+    canonical `fieldkit/src/fieldkit/_version.py` directly, so there is no
+    mirror to drift. Do NOT resurrect the mirror comparison.
+    """
+    return False, None, None
 
 
 def compute_diff() -> dict:

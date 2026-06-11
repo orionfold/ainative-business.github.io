@@ -15,12 +15,14 @@ import FieldkitCTAFooter from '../../components/sections/fieldkit/FieldkitCTAFoo
 import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
 import { SITE } from '../../data/seo';
 
-// Read the fieldkit version from the small _version.py file mirrored from
-// the source repo. The sync skill keeps this file in step with the upstream
-// `fieldkit/src/fieldkit/_version.py`. Falls back to "unreleased" if missing.
+// Read the fieldkit version straight from the package's single source of
+// truth (`pyproject.toml`'s hatch version reads the same file). The old
+// `fieldkit/_version.py` mirror from the two-repo sync era is gone — it
+// froze at v0.13.0 after the 2026-05-29 monorepo cutover.
+// Falls back to "unreleased" if missing.
 let fieldkitVersion = 'unreleased';
 try {
-  const versionFile = resolve(process.cwd(), 'fieldkit/_version.py');
+  const versionFile = resolve(process.cwd(), 'fieldkit/src/fieldkit/_version.py');
   const m = readFileSync(versionFile, 'utf8').match(/__version__\s*=\s*"([^"]+)"/);
   if (m) fieldkitVersion = m[1];
 } catch {

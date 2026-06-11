@@ -1,7 +1,7 @@
 ---
 module: harness
 title: fieldkit.harness
-summary: Deterministic Python spine for the Harnesses content line — install / configure / serve / harden / route / eval / profile an agent harness (Hermes Agent first) on the DGX Spark. H1 ships install + doctor + configure + the NIM / llama-server lanes + the serve_lane guard; H2 adds the vLLM / Ollama lanes, the Hermes-trace tool-call-reliability eval, and the HarnessProfile artifact; H3 adds Harden (hostile-tool-call-survivable config posture); H4 adds the fieldkit-as-MCP server; H5 adds the vertical router (VerticalRoute / RouterConfig / build_vertical_router) over the 5 Orionfold GGUFs. H6 (cost router) lands separately. See _SPECS/hermes-harness-v1.md.
+summary: Deterministic spine for running an agent harness on the Spark — install, configure, serve, harden, and profile Hermes across the NIM, llama-server, vLLM, and Ollama lanes, with a vertical router over the Orionfold experts.
 order: 12
 ---
 

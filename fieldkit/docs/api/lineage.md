@@ -1,7 +1,7 @@
 ---
 module: lineage
 title: fieldkit.lineage
-summary: Append-only trial log + deterministic prompt rendering — the portable part of cxcscmu's Auto-Research-Recipes harness. A 17-column TSV per trial, a 10-class status enum, and the Markdown lineage block the next specialist reads at session entry.
+summary: Append-only trial log plus deterministic prompt rendering — every experiment lands as one typed TSV row, and a Markdown lineage block briefs the next session on entry.
 order: 6
 ---
 

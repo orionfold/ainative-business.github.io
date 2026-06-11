@@ -96,7 +96,7 @@ Once the inputs are confirmed:
    ```bash
    python3 /home/nvidia/ainative-business.github.io/.claude/skills/fieldkit-curator/scripts/audit_landing.py
    ```
-   Hard-stops on any FAIL. The four checks are documented under **Mode: audit-landing** below. Common fixes: thread a new module's tagline into `FieldkitModules.astro`, bump a doc page's `order:` to its 1-based `FIELDKIT_MODULES` index, swap a hardcoded `0.X.Y` literal for the `version` prop. Re-run after each fix; aim for 4/4 PASS before tagging.
+   Hard-stops on any FAIL. The six checks are documented under **Mode: audit-landing** below. Common fixes: thread a new module's tagline into BOTH `FieldkitModules.astro` copies (main + arena-app), bump a doc page's `order:` to its 1-based `FIELDKIT_MODULES` index, swap a hardcoded `0.X.Y` literal for the `version` prop, trim a new module's doc `summary:` to the 60–260-char reader-facing band. Re-run after each fix; aim for 6/6 PASS before tagging.
 
 3. **Run the test suite.** From `fieldkit/`:
    ```bash
@@ -261,15 +261,19 @@ Exit code = number of FAIL verdicts. 0 = clean; ≥1 = drift, fix before tagging
 
 ### What it checks
 
-Four checks against the four kinds of silent drift in landing-page copy:
+Six checks against the six kinds of silent drift in landing-page copy:
 
 1. **`module_count_dynamic`** — `FieldkitProblem.astro` must import + use `FIELDKIT_MODULES` for the "modules, one import each" stat (not a hardcoded `'7'` string). `FieldkitModules.astro` must derive its "fieldkit in N imports" headline from `docs.length` / `moduleCount` / `moduleCountWord`, not from a static English word or integer literal. Catches the v0.4 drift directly.
 
 2. **`no_hardcoded_versions`** — no `*.astro` file under `src/components/sections/fieldkit/` may contain a `0.X.Y`-shaped literal. `FieldkitHero`, `FieldkitCli`, and `FieldkitCTAFooter` all accept a `version` prop wired from the landing page's `_version.py` read; any new section that displays the version must follow that pattern, not paste `0.4.0` inline. Catches the v0.4 case where `FieldkitCli.astro` still showed `$ fieldkit version → 0.2.0` long after v0.3 / v0.4.
 
-3. **`module_taglines`** — every module in `FIELDKIT_MODULES` must have an entry in the `taglines` map inside `FieldkitModules.astro`. Without one, the card falls back to the doc summary (1–2 sentences instead of one short tagline) and visually misaligns with its siblings. Also flags taglines for modules that have been *removed* from `FIELDKIT_MODULES`.
+3. **`module_taglines`** — every module in `FIELDKIT_MODULES` must have a ≤56-char entry in the `taglines` map inside BOTH copies of `FieldkitModules.astro` — the main-site one AND `arena-app/src/components/sections/fieldkit/FieldkitModules.astro` (the arena-app copy is the easy miss; it froze at 13 taglines while 18 modules shipped, caught 2026-06-10). Without one, the card falls back to the doc summary and visually misaligns with its siblings; over-length taglines wrap and break the card grid's anchor line. Also flags taglines for modules that have been *removed* from `FIELDKIT_MODULES`.
 
 4. **`docs_order_matches_modules`** — every `fieldkit/docs/api/<module>.md` `order:` frontmatter must equal that module's 1-based index in `FIELDKIT_MODULES`. `FieldkitModules.astro` sorts cards by `order`, so collisions silently swap card positions on the page (the v0.4 trap: `cli.md order: 7` collided with the new `quant.md order: 7`, leaving `cli` mid-grid until detected). Astro's Zod schema only validates that `order:` is an integer — it can't enforce the cross-file uniqueness or canonical ordering, so this script does.
+
+5. **`landing_version_source`** — `src/pages/fieldkit/index.astro` must read the version from the package's canonical `fieldkit/src/fieldkit/_version.py` (the hatch single source of truth that the release flow bumps), and the retired two-repo-era mirror `fieldkit/_version.py` must not exist. Catches the post-cutover drift where the live page rendered **v0.13.0 for 18 releases** (until 2026-06-10): releases bumped only the canonical file while the page read the orphaned mirror the retired `sync-field-notes` skill used to maintain.
+
+6. **`doc_summary_balance`** — each `fieldkit/docs/api/<module>.md` `summary:` renders verbatim as that module's landing-card body, so it must stay reader-facing and balanced across the grid: 60–260 chars, and no internal milestone codenames (`M6` / `H3` / `W3` / `Bet 5` / `Phase 2` / `_SPECS/` paths — they mean nothing to a visitor). Ship-log detail belongs in the doc body below the frontmatter, not in the card. Catches the pre-v0.31 state where `training`'s summary ran ~780 chars beside `cli`'s 96, and `arena`/`harness` read like milestone changelogs. **When a new module ships, write its `summary:` to this contract from day one.**
 
 ### What it does NOT check
 
@@ -281,7 +285,7 @@ By design — these belong elsewhere or in human review:
 
 ### Updating the script when the page evolves
 
-When `src/components/sections/fieldkit/` gains a new section, decide whether it carries any of the four drift classes:
+When `src/components/sections/fieldkit/` gains a new section, decide whether it carries any of the six drift classes:
 - If it displays a module count → the script's regex for the headline / stat needs an additional match.
 - If it displays a version → either thread the `version` prop in (preferred) or extend the script's allowlist.
 - If it lists modules by name → add it to the module-list check.

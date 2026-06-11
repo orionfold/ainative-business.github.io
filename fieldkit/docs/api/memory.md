@@ -1,7 +1,7 @@
 ---
 module: memory
 title: fieldkit.memory
-summary: The Arena M10 recall layer (Bet 5) — MemoryIndex, KnowledgeCard, Provenance, ingest_sources, coverage_report, resolve_qa_set. A managed, multi-source, provenance-aware index over the Second Brain, with an article_index ⋈ index coverage report and an eval-gated re-index.
+summary: Provenance-aware memory index over the Second Brain — multi-source ingest into knowledge cards, a coverage report against the article index, and an eval-gated re-index.
 order: 15
 ---
 

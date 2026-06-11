@@ -3,22 +3,22 @@
   "project": "spark",
   "updated": "2026-06-10",
   "health": "green",
-  "focus": "Design-language session: verify_svg.sh legacy debt cleared (105→0 across 12 old signature components) and the marketing site realigned to the orionfold.com parent brand (indigo+gold token system, of-surface card idiom); Airtable system re-scoped to Arena operator panes only",
+  "focus": "/fieldkit/ landing un-froze: page read a retired version mirror frozen at v0.13.0 for 18 releases — now reads canonical _version.py (v0.31.0); 18 module summaries rebalanced reader-facing; audit_landing.py grew version-source + summary-balance gates",
   "blockers": [],
   "next": [
+    "Rebake arena _webui to pick up the FieldkitModules tagline sync (copy-only)",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)",
     "Optional v0.3 lever: Route:-prefix boundary + the one over-refusal class (freeze curveball-v0.3 first)"
   ],
   "recent": [
-    "verify_svg.sh 105 violations → 0: aria/role, stroke-width scale, referenced gradients across 12 legacy signature components; 2 orphans deleted (ad6a092)",
-    "Marketing site follows orionfold.com: tokens extracted from the live parent site into global.css @theme; hero navy→blue→gold ramp; .of-surface/.of-pressable cards on home; _SPECS/orionfold-brand-alignment-v1.md",
-    "design-system-v1 (Airtable) re-scoped to arena-app operator panes only; _SPECS/index.md updated",
-    "Build 537 pages + artifact/field-notes/SVG verifiers green; home/field-notes/article/artifacts browser-smoked",
-    "HF: Orionfold/Advisor-GGUF + Advisor-bench live (prior session); 4B-SFT-v0.2 stays the serving lane"
+    "/fieldkit/ live version v0.13.0 → v0.31.0: index.astro reads fieldkit/src/fieldkit/_version.py; orphaned mirror deleted; sync-field-notes mirror logic retired",
+    "18 docs/api summaries rewritten 96–222 chars (training was ~780; internal M*/H*/Bet codenames stripped); taglines trimmed; arena-app FieldkitModules synced 13→18 modules",
+    "fieldkit-curator audit_landing.py 4→6 checks (landing_version_source, doc_summary_balance, dual-copy tagline audit) — 6/6 PASS",
+    "Build 537 pages + artifact/field-notes verifiers green"
   ],
-  "session": "S-orionfold-brand-realign",
+  "session": "S-fieldkit-landing-unfreeze",
   "metrics": {
     "articles": 54,
     "models": 7,

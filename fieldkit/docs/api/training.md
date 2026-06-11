@@ -1,7 +1,7 @@
 ---
 module: training
 title: fieldkit.training
-summary: Fine-tuning primitives for any RL or SFT loop on the Spark — a declarative TrainRecipe, an HF→Megatron-Core converter with the Megatron-Bridge YARN-rope-defaults fix baked in, an idempotent llama.cpp pre-tokenizer registrar, a symmetric `run()`/`merge_and_export()` driver across NeMo and Unsloth backends with poll-disk liveness and the BF16-clean export transformation baked in, a budget-normalizing `ReasoningProbe` + `ProbeReport.compare` for chain-of-thought preservation checks, a YAML-lookup `train_backend()` decision API with a `refresh()` flywheel for keeping the decision corpus current, a CPU-resident LoRA reference snapshot that sidesteps peft 0.19's offloader bug, and a pre/post weight-delta tracker for sanity-checking that gradients actually moved.
+summary: Fine-tuning primitives for LoRA SFT and RL on the Spark — declarative recipes, an HF→Megatron converter, symmetric NeMo/Unsloth train-and-export drivers, reasoning-preservation probes, and weight-delta sanity checks.
 order: 5
 ---
 

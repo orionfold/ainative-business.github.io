@@ -1,7 +1,7 @@
 ---
 module: notebook
 title: fieldkit.notebook
-summary: Dual-path notebook runtime + scaffolding for Orionfold artifact notebooks. `detect_runtime()` branches Spark (full local fieldkit path) vs Colab/Kaggle (pull published GGUF → llama-cpp-python on the free GPU); `open_model(hf_repo, variant=...)` returns a backend-agnostic `ChatClient` with one `.chat()` surface; URL/badge builders + a deterministic `NotebookBuilder` lay the jupytext py:percent skeleton the notebook-author skill fills with prose. Lazy + optional — behind the `fieldkit[notebook]` extra.
+summary: Dual-path notebook runtime and scaffolding — detects Spark vs Colab/Kaggle, opens a published GGUF behind one .chat() surface, and lays the skeleton the notebook-author fills with prose.
 order: 11
 ---
 

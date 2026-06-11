@@ -1,7 +1,7 @@
 ---
 module: cost
 title: fieldkit.cost
-summary: The Arena M9 cost plane (Bet 6) — CostLedger, PriceSnapshot, seed_price_snapshot, cost_per_quality. Persists the OpenRouter cost the cockpit already computes and surfaces $/task + $/quality-point as the third ranking axis. Ledger, not governor.
+summary: Per-run cost ledger for the cockpit — persists what each cloud call cost and ranks lanes by $/task and $/quality-point alongside speed and quality. Ledger, not governor.
 order: 14
 ---
 

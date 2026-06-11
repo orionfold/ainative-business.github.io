@@ -1,7 +1,7 @@
 ---
 module: rag
 title: fieldkit.rag
-summary: Composable ingest → retrieve → rerank → fuse RAG pipeline backed by pgvector + a NIM embedder + the strict-context grounded prompt from `naive-rag-on-spark`.
+summary: Composable ingest → retrieve → rerank → fuse RAG pipeline backed by pgvector and a NIM embedder, with a strict grounded-answer prompt that refuses to answer outside its context.
 order: 3
 ---
 

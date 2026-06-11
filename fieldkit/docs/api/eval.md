@@ -1,7 +1,7 @@
 ---
 module: eval
 title: fieldkit.eval
-summary: Bench, Judge, Trajectory, the project's refusal detector — plus the v0.2 verifier-loop additions (AssertionGrader, PassAtK, AgentRun, MatchedBaseComparison) for agent + RL benchmarks.
+summary: Bench, Judge, and Trajectory primitives plus a refusal detector, assertion grader, and pass@k — the verifier loop behind every agent and RL benchmark on this site.
 order: 4
 ---
 

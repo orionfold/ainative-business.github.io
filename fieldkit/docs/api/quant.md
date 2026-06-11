@@ -1,7 +1,7 @@
 ---
 module: quant
 title: fieldkit.quant
-summary: GGUF quantize + measure pipeline — wraps llama.cpp's `convert_hf_to_gguf.py` + `llama-quantize` + `llama-perplexity` + `llama-bench`, plus a pure-stdlib `nvidia-smi` thermal probe. Emits the `QuantReport` shape `fieldkit.publish.publish_quant` consumes. Non-GGUF formats (AWQ / GPTQ / EXL3 / MLX / NVFP4) are named stubs reserving the v0.5 API surface.
+summary: GGUF quantize-and-measure pipeline over llama.cpp — convert, quantize, perplexity, speed, and thermal probes that emit the QuantReport every published artifact card is built from.
 order: 7
 ---
 

@@ -1,7 +1,7 @@
 ---
 module: viz
 title: fieldkit.viz
-summary: Branded chart + hero-table builders for Orionfold artifact notebooks. Turns an `ArtifactManifest` (or its bare measurement dicts) into marketing-grade matplotlib `Figure`s styled by the bundled `orionfold.mplstyle`, plus great_tables `GT` hero tables with inline nano-plots. The visual layer behind the notebooks-as-artifacts pilot, article figures, and (eventually) the home-page infographic. Lazy + optional — lives behind the `fieldkit[notebook]` extra.
+summary: Branded chart and hero-table builders — turns an artifact manifest into marketing-grade matplotlib figures and great_tables displays, styled by the bundled Orionfold theme.
 order: 10
 ---
 

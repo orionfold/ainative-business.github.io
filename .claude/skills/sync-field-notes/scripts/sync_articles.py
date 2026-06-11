@@ -352,16 +352,20 @@ def restore_gated_footers() -> dict:
 
 
 def sync_fieldkit() -> dict:
-    """Sync the 5 module reference markdown files + the version file."""
+    """Sync the module reference markdown files.
+
+    RETIRED (2026-06-10): the `fieldkit/_version.py` mirror is gone. Since
+    the monorepo cutover, `src/pages/fieldkit/index.astro` reads the
+    package's canonical `fieldkit/src/fieldkit/_version.py` directly —
+    do NOT recreate the mirror (it froze the live page at v0.13.0 for
+    18 releases when this sync stopped running).
+    """
     counts = {"fieldkit_doc": 0, "fieldkit_version": 0}
     if FIELDKIT_DOCS_SOURCE.is_dir():
         FIELDKIT_DOCS_TARGET.mkdir(parents=True, exist_ok=True)
         for src in FIELDKIT_DOCS_SOURCE.glob("*.md"):
             if copy_if_different(src, FIELDKIT_DOCS_TARGET / src.name):
                 counts["fieldkit_doc"] += 1
-    if FIELDKIT_VERSION_SOURCE.exists():
-        if copy_if_different(FIELDKIT_VERSION_SOURCE, FIELDKIT_VERSION_TARGET):
-            counts["fieldkit_version"] += 1
     return counts
 
 

@@ -1,7 +1,7 @@
 ---
 module: budget
 title: fieldkit.budget
-summary: The Arena M11 budget governor (Phase 2) — BudgetGovernor, BudgetDecision, SpendDigest, EscalationReason, MemoryEnvelope, check_budget. The brake the autonomous drain consults before each job — allow / escalate (the 33% local ceiling) / defer (over cap or no envelope). Governor, not meter.
+summary: The spend governor the autonomous job drain consults before each dispatch — allow, escalate, or defer against an explicit budget envelope. Governor, not meter.
 order: 16
 ---
 

@@ -1,7 +1,7 @@
 ---
 module: capabilities
 title: fieldkit.capabilities
-summary: Typed Python facade over the project's Spark capabilities map. Canonical KV-cache and weight arithmetic.
+summary: Typed Python facade over the project's Spark capabilities map — canonical KV-cache and weight arithmetic for sizing what fits in 128 GB.
 order: 1
 ---
 
