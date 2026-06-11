@@ -1,0 +1,82 @@
+{
+  "bench": "advisor_contract",
+  "description": "Frozen OOD curveball gates for the Orionfold Advisor packet contract (answer with exact source-id citations / refuse / route). core_pass_rate is the fraction of score.strict_passed per (lane, gate); gates are never conflated. Receipts from the 2026-06 launch sessions; see Orionfold/Advisor-bench and products/orionfold-advisor/.",
+  "scoring": "strict (scored==strict: citation_ok + refusal_ok + route_ok, no alias residue / bare answers / thinking leaks)",
+  "promoted_lane": "4b-sft-v0.2 (serving lane on :8091, llama.cpp Q8_0)",
+  "benches": {
+    "curveball-v0.1": {
+      "bench_file": "evidence/orionfold-advisor/advisor-curveball-v0.1.jsonl",
+      "sha12": "122bcd619e9d"
+    },
+    "curveball-v0.2": {
+      "bench_file": "evidence/orionfold-advisor/advisor-curveball-v0.2.jsonl",
+      "sha12": "4b6cac85e41f"
+    }
+  },
+  "models": {
+    "30b-prompted::curveball-v0.1": {
+      "core_pass_rate": 0.575,
+      "strict_passed": 23,
+      "tasks": 40,
+      "refusals_ok": 11,
+      "refusals_total": 15,
+      "private_state_risk_rows": 0,
+      "source": "evidence/orionfold-advisor/advisor-curveball-30b-v0.1.results.jsonl"
+    },
+    "4b-init::curveball-v0.1": {
+      "core_pass_rate": 0.55,
+      "strict_passed": 22,
+      "tasks": 40,
+      "refusals_ok": 14,
+      "refusals_total": 15,
+      "private_state_risk_rows": 0,
+      "source": "evidence/orionfold-advisor/advisor-curveball-4binit-v0.1.results.jsonl"
+    },
+    "4b-sft-v0.1::curveball-v0.1": {
+      "core_pass_rate": 0.7,
+      "strict_passed": 28,
+      "tasks": 40,
+      "refusals_ok": 9,
+      "refusals_total": 15,
+      "private_state_risk_rows": 0,
+      "source": "evidence/orionfold-advisor/advisor-curveball-4bsft-v0.1.results.jsonl"
+    },
+    "4b-sft-v0.2::curveball-v0.1": {
+      "core_pass_rate": 0.9,
+      "strict_passed": 36,
+      "tasks": 40,
+      "refusals_ok": 15,
+      "refusals_total": 15,
+      "private_state_risk_rows": 0,
+      "source": "evidence/orionfold-advisor/advisor-curveball-4bsft2-v0.1.results.jsonl",
+      "tokens_per_sec": 42.0
+    },
+    "30b-prompted::curveball-v0.2": {
+      "core_pass_rate": 0.381,
+      "strict_passed": 8,
+      "tasks": 21,
+      "refusals_ok": 3,
+      "refusals_total": 9,
+      "private_state_risk_rows": 3,
+      "source": "evidence/orionfold-advisor/advisor-curveball2-30b-v0.1.results.jsonl"
+    },
+    "4b-sft-v0.2::curveball-v0.2": {
+      "core_pass_rate": 0.8571,
+      "strict_passed": 18,
+      "tasks": 21,
+      "refusals_ok": 9,
+      "refusals_total": 9,
+      "private_state_risk_rows": 0,
+      "source": "evidence/orionfold-advisor/advisor-curveball2-4bsft2-v0.1.results.jsonl",
+      "tokens_per_sec": 42.0
+    }
+  },
+  "sources": [
+    "evidence/orionfold-advisor/advisor-curveball-30b-v0.1.results.jsonl",
+    "evidence/orionfold-advisor/advisor-curveball-4binit-v0.1.results.jsonl",
+    "evidence/orionfold-advisor/advisor-curveball-4bsft-v0.1.results.jsonl",
+    "evidence/orionfold-advisor/advisor-curveball-4bsft2-v0.1.results.jsonl",
+    "evidence/orionfold-advisor/advisor-curveball2-30b-v0.1.results.jsonl",
+    "evidence/orionfold-advisor/advisor-curveball2-4bsft2-v0.1.results.jsonl"
+  ]
+}

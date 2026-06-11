@@ -35,3 +35,7 @@ positioning:
     Operators who want a corpus-grounded local advisor whose citation and
     refusal behavior is bench-proven (frozen OOD curveballs, strict scoring) —
     not a hosted assistant.
+siblings:
+  - slug: advisor-bench-v0.1
+    hf_repo: Orionfold/Advisor-bench
+    hook: The frozen held-out + pre-registered OOD curveballs (sha-pinned) and the 182-source corpus manifest behind every number on this card.

@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-11",
   "health": "green",
-  "focus": "Arena artifact-catalog drift cleared: advisor/kepler/cortex manifests synced into the arena-app copy (frozen since the 2026-05-29 cutover), schema ported, mirror regenerated — Advisor now on the frontier chart, models catalog, and detail pages, verified live over CDP",
+  "focus": "Advisor on the leaderboard (Path A executed): deterministic rollup of the launch curveball receipts into bench group the-refusal-floor-is-trainable:advisor_contract (trained-4B 85.7% above the 30B teacher 38.1%, CDP-verified live) + advisor-bench-v0.1 kind:bench manifest shipped to both catalog copies",
   "blockers": [],
   "next": [
-    "QUEUED (approved): Advisor onto the leaderboard via Path A — rollup launch receipts into articles/the-refusal-floor-is-trainable/evidence/advisor_contract_results.json, import → rebuild → mirror → rebake (runbook in HANDOFF Open Items)",
-    "Author the missing kind:bench manifest for Orionfold/Advisor-bench from the same receipts (folded into Path A session)",
+    "Path B: live-tier cockpit:advisor_contract eval runs against the :8091 serving lane (narrated-session story)",
+    "Arena hardening batch (HANDOFF Open Items): catalog drift guard script, Cache-Control on _webui HTML, frontier head-tag honesty, kepler tok/s measurement",
     "Write the two queued series pieces: gates-before-the-advisor, governed-routing-with-receipts (upcoming placeholders live)",
     "Optional spec 10 corpus CONTROLS (import/swap + pgvector re-ingest from the cockpit; read pane shipped)",
     "Optional spec 12 live per-query route-ledger persistence (bakeoff read surface shipped)"
   ],
   "recent": [
-    "arena-app artifacts collection synced to canonical: +advisor-gguf/+kepler-gguf/+orionfold-cortex, 8 stale manifests refreshed, schema ported (bench fields, lane_summary, siblings)",
-    "advisor-gguf.yaml enriched with positioning/published_at/article from the launch copy (renders on main /artifacts/ + Arena card)",
-    "Leaderboard mirror regenerated (2026-05-28 → 2026-06-11): live rows 2→21, kepler::Q8_0 ranks",
-    "CDP-verified: frontier chart 7 models · 30 builds w/ advisor sweet-spot point; models page shows all 3 new cards; demo rebaked + deployed",
-    "Gotcha: sidecar serves _webui w/o Cache-Control — Chromium can render a stale pre-bake page; verify with cache disabled"
+    "scripts/orionfold_advisor/leaderboard_rollup.py: transform-only rollup of 6 curveball results.jsonl receipts -> advisor_contract_results.json (lane x gate, gates never conflated, shas self-verified against the frozen pins)",
+    "fieldkit arena import -> rebuild-leaderboard -> mirror: bench rows 12->18; CDP-verified the new group ranks trained-4B above the 30B teacher with 42 tok/s only on the promoted lane",
+    "advisor-bench-v0.1.yaml authored from the live HF card (5 shapes incl. 182-source corpus manifest, sha pins, real sample rows) + reciprocal sibling on advisor-gguf; byte-copied into arena-app per dual-copy discipline",
+    "Main build 538 pages (+1 bench detail page) + both render verifiers green; demo rebaked/deployed/links verified",
+    "Found why src/data/arena-mirror/ keeps reappearing: fieldkit arena import writes it by default; use --no-mirror"
   ],
-  "session": "S-arena-catalog-drift",
+  "session": "S-advisor-leaderboard-path-a",
   "metrics": {
     "articles": 54,
     "models": 7,

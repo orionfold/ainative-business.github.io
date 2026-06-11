@@ -1,47 +1,8 @@
 {
-  "generated_at": "2026-06-11T09:40:57Z",
+  "generated_at": "2026-06-11T10:56:17Z",
   "source": "fieldkit arena mirror (M6 exporter)",
   "schema_version": 2,
   "rows": [
-    {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "local-only::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 0.6667,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
-    {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "cost-routed::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 0.9167,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
-    {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "frontier-only::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 1.0,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
     {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
       "lane_id": "brain::hermes-vertical-router-on-spark",
@@ -51,7 +12,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -64,7 +25,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -77,7 +38,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -90,7 +51,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -103,7 +64,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -116,7 +77,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -129,7 +90,7 @@
       "median_tok_per_s": 23.9,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -142,7 +103,7 @@
       "median_tok_per_s": 83.5,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -155,52 +116,130 @@
       "median_tok_per_s": 55.0,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "local-only::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.6667,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "cost-routed::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.9167,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "frontier-only::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "30b-prompted::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.575,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-init::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.55,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.1::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.7,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.2::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.9,
+      "median_tok_per_s": 42.0,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "30b-prompted::curveball-v0.2::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.381,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.2::curveball-v0.2::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.8571,
+      "median_tok_per_s": 42.0,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     }
   ],
   "bench_rows": [
     {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "local-only::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 0.6667,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
-    {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "cost-routed::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 0.9167,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
-    {
-      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
-      "lane_id": "frontier-only::hermes-cost-routing-local-and-openrouter",
-      "manifest_slug": null,
-      "n_runs": 1,
-      "mean_score": 1.0,
-      "median_tok_per_s": null,
-      "mean_ttft_ms": null,
-      "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
-      "mean_cost_usd": null,
-      "cost_per_quality_point": null
-    },
-    {
       "bench_id": "hermes-vertical-router-on-spark:vertical_router",
       "lane_id": "brain::hermes-vertical-router-on-spark",
       "manifest_slug": null,
@@ -209,7 +248,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -222,7 +261,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -235,7 +274,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -248,7 +287,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -261,7 +300,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -274,7 +313,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -287,7 +326,7 @@
       "median_tok_per_s": 23.9,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -300,7 +339,7 @@
       "median_tok_per_s": 83.5,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -313,7 +352,124 @@
       "median_tok_per_s": 55.0,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "local-only::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.6667,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "cost-routed::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.9167,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "hermes-cost-routing-local-and-openrouter:cost_router",
+      "lane_id": "frontier-only::hermes-cost-routing-local-and-openrouter",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 1.0,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "30b-prompted::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.575,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-init::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.55,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.1::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.7,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.2::curveball-v0.1::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.9,
+      "median_tok_per_s": 42.0,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "30b-prompted::curveball-v0.2::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.381,
+      "median_tok_per_s": null,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
+      "mean_cost_usd": null,
+      "cost_per_quality_point": null
+    },
+    {
+      "bench_id": "the-refusal-floor-is-trainable:advisor_contract",
+      "lane_id": "4b-sft-v0.2::curveball-v0.2::the-refusal-floor-is-trainable",
+      "manifest_slug": null,
+      "n_runs": 1,
+      "mean_score": 0.8571,
+      "median_tok_per_s": 42.0,
+      "mean_ttft_ms": null,
+      "human_pref_winrate": null,
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     }
@@ -328,7 +484,7 @@
       "median_tok_per_s": 89.28985315795019,
       "mean_ttft_ms": 139.9198278554,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -341,7 +497,7 @@
       "median_tok_per_s": 27.25157694383146,
       "mean_ttft_ms": 3179.4645479967585,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -354,7 +510,7 @@
       "median_tok_per_s": 97.93606584213693,
       "mean_ttft_ms": 134.13492585719465,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -367,7 +523,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": 0.0,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -380,7 +536,7 @@
       "median_tok_per_s": 200.53278295930005,
       "mean_ttft_ms": 792.386171000544,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -393,7 +549,7 @@
       "median_tok_per_s": 239.6065513244001,
       "mean_ttft_ms": 6529.952059001516,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -406,7 +562,7 @@
       "median_tok_per_s": 48.870108370790724,
       "mean_ttft_ms": 82.45349699973303,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -419,7 +575,7 @@
       "median_tok_per_s": 46.508011264254634,
       "mean_ttft_ms": 62.01130999943416,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -432,7 +588,7 @@
       "median_tok_per_s": 44.48090991801903,
       "mean_ttft_ms": 66.64160400032415,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -445,7 +601,7 @@
       "median_tok_per_s": 16.13824257925149,
       "mean_ttft_ms": 1039.9778772499815,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -458,7 +614,7 @@
       "median_tok_per_s": 8.115526137669663,
       "mean_ttft_ms": 21464.442854999903,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 0.01485,
       "cost_per_quality_point": 0.01485
     },
@@ -471,7 +627,7 @@
       "median_tok_per_s": 41.05069725705218,
       "mean_ttft_ms": 151.59523200037484,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -484,7 +640,7 @@
       "median_tok_per_s": 98.96605881928028,
       "mean_ttft_ms": 3588.0779526667843,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -497,7 +653,7 @@
       "median_tok_per_s": 158.00572166836102,
       "mean_ttft_ms": 1262.360897999315,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -510,7 +666,7 @@
       "median_tok_per_s": 26436.968959107056,
       "mean_ttft_ms": 84262.89077399997,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -523,7 +679,7 @@
       "median_tok_per_s": 18.883891822403513,
       "mean_ttft_ms": 171.93077800038736,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": null,
       "cost_per_quality_point": null
     },
@@ -536,7 +692,7 @@
       "median_tok_per_s": 8.607221935498591,
       "mean_ttft_ms": 240.99488425417803,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 0.0,
       "cost_per_quality_point": 0.0
     },
@@ -549,7 +705,7 @@
       "median_tok_per_s": null,
       "mean_ttft_ms": null,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 1.8e-05,
       "cost_per_quality_point": null
     },
@@ -562,7 +718,7 @@
       "median_tok_per_s": 24.59746123965426,
       "mean_ttft_ms": 157502.7129742266,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 0.0001105,
       "cost_per_quality_point": 0.0001105
     },
@@ -575,7 +731,7 @@
       "median_tok_per_s": 28.813444494397295,
       "mean_ttft_ms": 450.0865799944336,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 0.0,
       "cost_per_quality_point": 0.0
     },
@@ -588,7 +744,7 @@
       "median_tok_per_s": 111.3979526733745,
       "mean_ttft_ms": 1111.9890724996822,
       "human_pref_winrate": null,
-      "last_run_at": "2026-06-11T09:40:57Z",
+      "last_run_at": "2026-06-11T10:56:17Z",
       "mean_cost_usd": 0.001281,
       "cost_per_quality_point": 0.001281
     }
@@ -2201,6 +2357,146 @@
       "recommended": 0
     },
     {
+      "id": "openrouter::nvidia/nemotron-nano-9b-v2",
+      "kind": "RemoteLane",
+      "model": "nvidia/nemotron-nano-9b-v2",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::anthropic/claude-opus-4.8-fast",
+      "kind": "RemoteLane",
+      "model": "anthropic/claude-opus-4.8-fast",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "kepler-q8-gguf",
+      "kind": "LlamaServerLane",
+      "model": "kepler-Q8_0",
+      "manifest_slug": null,
+      "recommended": 1
+    },
+    {
+      "id": "qwen3-8b-stock",
+      "kind": "OpenRouterLane",
+      "model": "qwen/qwen3-8b",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "deepseek-r1",
+      "kind": "OpenRouterLane",
+      "model": "deepseek/deepseek-r1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::deepseek/deepseek-r1-0528",
+      "kind": "RemoteLane",
+      "model": "deepseek/deepseek-r1-0528",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "kepler::Q8_0",
+      "kind": "LlamaServerLane",
+      "model": "kepler::Q8_0",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "claude-haiku-45",
+      "kind": "OpenRouterLane",
+      "model": "anthropic/claude-haiku-4.5",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::anthropic/claude-haiku-4.5",
+      "kind": "RemoteLane",
+      "model": "anthropic/claude-haiku-4.5",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::openai/gpt-5.5-pro",
+      "kind": "RemoteLane",
+      "model": "openai/gpt-5.5-pro",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "openrouter::qwen/qwen3-8b",
+      "kind": "RemoteLane",
+      "model": "qwen/qwen3-8b",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "discovered:8091",
+      "kind": "LlamaServerLane",
+      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "30b-prompted::curveball-v0.1::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "30b-prompted::curveball-v0.1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "4b-init::curveball-v0.1::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "4b-init::curveball-v0.1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "4b-sft-v0.1::curveball-v0.1::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "4b-sft-v0.1::curveball-v0.1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "4b-sft-v0.2::curveball-v0.1::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "4b-sft-v0.2::curveball-v0.1",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "30b-prompted::curveball-v0.2::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "30b-prompted::curveball-v0.2",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "4b-sft-v0.2::curveball-v0.2::the-refusal-floor-is-trainable",
+      "kind": "BenchVariant",
+      "model": "4b-sft-v0.2::curveball-v0.2",
+      "manifest_slug": null,
+      "recommended": 0
+    },
+    {
+      "id": "advisor-bench-v0.1::nav",
+      "kind": "BenchSpec",
+      "model": "n/a",
+      "manifest_slug": "advisor-bench-v0.1",
+      "recommended": 1
+    },
+    {
+      "id": "advisor-gguf::Q8_0",
+      "kind": "LlamaServerLane",
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16@Q8_0",
+      "manifest_slug": "advisor-gguf",
+      "recommended": 1
+    },
+    {
       "id": "finance-chat-gguf::Q4_K_M",
       "kind": "LlamaServerLane",
       "model": "AdaptLLM/finance-chat@Q4_K_M",
@@ -2208,9 +2504,30 @@
       "recommended": 0
     },
     {
+      "id": "finance-chat-gguf::Q5_K_M",
+      "kind": "LlamaServerLane",
+      "model": "AdaptLLM/finance-chat@Q5_K_M",
+      "manifest_slug": "finance-chat-gguf",
+      "recommended": 0
+    },
+    {
+      "id": "finance-chat-gguf::Q6_K",
+      "kind": "LlamaServerLane",
+      "model": "AdaptLLM/finance-chat@Q6_K",
+      "manifest_slug": "finance-chat-gguf",
+      "recommended": 0
+    },
+    {
       "id": "finance-chat-gguf::Q8_0",
       "kind": "LlamaServerLane",
       "model": "AdaptLLM/finance-chat@Q8_0",
+      "manifest_slug": "finance-chat-gguf",
+      "recommended": 0
+    },
+    {
+      "id": "finance-chat-gguf::F16",
+      "kind": "LlamaServerLane",
+      "model": "AdaptLLM/finance-chat@F16",
       "manifest_slug": "finance-chat-gguf",
       "recommended": 0
     },
@@ -2271,10 +2588,45 @@
       "recommended": 1
     },
     {
+      "id": "kepler-gguf::Q4_K_M",
+      "kind": "LlamaServerLane",
+      "model": "Qwen/Qwen3-8B@Q4_K_M",
+      "manifest_slug": "kepler-gguf",
+      "recommended": 0
+    },
+    {
+      "id": "kepler-gguf::Q5_K_M",
+      "kind": "LlamaServerLane",
+      "model": "Qwen/Qwen3-8B@Q5_K_M",
+      "manifest_slug": "kepler-gguf",
+      "recommended": 0
+    },
+    {
+      "id": "kepler-gguf::Q6_K",
+      "kind": "LlamaServerLane",
+      "model": "Qwen/Qwen3-8B@Q6_K",
+      "manifest_slug": "kepler-gguf",
+      "recommended": 0
+    },
+    {
+      "id": "kepler-gguf::Q8_0",
+      "kind": "LlamaServerLane",
+      "model": "Qwen/Qwen3-8B@Q8_0",
+      "manifest_slug": "kepler-gguf",
+      "recommended": 1
+    },
+    {
       "id": "orionfold-arena::nav",
       "kind": "arena_run",
       "model": "fieldkit[arena] \u00b7 Astro + FastAPI sidecar",
       "manifest_slug": "orionfold-arena",
+      "recommended": 1
+    },
+    {
+      "id": "orionfold-cortex::nav",
+      "kind": "HarnessConfig",
+      "model": "fieldkit.memory \u00b7 pgvector(vectors/blog_chunks) \u00b7 NIM llama-nemotron-embed-1b-v2",
+      "manifest_slug": "orionfold-cortex",
       "recommended": 1
     },
     {
@@ -2290,6 +2642,13 @@
       "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
       "manifest_slug": "patent-strategist-notebooks",
       "recommended": 1
+    },
+    {
+      "id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
+      "kind": "LlamaServerLane",
+      "model": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B@Q4_K_M",
+      "manifest_slug": "patent-strategist-v3-nemo-gguf",
+      "recommended": 0
     },
     {
       "id": "patent-strategist-v3-nemo-gguf::Q5_K_M",
@@ -2432,123 +2791,11 @@
       "recommended": 1
     },
     {
-      "id": "finance-chat-gguf::Q5_K_M",
-      "kind": "LlamaServerLane",
-      "model": "finance-chat-gguf::Q5_K_M",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::nvidia/nemotron-nano-9b-v2",
-      "kind": "RemoteLane",
-      "model": "nvidia/nemotron-nano-9b-v2",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "patent-strategist-v3-nemo-gguf::Q4_K_M",
-      "kind": "LlamaServerLane",
-      "model": "patent-strategist-v3-nemo-gguf::Q4_K_M",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::anthropic/claude-opus-4.8-fast",
-      "kind": "RemoteLane",
-      "model": "anthropic/claude-opus-4.8-fast",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "finance-chat-gguf::F16",
-      "kind": "LlamaServerLane",
-      "model": "finance-chat-gguf::F16",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "kepler-q8-gguf",
-      "kind": "LlamaServerLane",
-      "model": "kepler-Q8_0",
-      "manifest_slug": null,
-      "recommended": 1
-    },
-    {
-      "id": "qwen3-8b-stock",
-      "kind": "OpenRouterLane",
-      "model": "qwen/qwen3-8b",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "deepseek-r1",
-      "kind": "OpenRouterLane",
-      "model": "deepseek/deepseek-r1",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::deepseek/deepseek-r1-0528",
-      "kind": "RemoteLane",
-      "model": "deepseek/deepseek-r1-0528",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "kepler::Q8_0",
-      "kind": "LlamaServerLane",
-      "model": "kepler::Q8_0",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "claude-haiku-45",
-      "kind": "OpenRouterLane",
-      "model": "anthropic/claude-haiku-4.5",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::anthropic/claude-haiku-4.5",
-      "kind": "RemoteLane",
-      "model": "anthropic/claude-haiku-4.5",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
       "id": "resident-brain",
       "kind": "LlamaServerLane",
-      "model": "Qwen3-30B-A3B-Q4_K_M",
+      "model": "",
       "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "finance-chat-gguf::Q6_K",
-      "kind": "LlamaServerLane",
-      "model": "finance-chat-gguf::Q6_K",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::openai/gpt-5.5-pro",
-      "kind": "RemoteLane",
-      "model": "openai/gpt-5.5-pro",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "openrouter::qwen/qwen3-8b",
-      "kind": "RemoteLane",
-      "model": "qwen/qwen3-8b",
-      "manifest_slug": null,
-      "recommended": 0
-    },
-    {
-      "id": "discovered:8091",
-      "kind": "LlamaServerLane",
-      "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
-      "manifest_slug": null,
-      "recommended": 0
+      "recommended": 1
     }
   ],
   "openrouter_price_snapshot": [
