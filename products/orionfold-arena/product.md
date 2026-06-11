@@ -211,15 +211,21 @@ the panel always tells the truth about what the machine is doing right now.
 
 ### Know which model wins — the leaderboard
 
-![The Arena leaderboard: bench-anchored rankings with rank medals and traffic-light score bars](screenshots/02-leaderboard.png)
+![The Arena leaderboard: the flagship Advisor group leads the bench-anchored rankings — plain-language lane names with flagship, promoted-lane, and frozen-OOD gate pills, rank medals, and traffic-light score bars](screenshots/02-leaderboard.png)
 
-*Bench-anchored rankings grouped by bench, with rank medals, traffic-light score
-bars, and throughput — plus a live cockpit section that folds in every chat and
-compare run, built from a leak-proof public mirror.*
+*The flagship Advisor group leads the board: plain-language lane names ("Advisor
+4B — trained (SFT v0.2)", "Nemotron 30B — teacher · prompt-only") with role pills
+— ◆ flagship, promoted lane, superseded, baseline, teacher — and a frozen-OOD
+gate pill on every row, so you can read which gate each score came from at a
+glance. The raw receipt id stays underneath every friendly name.*
 
 The leaderboard is the Arena's memory. It promotes the bench evidence your models
 were measured on into ranked tables — one group per bench, medals on the top
-three, score bars colored by how good the number is. Below the bench tables a
+three, score bars colored by how good the number is. The house model gets a
+display layer, not a thumb on the scale: the Advisor contract group renders
+first with translated lane names and role/gate pills, while the receipt-shaped
+lane id every score actually belongs to stays printed under the name — friendly
+to read, impossible to mistake for different data. Below the bench tables a
 **live cockpit leaderboard** folds in the runs you generate as you use the Arena:
 every scored chat and compare lands as a row, model-leads, badged **Spark GPU**
 or **OpenRouter** so you always know where a number came from, and it refreshes
@@ -230,19 +236,22 @@ publish; the data behind it stays yours.
 
 ### Decide what to ship — the efficiency frontier
 
-![The efficiency frontier: quality versus throughput for every quant build, with the Pareto skyline drawn in orange](screenshots/03-efficiency-frontier.png)
+![The efficiency frontier: quality versus throughput for every quant build, the Pareto skyline drawn in orange, and the flagship Advisor build marked as a violet diamond sitting on the frontier line](screenshots/03-efficiency-frontier.png)
 
 *Quality versus throughput for every quant build the Spark has measured, with the
-Pareto frontier drawn in orange. The points on the orange line are the ones worth
-shipping.*
+Pareto frontier drawn in orange. The flagship Advisor build renders as a violet
+diamond — here sitting on the frontier itself, inside the gold sweet-spot ring.
+The points on the orange line are the ones worth shipping.*
 
 This is the chart that turns a pile of measurements into a decision. Each build
 is a point in quality-versus-throughput space; the orange skyline is the Pareto
 frontier — the set of builds where you can't get more quality without giving up
-speed. For a researcher choosing which quantization to release, the frontier *is*
-the answer: ship a point on the orange line and know exactly what you traded to be
-there. Quality is normalized per model, because perplexity is only comparable
-within one base; each model's variants form their own curve.
+speed. The flagship gets its own mark — a violet diamond drawn above the line
+so it never disappears into the per-model color cycle. For a researcher choosing
+which quantization to release, the frontier *is* the answer: ship a point on the
+orange line and know exactly what you traded to be there. Quality is normalized
+per model, because perplexity is only comparable within one base; each model's
+variants form their own curve.
 
 ### Browse the shelf — the models browser
 
