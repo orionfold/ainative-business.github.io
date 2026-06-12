@@ -6,13 +6,13 @@
   "focus": "Orionfold GitHub migration executed end-to-end: history scrubbed (leaked _IDEAS strategy files erased), monorepo transferred manavsehgal -> orionfold with zero site downtime, _IDEAS moved to private orionfold/strategy repo (symlink on Spark, clone on Mac), Drive share retired same-day, link sweep + stale fieldkit PyPI metadata fixed",
   "blockers": [],
   "next": [
-    "operator: GitHub Support purge of cached pre-scrub commits; verify ainative.business domain on orionfold account (TXT); www CNAME -> orionfold.github.io",
     "operator: repoint Agency-cockpit mirror + Mac monorepo clone remotes to orionfold; delete frozen Drive share ~06-19; founder->LLC IP assignment (legal)",
     "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration) — SOTU 90-day plan starts here",
     "SOTU weeks 2-4: offer surface on orionfold.com (Advisor Kit price band + intake, certification waitlist, org-tier contact) + email capture",
     "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces"
   ],
   "recent": [
+    "DNS tail done via CDP browser: ainative.business VERIFIED on orionfold account; www CNAME -> orionfold.github.io live; apex 200 / www 301",
     "git filter-repo scrub: 558 commits rewritten, ALL SHAs changed from 2026-05-02 on; old SHAs resolve via /home/nvidia/backups/ mirror + commit-map",
     "repo transferred + accepted: github.com/orionfold/ainative-business.github.io; Pages/domain/Actions carried over; deploy green post-transfer",
     "_IDEAS = symlink -> /home/nvidia/orionfold-strategy/ainative-business-website/_IDEAS (private repo, contract v2: pull at session start, push at end)",
