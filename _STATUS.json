@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-12",
   "health": "green",
-  "focus": "cortex-grounded v0.1 FROZEN (operator gate passed; sha12 c4da31a8897e, byte-identical to the 60-row both-arm receipt) + AD-FK-2 fixed: resident-lane interactive grades now resolve to their recipe lane and reach the live accuracy island",
+  "focus": "AD-FK-1 fixed: the AE-R13 one-lane guard now exempts infra ports (Cortex embedder :8001) and teardown refuses them typed — guarded lane launches work with the grounded-chat stack up, no more docker-stop workaround",
   "blockers": [],
   "next": [
-    "Advisor v0.3 levers, now gated by the frozen pack: over-refusal class (GE-1, 22/51) + retrieval k/query handling (GE-3, 12/51); freeze curveball-v0.3 BEFORE training",
+    "Operator-armed lane session: guarded Advisor relaunch (embedder up, first live AD-FK-1 confirm) + the deferred AD-FK-2 live resident smoke",
+    "Advisor v0.3 levers, gated by the frozen pack: over-refusal class (GE-1, 22/51) + retrieval k/query handling (GE-3, 12/51); freeze curveball-v0.3 BEFORE training",
     "GE-2/GE-3 packet-contract fixes are packet swaps -> re-gate against frozen v0.1 before adopting",
-    "AD-FK-1: exempt OpenAICompat container lanes from the AE-R13 one-lane envelope (own test, no hot-patch)",
-    "Live resident smoke of AD-FK-2 at the next operator-armed lane session (:8091 is down post-reboot)",
-    "Spec basename -> EXCLUDED_SPEC_BASENAMES at next corpus build"
+    "Spec basename -> EXCLUDED_SPEC_BASENAMES at next corpus build",
+    "Write the two queued Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
   ],
   "recent": [
-    "cortex-grounded-v0.1.jsonl frozen: 60 rows, quotas exact, validator 0 failures re-verified at the gate; new rows go ONLY to cortex-grounded-ext.jsonl",
-    "AD-FK-2: _resident_lane_sid (recipe gguf match, ambiguous refuses) + benches.lane_matches_bench (membership beats first-match) at both persistence sites; 11 new tests, suite 1570 green",
-    "bench_for_lane()==bench_id was also wrong for dual-bench models — grounded compare grades were always cross-vertical",
-    "box rebooted: /tmp/arena-venv rebuilt, cockpit back up via lifecycle script on the new fieldkit code",
-    "historical local:resident rows left as persisted (data-honest); visible via include_cross_vertical=true"
+    "AD-FK-1: launcher.infra_ports() allowlist (default :8001, FK_ARENA_INFRA_PORTS override) — launch_lane filters infra ports from ONE-LANE + teardown_first; teardown_lane refuses typed infra_port",
+    "6 new tests, fieldkit suite 1576 green; docs audit 17/18 PASS (same pre-existing kwarg WARN)",
+    "live smoke: dispatched lane_teardown :8001 confirm:true -> failed row refused:infra_port, embedder untouched",
+    "sidecar recycled via lifecycle script to load the fix (new pid); memory safety unchanged — oom_envelope still gates on real MemAvailable",
+    "prior session: cortex-grounded v0.1 frozen (sha12 c4da31a8897e) + AD-FK-2 fixed (39fbe98)"
   ],
-  "session": "S-grounded-freeze-adfk2",
+  "session": "S-adfk1-infra-ports",
   "metrics": {
     "articles": 54,
     "models": 7,

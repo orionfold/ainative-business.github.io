@@ -216,6 +216,108 @@ def test_refuses_when_lock_held(tmp_path, monkeypatch):
 
 
 # --------------------------------------------------------------------------- #
+# AD-FK-1 — infra ports: the Cortex embedder must not trip ONE-LANE, and the
+# lane kill chain must never point at its docker-published port
+# --------------------------------------------------------------------------- #
+_EMBEDDER_LANE = {
+    "model": "nvidia/nemotron-embed",
+    "port": 8001,
+    "base_url": "http://127.0.0.1:8001/v1",
+    "kind": "OpenAICompatLane",
+}
+
+
+def _chat_lane(port: int = 8080) -> dict:
+    return {"model": "other.gguf", "port": port, "base_url": f"http://127.0.0.1:{port}/v1"}
+
+
+def test_infra_ports_resolution(monkeypatch):
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    assert launcher.infra_ports() == set(launcher.DEFAULT_INFRA_PORTS) == {8001}
+    monkeypatch.setenv("FK_ARENA_INFRA_PORTS", "9001, 9002")
+    assert launcher.infra_ports() == {9001, 9002}
+    # set-but-EMPTY = exemption explicitly OFF (never a silent default fallback)
+    monkeypatch.setenv("FK_ARENA_INFRA_PORTS", "")
+    assert launcher.infra_ports() == set()
+
+
+def test_infra_port_lane_does_not_trip_one_lane(tmp_path, monkeypatch):
+    """The embedder (:8001, answers /v1/models) alone must NOT refuse a guarded
+    launch. The run still stops at port_busy (the target port is faked busy so
+    the unit test never spawns) — proving ONE-LANE passed with the embedder up."""
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    monkeypatch.setenv("FIELDKIT_LLAMA_SERVER", _fake_binary(tmp_path))
+    _write_recipes(tmp_path, [{"name": "x", "gguf_path": _gguf(tmp_path), "port": 8091}])
+    monkeypatch.setattr(launcher, "_meminfo_gb", lambda: (128.0, 100.0))
+    monkeypatch.setattr(lanes, "discover", lambda *a, **k: [dict(_EMBEDDER_LANE)])
+    monkeypatch.setattr(launcher, "_tcp_connectable", lambda *a, **k: True)
+    with pytest.raises(LaunchRefused) as e:
+        launcher.launch_lane("x")
+    assert e.value.reason == "port_busy"
+
+
+def test_chat_lane_still_trips_one_lane_beside_infra(tmp_path, monkeypatch):
+    """A real chat lane refuses as before; the roster names ONLY the chat lane
+    (the exempt embedder must not muddy the refusal message)."""
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    monkeypatch.setenv("FIELDKIT_LLAMA_SERVER", _fake_binary(tmp_path))
+    _write_recipes(tmp_path, [{"name": "x", "gguf_path": _gguf(tmp_path), "port": 8091}])
+    monkeypatch.setattr(launcher, "_meminfo_gb", lambda: (128.0, 100.0))
+    monkeypatch.setattr(
+        lanes, "discover", lambda *a, **k: [dict(_EMBEDDER_LANE), _chat_lane()]
+    )
+    with pytest.raises(LaunchRefused) as e:
+        launcher.launch_lane("x")
+    assert e.value.reason == "lane_resident"
+    assert "other.gguf:8080" in str(e.value)
+    assert "8001" not in str(e.value)
+
+
+def test_teardown_first_reaps_only_chat_lanes(tmp_path, monkeypatch):
+    """teardown_first must tear down the chat lane and NEVER touch the infra
+    port (pointing teardown_lane at a docker-published port is the AD-FK-1 risk)."""
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    monkeypatch.setenv("FIELDKIT_LLAMA_SERVER", _fake_binary(tmp_path))
+    _write_recipes(tmp_path, [{"name": "x", "gguf_path": _gguf(tmp_path), "port": 8091}])
+    monkeypatch.setattr(launcher, "_meminfo_gb", lambda: (128.0, 100.0))
+    rounds = [[dict(_EMBEDDER_LANE), _chat_lane()], [dict(_EMBEDDER_LANE)]]
+    monkeypatch.setattr(
+        lanes, "discover", lambda *a, **k: list(rounds[0] if len(rounds) == 1 else rounds.pop(0))
+    )
+    torn: list[int] = []
+    monkeypatch.setattr(
+        launcher, "teardown_lane", lambda p: (torn.append(int(p)), {"port": p})[1]
+    )
+    # stop before the spawn: the target port looks busy after the teardown pass
+    monkeypatch.setattr(launcher, "_tcp_connectable", lambda *a, **k: True)
+    with pytest.raises(LaunchRefused) as e:
+        launcher.launch_lane("x", teardown_first=True)
+    assert e.value.reason == "port_busy"
+    assert torn == [8080]
+
+
+def test_teardown_lane_refuses_infra_port(monkeypatch):
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    with pytest.raises(LaunchRefused) as e:
+        launcher.teardown_lane(8001)
+    assert e.value.reason == "infra_port"
+    assert "docker" in str(e.value)
+
+
+def test_exemption_off_restores_strict_one_lane(tmp_path, monkeypatch):
+    """FK_ARENA_INFRA_PORTS set EMPTY turns the exemption off — the embedder
+    trips ONE-LANE again (the operator can always restore the strict guard)."""
+    monkeypatch.setenv("FK_ARENA_INFRA_PORTS", "")
+    monkeypatch.setenv("FIELDKIT_LLAMA_SERVER", _fake_binary(tmp_path))
+    _write_recipes(tmp_path, [{"name": "x", "gguf_path": _gguf(tmp_path), "port": 8091}])
+    monkeypatch.setattr(launcher, "_meminfo_gb", lambda: (128.0, 100.0))
+    monkeypatch.setattr(lanes, "discover", lambda *a, **k: [dict(_EMBEDDER_LANE)])
+    with pytest.raises(LaunchRefused) as e:
+        launcher.launch_lane("x")
+    assert e.value.reason == "lane_resident"
+
+
+# --------------------------------------------------------------------------- #
 # teardown — honest revert + the no-kill guards
 # --------------------------------------------------------------------------- #
 def test_teardown_already_dead_reverts_state(tmp_path):

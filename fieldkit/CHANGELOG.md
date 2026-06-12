@@ -7,6 +7,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Fixed
+- **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a
+  resident lane.** The embedder container (`nim-embed-nemotron`, `:8001`)
+  answers `/v1/models`, so lane discovery honestly reports it — and the
+  AE-R13 ONE-LANE pre-flight refused every guarded chat-lane launch
+  (`refused:lane_resident`) whenever the grounded-chat stack was up, while
+  `teardown_first` would have pointed the lane kill chain at a
+  docker-published port. `launch_lane` now filters infra ports (new
+  `launcher.infra_ports()`; default `(8001,)`, overridable via
+  `FK_ARENA_INFRA_PORTS`, set EMPTY to turn the exemption off) out of the
+  resident set and the `teardown_first` sweep, and `teardown_lane` refuses
+  infra ports up front with the new typed reason `infra_port` (manage the
+  container with its own lifecycle, e.g. `docker stop`). Memory safety is
+  unchanged — the `oom_envelope` gate still checks real MemAvailable. 6 new
+  tests.
 - **AD-FK-2 — interactive resident-lane eval grades are no longer invisible
   to the live accuracy island.** Chat/compare grades on the resident lane
   used to persist `lane_id='local:resident'` + `cross_vertical=1` (the

@@ -14,6 +14,11 @@ deterministic, correct-by-construction runner behind the Arena "launch lane" act
   memory envelope → fused ONE-LANE/port check (``project_spark_unified_memory_oom``).
   A resident lane refuses the launch unless the operator explicitly passed
   ``teardown_first`` — and a doomed launch never tears a working lane down.
+  **Infra ports** (:func:`infra_ports`, AD-FK-1) are exempt from ONE-LANE: the
+  Cortex embedder container answers ``/v1/models`` so discovery honestly reports
+  it, but it is not a chat lane — without the exemption a guarded launch was
+  impossible whenever the grounded-chat stack was up. The ``oom_envelope`` gate
+  still runs against real MemAvailable, so memory safety is unchanged.
 - **Detached spawn** — ``start_new_session=True`` (the ``_rl_gpu_serve.VLLMLane``
   pattern) + an atomic owner file, so a launched lane *survives sidecar restarts*;
   the cockpit never child-manages it.
@@ -47,6 +52,7 @@ from fieldkit.arena.lane import _meminfo_gb
 
 __all__ = [
     "LaunchRefused",
+    "infra_ports",
     "lane_recipes_path",
     "load_lane_recipes",
     "recipe_summaries",
@@ -62,6 +68,14 @@ LANE_RECIPES_PATH = "~/.fieldkit/arena/lane-recipes.json"
 
 #: One launch at a time — discovery is an observation, not a lock (TOCTOU).
 LAUNCH_LOCK_NAME = "lane-launch.lock"
+
+#: Infrastructure ports the ONE-LANE guard ignores and teardown refuses to touch
+#: (AD-FK-1): the Cortex embedder (``nim-embed-nemotron``, :8001 — the port the
+#: runtime telemetry already names "NIM embedder") is a co-resident docker
+#: container, not a chat serving lane, and pointing the kill chain at a
+#: docker-published port is untested. Override via ``FK_ARENA_INFRA_PORTS``
+#: (comma-separated; set EMPTY to exempt nothing).
+DEFAULT_INFRA_PORTS = (8001,)
 
 #: Hard ceiling on a recipe's warm timeout — a launch holds one request-drain
 #: worker while it polls; a genuinely slower model is left loading on timeout
@@ -90,8 +104,8 @@ class LaunchRefused(RuntimeError):
     ``reason`` is machine-readable (``lane_resident`` · ``oom_envelope`` ·
     ``launch_in_progress`` · ``recipe_not_found`` · ``recipe_malformed`` ·
     ``binary_absent`` · ``gguf_absent`` · ``port_busy`` · ``launch_crashed`` ·
-    ``warm_timeout`` · ``aborted`` · ``teardown_failed``); the message renders on
-    the failed Jobs card.
+    ``warm_timeout`` · ``aborted`` · ``teardown_failed`` · ``infra_port``); the
+    message renders on the failed Jobs card.
     """
 
     def __init__(self, reason: str, message: str) -> None:
@@ -147,6 +161,20 @@ def _remove_owner(port: int) -> bool:
         return True
     except FileNotFoundError:
         return False
+
+
+def infra_ports() -> set[int]:
+    """Ports exempt from ONE-LANE and protected from teardown (AD-FK-1).
+
+    Resolution: ``FK_ARENA_INFRA_PORTS`` (comma-separated) when SET — including
+    set-but-empty, which means "no exemptions" (an operator must be able to turn
+    the exemption off, unlike :func:`lanes.lane_ports` where empty falls back) —
+    else :data:`DEFAULT_INFRA_PORTS`.
+    """
+    raw = os.environ.get("FK_ARENA_INFRA_PORTS")
+    if raw is not None:
+        return {int(t) for t in (s.strip() for s in raw.split(",")) if t.isdigit()}
+    return set(DEFAULT_INFRA_PORTS)
 
 
 # --------------------------------------------------------------------------- #
@@ -450,8 +478,19 @@ def teardown_lane(port: int) -> dict[str, Any]:
     refuses connections. The ``MemAvailable`` delta is informational only (page
     cache noise). Raises ``LaunchRefused("teardown_failed")`` when the port still
     answers after the kill chain — never a false "freed".
+
+    Infra ports (AD-FK-1) refuse up front: the embedder is a docker container
+    whose port is published by docker-proxy — the lane kill chain was never
+    designed for it. Manage it with its own lifecycle (``docker stop/start``).
     """
     port = int(port)
+    if port in infra_ports():
+        raise LaunchRefused(
+            "infra_port",
+            f":{port} is an infrastructure lane (Cortex-embedder class; "
+            "FK_ARENA_INFRA_PORTS) — manage it via its own lifecycle "
+            "(docker stop/start), never the lane kill chain",
+        )
     _, pre_avail = _meminfo_gb()
     owner = read_lane_owner(port)
     method = "none"
@@ -628,8 +667,13 @@ def launch_lane(
         envelope = _check_envelope(rec["gguf_path"], rec["n_ctx"], soft=teardown_first)
 
         # 6. ONE-LANE + port, fused — sweep includes the target port (P0-3).
+        # Infra ports (AD-FK-1) are filtered out of the resident set: the Cortex
+        # embedder must neither trip ONE-LANE nor be reaped by teardown_first.
+        # If the TARGET port is itself infra-exempt and busy, the port_busy gate
+        # below still refuses — the exemption never makes a launch less safe.
+        exempt = infra_ports()
         sweep = sorted(set(lanes.lane_ports()) | {port})
-        discovered = lanes.discover(sweep)
+        discovered = [l for l in lanes.discover(sweep) if l.get("port") not in exempt]
         teardowns: list[dict[str, Any]] = []
         if discovered:
             roster = ", ".join(f"{l.get('model')}:{l.get('port')}" for l in discovered)
@@ -641,7 +685,7 @@ def launch_lane(
                 )
             for live in discovered:
                 teardowns.append(teardown_lane(int(live["port"])))
-            if lanes.discover(sweep):
+            if [l for l in lanes.discover(sweep) if l.get("port") not in exempt]:
                 raise LaunchRefused(
                     "lane_resident", "a lane is still resident after teardown_first"
                 )

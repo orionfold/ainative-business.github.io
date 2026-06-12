@@ -573,6 +573,13 @@ library callers.
   the launch unless `teardown_first` was explicitly passed — a doomed launch never
   tears a working lane down. Refusals raise `LaunchRefused` with a machine-readable
   `reason`; the jobs layer persists them as honestly-failed rows (`refused:<reason>`).
+- **Infra ports** (`infra_ports`, AD-FK-1) — co-resident non-serving OpenAI-compat
+  containers (default: the Cortex embedder `:8001`) are exempt from ONE-LANE and
+  from the `teardown_first` sweep, and `teardown_lane` refuses them up front
+  (`refused:infra_port` — never point the lane kill chain at a docker-published
+  port; manage the container with its own lifecycle). The `oom_envelope` gate still
+  runs against real MemAvailable, so memory safety is unchanged. Override via
+  `FK_ARENA_INFRA_PORTS` (comma-separated; set EMPTY to turn the exemption off).
 - **Detached spawn** — `start_new_session=True` + an atomic owner file
   (`lane_owner_path` / `read_lane_owner`), so a launched lane survives sidecar
   restarts; the cockpit never child-manages it. The warm-poll honors the per-job
