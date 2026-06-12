@@ -1,0 +1,225 @@
+{
+  "run": "2026-06-12-1423-nvidia-nemotron-3-nano-4b-advisor-sft-v0-2-q8-0--both",
+  "started_utc": "2026-06-12T14:23:07+00:00",
+  "pack": "evidence/grounded-eval/cortex-grounded-v0.1.jsonl",
+  "pack_sha256_12": "c4da31a8897e",
+  "base_url": "http://127.0.0.1:8091/v1",
+  "model": "NVIDIA-Nemotron-3-Nano-4B-advisor-sft-v0.2-Q8_0.gguf",
+  "mode": "both",
+  "max_tokens": 1024,
+  "corpus": {
+    "table": "advisor_corpus_v01",
+    "manifest_sha256_12": "6b1e832d099c"
+  },
+  "modes": {
+    "retrieval": {
+      "overall": {
+        "n": 60,
+        "passed": 11,
+        "pass_rate": 0.1833
+      },
+      "per_journey": {
+        "howto": {
+          "n": 12,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "lookup": {
+          "n": 15,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "refusal": {
+          "n": 9,
+          "passed": 9,
+          "pass_rate": 1.0
+        },
+        "synthesis": {
+          "n": 12,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "troubleshoot": {
+          "n": 12,
+          "passed": 2,
+          "pass_rate": 0.1667
+        }
+      },
+      "per_component": {
+        "retrieval_hit": {
+          "pass": 39,
+          "fail": 12,
+          "unknown": 0
+        },
+        "citation": {
+          "pass": 10,
+          "fail": 41,
+          "unknown": 0
+        },
+        "key_facts": {
+          "pass": 2,
+          "fail": 49,
+          "unknown": 0
+        },
+        "no_thinking_leak": {
+          "pass": 60,
+          "fail": 0,
+          "unknown": 0
+        },
+        "refusal_wording": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        },
+        "empty_citations": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        },
+        "no_private_state_risk": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        }
+      }
+    },
+    "no_retrieval": {
+      "overall": {
+        "n": 60,
+        "passed": 9,
+        "pass_rate": 0.15
+      },
+      "per_journey": {
+        "howto": {
+          "n": 12,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "lookup": {
+          "n": 15,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "refusal": {
+          "n": 9,
+          "passed": 9,
+          "pass_rate": 1.0
+        },
+        "synthesis": {
+          "n": 12,
+          "passed": 0,
+          "pass_rate": 0.0
+        },
+        "troubleshoot": {
+          "n": 12,
+          "passed": 0,
+          "pass_rate": 0.0
+        }
+      },
+      "per_component": {
+        "retrieval_hit": {
+          "pass": 0,
+          "fail": 0,
+          "unknown": 51
+        },
+        "citation": {
+          "pass": 0,
+          "fail": 51,
+          "unknown": 0
+        },
+        "key_facts": {
+          "pass": 0,
+          "fail": 51,
+          "unknown": 0
+        },
+        "no_thinking_leak": {
+          "pass": 60,
+          "fail": 0,
+          "unknown": 0
+        },
+        "refusal_wording": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        },
+        "empty_citations": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        },
+        "no_private_state_risk": {
+          "pass": 9,
+          "fail": 0,
+          "unknown": 0
+        }
+      }
+    }
+  },
+  "grounding_lift": {
+    "overall": 0.0333,
+    "answer_rows": 0.0392,
+    "per_row": {
+      "cg-lookup-0001": 0,
+      "cg-lookup-0002": 0,
+      "cg-lookup-0003": 0,
+      "cg-lookup-0004": 0,
+      "cg-lookup-0005": 0,
+      "cg-howto-0001": 0,
+      "cg-howto-0002": 0,
+      "cg-howto-0003": 0,
+      "cg-howto-0004": 0,
+      "cg-synthesis-0001": 0,
+      "cg-synthesis-0002": 0,
+      "cg-synthesis-0003": 0,
+      "cg-troubleshoot-0001": 0,
+      "cg-troubleshoot-0002": 0,
+      "cg-troubleshoot-0003": 1,
+      "cg-troubleshoot-0004": 1,
+      "cg-refusal-0001": 0,
+      "cg-refusal-0002": 0,
+      "cg-refusal-0003": 0,
+      "cg-refusal-0004": 0,
+      "cg-lookup-0006": 0,
+      "cg-lookup-0007": 0,
+      "cg-lookup-0008": 0,
+      "cg-lookup-0009": 0,
+      "cg-lookup-0010": 0,
+      "cg-howto-0005": 0,
+      "cg-howto-0006": 0,
+      "cg-howto-0007": 0,
+      "cg-howto-0008": 0,
+      "cg-troubleshoot-0005": 0,
+      "cg-troubleshoot-0006": 0,
+      "cg-troubleshoot-0007": 0,
+      "cg-troubleshoot-0008": 0,
+      "cg-lookup-0011": 0,
+      "cg-lookup-0012": 0,
+      "cg-lookup-0013": 0,
+      "cg-lookup-0014": 0,
+      "cg-lookup-0015": 0,
+      "cg-howto-0009": 0,
+      "cg-howto-0010": 0,
+      "cg-howto-0011": 0,
+      "cg-howto-0012": 0,
+      "cg-troubleshoot-0009": 0,
+      "cg-troubleshoot-0010": 0,
+      "cg-troubleshoot-0011": 0,
+      "cg-troubleshoot-0012": 0,
+      "cg-synthesis-0004": 0,
+      "cg-synthesis-0005": 0,
+      "cg-synthesis-0006": 0,
+      "cg-synthesis-0007": 0,
+      "cg-synthesis-0008": 0,
+      "cg-synthesis-0009": 0,
+      "cg-synthesis-0010": 0,
+      "cg-synthesis-0011": 0,
+      "cg-synthesis-0012": 0,
+      "cg-refusal-0005": 0,
+      "cg-refusal-0006": 0,
+      "cg-refusal-0007": 0,
+      "cg-refusal-0008": 0,
+      "cg-refusal-0009": 0
+    },
+    "note": "lift = pass(retrieval) − pass(no_retrieval); refusal rows usually 0 (refusing is easier without context)"
+  }
+}
