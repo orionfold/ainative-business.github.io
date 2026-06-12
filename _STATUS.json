@@ -6,11 +6,11 @@
   "focus": "Operator-armed lane session: AD-FK-1 + AD-FK-2 LIVE-CONFIRMED through the visible cockpit — guarded Advisor launch with the embedder up (4s warm, no workaround) and interactive resident-lane eval grades now persist with the real recipe sid and render on the AF-28 live island",
   "blockers": [],
   "next": [
-    "Advisor v0.3 levers, gated by the frozen pack: over-refusal class (GE-1, 22/51) + retrieval k/query handling (GE-3, 12/51); freeze curveball-v0.3 BEFORE training",
-    "GE-2/GE-3 packet-contract fixes are packet swaps -> re-gate against frozen v0.1 before adopting",
-    "AD-FK-3 (display-only, low priority): eval drawer pills tag the resident's own benches CROSS — client benchForLane remnant",
-    "Spec basename -> EXCLUDED_SPEC_BASENAMES at next corpus build",
-    "Write the two queued Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
+    "v0.3 road step 1: packet-contract fixes FIRST (GE-3 query handling + GE-2 excerpt window) — each re-gated vs frozen v0.1 + recall gate + curveball replay",
+    "v0.3 road step 2: re-baseline run_pack.py both-arm on the fixed contract (honest pre-training headroom)",
+    "v0.3 road step 3: freeze curveball-v0.3 + grounded ext rows BEFORE any training (pre-registration)",
+    "v0.3 road step 4: SFT-only over-refusal calibration (no RLVR; never train against the 9/9 refusal floor)",
+    "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
   ],
   "recent": [
     "guarded LaneTruth launch of nemotron3-nano-4b-sft-v02-q8 WITH nim-embed-nemotron up — AE-R13 infra-port exemption held live, lane warm 4s, run anchored; docker-stop workaround retired",
