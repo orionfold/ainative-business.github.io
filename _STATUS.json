@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-12",
   "health": "green",
-  "focus": "AD-FK-1 fixed: the AE-R13 one-lane guard now exempts infra ports (Cortex embedder :8001) and teardown refuses them typed — guarded lane launches work with the grounded-chat stack up, no more docker-stop workaround",
+  "focus": "Operator-armed lane session: AD-FK-1 + AD-FK-2 LIVE-CONFIRMED through the visible cockpit — guarded Advisor launch with the embedder up (4s warm, no workaround) and interactive resident-lane eval grades now persist with the real recipe sid and render on the AF-28 live island",
   "blockers": [],
   "next": [
-    "Operator-armed lane session: guarded Advisor relaunch (embedder up, first live AD-FK-1 confirm) + the deferred AD-FK-2 live resident smoke",
     "Advisor v0.3 levers, gated by the frozen pack: over-refusal class (GE-1, 22/51) + retrieval k/query handling (GE-3, 12/51); freeze curveball-v0.3 BEFORE training",
     "GE-2/GE-3 packet-contract fixes are packet swaps -> re-gate against frozen v0.1 before adopting",
+    "AD-FK-3 (display-only, low priority): eval drawer pills tag the resident's own benches CROSS — client benchForLane remnant",
     "Spec basename -> EXCLUDED_SPEC_BASENAMES at next corpus build",
     "Write the two queued Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
   ],
   "recent": [
-    "AD-FK-1: launcher.infra_ports() allowlist (default :8001, FK_ARENA_INFRA_PORTS override) — launch_lane filters infra ports from ONE-LANE + teardown_first; teardown_lane refuses typed infra_port",
-    "6 new tests, fieldkit suite 1576 green; docs audit 17/18 PASS (same pre-existing kwarg WARN)",
-    "live smoke: dispatched lane_teardown :8001 confirm:true -> failed row refused:infra_port, embedder untouched",
-    "sidecar recycled via lifecycle script to load the fix (new pid); memory safety unchanged — oom_envelope still gates on real MemAvailable",
-    "prior session: cortex-grounded v0.1 frozen (sha12 c4da31a8897e) + AD-FK-2 fixed (39fbe98)"
+    "guarded LaneTruth launch of nemotron3-nano-4b-sft-v02-q8 WITH nim-embed-nemotron up — AE-R13 infra-port exemption held live, lane warm 4s, run anchored; docker-stop workaround retired",
+    "AD-FK-2 resident smoke: cg-troubleshoot-0003 (live retrieval, grounded_contract 1.0) + advisor-cited-factual-qa-0003 (advisor_contract 1.0) persisted as local:nemotron3-nano-4b-sft-v02-q8 / cross_vertical=0",
+    "AF-28 live island renders both interactive grades in the default view (advisor-bench + Grounded live-Cortex tier, 100% just now)",
+    "AD-FK-3 logged (display-only): drawer own/cross pills can't resolve the resident lane",
+    "no code changes — pure live confirmation; Advisor lane left resident on :8091"
   ],
-  "session": "S-adfk1-infra-ports",
+  "session": "S-lane-live-confirm",
   "metrics": {
     "articles": 54,
     "models": 7,
