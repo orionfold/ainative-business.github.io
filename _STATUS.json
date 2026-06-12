@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-12",
   "health": "green",
-  "focus": "Orionfold State of the Union strategy milestone shipped to _IDEAS/ (md + 9-page chart PDF + 8 research briefs): open-stack gap research confirms the evidence-layer category; Tier-1 commercial directions D1 Advisor Kit / D2 eval-receipt certification / D3 Arena org tier adopted",
+  "focus": "Orionfold GitHub migration executed end-to-end: history scrubbed (leaked _IDEAS strategy files erased), monorepo transferred manavsehgal -> orionfold with zero site downtime, _IDEAS moved to private orionfold/strategy repo (symlink on Spark, clone on Mac), Drive share retired same-day, link sweep + stale fieldkit PyPI metadata fixed",
   "blockers": [],
   "next": [
+    "operator: GitHub Support purge of cached pre-scrub commits; verify ainative.business domain on orionfold account (TXT); www CNAME -> orionfold.github.io",
+    "operator: repoint Agency-cockpit mirror + Mac monorepo clone remotes to orionfold; delete frozen Drive share ~06-19; founder->LLC IP assignment (legal)",
     "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration) — SOTU 90-day plan starts here",
     "SOTU weeks 2-4: offer surface on orionfold.com (Advisor Kit price band + intake, certification waitlist, org-tier contact) + email capture",
-    "SOTU weeks 3-6: eval-receipt spec + fieldkit receipt verify, seeded with the 7 published models; Unsloth-bridge receipt article",
-    "SOTU weeks 4-8: playbook-gravity content sprint incl. 'which Nemotron for my Spark' page; Inception showcase + GTC pavilion application",
-    "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
+    "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces"
   ],
   "recent": [
-    "State of the Union report: _IDEAS/orionfold-state-of-the-union-2026-06-12.{md,pdf,html} + _IDEAS/sotu-2026-06-research/ (8 journey briefs, full URLs)",
-    "8-agent Workflow research fan-out over the open NVIDIA stack; 3 Explore reconstructions of project history",
-    "finding: frozen-bench/eval-receipt + grounded-contract + lane-manager + run-ledger layers absent from open stack AND funded (cloud-only) competitors — 1:1 match to existing IP",
-    "strategy: own 'the evidence layer for local AI'; week-12 gate picks ONE of D1/D2/D3 as H2 revenue focus",
-    "earlier session: AD-FK-1 + AD-FK-2 live-confirmed; Advisor lane resident on :8091; first frozen-pack grounded receipt"
+    "git filter-repo scrub: 558 commits rewritten, ALL SHAs changed from 2026-05-02 on; old SHAs resolve via /home/nvidia/backups/ mirror + commit-map",
+    "repo transferred + accepted: github.com/orionfold/ainative-business.github.io; Pages/domain/Actions carried over; deploy green post-transfer",
+    "_IDEAS = symlink -> /home/nvidia/orionfold-strategy/ainative-business-website/_IDEAS (private repo, contract v2: pull at session start, push at end)",
+    "Drive spark-mac-share frozen (DEPRECATED.md) + skill retired; gitignore _IDEAS/ -> _IDEAS (symlink gotcha)",
+    "earlier session: SOTU strategy milestone — evidence-layer category adopted"
   ],
-  "session": "S-sotu-strategy-milestone",
+  "session": "S-orionfold-migration",
   "metrics": {
     "articles": 54,
     "models": 7,
