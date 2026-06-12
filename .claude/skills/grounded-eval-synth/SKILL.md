@@ -20,8 +20,8 @@ If you catch yourself wanting to import `anthropic` / `claude_agent_sdk` or shel
 
 | File | Role |
 |---|---|
-| `evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl` | the draft pack (Edit-append target) |
-| `evidence/grounded-eval/cortex-grounded-ext.jsonl` | living extension set (post-freeze rows land here) |
+| `evidence/grounded-eval/cortex-grounded-v0.1.jsonl` | the FROZEN v0.1 pack (sha12 `c4da31a8897e`, frozen 2026-06-12 — never edit; errata go to the next version) |
+| `evidence/grounded-eval/cortex-grounded-ext.jsonl` | living extension set — the Edit-append target for all new rows post-freeze |
 | `/tmp/grounded-eval/candidates.jsonl` | miner output (re-runnable scratch, untracked) |
 | `evidence/orionfold-advisor/public-corpus-manifest.jsonl` | the corpus pack manifest (gold ids must exist here) |
 
@@ -33,14 +33,14 @@ v0.1 journey quotas (spec §3): `lookup` 15 · `howto` 12 · `synthesis` 12 · `
 |---|---|---|
 | `mine` | "refresh candidates", first invocation with no candidates file | Run the miner; report per-journey candidate counts. |
 | `batch` (default) | "author N rows", "next batch" | The authoring loop below, default 10–15 rows/batch, balancing journey quotas. |
-| `status` | "pack status" | Run `verify_pack.py` on the draft; report counts vs quotas + failures. |
+| `status` | "pack status" | Run `verify_pack.py` on the authoring target (the ext set post-freeze); report counts vs quotas + failures. |
 | `freeze` | "freeze the pack" — **operator-gated, never autonomous** | Confirm operator review happened → `--apply-sft-tags` → rename `*.draft.jsonl` → `cortex-grounded-v0.1.jsonl` → `verify_pack.py --freeze`. After freeze, new rows go ONLY to `cortex-grounded-ext.jsonl`. |
 
 ## `batch` mode — the authoring loop
 
 1. **Pick candidates** from `/tmp/grounded-eval/candidates.jsonl`, weighted toward the journey furthest below quota. Candidates are *seeds, not rows* — miner noise is expected (generic "what changes…" sentences, weak "no longer" superseded matches): skip freely, quality over yield.
 2. **Read the gold source section** (the manifest row's `path_or_url`) around each candidate before writing — `key_facts` must be verbatim-verifiable in the gold body, and the `expected_answer` must be faithful to what the source actually says, not what you remember.
-3. **Write rows via Edit-append** to the draft pack, one JSON line per row, schema per spec §4. Authoring bar:
+3. **Write rows via Edit-append** to the authoring target (ext set post-freeze), one JSON line per row, schema per spec §4. Authoring bar:
    - **Operator voice, production-shaped.** Phrase as a real Spark operator would ask mid-work. NEVER echo the source title, never "according to…", never name the source. `troubleshoot` rows lead with the *symptom* ("I pkilled vLLM and 108 GB is still held"), not the topic.
    - **`key_facts` are the gate** — pick 1–3 facts that distinguish a grounded answer from a plausible hallucination (exact numbers, exact flags, the load-bearing noun). Add `alt` spellings for unicode variants (`8.5×`/`8.5x`).
    - **`synthesis` rows** name ≥2 `gold_source_ids` and set `require_all_citations` only when both sources are genuinely needed.

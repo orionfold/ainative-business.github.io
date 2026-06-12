@@ -1,0 +1,16 @@
+{
+  "pack": "cortex-grounded-v0.1.jsonl",
+  "sha256_12": "c4da31a8897e",
+  "rows": 60,
+  "journeys": {
+    "lookup": 15,
+    "howto": 12,
+    "synthesis": 12,
+    "troubleshoot": 12,
+    "refusal": 9
+  },
+  "in_sft_overlap": 51,
+  "sft_corpus_available": true,
+  "manifest": "evidence/orionfold-advisor/public-corpus-manifest.jsonl",
+  "frozen": "2026-06-12"
+}

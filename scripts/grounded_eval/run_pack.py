@@ -16,7 +16,7 @@ ungrounded row scored as grounded.
 
 Usage:
     /tmp/arena-venv/bin/python3 scripts/grounded_eval/run_pack.py \
-        [--pack evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl] \
+        [--pack evidence/grounded-eval/cortex-grounded-v0.1.jsonl] \
         [--base-url http://127.0.0.1:8091/v1] [--model <auto from /v1/models>] \
         [--mode retrieval|no-retrieval|both] [--journey lookup] [--limit N] \
         [--max-tokens 1024] [--out evidence/grounded-eval/results/<run>/] [--root .]
@@ -125,7 +125,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument(
         "--pack",
-        default="evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl",
+        default="evidence/grounded-eval/cortex-grounded-v0.1.jsonl",
         help="pack JSONL (rows must also resolve through the cortex-grounded bench loader)",
     )
     ap.add_argument("--base-url", default="http://127.0.0.1:8091/v1")

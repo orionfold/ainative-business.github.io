@@ -7,7 +7,7 @@ Every check is mechanical — no LLM. Exit code = number of failing rows (plus 1
 for pack-level failures), so the authoring loop can gate on it.
 
 Usage:
-    python3 scripts/grounded_eval/verify_pack.py evidence/grounded-eval/cortex-grounded-v0.1.draft.jsonl \
+    python3 scripts/grounded_eval/verify_pack.py evidence/grounded-eval/cortex-grounded-ext.jsonl \
         [--manifest evidence/orionfold-advisor/public-corpus-manifest.jsonl] [--root .] \
         [--sft-corpus /home/nvidia/data/aifn-train-lora/advisor-4b-sft/corpus/advisor-sft-corpus-v0.2.jsonl] \
         [--apply-sft-tags] [--freeze --receipt evidence/grounded-eval/<pack>.receipt.json]
