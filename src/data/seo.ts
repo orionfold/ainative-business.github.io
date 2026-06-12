@@ -62,7 +62,7 @@ export const ORGANIZATION = {
   foundingDate: '2026',
   sameAs: [
     'https://orionfold.com',
-    'https://github.com/manavsehgal',
+    'https://github.com/orionfold',
     'https://x.com/manavsehgal',
   ],
 };

@@ -159,7 +159,7 @@ The reason this method is practical at personal scale: NeMo LoRA on a 4B base (r
 
 The transferable method, in one breath: keep one bench your training has never met, always; when a score regresses, fix the *class structure* of the corpus, not the epoch count; and let promotion be a script that reads receipts. For a personal builder, the deeper unlock is trust in your own stack — my Advisor's refusal floor isn't a hope expressed in a system prompt; it's a measured property of weights I trained, gated by a bench I froze before I could bias it, enforced on the same machine that holds the state it protects.
 
-The model and the bench are public — [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF) and [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench), with every receipt in the repo's [`evidence/orionfold-advisor/`](https://github.com/manavsehgal/ainative-business.github.io/tree/main/evidence/orionfold-advisor) — so the comparison is re-runnable, not anecdotal.
+The model and the bench are public — [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF) and [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench), with every receipt in the repo's [`evidence/orionfold-advisor/`](https://github.com/orionfold/ainative-business.github.io/tree/main/evidence/orionfold-advisor) — so the comparison is re-runnable, not anecdotal.
 
 ## State of the series
 

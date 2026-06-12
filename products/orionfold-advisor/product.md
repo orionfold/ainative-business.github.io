@@ -135,7 +135,7 @@ The deterministic contract scorer runs on every eval turn as it lands: this row 
 
 The Advisor is the thinnest possible new layer over what the Spark stack already proved. Retrieval rides **Orionfold Cortex** (pgvector + the NIM embedder, with the recall-gate discipline from the [Cortex launch](/products/orionfold-cortex/)). The operating surface is **Orionfold Arena** — LaneTruth, the jobs board, the eval drawer, telemetry — extended with four read-only Advisor cards. Training is the NeMo LoRA lane; quantization and publishing ride `fieldkit.quant` and `fieldkit.publish`, and the model card's measurement-first shape is the same one every Orionfold artifact ships with. The newly authored code is the harness itself: packet construction, deterministic scorers, the route bakeoff, the receipt assembler.
 
-The published artifacts close the loop: the model is [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF), the benches and corpus manifest are [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench), and every receipt quoted on this page is tracked in the public repo under [`evidence/orionfold-advisor/`](https://github.com/manavsehgal/ainative-business.github.io/tree/main/evidence/orionfold-advisor).
+The published artifacts close the loop: the model is [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF), the benches and corpus manifest are [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench), and every receipt quoted on this page is tracked in the public repo under [`evidence/orionfold-advisor/`](https://github.com/orionfold/ainative-business.github.io/tree/main/evidence/orionfold-advisor).
 
 ## The workflow, generalized
 
@@ -145,6 +145,6 @@ The pattern under the product is reusable for any vertical: freeze a bench befor
 
 - **Run the model:** [`Orionfold/Advisor-GGUF`](https://huggingface.co/Orionfold/Advisor-GGUF) — Q8_0, ~12 GB resident, with the packet contract and reasoning-off serving notes on the card.
 - **Score your own lane:** [`Orionfold/Advisor-bench`](https://huggingface.co/datasets/Orionfold/Advisor-bench) — the pool, the frozen held-out, both curveballs, and the corpus manifest they resolve against.
-- **Read the receipts:** [`evidence/orionfold-advisor/`](https://github.com/manavsehgal/ainative-business.github.io/tree/main/evidence/orionfold-advisor) — every number on this page, re-runnable.
+- **Read the receipts:** [`evidence/orionfold-advisor/`](https://github.com/orionfold/ainative-business.github.io/tree/main/evidence/orionfold-advisor) — every number on this page, re-runnable.
 
 The cockpit it runs in is the same Orionfold Arena that ships with [fieldkit on PyPI](https://pypi.org/project/fieldkit/).

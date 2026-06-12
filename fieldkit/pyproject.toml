@@ -122,9 +122,9 @@ fieldkit = "fieldkit.cli:app"
 
 [project.urls]
 Homepage = "https://ainative.business/fieldkit/"
-Source = "https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit"
-Changelog = "https://github.com/manavsehgal/ai-field-notes/blob/main/fieldkit/CHANGELOG.md"
-Issues = "https://github.com/manavsehgal/ai-field-notes/issues"
+Source = "https://github.com/orionfold/ainative-business.github.io/tree/main/fieldkit"
+Changelog = "https://github.com/orionfold/ainative-business.github.io/blob/main/fieldkit/CHANGELOG.md"
+Issues = "https://github.com/orionfold/ainative-business.github.io/issues"
 
 [tool.hatch.version]
 path = "src/fieldkit/_version.py"

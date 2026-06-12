@@ -15,7 +15,7 @@ pip install fieldkit
 For the bleeding edge between releases, install from the git tag instead:
 
 ```bash
-pip install "git+https://github.com/manavsehgal/ai-field-notes.git@fieldkit/v0.2.0#subdirectory=fieldkit"
+pip install "git+https://github.com/orionfold/ainative-business.github.io.git@fieldkit/v0.31.0#subdirectory=fieldkit"
 ```
 
 ## Quickstart
@@ -56,11 +56,11 @@ Portability to non-Spark CUDA 12.x boxes lands when there's demand.
 
 ## License
 
-Apache-2.0. See [`LICENSE`](https://github.com/manavsehgal/ai-field-notes/blob/main/fieldkit/LICENSE).
+Apache-2.0. See [`LICENSE`](https://github.com/orionfold/ainative-business.github.io/blob/main/fieldkit/LICENSE).
 
 ## Links
 
 - **Blog:** https://ainative.business/field-notes/
 - **Docs:** https://ainative.business/fieldkit/
-- **Source:** https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit
-- **Changelog:** [`CHANGELOG.md`](https://github.com/manavsehgal/ai-field-notes/blob/main/fieldkit/CHANGELOG.md)
+- **Source:** https://github.com/orionfold/ainative-business.github.io/tree/main/fieldkit
+- **Changelog:** [`CHANGELOG.md`](https://github.com/orionfold/ainative-business.github.io/blob/main/fieldkit/CHANGELOG.md)

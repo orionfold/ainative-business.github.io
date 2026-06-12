@@ -131,7 +131,7 @@ Once the inputs are confirmed:
 7. **Verify install in a fresh venv (git source).** This is the gate that catches packaging mistakes (missing `MANIFEST.in` entries, wrong import paths, etc.) before a reader hits them. Use a temp directory each time so caches don't mask issues.
    ```bash
    python3 -m venv /tmp/fk0XY && /tmp/fk0XY/bin/pip install -q \
-     "git+https://github.com/manavsehgal/ainative-business.github.io.git@fieldkit/v0.X.Y#subdirectory=fieldkit"
+     "git+https://github.com/orionfold/ainative-business.github.io.git@fieldkit/v0.X.Y#subdirectory=fieldkit"
    /tmp/fk0XY/bin/fieldkit version          # → 0.X.Y
    /tmp/fk0XY/bin/fieldkit envelope "70B params fp8"
    /tmp/fk0XY/bin/fieldkit feasibility llama-3.1-70b --ctx 4096 --batch 32 --dtype fp8

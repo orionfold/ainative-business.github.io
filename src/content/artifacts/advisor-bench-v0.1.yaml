@@ -62,7 +62,7 @@ results_provenance:
 sources:
   - key: monorepo
     name: Orionfold monorepo (public corpus)
-    url: https://github.com/manavsehgal/ainative-business.github.io
+    url: https://github.com/orionfold/ainative-business.github.io
     blurb: "The 182-source public retrieval corpus the questions resolve against — field notes, guides, specs — plus every per-task receipt under evidence/orionfold-advisor/."
   - key: session-authored
     name: Frozen OOD curveballs
@@ -70,7 +70,7 @@ sources:
     blurb: "Session-authored out-of-distribution gates, sha-pinned and frozen BEFORE the training run each one gates — pre-registering the next OOD gate is the house rule that keeps 'frozen' honest."
   - key: scorer
     name: Deterministic scorer (preflight.py)
-    url: https://github.com/manavsehgal/ainative-business.github.io/blob/main/scripts/orionfold_advisor/preflight.py
+    url: https://github.com/orionfold/ainative-business.github.io/blob/main/scripts/orionfold_advisor/preflight.py
     blurb: "No LLM judge: exact source-id citation lines, refusals with empty citations and no fabricated state, Route: prefixes. A mirror (advisor_contract) ships in the fieldkit Arena eval surface."
 
 samples:

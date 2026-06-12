@@ -1,10 +1,11 @@
-<!-- CLAUDE.md — onboarding / doc-navigation map. Last updated: 2026-06-02 -->
+<!-- CLAUDE.md — onboarding / doc-navigation map. Last updated: 2026-06-12 -->
 
 # CLAUDE.md — where things live
 
-This repo (`ainative-business.github.io`) is the single **Spark-owned monorepo** — build
-workspace *and* website — since the 2026-05-29 cutover. There is no separate Mac sync repo;
-author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on push to `main`).
+This repo (`orionfold/ainative-business.github.io` — transferred from `manavsehgal` to the
+Orionfold account 2026-06-12) is the single **Spark-owned monorepo** — build workspace *and*
+website — since the 2026-05-29 cutover. There is no separate Mac sync repo; author directly here.
+Live at `ainative.business` (GitHub Pages, auto-deploy on push to `main`).
 
 ## Doc map
 
@@ -23,6 +24,10 @@ author directly here. Live at `ainative.business` (GitHub Pages, auto-deploy on 
 - **`_SPECS/`** → see [`_SPECS/index.md`](_SPECS/index.md) — **specs, plans & design docs**:
   the 4 active specs (`patent-strategist-v1`, `notebooks-as-artifacts-v1`, `spark-arena-v1`,
   `hermes-harness-v1`) at root; superseded/historical under `_SPECS/archive/`.
+- **`_IDEAS/`** (root, gitignored **symlink**, since 2026-06-12) — private strategy workspace;
+  resolves into the local clone of a private Orionfold repo at `/home/nvidia/orionfold-strategy/`.
+  Contract: `git pull` it at session start; commit+push it at session end if changed. Its content
+  NEVER enters this public repo (HANDOFF may reference paths only).
 - **Skill procedures** — `.claude/skills/<name>/SKILL.md` (authoritative per-skill workflow).
 - **Generated reports** (root, skill-written) — `ainative-stats.md`, `seo-progress.md`.
 
