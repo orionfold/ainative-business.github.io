@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-12",
   "health": "green",
-  "focus": "Operator-armed lane session: AD-FK-1 + AD-FK-2 LIVE-CONFIRMED through the visible cockpit — guarded Advisor launch with the embedder up (4s warm, no workaround) and interactive resident-lane eval grades now persist with the real recipe sid and render on the AF-28 live island",
+  "focus": "Orionfold State of the Union strategy milestone shipped to _IDEAS/ (md + 9-page chart PDF + 8 research briefs): open-stack gap research confirms the evidence-layer category; Tier-1 commercial directions D1 Advisor Kit / D2 eval-receipt certification / D3 Arena org tier adopted",
   "blockers": [],
   "next": [
-    "v0.3 road step 1: packet-contract fixes FIRST (GE-3 query handling + GE-2 excerpt window) — each re-gated vs frozen v0.1 + recall gate + curveball replay",
-    "v0.3 road step 2: re-baseline run_pack.py both-arm on the fixed contract (honest pre-training headroom)",
-    "v0.3 road step 3: freeze curveball-v0.3 + grounded ext rows BEFORE any training (pre-registration)",
-    "v0.3 road step 4: SFT-only over-refusal calibration (no RLVR; never train against the 9/9 refusal floor)",
+    "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration) — SOTU 90-day plan starts here",
+    "SOTU weeks 2-4: offer surface on orionfold.com (Advisor Kit price band + intake, certification waitlist, org-tier contact) + email capture",
+    "SOTU weeks 3-6: eval-receipt spec + fieldkit receipt verify, seeded with the 7 published models; Unsloth-bridge receipt article",
+    "SOTU weeks 4-8: playbook-gravity content sprint incl. 'which Nemotron for my Spark' page; Inception showcase + GTC pavilion application",
     "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces (gates-before-the-advisor, governed-routing-with-receipts)"
   ],
   "recent": [
-    "guarded LaneTruth launch of nemotron3-nano-4b-sft-v02-q8 WITH nim-embed-nemotron up — AE-R13 infra-port exemption held live, lane warm 4s, run anchored; docker-stop workaround retired",
-    "AD-FK-2 resident smoke: cg-troubleshoot-0003 (live retrieval, grounded_contract 1.0) + advisor-cited-factual-qa-0003 (advisor_contract 1.0) persisted as local:nemotron3-nano-4b-sft-v02-q8 / cross_vertical=0",
-    "AF-28 live island renders both interactive grades in the default view (advisor-bench + Grounded live-Cortex tier, 100% just now)",
-    "AD-FK-3 logged (display-only): drawer own/cross pills can't resolve the resident lane",
-    "no code changes — pure live confirmation; Advisor lane left resident on :8091"
+    "State of the Union report: _IDEAS/orionfold-state-of-the-union-2026-06-12.{md,pdf,html} + _IDEAS/sotu-2026-06-research/ (8 journey briefs, full URLs)",
+    "8-agent Workflow research fan-out over the open NVIDIA stack; 3 Explore reconstructions of project history",
+    "finding: frozen-bench/eval-receipt + grounded-contract + lane-manager + run-ledger layers absent from open stack AND funded (cloud-only) competitors — 1:1 match to existing IP",
+    "strategy: own 'the evidence layer for local AI'; week-12 gate picks ONE of D1/D2/D3 as H2 revenue focus",
+    "earlier session: AD-FK-1 + AD-FK-2 live-confirmed; Advisor lane resident on :8091; first frozen-pack grounded receipt"
   ],
-  "session": "S-lane-live-confirm",
+  "session": "S-sotu-strategy-milestone",
   "metrics": {
     "articles": 54,
     "models": 7,
