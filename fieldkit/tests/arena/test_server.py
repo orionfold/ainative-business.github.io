@@ -2166,6 +2166,82 @@ def test_api_chat_score_deterministic_persists_and_leaderboards(
         assert key in rows and rows[key]["mean_normalized"] == 1.0
 
 
+def test_resident_lane_sid_resolution(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AD-FK-2 — resident→recipe resolution is unambiguous-only."""
+    import fieldkit.arena.launcher as launcher
+    from fieldkit.arena.server import _resident_lane_sid
+
+    recipes = {
+        "ii-medical-8b-gguf": {"gguf_path": "/q/II-Medical-8B-Q8_0.gguf"},
+        "kepler-q8": {"gguf_path": "/q/Kepler/model-Q8_0.gguf"},
+        "qwen3-8b-q8": {"gguf_path": "/q/Qwen3-8B/model-Q8_0.gguf"},
+    }
+    monkeypatch.setattr(launcher, "load_lane_recipes", lambda: recipes)
+    # Unique basename → resolves (case-insensitive, path or bare filename).
+    assert _resident_lane_sid({"model": "II-Medical-8B-Q8_0.gguf"}) == "local:ii-medical-8b-gguf"
+    assert _resident_lane_sid({"model": "/q/II-Medical-8B-Q8_0.gguf"}) == "local:ii-medical-8b-gguf"
+    # Two recipes share model-Q8_0.gguf → a guess would mislabel; refuse.
+    assert _resident_lane_sid({"model": "model-Q8_0.gguf"}) is None
+    # Full-path match disambiguates a shared basename.
+    assert _resident_lane_sid({"model": "/q/Kepler/model-Q8_0.gguf"}) == "local:kepler-q8"
+    assert _resident_lane_sid({"model": ""}) is None
+    assert _resident_lane_sid(None) is None
+
+
+def test_api_chat_score_resident_lane_resolves_for_live_island(
+    repo_root: Path, eval_tree: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """AD-FK-2 — a bench grade on lane_id='local:resident' persists under the
+    resolved recipe lane with server-computed cross_vertical=0, so the live
+    accuracy island (default excludes cross-vertical) surfaces it even though
+    the client sent cross_vertical=true (it can't see what's resident)."""
+    import fieldkit.arena.launcher as launcher
+    from fieldkit.arena.schemas import ChatSessionRecord, ChatTurnRecord, LaneRecord
+    from fieldkit.arena.store import ArenaStore
+
+    monkeypatch.setattr(
+        "fieldkit.arena.server._resolve_active_lane",
+        lambda hermes_path=None: {
+            "model": "II-Medical-8B-Q8_0.gguf",
+            "base_url": "http://127.0.0.1:8091/v1",
+            "source": "registry", "drift": None, "discovered": [], "hermes_hint": None,
+        },
+    )
+    monkeypatch.setattr(
+        launcher, "load_lane_recipes",
+        lambda: {"ii-medical-8b-gguf": {"gguf_path": "/q/II-Medical-8B-Q8_0.gguf"}},
+    )
+    db_path = str(tmp_path / "arena.db")
+    store = ArenaStore(db_path)
+    store.initialize()
+    store.upsert_lane(
+        LaneRecord(id="local:resident", kind="LlamaServerLane",
+                   model="II-Medical-8B-Q8_0.gguf", port=8091, base_url="")
+    )
+    store.upsert_chat_session(
+        ChatSessionRecord(id="cs-r", lane_id="local:resident",
+                          created_at="2026-06-12T00:00:00Z", publishable=0)
+    )
+    turn_id = store.append_chat_turn(
+        ChatTurnRecord(session_id="cs-r", ord=1, role="assistant",
+                       content="The answer is B.", created_at="2026-06-12T00:00:01Z")
+    )
+    store.close()
+
+    app = create_app(repo_root=repo_root, db=db_path, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        r = client.post("/api/chat/score", json={
+            "turn_id": turn_id, "bench_id": "medmcqa", "eval_qid": "mm-1",
+            "lane_id": "local:resident", "cross_vertical": True,
+        })
+        assert r.json()["scored"] is True
+        lb = client.get("/api/eval/leaderboard").json()
+        rows = {(row["bench_id"], row["lane_id"]): row for row in lb["rows"]}
+        key = ("medmcqa", "local:ii-medical-8b-gguf")
+        assert key in rows and rows[key]["mean_normalized"] == 1.0
+        assert ("medmcqa", "local:resident") not in rows
+
+
 def test_api_chat_score_missing_turn_404(repo_root: Path, eval_tree: Path, tmp_path: Path) -> None:
     db_path = str(tmp_path / "arena.db")
     ArenaStore_init(db_path)

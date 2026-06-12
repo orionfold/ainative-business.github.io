@@ -184,6 +184,42 @@ def _resolve_active_lane(hermes_path: Path | None = None) -> dict[str, Any]:
         return out
 
 
+def _resident_lane_sid(resident: Mapping[str, Any] | None) -> Optional[str]:
+    """Resolve the resident lane to a recipe-shaped lane id, or ``None`` (AD-FK-2).
+
+    Interactive chat/compare grades used to persist ``lane_id='local:resident'``
+    + ``cross_vertical=1`` (the client cannot map the resident to its bench), so
+    the live accuracy island — which excludes cross-vertical rows by default —
+    never surfaced them. Match the resolved resident's model file against the
+    operator's lane recipes; only an UNAMBIGUOUS match resolves (several recipes
+    share a bare ``model-Q8_0.gguf`` basename — a guess would mislabel a grade,
+    which is worse than leaving it unresolved)."""
+    model = str((resident or {}).get("model") or "").strip()
+    if not model:
+        return None
+    try:
+        from fieldkit.arena.launcher import load_lane_recipes
+
+        recipes = load_lane_recipes()
+    except Exception:  # noqa: BLE001 — recipe trouble never breaks a score
+        return None
+    base = Path(model).name.lower()
+    path_hits: list[str] = []
+    base_hits: list[str] = []
+    for name, rec in recipes.items():
+        gguf = str(rec.get("gguf_path") or "")
+        if not gguf:
+            continue
+        if model == gguf:
+            path_hits.append(name)
+        elif base == Path(gguf).name.lower():
+            base_hits.append(name)
+    # An exact path match beats basename matches (several recipes legitimately
+    # share a bare ``model-Q8_0.gguf`` basename).
+    hits = path_hits or base_hits
+    return f"local:{hits[0]}" if len(hits) == 1 else None
+
+
 def _read_active_gpu_lane(db_path: str) -> dict[str, Any] | None:
     """The lane currently holding the GPU per a running job (AE-15 layer 2).
 
@@ -1701,11 +1737,23 @@ def create_app(
                 }
 
             if result.get("scored"):
+                # AD-FK-2 — resolve a resident-shaped lane to its recipe id so
+                # the persisted row groups with the lane's other grades, and
+                # recompute cross_vertical server-side for bench rows (the
+                # client's benchForLane can't see what's resident; report =
+                # reality). Free-prompt judge rows keep the client's flag.
+                lane_sid = body.lane_id or ""
+                if lane_sid in ("", "local", "local:resident"):
+                    lane_sid = _resident_lane_sid(resident) or lane_sid
+                if bench_id:
+                    cross = 0 if _benches.lane_matches_bench(lane_sid, bench_id) else 1
+                else:
+                    cross = 1 if body.cross_vertical else 0
                 store.append_eval_score(
                     {
                         "bench_id": bench_id,
                         "qid": body.eval_qid or "",
-                        "lane_id": body.lane_id or "",
+                        "lane_id": lane_sid,
                         "scorer_kind": result.get("scorer_kind") or "",
                         "score": result.get("score"),
                         "max_score": result.get("max") or 1.0,
@@ -1713,7 +1761,7 @@ def create_app(
                         "reference": result.get("reference") or "",
                         "rationale": result.get("why") or "",
                         "judge_backend": result.get("judge_backend"),
-                        "cross_vertical": 1 if body.cross_vertical else 0,
+                        "cross_vertical": cross,
                         "source": "chat",
                         "source_id": str(body.turn_id),
                         "scored_at": _utc_now_iso(),
@@ -7471,8 +7519,15 @@ async def compare_event_stream(
                 judge_backend=j_backend, judge_model=j_model, resident=resident,
                 retrieval=side_retrieval["B"],
             )
+            # AD-FK-2 — resolve resident-shaped sides to their recipe id, and
+            # use bench *membership* for cross_vertical (bench_for_lane returns
+            # the first matching bench only — wrong for models declared by both
+            # advisor-bench and cortex-grounded).
+            resident_sid = _resident_lane_sid(resident)
             for side, ev, lane_sid in (("A", a_eval, lane_a_id), ("B", b_eval, lane_b_id)):
                 if ev.get("scored"):
+                    if lane_sid in ("", "local", "local:resident") and resident_sid:
+                        lane_sid = resident_sid
                     store.append_eval_score(
                         {
                             "bench_id": bench_id,
@@ -7485,7 +7540,7 @@ async def compare_event_stream(
                             "reference": ev.get("reference") or "",
                             "rationale": ev.get("why") or "",
                             "judge_backend": ev.get("judge_backend"),
-                            "cross_vertical": 0 if _benches.bench_for_lane(lane_sid) == bench_id else 1,
+                            "cross_vertical": 0 if _benches.lane_matches_bench(lane_sid, bench_id) else 1,
                             "source": "compare",
                             "source_id": f"{run_id}:{side}",
                             "scored_at": scored_at,

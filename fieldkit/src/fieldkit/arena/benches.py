@@ -66,6 +66,7 @@ __all__ = [
     "EvalScoreError",
     "LoadedBench",
     "bench_for_lane",
+    "lane_matches_bench",
     "default_openrouter_judge_model",
     "find_prompt_by_text",
     "judge_availability",
@@ -900,6 +901,33 @@ def bench_for_lane(lane_id: str | None) -> str | None:
             if nm and (nslug.startswith(nm) or nm.startswith(nslug)):
                 return spec.bench_id
     return None
+
+
+def lane_matches_bench(lane_id: str | None, bench_id: str) -> bool:
+    """True iff the lane resolves to a model *this* bench declares (AD-FK-2).
+
+    :func:`bench_for_lane` answers "which bench is this lane's own?" and
+    returns only the FIRST match — wrong for the ``cross_vertical`` flag when
+    a model belongs to several benches (the Advisor lanes are declared by both
+    ``advisor-bench`` and ``cortex-grounded``, so a grounded grade keyed off
+    ``bench_for_lane(...) == bench_id`` was always cross-vertical). This is
+    the membership test ``cross_vertical`` actually wants."""
+    spec = BENCHES.get(bench_id)
+    if spec is None or not lane_id:
+        return False
+    lid = lane_id
+    if lid.startswith("local:"):
+        lid = lid[len("local:") :]
+    if lid in ("resident",) or lid.startswith("openrouter"):
+        return False
+    nslug = _norm(lid.partition("::")[0])
+    if not nslug:
+        return False
+    for model in spec.models:
+        nm = _norm(model)
+        if nm and (nslug.startswith(nm) or nm.startswith(nslug)):
+            return True
+    return False
 
 
 # ---------------------------------------------------------------------------

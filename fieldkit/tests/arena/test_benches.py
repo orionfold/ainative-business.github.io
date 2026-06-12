@@ -172,6 +172,27 @@ def test_bench_for_lane(lane_id, expected) -> None:
     assert benches.bench_for_lane(lane_id) == expected
 
 
+@pytest.mark.parametrize(
+    "lane_id,bench_id,expected",
+    [
+        # AD-FK-2 — the Advisor lanes are declared by BOTH advisor-bench and
+        # cortex-grounded; bench_for_lane returns only the first, so the
+        # cross_vertical flag needs this membership test instead.
+        ("local:nemotron3-nano-4b-sft-v02-q8", "advisor-bench", True),
+        ("local:nemotron3-nano-4b-sft-v02-q8", "cortex-grounded", True),
+        ("local:nemotron3-nano-4b-sft-v02-q8", "medmcqa", False),
+        ("local:ii-medical-8b-gguf::Q8_0", "medmcqa", True),
+        ("local:ii-medical-8b-gguf::Q8_0", "cortex-grounded", False),
+        ("local:resident", "advisor-bench", False),
+        ("openrouter:anthropic/claude-opus-4.1", "medmcqa", False),
+        (None, "medmcqa", False),
+        ("local:ii-medical-8b-gguf::Q8_0", "no-such-bench", False),
+    ],
+)
+def test_lane_matches_bench(lane_id, bench_id, expected) -> None:
+    assert benches.lane_matches_bench(lane_id, bench_id) is expected
+
+
 # --- deterministic scoring (NO judge) ------------------------------------
 
 

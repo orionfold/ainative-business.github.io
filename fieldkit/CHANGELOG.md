@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+- **AD-FK-2 — interactive resident-lane eval grades are no longer invisible
+  to the live accuracy island.** Chat/compare grades on the resident lane
+  used to persist `lane_id='local:resident'` + `cross_vertical=1` (the
+  client cannot see what's resident), so `GET /api/eval/leaderboard`
+  (default excludes cross-vertical) never surfaced them. The server now
+  resolves a resident-shaped lane to its recipe id at score time (new
+  `_resident_lane_sid`: matches the resolved resident's model file against
+  the operator's lane recipes — exact-path beats basename, ambiguous
+  matches refuse rather than guess) and recomputes `cross_vertical`
+  server-side for bench rows via the new `benches.lane_matches_bench`
+  membership test. `bench_for_lane(...) == bench_id` was also wrong for
+  models declared by several benches (the Advisor lanes belong to both
+  `advisor-bench` and `cortex-grounded` — grounded compare grades were
+  always marked cross-vertical); both persistence sites now use
+  membership. 11 new tests.
+
 ### Added
 - **±Cortex ablation duel — per-side live retrieval in compare
   (grounded-eval-v1 §8 Phase 3).** `POST /api/compare/stream` takes
