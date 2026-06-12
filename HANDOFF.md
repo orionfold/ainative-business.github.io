@@ -16,7 +16,7 @@
 
 ### 2026-06-12 — Orionfold GitHub migration EXECUTED (this session)
 
-- IP repos moved to the Orionfold entity account: history scrub (filter-repo, leak erased) → repo transfer → `_IDEAS` to private `orionfold/strategy` repo (symlink on Spark, clone on Mac) → link sweep (this-repo URLs + stale fieldkit PyPI metadata that still pointed at archived `ai-field-notes`). Details + remaining operator items in **"Orionfold GitHub migration"** under Open Items below; full runbook at `_IDEAS/orionfold-github-migration-plan.md` (private repo).
+- IP repos moved to the Orionfold entity account: history scrub (filter-repo, leak erased) → repo transfer → `_IDEAS` to private `orionfold/strategy` repo (symlink on Spark, clone on Mac at `~/orionfold/strategy`) → link sweep (this-repo URLs + stale fieldkit PyPI metadata that still pointed at archived `ai-field-notes`) → DNS tail driven over CDP in the operator's logged-in browser (`ainative.business` **verified** on the orionfold account; `www` CNAME → `orionfold.github.io`, propagated; apex 200 / www 301). Mac-side follow-ups delegated via `mac-handoff.md` in the private repo. Details in **"Orionfold GitHub migration"** under Open Items below; full runbook at `_IDEAS/orionfold-github-migration-plan.md` (private repo).
 
 ### 2026-06-12 — Orionfold State of the Union report (strategy milestone, earlier session)
 
@@ -195,7 +195,8 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 - **History scrubbed FIRST** (leaked `_IDEAS`/`ideas` strategy files were public): `git filter-repo` across all 558 commits, force-pushed. **All SHAs from 2026-05-02 onward changed** — old SHAs referenced in this file's history/memories resolve only via the mirror + commit-map at `/home/nvidia/backups/`. Remote pruned to single `main`. Old SHAs stay fetchable on GitHub until support purge (ticket = open operator item).
 - **_IDEAS share transport DECIDED + EXECUTED: private git repo** (`orionfold/strategy`, layout `<project>/_IDEAS/`). Spark: `_IDEAS` → symlink into `/home/nvidia/orionfold-strategy/ainative-business-website/_IDEAS` (gitignore pattern now `_IDEAS`, no slash — dir-only patterns don't match symlinks). Mac: cloned at `~/orionfold/strategy`. **Contract v2: pull at session start, push at session end.** Drive share FROZEN (`DEPRECATED.md` posted; delete ~2026-06-19); rclone setup no longer needed; `.claude/skills/spark-mac-share/` (untracked) retires with it.
 - **Domain + DNS tail DONE (same session, CDP-driven):** `ainative.business` **verified** on the orionfold account (TXT `_github-pages-challenge-orionfold` live); `www` CNAME → `orionfold.github.io` applied + propagated; apex 200 / www 301 confirmed. GitHub-Support cached-commit purge **declined by operator** (risk accepted: 0 forks, unguessable SHAs).
-- **Open operator items:** ① Agency-cockpit desktop mirror remote repoint; ② Mac monorepo clone remote repoint (apply-* skills' target); ③ founder→LLC IP assignment (legal, outside GitHub); ④ delete frozen Drive folder ~06-19.
+- **Mac-side actions delegated:** `mac-handoff.md` at the **private repo root** (`orionfold/strategy`, commit `e276f57`) carries the context + actions for the next Mac session — monorepo-clone repoint (needs `fetch` + `reset --hard origin/main`, NOT plain pull, because of the history rewrite), Drive-share retirement, `_IDEAS` symlink pattern. The file's presence = "Mac actions pending"; Mac deletes it when done.
+- **Open operator items:** ① Agency-cockpit desktop mirror remote repoint; ② founder→LLC IP assignment (legal, outside GitHub); ③ delete frozen Drive folder ~06-19.
 
 ### Operator-Owned Live Infra
 
