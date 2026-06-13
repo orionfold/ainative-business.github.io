@@ -9,8 +9,8 @@ Read these files before substantial work:
 - `HANDOFF.md` for the live session-transfer state, open items, and recent decisions. This is the per-session continuity contract: read it at session start, update it at session end when state changes, and prune stale completed context periodically.
 - `CLAUDE.md` for the existing Claude Code navigation map and load-bearing project invariants.
 - `CODEX-CC.md` for the Codex/Claude coexistence contract and Codex-specific configuration log.
-- `_FLOWS/the-machine-that-builds-machines.md` when a request touches roadmap, artifact flow, or publishing process.
-- `_GUIDES/index.md` and `_SPECS/index.md` when a request asks for active guidance, specs, or design decisions.
+- `_GUIDES/the-machine-that-builds-machines.md` when a request touches roadmap, artifact flow, or publishing process (moved here from the retired `_FLOWS/` stream 2026-06-12).
+- `_GUIDES/index.md` and `_SPECS/index.md` when a request asks for active guidance, specs, or design decisions. Note: `_GUIDES/`, `_SPECS/`, and `_IDEAS/` are now **private gitignored symlinks** into the `orionfold/strategy` clone — read them locally, but they never enter the public repo.
 
 ## Coexistence Boundary
 

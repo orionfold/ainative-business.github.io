@@ -45,6 +45,8 @@ fieldkit/.venv/
 _IDEAS
 # design specs — private until shipped, symlinked into orionfold/strategy (2026-06-12 private-by-construction contract)
 _SPECS
+# active guidance & practices (incl. the retired _FLOWS machine map) — private, symlinked into orionfold/strategy (2026-06-12)
+_GUIDES
 README-ARENA.md
 RECONCILE-SPARK-MAC.md
 .sync-active

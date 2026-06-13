@@ -9,29 +9,30 @@ Live at `ainative.business` (GitHub Pages, auto-deploy on push to `main`).
 
 ## Doc map
 
-- **`_FLOWS/`** → **`_FLOWS/the-machine-that-builds-machines.md`** — the canonical
-  **origin-instruction → artifact** map + the forward-looking roadmap. Start here to understand
-  how a request ("write this up", "publish the GGUF", "release fieldkit") flows to a shipped
-  artifact. `_FLOWS/` is the home of the "Flows" stream — process flow, data flow, and operator
-  flow-state. *(renamed from root `WORKFLOWS.md` 2026-06-02 — "Flows", not the CC-overloaded
-  "Workflow"; tracked since `adb1c04`)*
 - **`HANDOFF.md`** (root) — the living **session-transfer** doc: current state, live runtime,
   open items, recent decisions. Read at the start of a session; update after significant work.
 - **`_GUIDES/`** → see [`_GUIDES/index.md`](_GUIDES/index.md) — **active guidance & practices**:
+  the canonical **machine map** (`the-machine-that-builds-machines.md` — the origin-instruction →
+  artifact flow + forward-looking roadmap + the 4 invariants; **start here** to see how a request
+  flows to a shipped artifact; moved here when the `_FLOWS/` stream was retired 2026-06-12),
   publishing contracts (`narrative-contract.md`, `product-articles.md`), Arena distribution
   (`arena-distribution.md`, `arena-storefront-marketing.md`), operator reference
   (`local-ai-stack-commands.md`).
 - **`_SPECS/`** → see [`_SPECS/index.md`](_SPECS/index.md) — **specs, plans & design docs**:
-  the 4 active specs (`patent-strategist-v1`, `notebooks-as-artifacts-v1`, `spark-arena-v1`,
-  `hermes-harness-v1`) at root; superseded/historical under `_SPECS/archive/`.
-- **`_IDEAS/`** (root, gitignored **symlink**, since 2026-06-12) — private strategy workspace;
-  resolves into the local clone of a private Orionfold repo at `/home/nvidia/orionfold-strategy/`.
-  Contract: `git pull` it at session start; commit+push it at session end if changed. Its content
-  NEVER enters this public repo (HANDOFF may reference paths only).
+  the active specs (`patent-strategist-v1`, `notebooks-as-artifacts-v1`, `spark-arena-v1`,
+  `hermes-harness-v1`, `arena-field-edition-v1`) at root; superseded/historical under
+  `_SPECS/archive/`.
+- **`_GUIDES/`, `_SPECS/`, `_IDEAS/` are private** (root, gitignored **symlinks**, since
+  2026-06-12 — `_IDEAS` first, `_SPECS`/`_GUIDES` followed) — each resolves into the local clone of
+  the private Orionfold repo at `/home/nvidia/orionfold-strategy/ainative-business-website/`.
+  Internal strategy, design intent, and guidance stay private; **only released code is public**
+  (privacy is structural, not a per-push scrub). Contract: `git pull` the strategy repo at session
+  start; commit+push it at session end if changed. Their content NEVER enters this public repo
+  (HANDOFF may reference paths only).
 - **Skill procedures** — `.claude/skills/<name>/SKILL.md` (authoritative per-skill workflow).
 - **Generated reports** (root, skill-written) — `ainative-stats.md`, `seo-progress.md`.
 
-## Load-bearing invariants (full detail in `_FLOWS/the-machine-that-builds-machines.md` §1)
+## Load-bearing invariants (full detail in `_GUIDES/the-machine-that-builds-machines.md` §1)
 
 1. **Solo-blog, direct-to-main** — commit subjects are the changelog; human review is the gate.
 2. **One serving lane in 128 GB** — GB10 shares CPU+GPU memory; one model resident at a time.

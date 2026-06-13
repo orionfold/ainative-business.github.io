@@ -6,7 +6,7 @@ This file is the coexistence contract between Codex CLI and Claude Code for this
 
 - Claude Code remains owner of `.claude/`, including `.claude/settings*.json`, `.claude/hooks/`, and `.claude/skills/`.
 - Codex owns `.codex/`, `.agents/skills/`, and root `AGENTS.md`.
-- Shared project truth remains in existing repo docs: `CLAUDE.md`, `HANDOFF.md`, `_FLOWS/`, `_GUIDES/`, and `_SPECS/`.
+- Shared project truth remains in existing repo docs: `CLAUDE.md`, `HANDOFF.md`, `_GUIDES/`, and `_SPECS/` (the `_FLOWS/` stream was retired 2026-06-12 — its machine map moved into `_GUIDES/`; `_GUIDES/`/`_SPECS/`/`_IDEAS/` are now private gitignored symlinks into the `orionfold/strategy` clone).
 - Codex bridge skills may read Claude skill instructions, but should not edit `.claude/` unless the operator explicitly asks for a Claude-side implementation change.
 - New Codex configuration, skill, hook, or operator-experience changes should append an entry below.
 
