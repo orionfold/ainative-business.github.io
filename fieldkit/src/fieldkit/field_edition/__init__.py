@@ -97,6 +97,27 @@ from fieldkit.field_edition.advisor import (
     score_curveball_set,
     score_output,
 )
+from fieldkit.field_edition.grounded import (
+    GROUNDED_CONTRACT_FLOOR,
+    GroundedProbe,
+    GroundedReport,
+    build_grounded_blocks,
+    build_messages,
+    score_grounded,
+    select_contract_probes,
+)
+from fieldkit.field_edition.license import (
+    LICENSE_SCHEMA,
+    TRUSTED_KEYS,
+    License,
+    LicenseError,
+    Registry,
+    canonical_bytes,
+    load_license,
+    parse_license,
+    sign_payload,
+    verify_signature,
+)
 from fieldkit.field_edition.down import (
     DownExecutor,
     DownPlan,
@@ -190,6 +211,25 @@ __all__ = [
     "curveball_set_sha",
     "score_curveball_set",
     "score_output",
+    # cortex grounded-contract half (§8 — reuses frozen probes + ported prompt)
+    "GROUNDED_CONTRACT_FLOOR",
+    "GroundedProbe",
+    "GroundedReport",
+    "build_grounded_blocks",
+    "build_messages",
+    "score_grounded",
+    "select_contract_probes",
+    # AC-7 license (offline Ed25519-verified entitlement file)
+    "LICENSE_SCHEMA",
+    "TRUSTED_KEYS",
+    "License",
+    "LicenseError",
+    "Registry",
+    "canonical_bytes",
+    "load_license",
+    "parse_license",
+    "sign_payload",
+    "verify_signature",
     # down (§7 uninstall, AC-6)
     "DownExecutor",
     "DownPlan",

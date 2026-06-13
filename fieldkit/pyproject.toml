@@ -82,6 +82,7 @@ arena = [
   "redis>=5.0",
   "huggingface_hub>=0.24",
   "pyyaml>=6.0",
+  "cryptography>=42",  # AC-7 license: offline Ed25519 verify (fieldkit.field_edition.license)
 ]
 # Closed-loop RLVR GPU backend (rlvr-loop-v1 — the engine of pane→hands→engine).
 # `fieldkit.rl.gpu_seams` wires the vendored `clawgym-on-spark-grpo` REINFORCE-

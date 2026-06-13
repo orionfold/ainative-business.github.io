@@ -219,3 +219,32 @@ unbuilt-infra boundaries `up` does (the unpinned Orionfold images, the
 unpublished signed channel) — each with a named fix, never a vanity success. The
 orchestration, retention, and auto-rollback logic are complete and unit-tested
 now; the live operations light up as the M2/M3 infra lands.
+
+## The AC-7 license file (`fieldkit.field_edition.license`)
+
+The Field Edition license is an **offline-verifiable** entitlement file the
+bootstrap drops at `~/.orionfold/license` — a JSON `payload` of claims + a
+detached **Ed25519** `signature`, verified locally against a **public key
+embedded in the module** (`TRUSTED_KEYS`). No license-server round-trip on every
+boot (AC-7: the privacy stance is the brand); the math is the gate.
+
+- **What it carries** — identity + term (`license_id`, `issued_to`, `not_before`
+  / `expires_at`, `seats`), coarse `entitlements`, and the **paid boundary**:
+  `registry.pull_token` (a GHCR read-scoped token for the private proven-matrix
+  images, §9). The signature **binds the token to the license** — that token is
+  the entire DRM (no token → no proven-matrix images, but the open repos stay
+  usable; revocation = rotating the GHCR token).
+- **The signing contract** — `canonical_bytes(payload)` is the exact bytes the
+  signature covers, and the Mac/ops `fulfillLicense` issuer must reproduce them:
+  `json.dumps(payload, sort_keys=True, separators=(",", ":"),
+  ensure_ascii=False).encode()` — compact, **recursively key-sorted**, UTF-8,
+  **no floats** anywhere in the payload. The signature value + the embedded
+  public key are standard base64.
+- **The gate** — `load_license()` parses → `verify_signature()` → enforces the
+  term, raising an actionable `LicenseError` on any failure (never a silent pass
+  to an unentitled pull). `sign_payload()` is the issuer-side reference (the
+  TS port).
+- **Keys** — the **production** signing key (`of-license-prod-2026`) is a
+  `PROD_KEY_PENDING` slot until ops generates the keypair and embeds its public
+  half; the committed **dev-only** key signs the vendored `data/license-sample.json`
+  so the schema + tests self-validate. `cryptography` ships in the `arena` extra.

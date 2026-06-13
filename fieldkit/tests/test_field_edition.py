@@ -1535,3 +1535,159 @@ def test_score_grounded_length_mismatch_raises() -> None:
 
     with pytest.raises(ValueError, match="length mismatch"):
         score_grounded([GroundedProbe("a", "f", "q", "answer", ("s",))], [])
+
+
+# --- AC-7 v1 license file (schema + canonical bytes + Ed25519 verify) ---------
+
+import base64 as _b64  # noqa: E402
+from datetime import datetime as _dt, timezone as _tz  # noqa: E402
+
+#: The openly-throwaway dev seed (00 01 … 1f) whose public half is in TRUSTED_KEYS.
+_DEV_SEED_B64 = _b64.b64encode(bytes(range(32))).decode()
+
+
+def _sample_payload():
+    return {
+        "schema": "orionfold.license/v1",
+        "license_id": "OF-FE-2026-0042",
+        "product": "arena-field-edition",
+        "edition": "founding-25",
+        "tier": "field-edition",
+        "issued_to": {"name": "Test User", "email": "t@example.com", "org": "Acme"},
+        "issued_at": "2026-06-14T00:00:00Z",
+        "not_before": "2026-06-14T00:00:00Z",
+        "expires_at": "2027-06-14T00:00:00Z",
+        "seats": 1,
+        "entitlements": ["proven-matrix-images", "signed-update-channel"],
+        "registry": {
+            "type": "ghcr", "host": "ghcr.io", "namespace": "orionfold",
+            "username": "of-license-OF-FE-2026-0042", "pull_token": "ghp_test_token",
+        },
+    }
+
+
+def _sign_doc(payload, *, key_id="of-license-dev-2026-06", seed=_DEV_SEED_B64):
+    from fieldkit.field_edition.license import sign_payload
+
+    return {"payload": payload, "signature": {"alg": "ed25519", "key_id": key_id, "value": sign_payload(payload, seed)}}
+
+
+def test_canonical_bytes_is_sorted_and_compact() -> None:
+    from fieldkit.field_edition.license import canonical_bytes
+
+    a = canonical_bytes({"b": 1, "a": {"y": 2, "x": 1}})
+    assert a == b'{"a":{"x":1,"y":2},"b":1}'  # recursive key sort, no whitespace
+
+
+def test_vendored_sample_license_validates() -> None:
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import DEFAULT_LICENSE_PATH, load_license  # noqa: F401
+    from fieldkit.field_edition import license as lic_mod
+
+    sample = _Path(lic_mod.__file__).resolve().parent / "data" / "license-sample.json"
+    lic = load_license(sample, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    assert lic.license_id == "OF-FE-2026-0007"
+    assert lic.has_entitlement("proven-matrix-images")
+    assert lic.pull_token.startswith("ghp_")
+
+
+def test_sign_verify_round_trip(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import load_license
+
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(_sample_payload())))
+    lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    assert lic.tier == "field-edition" and lic.seats == 1
+    assert lic.is_active(_dt(2026, 6, 15, tzinfo=_tz.utc))
+
+
+def test_tampered_payload_fails_verification(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import LicenseError, load_license
+
+    doc = _sign_doc(_sample_payload())
+    doc["payload"]["seats"] = 99  # mutate after signing → signature no longer matches
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(doc))
+    with pytest.raises(LicenseError, match="does not verify"):
+        load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+
+
+def test_unknown_key_id_rejected(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import LicenseError, load_license
+
+    doc = _sign_doc(_sample_payload())
+    doc["signature"]["key_id"] = "of-license-attacker"
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(doc))
+    with pytest.raises(LicenseError, match="unknown signing key"):
+        load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+
+
+def test_prod_key_pending_is_honest() -> None:
+    import pytest
+
+    from fieldkit.field_edition.license import (
+        ACTIVE_KEY_ID,
+        PROD_KEY_PENDING,
+        TRUSTED_KEYS,
+        LicenseError,
+        verify_signature,
+    )
+
+    # the production slot is declared but unprovisioned → signing with it is blocked
+    assert TRUSTED_KEYS[ACTIVE_KEY_ID] == PROD_KEY_PENDING
+    with pytest.raises(LicenseError, match="not provisioned"):
+        verify_signature(_sample_payload(), {"alg": "ed25519", "key_id": ACTIVE_KEY_ID, "value": "AAAA"})
+
+
+def test_expired_and_not_yet_valid_rejected(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import LicenseError, load_license
+
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(_sample_payload())))
+    # after expiry
+    with pytest.raises(LicenseError, match="expired"):
+        load_license(path, now=_dt(2027, 6, 15, tzinfo=_tz.utc))
+    # before not_before
+    with pytest.raises(LicenseError, match="not valid until"):
+        load_license(path, now=_dt(2026, 6, 1, tzinfo=_tz.utc))
+    # …but signature-only load (enforce_term=False) still parses it
+    lic = load_license(path, now=_dt(2027, 6, 15, tzinfo=_tz.utc), enforce_term=False)
+    assert lic.license_id == "OF-FE-2026-0042"
+
+
+def test_missing_file_and_bad_schema_are_actionable(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    from fieldkit.field_edition.license import LicenseError, load_license, parse_license
+
+    with pytest.raises(LicenseError, match="no license file"):
+        load_license(tmp_path / "nope")
+    with pytest.raises(LicenseError, match="unexpected license schema"):
+        parse_license({"schema": "wrong", "license_id": "x"})
+    with pytest.raises(LicenseError, match="missing required field"):
+        parse_license({"schema": "orionfold.license/v1"})

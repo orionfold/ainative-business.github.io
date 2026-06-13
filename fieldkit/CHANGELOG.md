@@ -7,6 +7,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **`fieldkit.field_edition.license` — the AC-7 v1 license file (schema +
+  offline Ed25519 verify).** The Field Edition license is an offline-verifiable
+  JSON entitlement file (`~/.orionfold/license`): a `payload` of claims + a
+  detached **Ed25519** `signature`, verified locally against a **public key
+  embedded in the module** (`TRUSTED_KEYS`) — no license-server round-trip on
+  every boot (AC-7; the privacy stance is the brand). The payload carries
+  identity + term (`license_id` / `issued_to` / `not_before` / `expires_at` /
+  `seats`), coarse `entitlements`, and the **paid boundary**: `registry.pull_token`,
+  a GHCR read-scoped token for the private proven-matrix images (§9) that the
+  signature **binds to the license** (no transplanting a token into a forged
+  file). That token is the entire DRM — no token → no proven-matrix images, but
+  the open repos stay usable; revocation is rotating the GHCR token. **The
+  signing contract** (`canonical_bytes`, which the Mac/ops `fulfillLicense`
+  issuer must match byte-for-byte): the signed bytes are
+  `json.dumps(payload, sort_keys=True, separators=(",", ":"),
+  ensure_ascii=False).encode()` — compact, recursively key-sorted, UTF-8, **no
+  floats**; the signature value + the embedded public key are standard base64.
+  `load_license()` parses → verifies the signature → enforces the term, raising
+  an actionable `LicenseError` on any failure (never a silent pass to an
+  unentitled pull). The **production** signing key (`of-license-prod-2026`) is a
+  `PROD_KEY_PENDING` slot until ops generates the keypair and embeds its public
+  half; a committed **dev-only** key (seed `bytes(range(32))`) signs the vendored
+  `data/license-sample.json` so the schema + tests self-validate. `cryptography`
+  is added to the `arena` extra (the installer surface). 8 new tests.
 - **`fieldkit.field_edition` — the Arena Field Edition installer surface (M1
   scaffold).** New package owning the §7 installer/orchestration commands for
   the self-serve DGX Spark distributable (`_SPECS/arena-field-edition-v1.md`),

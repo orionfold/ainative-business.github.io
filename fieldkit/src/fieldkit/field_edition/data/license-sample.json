@@ -1,0 +1,38 @@
+{
+  "payload": {
+    "schema": "orionfold.license/v1",
+    "license_id": "OF-FE-2026-0007",
+    "product": "arena-field-edition",
+    "edition": "founding-25",
+    "tier": "field-edition",
+    "issued_to": {
+      "name": "Jane Operator",
+      "email": "jane@example.com",
+      "org": "Acme Robotics"
+    },
+    "issued_at": "2026-06-14T00:00:00Z",
+    "not_before": "2026-06-14T00:00:00Z",
+    "expires_at": "2027-06-14T00:00:00Z",
+    "seats": 1,
+    "entitlements": [
+      "proven-matrix-images",
+      "signed-update-channel"
+    ],
+    "registry": {
+      "type": "ghcr",
+      "host": "ghcr.io",
+      "namespace": "orionfold",
+      "username": "of-license-OF-FE-2026-0007",
+      "pull_token": "ghp_EXAMPLE_read_packages_token_rotate_to_revoke"
+    },
+    "provenance": {
+      "stripe_purchase_id": "pi_EXAMPLE0007",
+      "stripe_price_id": "price_founding25"
+    }
+  },
+  "signature": {
+    "alg": "ed25519",
+    "key_id": "of-license-dev-2026-06",
+    "value": "DVtLSbmxfLbqLqFk/Dq4lmzJk/YfQGL30mhxs1hh/T3eD7Jq59eUpqeYyfmonbkeyYEz/vW/VDndraXrDvqlCQ=="
+  }
+}
