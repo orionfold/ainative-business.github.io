@@ -498,10 +498,137 @@ def test_live_runner_bench_gates_error_honestly() -> None:
     from fieldkit.field_edition.verify import LiveGateRunner
 
     runner_live = LiveGateRunner()
-    for key in ("advisor", "cortex", "lane", "hermes"):
+    # cortex is excluded here: its recall-half does live retrieval (covered by
+    # the dedicated fake-index tests below) — these three stay box-independent.
+    for key in ("advisor", "lane", "hermes"):
         outcome = runner_live.measure(key, default_config())
         assert outcome.error is not None
         assert "M2" in outcome.error  # honest "not yet wired", never a vanity pass
+
+
+# --- cortex recall-half (vendored frozen set + live retrieval, faked) --------
+
+
+class _FakeIndex:
+    """Stand-in for ``MemoryIndex`` — returns canned hits per question."""
+
+    def __init__(self, by_question, *, table="advisor_corpus_v01", raises=None):
+        self._by_question = by_question
+        self.table = table
+        self._raises = raises
+
+    def query(self, question, *, top_k=5):
+        if self._raises is not None:
+            raise self._raises
+        slugs = self._by_question.get(question, [])
+        return [{"slug": s, "chunk_idx": 0, "dist": 0.1} for s in slugs]
+
+
+def _patch_index(monkeypatch, fake):
+    import fieldkit.memory as memory_mod
+
+    monkeypatch.setattr(memory_mod, "MemoryIndex", lambda *a, **k: fake)
+
+
+def test_recall_set_loads_and_sha_pins() -> None:
+    from fieldkit.field_edition.recall import RECALL_SET_SHA, load_recall_set, recall_set_sha
+
+    rset = load_recall_set()
+    assert recall_set_sha() == RECALL_SET_SHA  # vendored file matches the pin
+    assert rset.answerable  # there are answerable rows
+    assert all(r.source_ids for r in rset.answerable)  # answerable rows carry gold
+    refusals = [r for r in rset.rows if not r.is_answerable]
+    assert refusals and all(not r.source_ids for r in refusals)  # refusal rows carry no gold
+
+
+def test_recall_set_sha_drift_raises(tmp_path) -> None:
+    import pytest
+
+    from fieldkit.field_edition.recall import RECALL_SET_PATH, load_recall_set
+
+    import json as _json
+
+    tampered = tmp_path / "tampered.json"
+    doc = _json.loads(RECALL_SET_PATH.read_text())
+    doc["note_added_out_of_band"] = "drift"  # benign edit → different sha
+    tampered.write_text(_json.dumps(doc, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="sha drift"):
+        load_recall_set(tampered)
+    # …but an explicit opt-out still loads it
+    assert load_recall_set(tampered, verify_sha=False).rows
+
+
+def test_score_recall_set_perfect_and_miss() -> None:
+    from fieldkit.field_edition.recall import RecallRow, score_recall_set
+
+    rows = (
+        RecallRow("a", "qa", frozenset({"src_a"}), "fam", "pool", "answer"),
+        RecallRow("b", "qb", frozenset({"src_b"}), "fam", "pool", "answer"),
+        RecallRow("r", "qr", frozenset(), "fam", "pool", "refuse"),  # excluded
+    )
+    hits = {"qa": ["src_a", "x"], "qb": ["src_b"]}
+    rep = score_recall_set(rows, lambda q: hits.get(q, []), k=5)
+    assert rep.answerable_n == 2 and rep.recall_at_5 == 1.0 and not rep.misses
+
+    miss = {"qa": ["x", "y"], "qb": ["src_b"]}  # qa's gold drops out
+    rep2 = score_recall_set(rows, lambda q: miss.get(q, []), k=5)
+    assert rep2.recall_at_5 == 0.5 and rep2.misses == ("a",)
+
+
+def test_score_recall_set_respects_k() -> None:
+    from fieldkit.field_edition.recall import RecallRow, score_recall_set
+
+    rows = (RecallRow("a", "qa", frozenset({"gold"}), "f", "pool", "answer"),)
+    ranked = ["x", "y", "z", "w", "v", "gold"]  # gold at rank 6
+    assert score_recall_set(rows, lambda q: ranked, k=5).recall_at_5 == 0.0
+    assert score_recall_set(rows, lambda q: ranked, k=10).recall_at_5 == 1.0
+
+
+def test_score_recall_set_empty_is_zero() -> None:
+    from fieldkit.field_edition.recall import score_recall_set
+
+    assert score_recall_set((), lambda q: [], k=5).recall_at_5 == 0.0
+
+
+def test_live_cortex_recall_half_measured_with_honest_pending(monkeypatch) -> None:
+    from fieldkit.field_edition.recall import load_recall_set
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    rset = load_recall_set()
+    # Every answerable question retrieves its own gold first → recall 1.0.
+    by_q = {r.question: list(r.source_ids) for r in rset.answerable}
+    _patch_index(monkeypatch, _FakeIndex(by_q, table=rset.corpus_table))
+
+    outcome = LiveGateRunner().cortex(default_config())
+    # The recall number is REAL and surfaced…
+    assert outcome.metrics["recall_at_5"] == 1.0
+    assert outcome.metrics["recall_answerable_n"] == float(len(rset.answerable))
+    assert "recall@5 1.000" in outcome.note
+    # …but the gate still cannot vanity-pass: contract half needs the lane (M2).
+    assert outcome.error is not None and "M2" in outcome.error
+
+
+def test_live_cortex_recall_half_below_floor_is_honest(monkeypatch) -> None:
+    from fieldkit.field_edition.recall import load_recall_set
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    rset = load_recall_set()
+    _patch_index(monkeypatch, _FakeIndex({}, table=rset.corpus_table))  # retrieves nothing
+
+    outcome = LiveGateRunner().cortex(default_config())
+    assert outcome.metrics["recall_at_5"] == 0.0
+    assert "<0.95" in outcome.note  # honest: recall failed the floor
+    assert outcome.error is not None
+
+
+def test_live_cortex_unreachable_errors_with_fix(monkeypatch) -> None:
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    _patch_index(monkeypatch, _FakeIndex({}, raises=MemoryError("pgvector connect failed")))
+    outcome = LiveGateRunner().cortex(default_config())
+    assert not outcome.metrics  # nothing measured
+    assert outcome.error is not None
+    assert "unreachable" in outcome.error and "M2" in outcome.error
 
 
 # --- orchestrator + receipt writer -------------------------------------------

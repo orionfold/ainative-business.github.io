@@ -93,6 +93,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     pretending to update. The retention + auto-rollback decision tree is fully
     unit-tested with a fake channel/applier/gate. 26 new tests (78 field_edition
     total).
+- **`fieldkit field-edition verify` — the §8 Cortex gate's recall-half is now
+  measured live (M2 step 1).** New `fieldkit.field_edition.recall`: a **vendored
+  frozen recall set** (`data/cortex-recall-mini.json` — a deterministic
+  projection of the already-frozen Advisor recall bench, sha-pinned via
+  `RECALL_SET_SHA`, rides the wheel via the `data/*.json` glob, built by
+  `scripts/field_edition/build_cortex_recall_set.py`) + a **pure**
+  `score_recall_set()` (source_recall@5 over the answerable rows, refusal rows
+  excluded; retrieval injected so it unit-tests with a fake). `LiveGateRunner.cortex`
+  builds the retrieval closure over `MemoryIndex.query` (pgvector dense,
+  source-deduped) and scores the vendored set against the running Cortex stack:
+  **live-smoked at recall@5 = 0.977 over 87 rows in 2.7 s** — byte-identical to
+  the `score_recall_live.py` proof. The gate still reports an honest non-pass:
+  the recall number is real and surfaced in the receipt detail + note, but the
+  grounded-contract generation half (citation integrity + refusal hygiene) needs
+  the serving lane (M2) — never a vanity pass on recall alone. A load-time sha
+  check raises on out-of-band edits to the shipped set (proof-control discipline).
+  8 new tests (86 field_edition total).
 
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a

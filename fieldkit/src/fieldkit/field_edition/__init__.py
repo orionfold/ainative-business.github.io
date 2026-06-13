@@ -75,6 +75,16 @@ from fieldkit.field_edition.verify import (
     run_verify,
     write_receipt,
 )
+from fieldkit.field_edition.recall import (
+    RECALL_SET_PATH,
+    RECALL_SET_SHA,
+    RecallReport,
+    RecallRow,
+    RecallSet,
+    load_recall_set,
+    recall_set_sha,
+    score_recall_set,
+)
 from fieldkit.field_edition.down import (
     DownExecutor,
     DownPlan,
@@ -148,6 +158,15 @@ __all__ = [
     "evaluate_gates",
     "run_verify",
     "write_receipt",
+    # cortex recall-half (§8 — vendored frozen set + pure scorer)
+    "RECALL_SET_PATH",
+    "RECALL_SET_SHA",
+    "RecallReport",
+    "RecallRow",
+    "RecallSet",
+    "load_recall_set",
+    "recall_set_sha",
+    "score_recall_set",
     # down (§7 uninstall, AC-6)
     "DownExecutor",
     "DownPlan",

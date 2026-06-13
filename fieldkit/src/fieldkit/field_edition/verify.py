@@ -30,11 +30,15 @@ M2; today ``verify`` emits the receipt JSON + an exit code.
 
 **M1 status.** The orchestration, the pure verdict, and the receipt run for real
 now, and the ``fieldkit`` gate is measured live (import + version + matrix). The
-``advisor``/``cortex``/``lane``/``hermes`` gates need the live Field Edition
-stack + the pinned Q4_K_M model (M2): :class:`LiveGateRunner` reports them as an
-honest ``error`` ("stack not up / bench not yet wired") rather than a vanity
-pass, exactly as ``up``'s live phases fail honestly until the proven-matrix
-images land. The receipt + verdict + CLI are complete and tested today; the four
+``cortex`` gate's **recall-half** is also measured live today — over the vendored
+frozen recall set (:mod:`.recall`) against the running pgvector + embedder — and
+reported honestly: the gate still cannot fully PASS because its grounded-contract
+generation half (citation integrity + refusal hygiene) needs the serving lane
+(M2). The ``advisor``/``lane``/``hermes`` gates likewise need the live stack +
+the pinned Q4_K_M model (M2): :class:`LiveGateRunner` reports them as an honest
+``error`` ("stack not up / bench not yet wired") rather than a vanity pass,
+exactly as ``up``'s live phases fail honestly until the proven-matrix images
+land. The receipt + verdict + CLI are complete and tested today; the remaining
 bench measurements drop into :class:`LiveGateRunner` at M2.
 """
 
@@ -69,6 +73,9 @@ __all__ = [
 ADVISOR_CURVEBALL_FLOOR = 0.80
 ADVISOR_REFUSALS_TOTAL = 9
 CORTEX_RECALL_FLOOR = 0.95
+#: Chunks fetched per query before source-level dedup (>= 10 unique sources),
+#: matching ``score_recall_live.CHUNK_POOL`` so the gate measures the same number.
+CORTEX_RECALL_POOL = 80
 
 # Gate verdict statuses.
 _PASS = "pass"
@@ -396,9 +403,65 @@ class LiveGateRunner(GateRunner):
         )
 
     def cortex(self, config: FieldEditionConfig) -> GateOutcome:
-        return self._stack_pending(
+        # The recall-half is live-measurable TODAY against the running Cortex
+        # stack (pgvector + embedder) over the vendored frozen recall set; the
+        # grounded-contract generation half (citation integrity + refusal
+        # hygiene) still needs the serving lane (M2). Measure recall for real,
+        # then report honestly that the gate cannot fully PASS yet — never a
+        # vanity pass on recall alone.
+        try:
+            from fieldkit.field_edition.recall import load_recall_set, score_recall_set
+            from fieldkit.memory import MemoryIndex
+        except Exception as err:  # noqa: BLE001 — missing optional dep
+            return self._stack_pending(
+                "cortex", f"recall deps unavailable ({str(err)[:80]})"
+            )
+        try:
+            rset = load_recall_set()
+        except Exception as err:  # noqa: BLE001 — tampered/missing vendored set
+            return GateOutcome(
+                "cortex", error=f"vendored recall set unreadable: {str(err)[:140]}"
+            )
+
+        index = MemoryIndex(table=rset.corpus_table)
+
+        def retrieve(question: str) -> list[str]:
+            hits = index.query(question, top_k=CORTEX_RECALL_POOL)
+            ordered: list[str] = []
+            for hit in hits:
+                sid = str(hit["slug"])
+                if sid not in ordered:
+                    ordered.append(sid)
+            return ordered
+
+        try:
+            report = score_recall_set(rset.rows, retrieve, k=5)
+        except Exception as err:  # noqa: BLE001 — stack down / corpus not ingested
+            return GateOutcome(
+                "cortex",
+                error=(
+                    f"Cortex retrieval unreachable — recall-half could not run "
+                    f"({str(err)[:100]}). Is the stack up and `{rset.corpus_table}` "
+                    "ingested? (M2 — `fieldkit field-edition up` brings up + ingests "
+                    "the proven-matrix Cortex stack)"
+                ),
+            )
+
+        recall_ok = report.recall_at_5 >= CORTEX_RECALL_FLOOR
+        note = (
+            f"recall@5 {report.recall_at_5:.3f} over {report.answerable_n} rows "
+            f"({'≥' if recall_ok else '<'}{CORTEX_RECALL_FLOOR:.2f}), "
+            f"{len(report.misses)} miss(es)"
+        )
+        return GateOutcome(
             "cortex",
-            "frozen recall + grounded-contract scoring not yet wired to the live Cortex stack",
+            metrics=report.as_metrics(),
+            note=note,
+            error=(
+                f"recall-half live ✓ ({note}); grounded-contract half "
+                "(citation integrity + refusal hygiene) needs the serving lane "
+                "(M2 — `fieldkit field-edition up` + the pinned Q4_K_M model)"
+            ),
         )
 
     def lane(self, config: FieldEditionConfig) -> GateOutcome:

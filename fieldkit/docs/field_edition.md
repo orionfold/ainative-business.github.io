@@ -157,11 +157,19 @@ Every failing gate names the **component, the gate, and the fix** (the §8 failu
 UX); the report renders in the Arena cockpit's eval drawer at M2.
 
 **M1 status:** the `fieldkit` gate is measured live now (import + version + the
-`doctor` matrix). The bench gates (`advisor` / `cortex` / `lane` / `hermes`) need
-the live Field Edition stack + the pinned Q4_K_M model, so until that lands (M2)
-they report an honest `error` ("not yet wired to the live stack — M2") rather
-than a vanity pass. `up --verify` runs this gate as its final phase, collapsing
-§7 steps 2–3 into one command. `verify` flags: `--json`, `--hermes`.
+`doctor` matrix). The `cortex` gate's **recall-half** is also measured live (M2
+step 1): `fieldkit.field_edition.recall` ships a sha-pinned vendored frozen recall
+set (`data/cortex-recall-mini.json`, a deterministic projection of the frozen
+Advisor recall bench) and a pure `score_recall_set()`; `LiveGateRunner.cortex`
+retrieves it through `MemoryIndex.query` against the running pgvector + embedder
+(live-smoked at recall@5 0.977 over 87 rows in ~3 s). The gate still reports an
+honest non-pass — the recall number is real and in the receipt, but the
+grounded-contract generation half needs the serving lane (M2). The `advisor` /
+`lane` / `hermes` gates need the live Field Edition stack + the pinned Q4_K_M
+model, so until that lands (M2) they report an honest `error` ("not yet wired to
+the live stack — M2") rather than a vanity pass. `up --verify` runs this gate as
+its final phase, collapsing §7 steps 2–3 into one command. `verify` flags:
+`--json`, `--hermes`.
 
 ## CLI surface
 
