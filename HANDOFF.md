@@ -14,6 +14,11 @@
 
 ## Current State
 
+### 2026-06-13 — Arena Field Edition M0 LOCKED + Platform reconciled to "separate product" (this session)
+
+- Pulled `orionfold/strategy`: two new Mac→Spark relay entries. **M0 is locked (2026-06-19)** — Flows accepted all §11 verdicts (AC-1 ≤60 min scoped to the default 4B path · AC-4 visible-swap counter as an integrity win · AC-3 precursor-at-v1 · §4 no-reinstall step-up) and the §13 dates (M4 launch-assets handoff ~08-21, ~5.5 wk before the 09-30 backstop). **Spark is clear to build toward M1 alpha (~07-17), after the Advisor v0.3 road.**
+- **Operator correction (2026-06-13): the AI Native Platform is a *separate product*, not a Field Edition v1.1 bundle** — not in the stack at any version (v1 = Arena + Advisor + Cortex + fieldkit + quants + Hermes); its capabilities feed **Arena's** roadmap (agentic + Hermes) instead. Reconciled the Spark lanes in `_SPECS/arena-field-edition-v1.md` (→ v1.0-draft.4): §5 manifest + §11 verdict row "DEFERRED to v1.1" → "out of scope — separate product"; §11 step-up + §13 closing repointed; §12 logged; flagged the residual §3 AC-2 "Platform API serves" back to Flows (their lane). Closed the relay thread (Spark→Mac). Private repo pushed `b1fb0de`; public repo unaffected (spec is a private symlink).
+
 ### 2026-06-12 — Private-by-construction reorg (`_SPECS`/`_GUIDES` private, `_FLOWS` retired) + Arena Field Edition spec lanes filled (this session)
 
 - **`_SPECS` + `_GUIDES` are now private gitignored symlinks into `orionfold/strategy`** (joining `_IDEAS`), and the **`_FLOWS/` stream is retired** — `the-machine-that-builds-machines.md` moved into `_GUIDES/` (folded into its index). Public repo: 37 specs + 7 guides untracked → symlinked → gitignored; `_FLOWS/` deleted from tree+git. Doc-map repointed in **CLAUDE.md / AGENTS.md / CODEX-CC.md** (machine map + invariants now cite `_GUIDES/the-machine-that-builds-machines.md`). Privacy is now **structural — only released code is public, no per-push scrub**. Public commits `6669235` (_SPECS) + `a97928e` (_GUIDES/_FLOWS); private `c2f1e5a` + `912e6c6`. Build-safe (nothing globs these dirs; all remaining mentions are provenance comments or frozen evidence/transcript data).
