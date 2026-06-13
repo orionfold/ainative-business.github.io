@@ -178,6 +178,16 @@ node scripts/deploy_arena_demo.mjs && node scripts/verify_arena_demo_links.mjs
 
 ## Open Items
 
+### Arena Field Edition (M1) — NEXT: build `fieldkit field-edition up`
+
+**Status:** M0 locked (2026-06-19); M1 alpha target ~2026-07-17. `doctor` (§7 matrix check) DONE + live-green this session. **Next increment = `up` (§7 step 2) + `verify` (§7 step 3 / §8 gate).** Spec: `_SPECS/arena-field-edition-v1.md` §6–§9 (private symlink). Code track: `fieldkit/src/fieldkit/field_edition/` (public; `cli.py` has the stubs to fill, bodies currently `typer.Exit(_milestone_message(...))`).
+
+- **`up` — bring up the Compose stack + load the default resident Advisor.** Build a **digest-pinned Docker Compose** bundle dropped into `~/.orionfold/` covering: pgvector Postgres + the open embedder (Cortex infra) + a llama.cpp CUDA-13/SM121 lane serving `advisor-gguf` (4B Q4_K_M, the warm default per §6) + the Arena sidecar. `compose up -d` must be **idempotent** + **re-entrant** (re-running resumes from the last good phase, §7); model pulls use the resumable HF API (box runs ~4.77 MB/s — resumability is load-bearing). `--verify` flag collapses `up`+`verify` into the 2-command path.
+- **`verify` — first-boot eval gate (§8) + AC-3 receipt.** Build on `fieldkit.eval`: the §8 table (fieldkit doctor / Advisor held-out subset + refusal floor / Cortex recall@5 + grounded-contract / serving-lane LaneTruth smoke). Emit the receipt **pass OR fail** (fields: component+model hashes + frozen-bench identity + harness version + scores + env); render in the cockpit eval drawer; failure UX names component+gate+fix.
+- **Re-pin the tested matrix before M2** (do it during this `up` work while on the box): `TESTED_MATRIX` baseline in `field_edition/doctor.py` still says DGX OS 7.2.3, but the dogfood box is **7.4.0/7.5.0** — set the baseline to the actual clean-wipe target. Update §7's matrix line + `doctor` tests if the baseline moves.
+- **Discipline reminders:** one serving lane in 128 GB (§6 — clamp `gpu_memory_utilization` 0.60–0.85 vs *measured* free CUDA mem; AD-FK-1 infra-port exemption already covers the embedder on `:8001`). Build + smoke against the **live Arena cockpit over CDP** per the pinned Arena discipline. Keep the public docs *card* deferred (M4) — `fieldkit/docs/field_edition.md` is parked outside the website glob with a wire-at-launch banner. **Sequencing note:** the §13 plan runs the Advisor v0.3 road *first* (weeks 1–2); the installer track is decoupled and can proceed in parallel since it doesn't touch the Advisor model/packet contract — but if the operator wants v0.3 strictly first, this is the natural pause point.
+- **Runtime prep for the `up` session:** `/tmp/fk` venv exists (base `fieldkit` editable + pytest, built this session — survives until next reboot); for live container work you'll want `fieldkit[dev,arena]` + Docker. Console script: `/tmp/fk/bin/fieldkit field-edition doctor` works now.
+
 ### Editorial / Series
 
 - ~~Orphan-screenshot audit + reuse~~ — **DONE 2026-06-11** (see Current State: 23→0 orphans, 5 reused on the control-plane page, kepler `positioning:` shipped, `01-cockpit.png` retaken post-Path-A).
