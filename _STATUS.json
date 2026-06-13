@@ -3,22 +3,24 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition: re-pinned the §7 tested matrix off the 7.2.3-era baseline to the dogfood clean-wipe target — DGX OS 7.4.0 (running DGX_SWBUILD_VERSION; 7.5.0 pending OTA) / driver ≥580.159.03 / CUDA 13.0. doctor runs green live at `tested ≥ 7.4.0`; min-version semantics unchanged (newer passes, drift still surfaced). Closes the 're-pin before M2' flag. 52 field_edition tests green; no version bump, no website rebuild. Shipped d08f8e3 + private spec 44639ed.",
+  "focus": "Operator directive: prioritize ALL Arena Field Edition tasks first next session; Advisor v0.3 packet-contract work PAUSED + queued to the back. Confirmed v0.3 is NOT a Field Edition release prereq (§8 verify floors curveball-v0.2 85.7% + refusals 9/9 + recall 0.977 — all v0.2-passing; not the grounded pass rate v0.3 improves). Diagnosis this session: packet levers smaller/harder than framed (GE-2 mostly paraphrase-vs-verbatim-scorer, GE-3 a real dense misranking wall, ~29/51 failures are model behavior → real headroom is training calibration). No v0.3 code shipped; preserved in HANDOFF.",
   "blockers": [],
   "next": [
-    "Field Edition M2: fill the 4 bench LiveGateRunner methods (advisor/cortex/lane/hermes) on fieldkit.eval + the frozen benches once the live stack is up (currently honest-error)",
-    "M2 infra to light up a live `up`: build+push+digest-pin the 2 Orionfold images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull",
-    "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration); §13 runs v0.3 first, installer track decoupled",
+    "PRIORITY (operator): Arena Field Edition M2 first. Fill the 4 bench LiveGateRunner methods (advisor/cortex/lane/hermes) on fieldkit.eval + frozen benches once the live stack is up (currently honest-error)",
+    "Field Edition M2 infra: build+push+digest-pin the 2 Orionfold images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull; then a live `up` runs end-to-end",
+    "Field Edition: implement cli.py down/repair/rollback/update stubs (offline-testable)",
+    "PAUSED (back of queue): Advisor v0.3 road — resume decision pending (A excerpt-only / B excerpt+reranker spike / C training-first / D widen-k=5); diagnosis captured in HANDOFF, NOT a Field Edition release prereq",
     "operator: Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
   ],
   "recent": [
+    "v0.3 packet-contract: refined diagnosis then PAUSED per operator (Field Edition first). GE-2 mostly paraphrase not excerpt (2/8 genuine drops); GE-3 11/12 gold-in-pool-misranked (naive RRF recovers 1/12); ~29/51 failures are model behavior. No code shipped; live retrieval stack read-only",
     "Field Edition §7 matrix re-pin (d08f8e3): TESTED_MATRIX dgx_os 7.2.3→7.4.0, driver ≥580.95.05→≥580.159.03 (CUDA stays 13.0); newer-than-tested test bumped to 7.6.0/590.10.05; §7 spec line+prereqs+drift note+parked doc+CHANGELOG reconciled; private spec 44639ed",
     "Earlier this session: M1 `verify` (3eee448) — verify.py five-gate battery + always-on receipt (pass OR fail) to ~/.orionfold/receipts; up --verify wired; 20 tests; live-smoked green/honest-error",
     "Earlier this session: `up` (§7-step-2 Compose bring-up) — compose.py + up.py phase machine + pin discipline; 18 tests; --dry-run live-green, docker-compose-config-validated",
     "full fieldkit suite 1233 passed (only 3 pre-existing/environmental arena failures, none touch field_edition); full doctor+up+verify M1 installer surface public in the wheel source",
     "Earlier this session: doctor matrix check (e4101a9) + M0 lock + Platform->'separate product' spec reconcile (private 3037321)"
   ],
-  "session": "S-field-edition-matrix-repin",
+  "session": "S-fe-matrix-repin+v03-paused",
   "metrics": {
     "articles": 54,
     "models": 7,
