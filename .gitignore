@@ -43,6 +43,8 @@ fieldkit/.venv/
 # operator-local working docs (same class as HANDOFF.md)
 # local brainstorm / strategy scratch — living idea docs, not published artifacts (migrated from ideas/ 2026-06-03)
 _IDEAS
+# design specs — private until shipped, symlinked into orionfold/strategy (2026-06-12 private-by-construction contract)
+_SPECS
 README-ARENA.md
 RECONCILE-SPARK-MAC.md
 .sync-active
