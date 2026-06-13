@@ -10,13 +10,13 @@
     "M2 infra to light up a live `up`: build+push+digest-pin the 2 Orionfold images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull",
     "Re-pin TESTED_MATRIX baseline before M2 (box drifted to DGX OS 7.4.0/7.5.0 vs spec 7.2.3 — §9 churn)",
     "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration); §13 runs v0.3 first, installer track decoupled",
-    "operator: push HELD field_edition module (doctor+up+verify) when ready; Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
+    "operator: Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
   ],
   "recent": [
     "Field Edition M1 `verify`: verify.py (GateRunner measures → pure assess_gate floors → evaluate_gates verdict → clock-free receipt); always-on receipt (pass OR fail) to ~/.orionfold/receipts/verify-latest.json + archival copy; up --verify wired; 20 new tests; live-smoked green/honest-error",
     "Earlier this session: `up` (§7-step-2 Compose bring-up) — compose.py + up.py phase machine + pin discipline; 18 tests; --dry-run live-green, docker-compose-config-validated",
     "full fieldkit suite 1233 passed (only 3 pre-existing/environmental arena failures — webui no-cache, grounded-receipts endpoint, real-SIGTERM timing — confirmed on clean HEAD; none touch field_edition); CHANGELOG + parked doc updated",
-    "Public push of field_edition (doctor+up+verify) still HELD for operator go — pre-launch commercial module into the open wheel is a publishing-timing call",
+    "Shipped to origin (3eee448): full doctor+up+verify M1 installer surface now public in the wheel source",
     "Earlier this session: doctor matrix check (e4101a9) + M0 lock + Platform->'separate product' spec reconcile (private 3037321)"
   ],
   "session": "S-field-edition-m1-verify",
