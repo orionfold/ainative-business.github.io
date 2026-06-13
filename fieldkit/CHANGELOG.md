@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **`fieldkit.field_edition` — the Arena Field Edition installer surface (M1
+  scaffold).** New package owning the §7 installer/orchestration commands for
+  the self-serve DGX Spark distributable (`_SPECS/arena-field-edition-v1.md`),
+  on its own track separate from the Advisor model/eval work. Live today:
+  **`fieldkit field-edition doctor`** — the support-matrix check the bootstrap
+  runs before touching the box (DGX OS / driver / CUDA / Docker / Container
+  Toolkit), with `--json`. The verdict is a pure function (`evaluate_matrix`)
+  over a thin probe layer (`probe_environment`), so it is unit-testable without
+  a DGX box; version axes are **minimum-version gates** (a newer-than-tested box
+  passes, a too-old base fails with a named fix). Verified green live on the
+  dogfood box (DGX OS 7.4.0 against a 7.2.3 baseline). The rest of the command
+  group (`up`/`verify`/`down`/`repair`/`rollback`/`update`) is declared as
+  milestone-marked stubs so `fieldkit field-edition --help` lists the full
+  surface from day one. 14 new tests. The public docs card is deferred to the
+  M4 launch handoff (the module ships in the wheel; only the website card waits).
+
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a
   resident lane.** The embedder container (`nim-embed-nemotron`, `:8001`)

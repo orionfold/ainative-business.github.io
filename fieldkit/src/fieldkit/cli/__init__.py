@@ -58,6 +58,13 @@ from fieldkit.arena.cli import app as arena_app  # noqa: E402
 
 app.add_typer(arena_app, name="arena")
 
+# Field Edition installer surface (arena-field-edition-v1 §7). `doctor` is live
+# (the support-matrix check); the rest of the command group is milestone-stubbed.
+# Pure-stdlib+Typer at import time — the Compose/eval machinery stays lazy.
+from fieldkit.field_edition.cli import app as field_edition_app  # noqa: E402
+
+app.add_typer(field_edition_app, name="field-edition")
+
 
 @app.command("version")
 def version_cmd() -> None:
