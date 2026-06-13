@@ -1,7 +1,7 @@
 ---
 module: field_edition
 title: fieldkit.field_edition
-summary: The installer / orchestration surface for the Arena Field Edition — the self-serve DGX Spark distributable. Ships the support-matrix check (`fieldkit field-edition doctor`); the Compose bring-up, eval gate, and signed update channel land at later milestones.
+summary: The installer / orchestration surface for the Arena Field Edition — the self-serve DGX Spark distributable. Ships the support-matrix check (`fieldkit field-edition doctor`) and the checkpointed Compose bring-up (`fieldkit field-edition up`); the eval gate and signed update channel land at later milestones.
 order: 19
 ---
 
@@ -75,12 +75,56 @@ Keeping the baseline current against DGX OS churn is the §9 update channel's
 job. (At authoring time the dogfood box already ran DGX OS 7.4.0/7.5.0 against
 a 7.2.3 baseline — and passed.)
 
+## The bring-up (live today)
+
+`fieldkit field-edition up` implements §7 step 2 — a **checkpointed, re-entrant
+phase machine** that brings up the stack and loads the resident Advisor. It
+walks an ordered phase list, persists a checkpoint after each, and on a re-run
+**resumes from the last good phase** (the box runs ~4.77 MB/s, so a failed pull
+must not redo prior work):
+
+`matrix → bundle → pull → stack → sidecar → resident → [verify]`
+
+Same pure-core / thin-I/O split as `doctor`:
+
+- **`render_compose(config)`** (`fieldkit.field_edition.compose`) — the pure
+  renderer: config in, the Docker Compose document out as a plain `dict`. Three
+  services — pgvector Postgres (`of-cortex-db`), the open embedder
+  (`of-embedder`), and a llama.cpp CUDA-13/SM121 lane (`of-advisor-lane`) — on a
+  shared bridge, model store mounted read-only, GPU reserved for the CUDA
+  services. The Arena cockpit is **not** here: it is the pipx `fieldkit[arena]`
+  process on `:7866` (§5), started by the `sidecar` phase.
+- **`compose_yaml(config)` / `write_bundle(config)`** — serialize / write
+  `compose.yaml` + `.env` into `~/.orionfold/` (lazy `pyyaml`, an `[arena]`-extra
+  dep, so `import fieldkit.field_edition` stays core-only).
+- **`ImagePin`** — a digest-pinnable image reference. **Pin discipline:** the §9
+  "proven matrix" is only proven once every pin is a real `sha256:` digest.
+  pgvector is digest-pinned; the Orionfold-built images (open embedder, the
+  CUDA-13 lane) are not built yet and carry `PIN_PENDING`. **`unpinned_images()`**
+  surfaces them, and the `stack` phase refuses to launch against unbuilt images
+  with a named fix rather than a cryptic registry 404.
+- **`plan_remaining(state, ...)`** / **`run_up(config, executor=…)`**
+  (`fieldkit.field_edition.up`) — the pure planner + the runner loop. Execution
+  lives behind an injectable **`Executor`** (`LiveExecutor` shells to Docker /
+  HF / the cockpit; tests use a fake), and **`InstallState`** is the
+  `state.json` checkpoint.
+
+**M1 status:** `matrix` + `bundle` run for real; `up --dry-run` writes the bundle
+and prints the plan without pulling or launching (validated against Docker's own
+`docker compose config`). The live phases fail honestly until the proven-matrix
+images + a published Q4_K_M GGUF exist (M2). `up` flags: `--dry-run`, `--force`
+(ignore the checkpoint), `--verify` (run the §8 gate after bring-up — the next
+increment), `--nim-embedder` (the BYO-NGC-key embedder instead of the open
+default).
+
 ## CLI surface
 
 `fieldkit field-edition <cmd>`:
 
 - **`doctor`** — live: print the matrix verdict (`--json` for machine output);
   exit 0 when satisfied, exit 1 when any check is too-old or missing.
-- **`up` / `verify` / `down` / `repair` / `rollback`** and the top-level-style
-  **`update`** — milestone-marked stubs so `--help` lists the full surface from
-  day one; each body lands at its milestone.
+- **`up`** — live: the checkpointed Compose bring-up (above).
+- **`verify`** — the next increment: the §8 first-boot eval gate + receipt.
+- **`down` / `repair` / `rollback`** and the top-level-style **`update`** —
+  milestone-marked stubs so `--help` lists the full surface from day one; each
+  body lands at its milestone.

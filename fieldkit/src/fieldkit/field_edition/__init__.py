@@ -8,16 +8,14 @@ Field Edition (Arena + Advisor + Cortex + fieldkit + quants + Hermes) per
 work** — the Advisor v0.3 road does not touch this machinery, so it can be
 built on its own track.
 
-M1 surface (this commit): the ``fieldkit field-edition doctor`` matrix check
-is implemented for real (deterministic environment probing — §7's
-"refuse on an unmatched matrix rather than installing onto an untested base").
-The rest of the §7 command surface (``up`` / ``verify`` / ``down`` /
-``repair`` / ``rollback`` and the top-level ``update``) is declared as
-milestone-marked stubs so the surface is discoverable from day one.
-
-Only ``doctor`` is wired to real logic here; everything else lands at its
-milestone. The heavy lifting (Docker Compose bring-up, eval gates, signed
-update channel) arrives at M1→M3.
+M1 surface: ``fieldkit field-edition doctor`` (the §7 matrix gate) and
+``fieldkit field-edition up`` (the checkpointed Compose bring-up) are
+implemented for real. ``up``'s orchestration + the digest-pinned Compose bundle
+(:mod:`.compose`, :mod:`.up`) run today; ``--dry-run`` writes the bundle and
+prints the plan. The live phases fail honestly until the proven-matrix images
+exist (M2). ``verify`` (the §8 eval gate) is the next increment; ``down`` /
+``repair`` / ``rollback`` / ``update`` remain milestone-marked stubs so the
+surface is discoverable from day one.
 """
 
 from __future__ import annotations
@@ -32,8 +30,28 @@ from fieldkit.field_edition.doctor import (
     probe_environment,
     run_doctor,
 )
+from fieldkit.field_edition.compose import (
+    FieldEditionConfig,
+    ImagePin,
+    compose_yaml,
+    default_config,
+    render_compose,
+    unpinned_images,
+    write_bundle,
+)
+from fieldkit.field_edition.up import (
+    PHASES,
+    Executor,
+    InstallState,
+    LiveExecutor,
+    PhaseError,
+    UpResult,
+    plan_remaining,
+    run_up,
+)
 
 __all__ = [
+    # doctor
     "TESTED_MATRIX",
     "CheckResult",
     "DoctorReport",
@@ -42,4 +60,21 @@ __all__ = [
     "parse_version",
     "probe_environment",
     "run_doctor",
+    # compose bundle
+    "FieldEditionConfig",
+    "ImagePin",
+    "compose_yaml",
+    "default_config",
+    "render_compose",
+    "unpinned_images",
+    "write_bundle",
+    # up (phase machine)
+    "PHASES",
+    "Executor",
+    "InstallState",
+    "LiveExecutor",
+    "PhaseError",
+    "UpResult",
+    "plan_remaining",
+    "run_up",
 ]

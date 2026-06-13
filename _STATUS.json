@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M0 LOCKED (2026-06-19) — Flows accepted all §11 verdicts + §13 dates; AI Native Platform reconciled to 'separate product' (not bundled at any version). M1 build STARTED: `fieldkit field-edition doctor` (§7 support-matrix check) shipped + verified green live on the dogfood box (DGX OS 7.4.0).",
+  "focus": "Arena Field Edition M1: `fieldkit field-edition up` (§7-step-2 Compose bring-up) shipped — checkpointed re-entrant phase machine (matrix→bundle→pull→stack→sidecar→resident) + pure digest-pinned Compose renderer (pgvector + open embedder + llama.cpp CUDA-13 lane). Live-smoked: --dry-run writes ~/.orionfold bundle + validates against `docker compose config`; live phases fail honestly until M2 images exist. 32 field_edition tests green.",
   "blockers": [],
   "next": [
-    "Field Edition M1: build `fieldkit field-edition up` (digest-pinned Compose: pgvector + embedder + llama.cpp advisor lane + Arena sidecar, idempotent) + `verify` (§8 first-boot eval gate → AC-3 receipt) — see HANDOFF Open Items",
+    "Field Edition M1: build `fieldkit field-edition verify` (§8 first-boot eval gate → AC-3 receipt; wire as the `up` verify phase — LiveExecutor.verify + --verify flag already stubbed honestly)",
+    "M2 infra to light up a live `up`: build+push+digest-pin the 2 Orionfold images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull",
     "Re-pin TESTED_MATRIX baseline before M2 (box drifted to DGX OS 7.4.0/7.5.0 vs spec 7.2.3 — §9 churn)",
     "v0.3 road steps 1-4 unchanged (packet-contract fixes -> re-baseline -> freeze v0.3 gates -> SFT-only calibration); §13 runs v0.3 first, installer track decoupled",
-    "operator: Agency-cockpit MONOREPO-mirror remote repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment (legal)",
-    "Also queued: AD-FK-3 drawer pills (display-only) · Advisor series pieces"
+    "operator: push HELD field_edition module (up+doctor) when ready; Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
   ],
   "recent": [
-    "Field Edition M1: `fieldkit.field_edition` package + `doctor` matrix check (pure evaluate_matrix over thin probe layer, min-version gates, --json, 14 tests); live-green on box; public e4101a9",
-    "doctor public docs CARD deferred to M4 launch (Mac-controlled) — module ships in the wheel, page parked outside the website glob with a wire-at-launch banner",
-    "Spec arena-field-edition-v1 -> v1.0-draft.4: Platform -> 'separate product' across §5/§11/§13; §7+§12 M1 progress; private 3037321",
-    "Relay: closed the Platform-correction thread (Spark->Mac); flagged residual §3 AC-2 'Platform API serves' back to Flows",
-    "Build green 538 pages; core fieldkit tests pass; private strategy repo pull-at-start/push-at-end honored"
+    "Field Edition M1 `up`: compose.py (pure render_compose→dict) + up.py (phase machine, ~/.orionfold/state.json checkpoint, injectable Executor); 18 new tests; --dry-run live-green; docker-compose-config-validated (caught GPU capabilities schema bug)",
+    "Pin discipline: pgvector digest-pinned (arm64 box pull); 2 unbuilt Orionfold images PIN_PENDING; stack phase refuses unpinned with a named fix (no registry 404)",
+    "core fieldkit suite 1213 passed (only fastapi-missing arena tests fail in the minimal venv — none touch field_edition); CHANGELOG [Unreleased] extended; parked doc updated",
+    "Public push of field_edition (up+doctor) still HELD for operator go — pre-launch commercial module into the open wheel is a publishing-timing call",
+    "Earlier this session: doctor matrix check (e4101a9) + M0 lock + Platform->'separate product' spec reconcile (private 3037321)"
   ],
-  "session": "S-field-edition-m1",
+  "session": "S-field-edition-m1-up",
   "metrics": {
     "articles": 54,
     "models": 7,

@@ -17,11 +17,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   over a thin probe layer (`probe_environment`), so it is unit-testable without
   a DGX box; version axes are **minimum-version gates** (a newer-than-tested box
   passes, a too-old base fails with a named fix). Verified green live on the
-  dogfood box (DGX OS 7.4.0 against a 7.2.3 baseline). The rest of the command
-  group (`up`/`verify`/`down`/`repair`/`rollback`/`update`) is declared as
+  dogfood box (DGX OS 7.4.0 against a 7.2.3 baseline). The remaining command
+  group (`verify`/`down`/`repair`/`rollback`/`update`) is declared as
   milestone-marked stubs so `fieldkit field-edition --help` lists the full
   surface from day one. 14 new tests. The public docs card is deferred to the
   M4 launch handoff (the module ships in the wheel; only the website card waits).
+- **`fieldkit field-edition up` — the §7-step-2 Compose bring-up.** A
+  **checkpointed, re-entrant phase machine** (`fieldkit.field_edition.up`):
+  `matrix → bundle → pull → stack → sidecar → resident → [verify]`, persisting a
+  checkpoint to `~/.orionfold/state.json` after each phase so a re-run resumes
+  from the last good phase (the box runs ~4.77 MB/s — a failed pull must not
+  redo prior work). Same pure-core / thin-I/O split as `doctor`: a pure
+  `render_compose()` → the digest-pinned Docker Compose bundle as a `dict`
+  (`fieldkit.field_edition.compose`: pgvector + open embedder + a llama.cpp
+  CUDA-13/SM121 lane, model store read-only, GPU reserved), `plan_remaining()`
+  the pure planner, and an injectable `Executor` so the live Docker/HF/cockpit
+  shell-outs are isolated and the runner is testable with a fake. Pin discipline
+  via `ImagePin`/`unpinned_images()`: pgvector is digest-pinned, the
+  not-yet-built Orionfold images carry `PIN_PENDING`, and the `stack` phase
+  refuses to launch against them with a named fix (no cryptic registry 404).
+  `up` flags: `--dry-run` (run only the safe local phases — matrix gate + write
+  the bundle — and print the rest of the plan), `--force`, `--verify`,
+  `--nim-embedder`. M1 status: `matrix` + `bundle` run for real today
+  (`--dry-run` verified live; the bundle validated against `docker compose
+  config`); the live phases fail honestly until the proven-matrix images + a
+  published Q4_K_M GGUF exist (M2). `verify` (the §8 gate) is the next
+  increment. 18 new tests.
 
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a

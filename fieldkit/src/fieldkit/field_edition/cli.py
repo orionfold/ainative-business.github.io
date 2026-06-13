@@ -105,9 +105,64 @@ def up(
     verify: bool = typer.Option(
         False, "--verify", help="Run the first-boot eval gate after bring-up (collapses steps 2–3)."
     ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Run only the safe local phases (matrix gate + write the bundle) and print the rest of the plan.",
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Re-run every phase, ignoring the saved checkpoint."
+    ),
+    nim_embedder: bool = typer.Option(
+        False,
+        "--nim-embedder",
+        help="Use the BYO-NGC-key NIM embedder instead of the open default (needs ~/.nim/secrets.env).",
+    ),
 ) -> None:
-    """Bring up the Compose stack + load the default resident Advisor (§7 step 2)."""
-    raise typer.Exit(_milestone_message("up", "M1 — Docker Compose bring-up"))
+    """Bring up the Compose stack + load the default resident Advisor (§7 step 2).
+
+    A checkpointed, re-entrant phase machine — a re-run resumes from the last
+    good phase. ``--dry-run`` writes the digest-pinned Compose bundle into
+    ``~/.orionfold/`` and prints the remaining plan without pulling or launching
+    anything.
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.up import PHASES, run_up
+
+    config = default_config()
+    if nim_embedder:
+        config = config.with_nim_embedder()
+
+    detail = {p.key: p.detail for p in PHASES}
+    result = run_up(
+        config,
+        force=force,
+        with_verify=verify,
+        dry_run=dry_run,
+        on_event=lambda msg: typer.echo("  " + msg),
+    )
+
+    if result.skipped:
+        typer.echo(f"\n  skipped (already done): {', '.join(result.skipped)}")
+
+    if not result.ok:
+        typer.echo(f"\nStopped at `{result.failed}` — {detail.get(result.failed, '')}.", err=True)
+        if result.fix:
+            typer.echo(f"  → fix: {result.fix}", err=True)
+        typer.echo("  Re-run `fieldkit field-edition up` to resume from this phase.", err=True)
+        raise typer.Exit(code=1)
+
+    if result.dry_run:
+        typer.echo(f"\nBundle written to {config.home}/compose.yaml (+ .env).")
+        if result.planned:
+            typer.echo("Remaining (a real `up` would run):")
+            for key in result.planned:
+                typer.echo(f"  • {key} — {detail.get(key, '')}")
+        typer.echo("\nValidate it: `docker compose -f ~/.orionfold/compose.yaml config`.")
+        raise typer.Exit(code=0)
+
+    typer.echo("\nField Edition up — stack live, resident model warm.")
+    raise typer.Exit(code=0)
 
 
 @app.command("verify")
