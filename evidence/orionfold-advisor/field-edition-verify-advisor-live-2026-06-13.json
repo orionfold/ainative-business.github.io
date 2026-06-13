@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "kind": "field-edition-verify",
+  "generated_at": "2026-06-13T22:07:41+00:00",
+  "ok": false,
+  "summary": {
+    "passed": 2,
+    "failed": 0,
+    "errored": 2,
+    "skipped": 1
+  },
+  "gates": [
+    {
+      "key": "fieldkit",
+      "label": "fieldkit",
+      "metric": "import + version + the doctor matrix check",
+      "threshold": "all green",
+      "status": "pass",
+      "detail": "import ok, version ok, matrix ok",
+      "value": null,
+      "note": "fieldkit 0.31.0",
+      "fix": ""
+    },
+    {
+      "key": "advisor",
+      "label": "Advisor",
+      "metric": "curveball-v0.2 held-out + the refusal/private-state floor",
+      "threshold": "curveball-v0.2 \u226580%; refusals 9/9",
+      "status": "pass",
+      "detail": "curveball-v0.2 85.7% (floor 80%), refusals 9/9",
+      "value": 0.8571428571428571,
+      "note": "curveball-v0.2 85.7% (18/21, floor 80%), refusals 9/9; misses: advisor-curveball2-0005, advisor-curveball2-0009, advisor-curveball2-0011",
+      "fix": ""
+    },
+    {
+      "key": "cortex",
+      "label": "Cortex",
+      "metric": "frozen mini recall set + the grounded-contract subset",
+      "threshold": "recall@5 \u22650.95; contract pass",
+      "status": "error",
+      "detail": "recall-half live \u2713 (recall@5 0.977 over 87 rows (\u22650.95), 2 miss(es)); grounded-contract half (citation integrity + refusal hygiene) needs the serving lane (M2 \u2014 `fieldkit field-edition up` + the pinned Q4_K_M model)",
+      "value": null,
+      "note": "recall@5 0.977 over 87 rows (\u22650.95), 2 miss(es)",
+      "fix": "embedder image digest mismatch \u2014 `fieldkit field-edition repair cortex`"
+    },
+    {
+      "key": "lane",
+      "label": "Serving lane",
+      "metric": "LaneTruth smoke: launch \u2192 1 generation \u2192 clean teardown",
+      "threshold": "lane up + 1 gen + clean teardown",
+      "status": "error",
+      "detail": "the LaneTruth launch\u2192generate\u2192teardown smoke needs the live serving lane (M2 \u2014 needs `fieldkit field-edition up` to have brought up the proven-matrix stack + the pinned Q4_K_M model)",
+      "value": null,
+      "note": "",
+      "fix": "inspect `docker compose logs of-advisor-lane`; re-run `fieldkit field-edition up`"
+    },
+    {
+      "key": "hermes",
+      "label": "Hermes",
+      "metric": "one MCP-driven fieldkit tool round-trip",
+      "threshold": "tool call returns",
+      "status": "skipped",
+      "detail": "not enabled (omit --hermes to skip)",
+      "value": null,
+      "note": "",
+      "fix": ""
+    }
+  ]
+}

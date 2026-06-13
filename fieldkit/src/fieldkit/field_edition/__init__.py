@@ -85,6 +85,18 @@ from fieldkit.field_edition.recall import (
     recall_set_sha,
     score_recall_set,
 )
+from fieldkit.field_edition.advisor import (
+    CURVEBALL_SET_PATH,
+    CURVEBALL_SET_SHA,
+    CurveballPacket,
+    CurveballReport,
+    CurveballRowResult,
+    CurveballSet,
+    load_curveball_set,
+    curveball_set_sha,
+    score_curveball_set,
+    score_output,
+)
 from fieldkit.field_edition.down import (
     DownExecutor,
     DownPlan,
@@ -167,6 +179,17 @@ __all__ = [
     "load_recall_set",
     "recall_set_sha",
     "score_recall_set",
+    # advisor curveball gate (§8 — vendored frozen packets + pure scorer)
+    "CURVEBALL_SET_PATH",
+    "CURVEBALL_SET_SHA",
+    "CurveballPacket",
+    "CurveballReport",
+    "CurveballRowResult",
+    "CurveballSet",
+    "load_curveball_set",
+    "curveball_set_sha",
+    "score_curveball_set",
+    "score_output",
     # down (§7 uninstall, AC-6)
     "DownExecutor",
     "DownPlan",

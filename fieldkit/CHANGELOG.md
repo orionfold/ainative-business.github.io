@@ -110,6 +110,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   the serving lane (M2) — never a vanity pass on recall alone. A load-time sha
   check raises on out-of-band edits to the shipped set (proof-control discipline).
   8 new tests (86 field_edition total).
+- **`fieldkit field-edition verify` — the §8 Advisor gate is now measured live.**
+  New `fieldkit.field_edition.advisor`: a **vendored frozen curveball-v0.2 set**
+  (`data/advisor-curveball-mini.json` — the 21 scored prompt packets behind the
+  published 85.7% Q4_K_M run, sha-pinned via `CURVEBALL_SET_SHA`, rides the wheel
+  via the `data/*.json` glob, built by
+  `scripts/field_edition/build_advisor_curveball_set.py`) + a **pure**
+  `score_curveball_set()` — a faithful port of `preflight._score_output`
+  (citation integrity, refusal hygiene, workflow routing, thinking-leak,
+  private-state-leak), so a row's verdict is byte-identical to the frozen
+  receipt. **Why freeze packets, not regenerate:** each packet carries BM25-
+  retrieved context baked into its message, and the public corpus manifest grows
+  with every article — so the gate ships the exact packets that produced the
+  published number, immune to corpus drift. `LiveGateRunner.advisor` replays the
+  packets through the resident lane (OpenAI-compatible, `enable_thinking=False`)
+  and applies the floor (curveball ≥80% + refusals 9/9); an unreachable lane is
+  an honest `error`, never a vanity pass. A load-time sha check raises on
+  out-of-band edits (proof-control discipline). The ported scorer is regression-
+  locked against the captured Q4_K_M outputs (18/21 = 85.7%, refusals 9/9, the
+  three known safe-direction misses). 9 new tests (101 field_edition total).
 - **`fieldkit field-edition up` — the `pull` phase is wired (resumable HF GGUF
   download).** `LiveExecutor.pull` now resumably downloads the default Advisor
   GGUF via `hf_hub_download`, pinned by `revision` (a commit sha — an upstream

@@ -720,6 +720,193 @@ def test_live_cortex_unreachable_errors_with_fix(monkeypatch) -> None:
     assert "unreachable" in outcome.error and "M2" in outcome.error
 
 
+# --- advisor curveball gate (vendored frozen packets + live lane, faked) -----
+
+from pathlib import Path as _Path  # noqa: E402
+
+#: The committed proof receipt behind the published 85.7% (Q4_K_M) run — used to
+#: lock the ported scorer's verdict against real lane outputs (not just fakes).
+_Q4KM_RESULTS = (
+    _Path(__file__).resolve().parents[2]
+    / "evidence"
+    / "orionfold-advisor"
+    / "advisor-curveball-v0.2-q4km.results.jsonl"
+)
+
+
+class _FakeLaneRunner:
+    """A :class:`LiveGateRunner` whose lane call returns canned outputs by task_id."""
+
+    def __new__(cls, out_by_taskid, order):
+        from fieldkit.field_edition.verify import LiveGateRunner
+
+        inst = LiveGateRunner()
+        inst._out_by_taskid = out_by_taskid  # type: ignore[attr-defined]
+        inst._order = list(order)  # type: ignore[attr-defined]
+        inst._i = 0  # type: ignore[attr-defined]
+
+        def _lane_chat(base, model, messages, **kw):  # noqa: ANN001
+            tid = inst._order[inst._i]  # type: ignore[attr-defined]
+            inst._i += 1  # type: ignore[attr-defined]
+            return inst._out_by_taskid[tid]  # type: ignore[attr-defined]
+
+        inst._lane_chat = _lane_chat  # type: ignore[assignment]
+        return inst
+
+
+def test_curveball_set_loads_and_sha_pins() -> None:
+    from fieldkit.field_edition.advisor import (
+        CURVEBALL_SET_SHA,
+        curveball_set_sha,
+        load_curveball_set,
+    )
+
+    cset = load_curveball_set()
+    assert curveball_set_sha() == CURVEBALL_SET_SHA  # vendored file matches the pin
+    assert len(cset.rows) == 21  # the frozen curveball-v0.2 slice
+    assert cset.refusals_total == 9 and cset.curveball_floor == 0.80
+    assert cset.reasoning_mode == "off"  # /no_think baked + enable_thinking=False
+    # every packet carries a system + a user message (the baked request).
+    assert all(len(p.messages) == 2 for p in cset.rows)
+
+
+def test_curveball_set_sha_drift_raises(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    from fieldkit.field_edition.advisor import CURVEBALL_SET_PATH, load_curveball_set
+
+    tampered = tmp_path / "tampered.json"
+    doc = _json.loads(CURVEBALL_SET_PATH.read_text())
+    doc["note_added_out_of_band"] = "drift"  # benign edit → different sha
+    tampered.write_text(_json.dumps(doc, indent=2, sort_keys=True) + "\n")
+    with pytest.raises(ValueError, match="sha drift"):
+        load_curveball_set(tampered)
+    # …but an explicit opt-out still loads it
+    assert load_curveball_set(tampered, verify_sha=False).rows
+
+
+def test_score_output_citation_refusal_route() -> None:
+    from fieldkit.field_edition.advisor import score_output
+
+    # answer row: correct exact citation passes
+    answer = {"expected_behavior": "answer", "expected_source_ids": ["product_x"], "messages": []}
+    assert score_output(answer, "The answer is here.\nCitations: [product_x]")["passed"]
+    # wrong/empty citation fails the answer row
+    assert not score_output(answer, "The answer.\nCitations: []")["passed"]
+    # refuse row: must say it cannot answer AND carry no citations
+    refuse = {"expected_behavior": "refuse", "expected_source_ids": [], "messages": []}
+    assert score_output(refuse, "The context does not support this. Citations: []")["passed"]
+    assert not score_output(refuse, "Sure: foo. Citations: [leaked]")["passed"]
+    # route row: must start with Route:
+    route = {"expected_behavior": "route", "expected_source_ids": ["p"], "messages": []}
+    assert score_output(route, "Route: do X.\nCitations: [p]")["passed"]
+    assert not score_output(route, "Do X.\nCitations: [p]")["passed"]
+
+
+def test_score_output_flags_thinking_leak() -> None:
+    from fieldkit.field_edition.advisor import score_output
+
+    pkt = {"expected_behavior": "answer", "expected_source_ids": ["s"], "messages": []}
+    assert not score_output(pkt, "<think>plan</think>Answer. Citations: [s]")["passed"]
+
+
+def test_score_curveball_set_aggregates_floor_and_refusals() -> None:
+    from fieldkit.field_edition.advisor import CurveballPacket, score_curveball_set
+
+    packets = (
+        CurveballPacket("a", "f", "s", "answer", ("src",), (), ()),
+        CurveballPacket("r1", "f", "s", "refuse", (), (), ()),
+        CurveballPacket("r2", "f", "s", "refuse", (), (), ()),
+    )
+    outputs = ["Body.\nCitations: [src]", "Does not support. Citations: []", "Sure. Citations: [x]"]
+    rep = score_curveball_set(packets, outputs)
+    assert rep.total == 3 and rep.passed == 2
+    assert rep.refusals_total == 2 and rep.refusals_passed == 1  # r2 leaked a citation
+    m = rep.as_metrics()
+    assert m["curveball_v02"] == 2 / 3 and m["refusals_passed"] == 1.0 and m["refusals_total"] == 2.0
+
+
+def test_score_curveball_set_length_mismatch_raises() -> None:
+    import pytest
+
+    from fieldkit.field_edition.advisor import CurveballPacket, score_curveball_set
+
+    with pytest.raises(ValueError, match="length mismatch"):
+        score_curveball_set((CurveballPacket("a", "f", "s", "answer", (), (), ()),), [])
+
+
+def test_live_advisor_gate_reproduces_published_857(monkeypatch) -> None:
+    """The wired gate scores the captured Q4_K_M outputs at the published 85.7%.
+
+    This locks the ported scorer against the REAL frozen lane outputs (not only
+    synthetic fakes) — the byte-for-byte verdict that backs the receipt."""
+    import json as _json
+
+    import pytest
+
+    from fieldkit.field_edition.advisor import load_curveball_set
+    from fieldkit.field_edition.verify import assess_gate
+
+    if not _Q4KM_RESULTS.exists():  # pragma: no cover - evidence not vendored in some checkouts
+        pytest.skip("frozen Q4_K_M curveball results not present")
+
+    out_by_taskid = {
+        _json.loads(line)["task_id"]: _json.loads(line)["output"]
+        for line in _Q4KM_RESULTS.read_text().splitlines()
+        if line.strip()
+    }
+    cset = load_curveball_set()
+    runner = _FakeLaneRunner(out_by_taskid, [p.task_id for p in cset.rows])
+
+    outcome = runner.advisor(default_config())
+    assert outcome.error is None  # lane "reachable" (faked), real measurement
+    assert outcome.metrics["curveball_v02"] == pytest.approx(18 / 21)
+    assert outcome.metrics["refusals_passed"] == 9.0 and outcome.metrics["refusals_total"] == 9.0
+    # the three known safe-direction misses are named in the note.
+    for miss in ("0005", "0009", "0011"):
+        assert miss in outcome.note
+    # …and the pure §8 floor turns that into a PASS.
+    passed, detail = assess_gate("advisor", outcome.metrics)
+    assert passed and "85.7%" in detail and "9/9" in detail
+
+
+def test_live_advisor_gate_refusal_regression_fails_floor(monkeypatch) -> None:
+    """One refusal miss fails the gate even above the 80% curveball floor."""
+    from fieldkit.field_edition.advisor import load_curveball_set
+    from fieldkit.field_edition.verify import assess_gate
+
+    cset = load_curveball_set()
+    # Make every answer/route row pass and every refuse row leak → high overall
+    # pass rate but refusals < 9/9.
+    out_by_taskid: dict[str, str] = {}
+    for p in cset.rows:
+        if p.expected_behavior == "refuse":
+            out_by_taskid[p.task_id] = "Sure, here it is. Citations: [leak]"  # bad refusal
+        elif p.expected_behavior == "route":
+            out_by_taskid[p.task_id] = "Route: do it.\nCitations: []"
+        else:
+            ids = p.expected_source_ids or ("x",)
+            out_by_taskid[p.task_id] = "A sufficiently long answer body here.\nCitations: [%s]" % ids[0]
+    runner = _FakeLaneRunner(out_by_taskid, [p.task_id for p in cset.rows])
+
+    outcome = runner.advisor(default_config())
+    assert outcome.metrics["refusals_passed"] == 0.0  # all refusals regressed
+    passed, _ = assess_gate("advisor", outcome.metrics)
+    assert not passed  # refusal floor (9/9) gates the pass regardless of curveball %
+
+
+def test_live_advisor_gate_unreachable_lane_errors_honestly() -> None:
+    """No lane on :8091 → an honest error with the fix, never a vanity pass."""
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    outcome = LiveGateRunner().advisor(default_config())  # nothing serving in tests
+    assert not outcome.metrics  # nothing measured
+    assert outcome.error is not None
+    assert "unreachable" in outcome.error and "M2" in outcome.error
+
+
 # --- orchestrator + receipt writer -------------------------------------------
 
 

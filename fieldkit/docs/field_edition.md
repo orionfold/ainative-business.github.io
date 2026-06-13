@@ -164,11 +164,19 @@ Advisor recall bench) and a pure `score_recall_set()`; `LiveGateRunner.cortex`
 retrieves it through `MemoryIndex.query` against the running pgvector + embedder
 (live-smoked at recall@5 0.977 over 87 rows in ~3 s). The gate still reports an
 honest non-pass — the recall number is real and in the receipt, but the
-grounded-contract generation half needs the serving lane (M2). The `advisor` /
-`lane` / `hermes` gates need the live Field Edition stack + the pinned Q4_K_M
-model, so until that lands (M2) they report an honest `error` ("not yet wired to
-the live stack — M2") rather than a vanity pass. `up --verify` runs this gate as
-its final phase, collapsing §7 steps 2–3 into one command. `verify` flags:
+grounded-contract generation half needs the serving lane (M2). The `advisor`
+gate is **measured live** too: `fieldkit.field_edition.advisor` ships a sha-pinned
+vendored frozen curveball-v0.2 set (`data/advisor-curveball-mini.json` — the 21
+scored prompt packets behind the published 85.7% run, with their BM25-retrieved
+context baked in so the gate is immune to corpus drift) and a pure
+`score_curveball_set()` (a faithful port of the `preflight` behavioral scorer);
+`LiveGateRunner.advisor` replays the packets through the resident lane and applies
+the floor (curveball ≥80% + refusals 9/9), with an honest `error` if the lane is
+unreachable. The `lane` / `hermes` gates (and the Cortex grounded-contract half)
+still need more of the live stack, so until that lands (M2) they report an honest
+`error` ("not yet wired to the live stack — M2") rather than a vanity pass. `up
+--verify` runs this gate as its final phase, collapsing §7 steps 2–3 into one
+command. `verify` flags:
 `--json`, `--hermes`.
 
 ## CLI surface

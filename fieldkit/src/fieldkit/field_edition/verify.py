@@ -28,18 +28,21 @@ pass/fail logic is unit-testable with a fake runner — no DGX box, no live stac
 and the **fix**. The report is rendered in the Arena cockpit's eval drawer at
 M2; today ``verify`` emits the receipt JSON + an exit code.
 
-**M1 status.** The orchestration, the pure verdict, and the receipt run for real
+**Status.** The orchestration, the pure verdict, and the receipt run for real
 now, and the ``fieldkit`` gate is measured live (import + version + matrix). The
-``cortex`` gate's **recall-half** is also measured live today — over the vendored
-frozen recall set (:mod:`.recall`) against the running pgvector + embedder — and
-reported honestly: the gate still cannot fully PASS because its grounded-contract
-generation half (citation integrity + refusal hygiene) needs the serving lane
-(M2). The ``advisor``/``lane``/``hermes`` gates likewise need the live stack +
-the pinned Q4_K_M model (M2): :class:`LiveGateRunner` reports them as an honest
-``error`` ("stack not up / bench not yet wired") rather than a vanity pass,
-exactly as ``up``'s live phases fail honestly until the proven-matrix images
-land. The receipt + verdict + CLI are complete and tested today; the remaining
-bench measurements drop into :class:`LiveGateRunner` at M2.
+``advisor`` gate is **measured live**: :class:`LiveGateRunner` replays the
+vendored frozen curveball-v0.2 packets (:mod:`.advisor`) through the resident
+serving lane and applies the §8 behavioral floor (curveball ≥80% + refusals
+9/9) — the same scorer that produced the published 85.7% receipt. The ``cortex``
+gate's **recall-half** is likewise measured live — over the vendored frozen
+recall set (:mod:`.recall`) against the running pgvector + embedder — but the
+gate reports an honest non-pass because its grounded-contract generation half
+(citation integrity + refusal hygiene) still needs the serving lane wired in.
+The ``lane``/``hermes`` gates still report an honest ``error`` ("stack not up")
+rather than a vanity pass, exactly as ``up``'s live phases fail honestly until
+the proven-matrix images land. The advisor + cortex-recall measurements run when
+the lane / Cortex stack is up; the lane + hermes measurements drop into
+:class:`LiveGateRunner` as that infra is wired.
 """
 
 from __future__ import annotations
@@ -371,10 +374,12 @@ class GateRunner:
 class LiveGateRunner(GateRunner):
     """Measures the gates against the real box.
 
-    The ``fieldkit`` gate is fully measured today (import + version + matrix).
-    The bench gates (``advisor``/``cortex``/``lane``/``hermes``) need the live
-    Field Edition stack + the pinned Q4_K_M model — until that lands (M2) they
-    return an honest ``error`` naming the missing piece, never a vanity pass.
+    The ``fieldkit`` gate is fully measured today (import + version + matrix);
+    ``advisor`` is measured live against the resident lane (frozen curveball
+    set), and ``cortex``'s recall-half against the running embedder + pgvector.
+    The ``lane``/``hermes`` gates (and the Cortex grounded-contract half) need
+    more of the live stack — until that is wired they return an honest ``error``
+    naming the missing piece, never a vanity pass.
     """
 
     def fieldkit(self, config: FieldEditionConfig) -> GateOutcome:
@@ -396,11 +401,63 @@ class LiveGateRunner(GateRunner):
             note = f"{note}; matrix probe failed: {str(err)[:120]}"
         return GateOutcome("fieldkit", metrics, note=note)
 
+    #: How long to wait on one lane generation before giving up (seconds).
+    LANE_CHAT_TIMEOUT = 180
+
     def advisor(self, config: FieldEditionConfig) -> GateOutcome:
-        return self._stack_pending(
-            "advisor",
-            "advisor-bench held-out + refusal-floor scoring not yet wired to the live lane",
+        # Score the resident Advisor lane against the vendored frozen
+        # curveball-v0.2 set: replay each packet's baked messages through the
+        # OpenAI-compatible lane, then apply the §8 behavioral floor (the same
+        # scorer that produced the published 85.7% receipt). Honest error if the
+        # lane is unreachable — never a vanity pass.
+        try:
+            from fieldkit.field_edition.advisor import load_curveball_set, score_curveball_set
+        except Exception as err:  # noqa: BLE001 — missing optional dep
+            return self._stack_pending("advisor", f"curveball scorer unavailable ({str(err)[:80]})")
+        try:
+            cset = load_curveball_set()
+        except Exception as err:  # noqa: BLE001 — tampered/missing vendored set
+            return GateOutcome("advisor", error=f"vendored curveball set unreadable: {str(err)[:140]}")
+
+        base = self._lane_base_url(config)
+        outputs: list[str] = []
+        for packet in cset.rows:
+            try:
+                outputs.append(
+                    self._lane_chat(
+                        base,
+                        config.lane.gguf_file,
+                        [dict(m) for m in packet.messages],
+                        max_tokens=cset.max_tokens,
+                        temperature=cset.temperature,
+                        reasoning_mode=cset.reasoning_mode,
+                    )
+                )
+            except Exception as err:  # noqa: BLE001 — lane down / generation failed
+                return GateOutcome(
+                    "advisor",
+                    error=(
+                        f"Advisor lane unreachable — curveball gate could not run "
+                        f"({str(err)[:100]}). Is the serving lane up at {base}? "
+                        "(M2 — `fieldkit field-edition up` brings up the pinned Q4_K_M lane)"
+                    ),
+                )
+
+        report = score_curveball_set(cset.rows, outputs)
+        m = report.as_metrics()
+        passed_floor = (
+            report.curveball_at >= cset.curveball_floor
+            and report.refusals_passed >= report.refusals_total
         )
+        note = (
+            f"curveball-v0.2 {report.curveball_at:.1%} ({report.passed}/{report.total}, "
+            f"floor {cset.curveball_floor:.0%}), refusals "
+            f"{report.refusals_passed}/{report.refusals_total}"
+            + (f"; misses: {', '.join(report.misses)}" if report.misses else "")
+        )
+        # Real measurement → let the pure floor (evaluate_gates) render pass/fail;
+        # only the unreachable case above is an honest error.
+        return GateOutcome("advisor", metrics=m, note=note)
 
     def cortex(self, config: FieldEditionConfig) -> GateOutcome:
         # The recall-half is live-measurable TODAY against the running Cortex
@@ -474,6 +531,57 @@ class LiveGateRunner(GateRunner):
         return self._stack_pending(
             "hermes", "the MCP fieldkit tool round-trip needs the live Hermes harness"
         )
+
+    @staticmethod
+    def _lane_base_url(config: FieldEditionConfig) -> str:
+        """The OpenAI-compatible base URL of the resident Advisor lane.
+
+        The lane container publishes its port on the loopback (per the §7
+        Compose bundle); the pipx cockpit + the gate reach it at
+        ``127.0.0.1:<port>/v1``."""
+        return f"http://127.0.0.1:{config.lane.port}/v1"
+
+    def _lane_chat(
+        self,
+        base_url: str,
+        model: str,
+        messages: list[dict[str, str]],
+        *,
+        max_tokens: int,
+        temperature: float,
+        reasoning_mode: str,
+    ) -> str:
+        """One OpenAI-compatible chat round-trip (stdlib only — no new dep).
+
+        Mirrors ``scripts/orionfold_advisor/preflight._chat``: ``reasoning_mode
+        == 'off'`` sends ``chat_template_kwargs={'enable_thinking': False}``, and
+        a model that splits reasoning into ``reasoning_content`` is re-folded so
+        the §8 thinking-leak check sees it (a leak must still fail the gate)."""
+        import json as _json
+        import urllib.request
+
+        payload: dict[str, object] = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if reasoning_mode == "off":
+            payload["chat_template_kwargs"] = {"enable_thinking": False}
+        req = urllib.request.Request(
+            f"{base_url.rstrip('/')}/chat/completions",
+            data=_json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Authorization": "Bearer not-needed"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=self.LANE_CHAT_TIMEOUT) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+        message = data["choices"][0]["message"]
+        content = message.get("content") or ""
+        reasoning = message.get("reasoning_content") or ""
+        if reasoning and "<think>" not in content:
+            content = f"<think>{reasoning}</think>{content}"
+        return str(content)
 
     @staticmethod
     def _stack_pending(key: str, what: str) -> GateOutcome:
