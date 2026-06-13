@@ -1,6 +1,6 @@
 ---
 name: apply-screengrabs
-description: Sync UI screenshots from the ainative product at /Users/manavsehgal/Developer/ainative/screengrabs/ to the marketing website at /Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/. On first run performs a one-time rename migration (pre-rebrand names like dashboard-*.png → post-rebrand tasks-*.png) and rewrites every site reference. On subsequent runs diff-copies changed files and syncs alt-text from the product's manifest.json. Use whenever the user says "apply screengrabs", "sync screenshots from product", "refresh screenshots", "update product screenshots", "migrate screenshot names", "sync screengrabs", "screenshots are stale", or any request to update the website's marketing/docs screenshots from the product source. Also trigger when the user mentions drift between product UI and website screenshots, or as the first phase of an "apply product release".
+description: Sync UI screenshots from the ainative product at /Users/manavsehgal/orionfold/ainative/screengrabs/ to the marketing website at /Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/. On first run performs a one-time rename migration (pre-rebrand names like dashboard-*.png → post-rebrand tasks-*.png) and rewrites every site reference. On subsequent runs diff-copies changed files and syncs alt-text from the product's manifest.json. Use whenever the user says "apply screengrabs", "sync screenshots from product", "refresh screenshots", "update product screenshots", "migrate screenshot names", "sync screengrabs", "screenshots are stale", or any request to update the website's marketing/docs screenshots from the product source. Also trigger when the user mentions drift between product UI and website screenshots, or as the first phase of an "apply product release".
 ---
 
 # Apply Screengrabs
@@ -21,8 +21,8 @@ The product's `manifest.json` fixes all three: it's the contract for filenames, 
 
 | | Path |
 |---|---|
-| Product screenshots | `/Users/manavsehgal/Developer/ainative/screengrabs/*.png` |
-| Product manifest | `/Users/manavsehgal/Developer/ainative/screengrabs/manifest.json` |
+| Product screenshots | `/Users/manavsehgal/orionfold/ainative/screengrabs/*.png` |
+| Product manifest | `/Users/manavsehgal/orionfold/ainative/screengrabs/manifest.json` |
 | Website target | `/Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/*.png` |
 | Reference globs (where screenshots are used in the website) | `src/pages/**/*.{astro,mdx}`, `src/components/**/*.{astro,tsx}`, `src/data/**/*.ts` |
 
@@ -47,7 +47,7 @@ This skill has two phases. When invoked standalone it runs both sequentially wit
 Check if target directory exists. If empty, mode is `fresh`.
 
 Otherwise, compute the three sets:
-- `PRODUCT` — filenames in `/Users/manavsehgal/Developer/ainative/screengrabs/*.png`
+- `PRODUCT` — filenames in `/Users/manavsehgal/orionfold/ainative/screengrabs/*.png`
 - `WEBSITE` — filenames in `/Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/*.png`
 - `ORPHANS = WEBSITE - PRODUCT` — website files with no product counterpart
 
@@ -60,7 +60,7 @@ Report detected mode.
 For each filename in `PRODUCT ∩ WEBSITE`, compare source/target file hashes. Record each as `unchanged` or `update`.
 
 ```bash
-for src in /Users/manavsehgal/Developer/ainative/screengrabs/*.png; do
+for src in /Users/manavsehgal/orionfold/ainative/screengrabs/*.png; do
   name=$(basename "$src")
   tgt="/Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/$name"
   if [ -f "$tgt" ] && ! cmp -s "$src" "$tgt"; then
@@ -135,7 +135,7 @@ Do not write any files during Plan Phase. Do not prompt for confirmation. Return
 
 For each approved rename `old → new`:
 
-1. Copy source file: `cp /Users/manavsehgal/Developer/ainative/screengrabs/new /Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/new`
+1. Copy source file: `cp /Users/manavsehgal/orionfold/ainative/screengrabs/new /Users/manavsehgal/Developer/ainative-business.github.io/public/screenshots/new`
 2. Grep-replace `old` → `new` across the reference globs:
 
 ```bash

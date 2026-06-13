@@ -51,9 +51,9 @@ Read these files from the ainative product:
 
 | File | What to extract |
 |------|-----------------|
-| `/Users/manavsehgal/Developer/ainative/features/roadmap.md` | Feature counts, horizon timelines (H1/H2/H3 focus areas) |
-| `/Users/manavsehgal/Developer/ainative/features/changelog.md` | Recent completions for roadmap context |
-| `/Users/manavsehgal/Developer/ainative/README.md` | Framework versions, architecture details, service module list |
+| `/Users/manavsehgal/orionfold/ainative/features/roadmap.md` | Feature counts, horizon timelines (H1/H2/H3 focus areas) |
+| `/Users/manavsehgal/orionfold/ainative/features/changelog.md` | Recent completions for roadmap context |
+| `/Users/manavsehgal/orionfold/ainative/README.md` | Framework versions, architecture details, service module list |
 
 ### Data Collection Checkpoint
 
@@ -128,7 +128,7 @@ Run `git diff deck/generate-deck.mjs` and present the full diff to the user.
 ### Step 8 — Regenerate the Deck
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative.business/deck && node generate-deck.mjs
+cd /Users/manavsehgal/orionfold/ainative.business/deck && node generate-deck.mjs
 ```
 
 Verify output says `(27 slides)` — slide count must not change.
@@ -136,7 +136,7 @@ Verify output says `(27 slides)` — slide count must not change.
 ### Step 9 — Convert to Images for QA
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative.business/deck
+cd /Users/manavsehgal/orionfold/ainative.business/deck
 python ../.claude/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf ainative-Prospect-Deck.pptx
 pdftoppm -jpeg -r 150 ainative-Prospect-Deck.pdf slide
 ```

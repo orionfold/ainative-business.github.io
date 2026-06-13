@@ -1,6 +1,6 @@
 # Docs Slug Mapping
 
-Maps product doc slugs (from `/Users/manavsehgal/Developer/ainative/docs/manifest.json`) to website MDX pages under `src/pages/docs/`.
+Maps product doc slugs (from `/Users/manavsehgal/orionfold/ainative/docs/manifest.json`) to website MDX pages under `src/pages/docs/`.
 
 Dataset as of 2026-04-18 (product manifest version 4, generated 2026-04-15).
 

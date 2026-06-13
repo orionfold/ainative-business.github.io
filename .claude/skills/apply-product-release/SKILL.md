@@ -13,7 +13,7 @@ This skill does not have its own content logic. Its only job is to sequence, gat
 
 | | Path |
 |---|---|
-| Product repo | `/Users/manavsehgal/Developer/ainative/` |
+| Product repo | `/Users/manavsehgal/orionfold/ainative/` |
 | Website repo | `/Users/manavsehgal/Developer/ainative-business.github.io/` |
 
 ## Sub-skills
@@ -49,7 +49,7 @@ Before anything, verify the workspace is ready.
 ### 1a. Check repo cleanliness
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative && git status --porcelain
+cd /Users/manavsehgal/orionfold/ainative && git status --porcelain
 cd /Users/manavsehgal/Developer/ainative-business.github.io && git status --porcelain
 ```
 
@@ -67,7 +67,7 @@ Should be `main`. If not, warn and ask the user whether they want to continue on
 ### 1c. Read product CHANGELOG top entry
 
 ```bash
-head -30 /Users/manavsehgal/Developer/ainative/CHANGELOG.md
+head -30 /Users/manavsehgal/orionfold/ainative/CHANGELOG.md
 ```
 
 Informational only. Surface the top entry in the pre-plan summary so the user sees which release they're applying. This is NOT a gate.

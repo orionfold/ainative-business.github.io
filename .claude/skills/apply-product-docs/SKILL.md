@@ -1,6 +1,6 @@
 ---
 name: apply-product-docs
-description: Sync product feature documentation from /Users/manavsehgal/Developer/ainative/docs/features/*.md (21 files) to the marketing website at /Users/manavsehgal/Developer/ainative-business.github.io/src/pages/docs/*.mdx (13-17 pages). Uses {/* SYNC:START */} and {/* SYNC:END */} markers to preserve website-only chrome (CTAs, crosslinks, design-system callouts) while replacing auto-generated body content. Rewrites image paths /screengrabs/ → /screenshots/ inside markers. Flags product-only docs (delivery-channels, provider-runtimes, tool-permissions, etc.) for user decision per run. Use whenever the user says "apply product docs", "sync product docs", "update feature docs from product", "refresh docs pages", "apply docs", "sync docs from product", "update website docs from product source", "docs are stale", or any request to update the website's docs subsite from the product's feature reference. Also trigger as part of "apply product release".
+description: Sync product feature documentation from /Users/manavsehgal/orionfold/ainative/docs/features/*.md (21 files) to the marketing website at /Users/manavsehgal/Developer/ainative-business.github.io/src/pages/docs/*.mdx (13-17 pages). Uses {/* SYNC:START */} and {/* SYNC:END */} markers to preserve website-only chrome (CTAs, crosslinks, design-system callouts) while replacing auto-generated body content. Rewrites image paths /screengrabs/ → /screenshots/ inside markers. Flags product-only docs (delivery-channels, provider-runtimes, tool-permissions, etc.) for user decision per run. Use whenever the user says "apply product docs", "sync product docs", "update feature docs from product", "refresh docs pages", "apply docs", "sync docs from product", "update website docs from product source", "docs are stale", or any request to update the website's docs subsite from the product's feature reference. Also trigger as part of "apply product release".
 ---
 
 # Apply Product Docs
@@ -19,8 +19,8 @@ The sync-marker convention enforces this without requiring either side to compro
 
 | | Path |
 |---|---|
-| Product feature docs | `/Users/manavsehgal/Developer/ainative/docs/features/*.md` (21 files) |
-| Product manifest | `/Users/manavsehgal/Developer/ainative/docs/manifest.json` |
+| Product feature docs | `/Users/manavsehgal/orionfold/ainative/docs/features/*.md` (21 files) |
+| Product manifest | `/Users/manavsehgal/orionfold/ainative/docs/manifest.json` |
 | Website docs | `/Users/manavsehgal/Developer/ainative-business.github.io/src/pages/docs/*.mdx` (17 pages) |
 | Slug mapping | `references/docs-mapping.md` — read this BEFORE any sync decision |
 | Exemplar template | `references/exemplar-doc.md` — canonical MDX shape for new/updated pages |
@@ -133,7 +133,7 @@ For each approved page with `first-sync-needed` status:
 
 For each page in `body-diff` or `first-sync-needed` (post-marker) status:
 
-1. Read product source markdown: `/Users/manavsehgal/Developer/ainative/docs/features/<source-file>.md`.
+1. Read product source markdown: `/Users/manavsehgal/orionfold/ainative/docs/features/<source-file>.md`.
 2. Strip frontmatter (product markdown may have YAML frontmatter; website gets its own frontmatter).
 3. Rewrite image paths: `/screengrabs/foo.png` → `/screenshots/foo.png`. Also handle relative paths like `./screengrabs/foo.png`.
 4. Read target website page, extract content between `{/* SYNC:START */}` and `{/* SYNC:END */}`.

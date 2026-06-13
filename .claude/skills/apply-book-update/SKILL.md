@@ -23,10 +23,10 @@ Syncs the "AI Native Business" book content (chapter markdown files + images) fr
 
 | Content | Source | Target |
 |---------|--------|--------|
-| Chapters | `/Users/manavsehgal/Developer/ainative/book/chapters/*.md` | `src/data/book/chapters/` |
-| Images | `/Users/manavsehgal/Developer/ainative/book/images/*` | `public/book/images/` |
+| Chapters | `/Users/manavsehgal/orionfold/ainative/book/chapters/*.md` | `src/data/book/chapters/` |
+| Images | `/Users/manavsehgal/orionfold/ainative/book/images/*` | `public/book/images/` |
 
-The website project root is `/Users/manavsehgal/Developer/ainative.business/`.
+The website project root is `/Users/manavsehgal/orionfold/ainative.business/`.
 
 ## Chapter Manifest
 
@@ -78,7 +78,7 @@ This skill has two phases. When invoked standalone it runs both sequentially. Wh
 Determine whether this is a **migration** (old chapter filenames still in target) or an **incremental sync** (new filenames already present):
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative.business
+cd /Users/manavsehgal/orionfold/ainative.business
 if [ -f "src/data/book/chapters/ch-1-project-management.md" ]; then
   echo "MODE: MIGRATION — old chapter files detected, full structural update needed"
 elif [ -f "src/data/book/chapters/ch-1-from-hierarchy-to-intelligence.md" ]; then
@@ -97,9 +97,9 @@ fi
 Check which files have changed between source and target:
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative.business
+cd /Users/manavsehgal/orionfold/ainative.business
 echo "=== Chapters ==="
-for src in /Users/manavsehgal/Developer/ainative/book/chapters/*.md; do
+for src in /Users/manavsehgal/orionfold/ainative/book/chapters/*.md; do
   name=$(basename "$src")
   tgt="src/data/book/chapters/$name"
   if [ ! -f "$tgt" ]; then
@@ -111,13 +111,13 @@ done
 echo "--- Stale target files ---"
 for tgt in src/data/book/chapters/ch-*.md; do
   name=$(basename "$tgt")
-  src="/Users/manavsehgal/Developer/ainative/book/chapters/$name"
+  src="/Users/manavsehgal/orionfold/ainative/book/chapters/$name"
   if [ ! -f "$src" ]; then
     echo "STALE (delete): $name"
   fi
 done
 echo "=== Images ==="
-for src in /Users/manavsehgal/Developer/ainative/book/images/*; do
+for src in /Users/manavsehgal/orionfold/ainative/book/images/*; do
   name=$(basename "$src")
   tgt="public/book/images/$name"
   if [ ! -f "$tgt" ]; then
@@ -158,7 +158,7 @@ Do not write any files during Plan Phase. Do not prompt for confirmation. Return
 
 ```bash
 rm -f src/data/book/chapters/ch-*.md
-cp /Users/manavsehgal/Developer/ainative/book/chapters/*.md src/data/book/chapters/
+cp /Users/manavsehgal/orionfold/ainative/book/chapters/*.md src/data/book/chapters/
 ```
 
 **Incremental mode**: Copy only changed or new files:
@@ -183,7 +183,7 @@ for f in src/data/book/chapters/ch-*.md; do
 done
 ```
 
-If any warnings fire, **stop and flag to the user**. Do NOT silently strip the chrome — this is an upstream generator bug that should be fixed in `/Users/manavsehgal/Developer/ainative/book/chapters/` so it doesn't recur on the next sync. Acceptable action: ask the user whether to (a) fix upstream first and re-sync, or (b) strip locally as a one-time hotfix knowing the next sync will re-introduce it.
+If any warnings fire, **stop and flag to the user**. Do NOT silently strip the chrome — this is an upstream generator bug that should be fixed in `/Users/manavsehgal/orionfold/ainative/book/chapters/` so it doesn't recur on the next sync. Acceptable action: ask the user whether to (a) fix upstream first and re-sync, or (b) strip locally as a one-time hotfix knowing the next sync will re-introduce it.
 
 Historical context: ch-14 shipped with a trailing `---` rule, a "Chapter 14 of 14" line, and a static "### Explore Related Features" block that the reader then rendered a second time. This lint exists to catch that class of drift.
 
@@ -347,7 +347,7 @@ Report any unresolved hits in the Step 7 change report under a "⚠️ Drift aud
 ainative.business is positioned as a personal research project, not a commercial funnel. Any re-introduction of "founding member" language, Maven/LinkedIn links, or Stage 2 "Orionfold LLC" references must fail the sync. Run this audit after every chapter sync — even if the product repo changed only markdown, a copy-paste could leak commercial framing back in.
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative.business
+cd /Users/manavsehgal/orionfold/ainative.business
 FORBIDDEN=(
   'founding member'
   'founding-hero'

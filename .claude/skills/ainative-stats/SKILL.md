@@ -7,7 +7,7 @@ This skill collects comprehensive development metrics from the ainative project 
 
 ## Target Project
 
-The ainative codebase lives at `/Users/manavsehgal/Developer/ainative/`. All metric collection commands run against that directory. The report file `ainative-stats.md` is written to the current working directory.
+The ainative codebase lives at `/Users/manavsehgal/orionfold/ainative/`. All metric collection commands run against that directory. The report file `ainative-stats.md` is written to the current working directory.
 
 ## Architecture
 
@@ -31,12 +31,12 @@ If `tokei` is missing, fall back to `find + wc -l` for LOC counting. Note any mi
 
 Run `tokei` on the ainative project root:
 ```bash
-tokei /Users/manavsehgal/Developer/ainative/ --sort code -t=TypeScript,TSX,CSS,JSON
+tokei /Users/manavsehgal/orionfold/ainative/ --sort code -t=TypeScript,TSX,CSS,JSON
 ```
 
 If `tokei` is unavailable, use:
 ```bash
-find /Users/manavsehgal/Developer/ainative/src -name '*.ts' -o -name '*.tsx' | xargs wc -l
+find /Users/manavsehgal/orionfold/ainative/src -name '*.ts' -o -name '*.tsx' | xargs wc -l
 ```
 
 Record: TypeScript production LOC, TypeScript test LOC, total LOC.
@@ -45,7 +45,7 @@ Record: TypeScript production LOC, TypeScript test LOC, total LOC.
 
 Count test functions (Vitest only — no Playwright or Rust tests):
 ```bash
-grep -r "it(\|test(" /Users/manavsehgal/Developer/ainative/src --include="*.test.ts" --include="*.test.tsx" --include="*.spec.ts" | wc -l
+grep -r "it(\|test(" /Users/manavsehgal/orionfold/ainative/src --include="*.test.ts" --include="*.test.tsx" --include="*.spec.ts" | wc -l
 ```
 
 Record: Vitest count, total.
@@ -53,7 +53,7 @@ Record: Vitest count, total.
 ### 4. Git Velocity
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative/
+cd /Users/manavsehgal/orionfold/ainative/
 git rev-list --count HEAD
 git log --oneline --since="$(git log --reverse --format='%aI' | head -1)" | wc -l
 git log --reverse --format='%aI' | head -1  # first commit timestamp
@@ -83,7 +83,7 @@ Compute:
 
 ```bash
 # Count features from roadmap
-cat /Users/manavsehgal/Developer/ainative/features/roadmap.md
+cat /Users/manavsehgal/orionfold/ainative/features/roadmap.md
 ```
 
 Count completed vs total features from the roadmap file. List completed feature names.
@@ -92,25 +92,25 @@ Count completed vs total features from the roadmap file. List completed feature 
 
 ```bash
 # API routes
-find /Users/manavsehgal/Developer/ainative/src/app/api -name "route.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src/app/api -name "route.ts" 2>/dev/null | wc -l
 
 # Database tables
-grep -c "export const" /Users/manavsehgal/Developer/ainative/src/db/schema.ts 2>/dev/null || echo 0
+grep -c "export const" /Users/manavsehgal/orionfold/ainative/src/db/schema.ts 2>/dev/null || echo 0
 
 # React components
-find /Users/manavsehgal/Developer/ainative/src/components -name "*.tsx" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src/components -name "*.tsx" 2>/dev/null | wc -l
 
 # Pages (operator surfaces)
-find /Users/manavsehgal/Developer/ainative/src/app -name "page.tsx" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src/app -name "page.tsx" 2>/dev/null | wc -l
 
 # Agent profiles
-find /Users/manavsehgal/Developer/ainative/src -path "*/agents/*" -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src -path "*/agents/*" -name "*.ts" 2>/dev/null | wc -l
 
 # Service modules
-find /Users/manavsehgal/Developer/ainative/src/services -maxdepth 1 -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src/services -maxdepth 1 -name "*.ts" 2>/dev/null | wc -l
 
 # Workflow patterns
-find /Users/manavsehgal/Developer/ainative/src -path "*/workflows/*" -name "*.ts" 2>/dev/null | wc -l
+find /Users/manavsehgal/orionfold/ainative/src -path "*/workflows/*" -name "*.ts" 2>/dev/null | wc -l
 ```
 
 ### 7. Quality Indicators
@@ -122,7 +122,7 @@ Note TypeScript strict mode and ESLint config status if available.
 Count the pre-built business primitives that ship with the product — these represent out-of-the-box value, not just code infrastructure.
 
 ```bash
-cd /Users/manavsehgal/Developer/ainative/
+cd /Users/manavsehgal/orionfold/ainative/
 
 # Workflow blueprints (YAML files in builtins)
 find src/lib/workflows/blueprints/builtins -name "*.yaml" 2>/dev/null | wc -l
@@ -419,7 +419,7 @@ Update these fields:
 
 ### Update Target 10: Standalone Architecture SVG (Product README)
 
-**File:** `/Users/manavsehgal/Developer/ainative/public/readme/architecture.svg`
+**File:** `/Users/manavsehgal/orionfold/ainative/public/readme/architecture.svg`
 
 This is a self-contained SVG (900x520 viewBox) referenced by the product's README.md on GitHub. It mirrors the 3-layer architecture from Target 7 (Browser → Server → External) but uses hardcoded hex colors instead of CSS custom properties. After updating stats in the website SVGs, update this file with the **same stat values** and ensure it uses the **light theme** color scheme so it renders cleanly on GitHub's white background.
 

@@ -10,11 +10,11 @@ Generates and incrementally updates the `/docs/api/` subsite on the ainative.bus
 
 ## Source and Target
 
-- **Product API Routes**: `/Users/manavsehgal/Developer/ainative/src/app/api/` (26 domain directories, 120+ route files)
-- **Validators**: `/Users/manavsehgal/Developer/ainative/src/lib/validators/` (Zod schemas)
-- **DB Schema**: `/Users/manavsehgal/Developer/ainative/src/lib/db/schema.ts` (table definitions)
-- **Types**: `/Users/manavsehgal/Developer/ainative/src/lib/*/types.ts` (TypeScript interfaces)
-- **Target**: `/Users/manavsehgal/Developer/ainative.business/src/pages/docs/api/` (MDX pages)
+- **Product API Routes**: `/Users/manavsehgal/orionfold/ainative/src/app/api/` (26 domain directories, 120+ route files)
+- **Validators**: `/Users/manavsehgal/orionfold/ainative/src/lib/validators/` (Zod schemas)
+- **DB Schema**: `/Users/manavsehgal/orionfold/ainative/src/lib/db/schema.ts` (table definitions)
+- **Types**: `/Users/manavsehgal/orionfold/ainative/src/lib/*/types.ts` (TypeScript interfaces)
+- **Target**: `/Users/manavsehgal/orionfold/ainative.business/src/pages/docs/api/` (MDX pages)
 - **Reference manifest**: Read `references/api-domain-mapping.md` (co-located with this skill)
 
 ## Design System Requirements
@@ -84,7 +84,7 @@ This skill has two phases. When invoked standalone it runs both sequentially wit
 List all route files in the product:
 
 ```bash
-find /Users/manavsehgal/Developer/ainative/src/app/api -name "route.ts" | sort
+find /Users/manavsehgal/orionfold/ainative/src/app/api -name "route.ts" | sort
 ```
 
 For each route file, determine:
@@ -107,7 +107,7 @@ Present the inventory table to the user:
 Read all validator files:
 
 ```bash
-ls /Users/manavsehgal/Developer/ainative/src/lib/validators/
+ls /Users/manavsehgal/orionfold/ainative/src/lib/validators/
 ```
 
 For each validator file:
@@ -119,7 +119,7 @@ Also read relevant sections of the database schema:
 
 ```bash
 # Read the schema file for table definitions
-cat /Users/manavsehgal/Developer/ainative/src/lib/db/schema.ts
+cat /Users/manavsehgal/orionfold/ainative/src/lib/db/schema.ts
 ```
 
 Extract column definitions, types, enums, and foreign key relationships for each domain's tables.
@@ -129,7 +129,7 @@ Extract column definitions, types, enums, and foreign key relationships for each
 Search for types files referenced by route handlers:
 
 ```bash
-find /Users/manavsehgal/Developer/ainative/src/lib -name "types.ts" | sort
+find /Users/manavsehgal/orionfold/ainative/src/lib -name "types.ts" | sort
 ```
 
 Read each types file and extract:
