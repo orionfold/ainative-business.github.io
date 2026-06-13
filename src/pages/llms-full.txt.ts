@@ -28,7 +28,7 @@ export async function GET(_context: APIContext) {
   out.push('Status: Pre-alpha (active development)');
   out.push('Author: Manav Sehgal');
   out.push('Author URL: https://www.linkedin.com/in/manavsehgal/');
-  out.push('GitHub: https://github.com/manavsehgal/ainative');
+  out.push('GitHub: https://github.com/orionfold/ainative');
   out.push('');
   out.push('---');
   out.push('');

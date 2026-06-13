@@ -80,7 +80,7 @@ export async function GET(_context: APIContext) {
   lines.push('');
   lines.push('## Source Code');
   lines.push('');
-  lines.push('- [GitHub Repository](https://github.com/manavsehgal/ainative)');
+  lines.push('- [GitHub Repository](https://github.com/orionfold/ainative)');
   lines.push('');
   lines.push('## Optional');
   lines.push('');

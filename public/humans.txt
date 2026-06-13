@@ -2,7 +2,7 @@
 
 Founder: Manav Sehgal
 Site: https://ainative.business
-GitHub: https://github.com/manavsehgal/ainative
+GitHub: https://github.com/orionfold/ainative
 
 /* TECHNOLOGY */
 
