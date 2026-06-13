@@ -244,7 +244,7 @@
     "passed": true,
     "threshold": "source_recall@5 >= 0.90 on answerable rows; no missing expected sources"
   },
-  "generated": "2026-06-09",
+  "generated": "2026-06-13",
   "manifest_path": "evidence/orionfold-advisor/public-corpus-manifest.jsonl",
   "manifest_sha256_12": "6b1e832d099c",
   "method": "live-cortex-pgvector-dense",
