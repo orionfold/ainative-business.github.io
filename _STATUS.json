@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M2 — the first-boot `fieldkit field-edition verify` receipt is now NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (ok=True), live-smoked end-to-end on the box in ~86s. Two more §8 generation-half gates went from honest-error stubs to measured-live PASS against the warm resident stack. (1) `lane` gate (warm-resident): operator decision taken on the flagged §6-vs-§8 fork — first-boot verify proves the resident lane reachable + serves one generation and does NOT tear the warm default down (§6 zero-swap path); _assess_lane floor reworked to launched+generated, teardown-clean is now the down/repair gates' job; live PASS 0.2s. (2) Cortex grounded-contract half: new pure fieldkit.field_edition.grounded REUSES the already-blessed frozen recall probes (no new freeze) + a faithful port of the Advisor grounded prompt; for a deterministic stratified slice (all refuse+route + first 3 answer/family = 39 probes) the lane answers over LIVE-retrieved context (full retrieve→ground→generate→cite via MemoryIndex.query), scored by the shared advisor.score_output; contract_pass = all refuse rows refuse (16/16) AND answer/route citation rate ≥0.80 (the Advisor precedent). LiveGateRunner.cortex now measures BOTH halves + merges metrics. LIVE-SMOKED: recall@5 0.977 + grounded citation 19/23 (82.6%) + refusals 16/16 → contract PASS in 56s; the 4 citation misses are GENUINE model misses (gold present, cited a sibling source), not artifacts. Stale 'embedder digest mismatch' fix-text reworded. 12 new tests (113 field_edition); full suite 1294 passed (only the 3 documented env arena failures). Near-all-green receipt preserved in evidence/. No version bump, no website rebuild (fieldkit-internal).",
+  "focus": "Arena Field Edition M2 — TWO launch-readiness deliverables. (A) The first-boot `fieldkit field-edition verify` receipt is NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (ok=True), live-smoked end-to-end ~86s. The `lane` gate (warm-resident — operator chose don't-tear-down for the §6-vs-§8 fork; floor reworked to launched+generated) and the Cortex grounded-contract half (new pure fieldkit.field_edition.grounded reuses the already-frozen recall probes + ported Advisor grounded prompt; deterministic 39-probe slice answered over LIVE retrieval, scored by the shared advisor.score_output; contract_pass = refusals 16/16 AND citation ≥0.80) both went from honest-error → measured-live PASS. Live: recall 0.977 + grounded citation 19/23 (82.6%) + refusals 16/16 → PASS 56s; the 4 misses are genuine model misses (gold present), not artifacts. Only optional hermes remains unwired. (B) AC-7 v1 license file delivered — fieldkit.field_edition.license: offline Ed25519-verified JSON entitlement file, GHCR pull-token bound by the signature (the entire DRM), canonical_bytes signing contract (compact/key-sorted/UTF-8/no-floats) for Mac's fulfillLicense, load_license parses→verifies→enforces-term. Prod key = PROD_KEY_PENDING until ops sends the pubkey. tier/edition/entitlements = SOFT known-set (recognized for display, unrecognized logged+accepted, never rejected — keeps SKU velocity decoupled). Full schema + JS port + keygen recipe + a valid sample delivered to the relay. 14 new tests (123 field_edition); full suite 1294 passed (only the 3 documented env arena failures). No version bump, no website rebuild.",
   "blockers": [],
   "next": [
-    "Optional `hermes` gate — the LAST generation-half to wire (the MCP fieldkit tool round-trip; only verify gate still unwired). Everything else for the first-boot receipt is GREEN",
-    "v1 license-file schema (AC-7) — answer the Mac→Spark open relay ask: exact fields + GHCR pull-token packaging + Ed25519 sign/verify contract + a sample valid file (Spark owns the format + bootstrap; Mac owns DNS + commerce server)",
+    "Optional `hermes` gate — the LAST verify generation-half to wire (the MCP fieldkit tool round-trip). Everything else for the first-boot receipt is GREEN",
+    "License: embed the PROD pubkey once ops generates the keypair + sends the public half (flips PROD_KEY_PENDING → real, unblocks issuing real licenses) + fold final SKU names into the known-sets",
     "cosign-sign the GHCR lane image (§9/M3 — the signed LiveUpdateChannel waits on this)",
-    "bootstrap (get.orionfold.com) + DNS + Ed25519 license server (AC-7)",
-    "HF card: feature Q4_K_M as the default variant + curveball parity on Orionfold/Advisor-GGUF README (hf-publisher)"
+    "bootstrap (get.orionfold.com) + DNS — bootstrap script is Spark's lane; the license-file FORMAT is now done",
+    "Pre-GA distribution exploration Mac reassigned: NGC-org feasibility read + v1.1 Supabase-entitlement sketch + cosign (no deadline)"
   ],
   "recent": [
-    "First-boot verify receipt NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), live-smoked end-to-end ~86s — flipped from this morning's 2pass/2error/1skip",
-    "`lane` gate wired LIVE (warm-resident): operator chose don't-tear-down for the §6-vs-§8 fork; floor = launched+generated; PASS 0.2s",
-    "Cortex grounded-contract half wired LIVE reusing the frozen recall probes (no new freeze) + ported Advisor grounded prompt + shared score_output: recall 0.977 + citation 19/23 (82.6%) + refusals 16/16 → contract PASS in 56s",
-    "Honest fragility flagged: grounded citation margin thin (82.6% vs 0.80 floor over 23 cite rows) but deterministic at temp 0; answer_per_family knob can widen the sample later",
-    "12 new tests (113 field_edition); 2 env-dependent live tests hardened to a dead-port config; full suite 1294 passed (only the 3 documented env arena failures)"
+    "First-boot verify receipt NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), live-smoked ~86s — flipped from this morning's 2pass/2error/1skip",
+    "`lane` gate LIVE (warm-resident, operator don't-tear-down) + Cortex grounded-contract half LIVE (reuses frozen probes, no new freeze): recall 0.977 + citation 82.6% + refusals 16/16 → PASS 56s",
+    "AC-7 v1 license file DELIVERED (fieldkit.field_edition.license): offline Ed25519 verify, GHCR pull-token bound by the signature, canonical_bytes signing contract; closes the Website→Spark open ask. Prod key PROD_KEY_PENDING until ops sends the pubkey",
+    "license tier/edition/entitlements = SOFT known-set (operator decision): recognized for display, unrecognized logged+accepted, never rejected — SKU velocity decoupled from installer release cadence",
+    "14 new tests (123 field_edition); 2 env-dependent live tests hardened to a dead-port config; full suite 1294 passed (only the 3 documented env arena failures). Shipped 0440b71+e19345e+67451c7"
   ],
-  "session": "S-fe-lane-cortex-gates-live",
+  "session": "S-fe-gates-live-and-license",
   "metrics": {
     "articles": 54,
     "models": 7,
