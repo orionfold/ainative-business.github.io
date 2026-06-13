@@ -17,7 +17,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   over a thin probe layer (`probe_environment`), so it is unit-testable without
   a DGX box; version axes are **minimum-version gates** (a newer-than-tested box
   passes, a too-old base fails with a named fix). Verified green live on the
-  dogfood box (DGX OS 7.4.0 against a 7.2.3 baseline). The remaining command
+  dogfood box; the tested matrix is pinned to that clean-wipe target (DGX OS
+  7.4.0 / driver 580.159.03 / CUDA 13.0). The remaining command
   group (`verify`/`down`/`repair`/`rollback`/`update`) is declared as
   milestone-marked stubs so `fieldkit field-edition --help` lists the full
   surface from day one. 14 new tests. The public docs card is deferred to the

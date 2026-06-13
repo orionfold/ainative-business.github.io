@@ -72,8 +72,9 @@ wrong failure), while a too-old base hard-fails with the fix. Each
 `MatrixCheck` carries its tested baseline so the report can show "found X,
 tested against Y" — making matrix drift visible without making it an error.
 Keeping the baseline current against DGX OS churn is the §9 update channel's
-job. (At authoring time the dogfood box already ran DGX OS 7.4.0/7.5.0 against
-a 7.2.3 baseline — and passed.)
+job. (The tested baseline is pinned to the dogfood clean-wipe target: DGX OS
+7.4.0 — the running `DGX_SWBUILD_VERSION`, with 7.5.0 the pending OTA — driver
+580.159.03, CUDA 13.0.)
 
 ## The bring-up (live today)
 

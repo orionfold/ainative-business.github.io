@@ -44,9 +44,11 @@ def test_parse_version_none_and_garbage() -> None:
 
 
 def _all_green_probes() -> dict[str, str | None]:
+    # Matches the re-pinned §7 clean-wipe baseline (DGX OS 7.4.0 / driver
+    # 580.159.03) — the actual dogfood box.
     return {
-        "dgx_os": "7.2.3",
-        "driver": "580.95.05",
+        "dgx_os": "7.4.0",
+        "driver": "580.159.03",
         "cuda": "13.0",
         "docker": "Docker version 29.2.1, build a5c7197",
         "container_toolkit": "NVIDIA Container Toolkit CLI version 1.19.1",
@@ -63,8 +65,8 @@ def test_exact_baseline_passes() -> None:
 def test_newer_than_tested_still_passes() -> None:
     """A box ahead of the tested baseline (DGX OS churn) must NOT be refused."""
     probes = _all_green_probes()
-    probes["dgx_os"] = "7.5.0"
-    probes["driver"] = "580.159.03"
+    probes["dgx_os"] = "7.6.0"
+    probes["driver"] = "590.10.05"
     report = evaluate_matrix(probes)
     assert report.ok, [f.reason for f in report.failures]
 

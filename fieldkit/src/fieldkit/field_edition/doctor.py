@@ -50,28 +50,31 @@ class MatrixCheck:
     key: str
     label: str
     kind: str  # "version_min" | "present"
-    tested: str  # human-readable tested baseline ("7.2.3", "preinstalled")
+    tested: str  # human-readable tested baseline ("7.4.0", "preinstalled")
     fix: str
 
 
-# The §7 tested matrix. ``tested`` values are the spec baseline (DGX OS 7.2.3
-# era). NOTE: the dogfood box has since moved to DGX OS 7.4.0/7.5.0 — the
-# minimum-version semantics mean it still passes, and the report surfaces the
-# drift. Re-pin these baselines to the clean-wipe target before M2.
+# The §7 tested matrix. ``tested`` values are the clean-wipe target the Field
+# Edition is dogfooded against: DGX OS 7.4.0 (the running ``DGX_SWBUILD_VERSION``;
+# 7.5.0 is the pending OTA) with the driver that ships with it. Re-pinned off the
+# original 7.2.3-era spec baseline 2026-06-13 to match the dogfood box. The
+# minimum-version semantics mean a newer base still passes and the report
+# surfaces the drift; keeping this current against DGX OS churn is the §9
+# update channel's job.
 TESTED_MATRIX: tuple[MatrixCheck, ...] = (
     MatrixCheck(
         key="dgx_os",
         label="DGX OS",
         kind="version_min",
-        tested="7.2.3",
-        fix="Update DGX OS to 7.2.3 or newer before installing the Field Edition.",
+        tested="7.4.0",
+        fix="Update DGX OS to 7.4.0 or newer before installing the Field Edition.",
     ),
     MatrixCheck(
         key="driver",
         label="NVIDIA driver",
         kind="version_min",
-        tested="580.95.05",
-        fix="Upgrade the NVIDIA driver to >= 580.95.05 (ships with the matched DGX OS).",
+        tested="580.159.03",
+        fix="Upgrade the NVIDIA driver to >= 580.159.03 (ships with the matched DGX OS).",
     ),
     MatrixCheck(
         key="cuda",
