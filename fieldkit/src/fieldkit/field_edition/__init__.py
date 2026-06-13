@@ -17,8 +17,15 @@ prints the plan. ``verify`` (:mod:`.verify`) runs the five-gate battery, applies
 the published floors, and always emits the receipt — the ``fieldkit`` gate is
 measured live now, the bench gates report an honest ``error`` until the live
 stack lands (M2). The live ``up`` phases fail honestly until the proven-matrix
-images exist (M2). ``down`` / ``repair`` / ``rollback`` / ``update`` remain
-milestone-marked stubs so the surface is discoverable from day one.
+images exist (M2).
+
+The rest of the §7 + §9 surface is now implemented too: ``down`` (:mod:`.down`,
+the AC-6 uninstall — preserves data unless ``--purge``), ``repair``
+(:mod:`.repair`, the §8 single-component re-pull + re-gate), and ``update`` /
+``rollback`` (:mod:`.update` over the :mod:`.proven_matrix` retained manifest —
+the §9 eval-gated, rollback-safe channel). Each fails honestly at the boundaries
+that still need M2/M3 infra (the unbuilt GHCR images, the unpublished signed
+channel) rather than stubbing the whole command.
 """
 
 from __future__ import annotations
@@ -68,6 +75,36 @@ from fieldkit.field_edition.verify import (
     run_verify,
     write_receipt,
 )
+from fieldkit.field_edition.down import (
+    DownExecutor,
+    DownPlan,
+    DownResult,
+    LiveDownExecutor,
+    plan_down,
+    run_down,
+)
+from fieldkit.field_edition.repair import (
+    COMPONENTS,
+    LiveRepairExecutor,
+    RepairExecutor,
+    RepairPlan,
+    RepairResult,
+    plan_repair,
+    run_repair,
+)
+from fieldkit.field_edition.proven_matrix import (
+    ProvenMatrix,
+    rollback as rollback_matrix,
+    save_current,
+)
+from fieldkit.field_edition.update import (
+    LiveUpdateChannel,
+    UpdateChannel,
+    UpdateError,
+    UpdateResult,
+    run_rollback,
+    run_update,
+)
 
 __all__ = [
     # doctor
@@ -111,4 +148,29 @@ __all__ = [
     "evaluate_gates",
     "run_verify",
     "write_receipt",
+    # down (§7 uninstall, AC-6)
+    "DownExecutor",
+    "DownPlan",
+    "DownResult",
+    "LiveDownExecutor",
+    "plan_down",
+    "run_down",
+    # repair (§8 single-component re-pull + re-gate)
+    "COMPONENTS",
+    "LiveRepairExecutor",
+    "RepairExecutor",
+    "RepairPlan",
+    "RepairResult",
+    "plan_repair",
+    "run_repair",
+    # proven matrix + update channel (§9)
+    "ProvenMatrix",
+    "rollback_matrix",
+    "save_current",
+    "LiveUpdateChannel",
+    "UpdateChannel",
+    "UpdateError",
+    "UpdateResult",
+    "run_rollback",
+    "run_update",
 ]

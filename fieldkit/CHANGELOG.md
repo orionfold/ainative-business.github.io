@@ -63,6 +63,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   to the live stack — M2") rather than a vanity pass until the proven-matrix
   stack + the pinned Q4_K_M model land. `up --verify` now runs this gate as the
   final phase (collapsing §7 steps 2–3). 20 new tests.
+- **`fieldkit field-edition {down,repair,rollback,update}` — the rest of the §7 +
+  §9 CLI surface, no longer stubs.** Completes the installer command set so the
+  whole `_SPECS/arena-field-edition-v1.md` §7/§9 surface is implemented (each
+  command fails *honestly* at the boundaries that still need M2/M3 infra rather
+  than stubbing the whole body):
+  - **`down`** (`fieldkit.field_edition.down`) — the §7 / AC-6 uninstall. Pure
+    `plan_down()` (what is removed vs. preserved) + an injectable
+    `DownExecutor`: default `down` removes the containers + network but
+    **preserves** the Cortex pgdata volume, model store, and `arena.db` (a later
+    `up` comes back warm); `--purge` additionally drops those (the explicit
+    "remove my data" opt-in). The Arena cockpit is a pipx host process, not a
+    container, so its uninstall is printed as the final manual step rather than
+    self-destructing the running CLI. Idempotent on an already-clean box.
+  - **`repair <advisor|cortex|lane>`** (`fieldkit.field_edition.repair`) — the §8
+    failure-UX escape hatch a failed gate names. Force-recreates one component's
+    container(s) (re-pulling the pinned image), re-pulls its model weights if it
+    owns any, then re-runs **only that component's §8 gate** and prints a fresh
+    honest receipt-line. Pure `plan_repair()` + injectable executor + the
+    existing `GateRunner`.
+  - **`update` / `rollback`** (`fieldkit.field_edition.update` over
+    `fieldkit.field_edition.proven_matrix`) — the §9 eval-gated, rollback-safe
+    proven-matrix channel: fetch the new pinned matrix → cosign-verify → apply →
+    re-run the §8 gate → emit a fresh receipt, with **automatic rollback** to the
+    prior matrix (retained on disk via `save_current`'s current→previous
+    rotation) on apply/gate failure; `rollback` is the manual escape hatch. The
+    signed GHCR channel is the **only external boundary** — `LiveUpdateChannel`
+    raises an honest `UpdateError` ("no published channel yet — M3") instead of
+    pretending to update. The retention + auto-rollback decision tree is fully
+    unit-tested with a fake channel/applier/gate. 26 new tests (78 field_edition
+    total).
 
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a

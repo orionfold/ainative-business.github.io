@@ -172,6 +172,25 @@ than a vanity pass. `up --verify` runs this gate as its final phase, collapsing
 - **`up`** — live: the checkpointed Compose bring-up (above).
 - **`verify`** — live: the §8 first-boot eval gate + receipt (`--json`,
   `--hermes`); exit 0 when every gate passes/skips, exit 1 otherwise.
-- **`down` / `repair` / `rollback`** and the top-level-style **`update`** —
-  milestone-marked stubs so `--help` lists the full surface from day one; each
-  body lands at its milestone.
+- **`down`** — live: the §7 / AC-6 uninstall. Default stops + removes the
+  containers + network but **preserves** the Cortex pgdata volume, model store,
+  and `arena.db`; `--purge` additionally drops those (explicit opt-in). The
+  Arena cockpit is a pipx host process, so its uninstall is printed as the final
+  manual step rather than self-destructing the running CLI.
+- **`repair <advisor|cortex|lane>`** — live: the §8 failure-UX escape hatch.
+  Force-recreates one component's container(s) (re-pulling the pinned image),
+  re-pulls its model weights if it owns any, then re-runs only that component's
+  §8 gate and prints a fresh honest receipt-line.
+- **`update` / `rollback`** — live: the §9 eval-gated, rollback-safe
+  proven-matrix channel (fetch → cosign-verify → apply → §8 gate → receipt, with
+  auto-rollback to the prior matrix on failure; `rollback` is the manual escape
+  hatch). The signed GHCR channel is the only external boundary — `update`
+  aborts honestly ("no published channel yet — M3") until the proven-matrix
+  images + cosign signatures are published.
+
+**M2/M3 boundaries (honest, not stubbed):** `down`/`repair`/`update` reach real
+Docker / HF / channel operations, so on this pre-launch box they stop at the same
+unbuilt-infra boundaries `up` does (the unpinned Orionfold images, the
+unpublished signed channel) — each with a named fix, never a vanity success. The
+orchestration, retention, and auto-rollback logic are complete and unit-tested
+now; the live operations light up as the M2/M3 infra lands.

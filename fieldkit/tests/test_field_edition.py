@@ -139,11 +139,11 @@ def test_doctor_json_failure_exit_1(monkeypatch) -> None:
     assert '"status": "too_old"' in result.stdout
 
 
-def test_stub_commands_exit_with_milestone_marker() -> None:
-    for cmd in ("down", "rollback", "update"):
-        result = runner.invoke(app, ["field-edition", cmd])
-        assert result.exit_code != 0
-        assert "stub" in result.stdout or "stub" in str(result.exception)
+def test_no_command_is_a_milestone_stub() -> None:
+    # The whole §7+§9 surface is implemented now — nothing should say "stub".
+    for cmd in ("doctor", "up", "verify", "down", "repair", "rollback", "update"):
+        help_result = runner.invoke(app, ["field-edition", cmd, "--help"])
+        assert "stub" not in help_result.stdout.lower()
 
 
 # --- compose bundle (pure renderer) ------------------------------------------
@@ -590,3 +590,296 @@ def test_verify_cli_json(tmp_path, monkeypatch) -> None:
     result = runner.invoke(app, ["field-edition", "verify", "--json", "--hermes"])
     assert result.exit_code == 0
     assert '"kind": "field-edition-verify"' in result.stdout
+
+
+# --- down (§7 uninstall, AC-6) -----------------------------------------------
+
+from fieldkit.field_edition import (  # noqa: E402
+    COMPONENTS,
+    DownExecutor,
+    ProvenMatrix,
+    RepairExecutor,
+    UpdateChannel,
+    UpdateError,
+    plan_down,
+    plan_repair,
+    run_down,
+    run_repair,
+    run_rollback,
+    run_update,
+)
+from fieldkit.field_edition import proven_matrix as pm_mod  # noqa: E402
+
+
+class _FakeDownExecutor(DownExecutor):
+    def __init__(self) -> None:
+        self.compose_down_called: bool | None = None
+        self.removed: list[str] = []
+        self.fail_compose = False
+
+    def compose_down(self, config, *, remove_volumes: bool) -> None:
+        if self.fail_compose:
+            raise RuntimeError("compose down boom")
+        self.compose_down_called = remove_volumes
+
+    def remove_path(self, path) -> None:
+        self.removed.append(str(path))
+
+
+def test_plan_down_default_preserves_data() -> None:
+    plan = plan_down(default_config(), purge=False)
+    assert not plan.remove_volumes
+    assert plan.purge_paths == ()
+    assert any("model store" in p for p in plan.preserved)
+
+
+def test_plan_down_purge_removes_models_db_and_bundle(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    plan = plan_down(cfg, purge=True)
+    assert plan.remove_volumes
+    paths = {p.name for p in plan.purge_paths}
+    assert {"models", "arena.db", "compose.yaml", ".env", "state.json"} <= paths
+
+
+def test_run_down_default_keeps_data(tmp_path) -> None:
+    exe = _FakeDownExecutor()
+    result = run_down(_tmp_config(tmp_path), purge=False, executor=exe)
+    assert result.ok
+    assert exe.compose_down_called is False  # no -v
+    assert exe.removed == []  # nothing purged
+    assert result.preserved
+
+
+def test_run_down_purge_removes_paths(tmp_path) -> None:
+    exe = _FakeDownExecutor()
+    result = run_down(_tmp_config(tmp_path), purge=True, executor=exe)
+    assert result.ok and result.purged
+    assert exe.compose_down_called is True  # -v dropped the volume
+    assert any(p.endswith("models") for p in exe.removed)
+
+
+def test_run_down_surfaces_teardown_failure(tmp_path) -> None:
+    exe = _FakeDownExecutor()
+    exe.fail_compose = True
+    result = run_down(_tmp_config(tmp_path), executor=exe)
+    assert not result.ok
+    assert "teardown failed" in result.error
+
+
+def test_down_cli_default_preserves(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    result = runner.invoke(app, ["field-edition", "down"])
+    assert result.exit_code == 0, result.stdout
+    assert "Preserved" in result.stdout
+    assert "pipx uninstall fieldkit" in result.stdout
+
+
+# --- repair (§8 single-component re-pull + re-gate) --------------------------
+
+
+class _FakeRepairExecutor(RepairExecutor):
+    def __init__(self) -> None:
+        self.repulled = False
+        self.recreated: tuple[str, ...] = ()
+
+    def repull_model(self, config) -> None:
+        self.repulled = True
+
+    def recreate(self, config, services) -> None:
+        self.recreated = tuple(services)
+
+
+def test_plan_repair_known_components() -> None:
+    assert set(COMPONENTS) == {"advisor", "cortex", "lane"}
+    assert plan_repair("cortex").gate == "cortex"
+    # cortex recreates both the db + the embedder.
+    assert len(plan_repair("cortex").services) == 2
+    assert plan_repair("advisor").repull_model is True
+    assert plan_repair("lane").repull_model is False
+
+
+def test_plan_repair_unknown_raises() -> None:
+    import pytest
+
+    with pytest.raises(ValueError):
+        plan_repair("frobnicate")
+
+
+def test_run_repair_unknown_component_errors(tmp_path) -> None:
+    result = run_repair("nope", _tmp_config(tmp_path), executor=_FakeRepairExecutor(),
+                        runner=_FakeGateRunner({}))
+    assert not result.ok
+    assert "unknown component" in result.error
+
+
+def test_run_repair_advisor_repulls_recreates_and_gates(tmp_path) -> None:
+    exe = _FakeRepairExecutor()
+    outcomes = {"advisor": GateOutcome("advisor", {"curveball_v02": 0.90, "refusals_passed": 9,
+                                                   "refusals_total": 9})}
+    result = run_repair("advisor", _tmp_config(tmp_path), executor=exe,
+                        runner=_FakeGateRunner(outcomes))
+    assert exe.repulled is True
+    assert exe.recreated == ("of-advisor-lane",)
+    assert result.ok and result.gate.key == "advisor" and result.gate.status == "pass"
+
+
+def test_run_repair_reports_failed_gate(tmp_path) -> None:
+    exe = _FakeRepairExecutor()
+    outcomes = {"cortex": GateOutcome("cortex", error="embedder digest mismatch")}
+    result = run_repair("cortex", _tmp_config(tmp_path), executor=exe,
+                        runner=_FakeGateRunner(outcomes))
+    assert exe.repulled is False  # cortex owns no model weights
+    assert not result.ok and result.gate.status == "error"
+
+
+def test_run_repair_surfaces_recreate_failure(tmp_path) -> None:
+    class _Boom(RepairExecutor):
+        def repull_model(self, config) -> None: ...
+        def recreate(self, config, services) -> None:
+            raise RuntimeError("force-recreate failed")
+
+    result = run_repair("lane", _tmp_config(tmp_path), executor=_Boom(),
+                        runner=_FakeGateRunner({}))
+    assert not result.ok and "recreate failed" in result.error
+
+
+# --- proven matrix (§9 retention) --------------------------------------------
+
+
+def test_from_config_derives_local_matrix() -> None:
+    m = pm_mod.from_config()
+    assert m.matrix_version == "local" and not m.signed
+    assert set(m.images) == {"cortex-db", "embedder", "advisor-lane"}
+
+
+def test_proven_matrix_round_trips() -> None:
+    m = ProvenMatrix("2026.q3", "0.31.0", {"db": "x@sha256:1"}, {"advisor": "rev1"}, signed=True)
+    assert ProvenMatrix.from_dict(m.to_dict()) == m
+
+
+def test_fingerprint_ignores_timestamp_and_signed() -> None:
+    a = ProvenMatrix("v1", "0.31.0", {"db": "x"}, {}, signed=False, created="t1")
+    b = ProvenMatrix("v1", "0.31.0", {"db": "x"}, {}, signed=True, created="t2")
+    assert a.fingerprint() == b.fingerprint()
+
+
+def test_save_current_rotates_previous(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    m1 = ProvenMatrix("v1", "0.31.0", {"db": "a"})
+    m2 = ProvenMatrix("v2", "0.31.0", {"db": "b"})
+    pm_mod.save_current(m1, cfg)
+    assert pm_mod.load_previous(cfg) is None
+    pm_mod.save_current(m2, cfg)
+    assert pm_mod.load_current(cfg).matrix_version == "v2"
+    assert pm_mod.load_previous(cfg).matrix_version == "v1"
+
+
+def test_rollback_restores_previous(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    pm_mod.save_current(ProvenMatrix("v1", "0.31.0", {"db": "a"}), cfg)
+    pm_mod.save_current(ProvenMatrix("v2", "0.31.0", {"db": "b"}), cfg)
+    restored = pm_mod.rollback(cfg)
+    assert restored.matrix_version == "v1"
+    assert pm_mod.load_current(cfg).matrix_version == "v1"
+
+
+def test_rollback_none_when_no_previous(tmp_path) -> None:
+    assert pm_mod.rollback(_tmp_config(tmp_path)) is None
+
+
+# --- update channel (§9 update flow + auto-rollback) -------------------------
+
+
+class _FakeChannel(UpdateChannel):
+    def __init__(self, matrix: ProvenMatrix | None, *, fetch_error: str | None = None) -> None:
+        self.matrix = matrix
+        self.fetch_error = fetch_error
+
+    def fetch_latest(self, config) -> ProvenMatrix:
+        if self.fetch_error:
+            raise UpdateError(self.fetch_error, fix="fix it")
+        return self.matrix
+
+    def verify_signature(self, matrix) -> None:
+        return None
+
+
+def test_run_update_aborts_when_no_channel(tmp_path) -> None:
+    result = run_update(_tmp_config(tmp_path), channel=_FakeChannel(None, fetch_error="no channel"),
+                        applier=lambda cfg: None, gate=lambda cfg: (None, None))
+    assert not result.ok and "no channel" in result.error
+
+
+def test_run_update_already_current(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    m = ProvenMatrix("v1", "0.31.0", {"db": "a"})
+    pm_mod.save_current(m, cfg)
+    result = run_update(cfg, channel=_FakeChannel(m), applier=lambda c: None,
+                        gate=lambda c: (None, None))
+    assert result.ok and not result.applied
+    assert "already" in result.message
+
+
+def test_run_update_applies_and_gates_green(tmp_path) -> None:
+    from fieldkit.field_edition.verify import GateResult, VerifyReport
+
+    cfg = _tmp_config(tmp_path)
+    m = ProvenMatrix("v2", "0.31.0", {"db": "b"})
+    good = VerifyReport((GateResult("fieldkit", "fieldkit", "m", "t", "pass", "d", None, "", ""),))
+    result = run_update(cfg, channel=_FakeChannel(m), applier=lambda c: None,
+                        gate=lambda c: (good, tmp_path / "r.json"))
+    assert result.ok and result.applied and not result.rolled_back
+    assert pm_mod.load_current(cfg).matrix_version == "v2"
+
+
+def test_run_update_auto_rollback_on_gate_fail(tmp_path) -> None:
+    from fieldkit.field_edition.verify import GateResult, VerifyReport
+
+    cfg = _tmp_config(tmp_path)
+    pm_mod.save_current(ProvenMatrix("v1", "0.31.0", {"db": "a"}), cfg)  # prior to roll back to
+    bad = VerifyReport((GateResult("cortex", "Cortex", "m", "t", "fail", "low", 0.1, "", "fix"),))
+    result = run_update(cfg, channel=_FakeChannel(ProvenMatrix("v2", "0.31.0", {"db": "b"})),
+                        applier=lambda c: None, gate=lambda c: (bad, tmp_path / "r.json"))
+    assert not result.ok and result.rolled_back
+    # the box is restored to the prior matrix.
+    assert pm_mod.load_current(cfg).matrix_version == "v1"
+
+
+def test_run_update_auto_rollback_on_apply_fail(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    pm_mod.save_current(ProvenMatrix("v1", "0.31.0", {"db": "a"}), cfg)
+    calls = {"n": 0}
+
+    def flaky_apply(c) -> None:
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise RuntimeError("pull failed")
+        # second call (rollback re-apply) succeeds
+
+    result = run_update(cfg, channel=_FakeChannel(ProvenMatrix("v2", "0.31.0", {"db": "b"})),
+                        applier=flaky_apply, gate=lambda c: (None, None))
+    assert not result.ok and result.rolled_back
+    assert pm_mod.load_current(cfg).matrix_version == "v1"
+
+
+def test_run_rollback_restores_and_reapplies(tmp_path) -> None:
+    cfg = _tmp_config(tmp_path)
+    pm_mod.save_current(ProvenMatrix("v1", "0.31.0", {"db": "a"}), cfg)
+    pm_mod.save_current(ProvenMatrix("v2", "0.31.0", {"db": "b"}), cfg)
+    result = run_rollback(cfg, applier=lambda c: None)
+    assert result.ok and result.rolled_back
+    assert pm_mod.load_current(cfg).matrix_version == "v1"
+
+
+def test_run_rollback_nothing_to_restore(tmp_path) -> None:
+    result = run_rollback(_tmp_config(tmp_path), applier=lambda c: None)
+    assert not result.ok and "nothing to roll back" in result.message
+
+
+def test_live_update_channel_is_honest() -> None:
+    from fieldkit.field_edition.update import LiveUpdateChannel
+
+    import pytest
+
+    with pytest.raises(UpdateError):
+        LiveUpdateChannel().fetch_latest(default_config())

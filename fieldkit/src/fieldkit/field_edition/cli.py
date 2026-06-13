@@ -6,12 +6,13 @@ The installer / orchestration surface for the Arena Field Edition (§7 of
 ``_SPECS/arena-field-edition-v1.md``). Wired into the top-level CLI so
 ``fieldkit field-edition <cmd>`` resolves the way operators expect.
 
-**M1 status:** ``doctor`` (the §7 support-matrix check), ``up`` (the
-checkpointed Compose bring-up), and ``verify`` (the §8 first-boot eval gate +
-receipt) are implemented for real. ``down`` / ``repair`` / ``rollback`` /
-``update`` are milestone-marked stubs so ``fieldkit field-edition --help`` lists
-the full surface from day one; each body lands at its milestone (uninstall +
-component repair at M2, signed update channel at M3).
+**Status:** the full §7 + §9 CLI surface is implemented. ``doctor`` (the §7
+support-matrix check), ``up`` (the checkpointed Compose bring-up), and ``verify``
+(the §8 first-boot eval gate + receipt) are M1. ``down`` (§7 uninstall / AC-6),
+``repair`` (the §8 single-component re-pull + re-gate), ``rollback`` and
+``update`` (the §9 eval-gated, rollback-safe proven-matrix channel) are now real
+too — each fails *honestly* at the boundaries that still need M2/M3 infra (the
+unbuilt GHCR images, the unpublished signed update channel) rather than stubbing.
 """
 
 from __future__ import annotations
@@ -29,19 +30,13 @@ app = typer.Typer(
         "(Arena + Advisor + Cortex + fieldkit + quants + Hermes). `doctor` checks "
         "the supported DGX OS / driver / CUDA / Container-Toolkit matrix; `up` "
         "brings up the Compose stack; `verify` runs the §8 first-boot eval gate + "
-        "receipt; `down`/`repair`/`rollback`/`update` are milestone stubs. See "
-        "_SPECS/arena-field-edition-v1.md."
+        "receipt; `down` uninstalls (AC-6); `repair` re-pulls + re-gates one "
+        "component; `update`/`rollback` are the §9 eval-gated proven-matrix "
+        "channel. See _SPECS/arena-field-edition-v1.md."
     ),
     no_args_is_help=True,
     add_completion=False,
 )
-
-
-def _milestone_message(cmd: str, milestone: str) -> str:
-    return (
-        f"`fieldkit field-edition {cmd}` is a stub — the body lands at "
-        f"{milestone}. See _SPECS/arena-field-edition-v1.md §7."
-    )
 
 
 @app.command("doctor")
@@ -219,25 +214,108 @@ def down(
         False, "--purge", help="Also remove downloaded models + data (explicit opt-in)."
     ),
 ) -> None:
-    """Stop + remove the stack; preserve data/models unless ``--purge`` (§7, AC-6)."""
-    raise typer.Exit(_milestone_message("down", "M2 — uninstall path"))
+    """Stop + remove the stack; preserve data/models unless ``--purge`` (§7, AC-6).
+
+    Default ``down`` removes the containers + network but keeps the Cortex
+    volume, model store, and ``arena.db`` (a later ``up`` comes back warm).
+    ``--purge`` additionally drops those — the explicit "remove my data" path.
+    The Arena cockpit is a pipx host process, not a container, so its uninstall
+    is printed as the final manual step rather than self-destructing this CLI.
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.down import run_down
+
+    result = run_down(
+        default_config(), purge=purge, on_event=lambda msg: typer.echo("  " + msg)
+    )
+    if not result.ok:
+        typer.echo(f"\nDown FAILED — {result.error}", err=True)
+        raise typer.Exit(code=1)
+
+    if result.removed_paths:
+        typer.echo("\nRemoved:")
+        for p in result.removed_paths:
+            typer.echo(f"  • {p}")
+    if result.preserved:
+        typer.echo("\nPreserved:")
+        for p in result.preserved:
+            typer.echo(f"  • {p}")
+    typer.echo(
+        "\nStack down. To remove the Arena cockpit too: `pipx uninstall fieldkit`."
+    )
+    raise typer.Exit(code=0)
 
 
 @app.command("repair")
 def repair(
-    component: str = typer.Argument(..., help="Component to repair, e.g. 'cortex'."),
+    component: str = typer.Argument(..., help="Component to repair: advisor | cortex | lane."),
 ) -> None:
-    """Re-pull + re-gate a single component named by a failed gate (§8 failure UX)."""
-    raise typer.Exit(_milestone_message("repair", "M2 — component repair"))
+    """Re-pull + re-gate a single component named by a failed gate (§8 failure UX).
+
+    Force-recreates the component's container(s) (re-pulling the pinned image),
+    re-pulls model weights if it owns any, then re-runs only that component's §8
+    gate and prints a fresh honest receipt-line for it.
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.repair import run_repair
+
+    result = run_repair(
+        component, default_config(), on_event=lambda msg: typer.echo("  " + msg)
+    )
+    if result.error:
+        typer.echo(f"\nRepair FAILED — {result.error}", err=True)
+        raise typer.Exit(code=1)
+
+    gate = result.gate
+    if gate is None:
+        typer.echo(f"\nRepair of `{component}` produced no gate result.", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"\n[{gate.status.upper()}] {gate.label}: {gate.detail}")
+    if not gate.ok:
+        if gate.fix:
+            typer.echo(f"  → fix: {gate.fix}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"Repair of `{component}` PASSED its gate.")
+    raise typer.Exit(code=0)
 
 
 @app.command("rollback")
 def rollback() -> None:
-    """Restore the prior pinned matrix (manual escape hatch for §9 updates)."""
-    raise typer.Exit(_milestone_message("rollback", "M3 — update channel"))
+    """Restore the prior pinned matrix + re-apply it (manual §9 escape hatch)."""
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.update import run_rollback
+
+    result = run_rollback(default_config(), on_event=lambda msg: typer.echo("  " + msg))
+    if not result.ok:
+        typer.echo(f"\nRollback FAILED — {result.error}", err=True)
+        if result.fix:
+            typer.echo(f"  → fix: {result.fix}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"\n{result.message}.")
+    raise typer.Exit(code=0)
 
 
 @app.command("update")
 def update() -> None:
-    """Update to the latest signed, eval-gated proven matrix; auto-rollback on fail (§9)."""
-    raise typer.Exit(_milestone_message("update", "M3 — signed update channel"))
+    """Update to the latest signed, eval-gated proven matrix; auto-rollback on fail (§9).
+
+    Fetches the new pinned matrix, cosign-verifies it, applies it, re-runs the §8
+    gate, emits a fresh receipt, and rolls back automatically if the gate fails.
+    The signed GHCR channel is published at M3 — until then this aborts honestly
+    (no published channel) rather than pretending to update.
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.update import run_update
+
+    result = run_update(default_config(), on_event=lambda msg: typer.echo("  " + msg))
+    if not result.ok:
+        typer.echo(f"\nUpdate aborted — {result.error}", err=True)
+        if result.rolled_back:
+            typer.echo(f"  {result.message}.", err=True)
+        if result.fix:
+            typer.echo(f"  → fix: {result.fix}", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"\n{result.message}.")
+    if result.receipt_path:
+        typer.echo(f"Receipt: {result.receipt_path}")
+    raise typer.Exit(code=0)

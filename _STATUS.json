@@ -3,24 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M2 (operator priority): discharged the owed §1-Cortex live-lane recall re-run — source_recall@5 = 0.977 ≥ 0.95 on the running embedder image, gate PASS, byte-identical to prior (stable). Confirms the §8 Cortex gate FLOOR is satisfiable on the box → de-risks M2. Re-confirmed the M1 surface healthy (doctor green, verify: fieldkit gate green + 3 bench gates honest-error). No code shipped (read-only dogfood + evidence date-bump). Remaining for the Cortex gate: vendor a frozen mini recall set into the package (operator/spec freeze) + the serving lane for the grounded-contract generation half.",
+  "focus": "Arena Field Edition: completed the full §7+§9 installer CLI surface — down/repair/rollback/update are now real code, not milestone stubs (4 new modules: down.py, repair.py, proven_matrix.py, update.py). Same pure-core/thin-I/O split; each fails HONESTLY at the M2/M3 infra boundary (unbuilt GHCR images / unpublished signed channel) rather than stubbing. 26 new tests (78 field_edition total); full collectable suite 1259 passed (only the 3 documented env arena failures). Live-smoked: down preserves arena.db, repair/rollback/update abort honestly. The installer ORCHESTRATION is now code-complete; what remains is operator/hardware-gated INFRA. Not committed yet (awaiting operator review).",
   "blockers": [],
   "next": [
-    "PRIORITY (operator): Arena Field Edition M2 first. Fill the 4 bench LiveGateRunner methods (advisor/cortex/lane/hermes) on fieldkit.eval + frozen benches once the live stack is up (currently honest-error)",
-    "Field Edition M2 infra: build+push+digest-pin the 2 Orionfold images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull; then a live `up` runs end-to-end",
-    "Field Edition: implement cli.py down/repair/rollback/update stubs (offline-testable)",
-    "PAUSED (back of queue): Advisor v0.3 road — resume decision pending (A excerpt-only / B excerpt+reranker spike / C training-first / D widen-k=5); diagnosis captured in HANDOFF, NOT a Field Edition release prereq",
+    "operator/hardware-gated (NOT code): build+push+digest-pin the 2 Orionfold GHCR images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull → a live `up` then runs end-to-end",
+    "operator-armed live serving lane → fill the 4 bench LiveGateRunner gates' generation halves (advisor/cortex/lane/hermes); cortex RECALL half is proven-ready (0.977) once the mini set is vendored",
+    "proof-control FREEZE: vendor a frozen mini recall set into the package + cosign-sign the GHCR images (the §9 signed LiveUpdateChannel waits on this)",
+    "PAUSED (back of queue): Advisor v0.3 road — resume decision pending (A excerpt-only / B excerpt+reranker spike / C training-first / D widen-k=5); NOT a Field Edition release prereq",
     "operator: Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
   ],
   "recent": [
-    "Field Edition M2: discharged the owed live-lane recall re-run (score_recall_live --skip-ingest over the live Cortex stack, advisor_corpus_v01 646 chunks/183 slugs) — source_recall@5 0.977 ≥0.95 gate PASS, metrics byte-identical to prior; spec line 77 marked discharged (private). Cortex gate floor proven satisfiable on the running embedder image",
-    "Re-confirmed M1 surface on the box: doctor green (7.4.0/580.159.03/CUDA13/Docker29.2.1/ctk1.19.1); verify fieldkit gate green + advisor/cortex/lane honest-error + hermes skipped, receipt written then cleaned. Honesty note: cortex stub msg says 'stack not up' but stack IS up — real blockers are package-vendored mini set + the lane",
-    "v0.3 packet-contract: refined diagnosis then PAUSED per operator (Field Edition first). GE-2 mostly paraphrase not excerpt (2/8 genuine drops); GE-3 11/12 gold-in-pool-misranked; ~29/51 failures are model behavior. No code shipped",
-    "Field Edition §7 matrix re-pin (d08f8e3): TESTED_MATRIX dgx_os 7.2.3→7.4.0, driver ≥580.95.05→≥580.159.03 (CUDA stays 13.0); §7 spec+prereqs+parked doc+CHANGELOG reconciled; private 44639ed",
-    "Earlier: M1 `verify` (3eee448) five-gate battery + always-on receipt; up --verify wired; 20 tests; live-smoked green/honest-error. `up` (compose.py+up.py phase machine+pin discipline) 18 tests --dry-run live-green",
-    "full fieldkit suite 1233 passed (only 3 pre-existing/environmental arena failures, none touch field_edition); doctor+up+verify M1 installer surface public in the wheel source"
+    "Field Edition §7+§9 CLI surface COMPLETED: down (AC-6 uninstall, preserves volume/store/arena.db unless --purge) + repair (§8 single-component re-pull+re-gate) + update/rollback (§9 eval-gated proven-matrix channel with auto-rollback over proven_matrix retention). 26 new tests (78 total). Not committed yet",
+    "Earlier today: discharged the owed live-lane recall re-run — source_recall@5 0.977 ≥0.95 gate PASS (byte-identical, stable); Cortex gate floor proven satisfiable on the running embedder image",
+    "Re-confirmed M1 surface: doctor green (7.4.0/580.159.03/CUDA13/Docker29.2.1/ctk1.19.1); verify fieldkit gate green + bench gates honest-error + hermes skipped",
+    "Field Edition §7 matrix re-pin (d08f8e3): TESTED_MATRIX dgx_os 7.2.3→7.4.0, driver ≥580.95.05→≥580.159.03; M1 `verify` (3eee448) + `up` (compose.py+up.py phase machine) shipped earlier",
+    "v0.3 packet-contract refined diagnosis then PAUSED per operator (Field Edition first); GE-2 mostly paraphrase, GE-3 11/12 misranked, ~29/51 model behavior"
   ],
-  "session": "S-fe-cortex-recall-rerun",
+  "session": "S-fe-cli-surface-complete",
   "metrics": {
     "articles": 54,
     "models": 7,
