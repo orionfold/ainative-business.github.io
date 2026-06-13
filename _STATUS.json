@@ -3,7 +3,7 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition: completed the full §7+§9 installer CLI surface — down/repair/rollback/update are now real code, not milestone stubs (4 new modules: down.py, repair.py, proven_matrix.py, update.py). Same pure-core/thin-I/O split; each fails HONESTLY at the M2/M3 infra boundary (unbuilt GHCR images / unpublished signed channel) rather than stubbing. 26 new tests (78 field_edition total); full collectable suite 1259 passed (only the 3 documented env arena failures). Live-smoked: down preserves arena.db, repair/rollback/update abort honestly. The installer ORCHESTRATION is now code-complete; what remains is operator/hardware-gated INFRA. Not committed yet (awaiting operator review).",
+  "focus": "Arena Field Edition: completed the full §7+§9 installer CLI surface — down/repair/rollback/update are now real code, not milestone stubs (4 new modules: down.py, repair.py, proven_matrix.py, update.py). Same pure-core/thin-I/O split; each fails HONESTLY at the M2/M3 infra boundary (unbuilt GHCR images / unpublished signed channel) rather than stubbing. 26 new tests (78 field_edition total); full collectable suite 1259 passed (only the 3 documented env arena failures). Live-smoked: down preserves arena.db, repair/rollback/update abort honestly. The installer ORCHESTRATION is now code-complete; what remains is operator/hardware-gated INFRA. Shipped to origin (f3b8edc); strategy repo pushed (6aa8077, rebased to absorb the Mac AC-2 reword).",
   "blockers": [],
   "next": [
     "operator/hardware-gated (NOT code): build+push+digest-pin the 2 Orionfold GHCR images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull → a live `up` then runs end-to-end",
@@ -13,7 +13,7 @@
     "operator: Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
   ],
   "recent": [
-    "Field Edition §7+§9 CLI surface COMPLETED: down (AC-6 uninstall, preserves volume/store/arena.db unless --purge) + repair (§8 single-component re-pull+re-gate) + update/rollback (§9 eval-gated proven-matrix channel with auto-rollback over proven_matrix retention). 26 new tests (78 total). Not committed yet",
+    "Field Edition §7+§9 CLI surface COMPLETED: down (AC-6 uninstall, preserves volume/store/arena.db unless --purge) + repair (§8 single-component re-pull+re-gate) + update/rollback (§9 eval-gated proven-matrix channel with auto-rollback over proven_matrix retention). 26 new tests (78 total). Shipped f3b8edc",
     "Earlier today: discharged the owed live-lane recall re-run — source_recall@5 0.977 ≥0.95 gate PASS (byte-identical, stable); Cortex gate floor proven satisfiable on the running embedder image",
     "Re-confirmed M1 surface: doctor green (7.4.0/580.159.03/CUDA13/Docker29.2.1/ctk1.19.1); verify fieldkit gate green + bench gates honest-error + hermes skipped",
     "Field Edition §7 matrix re-pin (d08f8e3): TESTED_MATRIX dgx_os 7.2.3→7.4.0, driver ≥580.95.05→≥580.159.03; M1 `verify` (3eee448) + `up` (compose.py+up.py phase machine) shipped earlier",
