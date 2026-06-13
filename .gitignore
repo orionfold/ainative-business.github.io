@@ -47,6 +47,8 @@ _IDEAS
 _SPECS
 # active guidance & practices (incl. the retired _FLOWS machine map) — private, symlinked into orionfold/strategy (2026-06-12)
 _GUIDES
+# local compat symlink → _GUIDES/the-machine-that-builds-machines.md (unblocks preflight; _FLOWS stream retired 2026-06-12, never published)
+_FLOWS
 README-ARENA.md
 RECONCILE-SPARK-MAC.md
 .sync-active
