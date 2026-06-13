@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M2 step 1: the §8 Cortex gate's recall-half is now measured LIVE (not a stub) — the one bench gate that doesn't need the serving lane. New fieldkit.field_edition.recall: a vendored frozen recall set (data/cortex-recall-mini.json, full 87-row slice, sha-pinned 97ce168b851d, freeze operator-blessed) + a pure score_recall_set(); LiveGateRunner.cortex retrieves it via MemoryIndex.query against advisor_corpus_v01. Live-smoked: recall@5 0.977 over 87 rows in 2.7s — byte-identical to the score_recall_live proof. Honest non-pass: recall real + in the receipt, but the grounded-contract generation half still needs the serving lane (M2). 8 new tests (86 field_edition); full suite 1267 passed (only the 3 documented env arena failures). No version bump, no website rebuild. Shipped to origin.",
+  "focus": "Arena Field Edition M2 — the full proven matrix is PUBLISHED + fully digest-pinned. (1) Q4_K_M Advisor quantized BF16→F16→Q4_K_M, quality-gated on a live lane (curveball-v0.2 85.7% = the Q8_0 baseline, same 3 safe-direction misses, refusals 9/9 — the §8 Advisor floor), published to HF Orionfold/Advisor-GGUF (rev dad6d1e5) + pinned in LaneConfig.gguf_revision. (2) The CUDA-13/SM121 llama.cpp lane image: reproducible multi-stage Dockerfile (deploy/field-edition/llama-server-cuda13, llama.cpp 856c3ad, forced driver-stub link), built + smoked (serves Q4_K_M, /v1/models 200 in 3s, finish_reason=stop, reasoning split correct), pushed to ghcr.io/orionfold/llama-server-cuda13:0.1 (sha256:93993cc2) + pinned in LaneConfig.image. (3) NIM embedder is the v1 default (digest-pinned, recall-proven; open embedder→v1.1 via --open-embedder) — ICP already runs NGC. (4) up.pull wired (resumable hf_hub_download, pin-by-revision). Net: unpinned_images()==[] for the default; `up --dry-run` renders an all-@sha256 Compose bundle → a live `up` resolves the whole stack by digest. 92 field_edition tests; full suite 1272 passed (only the 3 documented env arena failures). Shipped 06df6f7 + d31423e.",
   "blockers": [],
   "next": [
-    "operator-armed live serving lane → fills the grounded-contract generation half of the Cortex gate (citation integrity + refusal hygiene) so cortex fully PASSES, PLUS the advisor/lane/hermes gate generation halves — all wait on the published+pinned Q4_K_M Advisor rev",
-    "operator/hardware-gated (NOT code): build+push+digest-pin the 2 Orionfold GHCR images (open embedder + CUDA-13 llama lane, replace PIN_PENDING) + publish/pin a Q4_K_M Advisor-GGUF rev (only Q8_0 shipped) + wire resumable HF pull → a live `up` runs end-to-end",
-    "proof-control: cosign-sign the GHCR images (the §9 signed LiveUpdateChannel waits on this)",
-    "PAUSED (back of queue): Advisor v0.3 road — resume decision pending (A excerpt-only / B excerpt+reranker spike / C training-first / D widen-k=5); NOT a Field Edition release prereq",
-    "operator: Agency-cockpit MONOREPO-mirror repoint; delete frozen Drive share ~06-19; founder->LLC IP assignment"
+    "operator-armed live `up` end-to-end on the box (pipx cockpit + NGC embedder + the pinned lane) → then wire + live-smoke the advisor/lane/hermes + cortex-grounded-contract generation-half verify gates (#5); open spec Q: §8 lane gate 'teardown clean' vs §6 resident-default-stays-warm",
+    "cosign-sign the GHCR lane image (§9/M3 — the signed LiveUpdateChannel waits on this)",
+    "bootstrap (get.orionfold.com) + DNS + Ed25519 license server (AC-7)",
+    "DISTRIBUTION DECISION (pre-GA, discussed this session): images GHCR-now→NGC-for-GA (Inception + reuse the customer's existing NGC auth); weights+license+bootstrap → Supabase signed URLs (per-customer, revocable); convert orionfold GitHub User→Organization (it's a personal User account — weak for a paid product)",
+    "HF card: feature Q4_K_M as the default variant + the curveball parity on Orionfold/Advisor-GGUF README (hf-publisher); re-freeze decision for the advisor corpus manifest's retired _FLOWS/ path"
   ],
   "recent": [
-    "Cortex gate recall-half wired + live-smoked: vendored frozen recall set (sha 97ce168b851d, freeze blessed) + pure score_recall_set + LiveGateRunner.cortex via MemoryIndex → recall@5 0.977/87 rows/2.7s, byte-identical to proof. Design finding: full slice not sub-sampled (0.95 floor fragile vs 2.3% miss rate). 8 new tests (86 total)",
-    "Field Edition §7+§9 CLI surface COMPLETED: down (AC-6 uninstall, preserves volume/store/arena.db unless --purge) + repair (§8 single-component re-pull+re-gate) + update/rollback (§9 eval-gated proven-matrix channel with auto-rollback). 26 new tests. Shipped f3b8edc",
-    "Discharged the owed live-lane recall re-run — source_recall@5 0.977 ≥0.95 gate PASS (byte-identical, stable); Cortex gate floor proven satisfiable on the running embedder image",
-    "Re-confirmed M1 surface: doctor green (7.4.0/580.159.03/CUDA13/Docker29.2.1/ctk1.19.1); verify fieldkit gate green + bench gates honest-error + hermes skipped",
-    "Field Edition §7 matrix re-pin (d08f8e3): TESTED_MATRIX dgx_os 7.2.3→7.4.0, driver ≥580.95.05→≥580.159.03; M1 verify (3eee448) + up (compose.py+up.py) shipped earlier"
+    "Proven matrix PUBLISHED + fully digest-pinned: Q4_K_M→HF (rev dad6d1e5), lane image→GHCR (sha256:93993cc2); up --dry-run renders an all-@sha256 bundle, unpinned_images()==[]. Shipped d31423e",
+    "Q4_K_M quality-gated on a live lane before publish: curveball-v0.2 85.7% (=Q8_0 baseline) + refusals 9/9 — did NOT regress the launch default",
+    "Lane image: reproducible CUDA-13/SM121 Dockerfile (forced driver-stub -lcuda link fix), built + smoked (serves Q4_K_M, reasoning split correct)",
+    "NIM embedder = v1 default (digest-pinned); open embedder→v1.1 (--open-embedder). up.pull wired (resumable hf_hub_download). 92 field_edition tests",
+    "Findings: frozen advisor corpus manifest still referenced retired _FLOWS/ path (1/182) → local compat symlink (flag re-freeze); HF xet cache root-owned → upload needs HF_HUB_DISABLE_XET=1; orionfold is a GitHub USER acct so GHCR push needs orionfold creds (memory saved)"
   ],
-  "session": "S-fe-cortex-recall-half",
+  "session": "S-fe-proven-matrix-published",
   "metrics": {
     "articles": 54,
     "models": 7,
