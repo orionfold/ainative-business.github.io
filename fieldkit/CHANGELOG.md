@@ -30,7 +30,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   `PROD_KEY_PENDING` slot until ops generates the keypair and embeds its public
   half; a committed **dev-only** key (seed `bytes(range(32))`) signs the vendored
   `data/license-sample.json` so the schema + tests self-validate. `cryptography`
-  is added to the `arena` extra (the installer surface). 8 new tests.
+  is added to the `arena` extra (the installer surface). **`tier` / `edition` /
+  `entitlements` use a *soft* known-set** (`KNOWN_TIERS` / `KNOWN_EDITIONS` /
+  `KNOWN_ENTITLEMENTS`): recognized values are surfaced for display/telemetry and
+  an unrecognized one logs a one-line "treating as generic" warning — but is
+  **never rejected** (these are descriptive, not security-bearing; strict
+  validation would couple SKU velocity to the installer's release cadence and let
+  an older installer hard-reject a newer edition). Unknown entitlements are
+  ignored, not rejected, so an installer that predates one degrades gracefully.
+  10 new tests.
 - **`fieldkit.field_edition` — the Arena Field Edition installer surface (M1
   scaffold).** New package owning the §7 installer/orchestration commands for
   the self-serve DGX Spark distributable (`_SPECS/arena-field-edition-v1.md`),

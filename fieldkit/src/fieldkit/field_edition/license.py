@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -57,6 +58,9 @@ __all__ = [
     "TRUSTED_KEYS",
     "ACTIVE_KEY_ID",
     "PROD_KEY_PENDING",
+    "KNOWN_TIERS",
+    "KNOWN_EDITIONS",
+    "KNOWN_ENTITLEMENTS",
     "LicenseError",
     "IssuedTo",
     "Registry",
@@ -67,6 +71,8 @@ __all__ = [
     "parse_license",
     "load_license",
 ]
+
+_log = logging.getLogger("fieldkit.field_edition.license")
 
 #: The schema discriminator every v1 payload carries.
 LICENSE_SCHEMA = "orionfold.license/v1"
@@ -102,6 +108,22 @@ TRUSTED_KEYS: dict[str, str] = {
 
 #: The key_id the issuer should sign with in production once it is provisioned.
 ACTIVE_KEY_ID = "of-license-prod-2026"
+
+#: **Soft** known-sets — recognized values for display / telemetry only. The
+#: installer does NOT reject an unrecognized ``tier`` / ``edition`` / entitlement
+#: (these are descriptive, not security-bearing — the signature + term + the
+#: bound pull token are the gate). Strict validation here would couple commerce
+#: velocity to the installer's release cadence and, worse, let an *older*
+#: installer hard-reject a *newer* edition on a cosmetic field. So a new SKU just
+#: needs a Stripe price + a `fulfillLicense` mapping; the installer logs a
+#: one-line "unrecognized …, treating as generic" and proceeds. Unknown
+#: entitlements are likewise **ignored, not rejected** (an installer that predates
+#: an entitlement degrades gracefully). Extend these as new SKUs settle.
+KNOWN_TIERS: frozenset[str] = frozenset({"field-edition"})
+KNOWN_EDITIONS: frozenset[str] = frozenset({"founding-25", "standard"})
+KNOWN_ENTITLEMENTS: frozenset[str] = frozenset(
+    {"proven-matrix-images", "signed-update-channel"}
+)
 
 
 class LicenseError(Exception):
@@ -168,6 +190,36 @@ class License:
 
     def has_entitlement(self, name: str) -> bool:
         return name in self.entitlements
+
+    @property
+    def tier_recognized(self) -> bool:
+        return self.tier in KNOWN_TIERS
+
+    @property
+    def edition_recognized(self) -> bool:
+        return self.edition in KNOWN_EDITIONS
+
+    @property
+    def unknown_entitlements(self) -> tuple[str, ...]:
+        """Entitlements the installer doesn't know — carried, ignored, not rejected."""
+        return tuple(e for e in self.entitlements if e not in KNOWN_ENTITLEMENTS)
+
+    def recognition_notes(self) -> list[str]:
+        """Soft, non-fatal labels for any unrecognized descriptive values.
+
+        Empty when everything is in the known-sets. Surfaced as one-line warnings
+        at load time (and available for the receipt) — never an error."""
+        notes: list[str] = []
+        if not self.tier_recognized:
+            notes.append(f"unrecognized tier {self.tier!r} — treating as generic")
+        if not self.edition_recognized:
+            notes.append(f"unrecognized edition {self.edition!r} — treating as generic")
+        if self.unknown_entitlements:
+            notes.append(
+                f"unknown entitlements {list(self.unknown_entitlements)} — ignored "
+                "(this installer predates them; update to use them)"
+            )
+        return notes
 
     def expires_dt(self) -> datetime:
         return _parse_ts(self.expires_at)
@@ -312,6 +364,11 @@ def load_license(
 
     verify_signature(payload, signature)
     lic = parse_license(payload)
+
+    # Soft recognition: log (never raise) a one-line note for any unrecognized
+    # descriptive value, so a typo/drift is visible without failing the install.
+    for note in lic.recognition_notes():
+        _log.warning("license %s: %s", lic.license_id, note)
 
     if enforce_term:
         now = now or datetime.now(timezone.utc)

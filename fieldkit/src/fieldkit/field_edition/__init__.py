@@ -107,6 +107,9 @@ from fieldkit.field_edition.grounded import (
     select_contract_probes,
 )
 from fieldkit.field_edition.license import (
+    KNOWN_EDITIONS,
+    KNOWN_ENTITLEMENTS,
+    KNOWN_TIERS,
     LICENSE_SCHEMA,
     TRUSTED_KEYS,
     License,
@@ -222,6 +225,9 @@ __all__ = [
     # AC-7 license (offline Ed25519-verified entitlement file)
     "LICENSE_SCHEMA",
     "TRUSTED_KEYS",
+    "KNOWN_TIERS",
+    "KNOWN_EDITIONS",
+    "KNOWN_ENTITLEMENTS",
     "License",
     "LicenseError",
     "Registry",

@@ -248,3 +248,10 @@ boot (AC-7: the privacy stance is the brand); the math is the gate.
   `PROD_KEY_PENDING` slot until ops generates the keypair and embeds its public
   half; the committed **dev-only** key signs the vendored `data/license-sample.json`
   so the schema + tests self-validate. `cryptography` ships in the `arena` extra.
+- **`tier` / `edition` / `entitlements` are a *soft* known-set** — `KNOWN_TIERS`
+  / `KNOWN_EDITIONS` / `KNOWN_ENTITLEMENTS` are recognized for display/telemetry,
+  and an unrecognized value logs a one-line "treating as generic" warning but is
+  **never rejected** (descriptive, not security-bearing — strict validation would
+  couple SKU velocity to the release cadence and let an older installer hard-fail
+  a newer edition). A new SKU just needs a Stripe price + a `fulfillLicense`
+  mapping; unknown entitlements are ignored, not rejected.

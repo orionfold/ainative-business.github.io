@@ -1691,3 +1691,57 @@ def test_missing_file_and_bad_schema_are_actionable(tmp_path) -> None:
         parse_license({"schema": "wrong", "license_id": "x"})
     with pytest.raises(LicenseError, match="missing required field"):
         parse_license({"schema": "orionfold.license/v1"})
+
+
+def test_license_soft_known_set_does_not_reject(tmp_path, caplog) -> None:
+    # Unrecognized tier/edition + an unknown entitlement must LOAD (descriptive,
+    # not security-bearing) — surfaced as soft notes/warnings, never an error.
+    import json as _json
+    import logging
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import load_license
+
+    payload = _sample_payload()
+    payload["tier"] = "enterprise-trial"        # not in KNOWN_TIERS
+    payload["edition"] = "team-2027"            # not in KNOWN_EDITIONS
+    payload["entitlements"] = ["proven-matrix-images", "future-capability-x"]
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(payload)))
+
+    with caplog.at_level(logging.WARNING, logger="fieldkit.field_edition.license"):
+        lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    # loads fine; recognition flags are honest
+    assert not lic.tier_recognized and not lic.edition_recognized
+    assert lic.unknown_entitlements == ("future-capability-x",)
+    assert lic.has_entitlement("proven-matrix-images")  # known one still works
+    notes = lic.recognition_notes()
+    assert any("tier" in n for n in notes) and any("edition" in n for n in notes)
+    assert any("unknown entitlements" in n for n in notes)
+    # the soft warning was emitted at load (visible, not fatal)
+    assert any("treating as generic" in r.message for r in caplog.records)
+
+
+def test_license_known_values_have_no_notes(tmp_path) -> None:
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import (
+        KNOWN_EDITIONS,
+        KNOWN_ENTITLEMENTS,
+        KNOWN_TIERS,
+        load_license,
+    )
+
+    # the vendored-style sample uses only known values → zero recognition noise
+    assert "field-edition" in KNOWN_TIERS and "founding-25" in KNOWN_EDITIONS
+    assert "proven-matrix-images" in KNOWN_ENTITLEMENTS
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(_sample_payload())))
+    lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    assert lic.tier_recognized and lic.edition_recognized
+    assert lic.unknown_entitlements == () and lic.recognition_notes() == []
