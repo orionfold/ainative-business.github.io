@@ -6,11 +6,12 @@ The installer / orchestration surface for the Arena Field Edition (§7 of
 ``_SPECS/arena-field-edition-v1.md``). Wired into the top-level CLI so
 ``fieldkit field-edition <cmd>`` resolves the way operators expect.
 
-**M1 status:** ``doctor`` is implemented for real (the §7 support-matrix
-check — the gate the bootstrap runs before touching the box). The remaining
-commands are milestone-marked stubs so ``fieldkit field-edition --help`` lists
-the full surface from day one; each body lands at its milestone (Compose
-bring-up + eval gate at M1→M2, signed update channel at M3).
+**M1 status:** ``doctor`` (the §7 support-matrix check), ``up`` (the
+checkpointed Compose bring-up), and ``verify`` (the §8 first-boot eval gate +
+receipt) are implemented for real. ``down`` / ``repair`` / ``rollback`` /
+``update`` are milestone-marked stubs so ``fieldkit field-edition --help`` lists
+the full surface from day one; each body lands at its milestone (uninstall +
+component repair at M2, signed update channel at M3).
 """
 
 from __future__ import annotations
@@ -26,9 +27,9 @@ app = typer.Typer(
     help=(
         "Orionfold Arena Field Edition — the self-serve DGX Spark distributable "
         "(Arena + Advisor + Cortex + fieldkit + quants + Hermes). `doctor` checks "
-        "the supported DGX OS / driver / CUDA / Container-Toolkit matrix; "
-        "`up`/`verify`/`down`/`repair`/`rollback`/`update` orchestrate the "
-        "Docker Compose stack (milestone stubs). See "
+        "the supported DGX OS / driver / CUDA / Container-Toolkit matrix; `up` "
+        "brings up the Compose stack; `verify` runs the §8 first-boot eval gate + "
+        "receipt; `down`/`repair`/`rollback`/`update` are milestone stubs. See "
         "_SPECS/arena-field-edition-v1.md."
     ),
     no_args_is_help=True,
@@ -166,9 +167,50 @@ def up(
 
 
 @app.command("verify")
-def verify() -> None:
-    """Run the first-boot eval gate and emit the receipt (§8, AC-3)."""
-    raise typer.Exit(_milestone_message("verify", "M1 — first-boot eval gate"))
+def verify(
+    json_out: bool = typer.Option(
+        False, "--json", help="Emit the receipt as JSON instead of a table."
+    ),
+    hermes: bool = typer.Option(
+        False, "--hermes", help="Also run the optional Hermes MCP tool round-trip gate."
+    ),
+) -> None:
+    """Run the first-boot eval gate and emit the receipt (§8, AC-3).
+
+    Walks the five component gates (fieldkit · Advisor · Cortex · serving lane ·
+    Hermes), applies the published floors, and **always writes the receipt** —
+    pass or fail — to ``~/.orionfold/receipts/``. Exit 0 when every gate passes
+    (or is skipped); exit 1 when any gate fails or could not run (each names the
+    component, the gate, and the fix).
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.verify import run_verify
+
+    config = default_config()
+    report, path = run_verify(
+        config,
+        with_hermes=hermes,
+        on_event=(None if json_out else (lambda msg: typer.echo("  " + msg))),
+    )
+
+    if json_out:
+        # Echo the receipt exactly as written to disk (carries generated_at).
+        typer.echo(path.read_text(encoding="utf-8").rstrip("\n"))
+        typer.echo(f"\nReceipt: {path}", err=True)
+        raise typer.Exit(code=0 if report.ok else 1)
+
+    typer.echo(f"\nReceipt written to {path}")
+    if report.ok:
+        typer.echo("Field Edition verify PASSED — every gate green (no vanity passes).")
+        raise typer.Exit(code=0)
+    typer.echo(
+        f"\nVerify FAILED — {len(report.failures)} gate(s) need attention:", err=True
+    )
+    for r in report.failures:
+        typer.echo(f"  [{r.status.upper()}] {r.label}: {r.detail}", err=True)
+        if r.fix:
+            typer.echo(f"         → fix: {r.fix}", err=True)
+    raise typer.Exit(code=1)
 
 
 @app.command("down")

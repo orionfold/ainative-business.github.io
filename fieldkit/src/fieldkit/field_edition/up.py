@@ -287,10 +287,19 @@ class LiveExecutor(Executor):
             )
 
     def verify(self, config: FieldEditionConfig) -> None:
-        raise PhaseError(
-            "first-boot eval gate not yet implemented",
-            fix="`verify` (the §8 gate + receipt) is the next M1 increment; build `up` first",
-        )
+        # The §8 first-boot eval gate. `up --verify` collapses steps 2-3 into
+        # one command (§7): bring the stack up, then run the gate + emit the
+        # receipt. The receipt is always written (pass or fail); a failing gate
+        # raises so the phase is marked `failed` and `up` resumes here.
+        from fieldkit.field_edition.verify import run_verify
+
+        report, path = run_verify(config)
+        if not report.ok:
+            failed = ", ".join(f"{r.label} ({r.status})" for r in report.failures)
+            raise PhaseError(
+                f"first-boot eval gate failed: {failed}",
+                fix=f"see the receipt at {path}; run `fieldkit field-edition verify` for per-gate fixes",
+            )
 
 
 @dataclass

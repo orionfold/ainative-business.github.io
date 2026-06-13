@@ -43,6 +43,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   config`); the live phases fail honestly until the proven-matrix images + a
   published Q4_K_M GGUF exist (M2). `verify` (the §8 gate) is the next
   increment. 18 new tests.
+- **`fieldkit field-edition verify` — the §8 first-boot eval gate + receipt.**
+  Runs the five-gate battery (`fieldkit` · `advisor` · `cortex` · serving
+  `lane` · optional `hermes`), applies the **published floors** (no vanity
+  passes — Advisor curveball-v0.2 ≥80% + refusals 9/9, Cortex recall@5 ≥0.95 +
+  grounded contract, lane launch→generate→teardown smoke), and **always emits
+  the receipt — pass or fail** (a failed-but-honest receipt is the brand) to
+  `~/.orionfold/receipts/` (stable `verify-latest.json` + a timestamped archival
+  copy). Same pure-core / thin-I/O split as `doctor`/`up`: a `GateRunner`
+  *measures* each component (the only I/O) and returns raw `GateOutcome`
+  metrics, the pure `evaluate_gates()` applies the floors and builds the
+  `VerifyReport`, and `VerifyReport.receipt()` renders the receipt dict without
+  a clock — so the whole verdict is unit-testable with a fake runner. Every
+  failing gate names the **component, the gate, and the fix** (§8 failure UX).
+  `verify` flags: `--json`, `--hermes`. M1 status: the `fieldkit` gate is
+  measured live now (import + version + the doctor matrix); the bench gates
+  (`advisor`/`cortex`/`lane`/`hermes`) report an honest `error` ("not yet wired
+  to the live stack — M2") rather than a vanity pass until the proven-matrix
+  stack + the pinned Q4_K_M model land. `up --verify` now runs this gate as the
+  final phase (collapsing §7 steps 2–3). 20 new tests.
 
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a

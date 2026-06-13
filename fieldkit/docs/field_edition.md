@@ -1,7 +1,7 @@
 ---
 module: field_edition
 title: fieldkit.field_edition
-summary: The installer / orchestration surface for the Arena Field Edition — the self-serve DGX Spark distributable. Ships the support-matrix check (`fieldkit field-edition doctor`) and the checkpointed Compose bring-up (`fieldkit field-edition up`); the eval gate and signed update channel land at later milestones.
+summary: The installer / orchestration surface for the Arena Field Edition — the self-serve DGX Spark distributable. Ships the support-matrix check (`fieldkit field-edition doctor`), the checkpointed Compose bring-up (`fieldkit field-edition up`), and the first-boot eval gate + receipt (`fieldkit field-edition verify`); the signed update channel lands at a later milestone.
 order: 19
 ---
 
@@ -117,6 +117,51 @@ images + a published Q4_K_M GGUF exist (M2). `up` flags: `--dry-run`, `--force`
 increment), `--nim-embedder` (the BYO-NGC-key embedder instead of the open
 default).
 
+## The first-boot eval gate (live today)
+
+`fieldkit field-edition verify` implements §8 — the customer-visible eval gate
+that runs at first boot (AC-3) and after every update (§9). It walks the five
+component gates, applies the **published floors** (no vanity passes), and
+**always emits the receipt — pass or fail** (a failed-but-honest receipt is the
+brand) to `~/.orionfold/receipts/` (a stable `verify-latest.json` the cockpit
+can always read, plus a timestamped archival copy):
+
+| gate | what it measures | floor |
+|------|------------------|-------|
+| `fieldkit` | import + version + the `doctor` matrix check | all green |
+| `advisor` | curveball-v0.2 held-out + the refusal/private-state floor | curveball-v0.2 ≥80%; refusals 9/9 |
+| `cortex` | frozen mini recall set + the grounded-contract subset | recall@5 ≥0.95; contract pass |
+| `lane` | LaneTruth smoke: launch → 1 generation → clean teardown | lane up + 1 gen + clean teardown |
+| `hermes` *(optional, `--hermes`)* | one MCP-driven `fieldkit` tool round-trip | tool call returns |
+
+Same pure-core / thin-I/O split as `doctor`/`up`:
+
+- **`GateRunner` / `LiveGateRunner`** (`fieldkit.field_edition.verify`) — the
+  measurement layer (the only I/O): `measure(key, config)` runs one gate and
+  returns a raw **`GateOutcome`** (measured `metrics` + an optional `error`),
+  never deciding pass/fail. Tests inject a fake runner.
+- **`assess_gate(key, metrics)`** — the pure per-gate floor: measured metrics in,
+  `(passed, detail)` out. Each floor is a small, individually unit-tested
+  function (`ADVISOR_CURVEBALL_FLOOR`, `CORTEX_RECALL_FLOOR`).
+- **`evaluate_gates(outcomes, with_hermes=…)`** — the pure verdict: turns the
+  measured outcomes into a **`VerifyReport`** (`.ok`, `.failures`, `.summary()`).
+  A gate that errored becomes an honest `error` verdict carrying the fix — never
+  a silent pass.
+- **`VerifyReport.receipt(generated_at=…, **meta)`** — renders the receipt dict
+  without a clock (the writer stamps the time), so the receipt shape is pure and
+  testable. **`write_receipt(...)` / `run_verify(...)`** are the thin I/O:
+  measure → evaluate → always write the receipt → return `(report, path)`.
+
+Every failing gate names the **component, the gate, and the fix** (the §8 failure
+UX); the report renders in the Arena cockpit's eval drawer at M2.
+
+**M1 status:** the `fieldkit` gate is measured live now (import + version + the
+`doctor` matrix). The bench gates (`advisor` / `cortex` / `lane` / `hermes`) need
+the live Field Edition stack + the pinned Q4_K_M model, so until that lands (M2)
+they report an honest `error` ("not yet wired to the live stack — M2") rather
+than a vanity pass. `up --verify` runs this gate as its final phase, collapsing
+§7 steps 2–3 into one command. `verify` flags: `--json`, `--hermes`.
+
 ## CLI surface
 
 `fieldkit field-edition <cmd>`:
@@ -124,7 +169,8 @@ default).
 - **`doctor`** — live: print the matrix verdict (`--json` for machine output);
   exit 0 when satisfied, exit 1 when any check is too-old or missing.
 - **`up`** — live: the checkpointed Compose bring-up (above).
-- **`verify`** — the next increment: the §8 first-boot eval gate + receipt.
+- **`verify`** — live: the §8 first-boot eval gate + receipt (`--json`,
+  `--hermes`); exit 0 when every gate passes/skips, exit 1 otherwise.
 - **`down` / `repair` / `rollback`** and the top-level-style **`update`** —
   milestone-marked stubs so `--help` lists the full surface from day one; each
   body lands at its milestone.

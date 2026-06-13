@@ -138,7 +138,7 @@ def test_doctor_json_failure_exit_1(monkeypatch) -> None:
 
 
 def test_stub_commands_exit_with_milestone_marker() -> None:
-    for cmd in ("verify", "down", "rollback", "update"):
+    for cmd in ("down", "rollback", "update"):
         result = runner.invoke(app, ["field-edition", cmd])
         assert result.exit_code != 0
         assert "stub" in result.stdout or "stub" in str(result.exception)
@@ -346,3 +346,245 @@ def test_up_dry_run_cli(tmp_path, monkeypatch) -> None:
     assert result.exit_code == 0, result.stdout
     assert "Bundle written" in result.stdout
     assert (tmp_path / ".orionfold" / "compose.yaml").exists()
+
+
+# --- verify (§8 first-boot eval gate) ----------------------------------------
+
+from fieldkit.field_edition import (  # noqa: E402
+    ADVISOR_CURVEBALL_FLOOR,
+    CORTEX_RECALL_FLOOR,
+    GATES,
+    GateOutcome,
+    GateRunner,
+    VerifyReport,
+    assess_gate,
+    evaluate_gates,
+    run_verify,
+    write_receipt,
+)
+
+
+def test_gates_cover_the_five_spec_components() -> None:
+    assert [g.key for g in GATES] == ["fieldkit", "advisor", "cortex", "lane", "hermes"]
+    hermes = next(g for g in GATES if g.key == "hermes")
+    assert hermes.optional  # hermes only runs with --hermes
+
+
+# --- pure floor logic --------------------------------------------------------
+
+
+def test_assess_advisor_floor() -> None:
+    ok, detail = assess_gate("advisor", {"curveball_v02": 0.857, "refusals_passed": 9, "refusals_total": 9})
+    assert ok and "85.7%" in detail
+    # below the curveball floor → fail even with refusals clean.
+    assert not assess_gate(
+        "advisor", {"curveball_v02": 0.70, "refusals_passed": 9, "refusals_total": 9}
+    )[0]
+    # one refusal regression → fail even above the curveball floor.
+    assert not assess_gate(
+        "advisor", {"curveball_v02": 0.90, "refusals_passed": 8, "refusals_total": 9}
+    )[0]
+
+
+def test_assess_advisor_uses_published_floor_constant() -> None:
+    at_floor = {"curveball_v02": ADVISOR_CURVEBALL_FLOOR, "refusals_passed": 9, "refusals_total": 9}
+    assert assess_gate("advisor", at_floor)[0]
+
+
+def test_assess_cortex_floor() -> None:
+    assert assess_gate("cortex", {"recall_at_5": 0.977, "contract_pass": 1})[0]
+    # recall below the floor fails.
+    assert not assess_gate("cortex", {"recall_at_5": 0.91, "contract_pass": 1})[0]
+    # contract miss fails even at perfect recall.
+    assert not assess_gate("cortex", {"recall_at_5": 1.0, "contract_pass": 0})[0]
+    assert CORTEX_RECALL_FLOOR == 0.95
+
+
+def test_assess_lane_needs_all_three_steps() -> None:
+    assert assess_gate("lane", {"launched": 1, "generated": 1, "torn_down": 1})[0]
+    assert not assess_gate("lane", {"launched": 1, "generated": 1, "torn_down": 0})[0]
+
+
+def test_assess_fieldkit_needs_all_green() -> None:
+    assert assess_gate("fieldkit", {"import_ok": 1, "version_ok": 1, "matrix_ok": 1})[0]
+    assert not assess_gate("fieldkit", {"import_ok": 1, "version_ok": 1, "matrix_ok": 0})[0]
+
+
+def test_assess_unknown_gate_raises() -> None:
+    import pytest
+
+    with pytest.raises(ValueError):
+        assess_gate("nope", {})
+
+
+# --- evaluate_gates (pure verdict) -------------------------------------------
+
+
+def _all_pass_outcomes() -> dict[str, GateOutcome]:
+    return {
+        "fieldkit": GateOutcome("fieldkit", {"import_ok": 1, "version_ok": 1, "matrix_ok": 1}, note="fieldkit 0.31.0"),
+        "advisor": GateOutcome("advisor", {"curveball_v02": 0.857, "refusals_passed": 9, "refusals_total": 9}),
+        "cortex": GateOutcome("cortex", {"recall_at_5": 0.977, "contract_pass": 1}),
+        "lane": GateOutcome("lane", {"launched": 1, "generated": 1, "torn_down": 1}),
+        "hermes": GateOutcome("hermes", {"tool_returned": 1}),
+    }
+
+
+def test_evaluate_all_pass() -> None:
+    report = evaluate_gates(_all_pass_outcomes(), with_hermes=True)
+    assert isinstance(report, VerifyReport)
+    assert report.ok
+    assert report.summary()["passed"] == 5
+
+
+def test_evaluate_hermes_skipped_when_not_enabled() -> None:
+    report = evaluate_gates(_all_pass_outcomes())  # with_hermes default False
+    hermes = next(r for r in report.results if r.key == "hermes")
+    assert hermes.status == "skipped"
+    assert hermes.ok  # skipped does not fail the run
+    assert report.ok
+
+
+def test_evaluate_error_outcome_becomes_error_with_fix() -> None:
+    outcomes = _all_pass_outcomes()
+    outcomes["lane"] = GateOutcome("lane", error="stack not up")
+    report = evaluate_gates(outcomes, with_hermes=True)
+    assert not report.ok
+    lane = next(r for r in report.results if r.key == "lane")
+    assert lane.status == "error"
+    assert lane.detail == "stack not up"
+    assert lane.fix  # the §8 fix is always carried
+
+
+def test_evaluate_failed_floor_becomes_fail() -> None:
+    outcomes = _all_pass_outcomes()
+    outcomes["advisor"] = GateOutcome("advisor", {"curveball_v02": 0.60, "refusals_passed": 9, "refusals_total": 9})
+    report = evaluate_gates(outcomes, with_hermes=True)
+    advisor = next(r for r in report.results if r.key == "advisor")
+    assert advisor.status == "fail"
+    assert advisor.value == 0.60  # the headline number rides the receipt
+    assert not report.ok
+
+
+def test_receipt_always_renders_pass_or_fail() -> None:
+    outcomes = _all_pass_outcomes()
+    outcomes["cortex"] = GateOutcome("cortex", error="embedder down")
+    report = evaluate_gates(outcomes, with_hermes=True)
+    receipt = report.receipt(generated_at="2026-06-13T12:00:00+00:00", lane="advisor-gguf")
+    assert receipt["kind"] == "field-edition-verify"
+    assert receipt["ok"] is False
+    assert receipt["generated_at"] == "2026-06-13T12:00:00+00:00"
+    assert receipt["lane"] == "advisor-gguf"  # extra meta flows through
+    assert receipt["summary"]["errored"] == 1
+    cortex = next(g for g in receipt["gates"] if g["key"] == "cortex")
+    assert cortex["fix"]  # failing gate carries the fix in the receipt
+
+
+# --- live runner (box-independent slices) ------------------------------------
+
+
+def test_live_runner_fieldkit_gate_is_real() -> None:
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    outcome = LiveGateRunner().fieldkit(default_config())
+    assert outcome.metrics.get("import_ok") == 1.0
+    assert outcome.metrics.get("version_ok") == 1.0
+    assert "fieldkit" in outcome.note
+
+
+def test_live_runner_bench_gates_error_honestly() -> None:
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    runner_live = LiveGateRunner()
+    for key in ("advisor", "cortex", "lane", "hermes"):
+        outcome = runner_live.measure(key, default_config())
+        assert outcome.error is not None
+        assert "M2" in outcome.error  # honest "not yet wired", never a vanity pass
+
+
+# --- orchestrator + receipt writer -------------------------------------------
+
+
+class _FakeGateRunner(GateRunner):
+    def __init__(self, outcomes: dict[str, GateOutcome]) -> None:
+        self._outcomes = outcomes
+
+    def measure(self, key: str, config) -> GateOutcome:
+        return self._outcomes[key]
+
+
+def test_run_verify_writes_latest_and_archival_receipt(tmp_path) -> None:
+    cfg = FieldEditionConfig(home=tmp_path / "of", model_store=tmp_path / "of" / "models")
+    report, path = run_verify(
+        cfg,
+        runner=_FakeGateRunner(_all_pass_outcomes()),
+        with_hermes=True,
+        generated_at="2026-06-13T12:00:00+00:00",
+    )
+    assert report.ok
+    latest = cfg.home / "receipts" / "verify-latest.json"
+    assert latest.exists()
+    assert path.exists() and path != latest  # archival timestamped copy too
+    import json as _json
+
+    data = _json.loads(latest.read_text())
+    assert data["ok"] and data["generated_at"] == "2026-06-13T12:00:00+00:00"
+
+
+def test_run_verify_receipt_written_even_on_failure(tmp_path) -> None:
+    cfg = FieldEditionConfig(home=tmp_path / "of", model_store=tmp_path / "of" / "models")
+    outcomes = _all_pass_outcomes()
+    outcomes["lane"] = GateOutcome("lane", error="stack not up")
+    report, _ = run_verify(
+        cfg, runner=_FakeGateRunner(outcomes), with_hermes=True,
+        generated_at="2026-06-13T12:00:00+00:00",
+    )
+    assert not report.ok
+    assert (cfg.home / "receipts" / "verify-latest.json").exists()  # honest receipt, still written
+
+
+def test_write_receipt_creates_dir(tmp_path) -> None:
+    report = evaluate_gates(_all_pass_outcomes(), with_hermes=True)
+    path = write_receipt(report, tmp_path / "nested" / "receipts", generated_at="t")
+    assert path.exists() and path.name == "verify-latest.json"
+
+
+# --- verify CLI --------------------------------------------------------------
+
+
+def test_verify_cli_passes_with_all_green(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    import fieldkit.field_edition.verify as verify_mod
+
+    monkeypatch.setattr(
+        verify_mod, "LiveGateRunner", lambda: _FakeGateRunner(_all_pass_outcomes())
+    )
+    result = runner.invoke(app, ["field-edition", "verify", "--hermes"])
+    assert result.exit_code == 0, result.stdout
+    assert "PASSED" in result.stdout
+    assert (tmp_path / ".orionfold" / "receipts" / "verify-latest.json").exists()
+
+
+def test_verify_cli_fails_and_names_the_gate(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    import fieldkit.field_edition.verify as verify_mod
+
+    outcomes = _all_pass_outcomes()
+    outcomes["cortex"] = GateOutcome("cortex", error="embedder digest mismatch")
+    monkeypatch.setattr(verify_mod, "LiveGateRunner", lambda: _FakeGateRunner(outcomes))
+    result = runner.invoke(app, ["field-edition", "verify", "--hermes"])
+    assert result.exit_code == 1
+    assert "Cortex" in result.output
+    assert "repair cortex" in result.output  # the §8 fix surfaces
+
+
+def test_verify_cli_json(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    import fieldkit.field_edition.verify as verify_mod
+
+    monkeypatch.setattr(
+        verify_mod, "LiveGateRunner", lambda: _FakeGateRunner(_all_pass_outcomes())
+    )
+    result = runner.invoke(app, ["field-edition", "verify", "--json", "--hermes"])
+    assert result.exit_code == 0
+    assert '"kind": "field-edition-verify"' in result.stdout
