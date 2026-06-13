@@ -240,6 +240,15 @@ boot (AC-7: the privacy stance is the brand); the math is the gate.
   ensure_ascii=False).encode()` — compact, **recursively key-sorted**, UTF-8,
   **no floats** anywhere in the payload. The signature value + the embedded
   public key are standard base64.
+- **The conformance vector** — `data/license-conformance-v1.json` (built by
+  `scripts/field_edition/build_license_conformance_vector.py`) freezes that
+  contract as four worked cases (recursive sort, UTF-8 non-ASCII, scalars/no
+  floats, a full license), each with the exact `canonical_utf8` /
+  `canonical_sha256_12` / dev-key `signature_b64`. Both owners run it in CI —
+  fieldkit's suite asserts the live `canonical_bytes`/`sign_payload` still match;
+  Mac's `fulfillLicense` CI re-canonicalizes + re-signs each case and asserts the
+  same — so one byte of canonicalization drift is caught before it silently
+  breaks every customer license.
 - **The gate** — `load_license()` parses → `verify_signature()` → enforces the
   term, raising an actionable `LicenseError` on any failure (never a silent pass
   to an unentitled pull). `sign_payload()` is the issuer-side reference (the

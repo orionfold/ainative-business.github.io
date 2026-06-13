@@ -1745,3 +1745,64 @@ def test_license_known_values_have_no_notes(tmp_path) -> None:
     lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
     assert lic.tier_recognized and lic.edition_recognized
     assert lic.unknown_entitlements == () and lic.recognition_notes() == []
+
+
+def _conformance_vector():
+    import json as _json
+    from pathlib import Path as _Path
+
+    from fieldkit.field_edition import license as lic_mod
+
+    vector = _Path(lic_mod.__file__).resolve().parent / "data" / "license-conformance-v1.json"
+    return _json.loads(vector.read_text(encoding="utf-8"))
+
+
+def test_license_conformance_vector_matches_live_verifier() -> None:
+    """The shared canonicalization+signing contract (Mac's `fulfillLicense` mirrors
+    this in its CI). If `canonical_bytes`/`sign_payload` ever drift from the frozen
+    vector, this fails — and so would every customer license. See
+    `_SPECS/arena-field-edition-license-workflow-v1.md` §6."""
+    import hashlib as _hl
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import (
+        TRUSTED_KEYS,
+        canonical_bytes,
+        sign_payload,
+        verify_signature,
+    )
+
+    doc = _conformance_vector()
+    assert doc["schema"] == "orionfold.license/v1" and doc["algorithm"] == "ed25519"
+
+    dev = doc["dev_key"]
+    key_id = dev["key_id"]
+    # The vector's dev pubkey must be the one the installer trusts …
+    assert TRUSTED_KEYS[key_id] == dev["public_key_b64"]
+    # … and the published throwaway seed must actually derive that pubkey.
+    from cryptography.hazmat.primitives import serialization as _ser
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    seed = _b64.b64decode(dev["private_seed_b64"])
+    derived = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes(
+        _ser.Encoding.Raw, _ser.PublicFormat.Raw
+    )
+    assert _b64.b64encode(derived).decode() == dev["public_key_b64"]
+
+    assert doc["case_count"] == len(doc["cases"]) >= 4
+    for case in doc["cases"]:
+        payload = case["payload"]
+        canon = canonical_bytes(payload)
+        # canonical bytes byte-identical to the frozen string + sha
+        assert canon.decode("utf-8") == case["canonical_utf8"], case["name"]
+        assert _hl.sha256(canon).hexdigest()[:12] == case["canonical_sha256_12"], case["name"]
+        # re-signing the payload reproduces the frozen signature (Ed25519 is deterministic)
+        assert sign_payload(payload, dev["private_seed_b64"]) == case["signature_b64"], case["name"]
+        # and that signature verifies against the trusted dev key
+        verify_signature(payload, {"alg": "ed25519", "key_id": key_id, "value": case["signature_b64"]})
+
+    # the four traps must all be represented (recursive sort, utf-8, scalars, full license)
+    names = {c["name"] for c in doc["cases"]}
+    assert {"nested-key-sort", "unicode-utf8", "scalars-no-floats", "full-license-founding25"} <= names

@@ -39,6 +39,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   an older installer hard-reject a newer edition). Unknown entitlements are
   ignored, not rejected, so an installer that predates one degrades gracefully.
   10 new tests.
+- **License canonicalization+signing conformance vector** — a frozen
+  `data/license-conformance-v1.json` (built by
+  `scripts/field_edition/build_license_conformance_vector.py`, `--check`
+  round-trips) that makes the two-owner signing contract executable on both
+  sides (Spark's verifier + Mac's `fulfillLicense` issuer). Four cases stress
+  the cross-language canonicalization traps (recursive key sort, compact
+  separators, UTF-8 non-ASCII, integer/bool/null with no floats); each carries
+  the exact `canonical_utf8` / `canonical_sha256_12` / dev-key `signature_b64`.
+  A new test asserts the live `canonical_bytes`/`sign_payload` still reproduce
+  the vector (drift guard); the Mac side adds a mirror assertion to its CI so
+  one byte of divergence is caught before it silently fails every license. The
+  vector self-documents the JS port and signs only with the throwaway dev key.
+  1 new test.
 - **`fieldkit.field_edition` — the Arena Field Edition installer surface (M1
   scaffold).** New package owning the §7 installer/orchestration commands for
   the self-serve DGX Spark distributable (`_SPECS/arena-field-edition-v1.md`),
