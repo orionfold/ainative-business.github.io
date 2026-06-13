@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "kind": "field-edition-verify",
+  "generated_at": "2026-06-13T22:36:26+00:00",
+  "ok": true,
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "errored": 0,
+    "skipped": 1
+  },
+  "gates": [
+    {
+      "key": "fieldkit",
+      "label": "fieldkit",
+      "metric": "import + version + the doctor matrix check",
+      "threshold": "all green",
+      "status": "pass",
+      "detail": "import ok, version ok, matrix ok",
+      "value": null,
+      "note": "fieldkit 0.31.0",
+      "fix": ""
+    },
+    {
+      "key": "advisor",
+      "label": "Advisor",
+      "metric": "curveball-v0.2 held-out + the refusal/private-state floor",
+      "threshold": "curveball-v0.2 \u226580%; refusals 9/9",
+      "status": "pass",
+      "detail": "curveball-v0.2 85.7% (floor 80%), refusals 9/9",
+      "value": 0.8571428571428571,
+      "note": "curveball-v0.2 85.7% (18/21, floor 80%), refusals 9/9; misses: advisor-curveball2-0005, advisor-curveball2-0009, advisor-curveball2-0011",
+      "fix": ""
+    },
+    {
+      "key": "cortex",
+      "label": "Cortex",
+      "metric": "frozen recall set (recall@5) + grounded-contract over live retrieval",
+      "threshold": "recall@5 \u22650.95; citation + refusal contract pass",
+      "status": "pass",
+      "detail": "recall@5 0.977 (floor 0.95), contract pass",
+      "value": 0.977,
+      "note": "recall@5 0.977 over 87 rows (\u22650.95), 2 miss(es); grounded-contract: citation 19/23 (82.6%, floor 80%), refusals 16/16; misses: advisor-operator-recommendations-0073, advisor-operator-recommendations-0075, advisor-unsloth-arena-partner-path-0082, advisor-unsloth-arena-partner-path-0083",
+      "fix": ""
+    },
+    {
+      "key": "lane",
+      "label": "Serving lane",
+      "metric": "resident-lane smoke: reachable + one generation (warm-resident)",
+      "threshold": "lane up + 1 gen (warm default stays resident)",
+      "status": "pass",
+      "detail": "launch ok, generation ok (warm-resident; teardown-clean covered by down/repair)",
+      "value": null,
+      "note": "lane up (model-Q4_K_M.gguf); 1 gen ok (5 chars); warm-resident \u2014 no teardown at first-boot",
+      "fix": ""
+    },
+    {
+      "key": "hermes",
+      "label": "Hermes",
+      "metric": "one MCP-driven fieldkit tool round-trip",
+      "threshold": "tool call returns",
+      "status": "skipped",
+      "detail": "not enabled (omit --hermes to skip)",
+      "value": null,
+      "note": "",
+      "fix": ""
+    }
+  ]
+}

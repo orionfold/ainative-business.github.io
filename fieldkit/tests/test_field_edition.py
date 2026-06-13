@@ -491,9 +491,14 @@ def test_assess_cortex_floor() -> None:
     assert CORTEX_RECALL_FLOOR == 0.95
 
 
-def test_assess_lane_needs_all_three_steps() -> None:
-    assert assess_gate("lane", {"launched": 1, "generated": 1, "torn_down": 1})[0]
-    assert not assess_gate("lane", {"launched": 1, "generated": 1, "torn_down": 0})[0]
+def test_assess_lane_warm_resident_floor() -> None:
+    # §6/§8 reconciliation: the warm default stays resident, so first-boot
+    # verify floors on launched + generated only — teardown is NOT required
+    # (it's the down/repair lifecycle gates' job).
+    assert assess_gate("lane", {"launched": 1, "generated": 1})[0]
+    assert assess_gate("lane", {"launched": 1, "generated": 1, "torn_down": 0})[0]  # teardown irrelevant
+    assert not assess_gate("lane", {"launched": 1, "generated": 0})[0]  # up but cannot generate → fail
+    assert not assess_gate("lane", {"launched": 0, "generated": 1})[0]  # not up → fail
 
 
 def test_assess_fieldkit_needs_all_green() -> None:
@@ -583,34 +588,58 @@ def test_live_runner_fieldkit_gate_is_real() -> None:
     assert "fieldkit" in outcome.note
 
 
+def _dead_stack_config():
+    """A config whose lane points at a dead port so the live runner errors
+    honestly regardless of whether the dogfood box's stack is actually up."""
+    import dataclasses
+
+    cfg = default_config()
+    return dataclasses.replace(cfg, lane=dataclasses.replace(cfg.lane, port=2))
+
+
 def test_live_runner_bench_gates_error_honestly() -> None:
     from fieldkit.field_edition.verify import LiveGateRunner
 
     runner_live = LiveGateRunner()
-    # cortex is excluded here: its recall-half does live retrieval (covered by
-    # the dedicated fake-index tests below) — these three stay box-independent.
+    cfg = _dead_stack_config()  # dead lane → deterministic honest errors
+    # cortex is excluded here: it also does live retrieval (covered by the
+    # dedicated fake-index tests below) — these three stay box-independent.
     for key in ("advisor", "lane", "hermes"):
-        outcome = runner_live.measure(key, default_config())
+        outcome = runner_live.measure(key, cfg)
         assert outcome.error is not None
-        assert "M2" in outcome.error  # honest "not yet wired", never a vanity pass
+        assert "M2" in outcome.error  # honest "stack not up", never a vanity pass
 
 
 # --- cortex recall-half (vendored frozen set + live retrieval, faked) --------
 
 
 class _FakeIndex:
-    """Stand-in for ``MemoryIndex`` — returns canned hits per question."""
+    """Stand-in for ``MemoryIndex`` — returns canned hits per question.
 
-    def __init__(self, by_question, *, table="advisor_corpus_v01", raises=None):
+    Each hit carries ``text`` (the grounded-contract half reads it to build the
+    context block) plus the provenance fields the live query returns."""
+
+    def __init__(self, by_question, *, table="advisor_corpus_v01", raises=None, text_by_slug=None):
         self._by_question = by_question
         self.table = table
         self._raises = raises
+        self._text = text_by_slug or {}
 
     def query(self, question, *, top_k=5):
         if self._raises is not None:
             raise self._raises
         slugs = self._by_question.get(question, [])
-        return [{"slug": s, "chunk_idx": 0, "dist": 0.1} for s in slugs]
+        return [
+            {
+                "slug": s,
+                "chunk_idx": 0,
+                "dist": 0.1,
+                "text": self._text.get(s, f"Public context about {s} with enough body to cite."),
+                "source": "public_doc",
+                "kind": "public_doc",
+            }
+            for s in slugs
+        ]
 
 
 def _patch_index(monkeypatch, fake):
@@ -679,35 +708,94 @@ def test_score_recall_set_empty_is_zero() -> None:
     assert score_recall_set((), lambda q: [], k=5).recall_at_5 == 0.0
 
 
-def test_live_cortex_recall_half_measured_with_honest_pending(monkeypatch) -> None:
-    from fieldkit.field_edition.recall import load_recall_set
+def _cortex_runner_with_lane(lane_fn):
+    """A live cortex runner whose lane generation is faked by ``lane_fn``."""
     from fieldkit.field_edition.verify import LiveGateRunner
 
+    runner = LiveGateRunner()
+    runner._lane_chat = lane_fn  # type: ignore[assignment]
+    return runner
+
+
+def test_live_cortex_both_halves_pass(monkeypatch) -> None:
+    # Both the recall-half (retrieval) and the grounded-contract half (the lane
+    # citing/refusing over live context) measured with fakes → a real PASS.
+    from fieldkit.field_edition.grounded import select_contract_probes
+    from fieldkit.field_edition.recall import load_recall_set
+
     rset = load_recall_set()
-    # Every answerable question retrieves its own gold first → recall 1.0.
+    probes = select_contract_probes(rset.rows)
+    by_q = {p.question: p for p in probes}
+    # Index serves gold for every recall row + every grounded probe.
+    hits = {r.question: list(r.source_ids) for r in rset.answerable}
+    for p in probes:
+        hits.setdefault(p.question, list(p.expected_source_ids))
+    _patch_index(monkeypatch, _FakeIndex(hits, table=rset.corpus_table))
+
+    def _lane(base, model, messages, **kw):  # noqa: ANN001 — well-behaved canned answers
+        question = messages[1]["content"].split("Question: ", 1)[1].split("\n\n", 1)[0]
+        probe = by_q[question]
+        if probe.expected_behavior == "refuse":
+            return "The retrieved public context does not support this question. Citations: []"
+        gold = (list(probe.expected_source_ids) or ["unknown"])[0]
+        prefix = "Route: " if probe.expected_behavior == "route" else ""
+        return f"{prefix}A grounded answer with a substantive body. Citations: [{gold}]"
+
+    outcome = _cortex_runner_with_lane(_lane).cortex(default_config())
+    assert outcome.error is None  # both halves measured → no honest-error short-circuit
+    assert outcome.metrics["recall_at_5"] == 1.0
+    assert outcome.metrics["contract_pass"] == 1.0
+    assert outcome.metrics["grounded_refusals_passed"] == outcome.metrics["grounded_refusals_total"]
+    assert assess_gate("cortex", outcome.metrics)[0]  # the gate PASSES
+
+
+def test_live_cortex_grounded_half_refusal_regression_fails(monkeypatch) -> None:
+    # A model that confabulates on a missing-source row breaks refusal hygiene →
+    # contract_pass 0 → the gate fails even with perfect recall.
+    from fieldkit.field_edition.grounded import select_contract_probes
+    from fieldkit.field_edition.recall import load_recall_set
+
+    rset = load_recall_set()
+    probes = select_contract_probes(rset.rows)
+    by_q = {p.question: p for p in probes}
+    hits = {r.question: list(r.source_ids) for r in rset.answerable}
+    for p in probes:
+        hits.setdefault(p.question, list(p.expected_source_ids))
+    _patch_index(monkeypatch, _FakeIndex(hits, table=rset.corpus_table))
+
+    def _lane(base, model, messages, **kw):  # noqa: ANN001
+        question = messages[1]["content"].split("Question: ", 1)[1].split("\n\n", 1)[0]
+        probe = by_q[question]
+        if probe.expected_behavior == "refuse":
+            return "Sure, the answer is foo. Citations: [made_up_source]"  # confabulation
+        gold = (list(probe.expected_source_ids) or ["unknown"])[0]
+        prefix = "Route: " if probe.expected_behavior == "route" else ""
+        return f"{prefix}A grounded answer with a substantive body. Citations: [{gold}]"
+
+    outcome = _cortex_runner_with_lane(_lane).cortex(default_config())
+    assert outcome.error is None
+    assert outcome.metrics["contract_pass"] == 0.0
+    assert outcome.metrics["grounded_refusals_passed"] < outcome.metrics["grounded_refusals_total"]
+    assert not assess_gate("cortex", outcome.metrics)[0]  # refusal regression fails the gate
+
+
+def test_live_cortex_lane_down_surfaces_recall_honestly(monkeypatch) -> None:
+    # Recall stack up but the serving lane down: the recall number is REAL and
+    # surfaced, the grounded half reports an honest error (never a vanity pass).
+    from fieldkit.field_edition.recall import load_recall_set
+
+    rset = load_recall_set()
     by_q = {r.question: list(r.source_ids) for r in rset.answerable}
     _patch_index(monkeypatch, _FakeIndex(by_q, table=rset.corpus_table))
 
-    outcome = LiveGateRunner().cortex(default_config())
-    # The recall number is REAL and surfaced…
-    assert outcome.metrics["recall_at_5"] == 1.0
-    assert outcome.metrics["recall_answerable_n"] == float(len(rset.answerable))
+    def _lane(*a, **k):  # noqa: ANN002, ANN003 — lane unreachable
+        raise OSError("connection refused")
+
+    outcome = _cortex_runner_with_lane(_lane).cortex(default_config())
+    assert outcome.metrics["recall_at_5"] == 1.0  # recall surfaced live
     assert "recall@5 1.000" in outcome.note
-    # …but the gate still cannot vanity-pass: contract half needs the lane (M2).
-    assert outcome.error is not None and "M2" in outcome.error
-
-
-def test_live_cortex_recall_half_below_floor_is_honest(monkeypatch) -> None:
-    from fieldkit.field_edition.recall import load_recall_set
-    from fieldkit.field_edition.verify import LiveGateRunner
-
-    rset = load_recall_set()
-    _patch_index(monkeypatch, _FakeIndex({}, table=rset.corpus_table))  # retrieves nothing
-
-    outcome = LiveGateRunner().cortex(default_config())
-    assert outcome.metrics["recall_at_5"] == 0.0
-    assert "<0.95" in outcome.note  # honest: recall failed the floor
     assert outcome.error is not None
+    assert "grounded-contract half could not run" in outcome.error and "M2" in outcome.error
 
 
 def test_live_cortex_unreachable_errors_with_fix(monkeypatch) -> None:
@@ -898,10 +986,13 @@ def test_live_advisor_gate_refusal_regression_fails_floor(monkeypatch) -> None:
 
 
 def test_live_advisor_gate_unreachable_lane_errors_honestly() -> None:
-    """No lane on :8091 → an honest error with the fix, never a vanity pass."""
+    """A dead lane port → an honest error with the fix, never a vanity pass.
+
+    Uses a dead-port config so the assertion holds regardless of whether the
+    dogfood box's real lane happens to be up at the moment."""
     from fieldkit.field_edition.verify import LiveGateRunner
 
-    outcome = LiveGateRunner().advisor(default_config())  # nothing serving in tests
+    outcome = LiveGateRunner().advisor(_dead_stack_config())
     assert not outcome.metrics  # nothing measured
     assert outcome.error is not None
     assert "unreachable" in outcome.error and "M2" in outcome.error
@@ -1286,3 +1377,161 @@ def test_live_update_channel_is_honest() -> None:
 
     with pytest.raises(UpdateError):
         LiveUpdateChannel().fetch_latest(default_config())
+
+
+# --- lane gate (warm-resident live smoke, faked) -----------------------------
+
+
+def test_live_lane_warm_resident_pass() -> None:
+    from fieldkit.field_edition.verify import LiveGateRunner, assess_gate
+
+    runner = LiveGateRunner()
+    runner._lane_models = lambda base: "model-Q4_K_M.gguf"  # type: ignore[assignment]
+    runner._lane_chat = lambda base, model, messages, **kw: "ready."  # type: ignore[assignment]
+    outcome = runner.lane(default_config())
+    assert outcome.error is None
+    assert outcome.metrics == {"launched": 1.0, "generated": 1.0}
+    assert "warm-resident" in outcome.note and "no teardown" in outcome.note
+    assert assess_gate("lane", outcome.metrics)[0]
+
+
+def test_live_lane_unreachable_errors() -> None:
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    outcome = LiveGateRunner().lane(_dead_stack_config())
+    assert outcome.error is not None
+    assert "unreachable" in outcome.error and "M2" in outcome.error
+
+
+def test_live_lane_reachable_but_empty_generation_fails() -> None:
+    # Lane up (/v1/models ok) but a blank completion → a real FAIL, not an
+    # honest-error (report=reality: the lane is up but cannot serve).
+    from fieldkit.field_edition.verify import LiveGateRunner, assess_gate
+
+    runner = LiveGateRunner()
+    runner._lane_models = lambda base: "model-Q4_K_M.gguf"  # type: ignore[assignment]
+    runner._lane_chat = lambda base, model, messages, **kw: "   "  # type: ignore[assignment]
+    outcome = runner.lane(default_config())
+    assert outcome.error is None  # it ran — this is a measured fail, not an error
+    assert outcome.metrics == {"launched": 1.0, "generated": 0.0}
+    assert not assess_gate("lane", outcome.metrics)[0]
+
+
+# --- grounded-contract half (pure: probe selection + prompt + scorer) --------
+
+
+def test_select_contract_probes_deterministic_and_stratified() -> None:
+    from fieldkit.field_edition.grounded import DEFAULT_ANSWER_PER_FAMILY, select_contract_probes
+    from fieldkit.field_edition.recall import load_recall_set
+
+    rows = load_recall_set().rows
+    a = select_contract_probes(rows)
+    b = select_contract_probes(rows)
+    assert [p.task_id for p in a] == [p.task_id for p in b]  # deterministic
+    # every refuse + route row is kept (the hygiene/routing signal)
+    refuse_route_in = sum(1 for r in rows if r.expected_behavior in ("refuse", "route"))
+    refuse_route_out = sum(1 for p in a if p.expected_behavior in ("refuse", "route"))
+    assert refuse_route_out == refuse_route_in
+    # answer rows are capped per family
+    by_fam: dict[str, int] = {}
+    for p in a:
+        if p.expected_behavior == "answer":
+            by_fam[p.family] = by_fam.get(p.family, 0) + 1
+    assert by_fam and all(n <= DEFAULT_ANSWER_PER_FAMILY for n in by_fam.values())
+
+
+def test_build_grounded_blocks_dedups_and_caps() -> None:
+    from fieldkit.field_edition.grounded import build_grounded_blocks
+
+    hits = [
+        {"slug": "src_a", "text": "alpha body", "source": "public_doc", "kind": "doc"},
+        {"slug": "src_a", "text": "alpha body 2", "source": "public_doc", "kind": "doc"},  # dup slug
+        {"slug": "src_b", "text": "beta body", "source": "public_spec", "kind": "spec"},
+        {"slug": "src_c", "text": "gamma body", "source": "public_doc", "kind": "doc"},
+    ]
+    blocks = build_grounded_blocks(hits, "alpha", max_sources=2)
+    assert [b["source_id"] for b in blocks] == ["src_a", "src_b"]  # deduped + capped at 2
+    assert blocks[0]["excerpt"] == "alpha body"  # first chunk's text wins for src_a
+
+
+def test_grounded_excerpt_is_query_centered_and_bounded() -> None:
+    from fieldkit.field_edition.grounded import build_grounded_blocks
+
+    long_text = ("Filler sentence one. " * 30) + "The unicorn metric is forty-two. " + ("Tail filler. " * 30)
+    blocks = build_grounded_blocks(
+        [{"slug": "s", "text": long_text, "source": "d", "kind": "d"}],
+        "unicorn metric",
+        excerpt_chars=120,
+    )
+    excerpt = blocks[0]["excerpt"]
+    assert len(excerpt) <= 120
+    assert "unicorn" in excerpt  # windowed around the query-relevant sentence
+
+
+def test_build_messages_carries_contract_and_question() -> None:
+    from fieldkit.field_edition.grounded import build_messages
+
+    msgs = build_messages("What is X?", [{"source_id": "src_a", "citation_label": "src_a",
+                                           "source_class": "d", "source_role": "d", "title": "t",
+                                           "excerpt": "X is described here."}])
+    assert msgs[0]["role"] == "system" and "Orionfold Advisor" in msgs[0]["content"]
+    assert msgs[1]["role"] == "user"
+    assert "Question: What is X?" in msgs[1]["content"]
+    assert "Source 1: src_a" in msgs[1]["content"]
+
+
+def test_score_grounded_citation_refusal_and_contract() -> None:
+    from fieldkit.field_edition.grounded import GroundedProbe, score_grounded
+
+    probes = [
+        GroundedProbe("a", "fam", "qa", "answer", ("src_a",)),
+        GroundedProbe("r", "fam", "qr", "refuse", ()),
+        GroundedProbe("t", "fam", "qt", "route", ("src_t",)),
+    ]
+    outputs = [
+        "A grounded answer body. Citations: [src_a]",
+        "The retrieved public context does not support this question. Citations: []",
+        "Route: hand off. Citations: [src_t]",
+    ]
+    rep = score_grounded(probes, outputs)
+    assert rep.contract_pass
+    assert rep.refusals_passed == rep.refusals_total == 1
+    assert rep.cite_passed == rep.cite_total == 2
+    assert rep.as_metrics()["contract_pass"] == 1.0
+
+
+def test_score_grounded_refusal_hygiene_is_all_or_nothing() -> None:
+    from fieldkit.field_edition.grounded import GroundedProbe, score_grounded
+
+    probes = [
+        GroundedProbe("a", "fam", "qa", "answer", ("src_a",)),
+        GroundedProbe("r", "fam", "qr", "refuse", ()),
+    ]
+    # citation perfect (1/1) but a refusal regression → contract fails.
+    outputs = ["Body. Citations: [src_a]", "Sure: foo. Citations: [leaked]"]
+    rep = score_grounded(probes, outputs)
+    assert rep.citation_rate == 1.0
+    assert not rep.refusal_hygiene_ok
+    assert not rep.contract_pass
+
+
+def test_score_grounded_citation_floor() -> None:
+    from fieldkit.field_edition.grounded import GROUNDED_CONTRACT_FLOOR, GroundedProbe, score_grounded
+
+    # five answer rows, refusal clean; citation rate must clear the floor.
+    probes = [GroundedProbe(f"a{i}", "fam", f"q{i}", "answer", (f"s{i}",)) for i in range(5)]
+    good = [f"Body. Citations: [s{i}]" for i in range(5)]
+    assert score_grounded(probes, good).contract_pass  # 5/5
+    # drop two citations → 3/5 = 0.6 < floor
+    bad = good[:3] + ["Body. Citations: []", "Body. Citations: []"]
+    rep = score_grounded(probes, bad)
+    assert rep.citation_rate < GROUNDED_CONTRACT_FLOOR and not rep.contract_pass
+
+
+def test_score_grounded_length_mismatch_raises() -> None:
+    import pytest
+
+    from fieldkit.field_edition.grounded import GroundedProbe, score_grounded
+
+    with pytest.raises(ValueError, match="length mismatch"):
+        score_grounded([GroundedProbe("a", "f", "q", "answer", ("s",))], [])

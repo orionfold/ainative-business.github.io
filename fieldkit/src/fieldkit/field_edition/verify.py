@@ -28,21 +28,28 @@ pass/fail logic is unit-testable with a fake runner — no DGX box, no live stac
 and the **fix**. The report is rendered in the Arena cockpit's eval drawer at
 M2; today ``verify`` emits the receipt JSON + an exit code.
 
-**Status.** The orchestration, the pure verdict, and the receipt run for real
-now, and the ``fieldkit`` gate is measured live (import + version + matrix). The
-``advisor`` gate is **measured live**: :class:`LiveGateRunner` replays the
-vendored frozen curveball-v0.2 packets (:mod:`.advisor`) through the resident
-serving lane and applies the §8 behavioral floor (curveball ≥80% + refusals
-9/9) — the same scorer that produced the published 85.7% receipt. The ``cortex``
-gate's **recall-half** is likewise measured live — over the vendored frozen
-recall set (:mod:`.recall`) against the running pgvector + embedder — but the
-gate reports an honest non-pass because its grounded-contract generation half
-(citation integrity + refusal hygiene) still needs the serving lane wired in.
-The ``lane``/``hermes`` gates still report an honest ``error`` ("stack not up")
-rather than a vanity pass, exactly as ``up``'s live phases fail honestly until
-the proven-matrix images land. The advisor + cortex-recall measurements run when
-the lane / Cortex stack is up; the lane + hermes measurements drop into
-:class:`LiveGateRunner` as that infra is wired.
+**Status.** The orchestration, the pure verdict, and the receipt run for real,
+and four of the five gates are **measured live** against the running stack:
+
+* ``fieldkit`` — import + version + the doctor matrix (no live stack needed).
+* ``advisor`` — :class:`LiveGateRunner` replays the vendored frozen
+  curveball-v0.2 packets (:mod:`.advisor`) through the resident lane and applies
+  the §8 behavioral floor (curveball ≥80% + refusals 9/9) — the same scorer that
+  produced the published 85.7% receipt.
+* ``cortex`` — **both halves** live: the **recall-half** scores source_recall@5
+  over the vendored frozen recall set (:mod:`.recall`) against pgvector +
+  embedder, and the **grounded-contract half** (:mod:`.grounded`) has the lane
+  answer a deterministic stratified slice of those same frozen probes over
+  *live-retrieved* context, scoring citation integrity + refusal hygiene.
+* ``lane`` — warm-resident smoke: the resident Advisor lane is reachable
+  (launched) and serves one generation (generated). Per the §6/§8 reconciliation
+  (2026-06-13) first-boot ``verify`` does **not** tear the warm default down —
+  teardown-clean is the ``down`` / ``repair`` lifecycle gates' job.
+
+Each live gate returns an honest ``error`` (naming the missing piece + fix) when
+its slice of the stack is down — never a vanity pass. The optional ``hermes``
+gate still drops into :class:`LiveGateRunner` as the MCP round-trip is wired;
+until then it is ``skipped`` unless ``--hermes`` is passed.
 """
 
 from __future__ import annotations
@@ -120,16 +127,16 @@ GATES: tuple[GateSpec, ...] = (
     GateSpec(
         key="cortex",
         label="Cortex",
-        metric="frozen mini recall set + the grounded-contract subset",
-        threshold=f"recall@5 ≥{CORTEX_RECALL_FLOOR:.2f}; contract pass",
-        fix="embedder image digest mismatch — `fieldkit field-edition repair cortex`",
+        metric="frozen recall set (recall@5) + grounded-contract over live retrieval",
+        threshold=f"recall@5 ≥{CORTEX_RECALL_FLOOR:.2f}; citation + refusal contract pass",
+        fix="check the embedder + pgvector are up and the corpus is ingested — `fieldkit field-edition repair cortex`",
         headline_key="recall_at_5",
     ),
     GateSpec(
         key="lane",
         label="Serving lane",
-        metric="LaneTruth smoke: launch → 1 generation → clean teardown",
-        threshold="lane up + 1 gen + clean teardown",
+        metric="resident-lane smoke: reachable + one generation (warm-resident)",
+        threshold="lane up + 1 gen (warm default stays resident)",
         fix="inspect `docker compose logs of-advisor-lane`; re-run `fieldkit field-edition up`",
     ),
     GateSpec(
@@ -264,14 +271,18 @@ def _assess_cortex(m: Mapping[str, float]) -> tuple[bool, str]:
 
 
 def _assess_lane(m: Mapping[str, float]) -> tuple[bool, str]:
+    # Warm-resident floor (§6/§8 reconciliation, 2026-06-13): the default 4B
+    # Advisor lane stays warm and never unloads (§6 zero-swap common path), so
+    # first-boot `verify` does NOT tear it down — the gate proves the resident
+    # lane is reachable and generates. "Teardown clean" is exercised by the
+    # `down` / `repair` lifecycle gates, not by first-boot verify.
     launched = m.get("launched", 0.0) >= 1.0
     generated = m.get("generated", 0.0) >= 1.0
-    torn_down = m.get("torn_down", 0.0) >= 1.0
-    ok = launched and generated and torn_down
+    ok = launched and generated
     detail = (
         f"launch {'ok' if launched else 'FAIL'}, "
-        f"generation {'ok' if generated else 'FAIL'}, "
-        f"teardown {'ok' if torn_down else 'FAIL'}"
+        f"generation {'ok' if generated else 'FAIL'} "
+        "(warm-resident; teardown-clean covered by down/repair)"
     )
     return ok, detail
 
@@ -374,12 +385,13 @@ class GateRunner:
 class LiveGateRunner(GateRunner):
     """Measures the gates against the real box.
 
-    The ``fieldkit`` gate is fully measured today (import + version + matrix);
-    ``advisor`` is measured live against the resident lane (frozen curveball
-    set), and ``cortex``'s recall-half against the running embedder + pgvector.
-    The ``lane``/``hermes`` gates (and the Cortex grounded-contract half) need
-    more of the live stack — until that is wired they return an honest ``error``
-    naming the missing piece, never a vanity pass.
+    ``fieldkit`` (import + version + matrix), ``advisor`` (frozen curveball set
+    through the resident lane), ``cortex`` (recall-half over pgvector + embedder
+    **and** the grounded-contract half through the lane), and ``lane`` (resident
+    warm-lane reachable + one generation) are all measured live. ``hermes`` still
+    returns an honest ``error`` until the MCP round-trip is wired. Any gate whose
+    slice of the stack is down returns an honest ``error`` naming the missing
+    piece, never a vanity pass.
     """
 
     def fieldkit(self, config: FieldEditionConfig) -> GateOutcome:
@@ -460,18 +472,22 @@ class LiveGateRunner(GateRunner):
         return GateOutcome("advisor", metrics=m, note=note)
 
     def cortex(self, config: FieldEditionConfig) -> GateOutcome:
-        # The recall-half is live-measurable TODAY against the running Cortex
-        # stack (pgvector + embedder) over the vendored frozen recall set; the
-        # grounded-contract generation half (citation integrity + refusal
-        # hygiene) still needs the serving lane (M2). Measure recall for real,
-        # then report honestly that the gate cannot fully PASS yet — never a
-        # vanity pass on recall alone.
+        # BOTH halves measured live against the running Cortex stack:
+        #   recall-half  — source_recall@5 over the vendored frozen recall set
+        #                  (pgvector + embedder only).
+        #   grounded-half — citation integrity + refusal hygiene: the resident
+        #                  lane answers each probe over LIVE-retrieved context
+        #                  (the full retrieve → ground → generate → cite loop).
+        # Honest error if retrieval is unreachable; if retrieval is up but the
+        # lane is down, recall is surfaced live and the grounded half reports an
+        # honest non-pass — never a vanity pass on recall alone.
         try:
             from fieldkit.field_edition.recall import load_recall_set, score_recall_set
+            from fieldkit.field_edition import grounded as G
             from fieldkit.memory import MemoryIndex
         except Exception as err:  # noqa: BLE001 — missing optional dep
             return self._stack_pending(
-                "cortex", f"recall deps unavailable ({str(err)[:80]})"
+                "cortex", f"cortex gate deps unavailable ({str(err)[:80]})"
             )
         try:
             rset = load_recall_set()
@@ -491,8 +507,9 @@ class LiveGateRunner(GateRunner):
                     ordered.append(sid)
             return ordered
 
+        # --- recall-half ---
         try:
-            report = score_recall_set(rset.rows, retrieve, k=5)
+            recall = score_recall_set(rset.rows, retrieve, k=5)
         except Exception as err:  # noqa: BLE001 — stack down / corpus not ingested
             return GateOutcome(
                 "cortex",
@@ -503,29 +520,103 @@ class LiveGateRunner(GateRunner):
                     "the proven-matrix Cortex stack)"
                 ),
             )
-
-        recall_ok = report.recall_at_5 >= CORTEX_RECALL_FLOOR
-        note = (
-            f"recall@5 {report.recall_at_5:.3f} over {report.answerable_n} rows "
+        recall_ok = recall.recall_at_5 >= CORTEX_RECALL_FLOOR
+        recall_note = (
+            f"recall@5 {recall.recall_at_5:.3f} over {recall.answerable_n} rows "
             f"({'≥' if recall_ok else '<'}{CORTEX_RECALL_FLOOR:.2f}), "
-            f"{len(report.misses)} miss(es)"
+            f"{len(recall.misses)} miss(es)"
         )
-        return GateOutcome(
-            "cortex",
-            metrics=report.as_metrics(),
-            note=note,
-            error=(
-                f"recall-half live ✓ ({note}); grounded-contract half "
-                "(citation integrity + refusal hygiene) needs the serving lane "
-                "(M2 — `fieldkit field-edition up` + the pinned Q4_K_M model)"
-            ),
+
+        # --- grounded-contract half (needs the resident lane) ---
+        probes = G.select_contract_probes(rset.rows)
+        base = self._lane_base_url(config)
+        outputs: list[str] = []
+        for probe in probes:
+            hits = index.query(probe.question, top_k=G.DEFAULT_TOP_K)
+            blocks = G.build_grounded_blocks(
+                hits,
+                probe.question,
+                max_sources=G.DEFAULT_MAX_SOURCES,
+                excerpt_chars=G.DEFAULT_EXCERPT_CHARS,
+            )
+            messages = G.build_messages(
+                probe.question, blocks, reasoning_mode=G.DEFAULT_REASONING_MODE
+            )
+            try:
+                outputs.append(
+                    self._lane_chat(
+                        base,
+                        config.lane.gguf_file,
+                        messages,
+                        max_tokens=G.DEFAULT_MAX_TOKENS,
+                        temperature=G.DEFAULT_TEMPERATURE,
+                        reasoning_mode=G.DEFAULT_REASONING_MODE,
+                    )
+                )
+            except Exception as err:  # noqa: BLE001 — lane down → grounded half can't run
+                return GateOutcome(
+                    "cortex",
+                    metrics=recall.as_metrics(),
+                    note=recall_note,
+                    error=(
+                        f"recall-half live ✓ ({recall_note}); grounded-contract half "
+                        f"could not run — serving lane unreachable at {base} "
+                        f"({str(err)[:80]}). (M2 — `fieldkit field-edition up` brings "
+                        "up the pinned Q4_K_M lane)"
+                    ),
+                )
+
+        grounded = G.score_grounded(probes, outputs)
+        metrics = {**recall.as_metrics(), **grounded.as_metrics()}
+        note = (
+            f"{recall_note}; grounded-contract: citation "
+            f"{grounded.cite_passed}/{grounded.cite_total} "
+            f"({grounded.citation_rate:.1%}, floor {G.GROUNDED_CONTRACT_FLOOR:.0%}), "
+            f"refusals {grounded.refusals_passed}/{grounded.refusals_total}"
+            + (f"; misses: {', '.join(grounded.misses)}" if grounded.misses else "")
         )
+        # Real measurement on both halves → let the pure floor render pass/fail.
+        return GateOutcome("cortex", metrics=metrics, note=note)
 
     def lane(self, config: FieldEditionConfig) -> GateOutcome:
-        return self._stack_pending(
-            "lane",
-            "the LaneTruth launch→generate→teardown smoke needs the live serving lane",
+        # Warm-resident smoke (§6/§8): prove the resident Advisor lane is
+        # reachable (launched) and serves one generation (generated). We do NOT
+        # tear it down — the default 4B stays warm (§6); teardown-clean is the
+        # `down` / `repair` lifecycle gates' job. Unreachable lane → honest
+        # error (stack not up); reachable-but-cannot-generate → a real FAIL.
+        base = self._lane_base_url(config)
+        try:
+            served = self._lane_models(base)
+        except Exception as err:  # noqa: BLE001 — lane down / not up yet
+            return GateOutcome(
+                "lane",
+                error=(
+                    f"Serving lane unreachable at {base} — resident-lane smoke "
+                    f"could not run ({str(err)[:100]}). Is the lane up? "
+                    "(M2 — `fieldkit field-edition up` brings up the pinned Q4_K_M lane)"
+                ),
+            )
+        try:
+            output = self._lane_chat(
+                base,
+                config.lane.gguf_file,
+                [{"role": "user", "content": "Reply with the single word: ready."}],
+                max_tokens=16,
+                temperature=0.0,
+                reasoning_mode="off",
+            )
+        except Exception as err:  # noqa: BLE001 — reachable but generation failed
+            return GateOutcome(
+                "lane",
+                metrics={"launched": 1.0, "generated": 0.0},
+                note=f"lane reachable ({served}); generation FAILED: {str(err)[:120]}",
+            )
+        generated = 1.0 if output.strip() else 0.0
+        note = (
+            f"lane up ({served}); 1 gen {'ok' if generated else 'EMPTY'} "
+            f"({len(output.strip())} chars); warm-resident — no teardown at first-boot"
         )
+        return GateOutcome("lane", metrics={"launched": 1.0, "generated": generated}, note=note)
 
     def hermes(self, config: FieldEditionConfig) -> GateOutcome:
         return self._stack_pending(
@@ -540,6 +631,29 @@ class LiveGateRunner(GateRunner):
         Compose bundle); the pipx cockpit + the gate reach it at
         ``127.0.0.1:<port>/v1``."""
         return f"http://127.0.0.1:{config.lane.port}/v1"
+
+    def _lane_models(self, base_url: str) -> str:
+        """The resident lane's served model id (proves the lane is up; stdlib).
+
+        Hits the OpenAI-compatible ``/v1/models`` and returns the first served
+        model name — a successful round-trip is the ``launched`` signal for the
+        §8 lane gate."""
+        import json as _json
+        import urllib.request
+
+        req = urllib.request.Request(
+            f"{base_url.rstrip('/')}/models",
+            headers={"Authorization": "Bearer not-needed"},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = _json.loads(resp.read().decode("utf-8"))
+        # llama.cpp serves {"models":[{"name":...}]}; OpenAI serves {"data":[{"id":...}]}.
+        entries = data.get("models") or data.get("data") or []
+        if not entries:
+            raise RuntimeError("/v1/models returned no served model")
+        first = entries[0]
+        return str(first.get("name") or first.get("id") or "model")
 
     def _lane_chat(
         self,

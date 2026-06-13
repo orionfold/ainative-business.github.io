@@ -3,29 +3,29 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M2 — the §8 first-boot `verify` battery gained its first generation-half gate: the **Advisor gate is now measured LIVE and PASSING**. New fieldkit.field_edition.advisor ships a vendored frozen curveball set (data/advisor-curveball-mini.json — the 21 scored packets behind the published 85.7% Q4_K_M run, sha-pinned 7218d717a6fa, built by scripts/field_edition/build_advisor_curveball_set.py). FROZEN PACKETS not regenerated: each packet's BM25 context is baked in + the public corpus manifest drifts (proven — a regen now picks a different Source 5), so the gate ships the exact drift-immune packets. Pure scorer = faithful port of preflight._score_output, regression-locked against the REAL captured outputs (18/21, zero verdict mismatches vs the frozen receipt). LiveGateRunner.advisor replays the packets through the lane (:8091, enable_thinking=False, temp 0) + applies the floor (curveball ≥80% + refusals 9/9); unreachable→honest error. LIVE-SMOKED (operator served the staged Q4_K_M on :8091): 85.7% (18/21), refusals 9/9, misses 0005/0009/0011 in 28s — byte-identical to the frozen receipt. verify CLI receipt: 2 pass / 0 fail / 2 honest-error / 1 skip (fieldkit+advisor PASS, cortex recall-half live 0.977 / gen-half pending, lane pending, hermes skip). 9 new tests (101 field_edition); full suite 1282 passed (only the 3 documented env arena failures). 85.7% proof receipt committed to evidence/ (was /tmp-only). No version bump, no website rebuild.",
+  "focus": "Arena Field Edition M2 — the first-boot `fieldkit field-edition verify` receipt is now NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (ok=True), live-smoked end-to-end on the box in ~86s. Two more §8 generation-half gates went from honest-error stubs to measured-live PASS against the warm resident stack. (1) `lane` gate (warm-resident): operator decision taken on the flagged §6-vs-§8 fork — first-boot verify proves the resident lane reachable + serves one generation and does NOT tear the warm default down (§6 zero-swap path); _assess_lane floor reworked to launched+generated, teardown-clean is now the down/repair gates' job; live PASS 0.2s. (2) Cortex grounded-contract half: new pure fieldkit.field_edition.grounded REUSES the already-blessed frozen recall probes (no new freeze) + a faithful port of the Advisor grounded prompt; for a deterministic stratified slice (all refuse+route + first 3 answer/family = 39 probes) the lane answers over LIVE-retrieved context (full retrieve→ground→generate→cite via MemoryIndex.query), scored by the shared advisor.score_output; contract_pass = all refuse rows refuse (16/16) AND answer/route citation rate ≥0.80 (the Advisor precedent). LiveGateRunner.cortex now measures BOTH halves + merges metrics. LIVE-SMOKED: recall@5 0.977 + grounded citation 19/23 (82.6%) + refusals 16/16 → contract PASS in 56s; the 4 citation misses are GENUINE model misses (gold present, cited a sibling source), not artifacts. Stale 'embedder digest mismatch' fix-text reworded. 12 new tests (113 field_edition); full suite 1294 passed (only the 3 documented env arena failures). Near-all-green receipt preserved in evidence/. No version bump, no website rebuild (fieldkit-internal).",
   "blockers": [],
   "next": [
-    "⏩ FULL-PUBLIC LAUNCH THIS WEEKEND. Wire the REMAINING generation-half verify gates (same vendored/live pattern as advisor): `lane` (LaneTruth launch→gen→teardown — open §6-vs-§8 spec Q: warm-resident default vs 'teardown clean'), the Cortex grounded-contract half (citation integrity + refusal hygiene over the lane), optional `hermes` → flips the receipt toward near-all-green. Cosmetic: the Cortex gate's failure-fix text still says 'embedder image digest mismatch' even when recall-half passes 0.977 — reword when wiring the gen-half",
+    "Optional `hermes` gate — the LAST generation-half to wire (the MCP fieldkit tool round-trip; only verify gate still unwired). Everything else for the first-boot receipt is GREEN",
+    "v1 license-file schema (AC-7) — answer the Mac→Spark open relay ask: exact fields + GHCR pull-token packaging + Ed25519 sign/verify contract + a sample valid file (Spark owns the format + bootstrap; Mac owns DNS + commerce server)",
     "cosign-sign the GHCR lane image (§9/M3 — the signed LiveUpdateChannel waits on this)",
     "bootstrap (get.orionfold.com) + DNS + Ed25519 license server (AC-7)",
-    "DISTRIBUTION DECISION (pre-GA): images GHCR-now→NGC-for-GA; weights+license+bootstrap → Supabase signed URLs; convert orionfold GitHub User→Organization",
-    "HF card: feature Q4_K_M as the default variant + the curveball parity on Orionfold/Advisor-GGUF README (hf-publisher)"
+    "HF card: feature Q4_K_M as the default variant + curveball parity on Orionfold/Advisor-GGUF README (hf-publisher)"
   ],
   "recent": [
-    "§8 Advisor gate now measured LIVE + PASSING: verify scores the resident lane curveball-v0.2 85.7% / refusals 9/9 (was an honest-error stub). First generation-half gate wired",
-    "Vendored frozen curveball set (sha 7218d717a6fa) — the exact 21 packets behind the published 85.7%, frozen not regenerated (corpus manifest drifts); pure scorer = faithful preflight port, regression-locked vs the real captured outputs (zero verdict mismatches)",
-    "Live-smoked on the operator-armed Q4_K_M lane (:8091): 85.7%/9-9/misses 0005,0009,0011 in 28s — byte-identical to the frozen receipt even on the May-12 host llama.cpp build",
-    "9 new tests (101 field_edition); full suite 1282 passed (only the 3 documented env arena failures). 85.7% proof receipt rescued from /tmp into evidence/",
-    "verify receipt split now 2 pass / 0 fail / 2 honest-error / 1 skip (fieldkit+advisor PASS; cortex recall-half live 0.977; lane+cortex-gen pending; hermes skip)"
+    "First-boot verify receipt NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), live-smoked end-to-end ~86s — flipped from this morning's 2pass/2error/1skip",
+    "`lane` gate wired LIVE (warm-resident): operator chose don't-tear-down for the §6-vs-§8 fork; floor = launched+generated; PASS 0.2s",
+    "Cortex grounded-contract half wired LIVE reusing the frozen recall probes (no new freeze) + ported Advisor grounded prompt + shared score_output: recall 0.977 + citation 19/23 (82.6%) + refusals 16/16 → contract PASS in 56s",
+    "Honest fragility flagged: grounded citation margin thin (82.6% vs 0.80 floor over 23 cite rows) but deterministic at temp 0; answer_per_family knob can widen the sample later",
+    "12 new tests (113 field_edition); 2 env-dependent live tests hardened to a dead-port config; full suite 1294 passed (only the 3 documented env arena failures)"
   ],
-  "session": "S-fe-advisor-gate-live",
+  "session": "S-fe-lane-cortex-gates-live",
   "metrics": {
     "articles": 54,
     "models": 7,
     "software_released": 7,
     "arena_features": 29,
-    "fieldkit_modules": 18,
+    "fieldkit_modules": 19,
     "gsc_indexed": 24,
     "gsc_submitted": 183,
     "ga4_users_7d": 69,

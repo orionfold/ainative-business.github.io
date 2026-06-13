@@ -131,8 +131,8 @@ can always read, plus a timestamped archival copy):
 |------|------------------|-------|
 | `fieldkit` | import + version + the `doctor` matrix check | all green |
 | `advisor` | curveball-v0.2 held-out + the refusal/private-state floor | curveball-v0.2 ≥80%; refusals 9/9 |
-| `cortex` | frozen mini recall set + the grounded-contract subset | recall@5 ≥0.95; contract pass |
-| `lane` | LaneTruth smoke: launch → 1 generation → clean teardown | lane up + 1 gen + clean teardown |
+| `cortex` | frozen recall set (recall@5) + grounded-contract over live retrieval | recall@5 ≥0.95; citation + refusal contract pass |
+| `lane` | resident-lane smoke: reachable + one generation (warm-resident) | lane up + 1 gen (warm default stays resident) |
 | `hermes` *(optional, `--hermes`)* | one MCP-driven `fieldkit` tool round-trip | tool call returns |
 
 Same pure-core / thin-I/O split as `doctor`/`up`:
@@ -156,27 +156,36 @@ Same pure-core / thin-I/O split as `doctor`/`up`:
 Every failing gate names the **component, the gate, and the fix** (the §8 failure
 UX); the report renders in the Arena cockpit's eval drawer at M2.
 
-**M1 status:** the `fieldkit` gate is measured live now (import + version + the
-`doctor` matrix). The `cortex` gate's **recall-half** is also measured live (M2
-step 1): `fieldkit.field_edition.recall` ships a sha-pinned vendored frozen recall
-set (`data/cortex-recall-mini.json`, a deterministic projection of the frozen
-Advisor recall bench) and a pure `score_recall_set()`; `LiveGateRunner.cortex`
-retrieves it through `MemoryIndex.query` against the running pgvector + embedder
-(live-smoked at recall@5 0.977 over 87 rows in ~3 s). The gate still reports an
-honest non-pass — the recall number is real and in the receipt, but the
-grounded-contract generation half needs the serving lane (M2). The `advisor`
-gate is **measured live** too: `fieldkit.field_edition.advisor` ships a sha-pinned
-vendored frozen curveball-v0.2 set (`data/advisor-curveball-mini.json` — the 21
-scored prompt packets behind the published 85.7% run, with their BM25-retrieved
-context baked in so the gate is immune to corpus drift) and a pure
-`score_curveball_set()` (a faithful port of the `preflight` behavioral scorer);
-`LiveGateRunner.advisor` replays the packets through the resident lane and applies
-the floor (curveball ≥80% + refusals 9/9), with an honest `error` if the lane is
-unreachable. The `lane` / `hermes` gates (and the Cortex grounded-contract half)
-still need more of the live stack, so until that lands (M2) they report an honest
-`error` ("not yet wired to the live stack — M2") rather than a vanity pass. `up
---verify` runs this gate as its final phase, collapsing §7 steps 2–3 into one
-command. `verify` flags:
+**Status:** four of the five gates are measured **live** against the running
+stack — the first-boot receipt goes **near-all-green** (4 pass / 0 fail / 0 error
+/ 1 skip, live-smoked end-to-end on the box in ~86 s):
+
+- **`fieldkit`** — import + version + the `doctor` matrix (no live stack needed).
+- **`advisor`** — `fieldkit.field_edition.advisor` ships a sha-pinned vendored
+  frozen curveball-v0.2 set (`data/advisor-curveball-mini.json` — the 21 scored
+  packets behind the published 85.7% run, with their BM25 context baked in so the
+  gate is corpus-drift-immune) + a pure `score_curveball_set()` (a faithful port
+  of the `preflight` scorer); `LiveGateRunner.advisor` replays them through the
+  resident lane and applies the floor (curveball ≥80% + refusals 9/9).
+- **`cortex`** — **both halves** measured live. The **recall-half**
+  (`fieldkit.field_edition.recall`) scores source_recall@5 over a sha-pinned
+  vendored frozen recall set against pgvector + embedder (0.977/87 rows). The
+  **grounded-contract half** (`fieldkit.field_edition.grounded`) reuses those
+  frozen probes (no new artifact) + a faithful port of the Advisor grounded
+  prompt: for a deterministic stratified slice, the lane answers over
+  live-retrieved context and the shared `advisor.score_output` scores citation
+  integrity + refusal hygiene (`contract_pass` = all refuse rows refuse **and**
+  the answer/route citation rate ≥ `GROUNDED_CONTRACT_FLOOR`). Live-smoked: recall
+  0.977 + citation 19/23 + refusals 16/16 → contract PASS in ~56 s.
+- **`lane`** — `LiveGateRunner.lane` proves the resident Advisor lane is reachable
+  + serves one generation. Per the §6/§8 reconciliation the warm default is **not**
+  torn down at first boot (teardown-clean is the `down`/`repair` gates' job).
+
+Every live gate returns an honest `error` (naming the missing piece + fix) when
+its slice of the stack is down — never a vanity pass. The optional `hermes` gate
+is `skipped` unless `--hermes` is passed (its MCP round-trip is the remaining
+generation-half to wire). `up --verify` runs this gate as its final phase,
+collapsing §7 steps 2–3 into one command. `verify` flags:
 `--json`, `--hermes`.
 
 ## CLI surface

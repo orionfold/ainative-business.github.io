@@ -93,6 +93,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
     pretending to update. The retention + auto-rollback decision tree is fully
     unit-tested with a fake channel/applier/gate. 26 new tests (78 field_edition
     total).
+- **`fieldkit field-edition verify` — the `lane` + Cortex grounded-contract
+  gates are now measured live; the first-boot receipt goes near-all-green.** Two
+  more §8 generation-half gates light up against the resident lane, taking the
+  receipt to **4 pass / 0 fail / 0 error / 1 skip** (live-smoked end-to-end on
+  the box, ~86 s, `ok=True`).
+  - **`lane` gate (warm-resident).** `LiveGateRunner.lane` proves the resident
+    Advisor lane is reachable (`/v1/models`) and serves one generation. Per the
+    §6/§8 reconciliation (the default 4B stays warm and never unloads), first-boot
+    `verify` does **not** tear it down — `_assess_lane` floors on launched +
+    generated, and "teardown clean" is the `down` / `repair` lifecycle gates'
+    job. Unreachable lane → honest `error`; reachable-but-blank generation → a
+    real FAIL (report = reality). Live-smoked PASS in 0.2 s.
+  - **Cortex grounded-contract half.** New **pure** `fieldkit.field_edition.grounded`
+    reuses the already-frozen recall probes (no new frozen artifact) + a faithful
+    port of the Advisor grounded prompt: for a deterministic stratified slice of
+    the frozen set (every refuse + route row + the first N answer rows per
+    family), the lane answers over **live-retrieved** context (the full
+    retrieve → ground → generate → cite loop) and the shared
+    `advisor.score_output` scores citation integrity + refusal hygiene.
+    `contract_pass` requires **all** refuse rows to refuse (hygiene) **and** the
+    answer/route citation rate to clear `GROUNDED_CONTRACT_FLOOR` (0.80, the
+    Advisor precedent). `LiveGateRunner.cortex` now measures **both** halves and
+    merges metrics — recall-half (pgvector + embedder) + grounded-half (the
+    lane). Live-smoked: **recall@5 0.977 + grounded citation 19/23 (82.6%) +
+    refusals 16/16 → contract PASS in 56 s**; the 4 citation misses are genuine
+    model misses (gold present in context, model cited a sibling source), not
+    scorer or retrieval artifacts. The stale "embedder image digest mismatch"
+    failure-`fix` text is reworded. 12 new tests (113 field_edition total); full
+    collectable suite 1294 passed (only the 3 documented env-arena failures).
 - **`fieldkit field-edition verify` — the §8 Cortex gate's recall-half is now
   measured live (M2 step 1).** New `fieldkit.field_edition.recall`: a **vendored
   frozen recall set** (`data/cortex-recall-mini.json` — a deterministic
