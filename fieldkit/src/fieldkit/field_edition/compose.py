@@ -42,6 +42,7 @@ from pathlib import Path
 
 __all__ = [
     "PIN_PENDING",
+    "REV_PENDING",
     "ImagePin",
     "EmbedderConfig",
     "LaneConfig",
@@ -61,6 +62,12 @@ __all__ = [
 #: but :func:`unpinned_images` flags it — the §9 "proven matrix" is only proven
 #: once every pin is a real ``sha256:`` digest.
 PIN_PENDING = "PENDING"
+
+#: Sentinel HF revision for a GGUF whose pinned rev is not yet published. A
+#: :class:`LaneConfig` carrying it renders a valid bundle but the ``pull`` phase
+#: refuses honestly (no published Q4_K_M rev to download) — same "drift is
+#: visible, not silent" stance as :data:`PIN_PENDING` for the container images.
+REV_PENDING = "PENDING"
 
 
 @dataclass(frozen=True)
@@ -115,10 +122,17 @@ class PostgresConfig:
 
 @dataclass(frozen=True)
 class EmbedderConfig:
-    """The Cortex embedder. The §5 *default* is an OPEN embedder (no NGC login,
-    clean AC-2 offline) — its image is Orionfold-built and not yet published, so
-    it ships :data:`PIN_PENDING`. ``NIM_EMBEDDER`` is the optional BYO-NGC-key
-    alternate (what the dogfood box runs today; needs ``NGC_API_KEY``)."""
+    """The OPEN Cortex embedder (no NGC login) — deferred to v1.1.
+
+    Its image is Orionfold-built and not yet published, so it ships
+    :data:`PIN_PENDING`. For **v1** the shipped default is :data:`NIM_EMBEDDER`
+    (the proven, already-pinned NIM embedder): the Field Edition ICP is a DGX
+    Spark operator who already holds an NGC key (it's needed to run the Spark
+    stack effectively), so the NIM dependency is near-zero friction and the
+    AC-2 *operation* stays offline (the NGC key is a one-time pull/login; the
+    embedder serves locally, no phone-home). The open embedder lands in v1.1 for
+    the no-NGC path. Select it explicitly with ``--open-embedder`` /
+    :meth:`FieldEditionConfig.with_open_embedder`."""
 
     image: ImagePin = field(
         default_factory=lambda: ImagePin(
@@ -137,15 +151,19 @@ class EmbedderConfig:
     gpu: bool = True
 
 
-#: The optional BYO-NGC-key NIM embedder (the §5 "NIM-optional" path). This is
-#: the image actually running on the dogfood box; selecting it trades the clean
-#: offline story for a real, already-pinned image. ``up --embedder nim`` picks
-#: it (and `up` then requires ``~/.nim/secrets.env``).
+#: The **v1 default** embedder: the NGC NIM embedder actually running on the
+#: dogfood box — a real, already-pinned image, and the exact embedder the §8
+#: Cortex recall gate was proven against (recall@5 0.977). `up` requires
+#: ``~/.nim/secrets.env`` (the ICP already has an NGC key). The open embedder
+#: (:class:`EmbedderConfig` default) is the v1.1 no-NGC path.
 NIM_EMBEDDER = EmbedderConfig(
     image=ImagePin(
         "nvcr.io/nim/nvidia/llama-nemotron-embed-1b-v2",
         "latest",
-        note="BYO NGC key; needs ~/.nim/secrets.env",
+        # The dogfood box's pull digest (the embedder the recall gate was proven
+        # against). Re-pin the multi-arch manifest-list digest per §9 cadence.
+        digest="sha256:3c22c0bd8d36dcdee4c46ff371951bb83ec537361db5d6b5737b5c4ecbec92ae",
+        note="NGC key required; needs ~/.nim/secrets.env",
     ),
     model="nvidia/llama-nemotron-embed-1b-v2",
     needs_ngc_key=True,
@@ -174,6 +192,19 @@ class LaneConfig:
     gguf_name: str = "advisor-gguf/model-Q4_K_M.gguf"
     ngl: int = 99
     n_ctx: int = 8192
+    # The HF source the `pull` phase resumably downloads from. ``gguf_revision``
+    # is :data:`REV_PENDING` until a Q4_K_M rev of the repo is published + pinned
+    # (the repo ships Q8_0 only today) — `pull` then refuses honestly. Pin it to
+    # a commit sha (never a moving branch) at launch, same as the image digests.
+    gguf_repo: str = "Orionfold/Advisor-GGUF"
+    gguf_revision: str = REV_PENDING
+    gguf_file: str = "model-Q4_K_M.gguf"
+
+    @property
+    def gguf_pinned(self) -> bool:
+        """Whether the GGUF source rev is pinned (a published commit, not the
+        :data:`REV_PENDING` sentinel or a moving branch name)."""
+        return bool(self.gguf_revision) and self.gguf_revision != REV_PENDING
 
 
 @dataclass(frozen=True)
@@ -189,16 +220,29 @@ class FieldEditionConfig:
     model_store: Path = field(default_factory=lambda: Path.home() / ".orionfold" / "models")
     network: str = "of-net"
     postgres: PostgresConfig = field(default_factory=PostgresConfig)
-    embedder: EmbedderConfig = field(default_factory=EmbedderConfig)
+    #: v1 default = the NIM embedder (real, pinned, recall-proven). The open
+    #: embedder is the v1.1 no-NGC path (``with_open_embedder``).
+    embedder: EmbedderConfig = field(default_factory=lambda: NIM_EMBEDDER)
     lane: LaneConfig = field(default_factory=LaneConfig)
 
     def with_nim_embedder(self) -> "FieldEditionConfig":
-        """Return a copy using the BYO-NGC-key NIM embedder (the box-today path)."""
+        """Return a copy using the NGC NIM embedder (the v1 default — kept for
+        explicitness/back-compat; the default config already uses it)."""
         return replace(self, embedder=NIM_EMBEDDER)
+
+    def with_open_embedder(self) -> "FieldEditionConfig":
+        """Return a copy using the OPEN embedder (the v1.1 no-NGC path). Its
+        image is not yet published, so :func:`unpinned_images` flags it and a
+        live `up` refuses until it is built + pinned."""
+        return replace(self, embedder=EmbedderConfig())
 
 
 def default_config() -> FieldEditionConfig:
-    """The shipped default: GGUF-default everything, open embedder (§5)."""
+    """The shipped v1 default: GGUF Advisor lane + the proven NIM embedder (§5).
+
+    The open embedder (clean no-NGC offline) is the v1.1 path — the v1 ICP is a
+    DGX Spark operator who already runs NGC, so the NIM default is near-zero
+    friction and the only ``PIN_PENDING`` image left is the llama.cpp lane."""
     return FieldEditionConfig()
 
 

@@ -109,10 +109,10 @@ def up(
     force: bool = typer.Option(
         False, "--force", help="Re-run every phase, ignoring the saved checkpoint."
     ),
-    nim_embedder: bool = typer.Option(
+    open_embedder: bool = typer.Option(
         False,
-        "--nim-embedder",
-        help="Use the BYO-NGC-key NIM embedder instead of the open default (needs ~/.nim/secrets.env).",
+        "--open-embedder",
+        help="Use the open no-NGC embedder (v1.1 path; image not yet published) instead of the v1 NIM default.",
     ),
 ) -> None:
     """Bring up the Compose stack + load the default resident Advisor (§7 step 2).
@@ -126,8 +126,8 @@ def up(
     from fieldkit.field_edition.up import PHASES, run_up
 
     config = default_config()
-    if nim_embedder:
-        config = config.with_nim_embedder()
+    if open_embedder:
+        config = config.with_open_embedder()
 
     detail = {p.key: p.detail for p in PHASES}
     result = run_up(

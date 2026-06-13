@@ -110,6 +110,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   the serving lane (M2) — never a vanity pass on recall alone. A load-time sha
   check raises on out-of-band edits to the shipped set (proof-control discipline).
   8 new tests (86 field_edition total).
+- **`fieldkit field-edition up` — the `pull` phase is wired (resumable HF GGUF
+  download).** `LiveExecutor.pull` now resumably downloads the default Advisor
+  GGUF via `hf_hub_download`, pinned by `revision` (a commit sha — an upstream
+  re-tag can never silently change the bytes); idempotent (a present model
+  short-circuits, so a resumed `up` never redownloads). `LaneConfig` gains the
+  HF source (`gguf_repo`/`gguf_revision`/`gguf_file` + a `gguf_pinned` property)
+  and a `REV_PENDING` sentinel: until a Q4_K_M rev of `Orionfold/Advisor-GGUF`
+  is published + pinned the phase refuses honestly (name the repo + the fix),
+  same "drift is visible, not silent" stance as the image digest pins. 3 new
+  tests (idempotent / refuses-unpinned / downloads-pinned via a fake).
+- **The CUDA-13/SM121 serving-lane image** (`deploy/field-edition/llama-server-cuda13/`).
+  A pinned, reproducible multi-stage Dockerfile building llama.cpp `856c3ad`
+  (b9128) for CUDA 13.0 / SM121 (GB10 cc 12.1) — the `ghcr.io/orionfold/llama-server-cuda13`
+  proven-matrix image (§5: no aarch64+CUDA-13 wheel, so the lane ships as a
+  prebuilt container). The build forces the CUDA driver stub onto the link path
+  (the build container has no driver; the stub's SONAME `libcuda.so.1` resolves
+  at runtime to the Container-Toolkit-injected driver, so the stub is never
+  bundled). **Built + smoked live on the box:** serves the Q4_K_M Advisor —
+  `/v1/models` 200 in ~3 s (kernels baked, no cold JIT), `/v1/chat/completions`
+  → `finish_reason=stop` with correct `reasoning_content`/`content` split. Push
+  + digest-pin is the operator-credentialed step (GHCR).
+
+### Changed
+- **Arena Field Edition v1 ships the NGC NIM embedder as the default**, not the
+  open embedder (which moves to v1.1). The v1 ICP is a DGX Spark operator who
+  already holds an NGC key (it's needed to run the Spark stack), so the NIM
+  dependency is near-zero friction — and it's a real, **digest-pinned**,
+  recall-proven image (the exact embedder behind the §8 recall@5 0.977) instead
+  of an unpublished placeholder. AC-2's substance holds: the NGC key is a
+  one-time pull/login; the embedder serves locally with no phone-home during
+  operation. `default_config()` now uses `NIM_EMBEDDER` (digest-pinned);
+  `with_open_embedder()` + `up --open-embedder` select the v1.1 open path. Net:
+  the only `PIN_PENDING` image in the default proven matrix is the llama.cpp
+  lane. Tests updated (91 field_edition total).
 
 ### Fixed
 - **AD-FK-1 — the one-lane guard no longer counts the Cortex embedder as a

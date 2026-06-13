@@ -10,6 +10,8 @@ keys"; its values depend on the host.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import fieldkit.field_edition.doctor as doctor_mod
 from fieldkit.cli import app
 from fieldkit.field_edition import (
@@ -193,9 +195,20 @@ def test_render_compose_model_store_mounted_readonly() -> None:
         assert any(v.endswith(":/models:ro") for v in services[svc]["volumes"])
 
 
-def test_default_open_embedder_needs_no_ngc_key() -> None:
+def test_default_embedder_is_nim_and_needs_ngc_key() -> None:
+    # v1 default = the proven NIM embedder (the ICP already runs NGC).
+    assert default_config().embedder is NIM_EMBEDDER
     svc = render_compose()["services"]["of-embedder"]
+    assert "NGC_API_KEY" in svc["environment"]
+
+
+def test_open_embedder_path_is_no_ngc_and_unpublished() -> None:
+    # the v1.1 opt-in: no NGC key, but its image is not yet published (PENDING).
+    cfg = default_config().with_open_embedder()
+    svc = render_compose(cfg)["services"]["of-embedder"]
     assert "NGC_API_KEY" not in svc["environment"]
+    assert not cfg.embedder.image.pinned
+    assert cfg.embedder.image.repo == "ghcr.io/orionfold/cortex-embedder"
 
 
 def test_nim_embedder_path_injects_key_and_is_already_pinned() -> None:
@@ -207,12 +220,21 @@ def test_nim_embedder_path_injects_key_and_is_already_pinned() -> None:
     assert cfg.embedder.image.repo.startswith("nvcr.io/nim/")
 
 
-def test_unpinned_images_flags_the_unbuilt_orionfold_images() -> None:
-    # default ships the open embedder + llama lane as PENDING; pgvector is real.
+def test_unpinned_images_flags_only_the_llama_lane_by_default() -> None:
+    # v1 default: only the llama.cpp lane is PENDING (pgvector + NIM embedder
+    # are real, pinned images). The open embedder is the v1.1 opt-in.
     repos = {p.repo for p in unpinned_images()}
+    assert "ghcr.io/orionfold/llama-server-cuda13" in repos
+    assert "ghcr.io/orionfold/cortex-embedder" not in repos
+    assert "pgvector/pgvector" not in repos
+    assert "nvcr.io/nim/nvidia/llama-nemotron-embed-1b-v2" not in repos
+
+
+def test_open_embedder_path_reintroduces_an_unpinned_image() -> None:
+    cfg = default_config().with_open_embedder()
+    repos = {p.repo for p in unpinned_images(cfg)}
     assert "ghcr.io/orionfold/cortex-embedder" in repos
     assert "ghcr.io/orionfold/llama-server-cuda13" in repos
-    assert "pgvector/pgvector" not in repos
 
 
 def test_compose_yaml_round_trips() -> None:
@@ -334,6 +356,60 @@ def test_live_executor_stack_refuses_unpinned_images(tmp_path) -> None:
         assert err.fix
     else:  # pragma: no cover
         raise AssertionError("stack should refuse the unbuilt Orionfold images")
+
+
+def test_live_executor_pull_idempotent_when_file_present(tmp_path) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    gguf = cfg.model_store / cfg.lane.gguf_name
+    gguf.parent.mkdir(parents=True, exist_ok=True)
+    gguf.write_bytes(b"already here")
+    # No network touched; a present model short-circuits even with REV_PENDING.
+    LiveExecutor().pull(cfg)
+    assert gguf.read_bytes() == b"already here"
+
+
+def test_live_executor_pull_refuses_unpinned_rev(tmp_path) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)  # lane.gguf_revision is REV_PENDING by default
+    try:
+        LiveExecutor().pull(cfg)
+    except PhaseError as err:
+        assert "no pinned GGUF rev" in str(err)
+        assert "Advisor-GGUF" in err.fix
+    else:  # pragma: no cover
+        raise AssertionError("pull should refuse the unpublished Q4_K_M rev")
+
+
+def test_live_executor_pull_downloads_pinned_rev(tmp_path, monkeypatch) -> None:
+    import dataclasses
+
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    cfg = dataclasses.replace(
+        cfg, lane=dataclasses.replace(cfg.lane, gguf_revision="deadbeef" * 5)
+    )
+    gguf = cfg.model_store / cfg.lane.gguf_name
+
+    calls: dict = {}
+
+    def fake_download(*, repo_id, filename, revision, local_dir):
+        calls.update(repo_id=repo_id, filename=filename, revision=revision)
+        out = Path(local_dir) / filename
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(b"GGUF\x00pulled")
+        return str(out)
+
+    import huggingface_hub
+
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_download)
+    LiveExecutor().pull(cfg)
+    assert gguf.exists() and gguf.read_bytes() == b"GGUF\x00pulled"
+    assert calls["repo_id"] == "Orionfold/Advisor-GGUF"
+    assert calls["revision"] == "deadbeef" * 5
 
 
 # --- up CLI ------------------------------------------------------------------

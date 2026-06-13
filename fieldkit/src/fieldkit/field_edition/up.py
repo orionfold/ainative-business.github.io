@@ -218,19 +218,44 @@ class LiveExecutor(Executor):
         _compose.write_bundle(config)
 
     def pull(self, config: FieldEditionConfig) -> None:
-        gguf = config.model_store / config.lane.gguf_name
+        lane = config.lane
+        gguf = config.model_store / lane.gguf_name
         if gguf.exists():
-            return
-        # No published Q4_K_M rev to pull from yet (Advisor-GGUF ships Q8_0
-        # only). The resumable HF download wires in here when the rev is pinned.
-        raise PhaseError(
-            f"default model not present at {gguf}",
-            fix=(
-                "the resumable GGUF pull lands at M2 once a Q4_K_M rev of "
-                "Orionfold/Advisor-GGUF is published + pinned; until then place "
-                "the GGUF in the model store manually"
-            ),
-        )
+            return  # idempotent — a resumed `up` does not redownload
+        # The GGUF source rev must be a published commit, not the REV_PENDING
+        # sentinel (the repo ships Q8_0 only today). Refuse honestly otherwise —
+        # an operator can still drop the file in the store manually meanwhile.
+        if not lane.gguf_pinned:
+            raise PhaseError(
+                f"default model not present at {gguf} and no pinned GGUF rev to pull",
+                fix=(
+                    "publish + pin a Q4_K_M rev of "
+                    f"{lane.gguf_repo} (set LaneConfig.gguf_revision to its commit "
+                    "sha), or place the GGUF in the model store manually"
+                ),
+            )
+        from huggingface_hub import hf_hub_download  # core dep
+        # `hf_hub_download` resumes a partial download by default — load-bearing
+        # at the box's ~4.77 MB/s (a Q4_K_M 4B is ~2.6 GB). Pin by `revision` (a
+        # commit sha) so an upstream re-tag can never silently change the bytes.
+        gguf.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            fetched = hf_hub_download(
+                repo_id=lane.gguf_repo,
+                filename=lane.gguf_file,
+                revision=lane.gguf_revision,
+                local_dir=str(gguf.parent),
+            )
+        except Exception as exc:  # network / auth / missing-rev
+            raise PhaseError(
+                f"GGUF pull from {lane.gguf_repo}@{lane.gguf_revision[:12]} failed: {exc}",
+                fix="check connectivity + that the pinned rev publishes the file; the download resumes on re-run",
+            ) from exc
+        # Land it at the bundle's expected path if the repo layout differs.
+        fetched_path = Path(fetched)
+        if fetched_path.resolve() != gguf.resolve():
+            gguf.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(fetched_path, gguf)
 
     def stack(self, config: FieldEditionConfig) -> None:
         unpinned = _compose.unpinned_images(config)
