@@ -220,21 +220,18 @@ def test_nim_embedder_path_injects_key_and_is_already_pinned() -> None:
     assert cfg.embedder.image.repo.startswith("nvcr.io/nim/")
 
 
-def test_unpinned_images_flags_only_the_llama_lane_by_default() -> None:
-    # v1 default: only the llama.cpp lane is PENDING (pgvector + NIM embedder
-    # are real, pinned images). The open embedder is the v1.1 opt-in.
-    repos = {p.repo for p in unpinned_images()}
-    assert "ghcr.io/orionfold/llama-server-cuda13" in repos
-    assert "ghcr.io/orionfold/cortex-embedder" not in repos
-    assert "pgvector/pgvector" not in repos
-    assert "nvcr.io/nim/nvidia/llama-nemotron-embed-1b-v2" not in repos
+def test_default_proven_matrix_is_fully_pinned() -> None:
+    # v1 default: every image is digest-pinned (pgvector + NIM embedder +
+    # the orionfold-built llama lane, pushed 2026-06-13) — zero PIN_PENDING,
+    # so a live `up` resolves the whole stack by digest.
+    assert unpinned_images() == []
 
 
 def test_open_embedder_path_reintroduces_an_unpinned_image() -> None:
+    # the v1.1 opt-in is the only thing that re-introduces an unbuilt image.
     cfg = default_config().with_open_embedder()
     repos = {p.repo for p in unpinned_images(cfg)}
-    assert "ghcr.io/orionfold/cortex-embedder" in repos
-    assert "ghcr.io/orionfold/llama-server-cuda13" in repos
+    assert repos == {"ghcr.io/orionfold/cortex-embedder"}
 
 
 def test_compose_yaml_round_trips() -> None:
@@ -347,7 +344,9 @@ def test_run_up_dry_run_writes_bundle_and_plans_rest(tmp_path) -> None:
 def test_live_executor_stack_refuses_unpinned_images(tmp_path) -> None:
     from fieldkit.field_edition.up import LiveExecutor
 
-    cfg = _tmp_config(tmp_path)
+    # the default matrix is fully pinned now; the open-embedder (v1.1) path is
+    # the remaining unbuilt image, so use it to exercise the honest refusal.
+    cfg = _tmp_config(tmp_path).with_open_embedder()
     write_bundle(cfg)
     try:
         LiveExecutor().stack(cfg)
@@ -355,7 +354,7 @@ def test_live_executor_stack_refuses_unpinned_images(tmp_path) -> None:
         assert "not yet published" in str(err)
         assert err.fix
     else:  # pragma: no cover
-        raise AssertionError("stack should refuse the unbuilt Orionfold images")
+        raise AssertionError("stack should refuse the unbuilt open-embedder image")
 
 
 def test_live_executor_pull_idempotent_when_file_present(tmp_path) -> None:
@@ -370,17 +369,31 @@ def test_live_executor_pull_idempotent_when_file_present(tmp_path) -> None:
     assert gguf.read_bytes() == b"already here"
 
 
+def test_default_gguf_revision_is_pinned() -> None:
+    # the Q4_K_M rev was published + validated 2026-06-13; the default is a
+    # commit sha (not REV_PENDING), so a live `up` pull resolves it.
+    from fieldkit.field_edition.compose import REV_PENDING, default_config
+
+    lane = default_config().lane
+    assert lane.gguf_pinned
+    assert lane.gguf_revision != REV_PENDING and len(lane.gguf_revision) == 40
+
+
 def test_live_executor_pull_refuses_unpinned_rev(tmp_path) -> None:
+    import dataclasses
+
+    from fieldkit.field_edition.compose import REV_PENDING
     from fieldkit.field_edition.up import LiveExecutor
 
-    cfg = _tmp_config(tmp_path)  # lane.gguf_revision is REV_PENDING by default
+    cfg = _tmp_config(tmp_path)
+    cfg = dataclasses.replace(cfg, lane=dataclasses.replace(cfg.lane, gguf_revision=REV_PENDING))
     try:
         LiveExecutor().pull(cfg)
     except PhaseError as err:
         assert "no pinned GGUF rev" in str(err)
         assert "Advisor-GGUF" in err.fix
     else:  # pragma: no cover
-        raise AssertionError("pull should refuse the unpublished Q4_K_M rev")
+        raise AssertionError("pull should refuse an unpinned (REV_PENDING) rev")
 
 
 def test_live_executor_pull_downloads_pinned_rev(tmp_path, monkeypatch) -> None:

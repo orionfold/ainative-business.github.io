@@ -182,8 +182,10 @@ class LaneConfig:
         default_factory=lambda: ImagePin(
             "ghcr.io/orionfold/llama-server-cuda13",
             "0.1",
-            digest=PIN_PENDING,
-            note="CUDA-13/SM121 llama.cpp lane image not yet built",
+            # Built + smoked + pushed 2026-06-13 (llama.cpp 856c3ad, CUDA-13/SM121).
+            # Re-pin the multi-arch manifest-list digest per the §9 cadence.
+            digest="sha256:93993cc2609cc684cb0086e9512b1640bd2ac316084bd30955ccf4c6927f1ec2",
+            note="CUDA-13/SM121 llama.cpp lane (serves the Advisor GGUF)",
         )
     )
     container_name: str = "of-advisor-lane"
@@ -192,12 +194,12 @@ class LaneConfig:
     gguf_name: str = "advisor-gguf/model-Q4_K_M.gguf"
     ngl: int = 99
     n_ctx: int = 8192
-    # The HF source the `pull` phase resumably downloads from. ``gguf_revision``
-    # is :data:`REV_PENDING` until a Q4_K_M rev of the repo is published + pinned
-    # (the repo ships Q8_0 only today) — `pull` then refuses honestly. Pin it to
-    # a commit sha (never a moving branch) at launch, same as the image digests.
+    # The HF source the `pull` phase resumably downloads from, pinned to a
+    # commit sha (never a moving branch). Published + validated 2026-06-13:
+    # curveball-v0.2 85.7% (= the Q8_0 baseline) + refusals 9/9 on a live lane.
+    # Re-pin per the §9 quarterly proven-matrix cadence.
     gguf_repo: str = "Orionfold/Advisor-GGUF"
-    gguf_revision: str = REV_PENDING
+    gguf_revision: str = "dad6d1e5eeb40b64cf456a95eb0303174acbf1fa"
     gguf_file: str = "model-Q4_K_M.gguf"
 
     @property

@@ -129,8 +129,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   at runtime to the Container-Toolkit-injected driver, so the stub is never
   bundled). **Built + smoked live on the box:** serves the Q4_K_M Advisor —
   `/v1/models` 200 in ~3 s (kernels baked, no cold JIT), `/v1/chat/completions`
-  → `finish_reason=stop` with correct `reasoning_content`/`content` split. Push
-  + digest-pin is the operator-credentialed step (GHCR).
+  → `finish_reason=stop` with correct `reasoning_content`/`content` split.
+  **Published 2026-06-13** to `ghcr.io/orionfold/llama-server-cuda13:0.1`
+  (`sha256:93993cc2…`) and digest-pinned in `compose.py`.
+- **The proven matrix is now fully published + digest-pinned.** `model-Q4_K_M.gguf`
+  was published to `Orionfold/Advisor-GGUF` (rev `dad6d1e5…`) and pinned in
+  `LaneConfig.gguf_revision`; the lane image is pushed + pinned (above). With
+  pgvector + the NIM embedder already pinned, **`unpinned_images()` is now empty
+  for the default config** — `up --dry-run` renders an all-`@sha256` Compose
+  bundle, so a live `up` resolves the whole stack by digest. Quality-gated before
+  publish: the Q4_K_M scored **curveball-v0.2 85.7%** (= the Q8_0 baseline, same
+  3 safe-direction misses) + refusals 9/9 on a live lane — the §8 Advisor floor.
+  Tests updated (92 field_edition total).
 
 ### Changed
 - **Arena Field Edition v1 ships the NGC NIM embedder as the default**, not the
