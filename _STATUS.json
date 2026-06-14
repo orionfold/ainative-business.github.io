@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition — wired the §9 update channel's signature gate to REAL cosign verify. New fieldkit.field_edition.cosign: verify_matrix() filters a fetched proven matrix to its ghcr.io/orionfold @sha256 images (skips pgvector/NIM) and runs cosign verify --key against a pinned public key (PROVEN_MATRIX_COSIGN_PUBKEY, byte-matched to the committed deploy/field-edition/cosign/proven-matrix.pub — a test enforces no drift), raising CosignVerifyError on bad/absent sig or missing cosign. LiveUpdateChannel.verify_signature calls it (signed-flag check first, then cosign); the cosign subprocess is an injected runner seam so the logic is unit-testable without the binary. Same pin-a-committed-pubkey pattern as license.TRUSTED_KEYS. PROVEN LIVE end-to-end: LiveUpdateChannel().verify_signature with the real cosign binary verifies the actually-signed lane image (sha256:93993cc2…) → OK. fetch_latest still raises honestly — the hosted release feed (fetch a NEW matrix from) is the last M3 piece. 10 new tests → 134 field_edition tests green. CHANGELOG [Unreleased] + parked docs/field_edition.md updated. fieldkit source change → [Unreleased]; a PyPI release publishes it; no version bump this commit, no website rebuild. Earlier same session: cosign signing armed (lane image signed, Rekor tlog 1810763259) + get.orionfold.com bootstrap script delivered.",
+  "focus": "fieldkit v0.32.0 RELEASED to PyPI (https://pypi.org/project/fieldkit/0.32.0/) + git tag fieldkit/v0.32.0 — ships the whole Arena Field Edition surface built this session: the §7–§9 installer CLI (doctor/up/verify/down/repair/update/rollback), the §8 first-boot eval gates (advisor/cortex-recall/cortex-grounded/lane, live-measured), the AC-7 license file + conformance vector, and §9 cosign verification (cosign.py + wired LiveUpdateChannel.verify_signature). Minor bump (new field_edition package + cosign/license modules per Decision M). Release gates all green: audit-docs 17/18 PASS, audit-landing 6/6, offline suite 1710 passed / 0 failed / 19 skipped; git-source + PyPI install verifies both ✓ (0.32.0, field-edition doctor runs); twine check PASSED; wheel carries all 15 field_edition modules + 4 data/*.json. Stats refreshed (LOC 62,258). Earlier same session: cosign signing armed (lane image signed, Rekor tlog 1810763259) + verify_signature wired + get.orionfold.com bootstrap script delivered.",
   "blockers": [],
   "next": [
-    "§9 hosted release feed so fetch_latest can pull a NEW signed matrix (last M3 piece — a published signed-matrix manifest the channel reads); then fetch→verify→apply→gate→receipt is end-to-end live",
-    "Cut a fieldkit PyPI release (fieldkit-curator) to ship the cosign-verify wiring + the license module from [Unreleased]",
+    "§9 hosted release feed so fetch_latest can pull a NEW signed matrix (last M3 piece — a published signed-matrix manifest the channel reads); then fetch→verify→apply→gate→receipt is end-to-end live (ties into the Website peer's entitlement-fetch)",
     "Website peer: host get-orionfold.sh at the domain + wire fulfillLicense to mint the license signed-URL + add the order-page curl snippet (relay [needs Mac action])",
     "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real) — blocked on ops/OPEN-2",
-    "Optional `hermes` verify gate; remaining GA (get.orionfold.com DNS [peer], HF card Q4_K_M, advisor-manifest _FLOWS re-freeze)"
+    "Optional `hermes` verify gate; remaining GA (get.orionfold.com DNS [peer], HF card Q4_K_M, advisor-manifest _FLOWS re-freeze)",
+    "Next-release note: /tmp/fk needed respx/fastapi/uvicorn/sse-starlette/aiosqlite/httpx/build/twine reinstalled to collect the full suite + build"
   ],
   "recent": [
-    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify (new fieldkit.field_edition.cosign): pins PROVEN_MATRIX_COSIGN_PUBKEY (byte-matched to the committed proven-matrix.pub), filters to Orionfold @sha256 images, injected runner seam. Proven live against the actually-signed lane image. 10 new tests → 134 field_edition green",
-    "cosign SIGNED + verified the lane image (§9/M3): ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… signed (Rekor tlog 1810763259, sig in GHCR), verifies green vs the committed pin. deploy/field-edition/cosign/ scripts",
-    "PIVOTED keyless→key-based: the keyless arm hit a network block (fulcio.sigstore.dev answers 443 in plaintext on this box, persistent, no proxy; only Fulcio — Rekor + TUF reachable). Long-lived key (cosign default ECDSA P-256), pubkey committed/pinned like license TRUSTED_KEYS; private key + COSIGN_PASSWORD → orionfold secret store",
-    "get.orionfold.com bootstrap script DELIVERED earlier this session (deploy/field-edition/bootstrap/) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up",
+    "fieldkit v0.32.0 RELEASED to PyPI + tag — ships the full Field Edition surface (installer CLI + §8 gates + AC-7 license + §9 cosign verify). audit-docs 17/18 + audit-landing 6/6, offline 1710 passed/0 failed, both install verifies ✓, twine PASSED. Stats refreshed (LOC 62,258)",
+    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify (fieldkit.field_edition.cosign): pins PROVEN_MATRIX_COSIGN_PUBKEY (byte-matched to the committed proven-matrix.pub), injected runner seam, proven live against the actually-signed lane image",
+    "cosign SIGNED + verified the lane image (§9/M3): ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… signed (Rekor tlog 1810763259), verifies green vs the committed pin. Key-based (Fulcio network-blocked on the box); private key + COSIGN_PASSWORD → orionfold secret store",
+    "get.orionfold.com bootstrap script DELIVERED (deploy/field-edition/bootstrap/) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up",
     "Website peer ACK'd the full licensing+distribution division of labor + reported the Stripe catalog is now LIVE (founding-25 $349 / standard $499 / renewal $149yr); SKU names already match KNOWN_EDITIONS"
   ],
-  "session": "S-fe-cosign-verify-wiring",
+  "session": "S-fe-v0.32.0-release",
   "metrics": {
     "articles": 54,
     "models": 7,
