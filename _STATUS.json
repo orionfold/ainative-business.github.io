@@ -3,23 +3,22 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Relay-driven session. (1) fieldkit v0.32.2 RELEASED to PyPI (https://pypi.org/project/fieldkit/0.32.2/) — embeds the PRODUCTION license signing pubkey (of-license-prod-2026, LQVkEw+…), flipping it off PROD_KEY_PENDING. A prod-seed-signed orionfold.license/v1 now verifies on a released box — the one Spark dependency that was blocking live license verify for the weekend launch. Private seed stays in the commerce plane (Supabase secret + offline ops-vault). (2) Installer-domain rename get.orionfold.com → arena.orionfold.com across the bootstrap script + README (per Website→Spark relay; the per-product <product>.orionfold.com convention). audit-docs 17/18 + audit-landing 6/6, offline suite 1712 passed/0 failed (136 field_edition), git + PyPI install verifies both ✓, twine PASSED.",
+  "focus": "🟢 Arena Field Edition is LIVE on both sides — founding-25 is sellable. fieldkit v0.32.2 (https://pypi.org/project/fieldkit/0.32.2/) embedded the PRODUCTION license pubkey (of-license-prod-2026, LQVkEw+…) off PROD_KEY_PENDING, which closed the loop: the Website peer then shipped fulfillLicense to prod (relay 🟢 WE ARE LIVE) — pay → prod-signed token-less orionfold.license/v1 emailed → curl getarena.orionfold.com … sh → load_license() verifies against the embedded prod key → Arena up. getarena.orionfold.com host is LIVE + verified (HTTP 200, text/x-shellscript). Domain finalized to getarena.orionfold.com (c667d4c). No Spark dependency remains; release gates all green (offline 1712 passed/0 failed, git + PyPI install verifies ✓).",
   "blockers": [],
   "next": [
-    "§9 hosted release feed so LiveUpdateChannel.fetch_latest can pull a NEW signed proven matrix (last M3 piece — images are signed + cosign-verifiable now; only the feed to fetch a new matrix from is missing) — ties into the Website peer's entitlement-fetch",
-    "Website peer: host get-orionfold.sh at arena.orionfold.com (Cloudflare Worker proxies the released script + edge-rewrites the domain string); wire fulfillLicense to mint the license signed-URL (token-less, no registry block)",
-    "Optional `hermes` verify gate (last unwired §8 gate); cosign cortex-embedder once built+pinned at v1.1",
-    "Mac CI: re-pull the vendored license-conformance-v1.json from fieldkit==0.32.1 (token-less full-license case — sha changed) and re-green the fulfillLicense mirror",
+    "§9 hosted signed-matrix feed so LiveUpdateChannel.fetch_latest can pull a NEW signed proven matrix (last M3 piece — images are signed + cosign-verifiable now; only the feed is missing; lives in the Website peer's entitlement-fetch) — no Spark dependency",
+    "Website-owned (not blocking sales): entitlement-fetch (revocable short-TTL re-mint) + re-vendor license-conformance-v1.json from fieldkit==0.32.1 into the fulfillLicense mirror CI (token-less full-license case sha changed; test-fixture refresh)",
+    "Optional `hermes` verify gate (last unwired §8 gate, Spark-owned); cosign cortex-embedder once built+pinned at v1.1",
     "Next-release note: /tmp/fk needs respx/fastapi/uvicorn/sse-starlette/aiosqlite/httpx/build/twine reinstalled to collect the full suite + build (drifts out of the minimal venv)"
   ],
   "recent": [
-    "fieldkit v0.32.2 RELEASED to PyPI + tag — prod license signing key provisioned (of-license-prod-2026 off PROD_KEY_PENDING; pubkey delivered by ops via relay). verify_signature against the prod slot now gated by real Ed25519 verification. test_prod_key_pending_is_honest → test_prod_key_is_provisioned. Shipped 3f56e26",
-    "Installer domain renamed get.orionfold.com → arena.orionfold.com in deploy/field-edition/bootstrap/ (script + README) per Website→Spark relay — sh -n clean, cosmetic. Shipped 943bde8",
+    "🟢 WE ARE LIVE — Arena Field Edition license path end-to-end on both sides; founding-25 sellable. Website peer shipped fulfillLicense to prod (ae0a521 + storefront af671f7): pay → token-less prod-signed license emailed → getarena.orionfold.com installer (HTTP 200, Cloudflare Worker) → load_license() verifies vs the v0.32.2-embedded prod key → Arena up. First sale = OF-FE-2026-0001",
+    "fieldkit v0.32.2 RELEASED to PyPI + tag — prod license signing key provisioned (of-license-prod-2026 off PROD_KEY_PENDING; pubkey delivered by ops via relay). This is what closed the launch loop. verify_signature against the prod slot now gated by real Ed25519 verification. Shipped 3f56e26",
+    "Installer domain finalized to getarena.orionfold.com in deploy/field-edition/bootstrap/ (943bde8 → c667d4c per operator) — sh -n clean, cosmetic; the Website peer's edge-rewrite is a self-healing no-op",
     "fieldkit v0.32.1 RELEASED to PyPI + tag — OPEN-1 schema relaxation: license pull_token now optional (claims + term only), back-compat preserved. Stats refreshed (LOC 62,305)",
-    "Advisor-GGUF HF card features Q4_K_M as the DEFAULT variant (HF commit 2bafff72) — 2.6 GB, ~70 tok/s, byte-identical curveball-v0.2 behavior to Q8_0 (85.7%, refusals 9/9, same 3 misses). Shipped 8a2091b",
-    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify; cosign SIGNED + verified the lane image (Rekor tlog 1810763259), key-based (Fulcio network-blocked on the box)"
+    "Advisor-GGUF HF card features Q4_K_M as the DEFAULT variant (HF commit 2bafff72) — 2.6 GB, ~70 tok/s, byte-identical curveball-v0.2 behavior to Q8_0 (85.7%, refusals 9/9, same 3 misses). Shipped 8a2091b"
   ],
-  "session": "S-fe-v0.32.2-prod-key",
+  "session": "S-fe-live-launch",
   "metrics": {
     "articles": 54,
     "models": 7,
