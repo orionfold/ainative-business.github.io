@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.32.0] — 2026-06-13
+
 ### Added
 - **`fieldkit.field_edition.cosign` — verify the §9 proven-matrix images, and
   `LiveUpdateChannel.verify_signature` wired live.** The update channel now
@@ -430,6 +432,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   spine's vertical. A job carrying neither identity stays invisible to a
   scoped spine; an unscoped (no-manifest) spine keeps the legacy newest-row
   read.
+
+### Verified live (on the dogfood DGX Spark)
+- **cosign signing + verify, end-to-end.** The proven-matrix lane image
+  (`ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2…`) was key-signed
+  (Rekor tlog index `1810763259`) and `LiveUpdateChannel.verify_signature`
+  verified it against the pinned `PROVEN_MATRIX_COSIGN_PUBKEY` with the real
+  cosign binary. Key-based because Fulcio is network-blocked on the box.
+- **First-boot `fieldkit field-edition verify` near-all-green** (4 PASS / 0 fail
+  / 0 error / 1 skip): the `advisor` (85.7% curveball, refusals 9/9), `cortex`
+  (recall@5 0.977 + grounded citation 82.6%, refusals 16/16), and warm-resident
+  `lane` gates measured live against the resident stack; only optional `hermes`
+  unwired.
+
+### Test suite
+- Offline: **1710 passed, 19 skipped** (skips are torch / `mcp` / matplotlib /
+  great_tables / jupytext heavy-optional deps + the `--spark` live gates). The
+  `field_edition` surface alone is **134 tests** (doctor / up / verify / down /
+  repair / update + the §8 advisor / cortex-recall / cortex-grounded / lane live
+  gates + the AC-7 license + the cosign verification + the conformance vector).
+
+### Articles in this release
+- None new assume this version — it is an **installer-surface** release (the
+  Arena Field Edition §7–§9 commands + the AC-7 license + cosign verification).
+  The Orionfold Advisor public-launch series landed in this window but assumes
+  the model / eval surface, not `field_edition`.
 
 ## [0.31.0] — 2026-06-07
 
