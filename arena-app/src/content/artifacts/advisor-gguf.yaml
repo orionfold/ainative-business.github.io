@@ -4,13 +4,16 @@ class: gguf
 base_model: nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16
 hf_repo: Orionfold/Advisor-GGUF
 variants:
+  - Q4_K_M
   - Q8_0
 spark_tokens_per_sec:
+  Q4_K_M: 70.0
   Q8_0: 42.0
 vertical_eval:
+  Q4_K_M: 0.857
   Q8_0: 0.857
 vertical_eval_name: "advisor curveball-v0.2, frozen OOD bench (n=21, scored==strict; refusals 9/9, 0 private-state risk)"
-recommended_variant: Q8_0
+recommended_variant: Q4_K_M
 license:
   tier: free
   model: other
@@ -23,8 +26,9 @@ positioning:
     refuses cleanly — and prompting alone doesn't get there: the 30B teacher
     prompted scored 8/21 on the frozen curveball bench with 3 fabrications,
     while this 4B-SFT-v0.2 lane scores 18/21 with refusals 9/9 and zero
-    private-state leaks. The Q8_0 GGUF serves at 42 tok/s on a DGX Spark, so
-    the whole answer/refuse/route loop runs local. Sibling release
+    private-state leaks. The default Q4_K_M GGUF serves at ~70 tok/s on a DGX
+    Spark (Q8_0 at 42 tok/s, identical bench behavior) at 2.6 GB, so the whole
+    answer/refuse/route loop runs local. Sibling release
     Orionfold/Advisor-bench carries the frozen OOD bench (pool 75, held-out
     28, curveballs 40+21) and the sha-pinned 182-source corpus manifest.
   use_cases:
