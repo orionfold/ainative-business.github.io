@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.32.2] — 2026-06-13
+
+### Changed
+- **`fieldkit.field_edition.license` — the production signing key is now
+  provisioned (`of-license-prod-2026` flipped off `PROD_KEY_PENDING`).** Ops
+  generated the prod Ed25519 keypair and delivered the public half (relay
+  2026-06-13); it is embedded in `TRUSTED_KEYS`, so a license signed by the prod
+  seed now verifies on a released box — the one remaining dependency blocking
+  live license verification. The private seed never leaves the commerce plane
+  (Supabase secret `LICENSE_SIGNING_SEED_B64` + an offline ops-vault backup);
+  rotation stays additive. `verify_signature` against the prod slot is now gated
+  by real Ed25519 verification rather than the "not provisioned" guard.
+
+### Test suite
+- **1712 passed, 19 skipped** (offline `pytest`; skips = torch/mcp/matplotlib/
+  great_tables/jupytext heavy deps + `--spark`). 136 `field_edition` tests
+  (unchanged count — `test_prod_key_pending_is_honest` became
+  `test_prod_key_is_provisioned` for the embedded prod key).
+
 ## [0.32.1] — 2026-06-13
 
 ### Changed

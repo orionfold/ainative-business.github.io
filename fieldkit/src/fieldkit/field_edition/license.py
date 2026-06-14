@@ -94,11 +94,13 @@ PROD_KEY_PENDING = "PROD_KEY_PENDING"
 #: listed here, so rotation is additive: publish a new key_id, sign new licenses
 #: with it, retire the old one once outstanding licenses lapse.
 #:
-#: ``of-license-prod-2026`` is the PRODUCTION slot — ops generates the keypair
-#: (see the keygen recipe in the §AC-7 relay / module tests), keeps the private
-#: key in the commerce-server secret store, and sends ONLY the public key to drop
-#: in here. Until then it is ``PROD_KEY_PENDING`` and signing real licenses with a
-#: production key is blocked.
+#: ``of-license-prod-2026`` is the PRODUCTION slot. Ops generated the keypair
+#: (private seed lives only in the commerce plane — the Supabase secret
+#: ``LICENSE_SIGNING_SEED_B64`` on the ``orionfold`` project + an offline ops-vault
+#: backup) and sent ONLY the public half, embedded below (relay 2026-06-13). A
+#: license signed by the prod seed now verifies on a released box; rotation stays
+#: additive (publish a new key_id, sign new licenses with it, retire the old once
+#: outstanding licenses lapse).
 #:
 #: ``of-license-dev-2026-06`` is a NON-PRODUCTION developer key whose public half
 #: is committed so the vendored sample license + the unit tests self-validate. It
@@ -106,7 +108,7 @@ PROD_KEY_PENDING = "PROD_KEY_PENDING"
 #: ``bytes(range(32))`` (00 01 02 … 1f) — published on purpose so tests can
 #: reproduce it without storing a secret; that is precisely why it is dev-only.
 TRUSTED_KEYS: dict[str, str] = {
-    "of-license-prod-2026": PROD_KEY_PENDING,
+    "of-license-prod-2026": "LQVkEw+cetZGkstWJSdKoxOF/kuCrCgmGADaFi/yyDc=",
     "of-license-dev-2026-06": "A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=",
 }
 

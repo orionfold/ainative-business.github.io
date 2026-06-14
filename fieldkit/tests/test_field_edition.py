@@ -1688,9 +1688,15 @@ def test_unknown_key_id_rejected(tmp_path) -> None:
         load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
 
 
-def test_prod_key_pending_is_honest() -> None:
+def test_prod_key_is_provisioned() -> None:
+    # Ops delivered the prod public half (relay 2026-06-13); the slot is no longer
+    # the PROD_KEY_PENDING sentinel — a real Ed25519 pubkey is embedded, so signing
+    # is gated by actual signature verification, not the "not provisioned" guard.
+    import base64
+
     import pytest
 
+    pytest.importorskip("cryptography")
     from fieldkit.field_edition.license import (
         ACTIVE_KEY_ID,
         PROD_KEY_PENDING,
@@ -1699,9 +1705,11 @@ def test_prod_key_pending_is_honest() -> None:
         verify_signature,
     )
 
-    # the production slot is declared but unprovisioned → signing with it is blocked
-    assert TRUSTED_KEYS[ACTIVE_KEY_ID] == PROD_KEY_PENDING
-    with pytest.raises(LicenseError, match="not provisioned"):
+    pub_b64 = TRUSTED_KEYS[ACTIVE_KEY_ID]
+    assert pub_b64 != PROD_KEY_PENDING
+    assert len(base64.b64decode(pub_b64)) == 32  # a raw Ed25519 public key
+    # a bogus signature now fails on real verification, not on the pending guard
+    with pytest.raises(LicenseError, match="does not verify"):
         verify_signature(_sample_payload(), {"alg": "ed25519", "key_id": ACTIVE_KEY_ID, "value": "AAAA"})
 
 
