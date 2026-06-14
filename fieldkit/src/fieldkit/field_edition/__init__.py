@@ -151,6 +151,12 @@ from fieldkit.field_edition.update import (
     run_rollback,
     run_update,
 )
+from fieldkit.field_edition.cosign import (
+    CosignVerifyError,
+    PROVEN_MATRIX_COSIGN_PUBKEY,
+    orionfold_image_refs,
+    verify_matrix,
+)
 
 __all__ = [
     # doctor
@@ -261,4 +267,9 @@ __all__ = [
     "UpdateResult",
     "run_rollback",
     "run_update",
+    # cosign verification of the proven-matrix images (§9)
+    "CosignVerifyError",
+    "PROVEN_MATRIX_COSIGN_PUBKEY",
+    "orionfold_image_refs",
+    "verify_matrix",
 ]

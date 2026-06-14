@@ -209,9 +209,14 @@ collapsing §7 steps 2–3 into one command. `verify` flags:
 - **`update` / `rollback`** — live: the §9 eval-gated, rollback-safe
   proven-matrix channel (fetch → cosign-verify → apply → §8 gate → receipt, with
   auto-rollback to the prior matrix on failure; `rollback` is the manual escape
-  hatch). The signed GHCR channel is the only external boundary — `update`
-  aborts honestly ("no published channel yet — M3") until the proven-matrix
-  images + cosign signatures are published.
+  hatch). **Signature verification is now a real gate:** `LiveUpdateChannel.verify_signature`
+  cosign-verifies every `ghcr.io/orionfold/*` image in a fetched matrix against a
+  pinned public key (`field_edition.cosign.PROVEN_MATRIX_COSIGN_PUBKEY`, key-based
+  because Fulcio is network-blocked on the box; byte-matched to the committed
+  `deploy/field-edition/cosign/proven-matrix.pub`). `fetch_latest` still aborts
+  honestly ("no published proven-matrix channel yet — M3"): the images are signed
+  + verifiable, but the *hosted release feed* to fetch a new matrix from is the
+  remaining M3 piece.
 
 **M2/M3 boundaries (honest, not stubbed):** `down`/`repair`/`update` reach real
 Docker / HF / channel operations, so on this pre-launch box they stop at the same

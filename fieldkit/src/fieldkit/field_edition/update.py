@@ -17,10 +17,12 @@ flow over injectable seams, so the whole update/rollback decision tree is
 unit-testable without a registry, cosign, or the GPU:
 
 - :class:`UpdateChannel` — fetch the latest matrix + verify its signature. The
-  **only external boundary**: ``LiveUpdateChannel`` honestly raises
-  :class:`UpdateError` because there is no published, signed GHCR channel yet
-  (that lands with the proven-matrix images + cosign at M3) — exactly the same
-  "fail honestly until the infra exists" stance as ``up``'s live phases.
+  **external boundary**: ``LiveUpdateChannel.verify_signature`` is live — it
+  cosign-verifies the matrix's Orionfold images against the pinned key
+  (:mod:`.cosign`); ``fetch_latest`` still raises an honest :class:`UpdateError`
+  because the *hosted release feed* to fetch a new matrix from is the remaining
+  M3 piece — the same "fail honestly until the infra exists" stance as ``up``'s
+  live phases.
 - ``applier`` — reconcile the running stack to a matrix (Live: re-run ``up``'s
   pull + stack phases against the new pins).
 - ``gate`` — run the §8 battery + emit the receipt (Live: :func:`run_verify`).
@@ -73,29 +75,49 @@ class UpdateChannel:
 
 
 class LiveUpdateChannel(UpdateChannel):
-    """The real channel — not yet published.
+    """The real channel.
 
-    §9's signed GHCR proven-matrix channel ships at M3 (it needs the built +
-    pushed Orionfold images and cosign signatures). Until then this raises an
-    honest :class:`UpdateError` naming the missing piece instead of pretending to
-    update — the same posture as ``up``'s live phases."""
+    :meth:`verify_signature` is **live**: it cosign-verifies every Orionfold
+    image in a fetched matrix against the pinned proven-matrix key
+    (:mod:`.cosign`) — the proven-matrix lane image is signed, so this is a real
+    gate, not a stub. :meth:`fetch_latest` still raises an honest
+    :class:`UpdateError`: there is no *hosted release feed* to fetch a new matrix
+    *from* yet (that publication surface is the remaining M3 piece), so until
+    then the box runs the matrix pinned in :mod:`.compose`. The verification path
+    is exercised whenever a concrete channel (or a test) supplies a matrix.
+
+    ``cosign_runner`` / ``ignore_tlog`` are injectable for tests + for a
+    self-contained (no-Rekor) verify."""
+
+    def __init__(self, *, cosign_runner=None, ignore_tlog: bool = False) -> None:
+        self._cosign_runner = cosign_runner
+        self._ignore_tlog = ignore_tlog
 
     def fetch_latest(self, config: FieldEditionConfig) -> ProvenMatrix:
         raise UpdateError(
             "no published proven-matrix channel yet",
             fix=(
-                "the signed GHCR update channel lands at M3 (needs the built + "
-                "cosign-signed Orionfold images); until then the box runs the "
-                "matrix pinned in `fieldkit.field_edition.compose`"
+                "the hosted signed-matrix release feed lands at M3; the images "
+                "are already cosign-signed + verifiable, but there is no feed to "
+                "fetch a *new* matrix from — until then the box runs the matrix "
+                "pinned in `fieldkit.field_edition.compose`"
             ),
         )
 
     def verify_signature(self, matrix: ProvenMatrix) -> None:
+        from fieldkit.field_edition import cosign as _cosign
+
         if not matrix.signed:
             raise UpdateError(
                 "matrix is unsigned",
                 fix="reject — proven-matrix releases must be cosign-signed (§9)",
             )
+        try:
+            _cosign.verify_matrix(
+                matrix, ignore_tlog=self._ignore_tlog, runner=self._cosign_runner
+            )
+        except _cosign.CosignVerifyError as err:
+            raise UpdateError(str(err), fix=err.fix) from err
 
 
 # --- The orchestrator --------------------------------------------------------

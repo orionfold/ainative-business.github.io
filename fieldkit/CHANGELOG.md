@@ -7,6 +7,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ## [Unreleased]
 
 ### Added
+- **`fieldkit.field_edition.cosign` — verify the §9 proven-matrix images, and
+  `LiveUpdateChannel.verify_signature` wired live.** The update channel now
+  cosign-verifies every Orionfold image in a fetched proven matrix against a
+  **pinned public key** (`PROVEN_MATRIX_COSIGN_PUBKEY`) before applying it —
+  `verify_matrix()` filters to the digest-pinned `ghcr.io/orionfold/*` images
+  (skipping upstream pgvector + the NVIDIA NIM embedder) and runs `cosign verify
+  --key` on each, raising an actionable `CosignVerifyError` on a bad/absent
+  signature or a missing cosign binary. The pinned key is **key-based, not
+  keyless** (Fulcio is network-blocked on the Spark box; the images are signed
+  with a long-lived key whose private half + `COSIGN_PASSWORD` stay in the
+  orionfold secret store) and byte-matches the committed
+  `deploy/field-edition/cosign/proven-matrix.pub` — the same
+  pin-a-committed-public-key pattern as `license.TRUSTED_KEYS`. The cosign
+  subprocess is injected (the `runner` seam) so the verification control flow is
+  unit-testable without the binary. `LiveUpdateChannel.fetch_latest` still raises
+  honestly — the *hosted release feed* to fetch a new matrix from is the
+  remaining M3 piece — but verification is a real gate now that the proven-matrix
+  lane image is signed (end-to-end verified live against the pinned key).
 - **`fieldkit.field_edition.license` — the AC-7 v1 license file (schema +
   offline Ed25519 verify).** The Field Edition license is an offline-verifiable
   JSON entitlement file (`~/.orionfold/license`): a `payload` of claims + a

@@ -1806,3 +1806,112 @@ def test_license_conformance_vector_matches_live_verifier() -> None:
     # the four traps must all be represented (recursive sort, utf-8, scalars, full license)
     names = {c["name"] for c in doc["cases"]}
     assert {"nested-key-sort", "unicode-utf8", "scalars-no-floats", "full-license-founding25"} <= names
+
+
+# --- cosign verification of the proven-matrix images (§9) --------------------
+
+from pathlib import Path as _Path  # noqa: E402
+
+from fieldkit.field_edition import (  # noqa: E402
+    CosignVerifyError,
+    LiveUpdateChannel,
+    PROVEN_MATRIX_COSIGN_PUBKEY,
+    orionfold_image_refs,
+    verify_matrix,
+)
+from fieldkit.field_edition import cosign as cosign_mod  # noqa: E402
+
+_LANE = "ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2"
+_PG = "pgvector/pgvector@sha256:7d400e"
+_NIM = "nvcr.io/nim/nvidia/llama-nemotron-embed-1b-v2@sha256:3c22c0"
+
+
+def _signed_matrix():
+    return ProvenMatrix(
+        "2026.q3", "0.31.0",
+        {"advisor-lane": _LANE, "cortex-db": _PG, "embedder": _NIM},
+        signed=True,
+    )
+
+
+def test_cosign_orionfold_image_refs_filters_to_ours():
+    # only the digest-pinned ghcr.io/orionfold image — not pgvector / NVIDIA NIM.
+    assert orionfold_image_refs(_signed_matrix()) == [_LANE]
+    # a non-digest (tag-only) Orionfold ref is excluded (can't verify a moving tag).
+    m = ProvenMatrix("v", "0.31.0", {"x": "ghcr.io/orionfold/cortex-embedder:0.1"})
+    assert orionfold_image_refs(m) == []
+
+
+def test_cosign_verify_matrix_passes_with_fake_runner():
+    seen = []
+    def ok(cmd):
+        seen.append(list(cmd))
+        return 0, "Verified OK"
+    refs = verify_matrix(_signed_matrix(), runner=ok)
+    assert refs == [_LANE]
+    # it shelled the pinned key + the ref to cosign verify.
+    assert seen and seen[0][:3] == ["cosign", "verify", "--key"]
+    assert seen[0][-1] == _LANE
+    assert "--insecure-ignore-tlog=true" not in seen[0]  # tlog checked by default
+
+
+def test_cosign_verify_matrix_ignore_tlog_flag_threads_through():
+    seen = []
+    verify_matrix(_signed_matrix(), runner=lambda c: (seen.append(list(c)) or (0, "")), ignore_tlog=True)
+    assert "--insecure-ignore-tlog=true" in seen[0]
+
+
+def test_cosign_verify_matrix_rejects_bad_signature():
+    import pytest
+    with pytest.raises(CosignVerifyError) as ei:
+        verify_matrix(_signed_matrix(), runner=lambda c: (1, "no matching signatures"))
+    assert "no matching signatures" in ei.value.fix
+
+
+def test_cosign_verify_matrix_rejects_no_orionfold_images():
+    import pytest
+    m = ProvenMatrix("v", "0.31.0", {"cortex-db": _PG, "embedder": _NIM}, signed=True)
+    with pytest.raises(CosignVerifyError) as ei:
+        verify_matrix(m, runner=lambda c: (0, ""))
+    assert "pins no Orionfold" in str(ei.value)
+
+
+def test_cosign_verify_image_missing_binary_is_honest():
+    import pytest
+    def gone(cmd):
+        raise FileNotFoundError("cosign")
+    with pytest.raises(CosignVerifyError) as ei:
+        cosign_mod.verify_image(_LANE, runner=gone)
+    assert "cosign not found" in str(ei.value)
+
+
+def test_live_update_channel_verify_signature_rejects_unsigned():
+    import pytest
+    m = ProvenMatrix("v", "0.31.0", {"advisor-lane": _LANE}, signed=False)
+    with pytest.raises(UpdateError) as ei:
+        LiveUpdateChannel().verify_signature(m)
+    assert "unsigned" in str(ei.value)
+
+
+def test_live_update_channel_verify_signature_cosign_pass():
+    # signed matrix + a passing cosign runner → no raise (the live gate accepts it).
+    chan = LiveUpdateChannel(cosign_runner=lambda c: (0, "Verified OK"))
+    chan.verify_signature(_signed_matrix())  # must not raise
+
+
+def test_live_update_channel_verify_signature_cosign_fail_maps_to_update_error():
+    import pytest
+    chan = LiveUpdateChannel(cosign_runner=lambda c: (1, "tampered"))
+    with pytest.raises(UpdateError) as ei:
+        chan.verify_signature(_signed_matrix())
+    assert "tampered" in ei.value.fix
+
+
+def test_proven_matrix_cosign_pubkey_matches_committed_pin():
+    # The packaged constant must byte-match the operator-facing committed key.
+    # (Skips in an installed-wheel context where deploy/ isn't present.)
+    pin = _Path(__file__).resolve().parents[2] / "deploy/field-edition/cosign/proven-matrix.pub"
+    if not pin.exists():
+        import pytest
+        pytest.skip("deploy/ pin not present (installed-wheel context)")
+    assert pin.read_text(encoding="utf-8").strip() == PROVEN_MATRIX_COSIGN_PUBKEY.strip()

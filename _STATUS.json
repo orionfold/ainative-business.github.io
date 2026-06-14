@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition — the §9 cosigned-transport plane is LIVE for the lane image: operator armed it, ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… is signed (Rekor tlog index 1810763259, sig pushed to GHCR) and verifies green against the committed pin (./verify-proven-matrix.sh → OK, exit 0). PIVOTED keyless→KEY-BASED first: the keyless arm surfaced that fulcio.sigstore.dev (the CA) is network-blocked on the Spark box (answers 443 in plaintext, persistent, no proxy) while Rekor + TUF are reachable — so reworked to a long-lived key (cosign default ECDSA P-256) that still uploads to the public Rekor log, public key committed/pinned (proven-matrix.pub), same pin-a-committed-pubkey pattern as license TRUSTED_KEYS (operator chose via AskUserQuestion). Scope derives live from fieldkit (signs only Orionfold GHCR pinned: the lane today; skips pgvector/NIM; auto-includes cortex-embedder at v1.1). Private key + COSIGN_PASSWORD → orionfold secret store (never committed). Not a first-boot blocker. No version bump / no website rebuild / no fieldkit release. Earlier same session: get.orionfold.com bootstrap script delivered. NEXT: wire LiveUpdateChannel.verify_signature → cosign verify --key (M3 channel live).",
+  "focus": "Arena Field Edition — wired the §9 update channel's signature gate to REAL cosign verify. New fieldkit.field_edition.cosign: verify_matrix() filters a fetched proven matrix to its ghcr.io/orionfold @sha256 images (skips pgvector/NIM) and runs cosign verify --key against a pinned public key (PROVEN_MATRIX_COSIGN_PUBKEY, byte-matched to the committed deploy/field-edition/cosign/proven-matrix.pub — a test enforces no drift), raising CosignVerifyError on bad/absent sig or missing cosign. LiveUpdateChannel.verify_signature calls it (signed-flag check first, then cosign); the cosign subprocess is an injected runner seam so the logic is unit-testable without the binary. Same pin-a-committed-pubkey pattern as license.TRUSTED_KEYS. PROVEN LIVE end-to-end: LiveUpdateChannel().verify_signature with the real cosign binary verifies the actually-signed lane image (sha256:93993cc2…) → OK. fetch_latest still raises honestly — the hosted release feed (fetch a NEW matrix from) is the last M3 piece. 10 new tests → 134 field_edition tests green. CHANGELOG [Unreleased] + parked docs/field_edition.md updated. fieldkit source change → [Unreleased]; a PyPI release publishes it; no version bump this commit, no website rebuild. Earlier same session: cosign signing armed (lane image signed, Rekor tlog 1810763259) + get.orionfold.com bootstrap script delivered.",
   "blockers": [],
   "next": [
-    "Wire LiveUpdateChannel.verify_signature → cosign verify --key proven-matrix.pub (flips the honest UpdateError to live; M3 update channel goes live now the lane sig exists) — a small fieldkit change",
+    "§9 hosted release feed so fetch_latest can pull a NEW signed matrix (last M3 piece — a published signed-matrix manifest the channel reads); then fetch→verify→apply→gate→receipt is end-to-end live",
+    "Cut a fieldkit PyPI release (fieldkit-curator) to ship the cosign-verify wiring + the license module from [Unreleased]",
     "Website peer: host get-orionfold.sh at the domain + wire fulfillLicense to mint the license signed-URL + add the order-page curl snippet (relay [needs Mac action])",
-    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real); SKUs {founding-25,standard} already match the known-set — both other items blocked on the peer/ops",
-    "Optional `hermes` gate — the LAST verify generation-half to wire (MCP fieldkit tool round-trip); rest of the first-boot receipt is GREEN",
-    "Remaining GA: get.orionfold.com DNS (peer), HF card Q4_K_M feature, advisor-manifest _FLOWS re-freeze"
+    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real) — blocked on ops/OPEN-2",
+    "Optional `hermes` verify gate; remaining GA (get.orionfold.com DNS [peer], HF card Q4_K_M, advisor-manifest _FLOWS re-freeze)"
   ],
   "recent": [
-    "cosign SIGNED + verified the lane image (§9/M3): ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… signed (Rekor tlog 1810763259, sig in GHCR), verifies green vs the committed pin proven-matrix.pub. deploy/field-edition/cosign/ scripts. Not a first-boot blocker",
-    "PIVOTED keyless→key-based: the keyless arm hit a network block (fulcio.sigstore.dev answers 443 in plaintext on this box, persistent, no proxy; only Fulcio — Rekor + TUF reachable). Reworked to a long-lived key (cosign default ECDSA P-256), public key committed/pinned like license TRUSTED_KEYS; private key + COSIGN_PASSWORD → orionfold secret store",
+    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify (new fieldkit.field_edition.cosign): pins PROVEN_MATRIX_COSIGN_PUBKEY (byte-matched to the committed proven-matrix.pub), filters to Orionfold @sha256 images, injected runner seam. Proven live against the actually-signed lane image. 10 new tests → 134 field_edition green",
+    "cosign SIGNED + verified the lane image (§9/M3): ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… signed (Rekor tlog 1810763259, sig in GHCR), verifies green vs the committed pin. deploy/field-edition/cosign/ scripts",
+    "PIVOTED keyless→key-based: the keyless arm hit a network block (fulcio.sigstore.dev answers 443 in plaintext on this box, persistent, no proxy; only Fulcio — Rekor + TUF reachable). Long-lived key (cosign default ECDSA P-256), pubkey committed/pinned like license TRUSTED_KEYS; private key + COSIGN_PASSWORD → orionfold secret store",
     "get.orionfold.com bootstrap script DELIVERED earlier this session (deploy/field-edition/bootstrap/) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up",
-    "Website peer ACK'd the full licensing+distribution division of labor + reported the Stripe catalog is now LIVE (founding-25 $349 / standard $499 / renewal $149yr); SKU names settled and already match KNOWN_EDITIONS",
-    "First-boot verify receipt remains NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip; AC-7 license file shipped (offline Ed25519, pull-token bound by sig); prod key still PROD_KEY_PENDING"
+    "Website peer ACK'd the full licensing+distribution division of labor + reported the Stripe catalog is now LIVE (founding-25 $349 / standard $499 / renewal $149yr); SKU names already match KNOWN_EDITIONS"
   ],
-  "session": "S-fe-cosign-and-bootstrap",
+  "session": "S-fe-cosign-verify-wiring",
   "metrics": {
     "articles": 54,
     "models": 7,
