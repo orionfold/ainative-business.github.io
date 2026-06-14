@@ -42,6 +42,10 @@
     try { return (new URL(url, location.origin).pathname || '/').replace(/\/+$/, '') || '/'; }
     catch (e) { return String(url); }
   }
+  function queryParam(url, name) {
+    try { return new URL(url, location.origin).searchParams.get(name); }
+    catch (e) { return null; }
+  }
   function norm(s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
 
   function bestMatch(list, prompt) {
@@ -251,6 +255,23 @@
         return Promise.resolve(jsonResponse({ ok: true, id: made.id, note: 'demo — simulated dispatch', demo: true }));
       }
       return Promise.resolve(jsonResponse({ jobs: jobsList() }));
+    }
+
+    // SFT + reward panes carry a run-history dropdown that re-fetches with
+    // ?source=<file>. Serve the matching per-run report from the fixture map so
+    // the dropdown actually switches (the SFT loss curve / the reward gate +
+    // truncation alarm), falling back to the default (latest) stub.
+    if (/\/api\/sft-progress$/.test(path)) {
+      var sftSrc = queryParam(url, 'source');
+      var sftMap = fixtures.sft_reports || {};
+      if (sftSrc && sftMap[sftSrc]) return Promise.resolve(jsonResponse(sftMap[sftSrc]));
+      return Promise.resolve(jsonResponse((fixtures.stubs || {})['/api/sft-progress'] || { available: false, kind: 'sft', runs: [] }));
+    }
+    if (/\/api\/reward-signal$/.test(path)) {
+      var rwSrc = queryParam(url, 'source');
+      var rwMap = fixtures.reward_reports || {};
+      if (rwSrc && rwMap[rwSrc]) return Promise.resolve(jsonResponse(rwMap[rwSrc]));
+      return Promise.resolve(jsonResponse((fixtures.stubs || {})['/api/reward-signal'] || { available: false, kind: 'preflight', runs: [] }));
     }
 
     // canned read-only stubs (exact path)
