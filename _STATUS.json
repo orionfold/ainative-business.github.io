@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Two ships this session. (1) fieldkit v0.32.1 RELEASED to PyPI (https://pypi.org/project/fieldkit/0.32.1/) — closes OPEN-1: orionfold.license/v1 drops the mandatory GHCR pull_token (claims + term only; registry/pull_token optional; older token-bearing licenses keep verifying). (2) Advisor-GGUF HF card now features Q4_K_M as the default variant (HF commit 2bafff72) — the 2.6 GB Q4_K_M (already published rev dad6d1e5) is byte-identical to Q8_0 on curveball-v0.2 (85.7%, refusals 9/9, same 3 misses) at ~70 tok/s (measured on the resident :8091 lane) vs Q8_0's 42 tok/s. Updated across all 3 surfaces: HF README + website manifest (+arena-app) + rebaked cockpit _webui (gitignored). Catalog-sync + artifact-rendering + field-notes verifies all green; 538-page astro build clean.",
+  "focus": "Relay-driven session. (1) fieldkit v0.32.2 RELEASED to PyPI (https://pypi.org/project/fieldkit/0.32.2/) — embeds the PRODUCTION license signing pubkey (of-license-prod-2026, LQVkEw+…), flipping it off PROD_KEY_PENDING. A prod-seed-signed orionfold.license/v1 now verifies on a released box — the one Spark dependency that was blocking live license verify for the weekend launch. Private seed stays in the commerce plane (Supabase secret + offline ops-vault). (2) Installer-domain rename get.orionfold.com → arena.orionfold.com across the bootstrap script + README (per Website→Spark relay; the per-product <product>.orionfold.com convention). audit-docs 17/18 + audit-landing 6/6, offline suite 1712 passed/0 failed (136 field_edition), git + PyPI install verifies both ✓, twine PASSED.",
   "blockers": [],
   "next": [
-    "§9 hosted release feed so LiveUpdateChannel.fetch_latest can pull a NEW signed proven matrix (last M3 piece — images are signed + cosign-verifiable now; only the feed to fetch a new matrix from is missing)",
-    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real, unblocks issuing real licenses) — blocked on ops/OPEN-2; cosign cortex-embedder once built+pinned at v1.1",
-    "Website peer: host get-orionfold.sh at get.orionfold.com (DNS + Supabase + signed-URL mint + order-page snippet — Spark delivered the bootstrap script)",
-    "Optional `hermes` verify gate (last unwired §8 gate); remaining GA (HF card Q4_K_M feature, advisor-manifest _FLOWS re-freeze)",
+    "§9 hosted release feed so LiveUpdateChannel.fetch_latest can pull a NEW signed proven matrix (last M3 piece — images are signed + cosign-verifiable now; only the feed to fetch a new matrix from is missing) — ties into the Website peer's entitlement-fetch",
+    "Website peer: host get-orionfold.sh at arena.orionfold.com (Cloudflare Worker proxies the released script + edge-rewrites the domain string); wire fulfillLicense to mint the license signed-URL (token-less, no registry block)",
+    "Optional `hermes` verify gate (last unwired §8 gate); cosign cortex-embedder once built+pinned at v1.1",
+    "Mac CI: re-pull the vendored license-conformance-v1.json from fieldkit==0.32.1 (token-less full-license case — sha changed) and re-green the fulfillLicense mirror",
     "Next-release note: /tmp/fk needs respx/fastapi/uvicorn/sse-starlette/aiosqlite/httpx/build/twine reinstalled to collect the full suite + build (drifts out of the minimal venv)"
   ],
   "recent": [
-    "Advisor-GGUF HF card features Q4_K_M as the DEFAULT variant (HF commit 2bafff72) — 2.6 GB, ~70 tok/s (measured on the resident :8091 lane), byte-identical curveball-v0.2 behavior to Q8_0 (85.7%, refusals 9/9, same 3 misses). Updated HF README + website manifest (+arena-app) + rebaked cockpit _webui. Surgical edit (not regen — live card siblings diverge from manifest). Shipped 8a2091b",
-    "fieldkit v0.32.1 RELEASED to PyPI + tag — OPEN-1 schema relaxation: license pull_token now optional (claims + term only), back-compat preserved. audit-docs 17/18 + audit-landing 6/6, offline 1712 passed/0 failed, both install verifies ✓, twine PASSED. Stats refreshed (LOC 62,305)",
-    "fieldkit v0.32.0 RELEASED to PyPI + tag — ships the full Field Edition surface (installer CLI + §8 gates + AC-7 license + §9 cosign verify)",
-    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify (fieldkit.field_edition.cosign): pins PROVEN_MATRIX_COSIGN_PUBKEY (byte-matched to the committed proven-matrix.pub), injected runner seam, proven live against the actually-signed lane image",
-    "cosign SIGNED + verified the lane image (§9/M3): ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2… signed (Rekor tlog 1810763259), verifies green vs the committed pin. Key-based (Fulcio network-blocked on the box)"
+    "fieldkit v0.32.2 RELEASED to PyPI + tag — prod license signing key provisioned (of-license-prod-2026 off PROD_KEY_PENDING; pubkey delivered by ops via relay). verify_signature against the prod slot now gated by real Ed25519 verification. test_prod_key_pending_is_honest → test_prod_key_is_provisioned. Shipped 3f56e26",
+    "Installer domain renamed get.orionfold.com → arena.orionfold.com in deploy/field-edition/bootstrap/ (script + README) per Website→Spark relay — sh -n clean, cosmetic. Shipped 943bde8",
+    "fieldkit v0.32.1 RELEASED to PyPI + tag — OPEN-1 schema relaxation: license pull_token now optional (claims + term only), back-compat preserved. Stats refreshed (LOC 62,305)",
+    "Advisor-GGUF HF card features Q4_K_M as the DEFAULT variant (HF commit 2bafff72) — 2.6 GB, ~70 tok/s, byte-identical curveball-v0.2 behavior to Q8_0 (85.7%, refusals 9/9, same 3 misses). Shipped 8a2091b",
+    "§9 LiveUpdateChannel.verify_signature WIRED to real cosign verify; cosign SIGNED + verified the lane image (Rekor tlog 1810763259), key-based (Fulcio network-blocked on the box)"
   ],
-  "session": "S-fe-v0.32.1-release",
+  "session": "S-fe-v0.32.2-prod-key",
   "metrics": {
     "articles": 54,
     "models": 7,
