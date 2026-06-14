@@ -1,4 +1,4 @@
-# Arena Field Edition — `get.orionfold.com` bootstrap
+# Arena Field Edition — `arena.orionfold.com` bootstrap
 
 `get-orionfold.sh` is the customer-facing first-boot install entry point
 (license-workflow-v1 §5.2). It is **released code authored Spark-side**; it is
@@ -20,7 +20,7 @@ already did that when it minted the signed URL.
 | Piece | Owner |
 |---|---|
 | This script (`get-orionfold.sh`) | **Spark** (this repo — released, public) |
-| `get.orionfold.com` DNS | **Website/commerce peer** |
+| `arena.orionfold.com` DNS | **Website/commerce peer** |
 | Hosting the script (Supabase bucket + CDN) at that domain | **Website peer** |
 | Minting the per-customer short-TTL signed URLs (`OF_LICENSE_URL`, optional `OF_WEIGHTS_URL`) | **Website peer** (`fulfillLicense` / `entitlement-fetch`) |
 | The copy-paste install command on the order-status page | **Website peer** |
@@ -35,14 +35,14 @@ The order-status page (after a successful purchase) shows the buyer a one-shot
 command with their freshly minted signed license URL inlined:
 
 ```sh
-curl -fsSL https://get.orionfold.com | OF_LICENSE_URL='https://<supabase-signed-url>' sh
+curl -fsSL https://arena.orionfold.com | OF_LICENSE_URL='https://<supabase-signed-url>' sh
 ```
 
 If v1.1 moves the GGUF weights from HuggingFace into the private `field-edition`
 Supabase bucket, add a second signed URL:
 
 ```sh
-curl -fsSL https://get.orionfold.com \
+curl -fsSL https://arena.orionfold.com \
   | OF_LICENSE_URL='https://<signed-license>' OF_WEIGHTS_URL='https://<signed-gguf>' sh
 ```
 

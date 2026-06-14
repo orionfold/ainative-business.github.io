@@ -4,10 +4,10 @@
 #
 # Orionfold Arena Field Edition — first-boot bootstrap.
 #
-#   curl -fsSL https://get.orionfold.com | OF_LICENSE_URL='https://...' sh
+#   curl -fsSL https://arena.orionfold.com | OF_LICENSE_URL='https://...' sh
 #
 # This is the customer-facing install entry point (license-workflow-v1 §5.2).
-# It is RELEASED CODE authored Spark-side; get.orionfold.com DNS + hosting +
+# It is RELEASED CODE authored Spark-side; arena.orionfold.com DNS + hosting +
 # the per-customer signed URLs that feed it are the Website/commerce peer's
 # lane (Supabase bucket + CDN). The script itself is dumb and offline-honest:
 # it drops the signed license file at the canonical path, installs fieldkit
@@ -64,7 +64,7 @@ command -v curl >/dev/null 2>&1 || die "curl is required (install curl, then re-
 [ -n "${OF_LICENSE_URL:-}" ] || die \
 "OF_LICENSE_URL is not set. Run the exact command from your Orionfold order page —
    the signed license URL expires within minutes and must be passed in, e.g.
-     curl -fsSL https://get.orionfold.com | OF_LICENSE_URL='https://...' sh"
+     curl -fsSL https://arena.orionfold.com | OF_LICENSE_URL='https://...' sh"
 
 PY=""
 for c in python3 python; do command -v "$c" >/dev/null 2>&1 && { PY="$c"; break; }; done
