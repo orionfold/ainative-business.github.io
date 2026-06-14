@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition — delivered the `get.orionfold.com` bootstrap script (deploy/field-edition/bootstrap/get-orionfold.sh + README), the Spark half of the license-workflow §5.2 install entry point. It's the missing bridge between signed-URL delivery and `fieldkit field-edition up`: POSIX sh, dumb + offline-honest — fetches the signed license FIRST (fail-fast on expiry) → ~/.orionfold/license chmod 600, optional Supabase weights (unset for v1, weights stay on HF), installs fieldkit[arena] into a self-contained venv that sidesteps DGX OS PEP-668 (no sudo/apt/--break-system), then runs field-edition doctor → up. Does NO entitlement check of its own (Supabase gated at mint time; fieldkit Ed25519-verifies offline). Lane split confirmed with the operator mid-session: DNS + hosting + signed-URL minting + the order-page snippet are the Website peer's lane — Spark owns the content only. Smoke-tested (guard, bad-payload-rejected-before-install, license-first ordering, chmod 600, venv resolution, skip flags); the smoke caught + fixed a PEP-668 pip failure and a fetch-ordering bug. No version bump / no website rebuild / no fieldkit release (shell + md, outside the website glob and the package). Relay filed [needs Mac action: host + wire]. No commit/push yet — operator gates the main push.",
+  "focus": "Arena Field Edition — set up cosign-keyless signing of the proven-matrix images (deploy/field-edition/cosign/{sign,verify}-proven-matrix.sh + README), ready for the operator to ARM (§9/M3). It's the one piece of distribution execution Spark still owed; keyless signing needs an interactive GitHub-OIDC browser flow only the operator can do (auth as orionfold), so everything up to that boundary is built + smoked and the arm is one command (--install-cosign --sign). Scope is derived live from fieldkit so it never drifts from compose.py: signs only Orionfold-built GHCR digest-pinned images — today exactly the CUDA-13 lane (sha256:93993cc2…); correctly skips pgvector (upstream) + the NIM embedder (NVIDIA); auto-includes cortex-embedder at v1.1. Verified the derived set is byte-identical to the embedded fallback. sign defaults to DRY-RUN (smoked green); after --sign it reads the signer identity back from the minted cert and records it to signed-identity.env (the public identity verify must pin); verify runs the exact pinned cosign-verify the installer's LiveUpdateChannel.verify_signature mirrors at M3. Not a first-boot blocker (pulls work unsigned). No version bump / no website rebuild / no fieldkit release. Earlier same session: get.orionfold.com bootstrap script delivered (the install entry point).",
   "blockers": [],
   "next": [
+    "OPERATOR ARM: cd deploy/field-edition/cosign && ./sign-proven-matrix.sh --install-cosign --sign (keyless GitHub-OIDC as orionfold) → commit signed-identity.env → then wire LiveUpdateChannel.verify_signature to the pinned cosign verify (M3 channel live)",
     "Website peer: host get-orionfold.sh at the domain + wire fulfillLicense to mint the license signed-URL + add the order-page curl snippet (relay [needs Mac action])",
-    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real) + fold final SKU names into the known-sets — both blocked on the peer",
-    "cosign-keyless sign the GHCR lane image (§9/M3 — needs interactive GitHub OIDC, operator-armed)",
+    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real); SKUs {founding-25,standard} already match the known-set — both other items blocked on the peer/ops",
     "Optional `hermes` gate — the LAST verify generation-half to wire (MCP fieldkit tool round-trip); rest of the first-boot receipt is GREEN",
     "Remaining GA: get.orionfold.com DNS (peer), HF card Q4_K_M feature, advisor-manifest _FLOWS re-freeze"
   ],
   "recent": [
-    "get.orionfold.com bootstrap script DELIVERED (deploy/field-edition/bootstrap/get-orionfold.sh + README) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up handoff",
-    "Lane split confirmed with operator: get.orionfold.com DNS + hosting + signed-URL minting + order-page snippet are the Website peer's lane; Spark owns the script content only (forced seam, same as the license file)",
-    "Smoke caught + fixed a real PEP-668 pip-install failure (→ venv path) and an install-before-license-fetch ordering bug (→ license-first fail-fast); no version bump / no website rebuild / no fieldkit release",
-    "First-boot verify receipt remains NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), ~86s",
-    "AC-7 v1 license file shipped earlier this session (offline Ed25519 verify, GHCR pull-token bound by the signature); prod key still PROD_KEY_PENDING until ops sends the pubkey"
+    "cosign signing SET UP + ready to arm (deploy/field-edition/cosign/{sign,verify}-proven-matrix.sh + README) — §9/M3; scope derived live from fieldkit (signs only Orionfold GHCR pinned: the CUDA-13 lane today; skips pgvector/NIM; auto-includes cortex-embedder at v1.1)",
+    "sign defaults to DRY-RUN (smoked green); after --sign it reads the signer identity back from the minted cert → signed-identity.env (the public identity verify pins); verify runs the exact pinned check the installer's M3 LiveUpdateChannel mirrors. Operator-armed (interactive GitHub OIDC); not a first-boot blocker",
+    "get.orionfold.com bootstrap script DELIVERED earlier this session (deploy/field-edition/bootstrap/) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up",
+    "Website peer ACK'd the full licensing+distribution division of labor + reported the Stripe catalog is now LIVE (founding-25 $349 / standard $499 / renewal $149yr); SKU names settled and already match KNOWN_EDITIONS",
+    "First-boot verify receipt remains NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip; AC-7 license file shipped (offline Ed25519, pull-token bound by sig); prod key still PROD_KEY_PENDING"
   ],
-  "session": "S-fe-bootstrap-script",
+  "session": "S-fe-cosign-and-bootstrap",
   "metrics": {
     "articles": 54,
     "models": 7,
