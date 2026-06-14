@@ -14,11 +14,13 @@ which is **network-blocked on the Spark box** — it answers 443 in plaintext
 (`tls: first record does not look like a TLS handshake` / OpenSSL `wrong version
 number`). Rekor (`rekor.sigstore.dev`) and the TUF root
 (`tuf-repo-cdn.sigstore.dev`) *are* reachable, so we sign with a **long-lived
-Ed25519 key** and still upload to the public **Rekor** transparency log.
+key** (cosign's default, ECDSA P-256) and still upload to the public **Rekor**
+transparency log.
 
-The **public key is committed + pinned** (`proven-matrix.pub`), exactly
-mirroring how this repo already pins the Ed25519 license key in
-`license.TRUSTED_KEYS`. (If the network is later opened to Fulcio, moving to
+The **public key is committed + pinned** (`proven-matrix.pub`), the same
+pin-a-committed-public-key pattern this repo already uses for the (Ed25519)
+license key in `license.TRUSTED_KEYS` (different algorithm, same idea). (If the
+network is later opened to Fulcio, moving to
 keyless or to a GitHub-Actions keyless workflow identity is a drop-in swap —
 re-pin `proven-matrix.pub` → an identity/issuer pair.)
 

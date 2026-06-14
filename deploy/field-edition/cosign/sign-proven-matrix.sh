@@ -10,9 +10,11 @@
 # fulcio.sigstore.dev, which is network-blocked on the Spark box (it answers
 # 443 in plaintext — "wrong version number" / "first record does not look like
 # a TLS handshake"). Rekor + the TUF root ARE reachable, so we sign with a
-# long-lived Ed25519 key and still upload to the public Rekor transparency log.
+# long-lived key (cosign's default, ECDSA P-256) and still upload to the public
+# Rekor transparency log.
 # The public key is committed + pinned (./proven-matrix.pub) — exactly mirroring
-# how this repo already pins the Ed25519 license key in `license.TRUSTED_KEYS`.
+# how this repo already pins the (Ed25519) license key in `license.TRUSTED_KEYS`
+# — same pin-a-committed-public-key pattern, different algorithm.
 #
 # What it signs: only Orionfold-built, GHCR-hosted, digest-pinned images
 # (derived live from fieldkit so it stays in sync). Today that is exactly the
