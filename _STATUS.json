@@ -3,23 +3,23 @@
   "project": "spark",
   "updated": "2026-06-13",
   "health": "green",
-  "focus": "Arena Field Edition M2 — TWO launch-readiness deliverables. (A) The first-boot `fieldkit field-edition verify` receipt is NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (ok=True), live-smoked end-to-end ~86s. The `lane` gate (warm-resident — operator chose don't-tear-down for the §6-vs-§8 fork; floor reworked to launched+generated) and the Cortex grounded-contract half (new pure fieldkit.field_edition.grounded reuses the already-frozen recall probes + ported Advisor grounded prompt; deterministic 39-probe slice answered over LIVE retrieval, scored by the shared advisor.score_output; contract_pass = refusals 16/16 AND citation ≥0.80) both went from honest-error → measured-live PASS. Live: recall 0.977 + grounded citation 19/23 (82.6%) + refusals 16/16 → PASS 56s; the 4 misses are genuine model misses (gold present), not artifacts. Only optional hermes remains unwired. (B) AC-7 v1 license file delivered — fieldkit.field_edition.license: offline Ed25519-verified JSON entitlement file, GHCR pull-token bound by the signature (the entire DRM), canonical_bytes signing contract (compact/key-sorted/UTF-8/no-floats) for Mac's fulfillLicense, load_license parses→verifies→enforces-term. Prod key = PROD_KEY_PENDING until ops sends the pubkey. tier/edition/entitlements = SOFT known-set (recognized for display, unrecognized logged+accepted, never rejected — keeps SKU velocity decoupled). Full schema + JS port + keygen recipe + a valid sample delivered to the relay. 14 new tests (123 field_edition); full suite 1294 passed (only the 3 documented env arena failures). No version bump, no website rebuild.",
+  "focus": "Arena Field Edition — delivered the `get.orionfold.com` bootstrap script (deploy/field-edition/bootstrap/get-orionfold.sh + README), the Spark half of the license-workflow §5.2 install entry point. It's the missing bridge between signed-URL delivery and `fieldkit field-edition up`: POSIX sh, dumb + offline-honest — fetches the signed license FIRST (fail-fast on expiry) → ~/.orionfold/license chmod 600, optional Supabase weights (unset for v1, weights stay on HF), installs fieldkit[arena] into a self-contained venv that sidesteps DGX OS PEP-668 (no sudo/apt/--break-system), then runs field-edition doctor → up. Does NO entitlement check of its own (Supabase gated at mint time; fieldkit Ed25519-verifies offline). Lane split confirmed with the operator mid-session: DNS + hosting + signed-URL minting + the order-page snippet are the Website peer's lane — Spark owns the content only. Smoke-tested (guard, bad-payload-rejected-before-install, license-first ordering, chmod 600, venv resolution, skip flags); the smoke caught + fixed a PEP-668 pip failure and a fetch-ordering bug. No version bump / no website rebuild / no fieldkit release (shell + md, outside the website glob and the package). Relay filed [needs Mac action: host + wire]. No commit/push yet — operator gates the main push.",
   "blockers": [],
   "next": [
-    "Optional `hermes` gate — the LAST verify generation-half to wire (the MCP fieldkit tool round-trip). Everything else for the first-boot receipt is GREEN",
-    "License: embed the PROD pubkey once ops generates the keypair + sends the public half (flips PROD_KEY_PENDING → real, unblocks issuing real licenses) + fold final SKU names into the known-sets",
-    "cosign-sign the GHCR lane image (§9/M3 — the signed LiveUpdateChannel waits on this)",
-    "bootstrap (get.orionfold.com) + DNS — bootstrap script is Spark's lane; the license-file FORMAT is now done",
-    "Pre-GA distribution exploration Mac reassigned: NGC-org feasibility read + v1.1 Supabase-entitlement sketch + cosign (no deadline)"
+    "Website peer: host get-orionfold.sh at the domain + wire fulfillLicense to mint the license signed-URL + add the order-page curl snippet (relay [needs Mac action])",
+    "License: embed the PROD pubkey once ops sends the public half (flips PROD_KEY_PENDING → real) + fold final SKU names into the known-sets — both blocked on the peer",
+    "cosign-keyless sign the GHCR lane image (§9/M3 — needs interactive GitHub OIDC, operator-armed)",
+    "Optional `hermes` gate — the LAST verify generation-half to wire (MCP fieldkit tool round-trip); rest of the first-boot receipt is GREEN",
+    "Remaining GA: get.orionfold.com DNS (peer), HF card Q4_K_M feature, advisor-manifest _FLOWS re-freeze"
   ],
   "recent": [
-    "First-boot verify receipt NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), live-smoked ~86s — flipped from this morning's 2pass/2error/1skip",
-    "`lane` gate LIVE (warm-resident, operator don't-tear-down) + Cortex grounded-contract half LIVE (reuses frozen probes, no new freeze): recall 0.977 + citation 82.6% + refusals 16/16 → PASS 56s",
-    "AC-7 v1 license file DELIVERED (fieldkit.field_edition.license): offline Ed25519 verify, GHCR pull-token bound by the signature, canonical_bytes signing contract; closes the Website→Spark open ask. Prod key PROD_KEY_PENDING until ops sends the pubkey",
-    "license tier/edition/entitlements = SOFT known-set (operator decision): recognized for display, unrecognized logged+accepted, never rejected — SKU velocity decoupled from installer release cadence",
-    "14 new tests (123 field_edition); 2 env-dependent live tests hardened to a dead-port config; full suite 1294 passed (only the 3 documented env arena failures). Shipped 0440b71+e19345e+67451c7"
+    "get.orionfold.com bootstrap script DELIVERED (deploy/field-edition/bootstrap/get-orionfold.sh + README) — Spark half of license-workflow §5.2; license-first fetch, chmod-600 drop, self-contained venv install (sidesteps DGX OS PEP-668), doctor → up handoff",
+    "Lane split confirmed with operator: get.orionfold.com DNS + hosting + signed-URL minting + order-page snippet are the Website peer's lane; Spark owns the script content only (forced seam, same as the license file)",
+    "Smoke caught + fixed a real PEP-668 pip-install failure (→ venv path) and an install-before-license-fetch ordering bug (→ license-first fail-fast); no version bump / no website rebuild / no fieldkit release",
+    "First-boot verify receipt remains NEAR-ALL-GREEN: 4 PASS / 0 fail / 0 error / 1 skip (fieldkit+advisor+cortex+lane PASS, hermes skip), ~86s",
+    "AC-7 v1 license file shipped earlier this session (offline Ed25519 verify, GHCR pull-token bound by the signature); prod key still PROD_KEY_PENDING until ops sends the pubkey"
   ],
-  "session": "S-fe-gates-live-and-license",
+  "session": "S-fe-bootstrap-script",
   "metrics": {
     "articles": 54,
     "models": 7,
