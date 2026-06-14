@@ -1,15 +1,26 @@
 # Arena Field Edition — cosign signing of the proven-matrix images (§9/M3)
 
-Sigstore **keyless** signing of the Orionfold-built proven-matrix container
-images, so the installer's §9 update channel can verify provenance before it
-applies a new matrix (`fetch → cosign-verify → pull → up → gate → receipt`).
+Signing of the Orionfold-built proven-matrix container images, so the
+installer's §9 update channel can verify provenance before it applies a new
+matrix (`fetch → cosign-verify → pull → up → gate → receipt`).
 
-**This is operator-armed.** Keyless signing completes an interactive GitHub
-OIDC browser flow that only the operator can do (authenticating as the
-`orionfold` account). The scripts here are authored Spark-side and *ready*; the
-operator runs the one armed command. It is **not a first-boot blocker** — the
-proven matrix pulls fine unsigned today (`up` works); cosign hardens the
-*update* path.
+**This is operator-armed**, and it is **not a first-boot blocker** — the proven
+matrix pulls fine unsigned today (`up` works); cosign hardens the *update* path.
+
+## Why key-based (not keyless)
+
+Sigstore **keyless** signing needs **Fulcio** (the CA) at `fulcio.sigstore.dev`,
+which is **network-blocked on the Spark box** — it answers 443 in plaintext
+(`tls: first record does not look like a TLS handshake` / OpenSSL `wrong version
+number`). Rekor (`rekor.sigstore.dev`) and the TUF root
+(`tuf-repo-cdn.sigstore.dev`) *are* reachable, so we sign with a **long-lived
+Ed25519 key** and still upload to the public **Rekor** transparency log.
+
+The **public key is committed + pinned** (`proven-matrix.pub`), exactly
+mirroring how this repo already pins the Ed25519 license key in
+`license.TRUSTED_KEYS`. (If the network is later opened to Fulcio, moving to
+keyless or to a GitHub-Actions keyless workflow identity is a drop-in swap —
+re-pin `proven-matrix.pub` → an identity/issuer pair.)
 
 ## Scope: what gets signed
 
@@ -24,23 +35,26 @@ the installed `fieldkit` (`compose.default_config()`) so this never drifts from
 | `pgvector/pgvector@sha256:…` | upstream (Docker Hub) | ❌ not ours to sign |
 | `nvcr.io/nim/nvidia/llama-nemotron-embed-1b-v2@sha256:…` | NVIDIA NGC | ❌ not ours to sign |
 
+## Key custody
+
+| Artifact | Where | Committed? |
+|---|---|---|
+| **private key** `cosign.key` | `~/.orionfold/cosign/cosign.key` (`$OF_COSIGN_KEY`), encrypted with `COSIGN_PASSWORD` | ❌ **never** — keep it + the password in the orionfold secret store, same custody as the prod license seed |
+| **public key** `proven-matrix.pub` | this directory | ✅ yes — it's the pin the verify side + the installer use |
+
 ## Prerequisites (operator)
 
-1. **cosign** — single Go binary. `sign-proven-matrix.sh --install-cosign`
-   fetches it to `~/.local/bin`, or install manually
-   (<https://docs.sigstore.dev/cosign/system_config/installation/>).
+1. **cosign** — `sign-proven-matrix.sh --install-cosign` fetches it to
+   `~/.local/bin` (already done: v2.4.1).
 2. **GHCR write auth as `orionfold`** — the signature (`.sig`) is *written* to
-   the same GHCR repo, so this needs orionfold's own `write:packages` token
-   (the `manavsehgal` token gets `permission_denied: create_package` — see the
-   publish-auth-surfaces note). The lane image was pushed under this exact auth:
+   the same GHCR repo, so this needs orionfold's own `write:packages` token (the
+   `manavsehgal` token gets `permission_denied`). Already logged in this session:
    ```sh
-   gh auth switch -u orionfold          # or: gh auth login  (write:packages, device flow)
+   gh auth switch -u orionfold
    gh auth token | docker login ghcr.io -u orionfold --password-stdin
-   # ... sign ...
-   gh auth switch -u manavsehgal        # switch git back afterward
+   # ... sign ...  then switch git back:
+   gh auth switch -u manavsehgal
    ```
-3. A browser reachable from the box (the OIDC flow opens one; on a headless box
-   cosign prints a URL to open elsewhere and paste the code).
 
 ## The arm
 
@@ -50,31 +64,14 @@ cd deploy/field-edition/cosign
 # 1. dry-run — see exactly what will be signed, sign nothing (safe):
 ./sign-proven-matrix.sh
 
-# 2. arm it — install cosign if missing, then keyless-sign each image:
-./sign-proven-matrix.sh --install-cosign --sign
+# 2. arm it — pick a strong COSIGN_PASSWORD (it protects the new key):
+COSIGN_PASSWORD='…' ./sign-proven-matrix.sh --sign
 ```
 
-When armed, cosign opens the GitHub OIDC flow → authenticate as **orionfold** →
-Fulcio mints a short-lived cert whose Subject is the orionfold GitHub email and
-whose Issuer is the GitHub OAuth issuer → the signature + cert are pushed to
-GHCR and logged to the public **Rekor** transparency log.
-
-## Recording the identity to pin
-
-A keyless verify is only meaningful if it **pins the signer identity + issuer**
-(otherwise any GitHub user's signature would pass). After a successful `--sign`,
-the script reads the identity back from the freshly minted cert and writes it to
-`signed-identity.env`:
-
-```
-OF_COSIGN_IDENTITY="<orionfold GitHub email>"
-OF_COSIGN_ISSUER="https://github.com/login/oauth"
-```
-
-**Commit `signed-identity.env`** — it carries no secret (it's the *public*
-identity to pin), and the installer's §9 verify reads it. If the auto-read
-fails, confirm with `cosign verify --output json <ref> | python3 -m json.tool`
-and fill the `Subject`/`Issuer` fields by hand.
+First run generates the key pair (into `~/.orionfold/cosign/`), publishes the
+public half to `proven-matrix.pub`, then key-signs each image and uploads to
+Rekor. Re-runs reuse the existing key. `COSIGN_PASSWORD` must be set (or cosign
+prompts) to generate and to decrypt the key for signing.
 
 ## Verify (confirmation + the installer's M3 reference)
 
@@ -82,33 +79,27 @@ and fill the `Subject`/`Issuer` fields by hand.
 ./verify-proven-matrix.sh
 ```
 
-This runs the exact pinned check the installer's `LiveUpdateChannel.verify_signature`
-must perform at M3:
+Runs the exact pinned check the installer's `LiveUpdateChannel.verify_signature`
+performs at M3:
 
 ```sh
-cosign verify \
-  --certificate-identity   "$OF_COSIGN_IDENTITY" \
-  --certificate-oidc-issuer "$OF_COSIGN_ISSUER" \
-  ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2…
+cosign verify --key proven-matrix.pub ghcr.io/orionfold/llama-server-cuda13@sha256:93993cc2…
 ```
 
 ## How M3 consumes this
 
-`fieldkit/src/fieldkit/field_edition/update.py` already has the boundary:
-`LiveUpdateChannel.verify_signature` currently raises an honest `UpdateError`
-("proven-matrix releases must be cosign-signed — §9"). At M3, once the images
-are signed and `signed-identity.env` is committed, that method shells out to the
-pinned `cosign verify` above (the `verify-proven-matrix.sh` logic) and the
-update channel goes live. Wiring that in is a fieldkit change gated on the
-signatures existing first — i.e. **after** this arm.
+`update.py`'s `LiveUpdateChannel.verify_signature` currently raises an honest
+`UpdateError` ("proven-matrix releases must be cosign-signed — §9"). At M3, once
+the images are signed and `proven-matrix.pub` is committed, that method shells
+out to the pinned `cosign verify --key` above (the `verify-proven-matrix.sh`
+logic) and the update channel goes live. Wiring it in is a fieldkit change gated
+on the signatures existing first — i.e. **after** this arm.
 
-## Notes / future
+## Notes
 
-- **Stable CI identity (optional, later).** An interactive personal-email SAN
-  is fine to start, but a GitHub Actions keyless workflow identity
-  (`https://github.com/orionfold/<repo>/.github/workflows/<f>@refs/heads/main`,
-  issuer `https://token.actions.githubusercontent.com`) is more durable for an
-  automated §9 release cadence. Re-pin `signed-identity.env` if you move to it.
+- **`OF_NO_TLOG=1`** signs/verifies without the Rekor upload (fully
+  self-contained) — only needed if the transparency log is unreachable. Rekor is
+  reachable today, so the default keeps the public-log provenance.
 - **Registry-independent.** If the lane image is ever mirrored to the NGC public
-  Catalog (the distribution-spec §7 brand play), `cosign sign` the NGC ref too —
-  same flow, additive, no fork.
+  Catalog (distribution-spec §7 brand play), `cosign sign --key` the NGC ref too
+  — same flow, additive.

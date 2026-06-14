@@ -2,34 +2,45 @@
 # Copyright 2026 Manav Sehgal
 # SPDX-License-Identifier: Apache-2.0
 #
-# Cosign keyless signing of the Orionfold proven-matrix images (§9/M3 of
+# Cosign KEY-BASED signing of the Orionfold proven-matrix images (§9/M3 of
 # _SPECS/arena-field-edition-v1.md; distribution-spec §9). This is the
-# OPERATOR-ARMED step: signing uses Sigstore keyless via an interactive GitHub
-# OIDC browser flow, which only the operator can complete — this script is
-# authored Spark-side but RUN by the operator on a box logged in to the
-# `orionfold` GitHub account.
+# OPERATOR-ARMED step.
+#
+# Why key-based, not keyless: Sigstore keyless needs Fulcio (the CA) at
+# fulcio.sigstore.dev, which is network-blocked on the Spark box (it answers
+# 443 in plaintext — "wrong version number" / "first record does not look like
+# a TLS handshake"). Rekor + the TUF root ARE reachable, so we sign with a
+# long-lived Ed25519 key and still upload to the public Rekor transparency log.
+# The public key is committed + pinned (./proven-matrix.pub) — exactly mirroring
+# how this repo already pins the Ed25519 license key in `license.TRUSTED_KEYS`.
 #
 # What it signs: only Orionfold-built, GHCR-hosted, digest-pinned images
 # (derived live from fieldkit so it stays in sync). Today that is exactly the
-# llama.cpp CUDA-13 lane; the cortex-embedder is auto-included once it is built
-# + pinned at v1.1. Upstream images (pgvector) and NVIDIA NGC images (the NIM
+# llama.cpp CUDA-13 lane; cortex-embedder is auto-included once it is built +
+# pinned at v1.1. Upstream images (pgvector) and NVIDIA NGC images (the NIM
 # embedder) are NOT ours to sign — they are skipped.
 #
 # Default mode is DRY-RUN (lists + checks, signs nothing). Add --sign to arm.
 #
-#   ./sign-proven-matrix.sh                 # dry-run: show what would be signed
-#   ./sign-proven-matrix.sh --install-cosign --sign   # the operator arm
+#   ./sign-proven-matrix.sh                          # dry-run
+#   COSIGN_PASSWORD=… ./sign-proven-matrix.sh --sign # the operator arm
 #
-# After a successful --sign, the resulting certificate identity + OIDC issuer
-# are recorded to ./signed-identity.env — those are the values the installer's
-# §9 verify (and ./verify-proven-matrix.sh) must pin. cosign writes the
-# signature to the same GHCR repo (a .sig tag) and logs it to the public Rekor
-# transparency log.
+# Key custody:
+#   private key -> $OF_COSIGN_KEY (default ~/.orionfold/cosign/cosign.key),
+#                  encrypted with COSIGN_PASSWORD — keep BOTH in the orionfold
+#                  secret store (same custody as the prod license seed). NEVER
+#                  commit the private key.
+#   public  key -> ./proven-matrix.pub (committed + pinned; the verify side and
+#                  the installer's §9 LiveUpdateChannel.verify_signature use it).
+#
+# Set OF_NO_TLOG=1 to skip the Rekor upload entirely (fully self-contained — use
+# only if the transparency log is unreachable; verify then needs the same flag).
 
 set -eu
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-IDENTITY_FILE="${HERE}/signed-identity.env"
+PUB_PIN="${HERE}/proven-matrix.pub"
+OF_COSIGN_KEY="${OF_COSIGN_KEY:-${HOME}/.orionfold/cosign/cosign.key}"
 COSIGN_VERSION="${COSIGN_VERSION:-v2.4.1}"
 
 DO_SIGN=0
@@ -38,7 +49,7 @@ for arg in "$@"; do
   case "$arg" in
     --sign) DO_SIGN=1 ;;
     --install-cosign) DO_INSTALL=1 ;;
-    -h|--help) sed -n '2,40p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,44p' "$0"; exit 0 ;;
     *) echo "unknown arg: $arg (try --help)" >&2; exit 2 ;;
   esac
 done
@@ -48,9 +59,10 @@ say()  { printf '%b\n' "${B}cosign${R} $*"; }
 warn() { printf '%b\n' "${Y}cosign warning${R} $*" >&2; }
 die()  { printf '%b\n' "${X}cosign error${R} $*" >&2; exit 1; }
 
+TLOG_FLAG=""
+[ "${OF_NO_TLOG:-0}" = "1" ] && TLOG_FLAG="--tlog-upload=false"
+
 # --- the signable set: Orionfold GHCR images that are digest-pinned ----------
-# Derived from the installed fieldkit so this never drifts from compose.py.
-# Falls back to the known v1 lane digest if fieldkit is not importable.
 signable_refs() {
   python3 - <<'PY' 2>/dev/null || true
 try:
@@ -72,6 +84,7 @@ fi
 
 say "proven-matrix images to sign (Orionfold GHCR, digest-pinned):"
 printf '%s\n' "$REFS" | sed 's/^/  - /'
+[ -n "$TLOG_FLAG" ] && say "${Y}Rekor tlog upload DISABLED${R} (OF_NO_TLOG=1) — verify needs --insecure-ignore-tlog."
 
 # --- cosign availability -----------------------------------------------------
 ensure_cosign() {
@@ -80,92 +93,70 @@ ensure_cosign() {
     return 0
   fi
   if [ "$DO_INSTALL" = "1" ]; then
-    arch="$(uname -m)"; case "$arch" in aarch64|arm64) ca=arm64 ;; x86_64|amd64) ca=amd64 ;; *) die "unsupported arch $arch for auto-install — install cosign manually" ;; esac
+    arch="$(uname -m)"; case "$arch" in aarch64|arm64) ca=arm64 ;; x86_64|amd64) ca=amd64 ;; *) die "unsupported arch $arch — install cosign manually" ;; esac
     url="https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${ca}"
     dest="${HOME}/.local/bin/cosign"
     say "installing cosign ${COSIGN_VERSION} (${ca}) -> ${dest} ..."
     mkdir -p "${HOME}/.local/bin"
     curl -fsSL "$url" -o "$dest" || die "cosign download failed ($url)"
-    chmod +x "$dest"
-    command -v cosign >/dev/null 2>&1 || { warn "added ${HOME}/.local/bin/cosign — ensure ~/.local/bin is on PATH"; export PATH="${HOME}/.local/bin:$PATH"; }
+    chmod +x "$dest"; export PATH="${HOME}/.local/bin:$PATH"
     say "installed: $(cosign version 2>/dev/null | sed -n 's/^GitVersion:[[:space:]]*//p' | head -1 || echo present)"
   else
-    die "cosign not found. Re-run with --install-cosign, or install it:
-   https://docs.sigstore.dev/cosign/system_config/installation/
-   (single Go binary; arm64: cosign-linux-arm64 from the sigstore/cosign releases)."
+    die "cosign not found. Re-run with --install-cosign, or install it manually
+   (https://docs.sigstore.dev/cosign/system_config/installation/)."
   fi
 }
 
-# --- GHCR write auth (the signature is pushed to the same repo) --------------
-check_registry_auth() {
-  # cosign reuses the docker credential store. The .sig is WRITTEN to GHCR, so
-  # we need orionfold's own write:packages auth (per the publish-auth-surfaces
-  # memory: `gh auth login` as orionfold -> docker login ghcr.io). We can only
-  # check that *some* ghcr.io credential exists; the write is confirmed by sign.
-  cfg="${HOME}/.docker/config.json"
-  if [ -f "$cfg" ] && grep -q 'ghcr.io' "$cfg" 2>/dev/null; then
-    say "found a ghcr.io credential in ~/.docker/config.json (must be the orionfold write token)."
+# --- ensure the signing key pair (generate once) -----------------------------
+ensure_key() {
+  keydir="$(dirname "$OF_COSIGN_KEY")"
+  prefix="${OF_COSIGN_KEY%.key}"
+  if [ -f "$OF_COSIGN_KEY" ]; then
+    say "using existing signing key: ${OF_COSIGN_KEY}"
   else
-    warn "no ghcr.io credential detected in ~/.docker/config.json.
-   Before --sign, authenticate as the orionfold account (it owns the package):
-     gh auth switch -u orionfold   # or: gh auth login  (write:packages)
-     echo \"\$(gh auth token)\" | docker login ghcr.io -u orionfold --password-stdin
-   then switch git back: gh auth switch -u manavsehgal"
+    [ -n "${COSIGN_PASSWORD+x}" ] || warn "COSIGN_PASSWORD not set — cosign will prompt to protect the new key."
+    say "generating a new signing key pair at ${prefix}.{key,pub} ..."
+    mkdir -p "$keydir"; chmod 700 "$keydir"
+    ( cd "$keydir" && cosign generate-key-pair --output-key-prefix "$(basename "$prefix")" ) \
+      || die "cosign generate-key-pair failed"
+    chmod 600 "$OF_COSIGN_KEY"
+    say "${Y}store ${OF_COSIGN_KEY} + its COSIGN_PASSWORD in the orionfold secret store (never commit the private key).${R}"
   fi
+  # (Re)publish the public half to the committed pin so verify + the installer
+  # always pin the current key.
+  cosign public-key --key "$OF_COSIGN_KEY" > "$PUB_PIN" 2>/dev/null \
+    || die "could not export the public key (wrong COSIGN_PASSWORD?)."
+  say "pinned public key -> ${PUB_PIN}"
 }
 
 # --- dry-run vs arm ----------------------------------------------------------
 if [ "$DO_SIGN" != "1" ]; then
   echo
   say "${Y}DRY-RUN${R} — nothing signed. The operator arms it with:"
-  say "  $0 --install-cosign --sign"
+  say "  COSIGN_PASSWORD=… $0 --install-cosign --sign"
   echo
-  say "armed, it will (per image above) run the keyless GitHub-OIDC flow:"
-  printf '%s\n' "$REFS" | sed 's#^#  cosign sign --yes #'
+  say "armed, it will (per image above) run key-based signing:"
+  printf '%s\n' "$REFS" | sed "s#^#  cosign sign --key ${OF_COSIGN_KEY} ${TLOG_FLAG} --yes #"
   exit 0
 fi
 
 ensure_cosign
-check_registry_auth
+ensure_key
 
 echo
-say "ARMED. cosign will open a browser for GitHub OIDC — authenticate as the"
-say "orionfold GitHub account (its email becomes the signing identity)."
-say "Signatures are pushed to GHCR + logged to the public Rekor log."
+say "ARMED (key-based). Signing with ${OF_COSIGN_KEY}."
+[ -n "$TLOG_FLAG" ] || say "Signatures are pushed to GHCR + logged to the public Rekor log."
 echo
 
 signed_any=0
 for ref in $REFS; do
   say "signing ${ref} ..."
-  cosign sign --yes "$ref" || die "cosign sign failed for ${ref}"
+  # shellcheck disable=SC2086
+  cosign sign --key "$OF_COSIGN_KEY" $TLOG_FLAG --yes "$ref" || die "cosign sign failed for ${ref}"
   signed_any=1
 done
 [ "$signed_any" = "1" ] || die "nothing was signed."
 
-# --- discover + record the identity the verify side must pin -----------------
-# Read it back from the cert cosign just minted (don't guess the email/issuer).
-first_ref="$(printf '%s\n' "$REFS" | head -1)"
-say "reading back the signing identity from ${first_ref} ..."
-bundle="$(cosign verify --output json "$first_ref" 2>/dev/null || true)"
-ident=""; issuer=""
-if [ -n "$bundle" ]; then
-  ident="$(printf '%s' "$bundle" | python3 -c 'import sys,json;d=json.load(sys.stdin);o=d[0]["optional"];print(o.get("Subject") or o.get("Issuer","") and o.get("Subject",""))' 2>/dev/null || true)"
-  issuer="$(printf '%s' "$bundle" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d[0]["optional"].get("Issuer",""))' 2>/dev/null || true)"
-fi
-{
-  echo "# Recorded by sign-proven-matrix.sh — the cosign keyless identity to PIN on verify."
-  echo "# The installer's §9 LiveUpdateChannel.verify_signature + verify-proven-matrix.sh use these."
-  echo "OF_COSIGN_IDENTITY=\"${ident}\""
-  echo "OF_COSIGN_ISSUER=\"${issuer}\""
-} > "$IDENTITY_FILE"
-say "recorded -> ${IDENTITY_FILE}"
-printf '  identity: %s\n  issuer:   %s\n' "${ident:-<unread — inspect manually>}" "${issuer:-<unread>}"
-if [ -z "$ident" ] || [ -z "$issuer" ]; then
-  warn "could not auto-read the identity/issuer — confirm with:
-   cosign verify --output json ${first_ref} | python3 -m json.tool
-   and edit ${IDENTITY_FILE} (Subject -> OF_COSIGN_IDENTITY, Issuer -> OF_COSIGN_ISSUER)."
-fi
-
 echo
-say "${G}done.${R} Commit signed-identity.env so the installer's §9 verify can pin it."
+say "${G}done.${R} Commit ${PUB_PIN##*/} (the pinned public key) so the §9 verify can use it."
 say "Confirm anytime with:  ./verify-proven-matrix.sh"
