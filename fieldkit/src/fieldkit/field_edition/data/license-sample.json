@@ -18,13 +18,6 @@
       "proven-matrix-images",
       "signed-update-channel"
     ],
-    "registry": {
-      "type": "ghcr",
-      "host": "ghcr.io",
-      "namespace": "orionfold",
-      "username": "of-license-OF-FE-2026-0007",
-      "pull_token": "ghp_EXAMPLE_read_packages_token_rotate_to_revoke"
-    },
     "provenance": {
       "stripe_purchase_id": "pi_EXAMPLE0007",
       "stripe_price_id": "price_founding25"
@@ -33,6 +26,6 @@
   "signature": {
     "alg": "ed25519",
     "key_id": "of-license-dev-2026-06",
-    "value": "DVtLSbmxfLbqLqFk/Dq4lmzJk/YfQGL30mhxs1hh/T3eD7Jq59eUpqeYyfmonbkeyYEz/vW/VDndraXrDvqlCQ=="
+    "value": "8+eVKhGQR2PEMChgPIyi6AhtyBx5DYBxxD/rjhd+CP86sstYn4+MoxjTy2dhXZvoVQ5XCMOBrpASxNCc/0opDw=="
   }
 }

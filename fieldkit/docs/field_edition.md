@@ -234,11 +234,13 @@ embedded in the module** (`TRUSTED_KEYS`). No license-server round-trip on every
 boot (AC-7: the privacy stance is the brand); the math is the gate.
 
 - **What it carries** — identity + term (`license_id`, `issued_to`, `not_before`
-  / `expires_at`, `seats`), coarse `entitlements`, and the **paid boundary**:
-  `registry.pull_token` (a GHCR read-scoped token for the private proven-matrix
-  images, §9). The signature **binds the token to the license** — that token is
-  the entire DRM (no token → no proven-matrix images, but the open repos stay
-  usable; revocation = rotating the GHCR token).
+  / `expires_at`, `seats`) and coarse `entitlements`. It is **claims + term only**:
+  per OPEN-1 (public images, *weights are the moat*) there is no pull credential —
+  no GHCR `pull_token`, no `registry` block. The signed term **is** the
+  entitlement; the open repos always stay usable (AC-7 "low-friction over DRM").
+  **Back-compat:** an older token-bearing license (a `registry` block with a
+  `pull_token`) still parses + verifies unchanged — the block is optional now and
+  `License.registry` is `None` when absent.
 - **The signing contract** — `canonical_bytes(payload)` is the exact bytes the
   signature covers, and the Mac/ops `fulfillLicense` issuer must reproduce them:
   `json.dumps(payload, sort_keys=True, separators=(",", ":"),

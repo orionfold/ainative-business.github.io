@@ -46,8 +46,8 @@
       "stresses": "integer/bool/null formatting (1 not 1.0, true/false, null) — NO floats anywhere"
     },
     {
-      "canonical_sha256_12": "4a1f9a7f282e",
-      "canonical_utf8": "{\"edition\":\"founding-25\",\"entitlements\":[\"proven-matrix-images\",\"signed-update-channel\"],\"expires_at\":\"2027-06-14T00:00:00Z\",\"issued_at\":\"2026-06-14T00:00:00Z\",\"issued_to\":{\"email\":\"jose@example.com\",\"name\":\"José Núñez\",\"org\":\"Société Générale Robotique\"},\"license_id\":\"OF-FE-2026-0099\",\"not_before\":\"2026-06-14T00:00:00Z\",\"product\":\"arena-field-edition\",\"provenance\":{\"stripe_price_id\":\"price_founding25\",\"stripe_purchase_id\":\"pi_EXAMPLE0099\"},\"registry\":{\"host\":\"ghcr.io\",\"namespace\":\"orionfold\",\"pull_token\":\"ghp_EXAMPLE_read_packages_token_rotate_to_revoke\",\"type\":\"ghcr\",\"username\":\"of-license-OF-FE-2026-0099\"},\"schema\":\"orionfold.license/v1\",\"seats\":1,\"tier\":\"field-edition\"}",
+      "canonical_sha256_12": "cc859cd83d06",
+      "canonical_utf8": "{\"edition\":\"founding-25\",\"entitlements\":[\"proven-matrix-images\",\"signed-update-channel\"],\"expires_at\":\"2027-06-14T00:00:00Z\",\"issued_at\":\"2026-06-14T00:00:00Z\",\"issued_to\":{\"email\":\"jose@example.com\",\"name\":\"José Núñez\",\"org\":\"Société Générale Robotique\"},\"license_id\":\"OF-FE-2026-0099\",\"not_before\":\"2026-06-14T00:00:00Z\",\"product\":\"arena-field-edition\",\"provenance\":{\"stripe_price_id\":\"price_founding25\",\"stripe_purchase_id\":\"pi_EXAMPLE0099\"},\"schema\":\"orionfold.license/v1\",\"seats\":1,\"tier\":\"field-edition\"}",
       "name": "full-license-founding25",
       "payload": {
         "edition": "founding-25",
@@ -69,19 +69,12 @@
           "stripe_price_id": "price_founding25",
           "stripe_purchase_id": "pi_EXAMPLE0099"
         },
-        "registry": {
-          "host": "ghcr.io",
-          "namespace": "orionfold",
-          "pull_token": "ghp_EXAMPLE_read_packages_token_rotate_to_revoke",
-          "type": "ghcr",
-          "username": "of-license-OF-FE-2026-0099"
-        },
         "schema": "orionfold.license/v1",
         "seats": 1,
         "tier": "field-edition"
       },
-      "signature_b64": "GSl74xemQgh58CjhsZxxCxT2g+L9f4Qy4yP5kJDJeu+pigEhCuCgj+uJJUcC7s64c0v1k2dq+PlB7kBrDxvzDA==",
-      "stresses": "a realistic v1 license payload (keys unsorted in source) incl. a unicode org + provenance"
+      "signature_b64": "VUjkBCuPLGwyBNTcqU1jHV/5ZSYB4JIOMkTmQQJHVK0NgU7NEtdnU53YkutoasdwIrztttVWovBPmbehd5QHAw==",
+      "stresses": "a realistic CURRENT v1 license payload (keys unsorted in source) incl. a unicode org + provenance — token-less per OPEN-1 (no registry/pull_token)"
     }
   ],
   "dev_key": {

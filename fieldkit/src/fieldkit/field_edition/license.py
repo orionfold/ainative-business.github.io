@@ -15,13 +15,17 @@ What the license carries (and why):
 
 * **identity + term** — ``license_id``, ``issued_to``, ``issued_at`` /
   ``not_before`` / ``expires_at`` (the 12-month kept-proven window), ``seats``.
-* **the paid boundary** — ``registry.pull_token``: a GHCR read-scoped token that
-  pulls the private proven-matrix images (§9). The signature binds the token to
-  this license, so a token can't be transplanted into a forged license. **This is
-  the entire DRM** — no token → no proven-matrix images, but the open repos stay
-  usable (AC-7 "low-friction over DRM"). Revocation is rotating the GHCR token.
 * **entitlements** — coarse capability flags (e.g. ``proven-matrix-images``,
   ``signed-update-channel``) the installer can branch on.
+
+The license is **claims + term only** — there is no pull credential in it. Per
+the OPEN-1 decision (public images, *weights are the moat*) the proven-matrix
+images ship from a public registry, so the file carries no GHCR ``pull_token``
+and needs no ``registry`` block: the signed term *is* the entitlement, and the
+open repos always stay usable (AC-7 "low-friction over DRM"). **Back-compat:** an
+older token-bearing license (a ``registry`` block with a ``pull_token``) still
+parses + verifies unchanged — the block is simply optional now, and
+:attr:`License.registry` is ``None`` when it is absent.
 
 **The signing contract (Mac's ``fulfillLicense`` must match byte-for-byte):** the
 signed bytes are :func:`canonical_bytes` of the ``payload`` object —
@@ -77,7 +81,7 @@ _log = logging.getLogger("fieldkit.field_edition.license")
 #: The schema discriminator every v1 payload carries.
 LICENSE_SCHEMA = "orionfold.license/v1"
 
-#: Where the bootstrap drops the license (chmod 600 — it carries a pull token).
+#: Where the bootstrap drops the license (chmod 600 — a signed entitlement file).
 DEFAULT_LICENSE_PATH = Path(
     os.environ.get("ORIONFOLD_LICENSE", str(Path.home() / ".orionfold" / "license"))
 )
@@ -145,22 +149,27 @@ class IssuedTo:
 
 @dataclass(frozen=True)
 class Registry:
-    """How the private proven-matrix images are pulled (the paid boundary)."""
+    """How private images were pulled in the legacy token-bearing license.
 
-    type: str  # "ghcr"
-    host: str  # "ghcr.io"
-    namespace: str  # "orionfold"
-    username: str  # the robot/login user the token authenticates as
-    pull_token: str  # GHCR read:packages token — bound to this license by the signature
+    **Optional / back-compat only.** Since OPEN-1 (public images, weights are the
+    moat) a v1 license carries no ``registry`` block — :attr:`License.registry` is
+    ``None``. This type still parses an older token-bearing block so those licenses
+    keep verifying; every field defaults empty so a partial block doesn't raise."""
+
+    type: str = ""  # "ghcr"
+    host: str = ""  # "ghcr.io"
+    namespace: str = ""  # "orionfold"
+    username: str = ""  # the robot/login user the token authenticated as
+    pull_token: str = ""  # legacy GHCR read:packages token (absent in current licenses)
 
     @classmethod
     def from_obj(cls, obj: Mapping[str, Any]) -> "Registry":
         return cls(
-            type=str(obj["type"]),
-            host=str(obj["host"]),
-            namespace=str(obj["namespace"]),
+            type=str(obj.get("type", "")),
+            host=str(obj.get("host", "")),
+            namespace=str(obj.get("namespace", "")),
             username=str(obj.get("username", "")),
-            pull_token=str(obj["pull_token"]),
+            pull_token=str(obj.get("pull_token", "")),
         )
 
 
@@ -181,12 +190,13 @@ class License:
     expires_at: str
     seats: int
     entitlements: tuple[str, ...]
-    registry: Registry
+    registry: Registry | None  # legacy token-bearing block; None for a current license
     raw: Mapping[str, Any]  # the exact payload object (for round-trip / debugging)
 
     @property
     def pull_token(self) -> str:
-        return self.registry.pull_token
+        """The legacy GHCR pull token, or ``""`` for a current (token-less) license."""
+        return self.registry.pull_token if self.registry else ""
 
     def has_entitlement(self, name: str) -> bool:
         return name in self.entitlements
@@ -314,6 +324,10 @@ def parse_license(payload: Mapping[str, Any]) -> License:
     schema = str(payload.get("schema", ""))
     if schema != LICENSE_SCHEMA:
         raise LicenseError(f"unexpected license schema {schema!r} (expected {LICENSE_SCHEMA!r})")
+    # `registry` is OPTIONAL since OPEN-1 (public images) — present only in legacy
+    # token-bearing licenses, which must still parse. None for a current license.
+    reg_obj = payload.get("registry")
+    registry = Registry.from_obj(reg_obj) if isinstance(reg_obj, Mapping) else None
     try:
         return License(
             license_id=str(payload["license_id"]),
@@ -326,7 +340,7 @@ def parse_license(payload: Mapping[str, Any]) -> License:
             expires_at=str(payload["expires_at"]),
             seats=int(payload.get("seats", 1)),
             entitlements=tuple(str(e) for e in (payload.get("entitlements") or [])),
-            registry=Registry.from_obj(payload["registry"]),
+            registry=registry,
             raw=payload,
         )
     except KeyError as err:
@@ -379,7 +393,7 @@ def load_license(
         if now >= lic.expires_dt():
             raise LicenseError(
                 f"license {lic.license_id} expired {lic.expires_at} — renew to keep the "
-                "proven-matrix pull + signed update channel (the open repos stay usable)"
+                "proven-matrix images + signed update channel (the open repos stay usable)"
             )
     return lic
 

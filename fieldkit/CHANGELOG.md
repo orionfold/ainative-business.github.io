@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.32.1] — 2026-06-13
+
+### Changed
+- **`fieldkit.field_edition.license` — the mandatory GHCR `pull_token` is dropped
+  (OPEN-1: public images, weights are the moat).** A v1 license is now **claims +
+  term only** — no `registry` block, no pull credential. The `registry` field is
+  **optional**: `License.registry` is `None` for a current license, and
+  `License.pull_token` returns `""`. The detached Ed25519 signature still covers
+  whatever the payload contains, so an **older token-bearing license keeps
+  verifying unchanged** (back-compat). The vendored `data/license-sample.json` and
+  the shared `data/license-conformance-v1.json` (`full-license-founding25` case)
+  are re-frozen to the token-less shape; the dev-key signatures re-froze with
+  them. Mac's `fulfillLicense` simply stops populating `registry` — its CI mirror
+  re-canonicalizes + re-signs each conformance case against the new vector.
+
+### Test suite
+- **1712 passed, 19 skipped** (offline `pytest`; skips = torch/mcp/matplotlib/
+  great_tables/jupytext heavy deps + `--spark`). 136 `field_edition` tests (was
+  134 — added token-less-validates + legacy-token-bearing back-compat).
+
 ## [0.32.0] — 2026-06-13
 
 ### Added

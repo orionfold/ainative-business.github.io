@@ -95,7 +95,10 @@ CASES: list[dict[str, Any]] = [
     },
     {
         "name": "full-license-founding25",
-        "stresses": "a realistic v1 license payload (keys unsorted in source) incl. a unicode org + provenance",
+        "stresses": (
+            "a realistic CURRENT v1 license payload (keys unsorted in source) incl. a "
+            "unicode org + provenance — token-less per OPEN-1 (no registry/pull_token)"
+        ),
         "payload": {
             "schema": "orionfold.license/v1",
             "product": "arena-field-edition",
@@ -108,13 +111,6 @@ CASES: list[dict[str, Any]] = [
             "not_before": "2026-06-14T00:00:00Z",
             "expires_at": "2027-06-14T00:00:00Z",
             "entitlements": ["proven-matrix-images", "signed-update-channel"],
-            "registry": {
-                "type": "ghcr",
-                "host": "ghcr.io",
-                "namespace": "orionfold",
-                "username": "of-license-OF-FE-2026-0099",
-                "pull_token": "ghp_EXAMPLE_read_packages_token_rotate_to_revoke",
-            },
             "provenance": {"stripe_purchase_id": "pi_EXAMPLE0099", "stripe_price_id": "price_founding25"},
         },
     },

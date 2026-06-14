@@ -1547,6 +1547,11 @@ _DEV_SEED_B64 = _b64.b64encode(bytes(range(32))).decode()
 
 
 def _sample_payload():
+    """A LEGACY token-bearing payload (a `registry` block with a `pull_token`).
+
+    Kept as the back-compat fixture: post OPEN-1 the registry block is optional, but
+    an older token-bearing license must still parse + verify unchanged. The current
+    token-less shape is `_token_less_payload()`."""
     return {
         "schema": "orionfold.license/v1",
         "license_id": "OF-FE-2026-0042",
@@ -1564,6 +1569,13 @@ def _sample_payload():
             "username": "of-license-OF-FE-2026-0042", "pull_token": "ghp_test_token",
         },
     }
+
+
+def _token_less_payload():
+    """The CURRENT (OPEN-1) shape: claims + term only, no `registry` / pull token."""
+    p = _sample_payload()
+    p.pop("registry")
+    return p
 
 
 def _sign_doc(payload, *, key_id="of-license-dev-2026-06", seed=_DEV_SEED_B64):
@@ -1590,7 +1602,8 @@ def test_vendored_sample_license_validates() -> None:
     lic = load_license(sample, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
     assert lic.license_id == "OF-FE-2026-0007"
     assert lic.has_entitlement("proven-matrix-images")
-    assert lic.pull_token.startswith("ghp_")
+    # OPEN-1: the current vendored sample is token-less (claims + term only).
+    assert lic.registry is None and lic.pull_token == ""
 
 
 def test_sign_verify_round_trip(tmp_path) -> None:
@@ -1606,6 +1619,41 @@ def test_sign_verify_round_trip(tmp_path) -> None:
     lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
     assert lic.tier == "field-edition" and lic.seats == 1
     assert lic.is_active(_dt(2026, 6, 15, tzinfo=_tz.utc))
+
+
+def test_token_less_license_validates(tmp_path) -> None:
+    # OPEN-1: a current license carries no `registry` block — it parses, verifies,
+    # and term-checks exactly like a token-bearing one; `registry` is just None.
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import load_license
+
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(_token_less_payload())))
+    lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    assert lic.registry is None and lic.pull_token == ""
+    assert lic.tier == "field-edition" and lic.has_entitlement("proven-matrix-images")
+    assert lic.is_active(_dt(2026, 6, 15, tzinfo=_tz.utc))
+
+
+def test_legacy_token_bearing_license_still_validates(tmp_path) -> None:
+    # Back-compat: an older token-bearing license must keep verifying unchanged,
+    # and the legacy `pull_token` stays reachable through the optional registry.
+    import json as _json
+
+    import pytest
+
+    pytest.importorskip("cryptography")
+    from fieldkit.field_edition.license import load_license
+
+    path = tmp_path / "license"
+    path.write_text(_json.dumps(_sign_doc(_sample_payload())))
+    lic = load_license(path, now=_dt(2026, 6, 15, tzinfo=_tz.utc))
+    assert lic.registry is not None and lic.registry.type == "ghcr"
+    assert lic.pull_token == "ghp_test_token"
 
 
 def test_tampered_payload_fails_verification(tmp_path) -> None:
