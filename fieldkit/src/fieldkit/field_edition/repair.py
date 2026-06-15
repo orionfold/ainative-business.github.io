@@ -122,9 +122,11 @@ def _which(name: str) -> bool:
     return shutil.which(name) is not None
 
 
-def _run(cmd: list[str], *, timeout: int = 1800) -> subprocess.CompletedProcess:
+def _run(
+    cmd: list[str], *, timeout: int = 1800, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess:
     return subprocess.run(  # noqa: S603 — fixed argv, no shell
-        cmd, capture_output=True, text=True, timeout=timeout, check=False
+        cmd, capture_output=True, text=True, timeout=timeout, check=False, env=env
     )
 
 
@@ -162,8 +164,14 @@ class LiveRepairExecutor(RepairExecutor):
         if not _which("docker"):
             raise RuntimeError("docker not found (preinstalled on DGX OS 7.x)")
         compose_path = config.home / "compose.yaml"
+        # AD-FK-α: inject NGC_API_KEY (env → ~/.nim/secrets.env) so the bundle's
+        # ${NGC_API_KEY:?…} interpolation resolves. A placeholder is acceptable
+        # for non-embedder repairs; a cortex repair that starts with a bad key
+        # fails its own gate honestly.
+        env = _compose.compose_env(config, placeholder_if_missing=True)
         proc = _run(
-            ["docker", "compose", "-f", str(compose_path), "up", "-d", "--force-recreate", *services]
+            ["docker", "compose", "-f", str(compose_path), "up", "-d", "--force-recreate", *services],
+            env=env,
         )
         if proc.returncode != 0:
             raise RuntimeError(

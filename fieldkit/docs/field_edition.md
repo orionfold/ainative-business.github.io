@@ -84,7 +84,7 @@ walks an ordered phase list, persists a checkpoint after each, and on a re-run
 **resumes from the last good phase** (the box runs ~4.77 MB/s, so a failed pull
 must not redo prior work):
 
-`matrix → bundle → pull → stack → sidecar → resident → [verify]`
+`matrix → bundle → pull → stack → ingest → sidecar → resident → [verify]`
 
 Same pure-core / thin-I/O split as `doctor`:
 
@@ -94,7 +94,18 @@ Same pure-core / thin-I/O split as `doctor`:
   (`of-embedder`), and a llama.cpp CUDA-13/SM121 lane (`of-advisor-lane`) — on a
   shared bridge, model store mounted read-only, GPU reserved for the CUDA
   services. The Arena cockpit is **not** here: it is the pipx `fieldkit[arena]`
-  process on `:7866` (§5), started by the `sidecar` phase.
+  process on `:7866` (§5), started by the `sidecar` phase. The NGC NIM embedder
+  (the v1 default) interpolates `${NGC_API_KEY:?…}`; **`read_ngc_api_key()`**
+  (env → `~/.nim/secrets.env`) + **`compose_env()`** inject the key into every
+  `docker compose` invocation so an unattended `up`/`down`/`repair` resolves it
+  (AD-FK-α).
+- **`fieldkit.field_edition.ingest`** — the `ingest` phase (AD-FK-β): a fresh box
+  boots an empty pgvector, so the Cortex gate can't pass until the Advisor demo
+  corpus is seeded. The corpus rides the wheel as a sha-pinned vendored pack
+  (`data/advisor-corpus-pack-v01.jsonl.gz`, 182 sources, ~1 MB gz); `plan_chunks`
+  is the pure chunker (the recall-proof's recipe → 647 chunks) and `ingest_pack`
+  embeds + upserts into `advisor_corpus_v01` offline. Idempotent; also a manual
+  `fieldkit field-edition ingest [--force]`.
 - **`compose_yaml(config)` / `write_bundle(config)`** — serialize / write
   `compose.yaml` + `.env` into `~/.orionfold/` (lazy `pyyaml`, an `[arena]`-extra
   dep, so `import fieldkit.field_edition` stays core-only).
@@ -206,6 +217,10 @@ final phase, collapsing §7 steps 2–3 into one command. `verify` flags:
 - **`up`** — live: the checkpointed Compose bring-up (above).
 - **`verify`** — live: the §8 first-boot eval gate + receipt (`--json`,
   `--hermes`); exit 0 when every gate passes/skips, exit 1 otherwise.
+- **`ingest`** — live: seed the Cortex corpus from the vendored Advisor demo
+  pack into `advisor_corpus_v01` (AD-FK-β). `up` runs it automatically (the
+  `ingest` phase); this is the manual / re-ingest hatch. Idempotent — a
+  non-empty corpus is left as-is unless `--force`.
 - **`down`** — live: the §7 / AC-6 uninstall. Default stops + removes the
   containers + network but **preserves** the Cortex pgdata volume, model store,
   and `arena.db`; `--purge` additionally drops those (explicit opt-in). The

@@ -6,6 +6,49 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- **`fieldkit.field_edition.ingest` + an `up` `ingest` phase (AD-FK-β) — a fresh
+  box now seeds the Cortex corpus automatically, so `up` is a real unattended
+  `curl … | sh`.** A fresh Field Edition box boots an EMPTY pgvector, so the §8
+  Cortex gate could not pass until the Advisor demo corpus was ingested — and
+  `up` had no ingest phase (the first-customer sim had to ingest by hand). The
+  corpus now rides the wheel as a self-contained, sha-pinned vendored pack
+  (`data/advisor-corpus-pack-v01.jsonl.gz`, ~1 MB gz, 182 public sources, built
+  by `scripts/field_edition/build_advisor_corpus_pack.py`); `up`'s new `ingest`
+  phase (after `stack`) chunks→embeds→upserts it **offline** into
+  `advisor_corpus_v01`, reproducing the exact **647 chunks** the recall@5 0.977
+  proof was measured against — no network, no auth (AC-2). Idempotent (a
+  non-empty corpus is left as-is, so a customer's own ingest is never
+  clobbered); honest `PhaseError` with a fix if the embedder/pgvector is down.
+  Also exposed as `fieldkit field-edition ingest [--force]` (the manual /
+  re-ingest hatch). Wheel-vendored over HF/GitHub (operator decision,
+  2026-06-15): the bootstrap already pulls the wheel, so the pack costs zero
+  extra fetches — the inverse of the 2.6 GB GGUF, which is too big to vendor.
+
+### Fixed
+
+- **`fieldkit.field_edition` — the NGC API key is now wired into every Compose
+  op (AD-FK-α).** The v1 default Cortex embedder is the NGC NIM image, whose
+  Compose service interpolates `${NGC_API_KEY:?…}`, but an unattended `up` never
+  sourced the operator's key — so `up` (stack phase), `down`, and `repair` all
+  failed at the Compose boundary on a real `curl … | sh` box. New
+  `compose.read_ngc_api_key()` (env → `~/.nim/secrets.env`) + `compose.compose_env()`
+  inject the key into the subprocess environment for every `docker compose`
+  call; `up`'s `stack` phase refuses up front with a named fix when no key is
+  resolvable (rather than a cryptic Docker error), `down`/`repair` use a harmless
+  placeholder when a teardown does not need a real key. The bootstrap
+  (`get-orionfold.sh`) also sources `~/.nim/secrets.env` (belt-and-suspenders;
+  the Python side is authoritative).
+- **`fieldkit.field_edition.up` — the `sidecar` phase now STARTS the Arena
+  cockpit (AD-FK-γ).** It previously only health-polled `:7866` and raised if
+  absent, so an unattended `up` hard-stopped (the operator had to launch the
+  cockpit by hand). It now spawns the pipx/venv `fieldkit arena up --no-open`
+  detached (`start_new_session`, logging to `~/.orionfold/cockpit.log`, pid in
+  `cockpit.pid`), then health-polls until ready — failing honestly if the
+  cockpit exits early or never becomes healthy. Re-entrant: a re-run returns
+  immediately when the cockpit is already up.
+
 ## [0.32.3] — 2026-06-15
 
 ### Added

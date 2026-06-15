@@ -120,7 +120,7 @@ def test_probe_environment_returns_all_keys() -> None:
 def test_field_edition_help_lists_full_surface() -> None:
     result = runner.invoke(app, ["field-edition", "--help"])
     assert result.exit_code == 0
-    for cmd in ("doctor", "up", "verify", "down", "repair", "rollback", "update"):
+    for cmd in ("doctor", "up", "verify", "ingest", "down", "repair", "rollback", "update"):
         assert cmd in result.stdout
 
 
@@ -246,7 +246,7 @@ def test_compose_yaml_round_trips() -> None:
 
 def test_phases_are_ordered_and_named() -> None:
     keys = [p.key for p in PHASES]
-    assert keys == ["matrix", "bundle", "pull", "stack", "sidecar", "resident", "verify"]
+    assert keys == ["matrix", "bundle", "pull", "stack", "ingest", "sidecar", "resident", "verify"]
     assert PHASES[0].safe and PHASES[1].safe  # matrix + bundle are local-only
     assert PHASES[-1].optional  # verify
 
@@ -297,7 +297,7 @@ def test_run_up_runs_all_phases_and_checkpoints(tmp_path) -> None:
     exe = _FakeExecutor()
     result = run_up(cfg, executor=exe)
     assert result.ok
-    assert exe.ran == ["matrix", "bundle", "pull", "stack", "sidecar", "resident"]
+    assert exe.ran == ["matrix", "bundle", "pull", "stack", "ingest", "sidecar", "resident"]
     state = InstallState.load(cfg.home / "state.json")
     assert all(state.status(k) == "done" for k in exe.ran)
 
@@ -334,7 +334,7 @@ def test_run_up_dry_run_writes_bundle_and_plans_rest(tmp_path) -> None:
     result = run_up(cfg, executor=exe, dry_run=True)
     assert result.ok and result.dry_run
     assert exe.ran == ["matrix", "bundle"]  # only the safe phases executed
-    assert result.planned == ["pull", "stack", "sidecar", "resident"]
+    assert result.planned == ["pull", "stack", "ingest", "sidecar", "resident"]
     # the actual file write is LiveExecutor.bundle's job — covered by the CLI test.
 
 
@@ -423,6 +423,348 @@ def test_live_executor_pull_downloads_pinned_rev(tmp_path, monkeypatch) -> None:
     assert gguf.exists() and gguf.read_bytes() == b"GGUF\x00pulled"
     assert calls["repo_id"] == "Orionfold/Advisor-GGUF"
     assert calls["revision"] == "deadbeef" * 5
+
+
+# --- AD-FK-α: NGC key wiring into compose ops --------------------------------
+
+
+def test_read_ngc_api_key_from_env_wins(monkeypatch, tmp_path) -> None:
+    from fieldkit.field_edition import compose as c
+
+    secrets = tmp_path / "secrets.env"
+    secrets.write_text("NGC_API_KEY=fromfile\n")
+    monkeypatch.setenv("NGC_API_KEY", "fromenv")
+    assert c.read_ngc_api_key(secrets) == "fromenv"
+
+
+def test_read_ngc_api_key_sources_secrets_file(monkeypatch, tmp_path) -> None:
+    from fieldkit.field_edition import compose as c
+
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    secrets = tmp_path / "secrets.env"
+    # tolerate `export`, quotes, comments, and other vars
+    secrets.write_text('# nim\nexport NGC_API_KEY="nv-secret"\nOTHER=x\n')
+    assert c.read_ngc_api_key(secrets) == "nv-secret"
+
+
+def test_read_ngc_api_key_missing_is_none(monkeypatch, tmp_path) -> None:
+    from fieldkit.field_edition import compose as c
+
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    assert c.read_ngc_api_key(tmp_path / "nope.env") is None
+
+
+def test_compose_env_injects_key_for_nim(monkeypatch) -> None:
+    from fieldkit.field_edition import compose as c
+
+    monkeypatch.setattr(c, "read_ngc_api_key", lambda *a, **k: "resolved-key")
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    env = c.compose_env(c.default_config())  # default = NIM, needs the key
+    assert env["NGC_API_KEY"] == "resolved-key"
+
+
+def test_compose_env_placeholder_for_teardown(monkeypatch) -> None:
+    from fieldkit.field_edition import compose as c
+
+    monkeypatch.setattr(c, "read_ngc_api_key", lambda *a, **k: None)
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    # no key + no placeholder → absent (up's own check fails fast)
+    assert "NGC_API_KEY" not in c.compose_env(c.default_config())
+    # teardown asks for a placeholder so `${NGC_API_KEY:?}` resolves on `down`
+    assert c.compose_env(c.default_config(), placeholder_if_missing=True)["NGC_API_KEY"]
+
+
+def test_compose_env_no_key_for_open_embedder(monkeypatch) -> None:
+    from fieldkit.field_edition import compose as c
+
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    # the v1.1 open embedder needs no NGC key → never injected
+    env = c.compose_env(c.default_config().with_open_embedder(), placeholder_if_missing=True)
+    assert "NGC_API_KEY" not in env
+
+
+def test_stack_refuses_without_ngc_key(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition import compose as c
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)  # default = NIM, fully pinned
+    write_bundle(cfg)
+    monkeypatch.setattr(c, "read_ngc_api_key", lambda *a, **k: None)
+    monkeypatch.delenv("NGC_API_KEY", raising=False)
+    # docker present so we reach the NGC check (it precedes the compose call)
+    monkeypatch.setattr("fieldkit.field_edition.up._which", lambda name: True)
+    try:
+        LiveExecutor().stack(cfg)
+    except PhaseError as err:
+        assert "NGC API key" in str(err)
+        assert "secrets.env" in err.fix
+    else:  # pragma: no cover
+        raise AssertionError("stack should refuse when no NGC key is resolvable")
+
+
+# --- AD-FK-γ: sidecar starts the cockpit -------------------------------------
+
+
+def test_sidecar_returns_when_already_healthy(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+    monkeypatch.setattr(exe, "_cockpit_healthy", lambda: True)
+    # must NOT spawn anything if the cockpit is already up (re-entrant)
+    def _boom(*a, **k):  # pragma: no cover
+        raise AssertionError("must not Popen when already healthy")
+
+    monkeypatch.setattr("fieldkit.field_edition.up.subprocess.Popen", _boom)
+    exe.sidecar(cfg)  # returns cleanly
+
+
+def test_sidecar_spawns_cockpit_and_polls_health(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+
+    health = {"calls": 0}
+
+    def _health() -> bool:
+        health["calls"] += 1
+        return health["calls"] >= 2  # unhealthy on the first poll, healthy after
+
+    monkeypatch.setattr(exe, "_cockpit_healthy", _health)
+    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda: ["true"]))
+    monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
+
+    class _Proc:
+        pid = 4321
+
+        def poll(self):
+            return None  # alive
+
+    spawned = {}
+
+    def _popen(cmd, **kw):
+        spawned["cmd"] = cmd
+        spawned["new_session"] = kw.get("start_new_session")
+        return _Proc()
+
+    monkeypatch.setattr("fieldkit.field_edition.up.subprocess.Popen", _popen)
+    exe.sidecar(cfg)
+    assert spawned["cmd"] == ["true"]
+    assert spawned["new_session"] is True
+    assert (cfg.home / "cockpit.pid").read_text().strip() == "4321"
+    assert (cfg.home / "cockpit.log").exists()
+
+
+def test_sidecar_fails_when_cockpit_exits_early(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+    monkeypatch.setattr(exe, "_cockpit_healthy", lambda: False)
+    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda: ["true"]))
+    monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
+
+    class _DeadProc:
+        pid = 9
+        returncode = 1
+
+        def poll(self):
+            return 1  # already exited
+
+    monkeypatch.setattr(
+        "fieldkit.field_edition.up.subprocess.Popen", lambda cmd, **kw: _DeadProc()
+    )
+    try:
+        exe.sidecar(cfg)
+    except PhaseError as err:
+        assert "exited early" in str(err)
+        assert "cockpit.log" in err.fix
+    else:  # pragma: no cover
+        raise AssertionError("sidecar should fail when the cockpit dies")
+
+
+def test_cockpit_command_prefers_interpreter_sibling(monkeypatch, tmp_path) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "fieldkit").write_text("#!/bin/sh\n")
+    monkeypatch.setattr(
+        "fieldkit.field_edition.up.sys.executable", str(fake_bin / "python")
+    )
+    cmd = LiveExecutor._cockpit_command()
+    assert cmd == [str(fake_bin / "fieldkit"), "arena", "up", "--no-open"]
+
+
+# --- AD-FK-β: vendored corpus pack + the ingest phase ------------------------
+
+from fieldkit.field_edition import ingest as ingest_mod  # noqa: E402
+
+
+class _FakeIngestIndex:
+    """A MemoryIndex stand-in for the ingest writer (no pgvector / embedder)."""
+
+    def __init__(self, existing: int = 0, *, raise_on: str | None = None) -> None:
+        self._existing = existing
+        self.raise_on = raise_on
+        self.written: list = []
+        self.replaced: list | None = None
+        self.schema_calls = 0
+        self.index_calls = 0
+
+    def ensure_schema(self) -> None:
+        if self.raise_on == "ensure_schema":
+            raise RuntimeError("pgvector connect failed")
+        self.schema_calls += 1
+
+    def chunk_counts(self) -> dict:
+        return {"some-slug": self._existing} if self._existing else {}
+
+    def replace_slugs(self, slugs):
+        self.replaced = list(slugs)
+        return len(self.replaced)
+
+    def _embed(self, texts, input_type):
+        if self.raise_on == "_embed":
+            raise RuntimeError("embedder unreachable")
+        return [[0.1, 0.2, 0.3, 0.4] for _ in texts]
+
+    def write_chunks(self, rows) -> int:
+        self.written = list(rows)
+        return len(self.written)
+
+    def create_indexes(self) -> None:
+        self.index_calls += 1
+
+
+def _mini_pack() -> ingest_mod.CorpusPack:
+    body = " ".join(f"word{i}" for i in range(20))
+    return ingest_mod.CorpusPack(
+        name="advisor-corpus-pack",
+        version="v01",
+        corpus_table="advisor_corpus_v01",
+        source_manifest_sha256_12="abc123",
+        sources=(
+            ingest_mod.CorpusSource(
+                source_id="article_demo",
+                meta="article_demo path Field Note",
+                body=body,
+                source_class="field_note",
+                date_or_version="2026-05-11",
+                path_or_url="articles/demo/article.md",
+            ),
+        ),
+    )
+
+
+def test_corpus_pack_loads_and_sha_pins() -> None:
+    pack = ingest_mod.load_corpus_pack()
+    assert pack.corpus_table == "advisor_corpus_v01"
+    assert len(pack.sources) == 182  # the public corpus manifest
+    assert all(s.body and s.source_id for s in pack.sources)
+    assert ingest_mod.corpus_pack_sha() == ingest_mod.CORPUS_PACK_SHA
+
+
+def test_corpus_pack_sha_drift_raises(tmp_path) -> None:
+    import gzip
+
+    tampered = tmp_path / "pack.jsonl.gz"
+    tampered.write_bytes(gzip.compress(b'{"name":"x","version":"v01","sources":[]}'))
+    try:
+        ingest_mod.load_corpus_pack(tampered)
+    except ValueError as err:
+        assert "sha drift" in str(err)
+    else:  # pragma: no cover
+        raise AssertionError("a tampered pack must raise on the sha pin")
+
+
+def test_plan_chunks_prefixes_meta_and_stamps_provenance() -> None:
+    pack = _mini_pack()
+    rows = ingest_mod.plan_chunks(pack)
+    assert rows, "the mini body should produce at least one chunk"
+    slug, idx, text, prov = rows[0]
+    assert slug == "article_demo"
+    assert idx == 0
+    assert text.startswith("article_demo path Field Note\n\n")  # the metadata prefix
+    assert "word0" in text
+    assert prov.source == "article" and prov.kind == "field_note"
+    assert prov.doc_date == "2026-05-11" and prov.link == "articles/demo/article.md"
+
+
+def test_index_for_targets_the_field_edition_stack() -> None:
+    idx = ingest_mod.index_for()
+    assert idx.table == "advisor_corpus_v01"
+    assert "dbname=vectors" in idx.pg_dsn and "port=5432" in idx.pg_dsn
+    assert idx.embed_url == "http://127.0.0.1:8001/v1/embeddings"
+
+
+def test_run_ingest_skips_when_corpus_present() -> None:
+    fake = _FakeIngestIndex(existing=647)  # already ingested
+    result = ingest_mod.run_ingest(index=fake)
+    assert result.ok and result.skipped
+    assert fake.written == []  # nothing re-written
+
+
+def test_run_ingest_writes_when_empty() -> None:
+    fake = _FakeIngestIndex(existing=0)
+    result = ingest_mod.run_ingest(index=fake)
+    assert result.ok and not result.skipped
+    assert result.chunks_written == len(fake.written) > 0
+    assert result.sources == 182
+    assert fake.replaced is not None and fake.index_calls == 1
+
+
+def test_run_ingest_force_reingests_nonempty() -> None:
+    fake = _FakeIngestIndex(existing=647)
+    result = ingest_mod.run_ingest(index=fake, force=True)
+    assert result.ok and not result.skipped
+    assert result.chunks_written > 0  # forced past the non-empty guard
+
+
+def test_run_ingest_surfaces_embedder_error_honestly() -> None:
+    fake = _FakeIngestIndex(existing=0, raise_on="_embed")
+    result = ingest_mod.run_ingest(index=fake)
+    assert not result.ok
+    assert "embedder unreachable" in result.error
+
+
+def test_up_ingest_phase_raises_phaseerror_on_failure(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    monkeypatch.setattr(
+        "fieldkit.field_edition.ingest.run_ingest",
+        lambda *a, **k: ingest_mod.IngestResult(182, 0, 0, error="pgvector down"),
+    )
+    try:
+        LiveExecutor().ingest(cfg)
+    except PhaseError as err:
+        assert "ingest failed" in str(err)
+        assert "pgvector" in err.fix
+    else:  # pragma: no cover
+        raise AssertionError("ingest phase should raise on a failed ingest")
+
+
+def test_up_ingest_phase_ok_when_skipped(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    monkeypatch.setattr(
+        "fieldkit.field_edition.ingest.run_ingest",
+        lambda *a, **k: ingest_mod.IngestResult(182, 0, 0, skipped=True),
+    )
+    LiveExecutor().ingest(cfg)  # skipped corpus → no raise
+
+
+def test_ingest_cli(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "fieldkit.field_edition.ingest.run_ingest",
+        lambda *a, **k: ingest_mod.IngestResult(182, 1234, 1234),
+    )
+    result = runner.invoke(app, ["field-edition", "ingest"])
+    assert result.exit_code == 0, result.stdout
+    assert "1234 chunks" in result.stdout
 
 
 # --- up CLI ------------------------------------------------------------------

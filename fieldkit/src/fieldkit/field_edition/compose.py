@@ -37,12 +37,14 @@ M4 launch — same "drift is visible, not silent" stance as
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 __all__ = [
     "PIN_PENDING",
     "REV_PENDING",
+    "NIM_SECRETS_PATH",
     "ImagePin",
     "EmbedderConfig",
     "LaneConfig",
@@ -53,9 +55,18 @@ __all__ = [
     "render_compose",
     "compose_yaml",
     "render_env",
+    "read_ngc_api_key",
+    "compose_env",
     "unpinned_images",
     "write_bundle",
 ]
+
+#: Where the DGX Spark operator's NGC API key lives (the ``nim`` cache convention
+#: this repo already uses — see ``[[reference_nim_local_serving]]``). The NIM
+#: embedder default (:data:`NIM_EMBEDDER`) reads ``NGC_API_KEY`` from the
+#: environment; :func:`read_ngc_api_key` sources it from here so an unattended
+#: ``up`` (``curl … | sh``) does not require the operator to pre-export it.
+NIM_SECRETS_PATH = Path.home() / ".nim" / "secrets.env"
 
 #: Sentinel digest for an Orionfold image that is not yet built/published. An
 #: :class:`ImagePin` carrying it renders as ``repo:tag`` (so the file is valid)
@@ -364,6 +375,62 @@ def render_env(config: FieldEditionConfig | None = None) -> str:
         f"OF_LANE_URL=http://127.0.0.1:{cfg.lane.port}/v1",
     ]
     return "\n".join(lines) + "\n"
+
+
+def read_ngc_api_key(secrets_path: Path | None = None) -> str | None:
+    """Resolve the NGC API key for the NIM embedder, or ``None`` if unset.
+
+    Resolution order: the process environment (``NGC_API_KEY``), then
+    ``~/.nim/secrets.env`` (KEY=VALUE lines, ``export`` prefix + quotes
+    tolerated). This is the AD-FK-α fix: ``compose.yaml`` interpolates
+    ``${NGC_API_KEY:?…}`` for the NIM embedder, but an unattended ``up`` never
+    sourced the operator's NGC key, so ``stack``/``down``/``repair`` all failed
+    at the Compose boundary. Callers decide whether a missing key is fatal
+    (``up`` refuses with a named fix; ``down`` teardown does not need a real key).
+    """
+    env_key = os.environ.get("NGC_API_KEY")
+    if env_key and env_key.strip():
+        return env_key.strip()
+    path = secrets_path or NIM_SECRETS_PATH
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :]
+        key, sep, value = line.partition("=")
+        if sep and key.strip() == "NGC_API_KEY":
+            return value.strip().strip('"').strip("'") or None
+    return None
+
+
+def compose_env(
+    config: FieldEditionConfig | None = None, *, placeholder_if_missing: bool = False
+) -> dict[str, str]:
+    """The process environment for a ``docker compose`` invocation against the
+    bundle, with ``NGC_API_KEY`` injected so the ``${NGC_API_KEY:?…}``
+    interpolation resolves (AD-FK-α).
+
+    When the embedder needs an NGC key and one is not already exported, this
+    sources it via :func:`read_ngc_api_key`. ``placeholder_if_missing`` (used by
+    teardown / inspect commands that recreate-then-remove a container and never
+    actually start the embedder) substitutes a harmless placeholder when no key
+    is found, so ``down``/``config`` do not trip the guard on a box being torn
+    down — a real ``up`` validates a genuine key is present instead.
+    """
+    cfg = config or default_config()
+    env = dict(os.environ)
+    if cfg.embedder.needs_ngc_key and not env.get("NGC_API_KEY"):
+        key = read_ngc_api_key()
+        if key:
+            env["NGC_API_KEY"] = key
+        elif placeholder_if_missing:
+            env["NGC_API_KEY"] = "unused-at-teardown"
+    return env
 
 
 def compose_yaml(config: FieldEditionConfig | None = None) -> str:

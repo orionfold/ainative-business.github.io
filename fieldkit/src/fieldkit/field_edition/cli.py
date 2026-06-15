@@ -246,6 +246,38 @@ def down(
     raise typer.Exit(code=0)
 
 
+@app.command("ingest")
+def ingest(
+    force: bool = typer.Option(
+        False, "--force", help="Re-ingest even if the corpus table already has chunks."
+    ),
+) -> None:
+    """Ingest the vendored Advisor demo corpus into Cortex (AD-FK-β).
+
+    A fresh box boots an empty pgvector, so the §8 Cortex gate can't pass until
+    the demo corpus is seeded. ``up`` runs this automatically; this command is
+    the manual / re-ingest hatch. Idempotent: a non-empty corpus is left as-is
+    unless ``--force`` (so a customer's own ingest is never clobbered).
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.ingest import run_ingest
+
+    result = run_ingest(
+        default_config(), force=force, on_event=lambda msg: typer.echo("  " + msg)
+    )
+    if not result.ok:
+        typer.echo(f"\nIngest FAILED — {result.error}", err=True)
+        raise typer.Exit(code=1)
+    if result.skipped:
+        typer.echo(f"\nCorpus already present — {result.sources} sources (use --force to re-ingest).")
+    else:
+        typer.echo(
+            f"\nIngested {result.chunks_written} chunks from {result.sources} sources "
+            "into advisor_corpus_v01."
+        )
+    raise typer.Exit(code=0)
+
+
 @app.command("repair")
 def repair(
     component: str = typer.Argument(..., help="Component to repair: advisor | cortex | lane."),

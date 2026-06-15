@@ -141,6 +141,23 @@ else
    Update the flagged component, or set OF_SKIP_DOCTOR=1 to bypass at your own risk."
 fi
 
+# ---- 4b. source the NGC key for the NIM embedder ---------------------------
+# The v1 default Cortex embedder is the NGC NIM image; its compose service needs
+# NGC_API_KEY. The Field Edition box already runs NGC, so the key lives in
+# ~/.nim/secrets.env. Export it here so `up` (and `down`/`repair`) can resolve
+# it — `fieldkit` also reads this file directly, so this is belt-and-suspenders.
+NIM_SECRETS="${HOME}/.nim/secrets.env"
+if [ -z "${NGC_API_KEY:-}" ] && [ -f "$NIM_SECRETS" ]; then
+  # shellcheck disable=SC1090
+  . "$NIM_SECRETS" 2>/dev/null || true
+  [ -n "${NGC_API_KEY:-}" ] && export NGC_API_KEY
+fi
+if [ -z "${NGC_API_KEY:-}" ]; then
+  warn "no NGC_API_KEY found (env or ${NIM_SECRETS}). The v1 NIM embedder needs it;
+   'up' will stop at the stack phase with a fix. Export NGC_API_KEY or create
+   ${NIM_SECRETS} with a 'NGC_API_KEY=...' line, then re-run."
+fi
+
 # ---- 5. bring up the stack -------------------------------------------------
 if [ "${OF_SKIP_UP:-0}" = "1" ]; then
   say "license staged + box gated. OF_SKIP_UP=1 set — run the bring-up yourself:"

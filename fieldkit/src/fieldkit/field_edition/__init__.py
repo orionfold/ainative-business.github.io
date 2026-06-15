@@ -157,6 +157,18 @@ from fieldkit.field_edition.cosign import (
     orionfold_image_refs,
     verify_matrix,
 )
+from fieldkit.field_edition.ingest import (
+    CORPUS_PACK_PATH,
+    CORPUS_PACK_SHA,
+    CorpusPack,
+    CorpusSource,
+    IngestResult,
+    corpus_pack_sha,
+    ingest_pack,
+    load_corpus_pack,
+    plan_chunks,
+    run_ingest,
+)
 
 __all__ = [
     # doctor
@@ -272,4 +284,15 @@ __all__ = [
     "PROVEN_MATRIX_COSIGN_PUBKEY",
     "orionfold_image_refs",
     "verify_matrix",
+    # AD-FK-β: vendored Advisor demo corpus pack + the up `ingest` phase
+    "CORPUS_PACK_PATH",
+    "CORPUS_PACK_SHA",
+    "CorpusPack",
+    "CorpusSource",
+    "IngestResult",
+    "corpus_pack_sha",
+    "ingest_pack",
+    "load_corpus_pack",
+    "plan_chunks",
+    "run_ingest",
 ]

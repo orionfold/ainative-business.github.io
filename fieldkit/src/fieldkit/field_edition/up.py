@@ -15,6 +15,7 @@ Phases (ordered)::
     bundle    render + write the digest-pinned Compose bundle into ~/.orionfold
     pull      pull the default Advisor GGUF + embedder weights (resumable)
     stack     `docker compose up -d`  →  pgvector + embedder + the llama.cpp lane
+    ingest    seed the Cortex corpus (the vendored Advisor demo pack) into pgvector
     sidecar   start the pipx Arena cockpit on :7866 and wait for health
     resident  point Arena at the lane and warm the default model
     verify    (only with --verify) run the §8 first-boot eval gate + emit receipt
@@ -39,6 +40,8 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -87,6 +90,7 @@ PHASES: tuple[Phase, ...] = (
     Phase("bundle", "Compose bundle", "render + write ~/.orionfold/compose.yaml + .env", safe=True),
     Phase("pull", "Model pull", "pull the default Advisor GGUF + embedder weights (resumable)"),
     Phase("stack", "Container stack", "docker compose up -d (pgvector + embedder + lane)"),
+    Phase("ingest", "Cortex corpus", "ingest the vendored Advisor demo corpus into pgvector"),
     Phase("sidecar", "Arena cockpit", "start the pipx Arena sidecar on :7866"),
     Phase("resident", "Resident model", "point Arena at the lane and warm the default model"),
     Phase("verify", "First-boot gate", "run the §8 eval gate + emit the receipt", optional=True),
@@ -164,9 +168,11 @@ def _which(name: str) -> bool:
     return shutil.which(name) is not None
 
 
-def _run(cmd: list[str], *, timeout: int = 600) -> subprocess.CompletedProcess:
+def _run(
+    cmd: list[str], *, timeout: int = 600, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess:
     return subprocess.run(  # noqa: S603 — fixed argv, no shell
-        cmd, capture_output=True, text=True, timeout=timeout, check=False
+        cmd, capture_output=True, text=True, timeout=timeout, check=False, env=env
     )
 
 
@@ -188,6 +194,9 @@ class Executor:
         raise NotImplementedError
 
     def stack(self, config: FieldEditionConfig) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def ingest(self, config: FieldEditionConfig) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def sidecar(self, config: FieldEditionConfig) -> None:  # pragma: no cover
@@ -271,30 +280,110 @@ class LiveExecutor(Executor):
             )
         if not _which("docker"):
             raise PhaseError("docker not found", fix="install Docker CE (preinstalled on DGX OS 7.x)")
+        # AD-FK-α: the NIM embedder's compose service interpolates
+        # ${NGC_API_KEY:?…}. Source the operator's key (env → ~/.nim/secrets.env)
+        # into the compose environment so an unattended `up` works, and refuse
+        # with a named fix up front rather than letting Docker error cryptically.
+        env = _compose.compose_env(config)
+        if config.embedder.needs_ngc_key and not env.get("NGC_API_KEY"):
+            raise PhaseError(
+                "the NIM embedder needs an NGC API key but none was found",
+                fix=(
+                    "export NGC_API_KEY=… or create ~/.nim/secrets.env with a "
+                    "`NGC_API_KEY=…` line (the Field Edition box already runs NGC), "
+                    "then re-run `up`; or select the open embedder with "
+                    "`up --open-embedder` (v1.1)"
+                ),
+            )
         compose_path = config.home / "compose.yaml"
-        proc = _run(["docker", "compose", "-f", str(compose_path), "up", "-d"])
+        proc = _run(["docker", "compose", "-f", str(compose_path), "up", "-d"], env=env)
         if proc.returncode != 0:
             raise PhaseError(
                 f"`docker compose up -d` failed (exit {proc.returncode})",
                 fix=(proc.stderr or proc.stdout).strip()[:400] or "inspect `docker compose logs`",
             )
 
-    def sidecar(self, config: FieldEditionConfig) -> None:
-        # The Arena cockpit is the pipx fieldkit[arena] process (§5), not a
-        # compose service. Health-poll if it is already up; otherwise the
-        # operator brings it up via `fieldkit arena up` (wired fully at M2 with
-        # the bootstrap that owns the pipx install lifecycle).
+    def ingest(self, config: FieldEditionConfig) -> None:
+        # AD-FK-β: a fresh box boots an empty pgvector, so the §8 Cortex gate
+        # can't pass until the Advisor demo corpus is ingested. Seed it from the
+        # vendored pack (offline). Idempotent: a non-empty corpus is left as-is
+        # so a re-run / a customer's own ingest is never clobbered.
+        from fieldkit.field_edition.ingest import run_ingest
+
+        result = run_ingest(config)
+        if not result.ok:
+            raise PhaseError(
+                f"Cortex corpus ingest failed: {result.error}",
+                fix=(
+                    f"check the embedder (:{config.embedder.port}) + pgvector "
+                    f"(:{config.postgres.port}) are healthy, then re-run `up` "
+                    "(or `fieldkit field-edition ingest`) to resume"
+                ),
+            )
+        if not result.skipped and result.chunks_written == 0:
+            raise PhaseError(
+                "Cortex corpus ingest wrote 0 chunks",
+                fix="the vendored pack may be empty/corrupt — reinstall `fieldkit[arena]`",
+            )
+
+    @staticmethod
+    def _cockpit_command() -> list[str]:
+        """The argv that starts the Arena cockpit. Prefer the ``fieldkit``
+        console script that sits beside the running interpreter (the venv/pipx
+        install ``up`` is itself running from), falling back to one on PATH.
+        ``fieldkit`` ships no ``python -m`` entry, so the console script is the
+        only invocation."""
+        sibling = Path(sys.executable).with_name("fieldkit")
+        fk = str(sibling) if sibling.exists() else (shutil.which("fieldkit") or "fieldkit")
+        return [fk, "arena", "up", "--no-open"]
+
+    def _cockpit_healthy(self) -> bool:
         import httpx  # core dep
 
-        url = "http://127.0.0.1:7866/healthz"
         try:
-            if httpx.get(url, timeout=2.0).status_code == 200:
-                return
+            return httpx.get("http://127.0.0.1:7866/healthz", timeout=2.0).status_code == 200
         except httpx.HTTPError:
-            pass
+            return False
+
+    def sidecar(self, config: FieldEditionConfig) -> None:
+        # AD-FK-γ: the Arena cockpit is the pipx/venv fieldkit[arena] process
+        # (§5), not a compose service — but an unattended `up` (`curl … | sh`)
+        # must START it, not just health-poll and bail. `fieldkit arena up`
+        # blocks (uvicorn), so spawn it detached, log to ~/.orionfold/cockpit.log,
+        # record the pid, and poll :7866/healthz until ready.
+        if self._cockpit_healthy():
+            return  # already up (re-entrant re-run)
+        config.home.mkdir(parents=True, exist_ok=True)
+        log_path = config.home / "cockpit.log"
+        cmd = self._cockpit_command()
+        try:
+            log = open(log_path, "ab")  # noqa: SIM115 — handed to the child, stays open
+            proc = subprocess.Popen(  # noqa: S603 — fixed argv, no shell
+                cmd,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,  # survive `up` exiting (it's the long-lived cockpit)
+            )
+        except OSError as exc:
+            raise PhaseError(
+                f"could not start the Arena cockpit: {exc}",
+                fix="start it by hand with `fieldkit arena up --no-open`",
+            ) from exc
+        (config.home / "cockpit.pid").write_text(f"{proc.pid}\n", encoding="utf-8")
+        # Poll up to ~30 s for health; bail early if the process dies.
+        for _ in range(60):
+            if proc.poll() is not None:
+                raise PhaseError(
+                    f"the Arena cockpit exited early (rc={proc.returncode})",
+                    fix=f"inspect {log_path}; common cause: the `[arena]` extra is not installed",
+                )
+            if self._cockpit_healthy():
+                return
+            time.sleep(0.5)
         raise PhaseError(
-            "Arena cockpit not reachable on :7866",
-            fix="start it with `fieldkit arena up --no-open` (the bootstrap owns this at M2)",
+            "Arena cockpit did not become healthy on :7866 within 30s",
+            fix=f"inspect {log_path}; it may still be warming — re-run `up` to resume",
         )
 
     def resident(self, config: FieldEditionConfig) -> None:

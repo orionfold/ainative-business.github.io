@@ -135,6 +135,7 @@ packages = ["src/fieldkit"]
 include = [
   "src/fieldkit/**/*.py",
   "src/fieldkit/**/data/*.json",
+  "src/fieldkit/**/data/*.jsonl.gz",  # AD-FK-β: the vendored Advisor demo corpus pack
   "src/fieldkit/**/data/**/*.yaml",
   "src/fieldkit/eval/rubrics/*.md",
   "src/fieldkit/assets/*.mplstyle",

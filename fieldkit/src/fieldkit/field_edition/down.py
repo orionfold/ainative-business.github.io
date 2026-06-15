@@ -36,6 +36,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
+from fieldkit.field_edition import compose as _compose
 from fieldkit.field_edition.compose import FieldEditionConfig, default_config
 
 __all__ = [
@@ -99,9 +100,11 @@ def _which(name: str) -> bool:
     return shutil.which(name) is not None
 
 
-def _run(cmd: list[str], *, timeout: int = 300) -> subprocess.CompletedProcess:
+def _run(
+    cmd: list[str], *, timeout: int = 300, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess:
     return subprocess.run(  # noqa: S603 — fixed argv, no shell
-        cmd, capture_output=True, text=True, timeout=timeout, check=False
+        cmd, capture_output=True, text=True, timeout=timeout, check=False, env=env
     )
 
 
@@ -130,7 +133,11 @@ class LiveDownExecutor(DownExecutor):
         cmd = ["docker", "compose", "-f", str(compose_path), "down"]
         if remove_volumes:
             cmd.append("-v")
-        proc = _run(cmd)
+        # AD-FK-α: the bundle interpolates ${NGC_API_KEY:?…}; a teardown does not
+        # need a real key, so supply a placeholder when none is found rather than
+        # letting `compose down` fail on the guard for a box being removed.
+        env = _compose.compose_env(config, placeholder_if_missing=True)
+        proc = _run(cmd, env=env)
         if proc.returncode != 0:
             raise RuntimeError(
                 f"`docker compose down` failed (exit {proc.returncode}): "
