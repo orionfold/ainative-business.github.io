@@ -6,6 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+- **`fieldkit.field_edition.advisor` — the refusal scorer no longer false-FAILs
+  valid refusals phrased without the canonical "does not support" clause.**
+  Surfaced by the first-customer happy-path simulation (running the real
+  `get-orionfold.sh` bootstrap end-to-end on a pristine box): the Q4_K_M Advisor
+  lane refuses correctly but in ≥2 wordings (temp-0 llama-server is not
+  bitwise-deterministic), and a valid refusal such as *"…does not include private
+  or live operator state, so this question's scope is **unsupported**. Citations:
+  []"* matched none of `_REFUSAL_WORDS`. With the §8 cortex grounded-contract's
+  all-or-nothing 16/16 refusal-hygiene threshold, that one unrecognized phrasing
+  **deterministically failed the cortex verify gate on a healthy box** (recall
+  0.977 + citation 95.7% both passed; the model was refusing correctly — the
+  scorer was wrong). Broadened `_REFUSAL_WORDS` with the lane's actual decline
+  vocabulary (`"does not include"`, `"unsupported"`, `"out of scope"`).
+  `refusal_ok` is consulted only for expected-`refuse` rows, so answer/route
+  scoring is untouched and the published Advisor curveball contract is unchanged
+  (re-verified live: 85.7% / refusals 9/9, same 3 misses; cortex now PASS, 16/16).
+  NOTE: this diverges the `field_edition` scorer from its
+  `scripts/orionfold_advisor/preflight._score_output` port — preflight (the
+  frozen-receipt generator) should get the same broadening for fidelity, deferred
+  (re-freezing published receipts is operator-gated). +1 regression test → 142
+  `field_edition` tests.
+
 ### Added
 - **`fieldkit.field_edition.verify` — the optional §8 `hermes` gate is now
   measured LIVE (the last unwired first-boot verify gate).** `LiveGateRunner.hermes`

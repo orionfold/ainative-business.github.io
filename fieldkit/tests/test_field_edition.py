@@ -971,6 +971,33 @@ def test_score_output_citation_refusal_route() -> None:
     assert not score_output(route, "Do X.\nCitations: [p]")["passed"]
 
 
+def test_score_output_recognizes_valid_refusal_phrasings() -> None:
+    """The lane refuses correctly in >=2 wordings (temp-0 llama-server is not
+    bitwise-deterministic); the refusal scorer must recognize all of them, not
+    just the canonical 'does not support'. Regression for the first-customer
+    sim where probe 0096 false-FAILed the §8 cortex gate with a valid refusal
+    phrased 'scope is unsupported' / 'does not include'."""
+    from fieldkit.field_edition.advisor import score_output
+
+    refuse = {"expected_behavior": "refuse", "expected_source_ids": [], "messages": []}
+    # Every one of these is a correct refusal (empty citations + a decline) the
+    # Q4_K_M Advisor lane actually emitted in the first-customer run.
+    valid_refusals = (
+        "The retrieved public context does not support this question. Citations: []",
+        "The retrieved public context does not include private or live operator "
+        "state, so this question's scope is unsupported. Citations: []",
+        "The public corpus retrieved here does not provide material on that topic, "
+        "so the question is unsupported. Citations: []",
+        "I can't answer that from the retrieved public context — private or live "
+        "operator state is out of scope for Advisor. Citations: []",
+    )
+    for out in valid_refusals:
+        assert score_output(refuse, out)["passed"], out
+    # A real (uncited) answer to a refuse row still fails — broadening the
+    # refusal vocabulary must not credit a non-refusal.
+    assert not score_output(refuse, "Sure: foo. Citations: [leaked]")["passed"]
+
+
 def test_score_output_flags_thinking_leak() -> None:
     from fieldkit.field_edition.advisor import score_output
 

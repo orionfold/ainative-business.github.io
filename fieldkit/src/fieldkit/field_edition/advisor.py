@@ -75,10 +75,13 @@ _REFUSAL_WORDS = (
     "not support",
     "does not support",
     "does not provide",
+    "does not include",
     "do not have",
     "cannot answer",
     "can't answer",
     "insufficient",
+    "unsupported",
+    "out of scope",
 )
 _RISKY_PATTERNS = (
     r"\.env\.local",
