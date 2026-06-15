@@ -27,9 +27,9 @@
   --color-text: #1D1F25;
   --color-text-muted: #5C6470;
   --color-text-dim: #8A919C;
-  --color-primary: #D74D26;
-  --color-primary-dim: #FFA981;
-  --color-primary-glow: #F7653B;
+  --color-primary: #1f54b8;
+  --color-primary-dim: #9dbaf0;
+  --color-primary-glow: #296cd8;
   --color-border: #E4E7EC;
 
   --font-display: "Geist Sans", system-ui, sans-serif;
@@ -40,7 +40,7 @@
 /* ---------- Design tokens — _SPECS/design-system-v1.md LIGHT theme (light-only since 2026-06-06).
    The §3 semantic contract (--canvas/--ink/--green…) lives in design-tokens.css (imported above);
    the legacy --color-*/--svg-* names below carry the same palette so every existing consumer
-   flips without edits. Spark accent = orange #F7653B / ink #D74D26 / soft #FEE2D5. ---------- */
+   flips without edits. Orionfold accent (v0.34) = indigo #296cd8 / ink #1f54b8 / soft #dbe7fb. ---------- */
 :root {
   /* surfaces */
   --color-surface:         #F7F8FA; /* canvas */
@@ -52,10 +52,10 @@
   --color-text-muted: #5C6470; /* mute */
   --color-text-dim:   #8A919C; /* faint */
 
-  /* primary accent — spark orange (design-system §6) */
-  --color-primary:      #D74D26; /* accent-ink: text-safe */
-  --color-primary-dim:  #FFA981; /* orange light1: subdued accents/borders */
-  --color-primary-glow: #F7653B; /* orange mid: emphasis fills */
+  /* primary accent — Orionfold blue-indigo (design-system §6; v0.34) */
+  --color-primary:      #1f54b8; /* indigo dark: text-safe */
+  --color-primary-dim:  #9dbaf0; /* indigo light: subdued accents/borders */
+  --color-primary-glow: #296cd8; /* indigo mid: emphasis fills */
 
   /* structure */
   --color-border: #E4E7EC;

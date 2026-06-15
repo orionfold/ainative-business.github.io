@@ -10,8 +10,9 @@
  * panes should consume THESE names directly. Token NAMES stay stable; values
  * may evolve with the system of record (self-health's copy).
  *
- * Spark accent (locked 2026-06-06, from the §2.1 palette — distinct from
- * self-health teal / self-wealth blue / agency purple): orange.
+ * Orionfold accent (v0.34, retargeted from spark-orange 2026-06-15 — _IDEAS Part E /
+ * orionfold-brand-alignment-v1.md): blue-indigo primary + DGX-gold secondary.
+ * Token NAMES stay the §3 shared contract; only the spark slot's VALUES change.
  */
 
 :root {
@@ -34,10 +35,19 @@
   --blue:   #1283DA; --blue-ink:   #2750AE; --blue-soft:   #CFDFFF;
   --violet: #7C39ED; --violet-ink: #6B1CB0; --violet-soft: #EDE2FE;
 
-  /* ---- spark accent (brand/wordmark, active toggles, focus rings — never status) ---- */
-  --accent:      #F7653B; /* orange mid */
-  --accent-ink:  #D74D26; /* orange dark1 */
-  --accent-soft: #FEE2D5; /* orange light2 */
+  /* ---- Orionfold accent (brand/wordmark, active toggles, focus rings — never status).
+     v0.34: spark orange retired → blue-indigo primary (oklch 0.55 0.18 260). ---- */
+  --accent:      #296cd8; /* indigo mid  (oklch 0.55 0.18 260) */
+  --accent-ink:  #1f54b8; /* indigo dark — text-safe */
+  --accent-soft: #dbe7fb; /* indigo pale — chip/badge bg */
+
+  /* ---- DGX-Spark gold secondary (warm accent on narrative surfaces; keeps the hardware tie-in) ---- */
+  --gold:      #c99414; /* gold mid  (oklch 0.70 0.14 82) */
+  --gold-ink:  #8f6a00; /* gold dark — text-safe */
+  --gold-soft: #f5e7c0; /* gold pale — chip/badge bg */
+
+  /* ---- deep navy — gradient/chip anchor for premium narrative surfaces ---- */
+  --orbit-ink: #142643;
 }
 
 /*
