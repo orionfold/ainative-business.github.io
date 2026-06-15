@@ -154,20 +154,33 @@ if [ -z "${NGC_API_KEY:-}" ] && [ -f "$NIM_SECRETS" ]; then
 fi
 if [ -z "${NGC_API_KEY:-}" ]; then
   warn "no NGC_API_KEY found (env or ${NIM_SECRETS}). The v1 NIM embedder needs it;
-   'up' will stop at the stack phase with a fix. Export NGC_API_KEY or create
-   ${NIM_SECRETS} with a 'NGC_API_KEY=...' line, then re-run."
+   the guided onboarding will prompt you for one (paste a free key from
+   https://org.ngc.nvidia.com/setup/api-keys) and save it to ${NIM_SECRETS}."
 fi
 
-# ---- 5. bring up the stack -------------------------------------------------
+# ---- 5. guided onboarding (the customer front door) ------------------------
+# `onboard` is the Rich-rendered guided flow over `up`: it re-checks the matrix,
+# captures a missing NGC key, narrates the model pull with a manifest + 'while
+# you wait' cards, and opens the cockpit warm. `up` stays the headless engine and
+# the documented fallback. Re-entrant: a re-run resumes from the stopped phase.
 if [ "${OF_SKIP_UP:-0}" = "1" ]; then
   say "license staged + box gated. OF_SKIP_UP=1 set — run the bring-up yourself:"
-  say "  $FK field-edition up"
+  say "  $FK field-edition onboard   (guided)   ·   $FK field-edition up   (headless)"
   exit 0
 fi
 
-say "bringing up the Field Edition stack (this pulls the proven matrix + runs the first-boot verify) ..."
-"$FK" field-edition up || die \
-"bring-up did not complete. 'up' is re-entrant — fix the reported cause and re-run
-   '$FK field-edition up'; completed phases are skipped."
+say "starting the guided onboarding (preflight · NGC key · model pull · first chat) ..."
+# Read the NGC prompt from the controlling terminal even under `curl … | sh`
+# (the script's own stdin is the pipe). No TTY (headless/CI) → skip the auto-open
+# and rely on a pre-seeded key (a blank prompt aborts honestly with the fix).
+if [ -e /dev/tty ]; then
+  "$FK" field-edition onboard < /dev/tty || die \
+"onboarding did not complete. It is re-entrant — fix the reported cause and re-run
+   '$FK field-edition onboard'; completed phases are skipped."
+else
+  "$FK" field-edition onboard --no-open || die \
+"onboarding did not complete. It is re-entrant — fix the reported cause and re-run
+   '$FK field-edition onboard'; completed phases are skipped."
+fi
 
 say "${G}done.${R} The Arena cockpit + Advisor + Cortex are up. Open the cockpit and run a query."

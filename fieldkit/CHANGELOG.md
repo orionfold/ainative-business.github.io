@@ -6,6 +6,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+- **`fieldkit field-edition onboard` — a guided onboarding TUI** (new
+  `fieldkit.field_edition.onboard`: `run_onboard`, `ensure_ngc_key`,
+  `VALUE_CARDS`, `download_manifest`, renderable builders). A Rich-rendered linear
+  flow over the headless `up`/`doctor` engines: greet → preflight matrix →
+  capture a free NGC key if missing → narrate the bring-up with a named download
+  manifest + "while you wait" orientation cards (one per phase) → open the cockpit
+  warm. `curl … | sh` (`get-orionfold.sh`) now invokes `onboard` (reading the NGC
+  prompt from `/dev/tty`); `up` stays the documented headless fallback. Rich, not
+  Textual, so it degrades cleanly under pipes/CI. +15 tests.
+- **`fieldkit.field_edition.compose.write_ngc_api_key`** — the write-side
+  complement to `read_ngc_api_key`; persists a captured key to `~/.nim/secrets.env`
+  (preserves other lines, mode 0600). Used by the onboard NGC capture.
+- **Arena settings — an OpenRouter key form** (`GET`/`POST /api/openrouter-key`).
+  Auto-detects a key in the env / `.env.local` (shows it masked, with provenance),
+  else lets the operator paste + save one — written to the gitignored `.env.local`
+  the sidecar loads + set live in `os.environ` so the cloud catalog + spend tile
+  appear with no restart. The status route never returns the raw value; the key
+  never leaves the box (Orionfold never sees it). Baked into `_webui`
+  (`OpenRouterKeySettings.jsx`). +3 tests.
+
+### Fixed
+- **The telemetry rail's `hidden` cells now actually hide.** `.telemetry-rail__cell
+  { display: flex }` overrode the UA `[hidden] { display: none }`, so a `hidden`
+  cell (the run cell, and the OpenRouter spend cell gated by the v0.34 cloud-lane
+  hide rule) still rendered. Added a higher-specificity `.telemetry-rail__cell[hidden]
+  { display: none }`. The cloud-lane spend tile now genuinely disappears on a
+  keyless box (CDP-verified via `offsetParent`, not just the `.hidden` property).
+
 ### Changed
 - `arena build` (`webui.py`) now injects `FIELDKIT_VERSION` into the astro build
   env so the cockpit wordmark badge tracks the fieldkit version it was baked from

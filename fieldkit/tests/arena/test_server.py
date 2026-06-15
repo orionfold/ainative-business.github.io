@@ -2049,6 +2049,89 @@ def test_compare_options_hides_cloud_without_key(
         assert "local" in data
 
 
+def test_openrouter_key_status_and_save_roundtrip(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GET reports no key on a fresh box; POST upserts it into .env.local + sets
+    it live; GET then reports configured/source=file/masked; and the cloud-lane
+    hide rule flips — /api/compare/options now lets the catalog through."""
+    import fieldkit.arena.server as srv
+
+    # Private os.environ copy so the handler's direct write is auto-restored.
+    monkeypatch.setattr(srv.os, "environ", dict(srv.os.environ))
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
+    monkeypatch.setattr(
+        srv,
+        "_openrouter_catalog",
+        lambda *a, **k: [{"id": "openai/gpt-5.5", "name": "GPT-5.5", "created": 1}],
+    )
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        before = client.get("/api/openrouter-key").json()
+        assert before["configured"] is False
+        assert before["source"] is None
+        assert before["masked"] == ""
+        # cloud hidden while keyless
+        assert client.get("/api/compare/options").json()["has_key"] is False
+
+        # A placeholder-shaped fake (not a real-looking sk-or- token) so the
+        # repo secret-scan doesn't flag the test fixture.
+        fake = "placeholder-or-key-abcdefxyz"
+        r = client.post("/api/openrouter-key", json={"key": fake})
+        assert r.status_code == 200
+        saved = r.json()
+        assert saved["configured"] is True and saved["source"] == "file"
+        assert "…" in saved["masked"]  # masked form, not the raw value
+        assert saved["masked"] != fake  # never echoes the raw secret
+
+        # persisted to the .env.local the loader reads
+        env_file = repo_root / ".env.local"
+        assert env_file.is_file()
+        assert f"OPENROUTER_API_KEY={fake}" in env_file.read_text()
+
+        after = client.get("/api/openrouter-key").json()
+        assert after["configured"] is True and after["source"] == "file"
+        # cloud-lane hide rule flips: the catalog is now allowed through.
+        assert client.get("/api/compare/options").json()["has_key"] is True
+
+
+def test_openrouter_key_save_rejects_empty(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A blank/whitespace key is rejected (422) — never writes an empty value."""
+    import fieldkit.arena.server as srv
+
+    monkeypatch.setattr(srv.os, "environ", dict(srv.os.environ))
+    monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        assert client.post("/api/openrouter-key", json={"key": ""}).status_code == 422
+        assert client.post("/api/openrouter-key", json={"key": "   "}).status_code == 422
+        assert not (repo_root / ".env.local").exists()
+
+
+def test_openrouter_key_upsert_preserves_other_vars(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Saving the key replaces only its line — other .env.local vars survive."""
+    import fieldkit.arena.server as srv
+
+    monkeypatch.setattr(srv.os, "environ", dict(srv.os.environ))
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
+    env_file = repo_root / ".env.local"
+    env_file.write_text("NGC_API_KEY=keep-me\nOPENROUTER_API_KEY=old-key\nFOO=bar\n")
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        client.post("/api/openrouter-key", json={"key": "sk-or-new"})
+    text = env_file.read_text()
+    assert "NGC_API_KEY=keep-me" in text
+    assert "FOO=bar" in text
+    assert "OPENROUTER_API_KEY=sk-or-new" in text
+    assert "old-key" not in text
+
+
 def test_telemetry_payload_carries_resident_lane() -> None:
     """Idle ticks surface the warm resident so the rail shows it (not 'no warm
     brain'). The hub reads it via the injected resident reader."""

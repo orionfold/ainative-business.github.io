@@ -118,6 +118,25 @@ try {
     <link rel="icon" type="image/svg+xml" href={href('favicon.svg')} />
     <title>{title}</title>
     {isDemo && <script is:inline src={href('arena-demo/boot.js')}></script>}
+    {/* First-run redirect (Decision 7, flag-gated). A flag-unset visitor landing
+        on the cockpit index is sent once to /arena/welcome/ (which sets the
+        flag); a returning visitor is never bounced. Loopback/LAN only + never in
+        demo, so the public mirror + the marketing replay are untouched. Runs in
+        <head> before paint to avoid a cockpit flash. */}
+    {active === 'cockpit' && !isDemo && (
+      <script is:inline define:vars={{ welcomeHref: href('arena/welcome/') }}>
+        (function () {
+          try {
+            var h = location.hostname;
+            var local = h === '127.0.0.1' || h === 'localhost' || /^10\.0\.0\.\d+$/.test(h);
+            if (!local) return;
+            if (!localStorage.getItem('of_arena_welcomed')) {
+              location.replace(welcomeHref);
+            }
+          } catch (_e) { /* private mode / storage off → no redirect */ }
+        })();
+      </script>
+    )}
   </head>
   <body class="arena-app__body" data-zone={zone}>
     <!--
@@ -230,6 +249,14 @@ try {
           <span class="arena-app__crumb" aria-hidden="true">
             <span class="arena-app__crumb-sep">›</span>{activeLabel}
           </span>
+        )}
+        {/* Persistent way back to the first-run welcome surface from anywhere
+            deeper in the cockpit (Decision 7 — re-reachable). Hidden on the
+            welcome page itself. */}
+        {active !== 'welcome' && (
+          <a class="arena-app__welcome-link" href={href('arena/welcome/')} title="Back to your Arena welcome">
+            <span class="arena-app__welcome-star" aria-hidden="true">✦</span>Welcome
+          </a>
         )}
       </div>
 
@@ -523,6 +550,36 @@ try {
       }
       @media (max-width: 780px) {
         .arena-app__crumb { display: none; }
+      }
+
+      /* Persistent "back to welcome" affordance — a quiet gold-starred pill in
+         the lead area, always reachable from deeper in the cockpit (Decision 7). */
+      .arena-app__welcome-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.32rem;
+        margin-left: 0.2rem;
+        padding: 0.18rem 0.52rem;
+        border: 1px solid color-mix(in srgb, var(--arena-accent) 30%, transparent);
+        border-radius: 999px;
+        font-family: var(--arena-mono);
+        font-size: 0.62rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--arena-text-mute);
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+      }
+      .arena-app__welcome-link:hover {
+        color: var(--arena-text);
+        border-color: color-mix(in srgb, var(--arena-accent) 55%, transparent);
+        background: color-mix(in srgb, var(--arena-accent) 8%, transparent);
+      }
+      .arena-app__welcome-star { color: var(--arena-gold, #c99414); font-size: 0.74rem; }
+      @media (max-width: 780px) {
+        .arena-app__welcome-link { display: none; }
       }
 
       .arena-app__tabs {
@@ -1426,6 +1483,11 @@ try {
         gap: 0.2rem;
         min-width: 0;
       }
+      /* The `display: flex` above overrides the UA `[hidden] { display: none }`,
+         so a `hidden` cell (the run cell, and the OpenRouter spend cell hidden
+         until a key is wired — v0.34 cloud-lane hide rule) would still show.
+         This class+attribute selector (higher specificity) makes `hidden` work. */
+      .telemetry-rail__cell[hidden] { display: none; }
       .telemetry-rail__label {
         font-family: var(--arena-mono);
         font-size: 0.58rem;
@@ -3881,6 +3943,23 @@ try {
         letter-spacing: 0.04em;
       }
       .arena-app .gsettings__banner-note { font-size: 0.74rem; color: var(--arena-text-mute); line-height: 1.45; }
+      /* --ok variant: a positive (brand-indigo) confirmation banner, vs the
+         default amber alert. Used by the OpenRouter key surface when a key is
+         wired ("Cloud lanes enabled"). */
+      .arena-app .gsettings__banner.orkey__banner--ok {
+        border-color: var(--arena-accent);
+        background: color-mix(in srgb, var(--arena-accent) 9%, transparent);
+      }
+      .arena-app .gsettings__banner.orkey__banner--ok .gsettings__banner-flag { color: var(--arena-accent); }
+      .arena-app .orkey__privacy {
+        border-left: 2px solid color-mix(in srgb, var(--arena-accent) 45%, transparent);
+        padding-left: 0.7rem; margin-top: 0.1rem;
+      }
+      .arena-app .orkey code {
+        font-family: var(--arena-mono); font-size: 0.72rem;
+        background: color-mix(in srgb, var(--arena-text) 8%, transparent);
+        padding: 0.05rem 0.3rem; border-radius: 0.25rem;
+      }
       .arena-app .gsettings__form { display: flex; flex-direction: column; gap: 1.25rem; }
       .arena-app .gsettings__row { display: flex; flex-direction: column; gap: 0.35rem; }
       .arena-app .gsettings__label {

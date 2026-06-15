@@ -1106,6 +1106,16 @@ def create_app(
 
         models: Optional[list[str]] = None
 
+    class OpenRouterKeyRequest(BaseModel):
+        """``POST /api/openrouter-key`` body — the operator/customer wires their
+        OWN OpenRouter API key so the cloud lanes light up (the v0.34 cloud-lane
+        hide rule reveals the catalog + spend tile once a key exists). Saved to
+        the gitignored ``.env.local`` the sidecar already loads; the key never
+        leaves the box (Orionfold never sees it). Min-length-1 rejects an empty
+        save at the Pydantic layer (422)."""
+
+        key: str = Field(min_length=1)
+
     class LocalLoadRequest(BaseModel):
         """``POST /api/local/load`` body — pre-warm an on-demand local lane.
 
@@ -2325,6 +2335,51 @@ def create_app(
             raise HTTPException(status_code=422, detail=str(exc))
         cfg, sources = load_config()
         return {"ok": True, "effective": cfg.to_dict(), "sources": sources}
+
+    # OpenRouter key config (v0.34 cloud-lane hide rule). Auto-detects a key
+    # already in the env / .env.local (founding-25 boxes that exported one), and
+    # otherwise lets the customer paste + save their OWN key — written to the
+    # gitignored .env.local the sidecar loads + set live in os.environ so the
+    # cloud catalog + spend tile appear with NO restart. The key stays on the
+    # box (Orionfold never sees it); the status route never returns the raw value.
+    @app.get("/api/openrouter-key")
+    async def api_openrouter_key_status() -> dict[str, Any]:
+        """Whether an OpenRouter key is wired + its provenance (masked)."""
+        key = os.environ.get("OPENROUTER_API_KEY") or ""
+        source = None
+        if key:
+            source = "file" if _env_local_defines(root, "OPENROUTER_API_KEY") else "env"
+        return {
+            "configured": bool(key),
+            "source": source,  # "file" (saved here) | "env" (exported) | None
+            "masked": _mask_secret(key),
+            "env_path": str((root / ".env.local")),
+        }
+
+    @app.post("/api/openrouter-key")
+    async def api_openrouter_key_save(body: OpenRouterKeyRequest) -> dict[str, Any]:
+        """Upsert the key into ``.env.local`` + set it live, then bust the
+        catalog cache so the dropdown repopulates on the next options fetch.
+        The key never leaves the box."""
+        key = body.key.strip()
+        if not key:
+            raise HTTPException(status_code=422, detail="empty key")
+        try:
+            _upsert_env_local(root, "OPENROUTER_API_KEY", key)
+        except OSError as exc:
+            raise HTTPException(
+                status_code=500, detail=f"could not write .env.local: {exc}"
+            )
+        os.environ["OPENROUTER_API_KEY"] = key
+        # Force the next /api/compare/options to re-fetch the live catalog.
+        _OR_CATALOG_CACHE["fetched_monotonic"] = None
+        _OR_CATALOG_CACHE["models"] = None
+        return {
+            "ok": True,
+            "configured": True,
+            "source": "file",
+            "masked": _mask_secret(key),
+        }
 
     # BUG-3 / AF-29 — the G3-arming disclosure + the price-refresh action. G3's
     # protection quietly depends on a price row existing for the exact model_id;
@@ -7682,6 +7737,73 @@ def _load_env_local(repo_root: str | None = None) -> list[str]:
         except OSError:
             continue
     return loaded
+
+
+def _mask_secret(secret: str) -> str:
+    """Render a secret for display without leaking it — first 6 + last 4, the
+    middle elided. Short secrets collapse to ``••••``. Never returns the raw
+    value (the key stays on the box; the UI shows only this)."""
+    s = (secret or "").strip()
+    if not s:
+        return ""
+    if len(s) <= 12:
+        return "•" * len(s)
+    return f"{s[:6]}…{s[-4:]}"
+
+
+def _env_local_defines(repo_root: str | os.PathLike[str] | None, name: str) -> bool:
+    """True if ``name`` is assigned in ``repo_root/.env.local`` — lets the key
+    status report ``source=file`` vs ``env`` once the value is already in
+    ``os.environ`` (the loader erases that distinction)."""
+    base = Path(repo_root) if repo_root else Path.cwd()
+    try:
+        path = (base / ".env.local").resolve()
+        if not path.is_file():
+            return False
+        for raw in path.read_text().splitlines():
+            line = raw.strip()
+            if line.startswith("export "):
+                line = line[len("export ") :].strip()
+            key = line.partition("=")[0].strip()
+            if key == name and "=" in line:
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def _upsert_env_local(
+    repo_root: str | os.PathLike[str] | None, name: str, value: str
+) -> Path:
+    """Set ``name=value`` in ``repo_root/.env.local`` — the gitignored file the
+    sidecar loads — preserving every other line (replace the existing assignment
+    in place, else append). Atomic (temp + ``os.replace``) and mode 0600 (it
+    holds a secret). The value stays on the box; nothing is transmitted."""
+    base = Path(repo_root) if repo_root else Path.cwd()
+    path = (base / ".env.local").resolve()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+    if path.is_file():
+        lines = path.read_text().splitlines()
+    replaced = False
+    for i, raw in enumerate(lines):
+        stripped = raw.strip()
+        head = stripped[len("export ") :] if stripped.startswith("export ") else stripped
+        if head.partition("=")[0].strip() == name and "=" in head:
+            lines[i] = f"{name}={value}"
+            replaced = True
+            break
+    if not replaced:
+        lines.append(f"{name}={value}")
+    body = "\n".join(lines) + "\n"
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(body)
+    try:
+        os.chmod(tmp, 0o600)
+    except OSError:
+        pass
+    os.replace(tmp, path)
+    return path
 
 
 def serve(

@@ -17,10 +17,11 @@
 // <GuardrailSettings> island renders a short offline note instead of the form.
 import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
 import GuardrailSettings from '../../components/arena/GuardrailSettings.jsx';
+import OpenRouterKeySettings from '../../components/arena/OpenRouterKeySettings.jsx';
 
 const title = 'Orionfold Arena — Settings';
 const description =
-  'Operator config for the cloud-run eval guardrails — view and live-edit the per-run cost cap and stall window, with per-field provenance and a master on/off toggle. Edits take effect on the next cloud eval with no restart.';
+  'Operator config for the Arena cockpit — wire your own OpenRouter key to enable cloud lanes (your key stays on the box; Orionfold never sees it), and view/live-edit the cloud-run eval guardrails (cost cap + stall window). Edits take effect with no restart.';
 ---
 <ArenaAppLayout title={title} description={description} active="settings">
 
@@ -28,15 +29,30 @@ const description =
     <header class="arena-pane__head">
       <span class="arena-pane__head-title">Settings</span>
       <span class="arena-pane__head-meta">
-        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">cloud-eval guardrails · cost cap · stall window</span>
+        <span style="font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.18em; color: var(--arena-text-dim);">cloud lanes · eval guardrails</span>
         <span style="opacity: 0.4;">·</span>
         <span style="font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-text-mute);">
-          live — next run, no restart
+          live — no restart
         </span>
       </span>
     </header>
     <div class="arena-pane__body">
       <section class="gsettings-intro">
+        <h2 class="gsettings-intro__title">Cloud lanes (OpenRouter key)</h2>
+        <p class="gsettings-intro__lede">
+          Your Advisor runs <b>locally</b> — no cloud key needed. Wire your own OpenRouter key only
+          if you also want to chat with or compare against frontier cloud models. The cloud catalog
+          and the spend tile stay hidden until a key exists. <b>Your key never leaves this box —
+          Orionfold never sees it.</b>
+        </p>
+      </section>
+
+      {/* auto-detect a key in env/.env.local, else paste + save locally;
+          GET/POST /api/openrouter-key (the key is written to the gitignored
+          .env.local the sidecar loads + set live — no restart). */}
+      <OpenRouterKeySettings client:only="preact" />
+
+      <section class="gsettings-intro" style="margin-top: 2.25rem;">
         <h2 class="gsettings-intro__title">Cloud-eval guardrails</h2>
         <p class="gsettings-intro__lede">
           The bounds on a <b>metered cloud</b> eval lane (a non-loopback model endpoint) — the fix

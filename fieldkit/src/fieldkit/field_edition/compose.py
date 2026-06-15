@@ -56,6 +56,7 @@ __all__ = [
     "compose_yaml",
     "render_env",
     "read_ngc_api_key",
+    "write_ngc_api_key",
     "compose_env",
     "unpinned_images",
     "write_bundle",
@@ -406,6 +407,45 @@ def read_ngc_api_key(secrets_path: Path | None = None) -> str | None:
         if sep and key.strip() == "NGC_API_KEY":
             return value.strip().strip('"').strip("'") or None
     return None
+
+
+def write_ngc_api_key(key: str, secrets_path: Path | None = None) -> Path:
+    """Persist ``NGC_API_KEY`` to ``~/.nim/secrets.env`` so the guided onboard
+    flow can capture a key the customer pastes (the read-side complement to
+    :func:`read_ngc_api_key`). Preserves any other lines already in the file
+    (replace the existing ``NGC_API_KEY`` assignment, else append); creates
+    ``~/.nim/`` if needed; writes mode 0600 (it holds a secret). Returns the
+    path. The key never leaves the box. Raises ``ValueError`` on a blank key."""
+    value = (key or "").strip()
+    if not value:
+        raise ValueError("NGC_API_KEY is empty")
+    path = secrets_path or NIM_SECRETS_PATH
+    path.parent.mkdir(parents=True, exist_ok=True)
+    lines: list[str] = []
+    if path.is_file():
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+    replaced = False
+    for i, raw in enumerate(lines):
+        stripped = raw.strip()
+        head = stripped[len("export ") :] if stripped.startswith("export ") else stripped
+        if head.partition("=")[0].strip() == "NGC_API_KEY" and "=" in head:
+            lines[i] = f"NGC_API_KEY={value}"
+            replaced = True
+            break
+    if not replaced:
+        lines.append(f"NGC_API_KEY={value}")
+    body = "\n".join(lines) + "\n"
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(body, encoding="utf-8")
+    try:
+        os.chmod(tmp, 0o600)
+    except OSError:
+        pass
+    os.replace(tmp, path)
+    return path
 
 
 def compose_env(

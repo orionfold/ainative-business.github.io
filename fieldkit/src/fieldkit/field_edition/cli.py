@@ -1,6 +1,6 @@
 # Copyright 2026 Manav Sehgal
 # SPDX-License-Identifier: Apache-2.0
-"""`fieldkit field-edition {doctor,up,verify,down,repair,rollback,update}`.
+"""`fieldkit field-edition {doctor,up,onboard,verify,down,repair,rollback,update}`.
 
 The installer / orchestration surface for the Arena Field Edition (§7 of
 ``_SPECS/arena-field-edition-v1.md``). Wired into the top-level CLI so
@@ -244,6 +244,48 @@ def down(
         "\nStack down. To remove the Arena cockpit too: `pipx uninstall fieldkit`."
     )
     raise typer.Exit(code=0)
+
+
+@app.command("onboard")
+def onboard(
+    no_open: bool = typer.Option(
+        False, "--no-open", help="Do not auto-open the cockpit at the end (headless / CI)."
+    ),
+    verify: bool = typer.Option(
+        False, "--verify", help="Also run the first-boot eval gate after bring-up."
+    ),
+    force: bool = typer.Option(
+        False, "--force", help="Re-run every phase, ignoring the saved checkpoint."
+    ),
+    open_embedder: bool = typer.Option(
+        False,
+        "--open-embedder",
+        help="Use the open no-NGC embedder (v1.1 path) instead of the v1 NIM default.",
+    ),
+) -> None:
+    """Guided onboarding — the customer-shaped front door (wraps doctor + up).
+
+    A Rich-rendered linear flow: greet, run the preflight matrix, capture a free
+    NGC key if one is missing, bring the stack up while narrating each phase +
+    showing a named download manifest + 'while you wait' orientation cards, then
+    open the cockpit warm. The headless ``up``/``doctor`` engines do the work
+    underneath; ``onboard`` owns only the experience. Re-entrant — re-run to
+    resume from a stopped step. This is what ``curl … | sh`` invokes.
+    """
+    from fieldkit.field_edition.compose import default_config
+    from fieldkit.field_edition.onboard import run_onboard
+
+    config = default_config()
+    if open_embedder:
+        config = config.with_open_embedder()
+
+    result = run_onboard(
+        config,
+        auto_open=not no_open,
+        with_verify=verify,
+        force=force,
+    )
+    raise typer.Exit(code=0 if result.ok else 1)
 
 
 @app.command("ingest")

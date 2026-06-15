@@ -69,6 +69,15 @@ features:
   - name: "Vertical-proof cards on Cortex"
     benefit: "A model lane's whole promotion case on one screen: generator preflight, corpus pack with recall gates, routing costs per config, and the publish receipt with its gate chips."
     screenshot: "screenshots/14-advisor-proof-cards.png"
+  - name: "Your first run — the welcome"
+    benefit: "A dedicated, self-dismissing welcome screen greets your AI Researcher, grounded in your real corpus numbers, with three prompts to try — one of which teaches honest refusal in a single turn. Re-reachable any time from the top bar."
+    screenshot: "screenshots/15-welcome.png"
+  - name: "Bring your own cloud key"
+    benefit: "Your Advisor runs locally with no cloud key. Add an OpenRouter key only if you want to compare against frontier cloud models — the catalog and spend tile stay hidden until you do. Your key is written to a private file on your box; Orionfold never sees it."
+    screenshot: "screenshots/16-settings-cloud-key.png"
+  - name: "Guided console onboarding"
+    benefit: "One command brings the whole stack up: a preflight matrix, a free-key capture if you need one, a named download manifest, and orientation cards that teach the product while the model pulls — ending on a warm cockpit. curl-to-running, narrated."
+    screenshot: "screenshots/17-onboard-1-preflight.svg"
 ---
 
 ## A cockpit for the models on your own machine
@@ -168,10 +177,61 @@ lines and 135 tests** now — the same day-after-day leverage, applied to a tool
 that was already shipping. The post-launch block of `build-metrics.json` records
 that second arc.
 
+Then a third arc — the **v0.34 premium pass**: a blue-indigo and DGX-gold palette
+replaced the original orange across every surface; a dedicated, self-dismissing
+**welcome screen** now greets a first-time operator before the cockpit; the
+cloud-model catalog and its spend tile **hide until you wire your own OpenRouter
+key** (your Advisor is local-first, and your key never leaves the box); and a
+guided **console onboarding** turns the bare `curl … | sh` install into a
+narrated flow — preflight, key capture, a named download manifest, and
+orientation cards that teach the product while the model pulls. The tour below is
+the v0.34 cockpit.
+
 ## The feature tour
 
-The tour starts where the operator lands — the cockpit — and walks outward to
-the surfaces reached from it.
+The journey now starts *before* the cockpit — at the install — and walks outward
+to the surfaces reached once you are warm.
+
+### It starts at the install — guided onboarding
+
+![The guided onboarding flow: a welcome panel and the preflight support-matrix check, rendered in the terminal](screenshots/17-onboard-1-preflight.svg)
+
+*`fieldkit field-edition onboard` — a Rich-rendered linear flow over the headless
+bring-up engine. It greets you, then checks the box against the tested DGX OS /
+driver / CUDA / Docker matrix before pulling a single byte.*
+
+A bare `curl … | sh` worked, but it read as a wall of `pip` output and a terse
+phase log — dev-shaped, not customer-shaped. The guided onboarding owns the
+*experience* while `up` still does the work underneath. If your embedder needs a
+free NVIDIA NGC key and you do not have one, it points you to the page and
+captures what you paste, writing it to `~/.nim/secrets.env` on your box:
+
+![The onboarding captures a free NGC key if one is missing, and saves it locally](screenshots/17-onboard-2-ngc.svg)
+
+Then it names exactly what is downloading and why — your model, your bundled
+corpus, the cached images — and rotates orientation cards so the ~2–10 minute
+model pull teaches the product instead of being dead air:
+
+![A named download manifest and a 'while you wait' orientation card during the model pull](screenshots/17-onboard-3-manifest.svg)
+
+It ends on a call to action, not a prompt — your Advisor is warm, and the cockpit
+opens to your welcome screen:
+
+![The finish: 'Your Advisor is warm', with the cockpit opening to the welcome screen](screenshots/17-onboard-4-cta.svg)
+
+### Your first run — the welcome
+
+![The Arena welcome screen: a navy-to-gold 'Welcome to your Arena / Meet your AI Researcher' hero, grounded in real corpus numbers, with three prompts to try](screenshots/15-welcome.png)
+
+*A dedicated, self-dismissing first-run surface. It greets your AI Researcher,
+states what is actually loaded — 182 sources, 647 chunks — and offers three
+prompts to try. The third, "What is not in my corpus?", teaches honest refusal in
+a single turn.*
+
+You land here once. A flag remembers you have seen it, so the cockpit stops
+sending you here on later visits — and a quiet ✦ Welcome link in the top bar
+brings it back any time. The whole surface speaks the premium narrative voice;
+the dense working panes keep their instrument density. Two zones, one product.
 
 ### Your home base — the cockpit
 
@@ -408,6 +468,21 @@ with its manifest hash and both recall gates, per-config routing costs with
 every hosted escalation's tier/provider/cost/verdict, and the publish receipt
 with its nine gate chips. The cards are pure reads over evidence files tracked
 in the repo — the cockpit renders the proof, it doesn't re-state it.
+
+### Bring your own cloud key — settings
+
+![The Arena settings: an OpenRouter key form that auto-detects an existing key or lets you paste one, with the privacy line 'your key stays on this machine — Orionfold never sees it'](screenshots/16-settings-cloud-key.png)
+
+*Your Advisor is local-first — no cloud key required. The settings pane
+auto-detects a key already in your environment, or lets you paste one and save it
+locally. Until a key exists, the cloud catalog and the spend tile stay hidden.*
+
+This is the local-first promise made literal. The 337-model OpenRouter dropdown
+and the "$0 spend" rail tile do not appear until you wire your own key — a
+keyless founding-25 box shows only the local Advisor it owns. When you do add a
+key, it is written to a private file the cockpit reads on your machine and set
+live with no restart; it is never transmitted anywhere but OpenRouter when you
+actually run a cloud lane. Orionfold never sees it.
 
 ## Built on a year of compounding work
 
