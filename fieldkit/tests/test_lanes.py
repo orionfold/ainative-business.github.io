@@ -72,6 +72,24 @@ def test_lane_ports_env_override(monkeypatch):
     assert lanes.lane_ports() == [9001, 9002, 9003]
 
 
+def test_lane_ports_excludes_embedder_infra_port(monkeypatch):
+    # AD-AE: the Cortex embedder (:8001) answers /v1/models but is NOT a chat
+    # lane. Discovery must exclude the infra ports so the cockpit doesn't see a
+    # phantom 2nd lane and land "ambiguous"/idle.
+    monkeypatch.delenv("FK_ARENA_LANE_PORTS", raising=False)
+    monkeypatch.delenv("FK_ARENA_INFRA_PORTS", raising=False)
+    ports = lanes.lane_ports()
+    assert 8001 not in ports  # embedder filtered out
+    assert 8091 in ports and 8000 in ports  # chat lanes kept
+
+
+def test_lane_ports_infra_exemption_can_be_turned_off(monkeypatch):
+    # FK_ARENA_INFRA_PORTS set-but-empty = "exempt nothing" → 8001 swept again.
+    monkeypatch.delenv("FK_ARENA_LANE_PORTS", raising=False)
+    monkeypatch.setenv("FK_ARENA_INFRA_PORTS", "")
+    assert 8001 in lanes.lane_ports()
+
+
 # --------------------------------------------------------------------------- #
 # registry (AE-19) — Arena owns the selection, in a JSON file (no db schema)
 # --------------------------------------------------------------------------- #

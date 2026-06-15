@@ -100,6 +100,15 @@ _DONE = "done"
 _FAILED = "failed"
 _PENDING = "pending"
 
+#: AD-FK-ε: how long ``resident`` waits for the serving lane to load its GGUF
+#: before failing. The lane container starts in ``stack``, but llama-server
+#: needs ~60-90 s on the Spark to map the 2.84 GB Q4_K_M weights before
+#: ``:{port}/v1/models`` answers. A single probe here deterministically FAILs on
+#: a cold lane and forces a re-run, so we poll (the pattern ``sidecar`` uses for
+#: :7866) with ~150 s of headroom over the observed warm time.
+_LANE_POLL_INTERVAL_S = 1.0
+_LANE_WARM_POLLS = 150
+
 
 # --- State (the checkpoint) --------------------------------------------------
 
@@ -327,15 +336,21 @@ class LiveExecutor(Executor):
             )
 
     @staticmethod
-    def _cockpit_command() -> list[str]:
+    def _cockpit_command(repo_root: Path) -> list[str]:
         """The argv that starts the Arena cockpit. Prefer the ``fieldkit``
         console script that sits beside the running interpreter (the venv/pipx
         install ``up`` is itself running from), falling back to one on PATH.
         ``fieldkit`` ships no ``python -m`` entry, so the console script is the
-        only invocation."""
+        only invocation.
+
+        Pins ``--repo-root`` (repo_root leak fix): ``arena up`` defaults its
+        repo root to the CWD, so launching the installer from inside a monorepo
+        would leak that repo's artifacts/articles/leaderboard/models into the
+        customer cockpit. A fresh customer-owned root yields the honest
+        first-boot empty state regardless of where ``up`` is invoked."""
         sibling = Path(sys.executable).with_name("fieldkit")
         fk = str(sibling) if sibling.exists() else (shutil.which("fieldkit") or "fieldkit")
-        return [fk, "arena", "up", "--no-open"]
+        return [fk, "arena", "up", "--no-open", "--repo-root", str(repo_root)]
 
     def _cockpit_healthy(self) -> bool:
         import httpx  # core dep
@@ -355,7 +370,11 @@ class LiveExecutor(Executor):
             return  # already up (re-entrant re-run)
         config.home.mkdir(parents=True, exist_ok=True)
         log_path = config.home / "cockpit.log"
-        cmd = self._cockpit_command()
+        # repo_root leak fix: pin the cockpit's repo root to a fresh
+        # customer-owned dir (never the CWD), so dev-monorepo data can't leak in.
+        arena_root = config.home / "arena-root"
+        arena_root.mkdir(parents=True, exist_ok=True)
+        cmd = self._cockpit_command(arena_root)
         try:
             log = open(log_path, "ab")  # noqa: SIM115 — handed to the child, stays open
             proc = subprocess.Popen(  # noqa: S603 — fixed argv, no shell
@@ -386,18 +405,33 @@ class LiveExecutor(Executor):
             fix=f"inspect {log_path}; it may still be warming — re-run `up` to resume",
         )
 
-    def resident(self, config: FieldEditionConfig) -> None:
+    def _lane_healthy(self, config: FieldEditionConfig) -> bool:
         import httpx  # core dep
 
-        url = f"http://127.0.0.1:{config.lane.port}/v1/models"
         try:
-            ok = httpx.get(url, timeout=2.0).status_code == 200
+            url = f"http://127.0.0.1:{config.lane.port}/v1/models"
+            return httpx.get(url, timeout=2.0).status_code == 200
         except httpx.HTTPError:
-            ok = False
-        if not ok:
+            return False
+
+    def resident(self, config: FieldEditionConfig) -> None:
+        # AD-FK-ε: the lane container starts in `stack`, but llama-server needs
+        # ~60-90 s to load the GGUF before :{port}/v1/models answers. A single
+        # probe deterministically FAILs on a cold lane and forces a re-run, so
+        # poll until the model is loaded (the pattern `sidecar` uses for :7866),
+        # failing honestly only on a real timeout.
+        for _ in range(_LANE_WARM_POLLS):
+            if self._lane_healthy(config):
+                break
+            time.sleep(_LANE_POLL_INTERVAL_S)
+        else:
+            budget = int(_LANE_WARM_POLLS * _LANE_POLL_INTERVAL_S)
             raise PhaseError(
-                f"serving lane not answering on :{config.lane.port}",
-                fix="the lane container comes up in the `stack` phase; re-run `up` after it is healthy",
+                f"serving lane did not become healthy on :{config.lane.port} within {budget}s",
+                fix=(
+                    "the lane loads the GGUF on first boot (~60-90s) and may still "
+                    "be warming; check `docker logs of-advisor-lane` and re-run `up` to resume"
+                ),
             )
 
     def verify(self, config: FieldEditionConfig) -> None:

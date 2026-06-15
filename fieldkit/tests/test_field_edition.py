@@ -532,7 +532,7 @@ def test_sidecar_spawns_cockpit_and_polls_health(tmp_path, monkeypatch) -> None:
         return health["calls"] >= 2  # unhealthy on the first poll, healthy after
 
     monkeypatch.setattr(exe, "_cockpit_healthy", _health)
-    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda: ["true"]))
+    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda *_a: ["true"]))
     monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
 
     class _Proc:
@@ -562,7 +562,7 @@ def test_sidecar_fails_when_cockpit_exits_early(tmp_path, monkeypatch) -> None:
     cfg = _tmp_config(tmp_path)
     exe = LiveExecutor()
     monkeypatch.setattr(exe, "_cockpit_healthy", lambda: False)
-    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda: ["true"]))
+    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(lambda *_a: ["true"]))
     monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
 
     class _DeadProc:
@@ -593,8 +593,77 @@ def test_cockpit_command_prefers_interpreter_sibling(monkeypatch, tmp_path) -> N
     monkeypatch.setattr(
         "fieldkit.field_edition.up.sys.executable", str(fake_bin / "python")
     )
-    cmd = LiveExecutor._cockpit_command()
-    assert cmd == [str(fake_bin / "fieldkit"), "arena", "up", "--no-open"]
+    root = tmp_path / "arena-root"
+    cmd = LiveExecutor._cockpit_command(root)
+    assert cmd == [
+        str(fake_bin / "fieldkit"), "arena", "up", "--no-open", "--repo-root", str(root)
+    ]
+
+
+def test_sidecar_pins_repo_root_off_cwd(tmp_path, monkeypatch) -> None:
+    # repo_root leak fix: the cockpit is launched with --repo-root pinned to a
+    # fresh customer-owned dir, never the CWD, so a monorepo can't leak in.
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+    seen = {}
+
+    def _cmd(repo_root):
+        seen["repo_root"] = repo_root
+        return ["true"]
+
+    # gate probe False (so it spawns), then healthy after the spawn
+    flips = iter([False, True])
+    monkeypatch.setattr(exe, "_cockpit_healthy", lambda: next(flips))
+    monkeypatch.setattr(exe, "_cockpit_command", staticmethod(_cmd))
+    monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
+
+    class _Proc:
+        pid = 7
+        def poll(self):
+            return None
+
+    monkeypatch.setattr("fieldkit.field_edition.up.subprocess.Popen", lambda c, **k: _Proc())
+    exe.sidecar(cfg)
+    assert seen["repo_root"] == cfg.home / "arena-root"
+    assert (cfg.home / "arena-root").is_dir()  # created, deterministic customer root
+
+
+# --- AD-FK-ε: resident health-polls the lane until the GGUF loads ------------
+
+
+def test_resident_passes_once_lane_warms(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+    calls = {"n": 0}
+
+    def _healthy(_cfg) -> bool:  # cold for the first 2 polls, warm after
+        calls["n"] += 1
+        return calls["n"] >= 3
+
+    monkeypatch.setattr(exe, "_lane_healthy", _healthy)
+    monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
+    exe.resident(cfg)  # must NOT raise — it waits out the GGUF load
+    assert calls["n"] == 3
+
+
+def test_resident_fails_honestly_when_lane_never_warms(tmp_path, monkeypatch) -> None:
+    from fieldkit.field_edition.up import LiveExecutor
+
+    cfg = _tmp_config(tmp_path)
+    exe = LiveExecutor()
+    monkeypatch.setattr(exe, "_lane_healthy", lambda _cfg: False)
+    monkeypatch.setattr("fieldkit.field_edition.up.time.sleep", lambda *_a: None)
+    try:
+        exe.resident(cfg)
+    except PhaseError as err:
+        assert "did not become healthy" in str(err)
+        assert "docker logs" in err.fix and "re-run `up`" in err.fix
+    else:  # pragma: no cover
+        raise AssertionError("resident must fail honestly on a lane that never warms")
 
 
 # --- AD-FK-β: vendored corpus pack + the ingest phase ------------------------

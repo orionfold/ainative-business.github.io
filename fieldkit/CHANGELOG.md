@@ -6,6 +6,50 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.33.1] — 2026-06-15
+
+> The first-customer install is now **one-shot**. v0.33.0's `up` reached
+> all-green but forced a re-run and left the cockpit idle on a confusing first
+> screen; this patch closes the three onboarding gaps the end-to-end
+> first-customer run surfaced (AD-FK-ε / AD-AE / repo_root leak) so a single
+> `curl … | sh` lands on a warm, auto-armed Advisor with no hand-driving. Patch
+> bump — bug fixes to existing modules, no new public symbol. Offline suite
+> green; +5 regression tests. No `--spark` tests (the fixes are offline
+> orchestration: a lane health-poll, lane-discovery filtering, and a launch arg).
+
+### Fixed
+
+- **First-customer install is now one-shot — the three onboarding gaps the
+  end-to-end first-customer run surfaced (AD-FK-ε / AD-AE / repo_root leak).**
+  The v0.33.0 `up` reached all-green but was *not* one-shot: it forced a re-run
+  and left the cockpit idle on a confusing first screen. Fixed:
+  - **AD-FK-ε — `up.resident` now health-polls the serving lane** instead of
+    probing it once. The lane container starts in `stack`, but llama-server
+    needs ~60-90 s to load the 2.84 GB GGUF before `:{port}/v1/models` answers;
+    a single probe deterministically FAILed on a cold lane and forced the
+    customer to re-run `up`. `resident` now polls until the model is loaded
+    (the pattern `sidecar` already uses for `:7866`), with ~150 s of headroom
+    and an honest timeout fix (`docker logs of-advisor-lane` + re-run).
+  - **AD-AE — chat-lane discovery now excludes the Cortex embedder.** The NIM
+    embedder (`:8001`) answers OpenAI-compat `/v1/models`, so it was enumerated
+    as a selectable *chat* lane → the cockpit saw "2 lanes", resolved the active
+    lane "ambiguous", and landed **idle** (the customer had to hand-pick the
+    Advisor). `lanes.lane_ports()` now filters the infra ports
+    (`launcher.infra_ports()` — the same set the ONE-LANE guard already treats
+    as not-a-chat-lane), so the lone Advisor lane auto-resolves
+    (`resolve_active_lane` → `source="discovered"`) and the cockpit lands warm.
+    Fixes every launch path, not just the installer.
+  - **repo_root leak — `up.sidecar` now pins the cockpit's `--repo-root`** to a
+    fresh customer-owned dir (`~/.orionfold/arena-root`) instead of letting
+    `arena up` default it to the CWD. Launching the installer from a dev
+    monorepo would otherwise leak that repo's artifacts/articles/leaderboard/
+    models into the customer cockpit; the pinned root yields the honest
+    first-boot empty state regardless of where `up` is invoked.
+
+  Patch bump — bug fixes to existing modules, no new public symbol. Offline
+  suite green; +5 regression tests (resident warm-poll + honest timeout,
+  sidecar repo_root pin, lane_ports infra exclusion + exemption-off).
+
 ## [0.33.0] — 2026-06-15
 
 > AD-FK-α/β/γ — the three unattended-orchestration findings from the

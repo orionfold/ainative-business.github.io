@@ -44,13 +44,26 @@ _discover_cache: dict[str, Any] = {"t": 0.0, "key": None, "v": None}
 # discovery (AE-18) — observe what is actually resident
 # --------------------------------------------------------------------------- #
 def lane_ports() -> list[int]:
-    """The port set discovery sweeps (env-overridable)."""
+    """The port set discovery sweeps for *chat* lanes (env-overridable).
+
+    Excludes the infra ports (:func:`launcher.infra_ports` — the Cortex embedder
+    on :8001) so an embedding endpoint that answers ``/v1/models`` is never
+    enumerated as a selectable chat lane (AD-AE: it made the first-boot cockpit
+    see "2 lanes", resolve the active lane "ambiguous", and land idle → the
+    customer had to hand-pick the Advisor). With the embedder filtered out, the
+    lone chat lane auto-resolves (``resolve_active_lane`` → ``source="discovered"``)
+    and the cockpit lands warm. The lazy import keeps the launcher→lanes load
+    order acyclic."""
+    from fieldkit.arena.launcher import infra_ports
+
     raw = os.environ.get("FK_ARENA_LANE_PORTS")
+    candidates = list(DEFAULT_LANE_PORTS)
     if raw:
         out = [int(t) for t in (s.strip() for s in raw.split(",")) if t.isdigit()]
         if out:
-            return out
-    return list(DEFAULT_LANE_PORTS)
+            candidates = out
+    infra = infra_ports()
+    return [p for p in candidates if p not in infra]
 
 
 def _http_json(url: str, timeout: float) -> Optional[Any]:
