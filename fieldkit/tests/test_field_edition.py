@@ -603,11 +603,89 @@ def test_live_runner_bench_gates_error_honestly() -> None:
     runner_live = LiveGateRunner()
     cfg = _dead_stack_config()  # dead lane → deterministic honest errors
     # cortex is excluded here: it also does live retrieval (covered by the
-    # dedicated fake-index tests below) — these three stay box-independent.
-    for key in ("advisor", "lane", "hermes"):
+    # dedicated fake-index tests below). hermes is excluded too: it drives the
+    # `fieldkit` MCP server, not the serving lane, so it is independent of the
+    # stack being up (its own tests below) — these two stay box-independent.
+    for key in ("advisor", "lane"):
         outcome = runner_live.measure(key, cfg)
         assert outcome.error is not None
         assert "M2" in outcome.error  # honest "stack not up", never a vanity pass
+
+
+# --- hermes gate (MCP tool round-trip; seam faked + a real round-trip) -------
+
+
+def _hermes_runner(roundtrip):
+    """A `LiveGateRunner` with its MCP round-trip seam faked."""
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    runner = LiveGateRunner()
+    runner._mcp_tool_roundtrip = roundtrip  # type: ignore[assignment]
+    return runner
+
+
+def test_live_hermes_roundtrip_returns_passes() -> None:
+    from fieldkit.field_edition.verify import HERMES_PROBE_TOOL, assess_gate
+
+    runner = _hermes_runner(
+        lambda tool, args: {"returned": True, "tools_n": 17, "tool": tool}
+    )
+    outcome = runner.hermes(default_config())
+    assert outcome.error is None
+    assert outcome.metrics["tool_returned"] == 1.0
+    assert HERMES_PROBE_TOOL in outcome.note and "17 fieldkit tools" in outcome.note
+    passed, _ = assess_gate("hermes", outcome.metrics)
+    assert passed  # the pure floor turns the live round-trip into a PASS
+
+
+def test_live_hermes_empty_result_fails_not_errors() -> None:
+    from fieldkit.field_edition.verify import assess_gate
+
+    runner = _hermes_runner(
+        lambda tool, args: {"returned": False, "tools_n": 17, "tool": tool}
+    )
+    outcome = runner.hermes(default_config())
+    assert outcome.error is None  # a real measurement, not an error
+    assert outcome.metrics["tool_returned"] == 0.0
+    passed, _ = assess_gate("hermes", outcome.metrics)
+    assert not passed  # empty/errored tool result is an honest FAIL
+
+
+def test_live_hermes_missing_extra_errors_honestly() -> None:
+    from fieldkit.field_edition.verify import _McpExtraMissing
+
+    def _raise(tool, args):
+        raise _McpExtraMissing("No module named 'mcp'")
+
+    outcome = _hermes_runner(_raise).hermes(default_config())
+    assert outcome.error is not None
+    assert "fieldkit[harness]" in outcome.error  # the actionable install fix
+    assert outcome.metrics == {}  # no vanity metric
+
+
+def test_live_hermes_transport_failure_errors_honestly() -> None:
+    def _raise(tool, args):
+        raise RuntimeError("server exited before initialize")
+
+    outcome = _hermes_runner(_raise).hermes(default_config())
+    assert outcome.error is not None
+    assert "MCP tool round-trip failed" in outcome.error
+    assert "--hermes" in outcome.error  # how to skip the optional gate
+
+
+def test_live_hermes_real_mcp_roundtrip() -> None:
+    """End-to-end: a real MCP client drives the live `fieldkit` MCP server over
+    stdio and a read-only tool call returns. Skipped if the `mcp` SDK (the
+    `fieldkit[harness]` extra) is not installed in this env."""
+    import pytest
+
+    pytest.importorskip("mcp")
+    from fieldkit.field_edition.verify import LiveGateRunner
+
+    outcome = LiveGateRunner().hermes(default_config())
+    assert outcome.error is None, outcome.error
+    assert outcome.metrics["tool_returned"] == 1.0
+    assert "MCP round-trip ok" in outcome.note
 
 
 # --- cortex recall-half (vendored frozen set + live retrieval, faked) --------

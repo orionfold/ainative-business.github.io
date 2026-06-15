@@ -156,9 +156,9 @@ Same pure-core / thin-I/O split as `doctor`/`up`:
 Every failing gate names the **component, the gate, and the fix** (the §8 failure
 UX); the report renders in the Arena cockpit's eval drawer at M2.
 
-**Status:** four of the five gates are measured **live** against the running
-stack — the first-boot receipt goes **near-all-green** (4 pass / 0 fail / 0 error
-/ 1 skip, live-smoked end-to-end on the box in ~86 s):
+**Status:** all five gates are now measured **live** — the first-boot receipt
+goes **all-green** (5 pass / 0 fail / 0 error / 0 skip with `--hermes`, against a
+running stack):
 
 - **`fieldkit`** — import + version + the `doctor` matrix (no live stack needed).
 - **`advisor`** — `fieldkit.field_edition.advisor` ships a sha-pinned vendored
@@ -180,12 +180,21 @@ stack — the first-boot receipt goes **near-all-green** (4 pass / 0 fail / 0 er
 - **`lane`** — `LiveGateRunner.lane` proves the resident Advisor lane is reachable
   + serves one generation. Per the §6/§8 reconciliation the warm default is **not**
   torn down at first boot (teardown-clean is the `down`/`repair` gates' job).
+- **`hermes`** *(optional, `--hermes`)* — `LiveGateRunner.hermes` drives the
+  `fieldkit`-as-MCP server (the surface a Hermes harness drives) with a real MCP
+  client over stdio and confirms one read-only tool round-trip
+  (`spark_inference_envelope`) returns. The probe is a capabilities lookup (no
+  GPU, model, disk, or network), so it is **lane-safe** (honors the one-lane
+  invariant — the resident Advisor lane is untouched) and deterministic; like the
+  recall-half it does **not** need the operator-armed serving lane. The
+  brain-driven full Hermes agent run stays the heavier H4 milestone, not a
+  first-boot gate.
 
 Every live gate returns an honest `error` (naming the missing piece + fix) when
 its slice of the stack is down — never a vanity pass. The optional `hermes` gate
-is `skipped` unless `--hermes` is passed (its MCP round-trip is the remaining
-generation-half to wire). `up --verify` runs this gate as its final phase,
-collapsing §7 steps 2–3 into one command. `verify` flags:
+is `skipped` unless `--hermes` is passed (and errors honestly if the
+`fieldkit[harness]` MCP extra is absent). `up --verify` runs this gate as its
+final phase, collapsing §7 steps 2–3 into one command. `verify` flags:
 `--json`, `--hermes`.
 
 ## CLI surface

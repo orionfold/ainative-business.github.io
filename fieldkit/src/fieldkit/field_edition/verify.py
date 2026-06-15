@@ -87,11 +87,26 @@ CORTEX_RECALL_FLOOR = 0.95
 #: matching ``score_recall_live.CHUNK_POOL`` so the gate measures the same number.
 CORTEX_RECALL_POOL = 80
 
+#: The §8 ``hermes`` gate's probe — one MCP-driven ``fieldkit`` tool round-trip.
+#: A **read-only capabilities lookup** (no GPU, model, disk, or network), so the
+#: round-trip respects the one-lane invariant (the resident Advisor lane the
+#: other gates proved warm is untouched) and the ~30 s budget. The driving brain
+#: (a full Hermes agent picking the tool) is the heavier H4 milestone, not a
+#: first-boot gate — a 30B MoE brain would blow the one-lane budget here.
+HERMES_PROBE_TOOL = "spark_inference_envelope"
+HERMES_PROBE_ARGS: Mapping[str, object] = {"model_size": "8B params bf16"}
+
 # Gate verdict statuses.
 _PASS = "pass"
 _FAIL = "fail"
 _ERROR = "error"  # the gate could not run (stack down, bench not wired)
 _SKIPPED = "skipped"  # an optional gate the operator did not enable
+
+
+class _McpExtraMissing(ImportError):
+    """The ``fieldkit[harness]`` extra (the ``mcp`` SDK) is not installed — the
+    optional ``hermes`` gate cannot drive the ``fieldkit`` MCP server. An honest
+    gate ``error`` (with the install fix), never a vanity pass."""
 
 
 @dataclass(frozen=True)
@@ -144,7 +159,7 @@ GATES: tuple[GateSpec, ...] = (
         label="Hermes",
         metric="one MCP-driven fieldkit tool round-trip",
         threshold="tool call returns",
-        fix="enable Hermes (~/.hermes/) or omit --hermes to skip (§8)",
+        fix="install the MCP harness extra (`pip install fieldkit[harness]`) or omit --hermes to skip (§8)",
         optional=True,
     ),
 )
@@ -387,11 +402,11 @@ class LiveGateRunner(GateRunner):
 
     ``fieldkit`` (import + version + matrix), ``advisor`` (frozen curveball set
     through the resident lane), ``cortex`` (recall-half over pgvector + embedder
-    **and** the grounded-contract half through the lane), and ``lane`` (resident
-    warm-lane reachable + one generation) are all measured live. ``hermes`` still
-    returns an honest ``error`` until the MCP round-trip is wired. Any gate whose
-    slice of the stack is down returns an honest ``error`` naming the missing
-    piece, never a vanity pass.
+    **and** the grounded-contract half through the lane), ``lane`` (resident
+    warm-lane reachable + one generation), and the optional ``hermes`` (one MCP
+    tool round-trip against the ``fieldkit`` MCP server) are all measured live.
+    Any gate whose slice of the stack is down returns an honest ``error`` naming
+    the missing piece, never a vanity pass.
     """
 
     def fieldkit(self, config: FieldEditionConfig) -> GateOutcome:
@@ -618,10 +633,100 @@ class LiveGateRunner(GateRunner):
         )
         return GateOutcome("lane", metrics={"launched": 1.0, "generated": generated}, note=note)
 
+    #: How long to wait on the MCP round-trip (spawn server + initialize + one
+    #: read-only tool call) before giving up (seconds). The probe touches no GPU.
+    HERMES_ROUNDTRIP_TIMEOUT = 60
+
     def hermes(self, config: FieldEditionConfig) -> GateOutcome:
-        return self._stack_pending(
-            "hermes", "the MCP fieldkit tool round-trip needs the live Hermes harness"
+        # One MCP-driven `fieldkit` tool round-trip (§8): drive the
+        # fieldkit-as-MCP server — the very surface a Hermes harness drives — with
+        # a real MCP client over stdio and confirm a read-only tool call returns.
+        # Lane-safe + deterministic: the probe is a capabilities lookup (no GPU,
+        # model, disk, or network), so it does NOT disturb the resident Advisor
+        # lane and runs well inside the ~30 s budget. Honest error if the MCP
+        # harness extra is missing or the round-trip fails — never a vanity pass.
+        try:
+            result = self._mcp_tool_roundtrip(
+                HERMES_PROBE_TOOL, dict(HERMES_PROBE_ARGS)
+            )
+        except _McpExtraMissing as err:
+            return GateOutcome(
+                "hermes",
+                error=(
+                    f"MCP harness extra not installed ({str(err)[:80]}). The "
+                    "`hermes` gate drives the `fieldkit` MCP server — install it "
+                    "with `pip install fieldkit[harness]`, or omit --hermes to skip."
+                ),
+            )
+        except Exception as err:  # noqa: BLE001 — any transport/server failure is honest
+            return GateOutcome(
+                "hermes",
+                error=(
+                    f"MCP tool round-trip failed ({str(err)[:120]}). Could the "
+                    f"`fieldkit` MCP server start (`python -m fieldkit.harness.mcp`)? "
+                    "Omit --hermes to skip the optional gate (§8)."
+                ),
+            )
+        returned = 1.0 if result.get("returned") else 0.0
+        note = (
+            f"MCP round-trip {'ok' if returned else 'EMPTY'} — called "
+            f"`{result.get('tool', HERMES_PROBE_TOOL)}` over stdio "
+            f"({int(result.get('tools_n', 0))} fieldkit tools exposed); "
+            f"tool result {'returned' if returned else 'was empty/errored'}"
         )
+        # Real round-trip → let the pure floor render pass/fail; only the
+        # extra-missing / transport-down cases above are honest errors.
+        return GateOutcome("hermes", metrics={"tool_returned": returned}, note=note)
+
+    def _mcp_tool_roundtrip(
+        self, tool_name: str, arguments: Mapping[str, object]
+    ) -> Mapping[str, object]:
+        """One real MCP client → ``fieldkit`` MCP server tool round-trip (stdio).
+
+        Spawns ``python -m fieldkit.harness.mcp`` and drives it with an MCP
+        ``ClientSession``: ``initialize`` → ``list_tools`` → ``call_tool``. The
+        ``fieldkit`` MCP server is the exact surface a Hermes harness drives, so
+        this measures the §8 contract ("one MCP-driven fieldkit tool round-trip")
+        end-to-end over the real JSON-RPC stdio transport — without booting a
+        brain (the heavier H4 milestone). Returns ``{returned, tools_n, tool}``.
+
+        Raises :class:`_McpExtraMissing` when the ``fieldkit[harness]`` extra (the
+        ``mcp`` SDK) is absent; injectable as a seam so the floor logic is
+        unit-testable without the SDK or a subprocess.
+        """
+        import sys
+
+        try:
+            from mcp import ClientSession, StdioServerParameters
+            from mcp.client.stdio import stdio_client
+        except ImportError as exc:  # the `fieldkit[harness]` extra is not installed
+            raise _McpExtraMissing(str(exc)) from exc
+        import asyncio
+
+        async def _roundtrip() -> Mapping[str, object]:
+            params = StdioServerParameters(
+                command=sys.executable, args=["-m", "fieldkit.harness.mcp"]
+            )
+            async with (
+                stdio_client(params) as (read, write),
+                ClientSession(read, write) as session,
+            ):
+                await session.initialize()
+                listed = await session.list_tools()
+                result = await session.call_tool(tool_name, dict(arguments))
+                content = getattr(result, "content", None) or []
+                return {
+                    "returned": not getattr(result, "isError", False) and bool(content),
+                    "tools_n": len(getattr(listed, "tools", []) or []),
+                    "tool": tool_name,
+                }
+
+        async def _driver() -> Mapping[str, object]:
+            return await asyncio.wait_for(
+                _roundtrip(), timeout=self.HERMES_ROUNDTRIP_TIMEOUT
+            )
+
+        return asyncio.run(_driver())
 
     @staticmethod
     def _lane_base_url(config: FieldEditionConfig) -> str:
