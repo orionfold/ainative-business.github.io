@@ -11,6 +11,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   env so the cockpit wordmark badge tracks the fieldkit version it was baked from
   (was a hand-maintained `v0.2` string that had drifted). Part of the Arena v0.34
   premium design pass.
+- **Arena cockpit cloud-lane hide rule (Field Edition v0.34 onboarding, Decision
+  8).** The OpenRouter surfaces now stay hidden until an `OPENROUTER_API_KEY` is
+  wired, so a keyless founding-25 customer no longer sees 337 cloud models they
+  can't run (or a `$0.00` cloud-spend tile) on first-run. `/api/compare/options`
+  sends **empty** `openrouter`/`openrouter_groups` arrays (and skips the catalog
+  fetch + its curated fallback entirely) when no key is set; the chat/compare
+  model dropdowns then render only the "Local · Spark" lanes via their existing
+  per-group `.length` guards, and the "all N" toggle drops out. The telemetry
+  payload carries a new `openrouter_enabled` flag the rail uses to hide its
+  OpenRouter spend cell. A keyed box (the dev cockpit) is unchanged — the catalog
+  + spend tile still show. Baked into `_webui` (`TelemetryRail.astro`). +3 tests.
 
 ## [0.33.1] — 2026-06-15
 

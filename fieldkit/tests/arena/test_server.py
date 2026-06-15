@@ -1991,9 +1991,11 @@ def test_resolve_local_gguf_prefix_match(tmp_path: Path) -> None:
 def test_compare_options_endpoint_shape(
     repo_root: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """/api/compare/options returns local + curated openrouter groups + full list."""
+    """/api/compare/options returns local + curated openrouter groups + full list
+    once a key is wired (the cloud-lane hide rule lets the catalog through)."""
     import fieldkit.arena.server as srv
 
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
     monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
     monkeypatch.setattr(
         srv,
@@ -2011,9 +2013,40 @@ def test_compare_options_endpoint_shape(
         assert r.status_code == 200
         data = r.json()
         assert "local" in data
+        assert data["has_key"] is True
         assert set(data["openrouter_groups"]) == {"frontier", "open", "project_base"}
         assert data["catalog_size"] == 2
         assert any(o["id"] == "openrouter:openai/gpt-5.5" for o in data["openrouter"])
+
+
+def test_compare_options_hides_cloud_without_key(
+    repo_root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Cloud-lane hide rule (Field Edition Decision 8): with no OPENROUTER_API_KEY
+    the payload carries EMPTY cloud arrays — the curated catalog (and its
+    fallback) is skipped entirely — so the frontend renders only Local lanes."""
+    import fieldkit.arena.server as srv
+
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.setattr(srv, "_read_hermes_lane", lambda *a, **k: None)
+    # If the gate ever leaks, this fat catalog would surface — it must not.
+    monkeypatch.setattr(
+        srv,
+        "_openrouter_catalog",
+        lambda *a, **k: [
+            {"id": "openai/gpt-5.5", "name": "GPT-5.5", "created": 200},
+        ],
+    )
+    app = create_app(repo_root=repo_root, telemetry_interval=2.0)
+    with TestClient(app) as client:
+        data = client.get("/api/compare/options").json()
+        assert data["has_key"] is False
+        assert data["openrouter"] == []
+        assert all(v == [] for v in data["openrouter_groups"].values())
+        assert data["catalog_size"] == 0
+        assert data["live_catalog"] is False
+        # Local lanes are unaffected by the cloud gate.
+        assert "local" in data
 
 
 def test_telemetry_payload_carries_resident_lane() -> None:
@@ -2025,6 +2058,18 @@ def test_telemetry_payload_carries_resident_lane() -> None:
     assert payload["resident_lane"] == "Qwen3-30B-A3B-Q4_K_M"
     # No reader → None (e.g. tests that don't inject one).
     assert TelemetryHub(interval=2.0)._build_payload()["resident_lane"] is None  # noqa: SLF001
+
+
+def test_telemetry_payload_carries_openrouter_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cloud-lane hide rule (Field Edition Decision 8): the rail gates its
+    OpenRouter spend cell on ``openrouter_enabled`` — true only when a key is
+    wired (the dev cockpit), false on a keyless founding-25 customer box."""
+    monkeypatch.setenv("OPENROUTER_API_KEY", "sk-fake")
+    assert TelemetryHub(interval=2.0)._build_payload()["openrouter_enabled"] is True  # noqa: SLF001
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    assert TelemetryHub(interval=2.0)._build_payload()["openrouter_enabled"] is False  # noqa: SLF001
 
 
 def test_local_load_stream_missing_gguf_errors(monkeypatch: pytest.MonkeyPatch) -> None:

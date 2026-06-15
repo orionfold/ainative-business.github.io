@@ -96,7 +96,11 @@
     <span class="telemetry-rail__value" data-metric="lane_id" style="font-size: 0.92rem;">idle</span>
     <span class="telemetry-rail__hint" data-metric="lane-hint">no warm brain</span>
   </div>
-  <div class="telemetry-rail__cell">
+  {/* Cloud-lane hide rule (Field Edition Decision 8): this OpenRouter spend
+      cell stays hidden until a key is wired. It starts hidden and the
+      telemetry stream's ``openrouter_enabled`` flag reveals it on a keyed box
+      (the dev cockpit). A keyless founding-25 customer never sees it. */}
+  <div class="telemetry-rail__cell" id="telemetry-rail-cost" hidden>
     <span class="telemetry-rail__label">
       <span class="telemetry-rail__dot" data-cell="cost" data-state="idle"></span>
       OpenRouter
@@ -142,6 +146,7 @@
       laneLabel:   railEl.querySelector('[data-metric="lane-label"]'),
       cost:        railEl.querySelector('[data-metric="openrouter_cost_usd"]'),
       costHint:    railEl.querySelector('[data-metric="cost-hint"]'),
+      costCell:    railEl.querySelector('#telemetry-rail-cost'),
     };
     const dots = {
       gpu:     railEl.querySelector('[data-cell="gpu"]'),
@@ -306,7 +311,11 @@
             cells.speedSource.removeAttribute('data-where');
           }
         }
-        // OpenRouter spend
+        // OpenRouter spend — cloud-lane hide rule (Field Edition Decision 8):
+        // reveal the cell only on a keyed box. ``openrouter_enabled === false``
+        // (a keyless customer) keeps it hidden; absent (demo replay / legacy
+        // payloads) leaves it shown so the marketing demo is unaffected.
+        if (cells.costCell) cells.costCell.hidden = (t.openrouter_enabled === false);
         const cost = t.openrouter_cost_usd;
         if (cost != null && !Number.isNaN(cost)) {
           const dollars = cost >= 1 ? `$${cost.toFixed(2)}` : `$${cost.toFixed(4)}`;

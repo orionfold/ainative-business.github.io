@@ -864,6 +864,11 @@ class TelemetryHub:
             "active_lane_where": active_lane.get("where") if active_lane else None,
             "openrouter_cost_usd": round(self._openrouter_cost_usd, 6),
             "openrouter_calls": self._openrouter_calls,
+            # Cloud-lane hide rule (Field Edition Decision 8): the rail's
+            # OpenRouter spend cell stays hidden until a key is wired. The cell
+            # is meaningless on a keyless customer box (no cloud lane can run),
+            # so gate its visibility on the same signal as the model catalog.
+            "openrouter_enabled": bool(os.environ.get("OPENROUTER_API_KEY")),
             # Change signal for the live leaderboard (see bump_leaderboard).
             "leaderboard_rev": self.leaderboard_rev,
         }
@@ -1891,9 +1896,6 @@ def create_app(
         except Exception as exc:  # noqa: BLE001
             _log.warning("compare-options roster scan failed: %s", exc)
 
-        catalog = _openrouter_models_for_ui()
-        curated = _curate_openrouter_models(catalog)
-
         def _mk(m: dict[str, Any], group: str) -> dict[str, Any]:
             return {
                 "id": f"openrouter:{m['id']}",
@@ -1906,30 +1908,46 @@ def create_app(
                 "group": group,
             }
 
-        openrouter_groups = {
-            g: [_mk(m, g) for m in curated[g]]
-            for g in ("frontier", "open", "project_base")
-        }
-        # Full catalog (escape hatch for the "show all" toggle).
-        openrouter_all = [
-            {
-                "id": f"openrouter:{m['id']}",
-                "model": m["id"],
-                "label": m.get("name") or m["id"],
-                "price_per_m_input_usd": m.get("price_per_m_input_usd"),
-                "price_per_m_output_usd": m.get("price_per_m_output_usd"),
+        # Cloud-lane hide rule (Field Edition Decision 8): the OpenRouter catalog
+        # + the "all N" toggle stay hidden until an OPENROUTER_API_KEY is wired.
+        # With no key we send EMPTY cloud arrays (and skip the catalog fetch + its
+        # curated-fallback entirely); the frontend's per-group ``.length > 0``
+        # guards then render only the "Local · Spark" lanes — the resident Advisor
+        # a founding-25 customer owns. A keyed box (the dev cockpit) is unchanged.
+        cloud_enabled = bool(os.environ.get("OPENROUTER_API_KEY"))
+        if cloud_enabled:
+            catalog = _openrouter_models_for_ui()
+            curated = _curate_openrouter_models(catalog)
+            openrouter_groups = {
+                g: [_mk(m, g) for m in curated[g]]
+                for g in ("frontier", "open", "project_base")
             }
-            for m in catalog
-        ]
+            # Full catalog (escape hatch for the "show all" toggle).
+            openrouter_all = [
+                {
+                    "id": f"openrouter:{m['id']}",
+                    "model": m["id"],
+                    "label": m.get("name") or m["id"],
+                    "price_per_m_input_usd": m.get("price_per_m_input_usd"),
+                    "price_per_m_output_usd": m.get("price_per_m_output_usd"),
+                }
+                for m in catalog
+            ]
+        else:
+            catalog = []
+            openrouter_groups = {
+                g: [] for g in ("frontier", "open", "project_base")
+            }
+            openrouter_all = []
         from fieldkit.arena import benches as _benches
 
         return {
             "local": local,
             "openrouter_groups": openrouter_groups,
             "openrouter": openrouter_all,
-            "has_key": bool(os.environ.get("OPENROUTER_API_KEY")),
+            "has_key": cloud_enabled,
             "catalog_size": len(catalog),
-            "live_catalog": bool(_openrouter_catalog()),
+            "live_catalog": cloud_enabled and bool(_openrouter_catalog()),
             "judge": _benches.judge_availability(resident),
             # v0.4 — which corpus pack ``retrieval: true`` chat grounds in
             # (the pack is swappable; the UI labels the toggle from this).
