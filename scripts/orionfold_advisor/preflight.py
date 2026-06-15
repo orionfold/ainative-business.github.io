@@ -386,14 +386,22 @@ def _score_output(packet: dict[str, Any], output: str) -> dict[str, Any]:
                 source_id in cited_ids or source_id in output for source_id in expected
             )
 
+    # Kept byte-for-byte in sync with fieldkit.field_edition.advisor._REFUSAL_WORDS
+    # — preflight is the frozen-receipt generator, advisor is the live first-boot
+    # gate; if the live scorer's refusal vocabulary broadens (the v0.32.3 cortex
+    # false-FAIL fix added "does not include"/"unsupported"/"out of scope") and
+    # this copy doesn't, a regenerated receipt won't match the live gate.
     refusal_words = (
         "not support",
         "does not support",
         "does not provide",
+        "does not include",
         "do not have",
         "cannot answer",
         "can't answer",
         "insufficient",
+        "unsupported",
+        "out of scope",
     )
     refusal_ok = True
     if expected_behavior == "refuse":
