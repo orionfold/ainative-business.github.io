@@ -1,0 +1,286 @@
+---
+// Welcome — /arena/welcome/  (Field Edition first-run, v0.34)
+//
+// The dedicated, self-dismissing narrative surface a founding-25 customer
+// lands on the first time the cockpit comes up warm (_IDEAS Part F Decision 7).
+// Full premium language — abstract Orion star-field cover, hero-gradient
+// greeting, .of-surface try-these card, .of-chip teach-tags, noise grain —
+// none of which touches the dense working panes (two-zone principle).
+//
+// Uses ArenaAppLayout with hideRail (no telemetry rail) + zone="narrative"
+// (opts the body into the noise-grain overlay). The three "try asking" prompts
+// route into /arena/chat/?prefill=<q> — ChatLane FILLS the composer and focuses
+// it but does NOT auto-send; the customer presses send themselves (honest).
+import ArenaAppLayout from '../../layouts/ArenaAppLayout.astro';
+import '../../styles/premium-narrative.css';
+
+const title = 'Welcome — Orionfold Arena';
+const description =
+  'Meet your AI Researcher. Your Advisor is warm: grounded answers from your corpus, always with citations.';
+
+const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
+const bakedArena = base.replace(/\/$/, '').endsWith('/arena');
+const href = (path: string) => {
+  const rel = bakedArena && path.startsWith('arena/') ? path.slice('arena/'.length) : path;
+  return `${base}${rel}`.replace(/\/+/g, '/');
+};
+
+// Locked copy (Part F). The 3rd prompt teaches the trust model in one turn —
+// an out-of-corpus question the Advisor refuses honestly, with no sources.
+const prompts = [
+  { q: 'What does the Orionfold Arena do?', tag: 'grounded + cited' },
+  { q: 'Summarize the Field Edition license terms.', tag: 'grounded' },
+  { q: 'What is not in my corpus?', tag: 'honest refusal' },
+];
+const prefillHref = (q: string) => href(`arena/chat/?prefill=${encodeURIComponent(q)}`);
+
+// Abstract Orion-evoking star field (decorative; no business semantics).
+// Bright stars get a glow + twinkle; faint dots fill the field. Positions are
+// hand-placed to read as a loose constellation, not the literal Orion.
+const stars = [
+  { x: 18, y: 24, r: 2.4, hero: true },
+  { x: 30, y: 16, r: 1.6 },
+  { x: 44, y: 30, r: 2.0, hero: true },
+  { x: 58, y: 20, r: 1.4 },
+  { x: 70, y: 34, r: 2.6, hero: true },
+  { x: 82, y: 22, r: 1.5 },
+  { x: 26, y: 46, r: 1.3 },
+  { x: 38, y: 58, r: 1.8 },
+  { x: 52, y: 50, r: 1.4 },
+  { x: 64, y: 62, r: 2.1, hero: true },
+  { x: 76, y: 52, r: 1.4 },
+  { x: 88, y: 46, r: 1.6 },
+  { x: 14, y: 64, r: 1.4 },
+  { x: 48, y: 74, r: 1.5 },
+  { x: 72, y: 78, r: 1.3 },
+];
+// Loose links between a few stars — the "constellation" lines.
+const links = [
+  [0, 2], [2, 4], [4, 5], [2, 3], [0, 1],
+  [2, 8], [8, 9], [9, 10], [9, 13], [4, 10],
+];
+---
+<ArenaAppLayout title={title} description={description} active="cockpit" hideRail={true} zone="narrative">
+
+  <section class="welcome">
+    <!-- ═══ Orion star-field cover (narrative-zone only) ═══ -->
+    <svg class="welcome__cover" viewBox="0 0 100 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <g class="welcome__links">
+        {links.map(([a, b]) => (
+          <line x1={stars[a].x} y1={stars[a].y} x2={stars[b].x} y2={stars[b].y} />
+        ))}
+      </g>
+      <g class="welcome__stars">
+        {stars.map((s, i) => (
+          <circle
+            cx={s.x} cy={s.y} r={s.r}
+            class={s.hero ? 'welcome__star welcome__star--hero' : 'welcome__star'}
+            style={`--tw-delay: ${(i % 7) * 0.6}s`}
+          />
+        ))}
+      </g>
+    </svg>
+
+    <div class="welcome__inner" data-animate-stagger>
+      <p class="welcome__eyebrow" data-animate>ORIONFOLD ARENA · FIELD EDITION</p>
+      <h1 class="welcome__title hero-gradient-text" data-animate>Welcome to your Arena</h1>
+      <p class="welcome__sub" data-animate>Meet your AI Researcher.</p>
+      <p class="welcome__body" data-animate>
+        Your Advisor is warm. It has read 182 sources and indexed 647 chunks from your
+        corpus. It answers only from what you gave it, and every answer shows its sources.
+      </p>
+
+      <div class="welcome__card of-surface" data-animate>
+        <p class="welcome__card-label">Try asking</p>
+        <ul class="welcome__prompts">
+          {prompts.map((p) => (
+            <li>
+              <a class="welcome__prompt of-pressable" href={prefillHref(p.q)}>
+                <span class="welcome__prompt-q">{p.q}</span>
+                <span class="of-chip welcome__prompt-tag">{p.tag}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class="welcome__cta" data-animate>
+        <a class="welcome__go" href={href('arena/chat/')}>Talk to your Researcher&nbsp;→</a>
+        <a class="welcome__skip" href={href('arena/')}>Skip to the cockpit</a>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // Self-dismiss flag (Decision 7, localStorage MVP): mark that the customer
+    // has seen the welcome surface, so the cockpit's first-run redirect stops
+    // sending them here. Direct nav to /arena/welcome/ always works (re-reachable
+    // via a Help/Welcome link), so we do NOT redirect away from this page.
+    try { localStorage.setItem('of_arena_welcomed', '1'); } catch (_e) { /* private mode */ }
+
+    // Scroll-reveal: reveal [data-animate] on enter (idempotent if the layout
+    // also runs an observer). Reduced-motion is handled in CSS.
+    (function () {
+      var els = Array.prototype.slice.call(document.querySelectorAll('[data-animate]'));
+      if (!els.length) return;
+      if (!('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('is-visible'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+          if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+        });
+      }, { threshold: 0.12 });
+      els.forEach(function (el) { io.observe(el); });
+      // Fallback: never leave content stuck invisible.
+      setTimeout(function () { els.forEach(function (el) { el.classList.add('is-visible'); }); }, 1200);
+    })();
+  </script>
+
+  <style>
+    .welcome {
+      position: relative;
+      min-height: calc(100vh - 4.5rem);
+      display: grid;
+      place-items: center;
+      padding: clamp(2rem, 6vh, 5rem) 1.25rem;
+      overflow: hidden;
+    }
+    .welcome__cover {
+      position: absolute;
+      inset: -5% -5% auto -5%;
+      width: 110%;
+      height: 70%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.9;
+      -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 92%);
+      mask-image: linear-gradient(180deg, #000 0%, #000 42%, transparent 92%);
+    }
+    .welcome__links line {
+      stroke: color-mix(in srgb, var(--accent) 38%, transparent);
+      stroke-width: 0.18;
+    }
+    .welcome__star {
+      fill: color-mix(in srgb, var(--accent) 70%, white);
+      opacity: 0.55;
+    }
+    .welcome__star--hero {
+      fill: var(--gold);
+      opacity: 0.95;
+      filter: drop-shadow(0 0 1.2px color-mix(in srgb, var(--gold) 70%, transparent));
+      animation: welcome-twinkle 4.5s ease-in-out infinite;
+      animation-delay: var(--tw-delay, 0s);
+    }
+    @keyframes welcome-twinkle {
+      0%, 100% { opacity: 0.95; }
+      50% { opacity: 0.45; }
+    }
+
+    .welcome__inner {
+      position: relative;
+      z-index: 1;
+      max-width: 42rem;
+      text-align: center;
+    }
+    .welcome__eyebrow {
+      margin: 0 0 1.1rem;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      color: var(--mute);
+      text-transform: uppercase;
+    }
+    .welcome__title {
+      margin: 0 0 0.4rem;
+      font-family: var(--font-display, system-ui, sans-serif);
+      font-weight: 700;
+      font-size: clamp(2.3rem, 6vw, 3.6rem);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+    }
+    .welcome__sub {
+      margin: 0 0 1.4rem;
+      font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .welcome__body {
+      margin: 0 auto 2rem;
+      max-width: 34rem;
+      font-size: 1.02rem;
+      line-height: 1.65;
+      color: var(--mute);
+    }
+
+    .welcome__card {
+      border-radius: 16px;
+      padding: 1.4rem 1.4rem 1.1rem;
+      text-align: left;
+    }
+    .welcome__card-label {
+      margin: 0 0 0.85rem;
+      font-family: var(--font-mono, ui-monospace, monospace);
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--faint);
+    }
+    .welcome__prompts { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+    .welcome__prompt {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.9rem;
+      padding: 0.85rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      background: var(--surface);
+      text-decoration: none;
+      color: var(--ink);
+    }
+    .welcome__prompt-q { font-size: 0.96rem; font-weight: 500; line-height: 1.35; }
+    .welcome__prompt-tag { flex: none; }
+
+    .welcome__cta {
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem 1.4rem;
+    }
+    .welcome__go {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.8rem 1.5rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-ink));
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      text-decoration: none;
+      box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--accent) 80%, transparent);
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .welcome__go:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 38px -18px color-mix(in srgb, var(--accent) 85%, transparent);
+    }
+    .welcome__skip {
+      color: var(--mute);
+      font-size: 0.92rem;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+    }
+    .welcome__skip:hover { color: var(--ink); border-bottom-color: var(--border); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .welcome__star--hero { animation: none; }
+      .welcome__go { transition: none; }
+      .welcome__go:hover { transform: none; }
+    }
+  </style>
+
+</ArenaAppLayout>

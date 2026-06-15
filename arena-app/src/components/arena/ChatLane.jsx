@@ -322,8 +322,11 @@ export default function ChatLane() {
     return () => clearTimeout(id);
   }, [toast]);
 
-  // ?prompt= query-string handler — funnels the cockpit hero form's
-  // submission here. Fires once, scrubs the URL, then auto-sends.
+  // ?prompt= / ?prefill= query-string handler. Fires once, scrubs the URL.
+  // - `?prompt=` (cockpit hero form) auto-sends.
+  // - `?prefill=` (Field Edition /arena/welcome/ try-these chips, v0.34) fills
+  //   the composer and focuses it but does NOT send — the customer presses
+  //   send themselves (honest, not auto-sent; _IDEAS Part F Decision 7).
   useEffect(() => {
     if (promptHandledRef.current) return;
     if (offline) return;
@@ -331,18 +334,24 @@ export default function ChatLane() {
     try {
       const url = new URL(window.location.href);
       const seeded = url.searchParams.get('prompt');
-      if (!seeded) return;
+      const prefill = url.searchParams.get('prefill');
+      if (!seeded && !prefill) return;
       promptHandledRef.current = true;
-      setPrompt(seeded);
-      // Scrub so a refresh doesn't re-send.
+      // Scrub so a refresh doesn't re-send / re-fill.
       url.searchParams.delete('prompt');
+      url.searchParams.delete('prefill');
       window.history.replaceState({}, '', url.toString());
-      // Defer send to after state flush.
-      queueMicrotask(() => {
-        // Use the latest prompt closure via setPrompt? send() reads
-        // `prompt` state, which queueMicrotask will see post-update.
-        sendSeed(seeded);
-      });
+      if (seeded) {
+        setPrompt(seeded);
+        // Defer send to after state flush.
+        queueMicrotask(() => sendSeed(seeded));
+      } else {
+        // Honest pre-fill: populate + focus, let the customer press send.
+        setPrompt(prefill);
+        queueMicrotask(() => {
+          try { composerRef.current?.focus(); } catch (_e) { /* best-effort */ }
+        });
+      }
     } catch (_e) {
       // Best-effort — the operator can still type by hand.
     }

@@ -39,9 +39,13 @@ interface Props {
   active?: 'cockpit' | 'leaderboard' | 'chat' | 'compare' | 'models' | 'jobs' | 'standup' | 'sft' | 'reward' | 'build' | 'cortex' | 'lab';
   /** Hide the persistent telemetry rail on this page (e.g., a fullscreen compare). */
   hideRail?: boolean;
+  /** Narrative-zone hook (v0.34): set "narrative" to opt the body into the
+   *  premium noise-grain overlay (welcome / first-run / empty states). The
+   *  dense working panes leave this unset and stay clean (two-zone principle). */
+  zone?: 'narrative';
 }
 
-const { title, description, active = 'cockpit', hideRail = false } = Astro.props;
+const { title, description, active = 'cockpit', hideRail = false, zone } = Astro.props;
 
 // Breadcrumb echo of the active tab, shown next to the wordmark so each page
 // can drop its own oversized <h1> title block (the tab + this crumb already say
@@ -115,7 +119,7 @@ try {
     <title>{title}</title>
     {isDemo && <script is:inline src={href('arena-demo/boot.js')}></script>}
   </head>
-  <body class="arena-app__body">
+  <body class="arena-app__body" data-zone={zone}>
     <!--
       Shared telemetry bus — ONE EventSource to /api/telemetry/stream for the
       whole page, fanned out to every consumer (the rail + the LiveLeaderboard /

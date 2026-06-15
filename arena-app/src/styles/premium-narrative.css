@@ -1,0 +1,156 @@
+/*
+ * premium-narrative.css — Orionfold premium-narrative idioms for Arena's
+ * NARRATIVE surfaces (welcome / first-run / "while you wait" / empty states).
+ *
+ * v0.34 round-4 step 2 (_IDEAS/field-edition-onboarding-experience.md Part F).
+ * Ported additively from this repo's own marketing src/styles/global.css —
+ * framework-agnostic (both apps are Astro + Geist). Self-contained: it imports
+ * the §3 design-tokens directly so any narrative page gets the tokens + idioms
+ * with a single import, independent of which layout it uses.
+ *
+ * TWO-ZONE PRINCIPLE (Decision 5): this file is opt-in and is imported ONLY by
+ * narrative pages. The dense working cockpit panes (chat / compare / tables /
+ * telemetry) are styled by ArenaAppLayout's own <style is:global> and never
+ * import this — they keep the Airtable instrument language. Nothing here leaks
+ * into the operator panes by construction.
+ *
+ * Palette: indigo --accent + DGX-gold --gold + navy --orbit-ink (design-tokens,
+ * v0.34). Transparent mixes use `in srgb` (hue-stable); oklch is used only for
+ * two-real-color mixes — the step-1 lesson (oklch drags near-neutrals toward
+ * magenta against the powerless transparent hue).
+ */
+
+@import "./design-tokens.css";
+
+/* ── Noise grain overlay — narrative zone only ──
+   Opt in with data-zone="narrative" on <body>. Fixed full-viewport, GPU-cheap,
+   behind page content; suppressed on mobile. */
+body[data-zone="narrative"]::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+@media (max-width: 639px) {
+  body[data-zone="narrative"]::before { display: none; }
+}
+
+/* ── Hero gradient text — orionfold navy → royal blue → DGX-gold ramp ──
+   Brand literals (Decision 6 / _IDEAS Part E). */
+.hero-gradient-text {
+  background: linear-gradient(135deg, #003356, #1952af, oklch(59% 0.13 82));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Orionfold card surface idiom (.of-surface / .of-pressable) ──
+   accent-tinted hairline border, soft vertical sheen, long low navy shadow,
+   corner glow washes (indigo + gold) and a faint dot-grid texture.
+   --accent = indigo mid (#296cd8); the corner washes derive their own soft
+   alpha via color-mix(in srgb, …, transparent). */
+.of-surface {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid color-mix(in oklch, var(--border) 76%, var(--accent) 24%);
+  background:
+    linear-gradient(180deg, color-mix(in oklch, var(--surface) 94%, white 6%), var(--surface)),
+    var(--surface);
+  box-shadow: 0 28px 70px -44px oklch(18% 0.08 260 / 0.42), inset 0 1px rgba(255, 255, 255, 0.62);
+}
+.of-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.72;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--accent) 20%, transparent), transparent 24rem),
+    radial-gradient(circle at 84% 8%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 20rem);
+}
+.of-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.24;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.52) 0 1px, transparent 1.4px),
+    linear-gradient(135deg, transparent 0 46%, rgba(52, 110, 205, 0.07) 46% 46.4%, transparent 46.4% 100%);
+  background-position: 0 0, 50%;
+  background-size: 84px 84px, 100% 100%;
+}
+.of-pressable {
+  transition: border-color 0.22s, background-color 0.22s, box-shadow 0.22s, transform 0.22s;
+}
+.of-pressable:hover {
+  border-color: color-mix(in oklch, var(--accent) 38%, var(--border));
+  background-color: color-mix(in oklch, var(--accent) 4%, var(--surface));
+  box-shadow: 0 18px 42px -32px var(--accent);
+  transform: translateY(-2px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .of-pressable { transition: none; }
+  .of-pressable:hover { transform: none; }
+}
+
+/* ── .of-chip — gold-dot pill marker (Decision 6; new, in-idiom) ──
+   The narrative-surface counterpart to the cockpit's mono status chips:
+   a pill with a DGX-gold dot + soft halo and a mono label. */
+.of-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  padding: 0.4em 0.85em;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--mute);
+  font-family: var(--font-mono, "Geist Mono Variable", ui-monospace, monospace);
+  font-size: 0.8125rem;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+.of-chip::before {
+  content: "";
+  flex: none;
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+
+/* ── Scroll-reveal motion (data-animate) — narrative reveal on enter ──
+   Mirrors the marketing system; opt-in via [data-animate] + the JS observer
+   that toggles .is-visible. Reduced-motion shows everything immediately. */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(24px);
+  will-change: opacity, transform;
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-animate].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  will-change: auto;
+}
+[data-animate-stagger] > [data-animate]:nth-child(1) { transition-delay: 0ms; }
+[data-animate-stagger] > [data-animate]:nth-child(2) { transition-delay: 80ms; }
+[data-animate-stagger] > [data-animate]:nth-child(3) { transition-delay: 160ms; }
+[data-animate-stagger] > [data-animate]:nth-child(4) { transition-delay: 240ms; }
+[data-animate-stagger] > [data-animate]:nth-child(5) { transition-delay: 320ms; }
+[data-animate-stagger] > [data-animate]:nth-child(6) { transition-delay: 400ms; }
+[data-animate-stagger] > [data-animate]:nth-child(7) { transition-delay: 480ms; }
+@media (prefers-reduced-motion: reduce) {
+  [data-animate] { opacity: 1; transform: none; transition: none; }
+}
