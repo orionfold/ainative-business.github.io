@@ -6,6 +6,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.33.0] — 2026-06-15
+
+> AD-FK-α/β/γ — the three unattended-orchestration findings from the
+> first-customer sim. With these, `fieldkit field-edition up` (and the
+> `get-orionfold.sh` bootstrap) is a real unattended `curl … | sh`: it sources
+> the NGC key, ingests the demo corpus, and starts the cockpit itself. Minor
+> bump for the new `fieldkit.field_edition.ingest` submodule + the `ingest` CLI
+> command + public symbols. Offline suite: **1743 passed / 0 failed / 16
+> skipped** (164 field_edition tests). No new `--spark` tests — the live ingest
+> path is operator-armed (the first-boot sim); the unit tests mock `MemoryIndex`.
+
 ### Added
 
 - **`fieldkit.field_edition.ingest` + an `up` `ingest` phase (AD-FK-β) — a fresh
