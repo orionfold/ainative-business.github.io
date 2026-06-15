@@ -6,7 +6,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.32.3] — 2026-06-15
+
+### Added
+
+- **`fieldkit.field_edition.verify` — the optional §8 `hermes` gate is now
+  measured LIVE (the last unwired first-boot verify gate).** `LiveGateRunner.hermes`
+  drives the `fieldkit`-as-MCP server — the exact surface a Hermes harness drives
+  — with a real MCP client over stdio (`initialize` → `list_tools` → `call_tool`),
+  confirming one read-only tool round-trip (`spark_inference_envelope`) returns.
+  The probe is a capabilities lookup (no GPU, model, disk, or network), so it is
+  **lane-safe** (the resident Advisor lane the other gates proved warm is
+  untouched, honoring the one-lane invariant) and **deterministic**, running well
+  inside the ~30 s budget. Like the Cortex recall-half, it does NOT depend on the
+  operator-armed serving lane — so `verify --hermes` now renders `Hermes → pass`
+  end-to-end. Honest `error` (never a vanity pass) when the `fieldkit[harness]`
+  extra (the `mcp` SDK) is missing or the transport fails; the MCP round-trip is
+  an injectable seam (`_mcp_tool_roundtrip`) so the floor logic is unit-testable
+  without the SDK or a subprocess. The brain-driven full Hermes agent run stays
+  the heavier H4 milestone (a 30B MoE brain would violate the one-lane budget at
+  first boot), not a first-boot gate.
+
 ### Fixed
+
 - **`fieldkit.field_edition.advisor` — the refusal scorer no longer false-FAILs
   valid refusals phrased without the canonical "does not support" clause.**
   Surfaced by the first-customer happy-path simulation (running the real
@@ -29,30 +51,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   (re-freezing published receipts is operator-gated). +1 regression test → 142
   `field_edition` tests.
 
-### Added
-- **`fieldkit.field_edition.verify` — the optional §8 `hermes` gate is now
-  measured LIVE (the last unwired first-boot verify gate).** `LiveGateRunner.hermes`
-  drives the `fieldkit`-as-MCP server — the exact surface a Hermes harness drives
-  — with a real MCP client over stdio (`initialize` → `list_tools` → `call_tool`),
-  confirming one read-only tool round-trip (`spark_inference_envelope`) returns.
-  The probe is a capabilities lookup (no GPU, model, disk, or network), so it is
-  **lane-safe** (the resident Advisor lane the other gates proved warm is
-  untouched, honoring the one-lane invariant) and **deterministic**, running well
-  inside the ~30 s budget. Like the Cortex recall-half, it does NOT depend on the
-  operator-armed serving lane — so `verify --hermes` now renders `Hermes → pass`
-  end-to-end. Honest `error` (never a vanity pass) when the `fieldkit[harness]`
-  extra (the `mcp` SDK) is missing or the transport fails; the MCP round-trip is
-  an injectable seam (`_mcp_tool_roundtrip`) so the floor logic is unit-testable
-  without the SDK or a subprocess. The brain-driven full Hermes agent run stays
-  the heavier H4 milestone (a 30B MoE brain would violate the one-lane budget at
-  first boot), not a first-boot gate.
-
 ### Test suite
-- **5 new `field_edition` tests** (hermes round-trip passes / empty-result fails /
-  missing-extra errors honestly / transport-failure errors honestly / a real
-  end-to-end stdio MCP round-trip against the live `fieldkit` server) → **141
-  `field_edition` tests** (was 136). The `test_live_runner_bench_gates_error_honestly`
-  loop dropped `hermes` (it no longer depends on the serving stack).
+
+- **6 new `field_edition` tests** — 5 for the hermes gate (round-trip passes /
+  empty-result fails / missing-extra errors honestly / transport-failure errors
+  honestly / a real end-to-end stdio MCP round-trip against the live `fieldkit`
+  server) + 1 regression for the refusal-scorer fix (the 4 valid refusal
+  phrasings the Q4_K_M lane actually emits all score as refusals) → **142
+  `field_edition` tests** (was 136). `test_live_runner_bench_gates_error_honestly`
+  dropped `hermes` (it no longer depends on the serving stack).
 
 ## [0.32.2] — 2026-06-13
 
