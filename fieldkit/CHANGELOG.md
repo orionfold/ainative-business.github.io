@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+- `arena build` (`webui.py`) now injects `FIELDKIT_VERSION` into the astro build
+  env so the cockpit wordmark badge tracks the fieldkit version it was baked from
+  (was a hand-maintained `v0.2` string that had drifted). Part of the Arena v0.34
+  premium design pass.
+
 ## [0.33.1] — 2026-06-15
 
 > The first-customer install is now **one-shot**. v0.33.0's `up` reached

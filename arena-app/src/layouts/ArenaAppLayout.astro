@@ -73,6 +73,11 @@ const desc = description ??
 // build time so the boot <script> is only emitted into the demo bundle.
 const isDemo = process.env.ARENA_DEMO === '1';
 
+// Wordmark version badge: track the fieldkit version the cockpit is baked from
+// (injected by `fieldkit arena build` → webui.py). Falls back to 'dev' for a
+// standalone arena-app build that wasn't baked through fieldkit.
+const fieldkitVersion = process.env.FIELDKIT_VERSION || 'dev';
+
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '/') || '/';
 // In the baked Arena bundle (`ARENA_BUILD=1`) `base` is already `/arena/` AND
 // the `arena/**` routes are pruned to the bundle root, so `href('arena/chat/')`
@@ -215,7 +220,7 @@ try {
           <span class="arena-app__wordmark-1">ORIONFOLD</span>
           <span class="arena-app__wordmark-2">ARENA</span>
         </span>
-        <span class="arena-app__version" aria-label="version">v0.2</span>
+        <span class="arena-app__version" aria-label="fieldkit version">v{fieldkitVersion}</span>
       </a>
         {activeLabel && (
           <span class="arena-app__crumb" aria-hidden="true">

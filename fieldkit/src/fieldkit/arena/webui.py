@@ -134,6 +134,12 @@ def build_webui(
             )
         env = dict(os.environ)
         env[env_flag] = "1"
+        # Surface the fieldkit version the cockpit is baked from, so the wordmark
+        # badge tracks the package instead of a hand-maintained string (read in
+        # ArenaAppLayout.astro frontmatter). Local import avoids an import cycle.
+        from fieldkit import __version__ as _fk_version
+
+        env["FIELDKIT_VERSION"] = _fk_version
         # Per reference_astro_build_smb_symlink_break: invoke astro.js via node
         # directly — the .bin/astro symlink is flattened on the SMB checkout.
         subprocess.run(
