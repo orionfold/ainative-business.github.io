@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+- **Arena cockpit — the jobs board and the Lab "Next" lane now cap what they
+  render** so a long-lived sidecar's accumulated history can't bury the live
+  work. JobsBoard columns show the most-recent N per column (`queued` 12 /
+  `running` 8 / `done` 6 / `failed` 4) with the true total still in the header
+  and a `+ N older` footer; the Lab "Next" lane caps the `status: upcoming`
+  roadmap stubs so the column stays balanced against Now/Exploring instead of
+  flooding. Newest-first, no data deleted (the store keeps every job). Baked into
+  `_webui`; ships on the next release.
+
 ### Fixed
 - **Arena welcome — the filled "Talk to your Researcher" CTA label was invisible**
   (dark indigo on the indigo-gradient fill). The cockpit-wide

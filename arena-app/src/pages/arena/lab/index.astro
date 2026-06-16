@@ -63,12 +63,17 @@ const exploring: Card[] = [
 ];
 
 // Pull any `status: upcoming` articles into the Next lane (future-proof; the
-// board stays curated until the roadmap entries exist).
+// board stays curated until the roadmap entries exist). Capped so the roadmap
+// stub backlog can't flood the lane — the Next column stays balanced against
+// Now/Exploring, ending on the nearest-term upcoming deep-dive (sorted by id).
+const UPCOMING_IN_NEXT = 1;
 let upcoming: Card[] = [];
 try {
   const arts = await getCollection('articles');
   upcoming = arts
     .filter((a: any) => a.data?.status === 'upcoming')
+    .sort((a: any, b: any) => String(a.id).localeCompare(String(b.id)))
+    .slice(0, UPCOMING_IN_NEXT)
     .map((a: any) => ({
       id: `article-${a.id}`,
       title: a.data.title ?? a.id,

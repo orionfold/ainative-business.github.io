@@ -136,15 +136,16 @@ single board: what it shows, how you trigger work, and what each card tells you.
 
 ### The control plane board
 
-![The Arena control plane: the telemetry rail above a four-column jobs board — queued, running, done, and failed — with a regression banner and dispatch forms, the discovered Kepler Q8 lane shown live on the rail](screenshots/01-jobs-board.png)
+![The Arena control plane: the telemetry rail above a four-column jobs board — queued, running, done, and failed — with the dispatch forms below it and the resident Advisor lane shown live on the rail](screenshots/01-jobs-board.png)
 
-*One screen: the live telemetry rail, a regression banner, the dispatch form,
-and the four-column board of every re-evaluation the Spark is working through.*
+*One screen: the live telemetry rail, the dispatch forms, and the four-column
+board of every job the Spark is working through — queued and running idle here,
+done and failed carrying real work.*
 
 The board is the cockpit's new home for work-in-flight. The same instrument rail
 that fronts every Arena page sits across the top — GPU utilization, die
 temperature, the unified-memory envelope with its headroom, and the resident lane
-(here the discovered Kepler Q8 GGUF, live on its port) — so you watch the machine's
+(here the configured Advisor lane, a Qwen3-30B-A3B GGUF) — so you watch the machine's
 state while the queue
 drains. Below it, four columns track each job from *queued* through *running* to
 *done* or *failed*. The header line states the two invariants that make this safe
@@ -154,10 +155,10 @@ surface), with the reminder that `jobs.payload_json` is never mirrored.
 
 ### Dispatch a re-eval, or scan for regressions
 
-![The dispatch row: a regression banner reading 'Leaderboard drop on legal-q5km × legal-bench — an eval_rerun is queued to confirm', above a dispatch form with lane and bench inputs, a queue button, and a scan regressions button](screenshots/02-dispatch-and-regression.png)
+![The dispatch re-eval form: lane and bench inputs, a queue button, and a scan regressions button — the row you dispatch a re-evaluation from](screenshots/02-dispatch-and-regression.png)
 
-*Queue a re-eval by hand, or let the regression detector do it — the banner fires
-when a leaderboard drop has auto-enqueued a confirming re-evaluation.*
+*Queue a re-eval by hand, or hit scan regressions — a regression banner rises
+above this form when a leaderboard drop has auto-enqueued a confirming re-eval.*
 
 This is where the cockpit stops being passive. Type a lane and a bench and **queue**
 a re-evaluation directly; the dispatcher claims it, runs it through the harness on
@@ -173,19 +174,20 @@ coalesces duplicate triggers so a noisy bench can never start a re-eval storm.
 
 ### Every job, every state, every result
 
-![The four-column board close-up: queued cards with a manual and a leaderboard_regression job each showing a cancel button, a running stale_bench job, two done jobs showing 'acc 0.76 · n 20' and 'acc 0.82 · n 25', and a failed job reading 'no lane served — serve a chat lane before re-eval'](screenshots/03-board-columns.png)
+![The four-column board close-up: queued and running idle, the done column carrying real lane-op and eval cards (a lane torn down with GB freed, a quant live on its port), and the failed column showing guarded pre-flights that refused before acting](screenshots/03-board-columns.png)
 
-*Each card carries its kind and trigger; done cards show measured accuracy and the
-number of questions scored; a failed card says exactly why.*
+*Each card carries its kind and trigger; a done card shows its result; a failed
+card says exactly why.*
 
-The card is the whole story at a glance. Every job names its **kind**
-(`eval_rerun`) and what **triggered** it — `manual`, `leaderboard_regression`, or
-`stale_bench` — so you always know whether you asked for this work or the cockpit
-did. A job still waiting carries a **cancel** button. A **done** card shows the
-measured accuracy and how many questions were scored (`acc 0.82 · n 25`). A
-**failed** card carries the reason inline — here, the honest day-one state when no
-chat lane is served — so the board diagnoses itself rather than sending you to a
-log. Because the jobs table is on the never-mirror list, this board exists only
+The card is the whole story at a glance. Every job names its **kind** — an
+`eval_rerun`, a lane `lane_launch`/`lane_teardown`, an `rl_run` — and what
+**triggered** it — `manual`, `leaderboard_regression`, or `stale_bench` — so you
+always know whether you asked for this work or the cockpit did. A job still
+waiting carries a **cancel** button. A **done** card shows its result: a measured
+accuracy for an eval (`acc 0.82 · n 25`), the GB freed for a teardown, the port a
+lane came up on. A **failed** card carries the reason inline — here, a guarded
+pre-flight that *refused* before acting — so the board diagnoses itself rather
+than sending you to a log. Because the jobs table is on the never-mirror list, this board exists only
 against a live sidecar; the public mirror renders a "cockpit offline" state by
 construction, because the work — and the prompts inside it — is yours alone.
 
@@ -243,11 +245,11 @@ invent their own queue. They did. The surfaces below shipped in the weeks after
 the sprint — each one another kind of work flowing through the same dispatcher,
 the same single-lane envelope, the same harness rails.
 
-![The grown jobs board: dispatch slots for an eval re-run, a base-model fine-tune smoke, and a recipe-driven training run sit above the four-column board, whose done and failed cards carry real astro-bench eval and rl_run results](screenshots/09-jobs-guardrails-rl.png)
+![The grown jobs board: dispatch slots for an eval re-run, an RLVR run, and an armed SFT run sit above the four-column board, whose done and failed cards carry real lane-op, eval, and rl_run results — with a '+ N older' footer where a column was capped to its most recent](screenshots/09-jobs-guardrails-rl.png)
 
-*The dispatch row grew from one job kind to three: re-eval a lane, smoke-test a
-base model fine-tune, or launch a training run from a recipe contract — all
-draining through the same four columns.*
+*The dispatch row grew from one job kind to three: re-eval a lane, enqueue an
+RLVR run, or arm an SFT run from a recipe contract — all draining through the
+same four columns.*
 
 The board's biggest growth is what it can start. Alongside the original
 lane-times-bench re-eval, the dispatch row gained a **fine-tune smoke** slot — a
@@ -258,7 +260,7 @@ banner above the form states the division of labor plainly: you dispatch here,
 on demand, one lane at a time; what the overnight cron ran is reviewed in
 Standup.
 
-![The vertical build pipeline pane: Kepler's build spine rendered as stage cards — scout, bench, corpus, SFT-init, smoke, lane, and RLVR — with seven of eight stages complete and a bench-provenance strip above them](screenshots/04-build-spine.png)
+![The vertical build pipeline pane: the Advisor build spine rendered as stage cards — scout, bench, corpus, SFT-init, smoke, lane, and RLVR — each carrying its receipts, with a bench-provenance strip above them](screenshots/04-build-spine.png)
 
 *A whole vertical build as one spine: each stage card carries its receipts, and
 the bench-provenance strip pins exactly which frozen bench scored what.*
@@ -270,7 +272,7 @@ pins bench provenance so a score is never separable from the frozen bench that
 produced it. This is the machine-that-builds-machines view: the board dispatches
 the stages, the spine shows the build they add up to.
 
-![The reward-signal pane: one verifier gauge across the build showing a 96 percent step-zero reward baseline, a zero percent truncation rate, and a gate reading HOLD — read-only, never dispatches](screenshots/10-reward-gauge.png)
+![The reward-signal pane: one verifier gauge across the build — eval-is-reward, AV-R1 watch, read-only and never dispatches — ready to land the SFT-init step-zero baseline (boxed-rate, held-out reward, truncation check) the moment a preflight or rl_run reports](screenshots/10-reward-gauge.png)
 
 *Eval-is-reward, made visible: the same bench verifier that scores the
 leaderboard is the reward signal the training run optimizes — one gauge watches
@@ -295,7 +297,7 @@ job — the fix for a real OpenRouter eval that once hung for two and a half hou
 holding the lane and accruing uncapped spend. Local Spark lanes run unguarded
 and unaffected; the bounds exist exactly where the meter does.
 
-![The morning standup digest: eleven jobs ran overnight, zero regressed, three failed honestly, the queue drained, and total spend was five cents of a five-dollar governor — stage-only, with no push path](screenshots/11-standup.png)
+![The morning standup digest: the overnight drain's ran / regressed / failed / queued columns — zero regressions, the queue drained, and total spend seven cents of a five-dollar governor — stage-only, with no push path](screenshots/11-standup.png)
 
 *The overnight loop's report card: ran, regressed, failed, queued, and spend —
 the cron drains and stages, then stops at this gate for the operator to review
@@ -304,10 +306,10 @@ and promote.*
 And the promised cron layer landed as **Standup** — a read-only morning digest
 of what the overnight drain ran, regressed, and staged. The loop is
 *stage-only*: it sweeps the queue, runs the work, and stops at this gate. It has
-no push path; you review, then promote. Eleven jobs, zero regressions, three
-honest failures, five cents of spend against a five-dollar governor — that is
-what delegated overnight work looks like when the board doing it was built to be
-left running.
+no push path; you review, then promote. A batch drained, zero regressions, a
+handful of honest failures, seven cents of spend against a five-dollar governor —
+that is what delegated overnight work looks like when the board doing it was
+built to be left running.
 
 ## Get it
 

@@ -25,6 +25,17 @@ const COLUMNS = [
   { key: 'failed', label: 'Failed', match: (s) => s === 'failed' || s === 'skipped' },
 ];
 
+// Per-column render cap: a long-lived sidecar accumulates hundreds of terminal
+// jobs (a year of lane ops, eval re-runs, RL drains), which buries the live
+// work-in-flight under a wall of history. Show only the most-recent N per
+// column — the header count stays the true total, and a footer notes the
+// remainder. In-flight columns (queued/running) keep a generous cap; the
+// terminal columns (done/failed) trim hardest. Newest-first by enqueued_at.
+const COLUMN_CAP = { queued: 12, running: 8, done: 6, failed: 4 };
+function recentFirst(a, b) {
+  return Date.parse(b.enqueued_at || 0) - Date.parse(a.enqueued_at || 0);
+}
+
 function laneBench(job) {
   const p = job.payload || {};
   if (job.kind === 'sft_run' && p.recipe_path) {
@@ -700,6 +711,9 @@ export default function JobsBoard({ curriculum = {} }) {
       <div class="jobs__board">
         {COLUMNS.map((col) => {
           const cards = jobs.filter((j) => col.match(j.status));
+          const cap = COLUMN_CAP[col.key] ?? cards.length;
+          const visible = cards.slice().sort(recentFirst).slice(0, cap);
+          const hidden = cards.length - visible.length;
           return (
             <section class="jobs__col" key={col.key} data-col={col.key}>
               <header class="jobs__col-head">
@@ -708,7 +722,7 @@ export default function JobsBoard({ curriculum = {} }) {
               </header>
               <div class="jobs__col-body">
                 {cards.length === 0 && <p class="jobs__empty">—</p>}
-                {cards.map((j) => (
+                {visible.map((j) => (
                   <article class="jobs__card" key={j.id} data-status={j.status} data-prior={isPrior(j)}>
                     <div class="jobs__card-top">
                       <span class="jobs__card-kind">{j.kind}</span>
@@ -841,6 +855,11 @@ export default function JobsBoard({ curriculum = {} }) {
                     )}
                   </article>
                 ))}
+                {hidden > 0 && (
+                  <p class="jobs__more" title="older terminal jobs are kept in the store; the board shows the most recent">
+                    + {hidden} older
+                  </p>
+                )}
               </div>
             </section>
           );
