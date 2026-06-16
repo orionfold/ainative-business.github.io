@@ -354,7 +354,7 @@ default, but the lane selector lets you point it at any on-demand local GGUF
 memory envelope) or a hosted lane. Answers render with full markdown and syntax
 highlighting, reasoning traces collapse out of the way, and the throughput reads
 live — the answer above (a Kepler's-third-law orbit period, correct to the
-minute) streamed back with a **210 ms time-to-first-token** off the resident
+minute) streamed back with a **232 ms time-to-first-token** off the resident
 Kepler-8B Q8 specialist.
 
 ### Score against gold — the eval drawer
@@ -383,16 +383,18 @@ deterministic rubric score for each side.*
 Compare is the duel. Pick any two lanes — two of your local models, a local model
 against a hosted one, whichever question you're actually asking — and watch them
 answer the same prompt. Where the launch build showed a single delta strip, the
-duel now lays out **telemetry-style metric cards** — quality, tok/s,
-time-to-first-token, tokens, and cost — each marking the winner and drawing a
-**peak-bar sparkline of that metric across this session's runs**, so a pattern
-emerges as you fire more comparisons. The run above is local-vs-hosted — the
-resident **Kepler Q8** against **Claude Haiku 4.5**, both answering the same
-orbital-mechanics prompt correctly — scored by a deterministic rubric. A
-thumbs-up records your own preference as a *separate* signal — it never silently
-mutates the rubric score. And because a hosted lane is involved, the **cost
-card** meters it: the local answer cost $0, the hosted one a metered fraction of
-a cent.
+duel now lays out **telemetry-style metric cards** — a deterministic rubric
+score, tok/s, time-to-first-token, tokens, and cost — each marking the winner and
+drawing a **peak-bar sparkline of that metric across this session's runs**, so a
+pattern emerges as you fire more comparisons. The run above is local-vs-hosted —
+the resident **Kepler Q8** against **Claude Haiku 4.5**, both answering the same
+orbital-mechanics prompt. The deterministic rubric here is a *format check* —
+both responses pass, and the card says so plainly while disclaiming that it says
+nothing about which value is *right* (that verdict is what the eval drawer's gold
+scoring is for). A thumbs-up records your own preference as a *separate* signal —
+it never silently mutates the rubric score. And because a hosted lane is
+involved, the **cost card** meters it: the local answer cost $0, the hosted one a
+metered fraction of a cent.
 
 ### Move at the speed of thought — the command palette
 
