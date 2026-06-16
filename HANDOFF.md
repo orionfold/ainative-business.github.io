@@ -33,6 +33,8 @@
 - **Prose/alt-text honesty sweep:** every caption now matches the live shots (no phantom regression banner; resident **Advisor** lane not Kepler; real lane-op/refused cards; reward gauge ready-state; updated standup spend ~7¢). Historical v0.16.0 build-story + `build:` block left intact. Rigel never named; persona "your AI Researcher".
 - **Verified:** site build **538 pages**; `verify_product_article arena-control-plane` PASS; `verify_artifact_rendering`/`verify_field_notes_rendering`/`verify_arena_catalog_sync` all green. Page CDP-confirmed rendering blue.
 - **Deferred (operator may revisit):** the orange `orionfold-cortex/03-jobs-board-draining.png` + a marketing-demo rebuild to pick up the caps — both out of option-2 scope.
+- **Pushed:** public `main` `f380dd3` (article + caps) → `8869c99` (release) → `f9854b9` (stats + HANDOFF + beacon); strategy repo `3234327` (Spark→Mac relay, **closes the 2026-06-16 recapture thread** — orionfold.com re-syncs the 8 `arena-control-plane/screenshots/` with a one-line rsync). PyPI publish needed **auto-mode off** (classifier gates public-registry pushes).
+- **Session-end runtime: box FULLY DOWN** — cockpit `:7866` + CDP Chromium `:9222` + the Astro dev server `:4321` all torn down (`arena_lifecycle.sh down --browser` + dev-server kill). Dogfood **pgvector `:5432`** + **nim-embed `:8001`** left up (corpus intact).
 
 ### 2026-06-15 — Marketing web demo **rebuilt to match latest arena-app** (closes the welcome-CTA drift in `/arena/demo/`) (this session)
 
