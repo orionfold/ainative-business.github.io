@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.34.0] — 2026-06-15
+
+> Arena **Field Edition v0.34** ships: a guided console onboarding TUI fronts the
+> `curl … | sh` install, Settings gains a bring-your-own OpenRouter-key form, the
+> keyless cloud-lane hide rule lands, and the cockpit moves to the blue-indigo +
+> DGX-gold palette. Plus two Compare/eval-drawer UX fixes the operator caught on
+> review. New public symbols (`fieldkit.field_edition.onboard`,
+> `compose.write_ngc_api_key`) → minor bump.
+
 ### Added
 - **`fieldkit field-edition onboard` — a guided onboarding TUI** (new
   `fieldkit.field_edition.onboard`: `run_onboard`, `ensure_ngc_key`,
@@ -35,6 +44,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   horizontal bars (A over B) sized to the real values on a shared per-pair scale,
   so the larger number draws the longer bar and the ratio reads at a glance; the
   winner (honouring lower-is-better for TTFT/cost) keeps the `✓` and full opacity.
+- **Arena eval drawer no longer shows a stray horizontal scrollbar.** A long
+  gold-reference badge (`white-space: nowrap`) plus the prompt list's implicit
+  `overflow-x` drew a horizontal scrollbar across the drawer. The list now sets
+  `overflow-x: hidden` and the `.eval-badge--gold` reference wraps
+  (`white-space: normal; overflow-wrap: anywhere`). Baked into `_webui`.
 - **The telemetry rail's `hidden` cells now actually hide.** `.telemetry-rail__cell
   { display: flex }` overrode the UA `[hidden] { display: none }`, so a `hidden`
   cell (the run cell, and the OpenRouter spend cell gated by the v0.34 cloud-lane
