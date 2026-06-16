@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Fixed
+- **Arena welcome — the filled "Talk to your Researcher" CTA label was invisible**
+  (dark indigo on the indigo-gradient fill). The cockpit-wide
+  `html.arena-app a:not(.arena-btn):not(.arena-app__tab)` link-color reset
+  out-specified `.welcome__go`'s `color:#fff` and repainted the label
+  `--arena-accent`. Added `:not(.welcome__go)` to the reset's exclusion list (the
+  same idiom that already spares `.arena-btn`/`.arena-app__tab`) so the filled CTA
+  keeps its white label. Baked into `_webui`; ships on the next release.
+
 ## [0.34.0] — 2026-06-15
 
 > Arena **Field Edition v0.34** ships: a guided console onboarding TUI fronts the

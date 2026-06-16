@@ -209,6 +209,51 @@
   }
 }
 
+/* ---------- asciinema cast player (product onboarding replay) ---------- */
+.fn-prose figure.asciinema-figure {
+  width: min(calc(100vw - 3rem), calc(88rem - 3rem));
+  max-width: none;
+  margin: 2rem auto 0.75rem;
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+.asciinema-cast {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  background: #16181d; /* asciinema 'asciinema' theme background */
+  line-height: 0;
+}
+/* The poster (the static onboarding SVG) defines the box and is the no-JS /
+   pre-play fallback; the mounted player sits over it and it fades on play. */
+.asciinema-cast__poster {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  transition: opacity 0.4s ease;
+}
+.asciinema-cast__poster--hidden { opacity: 0; pointer-events: none; }
+.asciinema-cast__player {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.asciinema-cast__player:empty { display: none; }
+.asciinema-cast .ap-player { border-radius: 0; }
+@media (max-width: 640px) {
+  .fn-prose figure.asciinema-figure {
+    width: 100%;
+    margin-left: 0;
+    transform: none;
+  }
+  .asciinema-cast { border-radius: 0; border-inline: none; }
+}
+
 .fn-prose figure { margin: 2rem 0; }
 .fn-prose figcaption {
   font-family: var(--font-mono);

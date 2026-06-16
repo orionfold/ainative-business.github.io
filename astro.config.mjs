@@ -6,6 +6,7 @@ import { readdirSync, existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import remarkDirective from 'remark-directive';
+import remarkAsciinema from './src/lib/products/remark-asciinema.mjs';
 import remarkExplainers from './src/lib/field-notes/remark-explainers.mjs';
 import rehypeExplainerFigure from './src/lib/field-notes/rehype-explainer-figure.mjs';
 
@@ -65,7 +66,7 @@ export default defineConfig({
     ...articleSlugRedirects,
   },
   markdown: {
-    remarkPlugins: [remarkDirective, remarkExplainers],
+    remarkPlugins: [remarkDirective, remarkAsciinema, remarkExplainers],
     rehypePlugins: [rehypeExplainerFigure],
     shikiConfig: {
       themes: {

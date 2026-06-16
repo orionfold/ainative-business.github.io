@@ -14,6 +14,9 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const d = entry.data;
+// Only ship the asciinema-player bundle on a product page that actually embeds
+// a `::asciinema` cast (the body is the raw markdown source).
+const hasCast = (entry.body ?? '').includes('::asciinema');
 
 const dateIso = d.date.toISOString().slice(0, 10);
 const productUrl = `${SITE.url}/products/${entry.id}/`;
@@ -69,6 +72,7 @@ const jsonLd = [
   ogImage={ogImage}
   ogImageAlt={ogImageAlt}
   jsonLd={jsonLd}
+  hasCast={hasCast}
 >
   <Content />
 </ProductLayout>

@@ -194,11 +194,12 @@ to the surfaces reached once you are warm.
 
 ### It starts at the install — guided onboarding
 
-![The guided onboarding flow: a welcome panel and the preflight support-matrix check, rendered in the terminal](screenshots/17-onboard-1-preflight.svg)
+::asciinema{src="/products/orionfold-arena/casts/onboard.cast" poster="/products/orionfold-arena/screenshots/17-onboard-1-preflight.svg" alt="The guided field-edition onboard flow, replayed in the terminal: welcome, preflight matrix, NGC-key capture, named download manifest, while-you-wait cards, and the 'your Advisor is warm' call to action" cols=100 rows=20 idle=2 speed=1.4 title="fieldkit field-edition onboard — the guided install, replayed. Press play; the static frames below are the poster + no-JS fallback."}
 
 *`fieldkit field-edition onboard` — a Rich-rendered linear flow over the headless
 bring-up engine. It greets you, then checks the box against the tested DGX OS /
-driver / CUDA / Docker matrix before pulling a single byte.*
+driver / CUDA / Docker matrix before pulling a single byte. Play the cast above
+to watch the whole guided install; the stills below walk the same four beats.*
 
 A bare `curl … | sh` worked, but it read as a wall of `pip` output and a terse
 phase log — dev-shaped, not customer-shaped. The guided onboarding owns the

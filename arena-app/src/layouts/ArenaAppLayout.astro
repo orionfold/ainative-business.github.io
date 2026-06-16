@@ -444,9 +444,10 @@ try {
        * state. Without :not(), this generic rule out-specifies their single-class
        * color rules (0,1,2 > 0,2,0 once the not() raises it — but the bare rule beat
        * 0,1,0/0,2,0 alike) and paints the label accent-blue on an accent-blue fill →
-       * invisible "Try in chat" button + invisible active-tab label. */
-      html.arena-app a:not(.arena-btn):not(.arena-app__tab) { color: var(--arena-accent); text-decoration: none; }
-      html.arena-app a:not(.arena-btn):not(.arena-app__tab):hover { color: var(--arena-accent-glow); }
+       * invisible "Try in chat" button + invisible active-tab label + the
+       * welcome page's filled "Talk to your Researcher" CTA (.welcome__go). */
+      html.arena-app a:not(.arena-btn):not(.arena-app__tab):not(.welcome__go) { color: var(--arena-accent); text-decoration: none; }
+      html.arena-app a:not(.arena-btn):not(.arena-app__tab):not(.welcome__go):hover { color: var(--arena-accent-glow); }
       html.arena-app code, html.arena-app kbd, html.arena-app pre {
         font-family: var(--arena-mono);
         font-variant-numeric: tabular-nums;

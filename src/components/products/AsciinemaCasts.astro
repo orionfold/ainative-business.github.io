@@ -1,0 +1,68 @@
+---
+// AsciinemaCasts — client island that turns every `.asciinema-cast` mount point
+// (emitted by remark-asciinema) into a real asciinema-player on scroll-into-view.
+//
+// Included by ProductLayout only when the rendered body contains a cast, so the
+// ~250 KB player bundle never loads on a product page that has none. The poster
+// `<img>` is the no-JS / pre-play fallback; it fades out once the player mounts.
+// Autoplay-on-visible + native controls, per the build brief (lightweight).
+---
+<script>
+  import { create } from 'asciinema-player';
+  import 'asciinema-player/dist/bundle/asciinema-player.css';
+
+  function mount(el: HTMLElement) {
+    if (el.dataset.mounted) return;
+    el.dataset.mounted = '1';
+    const slot = el.querySelector<HTMLElement>('.asciinema-cast__player');
+    const poster = el.querySelector<HTMLElement>('.asciinema-cast__poster');
+    if (!slot) return;
+    const player = create(el.dataset.cast!, slot, {
+      cols: Number(el.dataset.cols) || 100,
+      rows: Number(el.dataset.rows) || 18,
+      autoPlay: true,
+      preload: true,
+      loop: false,
+      idleTimeLimit: Number(el.dataset.idle) || 2,
+      speed: Number(el.dataset.speed) || 1,
+      theme: 'asciinema',
+      fit: 'width',
+      controls: true,
+    });
+    const hidePoster = () => {
+      if (poster) poster.classList.add('asciinema-cast__poster--hidden');
+    };
+    player.addEventListener('play', hidePoster);
+    // Belt-and-suspenders: hide once the first frame should be up.
+    setTimeout(hidePoster, 600);
+  }
+
+  function init() {
+    const casts = Array.from(
+      document.querySelectorAll<HTMLElement>('.asciinema-cast'),
+    );
+    if (!casts.length) return;
+    if (!('IntersectionObserver' in window)) {
+      casts.forEach(mount);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            mount(e.target as HTMLElement);
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.25 },
+    );
+    casts.forEach((c) => io.observe(c));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+</script>
