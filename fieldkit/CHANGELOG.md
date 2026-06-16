@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [0.34.1] — 2026-06-16
+
+> Arena cockpit render polish — the jobs board and the Lab "Next" lane now cap
+> what they render so a long-lived sidecar's accumulated history can't bury the
+> live work, plus the welcome-CTA contrast fix from the prior cycle. Render-only
+> (no public-API change); the wheel rebakes `_webui` so the customer cockpit
+> picks both up. Patch bump.
+
 ### Changed
 - **Arena cockpit — the jobs board and the Lab "Next" lane now cap what they
   render** so a long-lived sidecar's accumulated history can't bury the live
@@ -14,7 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   and a `+ N older` footer; the Lab "Next" lane caps the `status: upcoming`
   roadmap stubs so the column stays balanced against Now/Exploring instead of
   flooding. Newest-first, no data deleted (the store keeps every job). Baked into
-  `_webui`; ships on the next release.
+  `_webui`.
 
 ### Fixed
 - **Arena welcome — the filled "Talk to your Researcher" CTA label was invisible**
@@ -23,7 +31,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   out-specified `.welcome__go`'s `color:#fff` and repainted the label
   `--arena-accent`. Added `:not(.welcome__go)` to the reset's exclusion list (the
   same idiom that already spares `.arena-btn`/`.arena-app__tab`) so the filled CTA
-  keeps its white label. Baked into `_webui`; ships on the next release.
+  keeps its white label. Baked into `_webui`.
 
 ## [0.34.0] — 2026-06-15
 
