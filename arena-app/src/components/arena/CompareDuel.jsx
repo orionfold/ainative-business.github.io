@@ -28,7 +28,7 @@ import {
   isPublicMirrorHost,
 } from '../../lib/arena/sidecar.mjs';
 import { renderMarkdown } from '../../lib/arena/markdown.mjs';
-import { drawBars, SLOTS } from '../../lib/arena/peakbars.mjs';
+import { SLOTS } from '../../lib/arena/peakbars.mjs';
 import {
   fetchBenches,
   benchForLane,
@@ -1086,21 +1086,11 @@ function WinnerBanner({ a, b, evalMode, scope }) {
 const DELTA_A = '#338A17';
 const DELTA_B = '#2750AE';
 
-// One small canvas of peak bars across the session's runs, reusing the exact
-// telemetry-rail renderer. `series` is this metric's value per run (oldest
-// first); `max` is shared across the A and B canvas so the two read on one scale.
-function CanvasSpark({ series, color, max }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    if (ref.current) drawBars(ref.current, series, null, { color, max });
-  }, [series, color, max]);
-  return <canvas ref={ref} width="120" height="9" class="compare-metric__canvas" />;
-}
-
 // MetricCards — the head-to-head metrics as telemetry-style horizontal cards.
 // Each card: metric label · current-run A-vs-B values (winner emphasised) · a
-// two-row peak-bar sparkline (A over B) of that metric across this session's
-// compare runs. Replaces the old paired-bar DeltaStrip.
+// pair of horizontal magnitude bars (A over B) sized to the real values on a
+// shared scale, so the larger number draws the longer bar. Replaces the old
+// paired-bar DeltaStrip.
 function MetricCards({ a, b, evalMode, scope, history }) {
   const qualityA = evalMode ? a.evalScore?.normalized : a.score?.total;
   const qualityB = evalMode ? b.evalScore?.normalized : b.score?.total;
@@ -1125,7 +1115,7 @@ function MetricCards({ a, b, evalMode, scope, history }) {
         <span class="compare-metrics__key">
           <span style={`color:${DELTA_A};font-weight:700`}>A</span>
           <span style={`color:${DELTA_B};font-weight:700`}>B</span>
-          <span class="compare-metrics__keytext">· bars = this session's runs · ✓ winner</span>
+          <span class="compare-metrics__keytext">· bar length = value (shared scale) · ✓ winner</span>
         </span>
       </div>
       <div class="compare-metrics__grid">
@@ -1134,10 +1124,13 @@ function MetricCards({ a, b, evalMode, scope, history }) {
           const tie = both && s.av === s.bv;
           const aWins = both && !tie && (s.lowerBetter ? s.av < s.bv : s.av > s.bv);
           const bWins = both && !tie && !aWins;
-          const aSeries = history.map((h) => (num(h.a?.[s.key]) ? h.a[s.key] : null));
-          const bSeries = history.map((h) => (num(h.b?.[s.key]) ? h.b[s.key] : null));
-          let max = 1e-9;
-          for (const v of [...aSeries, ...bSeries]) if (v != null) max = Math.max(max, v);
+          // Horizontal magnitude bars for THIS run, scaled to the pair's own
+          // max so the longer bar = the larger number and the ratio reads at a
+          // glance ("B's tok/s bar is ~4× A's"). Winner full-opacity, loser
+          // dimmed. (Replaces the per-run vertical peak-bar sparkline, which was
+          // a 1px-tall canvas that read as illegibly tiny for a single run.)
+          const pairMax = Math.max(num(s.av) ? s.av : 0, num(s.bv) ? s.bv : 0, 1e-9);
+          const barPct = (v) => (num(v) ? Math.max((Math.min(v, pairMax) / pairMax) * 100, 2) : 0);
           return (
             <div class="compare-metric" key={s.key}>
               <span class="compare-metric__label" title={s.lowerBetter ? 'lower is better' : 'higher is better'}>{s.label}</span>
@@ -1150,9 +1143,13 @@ function MetricCards({ a, b, evalMode, scope, history }) {
                   {num(s.bv) ? s.fmt(s.bv) : '—'}{bWins ? ' ✓' : ''}
                 </span>
               </span>
-              <div class="compare-metric__spark">
-                <CanvasSpark series={aSeries} color={DELTA_A} max={max} />
-                <CanvasSpark series={bSeries} color={DELTA_B} max={max} />
+              <div class="compare-metric__bars" aria-hidden="true">
+                <span class="compare-metric__bar">
+                  <span class="compare-metric__bar-fill" style={`width:${barPct(s.av)}%;background:${DELTA_A};opacity:${bWins ? 0.4 : 1}`} />
+                </span>
+                <span class="compare-metric__bar">
+                  <span class="compare-metric__bar-fill" style={`width:${barPct(s.bv)}%;background:${DELTA_B};opacity:${aWins ? 0.4 : 1}`} />
+                </span>
               </div>
             </div>
           );

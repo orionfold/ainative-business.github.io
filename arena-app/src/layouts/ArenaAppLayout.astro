@@ -5452,17 +5452,25 @@ try {
         color: var(--arena-text-dim);
         letter-spacing: 0.04em;
       }
-      .arena-app .compare-metric__spark {
+      .arena-app .compare-metric__bars {
         display: flex;
         flex-direction: column;
-        gap: 1px;
-        margin-top: 0.12rem;
+        gap: 3px;
+        margin-top: 0.22rem;
       }
-      .arena-app .compare-metric__canvas {
-        width: 100%;
-        height: 9px;
+      .arena-app .compare-metric__bar {
+        position: relative;
+        height: 6px;
+        border-radius: 3px;
+        background: var(--arena-line);
+        overflow: hidden;
+      }
+      .arena-app .compare-metric__bar-fill {
         display: block;
-        opacity: 0.92;
+        height: 100%;
+        min-width: 1px;
+        border-radius: 3px;
+        transition: width 0.35s ease;
       }
 
       /* =====================================================================
@@ -5651,7 +5659,7 @@ try {
         color: var(--arena-text); font-size: 0.72rem; font-family: var(--arena-mono);
       }
       .arena-app .eval-drawer__familysel { max-width: 9rem; }
-      .arena-app .eval-drawer__list { flex: 1; overflow-y: auto; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
+      .arena-app .eval-drawer__list { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 0.5rem; display: flex; flex-direction: column; gap: 0.35rem; }
       .arena-app .eval-drawer__loading,
       .arena-app .eval-drawer__empty { color: var(--arena-text-dim); font-size: 0.72rem; padding: 1rem; text-align: center; }
       .arena-app .eval-drawer__more {
@@ -5689,7 +5697,7 @@ try {
       /* AE-11 — astro preview facets (tier / subtopic / inline gold). */
       .arena-app .eval-badge--tier { color: var(--arena-accent-glow); border-color: var(--arena-accent-dim); }
       .arena-app .eval-badge--sub { color: var(--arena-text-dim); border-color: var(--arena-line); }
-      .arena-app .eval-badge--gold { color: var(--arena-warn); border-color: color-mix(in oklch, var(--arena-warn) 40%, var(--arena-line)); font-weight: 600; }
+      .arena-app .eval-badge--gold { color: var(--arena-warn); border-color: color-mix(in oklch, var(--arena-warn) 40%, var(--arena-line)); font-weight: 600; white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
       /* grounded-eval-v1 §8 — live-retrieval bench rows (packet built at send time). */
       .arena-app .eval-badge--live { color: var(--arena-ok); border-color: color-mix(in oklch, var(--arena-ok) 40%, var(--arena-line)); }
 

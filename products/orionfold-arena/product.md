@@ -385,8 +385,9 @@ against a hosted one, whichever question you're actually asking — and watch th
 answer the same prompt. Where the launch build showed a single delta strip, the
 duel now lays out **telemetry-style metric cards** — a deterministic rubric
 score, tok/s, time-to-first-token, tokens, and cost — each marking the winner and
-drawing a **peak-bar sparkline of that metric across this session's runs**, so a
-pattern emerges as you fire more comparisons. The run above is local-vs-hosted —
+drawing **a horizontal magnitude bar per lane on a shared scale**, so the larger
+number draws the longer bar and the ratio reads at a glance (here Haiku's tok/s
+bar runs ~11× the resident's). The run above is local-vs-hosted —
 the resident **Kepler Q8** against **Claude Haiku 4.5**, both answering the same
 orbital-mechanics prompt. The deterministic rubric here is a *format check* —
 both responses pass, and the card says so plainly while disclaiming that it says

@@ -28,6 +28,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   (`OpenRouterKeySettings.jsx`). +3 tests.
 
 ### Fixed
+- **Arena Compare metric cards: the per-lane comparison bars are now horizontal
+  magnitude bars.** Each head-to-head metric (tok/s, TTFT, tokens, cost, rubric)
+  drew a 9px-tall vertical peak-bar canvas of the session's runs — for a single
+  compare that was one ~4px sliver, illegibly tiny. Replaced with a pair of
+  horizontal bars (A over B) sized to the real values on a shared per-pair scale,
+  so the larger number draws the longer bar and the ratio reads at a glance; the
+  winner (honouring lower-is-better for TTFT/cost) keeps the `✓` and full opacity.
 - **The telemetry rail's `hidden` cells now actually hide.** `.telemetry-rail__cell
   { display: flex }` overrode the UA `[hidden] { display: none }`, so a `hidden`
   cell (the run cell, and the OpenRouter spend cell gated by the v0.34 cloud-lane
