@@ -11,6 +11,7 @@ tags: [gguf, quantization, cyber, security, orionfold, cybermetric, mistral, zep
 summary: "Five GGUF variants of ZySec-AI/SecurityLLM measured on a DGX Spark — Q4_K_M scores 40% on CyberMetric MCQ at 47.7 tok/s and 4.1 GB; the smaller variants matched or beat F16's 34%. Third vertical card; zero fieldkit source changes."
 status: published
 series: Machine that Builds Machines
+signature: CyberCurator
 book_chapters: [10, 11]
 fieldkit_modules: [quant, publish, eval, lineage]
 also_stages: [observability]

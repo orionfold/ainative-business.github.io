@@ -11,6 +11,7 @@ tags: [gguf, quantization, legal, orionfold, legalbench, mistral, fieldkit, spar
 summary: "Five GGUF variants of Equall/Saul-7B-Instruct-v1 measured on a DGX Spark — Q5_K_M scores 72% on LegalBench (n=50, contains) at 20 tok/s and 4.8 GB. Each card carries perplexity, sustained tok/s, thermal envelope, and a 5-task LegalBench subset score."
 status: published
 series: Machine that Builds Machines
+signature: LegalCurator
 book_chapters: [10, 11]
 fieldkit_modules: [quant, publish, eval, lineage]
 also_stages: [observability]

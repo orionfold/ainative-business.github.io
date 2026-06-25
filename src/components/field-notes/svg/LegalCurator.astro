@@ -1,0 +1,81 @@
+---
+// Signature figure for "becoming-a-legal-curator-on-spark".
+// Five GGUF variants of Saul-7B on LegalBench (contains) — Q5_K_M peaks at 72%
+// (4.8 GB, the accent pick), the lossy variant matching/beating F16's 68%;
+// Q4_K_M trades 6 points for throughput. A balance-scale marks the legal
+// vertical. Sibling to CyberCurator (shield); owns the legal card's
+// quant-vs-accuracy frontier above the 50% binary chance line.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="Five GGUF variants of Saul-7B scored on LegalBench — Q5_K_M peaks at 72 percent at 4.8 gigabytes, the accent pick, matching or beating F16's 68 percent; Q4_K_M drops to 62 percent for throughput, all above the 50 percent binary chance line."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lgc-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="lgc-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- kicker + balance-scale glyph -->
+  <g class="svg-reveal svg-reveal-d1">
+    <g stroke="var(--svg-text-muted)" stroke-width="1.2" fill="none">
+      <line x1="44" y1="13" x2="44" y2="32"/>
+      <line x1="34" y1="17" x2="54" y2="17"/>
+      <path d="M34 17 l-4 8 h8 z"/>
+      <path d="M54 17 l-4 8 h8 z"/>
+      <line x1="38" y1="32" x2="50" y2="32"/>
+    </g>
+    <text x="162" y="22" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="7.5" letter-spacing="0.2em">LEGAL CURATOR</text>
+  </g>
+
+  <!-- baseline + 50% binary chance line -->
+  <line class="line-draw svg-reveal-d2" x1="36" y1="150" x2="264" y2="150"
+        stroke="var(--svg-connector)" stroke-width="1"/>
+  <g class="svg-reveal svg-reveal-d2">
+    <line x1="40" y1="118" x2="252" y2="118"
+          stroke="var(--svg-text-faint)" stroke-width="1" stroke-dasharray="3 3"/>
+    <text x="264" y="116" text-anchor="end" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="5.5">50% chance</text>
+  </g>
+
+  <!-- 5 accuracy bars: F16 68 / Q8 66 / Q6 68 / Q5 72(accent) / Q4 62 -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="46"  y="48" width="28" height="102" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <rect x="90"  y="56" width="28" height="94"  fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <rect x="134" y="48" width="28" height="102" fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <rect x="222" y="72" width="28" height="78"  fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+  </g>
+  <!-- Q5_K_M accent (the pick) -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="174" y="32" width="36" height="118" fill="url(#lgc-halo)" stroke="none"/>
+    <rect x="178" y="38" width="28" height="112" rx="2"
+          fill="url(#lgc-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+  </g>
+
+  <!-- % above bars + variant labels below -->
+  <g class="svg-reveal svg-reveal-d6" font-family="var(--font-mono)" font-size="6.5" text-anchor="middle">
+    <text x="60"  y="43" fill="var(--svg-text-faint)">68</text>
+    <text x="104" y="51" fill="var(--svg-text-faint)">66</text>
+    <text x="148" y="43" fill="var(--svg-text-faint)">68</text>
+    <text x="192" y="33" fill="var(--svg-text-bright)" font-weight="600">72%</text>
+    <text x="236" y="67" fill="var(--svg-text-muted)">62</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6" font-family="var(--font-mono)" font-size="6" text-anchor="middle" fill="var(--svg-text-faint)">
+    <text x="60"  y="162">F16</text>
+    <text x="104" y="162">Q8</text>
+    <text x="148" y="162">Q6</text>
+    <text x="192" y="162" fill="var(--color-primary)" font-weight="600">Q5_K_M</text>
+    <text x="236" y="162">Q4</text>
+  </g>
+
+  <!-- caption -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="6.5" letter-spacing="0.08em">LegalBench · n=50 · 4.8 GB · 20 tok/s</text>
+  </g>
+</svg>

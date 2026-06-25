@@ -1,0 +1,73 @@
+---
+// Signature figure for "ai-transformation".
+// The agent economy grows $7.63B -> $52.62B, but 80–90% of production agent
+// deployments fail — the structural gap is governed orchestration. A growth
+// arc rises from the small market bar to the tall one, passing through a
+// governance gate; the failure band is what the gate closes. Owns the
+// market-sizing + governance-gap thesis of the AI Native Platform opener.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="The agent economy grows from 7.63 billion to 52.62 billion dollars, but 80 to 90 percent of production deployments fail; governed orchestration is the structural gap that closes that failure band."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="aeg-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="aeg-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- kicker -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="20" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="7.5" letter-spacing="0.2em">THE AGENT ECONOMY</text>
+  </g>
+
+  <!-- baseline -->
+  <line class="line-draw svg-reveal-d2" x1="44" y1="150" x2="256" y2="150"
+        stroke="var(--svg-connector)" stroke-width="1"/>
+
+  <!-- small market bar $7.63B (2025, faint) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="52" y="120" width="40" height="30"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <text x="72" y="114" text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="7">$7.63B</text>
+    <text x="72" y="163" text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="6">2025</text>
+  </g>
+
+  <!-- tall market bar $52.62B (2030, accent) -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="204" y="58" width="44" height="92" fill="url(#aeg-halo)" stroke="none"/>
+    <rect x="208" y="64" width="40" height="86" rx="2"
+          fill="url(#aeg-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="228" y="58" text-anchor="middle" fill="var(--svg-text-bright)"
+          font-family="var(--font-mono)" font-size="7.5" font-weight="600">$52.62B</text>
+    <text x="228" y="163" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="6">2030</text>
+  </g>
+
+  <!-- growth arc through the governance gate -->
+  <path class="line-draw svg-reveal-d4" d="M 72 118 Q 150 66 226 66" fill="none"
+        stroke="var(--color-primary)" stroke-width="1.5" stroke-dasharray="3 2"/>
+
+  <!-- governance gate (center) — the structural gap -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="123" y="78" width="54" height="22" rx="5"
+          fill="var(--svg-bg-inner)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="150" y="92" text-anchor="middle" fill="var(--svg-text-bright)"
+          font-family="var(--font-mono)" font-size="7" font-weight="600">GOVERN</text>
+    <text x="150" y="116" text-anchor="middle" fill="var(--svg-accent-orange)"
+          font-family="var(--font-mono)" font-size="6">80–90% fail without it</text>
+  </g>
+
+  <!-- bottom label -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="7" letter-spacing="0.14em">GOVERNED ORCHESTRATION</text>
+  </g>
+</svg>
