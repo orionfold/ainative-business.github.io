@@ -1,0 +1,124 @@
+/* ============================================================================
+   Orionfold semantic tokens — adapted to ainative.business's stack (Tailwind v4)
+   ----------------------------------------------------------------------------
+   This is the Orionfold Candidate-01 semantic layer expressed the way THIS site
+   themes: a Tailwind-v4 `@theme` block of CSS custom properties, with a
+   `data-theme="dark"` remap. It is the HIGHEST-LEVERAGE asset in the package —
+   the single change that flips the site from indigo+gold (light-only) to the
+   canonical Orionfold cyan single-accent (light + dark).
+
+   Import it AFTER `@import "tailwindcss";` in src/styles/global.css. It overrides
+   the indigo primary + orbit-gold accent with the canonical cyan, keeps your
+   self-hosted Geist Sans + Geist Mono (no font change), and adds the dark remap.
+
+   ⚠️ LOAD-BEARING:
+   - Cyan (`--color-primary` / `--color-accent`) is the ONLY interactive color.
+     Indigo and orbit-gold were a second/third accent — they go away as ACTION
+     colors. (Gold may survive ONLY as the categorical "proved on a locked test"
+     star glyph on /proof/, never as an action — same as orionfold.com.)
+   - Dark is load-bearing, not optional. The site ships light-only today (a
+     deliberate choice); this package proposes dark as a real, AA-checked remap.
+     It is PUSHBACK-ELIGIBLE (see instructions.md) but do not pre-defer it.
+   - Tailwind v4 gotcha: the dark remap selector MUST be `html[data-theme="dark"]`
+     (specificity 0,1,1), NOT a bare `[data-theme="dark"]` (0,1,0) — the `@theme`
+     `:root` vars out-order an equal-specificity selector and dark silently fails.
+   ============================================================================ */
+
+@theme {
+  /* ---- Action color: cyan (Tide) — the ONLY interactive color ---- */
+  --color-primary: #0e9e98;          /* was indigo oklch(55% .18 260) */
+  --color-primary-dim: color-mix(in oklch, #0e9e98 10%, transparent);
+  --color-primary-glow: color-mix(in oklch, #0e9e98 22%, transparent);
+  --color-accent: #0e9e98;           /* DS-native alias; was orbit-gold */
+  --color-accent-hover: #0c8b86;
+  --color-accent-text: #ffffff;
+  --color-accent-soft: color-mix(in oklch, #0e9e98 10%, #ffffff);
+
+  /* ---- Surfaces (cool neutrals) ---- */
+  --color-surface: #f9fafb;          /* page canvas (DS --bg) */
+  --color-surface-raised: #ffffff;   /* cards / rows / header (DS --surface) */
+  --color-surface-overlay: #ffffff;  /* overlays / popovers (DS --raised) */
+
+  /* ---- Text ---- */
+  --color-text: #1d1f25;
+  --color-text-muted: #6b7280;
+  --color-text-dim: #9aa1ab;
+
+  /* ---- Borders / track ---- */
+  --color-border: #e5e9f0;
+  --color-border-strong: #d6dbe4;
+  --color-track: #eef1f5;
+
+  /* ---- Status (functional, NOT a second accent) ---- */
+  --color-success: #1a9e3e;
+  --color-warn: #b06a00;
+  --color-danger: #c0344d;
+
+  /* ---- Categorical domain tags t1–t7 (identity, NEVER interactive) ---- */
+  --color-t1-bg: #d2e5ff; --color-t1-fg: #1257c4;  /* advisory / blue */
+  --color-t2-bg: #d3f8e6; --color-t2-fg: #157a3c;  /* finance / green */
+  --color-t3-bg: #ffe8c2; --color-t3-fg: #9a5a00;  /* speed / amber */
+  --color-t4-bg: #ffd9e6; --color-t4-fg: #b02457;  /* alert-domain / magenta */
+  --color-t5-bg: #e6dcff; --color-t5-fg: #6b32d6;  /* quality / violet */
+  --color-t6-bg: #cdeef0; --color-t6-fg: #0c7480;  /* space / teal */
+  --color-t7-bg: #dfe2f5; --color-t7-fg: #2c3a78;  /* risk / vault indigo */
+
+  /* ---- Type: KEEP your self-hosted Geist (no change) ---- */
+  --font-display: "Geist Sans", system-ui, sans-serif;
+  --font-body:    "Geist Sans", system-ui, sans-serif;
+  --font-mono:    "Geist Mono Variable", ui-monospace, monospace;
+
+  /* ---- Geometry / finish (Linear) ---- */
+  --radius-of: 8px;
+  --radius-of-lg: 12px;
+  --radius-of-pill: 999px;
+  --shadow-of: 0 1px 2px rgba(16,22,30,0.06), 0 1px 1px rgba(16,22,30,0.04);
+  --shadow-of-pop: 0 6px 18px -8px rgba(16,22,30,0.20);
+}
+
+/* ============================================================================
+   DARK THEME — remap the SAME token names. MUST be html[data-theme="dark"].
+   Drive it with data-theme="dark" on <html>, set pre-paint by a no-FOUC inline
+   script in Layout.astro (mirror orionfold.com's). You currently pin
+   html[data-theme="light"]; switch that to a real two-way toggle.
+   ============================================================================ */
+html[data-theme="dark"] {
+  --color-primary: #14c8c0;          /* brighter cyan for dark */
+  --color-primary-dim: color-mix(in oklch, #14c8c0 14%, transparent);
+  --color-primary-glow: color-mix(in oklch, #14c8c0 26%, transparent);
+  --color-accent: #14c8c0;
+  --color-accent-hover: #2ad6cd;
+  --color-accent-text: #04201f;      /* dark ink on bright cyan (AA) */
+  --color-accent-soft: color-mix(in oklch, #14c8c0 14%, #1f2228);
+
+  --color-surface: #15171b;
+  --color-surface-raised: #1f2228;
+  --color-surface-overlay: #262b33;
+
+  --color-text: #e9ecf0;
+  --color-text-muted: #9aa1ab;
+  --color-text-dim: #727a85;
+
+  --color-border: #2c313a;
+  --color-border-strong: #3a414c;
+  --color-track: #2c313a;
+
+  --shadow-of: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-of-pop: 0 10px 28px -12px rgba(0,0,0,0.6);
+
+  /* categorical tags — dark pairs */
+  --color-t1-bg: #16345e; --color-t1-fg: #7fb4ff;
+  --color-t2-bg: #123a22; --color-t2-fg: #74d39a;
+  --color-t3-bg: #3a2a08; --color-t3-fg: #f5c97a;
+  --color-t4-bg: #3a1226; --color-t4-fg: #f7a6c4;
+  --color-t5-bg: #271a4a; --color-t5-fg: #c4acff;
+  --color-t6-bg: #0c2f33; --color-t6-fg: #6fd6dc;
+  --color-t7-bg: #1e2a5e; --color-t7-fg: #aab6ee;
+}
+
+/* ----------------------------------------------------------------------------
+   v6.2 primitives — port `.of-table` + `.of-showcase` from assets/styles.css
+   into your global stylesheet (they already use these semantic token names, so
+   they remap to dark for free). See assets/DESIGN.md → "Data tables (v6.2)" and
+   "Dense-UI showcase (v6.2)", and assets/component-map.md for where they land.
+   ---------------------------------------------------------------------------- */

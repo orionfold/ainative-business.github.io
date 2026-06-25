@@ -3,7 +3,7 @@ export const SITE = {
   url: 'https://ainative.business',
   description:
     'AI Native Business — the book and companion software from Orionfold, an AI studio building open software, custom models, and local-first AI playbooks.',
-  logo: 'https://ainative.business/ainative-s-128.png',
+  logo: 'https://ainative.business/icon-512.png',
   ogImage: 'https://ainative.business/og-image.png',
   ogImageAlt:
     'AI Native Business — book and companion software from Orionfold. Open source, local-first, free.',

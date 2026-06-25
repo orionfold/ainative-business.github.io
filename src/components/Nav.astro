@@ -10,7 +10,7 @@
         aria-label="ainative.business home"
       >
         <img
-          src="/ainative-s-128.png"
+          src="/orionfold-mark.svg"
           alt=""
           width="34"
           height="34"
@@ -71,6 +71,19 @@
       >
         Platform
       </a>
+      <button
+        id="theme-toggle"
+        type="button"
+        class="text-text-muted hover:text-primary transition-colors inline-flex items-center"
+        aria-label="Toggle dark mode"
+      >
+        <svg class="theme-icon-light h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+        </svg>
+        <svg class="theme-icon-dark h-[18px] w-[18px] hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
     </div>
 
     <!-- Mobile hamburger -->
@@ -105,6 +118,10 @@
       <a href="/docs/" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Platform</a>
       <hr class="border-border" />
       <a href="https://github.com/orionfold/ainative" target="_blank" rel="noopener noreferrer" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">GitHub</a>
+      <button id="theme-toggle-mobile" type="button" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2 inline-flex items-center gap-2 text-left" aria-label="Toggle dark mode">
+        <span class="theme-label-light">Switch to dark</span>
+        <span class="theme-label-dark hidden">Switch to light</span>
+      </button>
     </div>
   </div>
 </nav>
@@ -160,6 +177,27 @@
     });
   }
 
+  // ── Theme toggle (DS v6.2 light + dark) ──
+  function syncThemeIcons() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    document.querySelectorAll('.theme-icon-light, .theme-label-light').forEach(el => el.classList.toggle('hidden', isDark));
+    document.querySelectorAll('.theme-icon-dark, .theme-label-dark').forEach(el => el.classList.toggle('hidden', !isDark));
+  }
+  function toggleTheme() {
+    const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('of-theme', next); } catch (e) { /* no-op */ }
+    syncThemeIcons();
+  }
+  function initThemeToggle() {
+    syncThemeIcons();
+    const btn = document.getElementById('theme-toggle');
+    const btnM = document.getElementById('theme-toggle-mobile');
+    if (btn) btn.addEventListener('click', toggleTheme);
+    if (btnM) btnM.addEventListener('click', toggleTheme);
+  }
+
   initNav();
-  document.addEventListener('astro:after-swap', initNav);
+  initThemeToggle();
+  document.addEventListener('astro:after-swap', () => { initNav(); initThemeToggle(); });
 </script>

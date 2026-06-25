@@ -12,56 +12,13 @@
   line-height: 1.4;
 }
 
-.api-method-get {
-  color: oklch(0.65 0.18 250);
-  background: oklch(0.65 0.18 250 / 0.12);
-}
-
-.api-method-post {
-  color: oklch(0.65 0.15 170);
-  background: oklch(0.65 0.15 170 / 0.12);
-}
-
-.api-method-patch {
-  color: oklch(0.7 0.15 85);
-  background: oklch(0.7 0.15 85 / 0.12);
-}
-
-.api-method-delete {
-  color: oklch(0.65 0.2 25);
-  background: oklch(0.65 0.2 25 / 0.12);
-}
-
-.api-method-sse {
-  color: oklch(0.6 0.15 300);
-  background: oklch(0.6 0.15 300 / 0.12);
-}
-
-/* ── Light mode adjustments ── */
-html[data-theme="light"] .api-method-get {
-  color: oklch(0.45 0.18 250);
-  background: oklch(0.45 0.18 250 / 0.08);
-}
-
-html[data-theme="light"] .api-method-post {
-  color: oklch(0.4 0.15 170);
-  background: oklch(0.4 0.15 170 / 0.08);
-}
-
-html[data-theme="light"] .api-method-patch {
-  color: oklch(0.5 0.15 85);
-  background: oklch(0.5 0.15 85 / 0.08);
-}
-
-html[data-theme="light"] .api-method-delete {
-  color: oklch(0.48 0.2 25);
-  background: oklch(0.48 0.2 25 / 0.08);
-}
-
-html[data-theme="light"] .api-method-sse {
-  color: oklch(0.42 0.15 300);
-  background: oklch(0.42 0.15 300 / 0.08);
-}
+/* Reconciled to DS v6.2 categorical pairs (t1–t7). Identity, NEVER interactive;
+   single theme-aware rule per method — the t-tokens carry their own dark remap. */
+.api-method-get    { color: var(--color-t1-fg); background: var(--color-t1-bg); }  /* blue */
+.api-method-post   { color: var(--color-t2-fg); background: var(--color-t2-bg); }  /* green */
+.api-method-patch  { color: var(--color-t3-fg); background: var(--color-t3-bg); }  /* amber */
+.api-method-delete { color: var(--color-t4-fg); background: var(--color-t4-bg); }  /* alert magenta */
+.api-method-sse    { color: var(--color-t5-fg); background: var(--color-t5-bg); }  /* violet */
 
 /* ── Status Badges ── */
 .api-status-badge {
@@ -72,25 +29,11 @@ html[data-theme="light"] .api-method-sse {
   border-radius: 3px;
 }
 
-.api-status-2xx {
-  color: oklch(0.65 0.15 170);
-  background: oklch(0.65 0.15 170 / 0.1);
-}
-
-.api-status-3xx {
-  color: oklch(0.65 0.18 250);
-  background: oklch(0.65 0.18 250 / 0.1);
-}
-
-.api-status-4xx {
-  color: oklch(0.7 0.15 85);
-  background: oklch(0.7 0.15 85 / 0.1);
-}
-
-.api-status-5xx {
-  color: oklch(0.65 0.2 25);
-  background: oklch(0.65 0.2 25 / 0.1);
-}
+/* Status badges → DS categorical pairs (theme-aware, never-interactive). */
+.api-status-2xx { color: var(--color-t2-fg); background: var(--color-t2-bg); }  /* green */
+.api-status-3xx { color: var(--color-t1-fg); background: var(--color-t1-bg); }  /* blue */
+.api-status-4xx { color: var(--color-t3-fg); background: var(--color-t3-bg); }  /* amber */
+.api-status-5xx { color: var(--color-t4-fg); background: var(--color-t4-bg); }  /* alert magenta */
 
 /* ── API Prose Overrides ── */
 .api-prose h3 {

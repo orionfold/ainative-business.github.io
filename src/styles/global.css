@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* ── Orionfold design-system v6.2 token bridge (DS SHA 0f38833) ──
+   Cyan single-accent + html[data-theme="dark"] remap + radius/shadow/categorical
+   tokens. Imported AFTER tailwindcss so its @theme owns --color-primary/--color-accent
+   (the indigo+orbit-gold action colors below were removed in favor of it). Cyan is the
+   ONLY interactive color; orbit-gold survives only as the "proved on a locked test"
+   star glyph (--color-orbit-gold, never an action). */
+@import "./orionfold-theme.css";
+
 /* ── Self-hosted fonts (preloaded in Layout.astro) ── */
 @font-face {
   font-family: 'Geist Sans';
@@ -45,11 +53,10 @@
   --color-text: oklch(15% 0.02 260);                /* ink */
   --color-text-muted: oklch(45% 0.03 260);          /* mute */
   --color-text-dim: oklch(56% 0.025 260);           /* faint */
-  --color-primary: oklch(55% 0.18 260);             /* orionfold indigo */
-  --color-primary-dim: oklch(55% 0.18 260 / 0.10);  /* pill/chip fills */
-  --color-primary-glow: oklch(55% 0.18 260 / 0.20);
-  --color-orbit-gold: oklch(70% 0.14 82);           /* orionfold gold accent */
-  --color-orbit-ink: oklch(27% 0.06 260);           /* deep navy ink */
+  /* --color-primary / -dim / -glow now owned by orionfold-theme.css (cyan).
+     The indigo definitions were removed here so the v6.2 cyan single-accent wins. */
+  --color-orbit-gold: oklch(70% 0.14 82);           /* RETIRED as an action color — kept ONLY for the proved-on-locked-test star glyph */
+  --color-orbit-ink: oklch(27% 0.06 260);           /* deep navy ink (decorative) */
   --color-success: oklch(45% 0.15 170);
   --color-success-dim: oklch(45% 0.15 170 / 0.12);
   --color-success-glow: oklch(45% 0.15 170 / 0.22);
@@ -91,9 +98,10 @@ html {
   scroll-behavior: smooth;
   background: var(--color-surface);
   color: var(--color-text);
-  color-scheme: light; /* design-system §7 — light-only */
   font-size: 100%; /* 16px base on mobile */
 }
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="dark"]  { color-scheme: dark; }
 
 @media (min-width: 640px) {
   html {
@@ -345,13 +353,7 @@ section {
   }
 }
 
-/* ── Image hover zoom ── */
-main img {
-  transition: transform 0.6s ease-in-out;
-}
-main img.img-zoomed {
-  transform: scale(1.5);
-}
+/* ── Image hover zoom REMOVED (v6.2 calm-reading rule) — replaced by .of-showcase ── */
 
 /* ── Always-dark code blocks (both themes) ── */
 /* Dual-theme blocks (from markdown fenced code) have --shiki-dark vars.
@@ -424,9 +426,15 @@ html[data-theme="light"] body::before {
   opacity: 0.015;
 }
 
-/* ── Hero gradient text — orionfold navy → royal blue → gold ramp ── */
-html[data-theme="light"] .hero-gradient-text {
-  background: linear-gradient(135deg, #003356, #1952af, oklch(59% 0.13 82));
+/* ── Hero gradient text — orionfold navy → royal blue → cyan ramp (v6.2: gold end-stop retired) ── */
+.hero-gradient-text {
+  background: linear-gradient(135deg, #003356, #1952af, var(--color-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+html[data-theme="dark"] .hero-gradient-text {
+  background: linear-gradient(135deg, #7fb4ff, #4f9cff, var(--color-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -456,7 +464,7 @@ html[data-theme="light"] .hero-gradient-text {
   opacity: 0.72;
   background:
     radial-gradient(circle at 18% 18%, var(--color-primary-glow), transparent 24rem),
-    radial-gradient(circle at 84% 8%, oklch(70% 0.14 82 / 0.1), transparent 20rem);
+    radial-gradient(circle at 84% 8%, var(--color-primary-dim), transparent 20rem);
 }
 .of-surface::after {
   content: "";
@@ -499,3 +507,84 @@ html[data-theme="light"] .hero-gradient-text {
 .theme-transitions .border-border {
   transition: background-color 0.3s ease, color 0.2s ease, border-color 0.3s ease;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Orionfold DS v6.2 primitives — .of-table + .of-showcase (DS SHA 0f38833)
+   Ported from the package's canonical styles.css; DS-native var names mapped to
+   this site's --color-* / --font-mono / --radius-of-lg / --shadow-of tokens, so
+   both primitives remap to dark for free. Cyan touches a table ONLY as a
+   wash/ring (never a fill). Showcase: NO lightbox, NO hover-zoom, NO modal.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ---------- DATA TABLE (v6.2) — canonical table opinion ---------- */
+.of-table { display:block; width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  border-collapse:collapse; font-size:14px; line-height:1.5;
+  border:1px solid var(--color-border); border-radius:var(--radius-of-lg); background:var(--color-surface-raised); }
+.of-table thead { background:color-mix(in oklch, var(--color-accent) 8%, transparent); }
+.of-table th { text-align:left; font-family:var(--font-mono); font-size:.7rem; font-weight:600;
+  text-transform:uppercase; letter-spacing:.08em; color:var(--color-text);
+  padding:.7rem 1rem; white-space:nowrap; border-bottom:1px solid var(--color-border); }
+.of-table td { padding:.7rem 1rem; color:var(--color-text-muted); vertical-align:top;
+  font-variant-numeric:tabular-nums;
+  border-bottom:1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
+.of-table tbody tr:last-child td { border-bottom:0; }
+.of-table tbody tr:hover { background:color-mix(in oklch, var(--color-accent) 4%, transparent); }
+.of-table td strong { color:var(--color-accent); }
+.of-table caption { caption-side:top; text-align:left; font-family:var(--font-mono); font-size:11px;
+  text-transform:uppercase; letter-spacing:.12em; color:var(--color-text-muted); padding:0 0 8px; }
+/* numeric: right-align everything but the row label */
+.of-table.numeric td:not(:first-child), .of-table.numeric th:not(:first-child) { text-align:right; }
+/* sticky-col: pin the first column on horizontal scroll */
+.of-table.sticky-col th[scope="row"], .of-table.sticky-col thead th:first-child {
+  position:sticky; left:0; z-index:1; background:var(--color-surface-raised); }
+.of-table.sticky-col thead th:first-child { background:color-mix(in oklch, var(--color-accent) 8%, var(--color-surface-raised)); }
+/* matrix: center the categorical-glyph body cells (capability grid) */
+.of-table.matrix td { text-align:center; }
+.of-table.matrix th[scope="row"] { text-align:left; font-weight:400; color:var(--color-text-muted); }
+/* compare: emphasize the winning / "ours" row without color-coding every cell */
+.of-table.compare tr.is-win td, .of-table.compare tr[aria-current="true"] td {
+  background:color-mix(in oklch, var(--color-accent) 6%, transparent); }
+.of-table.compare tr.is-win, .of-table.compare tr[aria-current="true"] {
+  box-shadow:inset 0 0 0 1px color-mix(in oklch, var(--color-accent) 28%, transparent); }
+
+/* ---------- DENSE-UI SHOWCASE (v6.2) — calm product imagery, no lightbox/zoom ---------- */
+.of-showcase { display:block; margin:0; }
+.of-frame { border:1px solid var(--color-border); border-radius:var(--radius-of-lg); overflow:hidden;
+  background:var(--color-surface-raised); box-shadow:var(--shadow-of); }
+.of-frame-bar { display:flex; align-items:center; gap:6px; padding:9px 12px;
+  border-bottom:1px solid var(--color-border); background:var(--color-surface-raised); }
+.of-frame-dots { display:inline-flex; gap:6px; }
+.of-frame-dots i { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.of-frame-dots i:nth-child(1){ background:#ff5f57; } /* OS window controls — chrome, not brand */
+.of-frame-dots i:nth-child(2){ background:#febc2e; }
+.of-frame-dots i:nth-child(3){ background:#28c840; }
+.of-frame-label { margin-left:6px; font-family:var(--font-mono); font-size:.7rem; letter-spacing:.06em;
+  color:var(--color-text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.of-shot { display:block; }
+.of-shot > img, .of-shot > svg { display:block; width:100%; height:auto; }
+.of-showcase-cap { margin-top:8px; font-family:var(--font-mono); font-size:11px; line-height:1.5;
+  color:var(--color-text-muted); }
+/* FULL (default): one calm readable money-shot */
+.of-showcase[data-treatment="full"] .of-shot, .of-showcase:not([data-treatment]) .of-shot {
+  aspect-ratio:var(--ratio, 16/9); }
+.of-showcase[data-treatment="full"] .of-shot > img, .of-showcase:not([data-treatment]) .of-shot > img {
+  height:100%; object-fit:cover; object-position:top center; }
+/* SCROLL: tall full-page capture scrolls IN PLACE inside the frame, never an overlay */
+.of-showcase[data-treatment="scroll"] .of-shot, .of-showcase[data-tall] .of-shot {
+  max-height:var(--shot-max, 28rem); overflow-y:auto; -webkit-overflow-scrolling:touch;
+  position:relative; }
+.of-showcase[data-treatment="scroll"] .of-shot::after, .of-showcase[data-tall] .of-shot::after {
+  content:""; position:sticky; bottom:0; left:0; display:block; height:34px; margin-top:-34px;
+  background:linear-gradient(to top, var(--color-surface-raised), transparent); pointer-events:none; }
+/* CROP: full image as calm CONTEXT (small, dimmed) paired with a readable CROP of the focus */
+.of-showcase[data-treatment="crop"] { display:grid; gap:14px; align-items:start;
+  grid-template-columns:minmax(0, 40fr) minmax(0, 60fr); }
+@media (max-width:640px){ .of-showcase[data-treatment="crop"]{ grid-template-columns:1fr; } }
+.of-showcase[data-treatment="crop"] .of-context { opacity:.82; }
+.of-showcase[data-treatment="crop"] .of-context .of-shot { aspect-ratio:var(--ratio, 16/9); }
+.of-showcase[data-treatment="crop"] .of-context .of-shot > img { height:100%; object-fit:cover; object-position:top center; }
+.of-showcase[data-treatment="crop"] .of-detail .of-shot { aspect-ratio:var(--focus-ratio, 16/9); overflow:hidden; }
+.of-showcase[data-treatment="crop"] .of-detail .of-shot > img {
+  width:var(--focus-w, 100%); height:auto; max-width:none;
+  object-fit:none; object-position:var(--focus-pos, top center);
+  transform:scale(var(--focus-scale, 1)); transform-origin:top left; }

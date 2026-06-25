@@ -34,10 +34,27 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 <!doctype html>
-<!-- Light-only since 2026-06-06 (_SPECS/design-system-v1.md). data-theme="light" is pinned
-     statically so legacy light-scoped CSS overrides keep applying; no toggle, no FOUC script. -->
+<!-- DS v6.2 (2026-06-25): light + dark. data-theme="light" is the no-JS SSR default;
+     the inline no-FOUC script above overrides it from localStorage('of-theme') /
+     prefers-color-scheme before first paint. Header toggle lives in Nav.astro. -->
 <html lang="en" data-theme="light">
   <head>
+
+    <!-- No-FOUC site theme init (DS v6.2 light + dark). Runs before paint: reads
+         localStorage('of-theme'), falls back to prefers-color-scheme. -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('of-theme');
+          if (t !== 'light' && t !== 'dark') {
+            t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
 
     <!-- No-FOUC reader-settings init for /field-notes/ articles -->
     <script is:inline>
@@ -125,10 +142,11 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <meta name="twitter:image" content={new URL(ogImage, Astro.site)} />
     <meta name="twitter:image:alt" content={ogImageAlt} />
 
-    <!-- App icons -->
+    <!-- App icons — Orionfold disc+star mark (DS v6.2, primary site identity) -->
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="icon" type="image/png" sizes="64x64" href="/ainative-s-64.png" />
-    <link rel="icon" type="image/png" sizes="128x128" href="/ainative-s-128.png" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- Manifest -->
@@ -144,9 +162,10 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
     <link rel="preload" href="/fonts/geist-sans-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
 
-    <!-- Light-only theme (orionfold parent-brand alignment) -->
-    <meta name="theme-color" content="#F8F9FC" />
-    <meta name="color-scheme" content="light" />
+    <!-- Theme (DS v6.2 — light + dark) -->
+    <meta name="theme-color" content="#f9fafb" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#15171b" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="application-name" content="ainative" />
     <meta name="apple-mobile-web-app-title" content="ainative" />
     <meta name="format-detection" content="telephone=no" />
@@ -211,27 +230,8 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
       document.addEventListener('astro:after-swap', initScrollReveal);
     </script>
 
-    <!-- Image hover zoom-pulse: zoom in then auto-zoom-out after 300ms -->
-    <script>
-      function initImgZoom() {
-        document.querySelectorAll('main img').forEach((img) => {
-          let timeout: ReturnType<typeof setTimeout> | null = null;
-          img.addEventListener('mouseenter', () => {
-            img.classList.add('img-zoomed');
-            timeout = setTimeout(() => {
-              img.classList.remove('img-zoomed');
-              timeout = null;
-            }, 1800);
-          });
-          img.addEventListener('mouseleave', () => {
-            if (timeout) { clearTimeout(timeout); timeout = null; }
-            img.classList.remove('img-zoomed');
-          });
-        });
-      }
-      initImgZoom();
-      document.addEventListener('astro:after-swap', initImgZoom);
-    </script>
+    <!-- (v6.2) Hover-zoom removed — the Orionfold calm-reading rule forbids the
+         jarring scale(1.5); .of-showcase crop/scroll/full is the replacement. -->
 
     <!-- Enable smooth theme transitions after first paint -->
     <script>

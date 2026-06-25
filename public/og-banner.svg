@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="Orionfold — we never say trust us, we say rerun it">
+  <!-- =====================================================================
+       ORIONFOLD OG BRAND PLATE — 1200×630 social / link-preview banner
+       Re-themeable template (NOT a baked raster you have to redraw). Carries
+       the canonical SC-01f mark (filled cyan disc + white 5-point star, 45°).
+
+       WHY A TEMPLATE, NOT A FLAT PNG
+       A baked OG raster is a build-input the token swap can't reach — on the
+       last palette change every link-preview card kept the OLD mark. This file
+       keeps the palette in ONE documented block (below) so a re-theme is a
+       find-replace of a handful of hex values and the mark geometry is vector,
+       never redrawn. NEVER ask a diffusion model to draw the mark — it mangles
+       exact geometry + wordmarks; composite the vector star as done here.
+
+       AESTHETIC (operator-chosen): calm, single-accent, text-safe — a clean
+       dark-cyan radial glow + sparse stars, NOT a painterly nebula (busy art
+       fights the overlay text). Same instinct as the chart single-accent rule.
+
+       ── PALETTE (the only edit point; values are literal so EVERY rasterizer
+          renders them — librsvg/resvg do NOT resolve CSS var()) ──
+            accent (disc)      #0e9e98   ← brand cyan, the one action color
+            fold  (wordmark)   #14c8c0   ← brighter cyan accent on dark
+            glow  (bg centre)  #0f3f3d
+            mid   (bg)         #0c2122
+            ink   (bg edge)    #0a1012
+            text               #f4f7f8
+            muted              #93a0a4
+          DARK→LIGHT or palette variant: swap the bg trio + accent and re-export.
+
+       RASTERIZE: rsvg-convert -w 1200 -h 630 og-banner.svg -o og-banner.png
+                  (Geist + Geist Mono should be available to the renderer; the
+                   system-ui/monospace fallbacks keep it legible if they aren't.)
+       ===================================================================== -->
+  <defs>
+    <radialGradient id="of-og-bg" cx="64%" cy="40%" r="90%">
+      <stop offset="0%"   stop-color="#0f3f3d"/>
+      <stop offset="52%"  stop-color="#0c2122"/>
+      <stop offset="100%" stop-color="#0a1012"/>
+    </radialGradient>
+  </defs>
+
+  <!-- calm dark-cyan ground -->
+  <rect width="1200" height="630" fill="url(#of-og-bg)"/>
+
+  <!-- sparse stars (low-opacity, calm — never a busy field) -->
+  <g fill="#ffffff">
+    <circle cx="980"  cy="120" r="2.5" opacity="0.60"/>
+    <circle cx="1066" cy="206" r="1.8" opacity="0.42"/>
+    <circle cx="892"  cy="92"  r="1.6" opacity="0.38"/>
+    <circle cx="1108" cy="118" r="2.2" opacity="0.50"/>
+    <circle cx="1020" cy="300" r="1.5" opacity="0.32"/>
+    <circle cx="940"  cy="470" r="1.8" opacity="0.32"/>
+    <circle cx="1120" cy="430" r="1.6" opacity="0.30"/>
+  </g>
+
+  <!-- brand lockup: mark + wordmark, vertically centred; tagline beneath -->
+  <!-- mark (SC-01f) rendered at 132px from the canonical 64×64 geometry -->
+  <g transform="translate(96,222) scale(2.0625)">
+    <circle cx="32" cy="32" r="32" fill="#0e9e98"/>
+    <g transform="rotate(45 32 32)">
+      <path fill="#ffffff" d="M32,9L37.41,24.56L53.88,24.89L40.75,34.84L45.52,50.61L32,41.2L18.48,50.61L23.25,34.84L10.12,24.89L26.59,24.56Z"/>
+    </g>
+  </g>
+
+  <!-- wordmark: "Orion" + cyan "fold" -->
+  <text x="272" y="318" font-size="92" letter-spacing="-2"
+        font-family="Geist, system-ui, -apple-system, sans-serif" font-weight="700">
+    <tspan fill="#f4f7f8">Orion</tspan><tspan fill="#14c8c0">fold</tspan>
+  </text>
+
+  <!-- brand voice + domain (mono, muted) -->
+  <text x="276" y="372" font-size="27" fill="#93a0a4" font-weight="500"
+        font-family="'Geist Mono', ui-monospace, 'SFMono-Regular', monospace">We never say trust us — we say rerun it.</text>
+  <text x="276" y="412" font-size="22" fill="#93a0a4" opacity="0.8" font-weight="500"
+        font-family="'Geist Mono', ui-monospace, 'SFMono-Regular', monospace">orionfold.com</text>
+</svg>
