@@ -1,0 +1,87 @@
+---
+// Signature figure for "the-gate-before-the-gpu".
+// Method selection (SFT vs RL vs RLVR) decided by a cheap reading BEFORE the
+// GPU run — the Goldilocks headroom gate. The meter shows three decision
+// zones: <=15% no signal (skip RL), 30–70% GO (run RLVR, the accent band),
+// >=85% ship SFT. Kepler's needle lands in ship-SFT (its SFT already cleared),
+// which is why a flawless RLVR run changed nothing. Distinct from the
+// in-article gate-cascade fn-diagram (the full three-gate spine); this emblem
+// owns the headroom-reading thesis: method = measurement, not intuition.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="The headroom gate as a meter with three decision zones — below 15 percent no signal, 30 to 70 percent go run RLVR, above 85 percent ship SFT. The needle reads 88 percent in the ship-SFT zone: when SFT already clears, RLVR changes nothing."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gr-band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.12"/>
+    </linearGradient>
+    <radialGradient id="gr-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- kicker -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="22" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.2em">GATE BEFORE THE GPU</text>
+  </g>
+
+  <!-- the three cheap gates that feed the reading -->
+  <g class="svg-reveal svg-reveal-d3" font-family="var(--font-mono)" font-size="7"
+     fill="var(--svg-text-faint)" text-anchor="middle" letter-spacing="0.08em">
+    <text x="74"  y="60">PREFLIGHT</text>
+    <text x="150" y="60">→ SFT</text>
+    <text x="222" y="60">→ HEADROOM</text>
+  </g>
+
+  <!-- meter track: x 40..260 = 0..100% ; pct->x = 40 + 2.2*pct ; bar at y112..128 -->
+  <path class="line-draw svg-reveal-d2" d="M 40 120 L 260 120" fill="none"
+        stroke="var(--svg-connector)" stroke-width="1" stroke-dasharray="2 3"/>
+
+  <g class="svg-reveal svg-reveal-d4">
+    <!-- <=15 no signal -->
+    <rect x="40" y="112" width="33" height="16" rx="3"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+    <!-- 30..70 GO band (accent) -->
+    <rect x="106" y="104" width="88" height="32" rx="4" fill="url(#gr-halo)" stroke="none"/>
+    <rect x="106" y="112" width="88" height="16" rx="3"
+          fill="url(#gr-band)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <!-- >=85 ship SFT -->
+    <rect x="227" y="112" width="33" height="16" rx="3"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)" stroke-width="1"/>
+  </g>
+
+  <!-- needle reads 88% -> x = 40 + 2.2*88 = 233.6 (ship-SFT zone) -->
+  <g class="svg-reveal svg-reveal-d6">
+    <line x1="233.6" y1="92" x2="233.6" y2="132"
+          stroke="var(--svg-text-bright)" stroke-width="1.5"/>
+    <circle cx="233.6" cy="92" r="3" fill="var(--svg-text-bright)"/>
+    <text x="233.6" y="85" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)"
+          font-size="8" font-weight="600">88%</text>
+  </g>
+
+  <!-- zone labels -->
+  <g class="svg-reveal svg-reveal-d6" font-family="var(--font-mono)" font-size="6.5"
+     letter-spacing="0.12em" text-anchor="middle">
+    <text x="56"  y="148" fill="var(--svg-text-faint)">NO SIGNAL</text>
+    <text x="150" y="148" fill="var(--color-primary)" font-weight="600">GO · RLVR</text>
+    <text x="243" y="148" fill="var(--svg-text-muted)">SHIP SFT</text>
+  </g>
+  <g class="svg-reveal svg-reveal-d6" font-family="var(--font-mono)" font-size="6"
+     fill="var(--svg-text-faint)" text-anchor="middle">
+    <text x="56"  y="164">≤15</text>
+    <text x="150" y="164">30–70</text>
+    <text x="243" y="164">≥85</text>
+  </g>
+
+  <!-- bottom label -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="186" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.18em">HEADROOM DECIDES</text>
+  </g>
+</svg>

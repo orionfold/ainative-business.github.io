@@ -1,0 +1,79 @@
+---
+// Signature figure for "the-refusal-floor-is-trainable".
+// The refusal floor lives in the weights, not the prompt. A 30B prompt-contract
+// lane holds a LOW floor (3/9 adversarial pretexts refused, 3 fabrications leak
+// below it); a 4B trained 21 min holds a HIGH, solid floor (9/9, zero risk).
+// Training raises the floor. Distinct from the in-article dual-lane curveball
+// fn-diagram; this emblem owns the floor-is-in-the-weights thesis.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="The refusal floor as two levels: a 30B prompt-contract lane holds a low floor at three of nine with fabrications leaking below it; a 4B model trained for 21 minutes holds a high solid floor at nine of nine. Training raises the floor — it lives in the weights, not the prompt."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rf-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="rf-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- kicker -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="20" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.2em">REFUSAL FLOOR</text>
+  </g>
+
+  <!-- PROMPT lane (left): low floor slab, fabrications leak below -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="34" y="40" width="100" height="120" rx="6"
+          fill="none" stroke="var(--svg-bg-inner-stroke)" stroke-width="1" stroke-dasharray="3 3"/>
+    <rect x="42" y="118" width="84" height="9" rx="2"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-text-faint)" stroke-width="1"/>
+    <text x="84" y="56" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="8" font-weight="600">PROMPT · 30B</text>
+    <text x="84" y="110" text-anchor="middle" fill="var(--svg-text-faint)"
+          font-family="var(--font-mono)" font-size="7">3/9 refused</text>
+  </g>
+  <!-- fabrication leaks below the prompt floor -->
+  <g class="svg-reveal svg-reveal-d4" fill="var(--svg-accent-orange)">
+    <polygon points="56,133 60,143 52,143"/>
+    <polygon points="84,133 88,143 80,143"/>
+    <polygon points="112,133 116,143 108,143"/>
+    <text x="84" y="153" text-anchor="middle" fill="var(--svg-accent-orange)"
+          font-family="var(--font-mono)" font-size="6">3 fabrications</text>
+  </g>
+
+  <!-- WEIGHTS lane (right): high solid floor -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="166" y="40" width="100" height="120" rx="6" fill="url(#rf-halo)" stroke="none"/>
+    <rect x="166" y="40" width="100" height="120" rx="6"
+          fill="none" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <rect x="174" y="74" width="84" height="11" rx="2"
+          fill="url(#rf-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="216" y="56" text-anchor="middle" fill="var(--svg-text-bright)"
+          font-family="var(--font-mono)" font-size="8" font-weight="600">WEIGHTS · 4B</text>
+    <text x="216" y="108" text-anchor="middle" fill="var(--svg-text-bright)"
+          font-family="var(--font-mono)" font-size="7" font-weight="600">9/9 refused</text>
+    <text x="216" y="124" text-anchor="middle" fill="var(--color-primary)"
+          font-family="var(--font-mono)" font-size="6">0 fabrications</text>
+  </g>
+
+  <!-- training raises the floor: arrow from prompt floor up to weights floor -->
+  <g class="svg-reveal svg-reveal-d6">
+    <path class="line-draw svg-reveal-d6" d="M 132 122 C 150 122 150 80 172 80"
+          fill="none" stroke="var(--color-primary)" stroke-width="1.5" stroke-dasharray="3 2"/>
+    <polygon points="172,80 165,77 166,84" fill="var(--color-primary)"/>
+    <text x="150" y="100" text-anchor="middle" fill="var(--color-primary)"
+          font-family="var(--font-mono)" font-size="6" letter-spacing="0.05em">+SFT 21m</text>
+  </g>
+
+  <!-- bottom label -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle" fill="var(--svg-text-muted)"
+          font-family="var(--font-mono)" font-size="7" letter-spacing="0.14em">IN THE WEIGHTS, NOT THE PROMPT</text>
+  </g>
+</svg>

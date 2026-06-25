@@ -19,17 +19,25 @@
  * tags/series) are exactly the ones the indexer stranded, so they must not
  * fall through to zero links.
  *
- * Each card carries the article's OG card as a thumbnail (its representative
- * image). Where an OG card hasn't been generated yet (CI-built), a monogram
- * tile keeps the grid uniform rather than dropping the article.
+ * Each card leads with the article's SIGNATURE FIGURE — the same brand SVG the
+ * field-notes list view (ArticleCard) renders, resolved from the same ./svg
+ * registry by the `signature` frontmatter. Articles without a registered
+ * signature fall back to a monogram tile so the grid stays uniform.
  *
  * Links are followed (no rel="nofollow"): genuine editorial recommendations
  * between content pages, unlike the thin tag/stage taxonomy links.
  */
 import { getCollection } from 'astro:content';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
 import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
+
+// Same signature registry ArticleCard uses — glob the brand SVGs so a card can
+// look its figure up by the article's `signature` frontmatter.
+const signatureModules = import.meta.glob('./svg/*.astro', { eager: true });
+const signatureRegistry: Record<string, any> = {};
+for (const [path, mod] of Object.entries(signatureModules)) {
+  const name = path.split('/').pop()!.replace('.astro', '');
+  signatureRegistry[name] = (mod as any).default;
+}
 
 interface Props {
   slug: string;
@@ -75,11 +83,6 @@ if (picked.length < count) {
 
 const articleHref = (id: string) => `/field-notes/${id}/`;
 const ordLabel = (id: string) => `№${String(ordinalById.get(id) ?? 0).padStart(2, '0')}`;
-// Resolve the OG thumbnail at build time; null → monogram fallback.
-const ogThumb = (id: string) =>
-  existsSync(join(process.cwd(), 'public', 'og', 'field-notes', `${id}.png`))
-    ? `/og/field-notes/${id}.png`
-    : null;
 
 const cards = picked.map(({ a }) => ({
   id: a.id,
@@ -87,19 +90,21 @@ const cards = picked.map(({ a }) => ({
   ord: ordLabel(a.id),
   title: a.data.title,
   summary: a.data.summary,
-  thumb: ogThumb(a.id),
+  Signature: a.data.signature ? signatureRegistry[a.data.signature] ?? null : null,
 }));
 ---
 {cards.length > 0 && (
   <nav class="related-notes" aria-label="Related field notes">
     <p class="related-notes__eyebrow">Related field notes</p>
     <ul class="related-notes__grid">
-      {cards.map((c) => (
+      {cards.map((c) => {
+        const Sig = c.Signature;
+        return (
         <li>
           <a class="related-notes__card" href={c.href}>
             <span class="related-notes__thumb">
-              {c.thumb ? (
-                <img src={c.thumb} alt="" loading="lazy" decoding="async" width="1200" height="630" />
+              {Sig ? (
+                <span class="related-notes__sig" aria-hidden="true"><Sig /></span>
               ) : (
                 <span class="related-notes__thumb-fallback" aria-hidden="true">{c.ord}</span>
               )}
@@ -111,7 +116,8 @@ const cards = picked.map(({ a }) => ({
             </span>
           </a>
         </li>
-      ))}
+        );
+      })}
     </ul>
   </nav>
 )}
@@ -156,17 +162,43 @@ const cards = picked.map(({ a }) => ({
     background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-raised));
   }
   .related-notes__thumb {
-    display: block;
-    aspect-ratio: 1200 / 630;
-    background: color-mix(in oklch, var(--color-primary) 8%, var(--color-surface-raised));
+    display: grid;
+    place-items: center;
+    aspect-ratio: 3 / 2;
+    padding: 0.5rem 0.6rem;
+    background: color-mix(in oklch, var(--color-primary) 6%, var(--color-surface-raised));
     border-bottom: 1px solid var(--color-border);
     overflow: hidden;
   }
-  .related-notes__thumb img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+  /* The signature SVG carries its own 300x200 viewBox; let it fill the thumb. */
+  .related-notes__sig {
     display: block;
+    width: 100%;
+  }
+  .related-notes__sig :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  /* These are static decorative thumbnails — render the signature in its final
+     state instead of waiting on the scroll-reveal observer (which only fires
+     for [data-svg-animate] in the main reading flow, not injected thumbs). */
+  .related-notes__sig :global(.svg-reveal) {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .related-notes__sig :global(.line-draw) {
+    stroke-dashoffset: 0;
+    transition: none;
+  }
+  .related-notes__sig :global(.bar-grow),
+  .related-notes__sig :global(.bar-grow-x),
+  .related-notes__sig :global(.ring-expand),
+  .related-notes__sig :global(.dot-pop) {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
   .related-notes__thumb-fallback {
     display: flex;
@@ -215,6 +247,5 @@ const cards = picked.map(({ a }) => ({
 
   @media (max-width: 860px) {
     .related-notes__grid { grid-template-columns: 1fr; }
-    .related-notes__thumb { aspect-ratio: 2 / 1; }
   }
 </style>

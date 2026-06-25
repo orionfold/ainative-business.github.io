@@ -1,0 +1,80 @@
+---
+// Signature figure for "the-machine-manages-its-own-memory".
+// The recall gate: a rebuilt index is promoted only if recall@5 does not
+// regress against the prior index, measured over 44 held-out gold questions.
+// PRIOR sets the no-regress floor; NEW clears it -> PROMOTE. Distinct from the
+// in-article re-index/score/gate/query fn-diagram; this emblem owns the
+// "a rebuild is done when it has proven it didn't regress" gate.
+---
+<svg viewBox="0 0 300 200" role="img"
+     aria-label="The recall gate: a prior index sets a no-regress floor on recall at 5; the rebuilt index clears the floor and is promoted, measured over 44 held-out gold questions."
+     data-svg-animate xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rcg-accent" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="rcg-halo" cx="0.5" cy="0.5" r="0.7">
+      <stop offset="0%"   stop-color="var(--color-primary)" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- kicker -->
+  <g class="svg-reveal svg-reveal-d1">
+    <text x="150" y="20" text-anchor="middle"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)"
+          font-size="7.5" letter-spacing="0.2em">RECALL GATE</text>
+  </g>
+
+  <!-- baseline -->
+  <line class="line-draw svg-reveal-d2" x1="55" y1="150" x2="208" y2="150"
+        stroke="var(--svg-connector)" stroke-width="1"/>
+
+  <!-- no-regress floor: dashed across at the PRIOR top (y=100) -->
+  <g class="svg-reveal svg-reveal-d4">
+    <line x1="60" y1="100" x2="208" y2="100"
+          stroke="var(--svg-text-muted)" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="60" y="96" text-anchor="start"
+          fill="var(--svg-text-muted)" font-family="var(--font-mono)" font-size="6">no-regress floor</text>
+  </g>
+
+  <!-- PRIOR bar (faint, sets the floor) : x80 w44, top y100 (h50) -->
+  <g class="svg-reveal svg-reveal-d3">
+    <rect x="80" y="100" width="44" height="50"
+          fill="var(--svg-bg-inner)" stroke="var(--svg-bg-inner-stroke)"
+          stroke-width="1" stroke-dasharray="3 2"/>
+    <text x="102" y="164" text-anchor="middle"
+          fill="var(--svg-text-faint)" font-family="var(--font-mono)" font-size="7">PRIOR</text>
+  </g>
+
+  <!-- NEW bar (accent, clears the floor) : x150 w44, top y76 (h74) -->
+  <g class="svg-reveal svg-reveal-d5">
+    <rect x="146" y="70" width="48" height="84" fill="url(#rcg-halo)" stroke="none"/>
+    <rect x="150" y="76" width="44" height="74" rx="2"
+          fill="url(#rcg-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="172" y="164" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="7" font-weight="600">NEW</text>
+  </g>
+
+  <!-- connector NEW -> PROMOTE -->
+  <g class="svg-reveal svg-reveal-d6">
+    <path d="M 196 86 L 216 86" fill="none" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <polygon points="216,86 209,83 209,89" fill="var(--color-primary)"/>
+  </g>
+
+  <!-- PROMOTE verdict chip -->
+  <g class="svg-reveal svg-reveal-d6">
+    <rect x="220" y="75" width="62" height="22" rx="5"
+          fill="url(#rcg-accent)" stroke="var(--color-primary)" stroke-width="1.5"/>
+    <text x="251" y="89" text-anchor="middle"
+          fill="var(--svg-text-bright)" font-family="var(--font-mono)" font-size="7.5" font-weight="600">PROMOTE</text>
+  </g>
+
+  <!-- subcaption -->
+  <g class="svg-reveal svg-reveal-d7">
+    <text x="150" y="184" text-anchor="middle"
+          fill="var(--color-primary)" font-family="var(--font-mono)"
+          font-size="7" letter-spacing="0.12em">recall@5 · 44 held-out</text>
+  </g>
+</svg>
