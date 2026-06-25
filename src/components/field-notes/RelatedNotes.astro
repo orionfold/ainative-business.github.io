@@ -1,0 +1,220 @@
+---
+/**
+ * RelatedNotes — followed content-to-content internal links at the foot of
+ * every field-note. Closes the A14 indexing gap: an article used to only link
+ * out via same-series prev/next, so non-series or link-sparse notes were
+ * effectively orphaned → Google left them "Discovered, currently not indexed"
+ * after the 2026-05-29 consolidation. A dense, *followed* internal link graph
+ * is the single biggest lever to drain that queue. This block replaces the
+ * old same-series prev/next nav entirely (it duplicated these cards).
+ *
+ * Relatedness score (shared editorial signal, highest first):
+ *   shared tag  → +3 each   (strongest topical signal)
+ *   same series → +2        (same arc)
+ *   same stage  → +1        (same point in the build lifecycle)
+ * Ties break by recency (publish ordinal desc).
+ *
+ * If fewer than COUNT scored matches exist, top up with the most recent other
+ * articles so EVERY page emits COUNT followed links — orphan articles (no
+ * tags/series) are exactly the ones the indexer stranded, so they must not
+ * fall through to zero links.
+ *
+ * Each card carries the article's OG card as a thumbnail (its representative
+ * image). Where an OG card hasn't been generated yet (CI-built), a monogram
+ * tile keeps the grid uniform rather than dropping the article.
+ *
+ * Links are followed (no rel="nofollow"): genuine editorial recommendations
+ * between content pages, unlike the thin tag/stage taxonomy links.
+ */
+import { getCollection } from 'astro:content';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
+
+interface Props {
+  slug: string;
+  count?: number;
+}
+const { slug, count = 3 } = Astro.props;
+
+const all = await getCollection('field-notes');
+const ordinalById = publishOrdinals(all, process.cwd());
+
+const current = all.find((a) => a.id === slug);
+const currentTags = new Set(current?.data.tags ?? []);
+const currentSeries = current?.data.series;
+const currentStage = current?.data.stage;
+
+const candidates = all
+  .filter((a) => a.id !== slug && a.data.status !== 'upcoming');
+
+const scored = candidates
+  .map((a) => {
+    let score = 0;
+    for (const t of a.data.tags ?? []) if (currentTags.has(t)) score += 3;
+    if (currentSeries && a.data.series === currentSeries) score += 2;
+    if (currentStage && a.data.stage === currentStage) score += 1;
+    return { a, score, ord: ordinalById.get(a.id) ?? 0 };
+  })
+  .sort((x, y) => (y.score - x.score) || (y.ord - x.ord));
+
+// Take the best scored matches, then top up with most-recent to guarantee
+// `count` followed links on every page (orphan-proofing).
+const picked: typeof scored = [];
+const seen = new Set<string>();
+for (const s of scored.filter((s) => s.score > 0)) {
+  if (picked.length >= count) break;
+  picked.push(s); seen.add(s.a.id);
+}
+if (picked.length < count) {
+  for (const s of scored.sort((x, y) => y.ord - x.ord)) {
+    if (picked.length >= count) break;
+    if (!seen.has(s.a.id)) { picked.push(s); seen.add(s.a.id); }
+  }
+}
+
+const articleHref = (id: string) => `/field-notes/${id}/`;
+const ordLabel = (id: string) => `№${String(ordinalById.get(id) ?? 0).padStart(2, '0')}`;
+// Resolve the OG thumbnail at build time; null → monogram fallback.
+const ogThumb = (id: string) =>
+  existsSync(join(process.cwd(), 'public', 'og', 'field-notes', `${id}.png`))
+    ? `/og/field-notes/${id}.png`
+    : null;
+
+const cards = picked.map(({ a }) => ({
+  id: a.id,
+  href: articleHref(a.id),
+  ord: ordLabel(a.id),
+  title: a.data.title,
+  summary: a.data.summary,
+  thumb: ogThumb(a.id),
+}));
+---
+{cards.length > 0 && (
+  <nav class="related-notes" aria-label="Related field notes">
+    <p class="related-notes__eyebrow">Related field notes</p>
+    <ul class="related-notes__grid">
+      {cards.map((c) => (
+        <li>
+          <a class="related-notes__card" href={c.href}>
+            <span class="related-notes__thumb">
+              {c.thumb ? (
+                <img src={c.thumb} alt="" loading="lazy" decoding="async" width="1200" height="630" />
+              ) : (
+                <span class="related-notes__thumb-fallback" aria-hidden="true">{c.ord}</span>
+              )}
+            </span>
+            <span class="related-notes__inner">
+              <span class="related-notes__ord">{c.ord}</span>
+              <span class="related-notes__title">{c.title}</span>
+              <span class="related-notes__summary">{c.summary}</span>
+            </span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+)}
+
+<style>
+  .related-notes {
+    max-width: var(--fn-measure);
+    margin: 3rem auto 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .related-notes__eyebrow {
+    margin: 0 0 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .related-notes__grid {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  .related-notes__card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    overflow: hidden;
+    background: color-mix(in oklch, var(--color-surface-raised) 60%, transparent);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .related-notes__card:hover {
+    border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+    background: color-mix(in oklch, var(--color-primary) 5%, var(--color-surface-raised));
+  }
+  .related-notes__thumb {
+    display: block;
+    aspect-ratio: 1200 / 630;
+    background: color-mix(in oklch, var(--color-primary) 8%, var(--color-surface-raised));
+    border-bottom: 1px solid var(--color-border);
+    overflow: hidden;
+  }
+  .related-notes__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .related-notes__thumb-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: var(--font-mono);
+    font-size: 1.6rem;
+    letter-spacing: 0.1em;
+    color: color-mix(in oklch, var(--color-primary) 55%, var(--color-text-dim));
+    background: linear-gradient(135deg,
+      color-mix(in oklch, var(--color-primary) 12%, var(--color-surface-raised)),
+      var(--color-surface-raised));
+  }
+  .related-notes__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.9rem 1rem 1.1rem;
+  }
+  .related-notes__ord {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-text-dim);
+  }
+  .related-notes__card:hover .related-notes__ord { color: var(--color-primary); }
+  .related-notes__title {
+    font-family: var(--font-display);
+    font-size: 0.98rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--color-text);
+  }
+  .related-notes__summary {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--color-text-dim);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (max-width: 860px) {
+    .related-notes__grid { grid-template-columns: 1fr; }
+    .related-notes__thumb { aspect-ratio: 2 / 1; }
+  }
+</style>
