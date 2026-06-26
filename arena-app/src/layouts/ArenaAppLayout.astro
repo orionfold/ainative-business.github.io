@@ -144,6 +144,15 @@ try {
             var h = location.hostname;
             var local = h === '127.0.0.1' || h === 'localhost' || /^10\.0\.0\.\d+$/.test(h);
             if (!local) return;
+            // Never bounce when already on the welcome surface itself: welcome.astro
+            // also renders with active="cockpit" (for nav highlight), so without this
+            // guard a flag-unset first-time visitor loops welcome→welcome — the page
+            // sets of_arena_welcomed in a deferred body script that this synchronous
+            // <head> redirect pre-empts. Only a fresh browser hits it, so every dev
+            // review (flag already set) slept through it.
+            var here = location.pathname.replace(/\/+$/, '');
+            var dest = welcomeHref.replace(/\/+$/, '');
+            if (here === dest) return;
             if (!localStorage.getItem('of_arena_welcomed')) {
               location.replace(welcomeHref);
             }

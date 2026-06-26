@@ -25,6 +25,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
   Render-only (no public-API change); the wheel rebakes `_webui` so the customer
   cockpit picks it up.
 
+### Fixed
+- **Arena first-run redirect loop on the welcome surface.** `welcome.astro`
+  renders with `active="cockpit"` (for nav highlight), which re-enabled the
+  cockpit's flag-gated `/arena/` → `/arena/welcome/` first-run redirect *on the
+  welcome page itself*. With no "already on welcome" guard, a flag-unset
+  first-time visitor looped `welcome → welcome` (the page sets
+  `of_arena_welcomed` in a deferred body script that the synchronous `<head>`
+  redirect pre-empted). Added a `pathname === welcomeHref` short-circuit so the
+  redirect never fires when already on the destination; the intended
+  cockpit→welcome bounce and the returning-visitor no-op are preserved. Only a
+  truly fresh browser hit it, so every dev review (flag already set) slept
+  through it. Render-only; ships on the next `_webui` rebake.
+
 ## [0.34.1] — 2026-06-16
 
 > Arena cockpit render polish — the jobs board and the Lab "Next" lane now cap
