@@ -6,6 +6,9 @@
 // matching files are copied to public/products/<slug>/screenshots/ at import,
 // so the runtime URL is /products/<slug>/<screenshot>.
 
+import { Image } from 'astro:assets';
+import { productScreenshot } from '../../lib/products/screenshots';
+
 interface Feature {
   name: string;
   benefit: string;
@@ -19,15 +22,23 @@ interface Props {
 
 const { features, slug } = Astro.props;
 const srcFor = (s: string) => `/products/${slug}/${s.replace(/^\/+/, '')}`;
+// Gallery shots are below-fold + lazy; render as responsive WebP. The image sits
+// in a half-width grid column (full-width below 720px), so ~480px on desktop.
+const GW = [480, 640, 768, 1024];
+const GSIZES = '(min-width: 720px) 480px, 92vw';
 ---
 {features.length > 0 && (
   <section class="feature-gallery" aria-labelledby="feature-gallery-heading">
     <h2 id="feature-gallery-heading" class="feature-gallery__title">The feature tour</h2>
     <div class="feature-gallery__list">
-      {features.map((f, i) => (
+      {features.map((f, i) => {
+        const img = productScreenshot(slug, f.screenshot);
+        return (
         <article class="feature" data-animate>
           <div class="feature__shot">
-            <img src={srcFor(f.screenshot)} alt={`${f.name} — ${f.benefit}`} loading="lazy" decoding="async" width="1280" height="800" />
+            {img
+              ? <Image src={img} alt={`${f.name} — ${f.benefit}`} widths={GW} sizes={GSIZES} format="webp" quality={72} loading="lazy" decoding="async" />
+              : <img src={srcFor(f.screenshot)} alt={`${f.name} — ${f.benefit}`} loading="lazy" decoding="async" width="1280" height="800" />}
           </div>
           <div class="feature__text">
             <span class="feature__num">{String(i + 1).padStart(2, '0')}</span>
@@ -35,7 +46,8 @@ const srcFor = (s: string) => `/products/${slug}/${s.replace(/^\/+/, '')}`;
             <p class="feature__benefit">{f.benefit}</p>
           </div>
         </article>
-      ))}
+        );
+      })}
     </div>
   </section>
 )}

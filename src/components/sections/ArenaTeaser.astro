@@ -1,6 +1,8 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
 import SectionLabel from '../ui/SectionLabel.astro';
+import { productScreenshot } from '../../lib/products/screenshots';
 
 // Homepage launch teaser for the flagship product (Orionfold Arena). Reads the
 // product collection so the headline metrics stay honest (mined, never hand-
@@ -11,7 +13,11 @@ const arena = products.find((p) => p.id === 'orionfold-arena') ?? null;
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 const b = arena?.data.build;
 const hoursLabel = b ? (Number.isInteger(b.wall_clock_hours) ? `${b.wall_clock_hours}` : b.wall_clock_hours.toFixed(1)) : '';
-const shot = arena ? `/products/${arena.id}/${arena.data.features[0]?.screenshot?.replace(/^\/+/, '') ?? 'screenshots/01-cockpit.png'}` : '';
+const shotRel = arena?.data.features[0]?.screenshot ?? 'screenshots/01-cockpit.png';
+const shot = arena ? `/products/${arena.id}/${shotRel.replace(/^\/+/, '')}` : '';
+// Below-fold/lazy; render responsive WebP. Sits in a half-width grid column of a
+// max-w-6xl row (full-width below md), so ~540px on desktop.
+const shotImg = arena ? productScreenshot(arena.id, shotRel) : undefined;
 ---
 {arena && (
   <section class="py-24 px-6">
@@ -56,7 +62,9 @@ const shot = arena ? `/products/${arena.id}/${arena.data.features[0]?.screenshot
           </div>
         </div>
         <a href="/arena/demo/" data-animate class="of-surface of-pressable block rounded-xl overflow-hidden" style="transition-delay: 120ms" aria-label={`${arena.data.product_name}: live preview`}>
-          <img src={shot} alt={`${arena.data.product_name} cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+          {shotImg
+            ? <Image src={shotImg} alt={`${arena.data.product_name} cockpit`} widths={[480, 640, 768, 1024]} sizes="(min-width: 768px) 540px, 92vw" format="webp" quality={72} loading="lazy" decoding="async" class="block w-full h-auto" />
+            : <img src={shot} alt={`${arena.data.product_name} cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />}
         </a>
       </div>
     </div>
