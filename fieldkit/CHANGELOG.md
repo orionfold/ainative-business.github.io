@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Changed
+- **Arena cockpit — Orionfold Design System v6.2 applied (cyan single-accent +
+  light/dark).** The cockpit brand accent moves blue-indigo → **cyan**
+  (`#0e9e98` light / `#14c8c0` dark), the DS "only interactive color"; gold is
+  retired as an action/wash color (it survives only as the welcome star glyph).
+  A new **light/dark theme** ships: an `html.arena-app[data-theme="dark"]` token
+  remap (DS dark neutrals) cascades through the `--arena-*`-tokenized panes, with
+  the 35 dark-ink shadow + 4 white-sheen literals routed through new
+  `--arena-shadow-rgb` / `--arena-sheen` tokens so they flip in one place; a
+  top-bar **sun/moon toggle** persists to `localStorage('of-arena-theme')`
+  (**dark is the default**, matching the Orionfold site; a saved `light` pref
+  overrides) behind a no-FOUC `<head>` init. The nav monogram becomes the **Orionfold disc+star mark** (disc
+  inherits the accent), the DS `.of-table` primitive lands on the generic
+  cloud-price settings table (the bespoke `.ranktable` leaderboard is left as-is
+  per the DS migration map), and the premium-narrative idioms (`.of-surface` /
+  `.of-chip` / hero gradient) cool their gold to cyan and gain dark tuning.
+  Render-only (no public-API change); the wheel rebakes `_webui` so the customer
+  cockpit picks it up.
+
 ## [0.34.1] — 2026-06-16
 
 > Arena cockpit render polish — the jobs board and the Lab "Next" lane now cap

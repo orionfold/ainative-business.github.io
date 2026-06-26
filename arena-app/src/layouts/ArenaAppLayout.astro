@@ -108,13 +108,27 @@ try {
 }
 ---
 <!doctype html>
-<html lang="en" class="arena-app" data-theme="light">
+<html lang="en" class="arena-app" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={desc} />
-    <meta name="theme-color" content="#F7F8FA" />
-    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#15171b" />
+    <meta name="color-scheme" content="light dark" />
+    {/* No-FOUC theme init (DS v6.2 dark mode). Runs before paint: dark is the
+        default (matches the Orionfold site + the cockpit's new identity); a saved
+        'light' pref overrides it for operators who toggle. The marketing mirror /
+        demo never get a stored pref, so they render the SSR dark default. */}
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('of-arena-theme');
+          if (t === 'dark' || t === 'light') {
+            document.documentElement.setAttribute('data-theme', t);
+          }
+        } catch (_e) { /* storage off → SSR light default */ }
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href={href('favicon.svg')} />
     <title>{title}</title>
     {isDemo && <script is:inline src={href('arena-demo/boot.js')}></script>}
@@ -227,17 +241,12 @@ try {
     <header class="arena-app__bar" role="banner">
       <div class="arena-app__lead">
       <a class="arena-app__brand" href={href('arena/')} aria-label="Spark Arena home">
-        <svg class="arena-app__mark" width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">
-          <!-- Three lit-up cells of a 4×4 instrument grid — the cockpit monogram. -->
-          <rect x="0.5"  y="0.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell" />
-          <rect x="6.5"  y="0.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell" />
-          <rect x="12.5" y="0.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell arena-app__mark-cell--lit" />
-          <rect x="0.5"  y="6.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell arena-app__mark-cell--lit" />
-          <rect x="6.5"  y="6.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell arena-app__mark-cell--accent" />
-          <rect x="12.5" y="6.5"  width="4" height="4" rx="0.5" class="arena-app__mark-cell" />
-          <rect x="0.5"  y="12.5" width="4" height="4" rx="0.5" class="arena-app__mark-cell" />
-          <rect x="6.5"  y="12.5" width="4" height="4" rx="0.5" class="arena-app__mark-cell arena-app__mark-cell--lit" />
-          <rect x="12.5" y="12.5" width="4" height="4" rx="0.5" class="arena-app__mark-cell" />
+        <svg class="arena-app__mark" width="22" height="22" viewBox="0 0 64 64" aria-hidden="true">
+          <!-- Orionfold disc+star mark (DS v6.2) — disc inherits the cyan accent. -->
+          <circle cx="32" cy="32" r="32" class="arena-app__mark-disc" />
+          <g transform="rotate(45 32 32)">
+            <path class="arena-app__mark-star" d="M32,9L37.41,24.56L53.88,24.89L40.75,34.84L45.52,50.61L32,41.2L18.48,50.61L23.25,34.84L10.12,24.89L26.59,24.56Z" />
+          </g>
         </svg>
         <span class="arena-app__wordmark">
           <span class="arena-app__wordmark-1">ORIONFOLD</span>
@@ -293,10 +302,30 @@ try {
         </div>
       </nav>
 
+      <div class="arena-app__bar-end">
+      {/* Light/dark toggle (DS v6.2). Sun shows in dark (→ go light), moon in
+          light (→ go dark); persisted to localStorage('of-arena-theme'). */}
+      <button class="arena-app__theme-toggle" id="arena-theme-toggle" type="button"
+              aria-label="Toggle light or dark theme" title="Toggle theme">
+        <svg class="arena-app__theme-icon arena-app__theme-icon--moon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="currentColor" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+        <svg class="arena-app__theme-icon arena-app__theme-icon--sun" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2" fill="currentColor"/>
+          <g stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <line x1="12" y1="1.6" x2="12" y2="4.4"/><line x1="12" y1="19.6" x2="12" y2="22.4"/>
+            <line x1="1.6" y1="12" x2="4.4" y2="12"/><line x1="19.6" y1="12" x2="22.4" y2="12"/>
+            <line x1="4.5" y1="4.5" x2="6.5" y2="6.5"/><line x1="17.5" y1="17.5" x2="19.5" y2="19.5"/>
+            <line x1="4.5" y1="19.5" x2="6.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="19.5" y2="4.5"/>
+          </g>
+        </svg>
+      </button>
+
       <div class="arena-app__status" role="status" aria-live="polite">
         <span class="arena-app__status-dot" id="arena-sidecar-dot" data-state="probing" aria-hidden="true"></span>
         <span class="arena-app__status-label" id="arena-sidecar-label">probing</span>
         <span class="arena-app__status-host" id="arena-sidecar-host">127.0.0.1:7866</span>
+      </div>
       </div>
     </header>
 
@@ -364,6 +393,25 @@ try {
       }
     </script>
 
+    <!-- Light/dark theme toggle (DS v6.2). Persists to localStorage; the
+         no-FOUC <head> init applies the saved value before paint. -->
+    <script is:inline>
+      (function () {
+        var btn = document.getElementById('arena-theme-toggle');
+        if (!btn) return;
+        var root = document.documentElement;
+        function current() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+        function sync() { btn.setAttribute('aria-pressed', current() === 'dark' ? 'true' : 'false'); }
+        sync();
+        btn.addEventListener('click', function () {
+          var next = current() === 'dark' ? 'light' : 'dark';
+          root.setAttribute('data-theme', next);
+          try { localStorage.setItem('of-arena-theme', next); } catch (_e) {}
+          sync();
+        });
+      })();
+    </script>
+
     <style is:global>
       /*
        * =====================================================================
@@ -396,10 +444,19 @@ try {
         /* Two-tier top-bar height (AE-12) — drives the sticky telemetry-rail offset. */
         --arena-bar-h: 92px;
 
-        /* Primary action / link / highlight — Orionfold blue-indigo accent (§6; v0.34). */
-        --arena-accent:    #1f54b8; /* indigo dark — text-safe */
-        --arena-accent-dim: #9dbaf0; /* indigo light — subdued borders/marks */
-        --arena-accent-glow: #296cd8; /* indigo mid — emphasis fills/hover */
+        /* Primary action / link / highlight — Orionfold CYAN single-accent
+           (DS v6.2, 2026-06-25; the only interactive color). Blue-indigo retired. */
+        --arena-accent:    #0a7d78; /* cyan dark — text-safe (AA on white) */
+        --arena-accent-dim: #9ad6d2; /* cyan light — subdued borders/marks */
+        --arena-accent-glow: #0e9e98; /* cyan mid — emphasis fills/hover */
+
+        /* Tokenized problem-colors so dark mode flips them in ONE place: the
+           cockpit has 35 dark-ink shadow literals + 4 white inset-sheen
+           highlights routed through these so the [data-theme="dark"] remap
+           cascades instead of touching 39 sites. (On-accent ink already
+           self-corrects via `color: var(--arena-bg)`.) */
+        --arena-shadow-rgb: 29, 31, 37; /* dark-ink drop/atmosphere shadows */
+        --arena-sheen:      rgba(255, 255, 255, 0.5); /* white inset top-highlight */
 
         /* Traffic-light state colours — §4: -ink flavors carry text, light1 for dims. */
         --arena-ok:        #338A17;
@@ -424,13 +481,66 @@ try {
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
+
+      /* ──────────────────────────────────────────────────────────────────
+       *  DARK COCKPIT (DS v6.2, 2026-06-25) — improvised app-dark token remap.
+       *  No DS cockpit-dark guidance exists, so neutrals follow the DS website
+       *  dark scale (bg #15171b · surface #1f2228 · raised #262b33 · text
+       *  #e9ecf0 · muted #9aa1ab · border #2c313a) and cyan brightens to the
+       *  DS dark accent (#14c8c0). Because the cockpit routes color through
+       *  --arena-* tokens (+ the new --arena-shadow-rgb / --arena-sheen), this
+       *  value remap cascades through ~all panes; the handful of pale status
+       *  chips get explicit dark overrides further down.
+       * ────────────────────────────────────────────────────────────────── */
+      html.arena-app[data-theme="dark"] {
+        --arena-bg:        #15171b; /* canvas */
+        --arena-bg-deep:   #1b1e24; /* rails/top-bar wash */
+        --arena-panel:     #1f2228; /* surface */
+        --arena-panel-2:   #1a1d22; /* nested panel */
+        --arena-panel-3:   #262b33; /* surface-2 wells */
+        --arena-line:      #2c313a; /* border */
+        --arena-line-soft: #23272e; /* border-soft */
+        --arena-text:      #e9ecf0; /* ink */
+        --arena-text-mute: #9aa1ab; /* mute */
+        --arena-text-dim:  #727a85; /* faint */
+
+        /* Cyan brightens on dark (DS dark --accent / --accent-hover). */
+        --arena-accent:      #14c8c0; /* bright cyan — text-safe on dark */
+        --arena-accent-dim:  #0e6b67; /* deep cyan — subdued borders/marks */
+        --arena-accent-glow: #2ad6cd; /* brightest cyan — emphasis fills/hover */
+
+        /* Status -ink flavors brightened so they read on dark surfaces. */
+        --arena-ok:        #4ec05f;
+        --arena-warn:      oklch(0.74 0.13 84);
+        --arena-alarm:     #ff5d80;
+
+        /* Shadows go pure-black (depth on dark panels); sheen near-invisible. */
+        --arena-shadow-rgb: 0, 0, 0;
+        --arena-sheen:      rgba(255, 255, 255, 0.05);
+
+        color-scheme: dark;
+      }
+
+      /* Pale leaderboard medal badges (.rank-badge--1/2/3, bespoke leaderboard)
+       * would glare as light chips on dark — give them dark-tinted variants
+       * that keep the gold/silver/bronze identity. */
+      html.arena-app[data-theme="dark"] .rank-badge--1 {
+        background: rgba(224, 141, 0, 0.16); color: #f0b94a; border-color: rgba(224, 141, 0, 0.5);
+      }
+      html.arena-app[data-theme="dark"] .rank-badge--2 {
+        background: var(--arena-panel-3); color: var(--arena-text-mute); border-color: var(--arena-line);
+      }
+      html.arena-app[data-theme="dark"] .rank-badge--3 {
+        background: rgba(201, 122, 74, 0.16); color: #e0a173; border-color: rgba(201, 122, 74, 0.5);
+      }
+
       html.arena-app body {
         margin: 0;
         background:
           /* Faint instrument-grid backdrop — barely there until you look. */
           linear-gradient(var(--arena-line-soft) 1px, transparent 1px) 0 0 / 48px 48px,
           linear-gradient(90deg, var(--arena-line-soft) 1px, transparent 1px) 0 0 / 48px 48px,
-          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(29,31,37,0.03), transparent 70%),
+          radial-gradient(ellipse 80% 60% at 50% 0%, rgba(var(--arena-shadow-rgb),0.03), transparent 70%),
           var(--arena-bg);
         background-attachment: fixed;
         min-height: 100vh;
@@ -488,7 +598,7 @@ try {
         backdrop-filter: blur(14px) saturate(1.4);
         -webkit-backdrop-filter: blur(14px) saturate(1.4);
         border-bottom: 1px solid var(--arena-line);
-        box-shadow: 0 1px 0 0 rgba(29,31,37,0.05) inset;
+        box-shadow: 0 1px 0 0 rgba(var(--arena-shadow-rgb),0.05) inset;
       }
       .arena-app__brand {
         display: inline-flex;
@@ -501,9 +611,8 @@ try {
         flex: 0 0 auto;
         filter: drop-shadow(0 0 6px color-mix(in srgb, var(--arena-accent-glow) 35%, transparent));
       }
-      .arena-app__mark-cell { fill: #D6DAE1; }
-      .arena-app__mark-cell--lit { fill: #8A919C; }
-      .arena-app__mark-cell--accent { fill: var(--arena-accent); }
+      .arena-app__mark-disc { fill: var(--arena-accent-glow); }
+      .arena-app__mark-star { fill: #ffffff; }
       .arena-app__wordmark {
         display: inline-flex;
         flex-direction: column;
@@ -655,9 +764,44 @@ try {
         .arena-app__tab { padding: 0.4rem 0.65rem; letter-spacing: 0.1em; }
       }
 
-      .arena-app__status {
+      /* Right-side bar group: theme toggle + sidecar status pill (DS v6.2). */
+      .arena-app__bar-end {
         grid-area: status;
         justify-self: end;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+      .arena-app__theme-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        flex: none;
+        padding: 0;
+        border: 1px solid var(--arena-line);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--arena-bg-deep) 80%, transparent);
+        color: var(--arena-text-mute);
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+      }
+      .arena-app__theme-toggle:hover {
+        color: var(--arena-accent);
+        border-color: var(--arena-accent-dim);
+        background: color-mix(in srgb, var(--arena-accent) 8%, var(--arena-panel));
+      }
+      .arena-app__theme-toggle:focus-visible {
+        outline: 2px solid var(--arena-accent);
+        outline-offset: 2px;
+      }
+      .arena-app__theme-icon { display: inline-flex; }
+      .arena-app__theme-icon--sun { display: none; }
+      html.arena-app[data-theme="dark"] .arena-app__theme-icon--moon { display: none; }
+      html.arena-app[data-theme="dark"] .arena-app__theme-icon--sun { display: inline-flex; }
+
+      .arena-app__status {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
@@ -770,8 +914,8 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 8px;
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.5),
-          inset 0 0 0 1px rgba(29,31,37,0.05);
+          inset 0 1px 0 var(--arena-sheen),
+          inset 0 0 0 1px rgba(var(--arena-shadow-rgb),0.05);
       }
       .bezel--quiet {
         background: color-mix(in srgb, var(--arena-panel) 60%, transparent);
@@ -780,8 +924,8 @@ try {
         background: var(--arena-panel);
         border-color: color-mix(in oklch, var(--arena-accent) 30%, var(--arena-line));
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.5),
-          inset 0 0 0 1px rgba(29,31,37,0.05),
+          inset 0 1px 0 var(--arena-sheen),
+          inset 0 0 0 1px rgba(var(--arena-shadow-rgb),0.05),
           0 0 0 1px color-mix(in srgb, var(--arena-accent) 8%, transparent),
           0 8px 32px -16px color-mix(in srgb, var(--arena-accent) 30%, transparent);
       }
@@ -1814,12 +1958,12 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 18px;
         padding: 0.9rem 1rem 0.7rem;
-        box-shadow: 0 4px 16px rgba(29,31,37,0.08);
+        box-shadow: 0 4px 16px rgba(var(--arena-shadow-rgb),0.08);
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
       .arena-app .chat-lane__composer:focus-within {
         border-color: var(--arena-accent-dim);
-        box-shadow: 0 6px 20px rgba(29,31,37,0.10),
+        box-shadow: 0 6px 20px rgba(var(--arena-shadow-rgb),0.10),
           0 0 0 1px color-mix(in srgb, var(--arena-accent) 30%, transparent);
       }
       .arena-app .chat-lane__textarea {
@@ -2431,12 +2575,12 @@ try {
         border: 1px solid var(--arena-line);
         border-radius: 18px;
         padding: 0.9rem 1rem 0.7rem;
-        box-shadow: 0 4px 16px rgba(29,31,37,0.08);
+        box-shadow: 0 4px 16px rgba(var(--arena-shadow-rgb),0.08);
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
       .arena-app .compare-duel__composer:focus-within {
         border-color: var(--arena-accent-dim);
-        box-shadow: 0 6px 20px rgba(29,31,37,0.10),
+        box-shadow: 0 6px 20px rgba(var(--arena-shadow-rgb),0.10),
           0 0 0 1px color-mix(in srgb, var(--arena-accent) 30%, transparent);
       }
       .arena-app .compare-duel__textarea {
@@ -2933,7 +3077,7 @@ try {
         border-radius: 8px;
         box-shadow:
           0 0 0 1px color-mix(in srgb, var(--arena-bg-deep) 50%, transparent),
-          0 12px 28px -6px rgba(29,31,37,0.16);
+          0 12px 28px -6px rgba(var(--arena-shadow-rgb),0.16);
       }
       .arena-app .chat-session-switcher__row {
         display: grid;
@@ -3131,7 +3275,7 @@ try {
         border-radius: 8px;
         box-shadow:
           0 0 0 1px color-mix(in srgb, var(--arena-bg-deep) 50%, transparent),
-          0 12px 28px -6px rgba(29,31,37,0.16);
+          0 12px 28px -6px rgba(var(--arena-shadow-rgb),0.16);
         overflow: hidden;
       }
       .arena-app .chat-slashmenu__head {
@@ -3220,7 +3364,7 @@ try {
         padding: 0.55rem 1rem;
         border-radius: 6px;
         box-shadow: 0 0 0 1px color-mix(in srgb, var(--arena-accent) 18%, transparent),
-                    0 10px 24px -6px rgba(29,31,37,0.16);
+                    0 10px 24px -6px rgba(var(--arena-shadow-rgb),0.16);
         animation: arena-toast-in 150ms ease;
       }
       @keyframes arena-toast-in {
@@ -3352,8 +3496,8 @@ try {
          surfaces that should read as powered-on, not just bordered. */
       .arena-app .instrument-glow {
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.5),
-          inset 0 0 0 1px rgba(29,31,37,0.05),
+          inset 0 1px 0 var(--arena-sheen),
+          inset 0 0 0 1px rgba(var(--arena-shadow-rgb),0.05),
           0 0 0 1px color-mix(in srgb, var(--arena-accent) 14%, transparent),
           0 10px 40px -18px color-mix(in srgb, var(--arena-accent-glow) 55%, transparent);
       }
@@ -3366,9 +3510,9 @@ try {
       }
       .arena-app .signal-pulse { animation: arena-signal-pulse 2.4s ease-in-out infinite; }
 
-      /* Brand mark: the accent cell now breathes in time with the live dot,
-         so the chrome reads as a running instrument the moment you land. */
-      .arena-app__mark-cell--accent { animation: arena-signal-pulse 2.4s ease-in-out infinite; transform-box: fill-box; }
+      /* Brand mark: solid disc-star with a static accent glow (the live sidecar
+         dot carries the "running instrument" motion — a pulsing logo reads as
+         flicker). */
 
       /* Flight-deck band: deepen the top bar so bar+rail read as one cockpit
          header rather than two stacked strips. */
@@ -3505,7 +3649,7 @@ try {
       .arena-app .lvb__muted { color: var(--arena-text-dim); }
       .arena-app .lvb__muted code {
         font-family: var(--arena-mono); font-size: 0.92em;
-        color: var(--arena-text-mute); background: rgba(29,31,37,0.045);
+        color: var(--arena-text-mute); background: rgba(var(--arena-shadow-rgb),0.045);
         padding: 0.05em 0.35em; border-radius: 0.25rem;
       }
       .arena-app .lvb__delta { font-family: var(--arena-mono); font-weight: 600; }
@@ -3532,7 +3676,7 @@ try {
       }
       .arena-app .evidence-card:hover {
         transform: translateY(-2px);
-        background: rgba(29,31,37,0.03);
+        background: rgba(var(--arena-shadow-rgb),0.03);
       }
       .arena-app .evidence-card__kind {
         display: inline-flex; align-items: center; gap: 0.35rem;
@@ -3574,7 +3718,7 @@ try {
       }
       .arena-app .lab-lane__count {
         margin-left: auto; font-family: var(--arena-mono); font-size: 0.7rem;
-        color: var(--arena-text-mute); background: rgba(29,31,37,0.045);
+        color: var(--arena-text-mute); background: rgba(var(--arena-shadow-rgb),0.045);
         padding: 0.05rem 0.45rem; border-radius: 0.6rem;
       }
       .arena-app .lab-lane__cards { display: flex; flex-direction: column; gap: 0.7rem; }
@@ -3609,7 +3753,7 @@ try {
       .arena-app .labnotes__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
       .arena-app .labnotes__item {
         display: flex; align-items: flex-start; gap: 0.4rem; font-size: 0.7rem;
-        color: var(--arena-text-mute); background: rgba(29,31,37,0.035);
+        color: var(--arena-text-mute); background: rgba(var(--arena-shadow-rgb),0.035);
         border-left: 2px solid var(--arena-accent); padding: 0.3rem 0.45rem; border-radius: 0.25rem;
       }
       .arena-app .labnotes__body { flex: 1; line-height: 1.4; }
@@ -3640,7 +3784,7 @@ try {
         display: flex; align-items: flex-start; gap: 0.7rem;
         padding: 1rem 1.1rem; font-size: 0.78rem; line-height: 1.5;
         color: var(--arena-text-mute); border: 1px dashed var(--arena-line);
-        border-radius: 0.5rem; background: rgba(29,31,37,0.025);
+        border-radius: 0.5rem; background: rgba(var(--arena-shadow-rgb),0.025);
       }
       .arena-app .jobs__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
       .arena-app .jobs__offline strong { color: var(--arena-text); }
@@ -3664,7 +3808,7 @@ try {
       .arena-app .jobs__dispatch {
         display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.025);
+        background: rgba(var(--arena-shadow-rgb),0.025);
       }
       .arena-app .jobs__dispatch-label {
         font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.1em;
@@ -3708,7 +3852,7 @@ try {
       /* Live rl_run progress (rl-lane-autonomy LA-9) */
       .arena-app .jobs__rl {
         margin-top: 0.4rem; padding: 0.4rem 0.5rem; border-radius: 0.35rem;
-        background: rgba(29,31,37,0.03); border: 1px solid var(--arena-line);
+        background: rgba(var(--arena-shadow-rgb),0.03); border: 1px solid var(--arena-line);
       }
       .arena-app .jobs__rl-head {
         display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem;
@@ -3747,7 +3891,7 @@ try {
          the per-phase guide cards, and the post-run debrief. */
       .arena-app .jobs__rl-interp {
         margin-top: 0.35rem; padding: 0.3rem 0.4rem; border-radius: 0.3rem;
-        border-left: 2px solid var(--arena-text-dim); background: rgba(29,31,37,0.025);
+        border-left: 2px solid var(--arena-text-dim); background: rgba(var(--arena-shadow-rgb),0.025);
         display: flex; flex-direction: column; gap: 0.1rem;
       }
       .arena-app .jobs__rl-interp[data-kind="pitfall"] { border-left-color: var(--arena-warn); }
@@ -3809,7 +3953,7 @@ try {
       .arena-app .jobs__col {
         display: flex; flex-direction: column; gap: 0.55rem;
         border: 1px solid var(--arena-line); border-radius: 0.5rem; padding: 0.6rem 0.6rem 0.7rem;
-        background: rgba(29,31,37,0.02);
+        background: rgba(var(--arena-shadow-rgb),0.02);
       }
       .arena-app .jobs__col-head {
         display: flex; align-items: center; justify-content: space-between;
@@ -3824,7 +3968,7 @@ try {
       .arena-app .jobs__col[data-col="failed"] .jobs__col-title { color: var(--arena-warn); }
       .arena-app .jobs__col-count {
         font-family: var(--arena-mono); font-size: 0.66rem; color: var(--arena-text-dim);
-        background: rgba(29,31,37,0.045); border-radius: 0.6rem; padding: 0.02rem 0.4rem;
+        background: rgba(var(--arena-shadow-rgb),0.045); border-radius: 0.6rem; padding: 0.02rem 0.4rem;
       }
       .arena-app .jobs__col-body { display: flex; flex-direction: column; gap: 0.5rem; min-height: 2.5rem; }
       .arena-app .jobs__empty { margin: 0; text-align: center; color: var(--arena-text-dim); font-size: 0.8rem; }
@@ -3854,7 +3998,7 @@ try {
       }
       .arena-app .jobs__card-runlabel {
         padding: 0.02rem 0.3rem; border-radius: 0.3rem;
-        background: rgba(29,31,37,0.045); color: var(--arena-text-mute);
+        background: rgba(var(--arena-shadow-rgb),0.045); color: var(--arena-text-mute);
       }
       .arena-app .jobs__card-ago { color: var(--arena-text-mute); }
       .arena-app .jobs__card-shortid { margin-left: auto; color: var(--arena-text-dim); opacity: 0.8; }
@@ -3889,7 +4033,7 @@ try {
       .arena-app .jobs__guard-ok { color: var(--arena-text-mute); opacity: 0.8; }
       .arena-app .jobs__guard-cost {
         margin-left: auto; padding: 0.02rem 0.3rem; border-radius: 0.3rem;
-        background: rgba(29,31,37,0.045); color: var(--arena-text-mute);
+        background: rgba(var(--arena-shadow-rgb),0.045); color: var(--arena-text-mute);
       }
       /* GS-6 — the active thresholds that governed this run (config, not outcome) */
       .arena-app .jobs__guard-capcfg {
@@ -4014,7 +4158,7 @@ try {
         border-radius: 0.35rem; padding: 0.4rem 0.85rem; cursor: pointer;
       }
       .arena-app .gsettings__save {
-        background: var(--arena-accent); color: #0a0a0a; border: 1px solid var(--arena-accent);
+        background: var(--arena-accent); color: var(--arena-bg); border: 1px solid var(--arena-accent);
       }
       .arena-app .gsettings__reset {
         background: transparent; color: var(--arena-text-dim); border: 1px solid var(--arena-line);
@@ -4061,13 +4205,47 @@ try {
       }
       .arena-app .gsettings__prices-table tr[data-priced="false"] td { color: var(--arena-warn); }
 
+      /* DS v6.2 .of-table — the one-opinion dense data table primitive. Cyan
+         touches a table ONLY as header-wash (8%) / row-hover (4%) / win-row ring
+         — never a fill (DS "accent rule"). Theme-aware via --arena-* tokens;
+         transparent mixes use `in srgb` (hue-stable; the cockpit magenta lesson).
+         The bespoke leaderboard (.ranktable) is left alone per the DS migration
+         map; this is for generic dense tables (e.g. the cloud-price settings). */
+      .arena-app .of-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: 1px solid var(--arena-line);
+        border-radius: 12px;
+        overflow: hidden;
+        background: var(--arena-panel);
+        font-variant-numeric: tabular-nums;
+      }
+      .arena-app .of-table thead th {
+        background: color-mix(in srgb, var(--arena-accent-glow) 8%, var(--arena-panel));
+        font-family: var(--arena-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--arena-text-mute);
+      }
+      .arena-app .of-table td,
+      .arena-app .of-table th { border-bottom: 1px solid var(--arena-line-soft); }
+      .arena-app .of-table tbody tr:last-child td { border-bottom: 0; }
+      .arena-app .of-table tbody tr:hover td {
+        background: color-mix(in srgb, var(--arena-accent-glow) 4%, transparent);
+      }
+      .arena-app .of-table tbody tr.is-win td {
+        box-shadow: inset 0 1px 0 color-mix(in srgb, var(--arena-accent-glow) 45%, transparent),
+                    inset 0 -1px 0 color-mix(in srgb, var(--arena-accent-glow) 45%, transparent);
+      }
+
       /* M10 (Bet 5 recall layer) — /arena/cortex/ pane */
       .arena-app .kp { display: flex; flex-direction: column; gap: 1rem; }
       .arena-app .kp__offline {
         display: flex; align-items: flex-start; gap: 0.7rem;
         padding: 1rem 1.1rem; font-size: 0.78rem; line-height: 1.5;
         color: var(--arena-text-mute); border: 1px dashed var(--arena-line);
-        border-radius: 0.5rem; background: rgba(29,31,37,0.025);
+        border-radius: 0.5rem; background: rgba(var(--arena-shadow-rgb),0.025);
       }
       .arena-app .kp__offline code { font-family: var(--arena-mono); color: var(--arena-accent); font-size: 0.92em; }
       .arena-app .kp__offline strong { color: var(--arena-text); }
@@ -4076,7 +4254,7 @@ try {
       .arena-app .kp__cov {
         display: flex; flex-wrap: wrap; align-items: center; gap: 1.2rem;
         padding: 0.85rem 1rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.02);
+        background: rgba(var(--arena-shadow-rgb),0.02);
       }
       .arena-app .kp__cov-stat { display: flex; flex-direction: column; align-items: center; flex: none; }
       .arena-app .kp__cov-num { font-family: var(--arena-mono); font-size: 1.7rem; color: var(--arena-accent); line-height: 1; }
@@ -4090,12 +4268,12 @@ try {
       .arena-app .kp__missing { width: 100%; }
       .arena-app .kp__missing summary { font-size: 0.68rem; color: var(--arena-text-mute); cursor: pointer; }
       .arena-app .kp__missing-list { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
-      .arena-app .kp__missing-list code { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn); background: rgba(29,31,37,0.04); border-radius: 0.25rem; padding: 0.08rem 0.35rem; }
+      .arena-app .kp__missing-list code { font-family: var(--arena-mono); font-size: 0.62rem; color: var(--arena-warn); background: rgba(var(--arena-shadow-rgb),0.04); border-radius: 0.25rem; padding: 0.08rem 0.35rem; }
       /* Advisor preflight receipt */
       .arena-app .kp__advisor {
         display: flex; flex-direction: column; gap: 0.6rem;
         padding: 0.8rem 0.9rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.025);
+        background: rgba(var(--arena-shadow-rgb),0.025);
       }
       .arena-app .kp__advisor[data-status="not_run"] { border-color: var(--arena-warn); }
       .arena-app .kp__advisor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.8rem; }
@@ -4199,7 +4377,7 @@ try {
       .arena-app .kp__controls {
         display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.025);
+        background: rgba(var(--arena-shadow-rgb),0.025);
       }
       .arena-app .kp__controls-label { font-family: var(--arena-mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--arena-text-dim); }
       .arena-app .kp__select {
@@ -4225,7 +4403,7 @@ try {
       .arena-app .kp__trend {
         display: flex; flex-direction: column; gap: 0.55rem;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.02);
+        background: rgba(var(--arena-shadow-rgb),0.02);
       }
       .arena-app .kp__trend-head { display: flex; align-items: center; justify-content: space-between; }
       .arena-app .kp__trend-title { font-family: var(--arena-mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--arena-text-mute); }
@@ -4239,7 +4417,7 @@ try {
       .arena-app .kp__query {
         display: flex; flex-direction: column; gap: 0.6rem;
         padding: 0.7rem 0.85rem; border: 1px solid var(--arena-line); border-radius: 0.5rem;
-        background: rgba(29,31,37,0.02);
+        background: rgba(var(--arena-shadow-rgb),0.02);
       }
       .arena-app .kp__query-form { display: flex; gap: 0.5rem; }
       .arena-app .kp__input {
@@ -5172,7 +5350,7 @@ try {
         border-color: color-mix(in oklch, var(--arena-accent) 35%, var(--arena-line));
         transform: translateY(-2px);
         box-shadow:
-          inset 0 1px 0 rgba(255,255,255,0.5),
+          inset 0 1px 0 var(--arena-sheen),
           0 14px 40px -22px color-mix(in srgb, var(--arena-accent-glow) 60%, transparent);
       }
       .model-card__top {
@@ -5316,7 +5494,7 @@ try {
         display: flex;
         flex-direction: column;
         gap: 0.15rem;
-        box-shadow: 0 10px 28px -10px rgba(29,31,37,0.18);
+        box-shadow: 0 10px 28px -10px rgba(var(--arena-shadow-rgb),0.18);
       }
       .frontier-tip b { color: var(--arena-text); font-size: 0.74rem; }
       .frontier-tip__grp { color: var(--arena-text-dim); }
@@ -5486,7 +5664,7 @@ try {
         justify-content: center;
         align-items: flex-start;
         padding-top: 12vh;
-        background: rgba(29,31,37,0.40);
+        background: rgba(var(--arena-shadow-rgb),0.40);
         backdrop-filter: blur(3px);
         -webkit-backdrop-filter: blur(3px);
         animation: arena-rise-in 120ms ease-out both;
@@ -5501,8 +5679,8 @@ try {
         border-radius: 12px;
         overflow: hidden;
         box-shadow:
-          0 0 0 1px rgba(29,31,37,0.06),
-          0 30px 80px -24px rgba(29,31,37,0.25),
+          0 0 0 1px rgba(var(--arena-shadow-rgb),0.06),
+          0 30px 80px -24px rgba(var(--arena-shadow-rgb),0.25),
           0 0 60px -30px var(--arena-accent-glow);
       }
       .arena-app .cmdk__inputrow {

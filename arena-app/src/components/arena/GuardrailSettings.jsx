@@ -104,7 +104,7 @@ function PriceCoverage({ base }) {
       {models.length === 0 ? (
         <p class="gsettings__prices-empty">No cloud-eval models on the roster yet — dispatch a cloud eval and its model appears here.</p>
       ) : (
-        <table class="gsettings__prices-table">
+        <table class="gsettings__prices-table of-table">
           <thead>
             <tr><th>model</th><th>armed</th><th>$/M in · out</th><th>source</th><th>captured</th></tr>
           </thead>
