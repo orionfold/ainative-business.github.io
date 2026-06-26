@@ -1,5 +1,12 @@
 ---
+import { Image } from 'astro:assets';
 import TechTicker from './TechTicker.astro';
+// Hero LCP image routed through astro:assets (was a raw 620 KB <img> from /public,
+// bypassing the optimizer). Source lives in src/assets so it can be processed into
+// responsive WebP at build time; the /public copy stays for the product article +
+// the arena-demo drift-guard. The view crops to a 16/10 top slice, so it renders
+// at ~640px on desktop — the prior 2820px-wide PNG was ~4× oversized.
+import heroCockpit from '../../assets/hero-arena-cockpit.png';
 
 // Hero lands on the flagship product: Orionfold Arena. The primary CTA hands
 // off to the parent storefront (orionfold.com/software/arena/) for the founding
@@ -111,10 +118,16 @@ const ARENA_STORE = 'https://orionfold.com/software/arena/';
           <span class="hero-shot__live"><span class="hero-shot__livedot"></span>LIVE</span>
         </div>
         <div class="hero-shot__view">
-          <img
-            src="/products/orionfold-arena/screenshots/01-cockpit.png"
+          <Image
+            src={heroCockpit}
             alt="The Orionfold Arena cockpit: leaderboard, resident lane, and the live telemetry rail"
-            width="2820" height="3072" loading="eager" decoding="async" fetchpriority="high"
+            widths={[640, 760, 960, 1280]}
+            sizes="(min-width: 1024px) 640px, 92vw"
+            format="webp"
+            quality={72}
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
           />
           <span class="hero-shot__sheen" aria-hidden="true"></span>
         </div>
