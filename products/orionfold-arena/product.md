@@ -354,9 +354,8 @@ default, but the lane selector lets you point it at any on-demand local GGUF
 (booted for you, with the previous on-demand model torn down first to respect the
 memory envelope) or a hosted lane. Answers render with full markdown and syntax
 highlighting, reasoning traces collapse out of the way, and the throughput reads
-live — the answer above (a Kepler's-third-law orbit period, correct to the
-minute) streamed back with a **232 ms time-to-first-token** off the resident
-Kepler-8B Q8 specialist.
+live — the answer above streamed back grounded in your own corpus, with inline
+source citations and live tok/s, off the resident Advisor lane.
 
 ### Score against gold — the eval drawer
 
@@ -375,28 +374,26 @@ hosted one. Evaluation stops being a separate pipeline and becomes a button.
 
 ### Put two head to head — compare
 
-![The compare surface: a head-to-head delta strip and deterministic rubric scores for two lanes](screenshots/07-compare.png)
+![The compare surface: pick two lanes and duel them on one prompt — a deterministic rubric score and telemetry-style metric cards per side](screenshots/07-compare.png)
 
 *Any lane versus any lane, with telemetry-style metric cards — quality,
 throughput, latency, tokens, and cost — each over a session sparkline, plus a
 deterministic rubric score for each side.*
 
 Compare is the duel. Pick any two lanes — two of your local models, a local model
-against a hosted one, whichever question you're actually asking — and watch them
-answer the same prompt. Where the launch build showed a single delta strip, the
-duel now lays out **telemetry-style metric cards** — a deterministic rubric
+against a hosted one, whichever question you're actually asking — and send them
+the same prompt; the surface above has the resident Advisor lined up against a
+hosted lane, ready to run. Where the launch build showed a single delta strip, a
+completed duel lays out **telemetry-style metric cards** — a deterministic rubric
 score, tok/s, time-to-first-token, tokens, and cost — each marking the winner and
 drawing **a horizontal magnitude bar per lane on a shared scale**, so the larger
-number draws the longer bar and the ratio reads at a glance (here Haiku's tok/s
-bar runs ~11× the resident's). The run above is local-vs-hosted —
-the resident **Kepler Q8** against **Claude Haiku 4.5**, both answering the same
-orbital-mechanics prompt. The deterministic rubric here is a *format check* —
-both responses pass, and the card says so plainly while disclaiming that it says
-nothing about which value is *right* (that verdict is what the eval drawer's gold
-scoring is for). A thumbs-up records your own preference as a *separate* signal —
-it never silently mutates the rubric score. And because a hosted lane is
-involved, the **cost card** meters it: the local answer cost $0, the hosted one a
-metered fraction of a cent.
+number draws the longer bar and the ratio reads at a glance. The deterministic
+rubric is a *format check* — it says whether each side answered in the expected
+shape, while disclaiming that it says nothing about which value is *right* (that
+verdict is what the eval drawer's gold scoring is for). A thumbs-up records your
+own preference as a *separate* signal — it never silently mutates the rubric
+score. And when a hosted lane is involved, the **cost card** meters it: the local
+answer costs $0, the hosted one a metered fraction of a cent.
 
 ### Move at the speed of thought — the command palette
 
@@ -427,7 +424,7 @@ export.
 
 ### Guarded lane lifecycle
 
-![LaneTruth — the resident serving lane ACTIVE with a guarded launch form: teardown-first confirm and anchor-on-warm](screenshots/12-lanetruth-guarded.png)
+![LaneTruth — the guarded lane launch form: a discovery probe reports no lane resident, and a recipe arms through an envelope pre-flight, one-lane rule, and anchor-on-warm](screenshots/12-lanetruth-guarded.png)
 
 *One resident model is the law of unified memory — LaneTruth makes the swap safe
 and visible.*
@@ -461,7 +458,7 @@ measurement conditions by construction.
 
 ### Vertical-proof cards on Cortex
 
-![Four Advisor cards on the Cortex pane — preflight 8/8, publish receipt PROMOTED, corpus pack with recall gates, routing & cost](screenshots/14-advisor-proof-cards.png)
+![The Cortex proof surface — recall-layer coverage and provenance, the Advisor generator preflight (8 packets, scored), and per-row citation/refusal checks](screenshots/14-advisor-proof-cards.png)
 
 *A model lane's whole promotion case — preflight, corpus, routing, verdict — as
 read-only cards over tracked evidence.*
