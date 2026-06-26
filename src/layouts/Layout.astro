@@ -34,24 +34,23 @@ const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
 ---
 <!doctype html>
-<!-- DS v6.2 (2026-06-25): light + dark. data-theme="light" is the no-JS SSR default;
-     the inline no-FOUC script above overrides it from localStorage('of-theme') /
-     prefers-color-scheme before first paint. Header toggle lives in Nav.astro. -->
-<html lang="en" data-theme="light">
+<!-- DS v6.2 (2026-06-25): light + dark, dark-by-default. data-theme="dark" is the
+     no-JS SSR default; the inline no-FOUC script above overrides it from
+     localStorage('of-theme') before first paint (first-timers default to dark).
+     Header toggle lives in Nav.astro. -->
+<html lang="en" data-theme="dark">
   <head>
 
     <!-- No-FOUC site theme init (DS v6.2 light + dark). Runs before paint: reads
-         localStorage('of-theme'), falls back to prefers-color-scheme. -->
+         localStorage('of-theme'); first-time visitors (no saved choice) default to DARK. -->
     <script is:inline>
       (function () {
         try {
           var t = localStorage.getItem('of-theme');
-          if (t !== 'light' && t !== 'dark') {
-            t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-          }
+          if (t !== 'light' && t !== 'dark') { t = 'dark'; }
           document.documentElement.setAttribute('data-theme', t);
         } catch (e) {
-          document.documentElement.setAttribute('data-theme', 'light');
+          document.documentElement.setAttribute('data-theme', 'dark');
         }
       })();
     </script>
