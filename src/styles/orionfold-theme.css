@@ -114,6 +114,35 @@ html[data-theme="dark"] {
   --color-t5-bg: #271a4a; --color-t5-fg: #c4acff;
   --color-t6-bg: #0c2f33; --color-t6-fg: #6fd6dc;
   --color-t7-bg: #1e2a5e; --color-t7-fg: #aab6ee;
+
+  /* ── SVG semantic tokens — dark variants (architecture diagrams, etc.).
+     The :root set in global.css is light-only; without these the
+     ArchitectureGlance (Proof section) + DetailedArchitecture (ai-transformation
+     article) SVGs render light-on-dark since DS v6.2 made dark the default.
+     Surfaces → dark, text → light, categorical accent hues kept but lifted in
+     lightness for legibility on the dark canvas. */
+  --svg-card-fill: #1f2228;
+  --svg-card-stroke: #2c313a;
+  --svg-bg: #181b20;
+  --svg-bg-inner: #1f2228;
+  --svg-bg-inner-stroke: #2c313a;
+  --svg-stroke: #343b45;
+  --svg-text-bright: #e9ecf0;
+  --svg-text-dim: #9aa1ab;
+  --svg-text-muted: #8b929c;
+  --svg-text-extra-dim: #727a85;
+  --svg-text-faint: #5b626d;
+  --svg-connector: #5b626d;
+  --svg-connector-label: #8b929c;
+  --svg-accent-blue: oklch(68% 0.15 260);
+  --svg-accent-teal: oklch(72% 0.12 200);
+  --svg-accent-green: oklch(70% 0.15 150);
+  --svg-accent-green-alt: oklch(68% 0.15 170);
+  --svg-accent-cyan: oklch(74% 0.12 220);
+  --svg-accent-purple: oklch(70% 0.16 290);
+  --svg-accent-orange: oklch(76% 0.14 82);
+  --svg-accent-red: oklch(68% 0.19 20);
+  --svg-accent-pink: oklch(72% 0.17 340);
 }
 
 /* ----------------------------------------------------------------------------

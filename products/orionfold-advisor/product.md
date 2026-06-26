@@ -3,7 +3,7 @@ title: "Orionfold Advisor: a governed local AI advisor for your enterprise corpu
 date: 2026-06-10
 author: Manav Sehgal
 product_name: "Orionfold Advisor"
-tagline: "A governed local AI advisor over your corpus — exact citations, trusted refusals, and a receipt for every claim."
+tagline: "A governed local AI advisor over your corpus: exact citations, trusted refusals, and a receipt for every claim."
 summary: "Bring a corpus to a DGX Spark and get a governed advisor over it: a NVIDIA-native 4B lane fine-tuned for exact source-id citations and adversarial-proof refusals, a recall-gated retriever, deterministic frontier routing, and an Arena cockpit where every gate is a visible receipt."
 hardware: NVIDIA DGX Spark
 status: published
