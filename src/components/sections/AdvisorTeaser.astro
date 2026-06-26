@@ -1,6 +1,8 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
 import SectionLabel from '../ui/SectionLabel.astro';
+import { productScreenshot } from '../../lib/products/screenshots';
 
 // Homepage launch teaser for Orionfold Advisor — the governed local advisor
 // appliance, sibling to the Arena and Cortex teasers. Reads the product
@@ -13,7 +15,9 @@ const advisor = products.find((p) => p.id === 'orionfold-advisor') ?? null;
 const fmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 const b = advisor?.data.build;
 const hoursLabel = b ? (Number.isInteger(b.wall_clock_hours) ? `${b.wall_clock_hours}` : b.wall_clock_hours.toFixed(1)) : '';
-const shot = advisor ? `/products/${advisor.id}/${advisor.data.features[0]?.screenshot?.replace(/^\/+/, '') ?? 'screenshots/01-advisor-preflight.png'}` : '';
+const shotRel = advisor?.data.features[0]?.screenshot ?? 'screenshots/01-advisor-preflight.png';
+const shot = advisor ? `/products/${advisor.id}/${shotRel.replace(/^\/+/, '')}` : '';
+const shotImg = advisor ? productScreenshot(advisor.id, shotRel) : undefined;
 const storyHref = advisor ? `/products/${advisor.id}/` : '/products/';
 const modelUrl = advisor?.data.download_url ?? 'https://huggingface.co/Orionfold/Advisor-GGUF';
 ---
@@ -61,7 +65,9 @@ const modelUrl = advisor?.data.download_url ?? 'https://huggingface.co/Orionfold
           </div>
         </div>
         <a href={storyHref} data-animate class="of-surface of-pressable block rounded-xl overflow-hidden" style="transition-delay: 120ms" aria-label={`${advisor.data.product_name}: launch story`}>
-          <img src={shot} alt={`${advisor.data.product_name} preflight gate in the Arena cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+          {shotImg
+            ? <Image src={shotImg} alt={`${advisor.data.product_name} preflight gate in the Arena cockpit`} widths={[480, 640, 768, 1024]} sizes="(min-width: 768px) 540px, 92vw" format="webp" quality={72} loading="lazy" decoding="async" class="block w-full h-auto" />
+            : <img src={shot} alt={`${advisor.data.product_name} preflight gate in the Arena cockpit`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />}
         </a>
       </div>
     </div>

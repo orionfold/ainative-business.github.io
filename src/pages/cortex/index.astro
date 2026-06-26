@@ -1,10 +1,12 @@
 ---
 import { getCollection } from 'astro:content';
+import { Image } from 'astro:assets';
 import Layout from '../../layouts/Layout.astro';
 import Nav from '../../components/Nav.astro';
 import Footer from '../../components/Footer.astro';
 import SectionLabel from '../../components/ui/SectionLabel.astro';
 import AmberRule from '../../components/ui/AmberRule.astro';
+import { productScreenshot } from '../../lib/products/screenshots';
 import { SITE } from '../../data/seo';
 
 // Cortex landing page — the marketing hub for Orionfold Cortex, sibling to
@@ -35,6 +37,8 @@ const heroShot = d.features[0]?.screenshot ?? 'screenshots/04-knowledge-after-re
 const demoShot = d.features.find((f) => /quer/i.test(f.name))?.screenshot
   ?? d.features[3]?.screenshot
   ?? 'screenshots/05-knowledge-rag-query.png';
+const heroImg = productScreenshot(slug, heroShot);
+const demoImg = productScreenshot(slug, demoShot);
 
 const demoHref = '/cortex/demo/';
 const storyHref = `/products/${slug}/`;
@@ -130,7 +134,9 @@ const jsonLd = {
 
         <!-- Right: knowledge-pane screenshot -->
         <a href={storyHref} data-animate class="block rounded-xl border border-border overflow-hidden bg-surface-overlay shadow-2xl" aria-label={`${d.product_name} — read the launch story`}>
-          <img src={shot(heroShot)} alt={`${d.product_name} recall layer`} width="1280" height="800" loading="eager" decoding="async" class="block w-full h-auto" />
+          {heroImg
+            ? <Image src={heroImg} alt={`${d.product_name} recall layer`} widths={[480, 640, 768, 1024, 1280]} sizes="(min-width: 1024px) 560px, 92vw" format="webp" quality={72} loading="eager" decoding="async" fetchpriority="high" class="block w-full h-auto" />
+            : <img src={shot(heroShot)} alt={`${d.product_name} recall layer`} width="1280" height="800" loading="eager" decoding="async" class="block w-full h-auto" />}
         </a>
       </div>
     </section>
@@ -174,7 +180,9 @@ const jsonLd = {
       <section class="py-24 px-6 bg-surface-raised">
         <div class="max-w-6xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
           <a href={demoHref} data-animate class="order-2 lg:order-1 block rounded-xl border border-border overflow-hidden bg-surface-overlay shadow-xl" aria-label="Launch the Cortex demo">
-            <img src={shot(demoShot)} alt={`${d.product_name} — live preview`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />
+            {demoImg
+              ? <Image src={demoImg} alt={`${d.product_name} — live preview`} widths={[480, 640, 768, 1024]} sizes="(min-width: 1024px) 540px, 92vw" format="webp" quality={72} loading="lazy" decoding="async" class="block w-full h-auto" />
+              : <img src={shot(demoShot)} alt={`${d.product_name} — live preview`} width="1280" height="800" loading="lazy" decoding="async" class="block w-full h-auto" />}
           </a>
           <div class="order-1 lg:order-2" data-animate-stagger>
             <div data-animate><SectionLabel text="Live preview" /></div>

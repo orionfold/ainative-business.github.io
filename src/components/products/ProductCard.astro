@@ -1,5 +1,7 @@
 ---
 import type { CollectionEntry } from 'astro:content';
+import { Image } from 'astro:assets';
+import { productScreenshot } from '../../lib/products/screenshots';
 
 // ProductCard — the /products/ index tile. Leads with product_name + tagline,
 // shows the headline build proof (time · LOC · tests), and uses the product's
@@ -16,9 +18,9 @@ const isUpcoming = status === 'upcoming';
 
 const hours = build.wall_clock_hours;
 const hoursLabel = Number.isInteger(hours) ? `${hours}` : hours.toFixed(1);
-const thumb = features[0]?.screenshot
-  ? `/products/${product.id}/${features[0].screenshot.replace(/^\/+/, '')}`
-  : null;
+const thumbRel = features[0]?.screenshot ?? null;
+const thumb = thumbRel ? `/products/${product.id}/${thumbRel.replace(/^\/+/, '')}` : null;
+const thumbImg = thumbRel ? productScreenshot(product.id, thumbRel) : undefined;
 ---
 <a class="product-card" href={href} aria-label={`${product_name}: ${tagline}`}>
   <div class="product-card__body">
@@ -38,7 +40,9 @@ const thumb = features[0]?.screenshot
   </div>
   {thumb && (
     <aside class="product-card__shot" aria-hidden="true">
-      <img src={thumb} alt="" loading="lazy" decoding="async" width="1280" height="800" />
+      {thumbImg
+        ? <Image src={thumbImg} alt="" widths={[320, 480, 640]} sizes="(min-width: 880px) 360px, (min-width: 600px) 45vw, 92vw" format="webp" quality={72} loading="lazy" decoding="async" />
+        : <img src={thumb} alt="" loading="lazy" decoding="async" width="1280" height="800" />}
     </aside>
   )}
 </a>
