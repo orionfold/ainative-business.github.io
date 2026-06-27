@@ -7,6 +7,7 @@ import Footer from '../../components/Footer.astro';
 import SectionLabel from '../../components/ui/SectionLabel.astro';
 import AmberRule from '../../components/ui/AmberRule.astro';
 import { productScreenshot } from '../../lib/products/screenshots';
+import ProofBridge from '../../components/proof/ProofBridge.astro';
 import { SITE } from '../../data/seo';
 
 // Arena landing page — the marketing hub for Orionfold Arena, sibling to
@@ -204,6 +205,10 @@ const jsonLd = {
           </a>
         </div>
       </div>
+    </section>
+
+    <section class="px-6 pt-8">
+      <ProofBridge variant="economics" surface="arena-demo" />
     </section>
 
     <!-- ─────────────────────────  CTA FOOTER  ───────────────────────── -->

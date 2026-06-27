@@ -4,6 +4,7 @@ import FieldNotesLayout from '../../../layouts/FieldNotesLayout.astro';
 import Nav from '../../../components/Nav.astro';
 import Footer from '../../../components/Footer.astro';
 import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
+import ProofBridge from '../../../components/proof/ProofBridge.astro';
 
 type FieldkitDoc = CollectionEntry<'fieldkit_docs'>;
 type FieldNote = CollectionEntry<'field-notes'>;
@@ -99,6 +100,8 @@ const metaDescription = truncateForMeta(summary);
         </ul>
       </section>
     )}
+
+    <section class="px-6 pb-24"><ProofBridge variant="builder" surface="fieldkit-docs" /></section>
   </main>
   <Footer />
 </FieldNotesLayout>

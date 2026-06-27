@@ -9,8 +9,8 @@
   --color-border: oklch(0.88 0.01 260);
   --color-text: oklch(0.15 0.02 260);
   --color-text-muted: oklch(0.45 0.03 260);
-  --color-primary: oklch(0.55 0.18 260);
-  --color-primary-dim: oklch(0.55 0.18 260 / 0.10);
+  --color-primary: #0e9e98; /* DS v6.2 cyan single-accent (was indigo) */
+  --color-primary-dim: color-mix(in oklch, #0e9e98 10%, transparent);
 }
 
 [data-book-theme="sepia"] {
@@ -19,8 +19,8 @@
   --color-border: oklch(0.82 0.03 75);
   --color-text: oklch(0.25 0.04 60);
   --color-text-muted: oklch(0.45 0.04 70);
-  --color-primary: oklch(0.45 0.15 60);
-  --color-primary-dim: oklch(0.45 0.15 60 / 0.10);
+  --color-primary: #0e9e98; /* DS v6.2 cyan single-accent (was sepia amber) */
+  --color-primary-dim: color-mix(in oklch, #0e9e98 10%, transparent);
 }
 
 [data-book-theme="dark"] {
@@ -29,8 +29,8 @@
   --color-border: oklch(0.25 0.02 250);
   --color-text: oklch(0.93 0.01 250);
   --color-text-muted: oklch(0.6 0.02 250);
-  --color-primary: oklch(0.65 0.18 250);
-  --color-primary-dim: oklch(0.65 0.18 250 / 0.12);
+  --color-primary: #14c8c0; /* DS v6.2 brighter cyan for dark (was indigo) */
+  --color-primary-dim: color-mix(in oklch, #14c8c0 14%, transparent);
 }
 
 /* ── Reader Theme: Light (default) ── */
@@ -51,8 +51,8 @@
   --color-surface-raised: var(--book-code-bg);
   --color-surface-overlay: var(--book-code-header);
   --color-border: var(--book-border);
-  --color-primary: oklch(0.55 0.18 260);
-  --color-primary-dim: oklch(0.55 0.18 260 / 0.10);
+  --color-primary: #0e9e98; /* DS v6.2 cyan single-accent (was indigo) */
+  --color-primary-dim: color-mix(in oklch, #0e9e98 10%, transparent);
   --color-success: oklch(0.45 0.15 170);
   --color-success-dim: oklch(0.45 0.15 170 / 0.10);
 }
@@ -75,8 +75,8 @@
   --color-surface-raised: var(--book-code-bg);
   --color-surface-overlay: var(--book-code-header);
   --color-border: var(--book-border);
-  --color-primary: oklch(0.45 0.15 60);
-  --color-primary-dim: oklch(0.45 0.15 60 / 0.10);
+  --color-primary: #0e9e98; /* DS v6.2 cyan single-accent (was sepia amber) */
+  --color-primary-dim: color-mix(in oklch, #0e9e98 10%, transparent);
   --color-success: oklch(0.45 0.15 170);
   --color-success-dim: oklch(0.45 0.15 170 / 0.10);
 }
@@ -99,8 +99,8 @@
   --color-surface-raised: var(--book-code-bg);
   --color-surface-overlay: var(--book-code-header);
   --color-border: var(--book-border);
-  --color-primary: oklch(0.65 0.18 250);
-  --color-primary-dim: oklch(0.65 0.18 250 / 0.12);
+  --color-primary: #14c8c0; /* DS v6.2 brighter cyan for dark (was indigo) */
+  --color-primary-dim: color-mix(in oklch, #14c8c0 14%, transparent);
   --color-success: oklch(0.65 0.15 170);
   --color-success-dim: oklch(0.65 0.15 170 / 0.12);
 }

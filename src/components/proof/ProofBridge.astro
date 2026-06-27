@@ -1,0 +1,130 @@
+---
+// ProofBridge — A13 cross-sell bridge from ainative.business content surfaces
+// to the Orionfold Proof flagship (orionfold.com/proof/).
+//
+// Copy is the approved, paste-ready per-surface CTA from the demand-gen relay
+// (strategy ainative-business-website/_RELAY.md, 2026-06-27 Mac→Spark). Do NOT
+// reword without a new relay — it is voice-locked (value-led, "rerun it" never
+// "trust us", no em-dashes, grounded in leads/proof-icp.md P0–P3).
+//
+// Copy + link contract live in the shared module so the voice-locked copy has
+// a single source of truth (also consumed by ProofBridgeReact.tsx in the book
+// reader). Destination is exactly https://orionfold.com/proof/ — short slug 404s.
+import { PROOF_COPY, proofHref, type ProofVariant } from './copy';
+
+interface Props {
+  /** Picks the approved copy block. */
+  variant?: ProofVariant;
+  /** utm_content value, e.g. fieldnote-<slug> / chapter-<slug> / fieldkit-docs / arena-demo. */
+  surface: string;
+  /** Extra classes on the outer <aside> (spacing control at the call site). */
+  class?: string;
+}
+
+const { variant = 'builder', surface, class: extraClass = '' } = Astro.props;
+
+const { eyebrow, body, cta } = PROOF_COPY[variant];
+const href = proofHref(surface);
+---
+
+<aside
+  class:list={['proof-bridge', extraClass]}
+  data-proof-bridge
+  data-surface={surface}
+  data-variant={variant}
+>
+  <a
+    href={href}
+    class="proof-bridge__link"
+    rel="noopener"
+  >
+    <span class="proof-bridge__eyebrow">{eyebrow}</span>
+    <p class="proof-bridge__body">{body}</p>
+    <span class="proof-bridge__cta">
+      {cta}
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M7 17 17 7" />
+        <path d="M7 7h10v10" />
+      </svg>
+    </span>
+  </a>
+</aside>
+
+<style>
+  .proof-bridge {
+    margin: 3rem auto;
+    max-width: 42rem;
+  }
+  .proof-bridge__link {
+    display: block;
+    text-decoration: none;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+    border-left-width: 3px;
+    border-radius: 0.75rem;
+    background: var(--color-surface-raised, var(--color-surface));
+    padding: 1.5rem 1.75rem;
+    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+  }
+  .proof-bridge__link:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 5%, var(--color-surface-raised, var(--color-surface)));
+  }
+  .proof-bridge__eyebrow {
+    display: block;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 0.75rem;
+  }
+  .proof-bridge__body {
+    color: var(--color-text, inherit);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 1.1rem;
+  }
+  .proof-bridge__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+  .proof-bridge__link:hover .proof-bridge__cta svg {
+    transform: translate(2px, -2px);
+  }
+  .proof-bridge__cta svg {
+    transition: transform 160ms ease;
+  }
+</style>
+
+<script>
+  // Fire a GA4 event on bridge click (delegated — one listener for all
+  // instances, survives view transitions). Same-tab nav: GA4 beacon transport
+  // flushes the event before unload.
+  function bindProofBridge() {
+    if ((window as any).__proofBridgeBound) return;
+    (window as any).__proofBridgeBound = true;
+    document.addEventListener('click', (e) => {
+      const link = (e.target as HTMLElement)?.closest?.('[data-proof-bridge] a');
+      if (!link) return;
+      const host = link.closest('[data-proof-bridge]') as HTMLElement | null;
+      const gtag = (window as any).gtag;
+      if (typeof gtag === 'function') {
+        gtag('event', 'proof_bridge_click', {
+          surface: host?.dataset.surface ?? 'unknown',
+          variant: host?.dataset.variant ?? 'unknown',
+          link_url: (link as HTMLAnchorElement).href,
+          transport_type: 'beacon',
+        });
+      }
+    });
+  }
+  bindProofBridge();
+  document.addEventListener('astro:after-swap', bindProofBridge);
+</script>

@@ -13,10 +13,11 @@ import {
   Bookmark as BookmarkIcon,
 } from "lucide-react";
 import { cn } from "../../lib/utils";
-import { PARTS } from "../../lib/book/content";
+import { PARTS, CHAPTER_SLUG_MAP } from "../../lib/book/content";
 import type { BookChapter, ReaderPreferences, ReadingProgress, Bookmark } from "../../lib/book/types";
 import { DEFAULT_READER_PREFS } from "../../lib/book/types";
 import { ContentBlockRenderer } from "./content-blocks";
+import { ProofBridgeReact } from "../proof/ProofBridgeReact";
 import { PathSelector } from "./path-selector";
 import { PathProgress } from "./path-progress";
 import { getReadingPath, getNextPathChapter, isChapterInPath } from "../../lib/book/reading-paths";
@@ -369,8 +370,8 @@ export function BookReader({
             title="Back to ainative.business"
           >
             <img
-              src="/ainative-s-64.png"
-              alt="ainative.business"
+              src="/orionfold-mark.svg"
+              alt=""
               width="20"
               height="20"
               className="h-5 w-5 shrink-0"
@@ -759,6 +760,12 @@ export function BookReader({
               </div>
             </div>
           )}
+
+          {/* A13 Proof cross-sell — economics variant, re-renders per active chapter */}
+          <ProofBridgeReact
+            variant="economics"
+            surface={`chapter-${CHAPTER_SLUG_MAP[currentChapter.id] ?? currentChapter.id}`}
+          />
 
           {/* Chapter navigation */}
           <nav className="flex items-center justify-between border-t border-border/50 pt-8 mt-16">

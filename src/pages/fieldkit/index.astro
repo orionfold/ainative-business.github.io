@@ -12,6 +12,7 @@ import FieldkitQuickstart from '../../components/sections/fieldkit/FieldkitQuick
 import FieldkitVerified from '../../components/sections/fieldkit/FieldkitVerified.astro';
 import FieldkitCli from '../../components/sections/fieldkit/FieldkitCli.astro';
 import FieldkitCTAFooter from '../../components/sections/fieldkit/FieldkitCTAFooter.astro';
+import ProofBridge from '../../components/proof/ProofBridge.astro';
 import { publishOrdinals } from '../../lib/field-notes/article-order.mjs';
 import { SITE } from '../../data/seo';
 
@@ -67,6 +68,7 @@ const jsonLd = {
     <FieldkitQuickstart />
     <FieldkitVerified articles={usingFieldkit} />
     <FieldkitCli version={fieldkitVersion} />
+    <section class="px-6"><ProofBridge variant="builder" surface="fieldkit-docs" /></section>
     <FieldkitCTAFooter version={fieldkitVersion} />
   </main>
   <Footer />

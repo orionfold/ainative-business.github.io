@@ -8,6 +8,7 @@ import TocDrawer from '../../../components/field-notes/TocDrawer.astro';
 import ReaderSettings from '../../../components/field-notes/ReaderSettings.astro';
 import TermsInThisPiece from '../../../components/field-notes/TermsInThisPiece.astro';
 import RelatedNotes from '../../../components/field-notes/RelatedNotes.astro';
+import ProofBridge from '../../../components/proof/ProofBridge.astro';
 import { publishOrdinals } from '../../../lib/field-notes/article-order.mjs';
 import { SERIES_SLUGS } from '../../../content.config.ts';
 import { SITE } from '../../../data/seo';
@@ -29,6 +30,12 @@ const isUpcoming = status === 'upcoming';
 const ordinalLabel = isUpcoming ? 'Upcoming' : `№${String(ordinal).padStart(2, '0')}`;
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 const seriesHref = series ? `/field-notes/series/${SERIES_SLUGS[series]}/` : null;
+
+// A13 Proof bridge: governance/refusal/eval essays (e.g. №56 "The Refusal Floor
+// Is Trainable") get the trust-receipt variant; everything else gets the
+// builder "small model beats frontier" variant. Tag set per the demand-gen relay.
+const GOVERNANCE_TAGS = new Set(['refusal', 'governance', 'eval', 'ood-evaluation', 'curveball-bench', 'grounded-citation', 'safety']);
+const proofVariant = (tags ?? []).some((t) => GOVERNANCE_TAGS.has(t)) ? 'governance' : 'builder';
 
 const dateIso = date.toISOString().slice(0, 10);
 const articleUrl = `${SITE.url}/field-notes/${article.id}/`;
@@ -181,6 +188,7 @@ const jsonLd = [
         <Content />
       </div>
 
+      {!isUpcoming && <ProofBridge variant={proofVariant} surface={`fieldnote-${article.id}`} />}
       {!isUpcoming && <RelatedNotes slug={article.id} />}
     </article>
 
