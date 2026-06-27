@@ -41,6 +41,16 @@ jobs:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: npm run build
 
+      # CWV / perf guard: a regression below the thresholds in
+      # .github/lighthouserc.json fails this job, so `deploy` (needs: build)
+      # is skipped and the regression never reaches production.
+      - name: Lighthouse CI guard
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          configPath: ./.github/lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
@@ -56,3 +66,30 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+
+      # Purge the Cloudflare edge cache after a successful deploy so visitors
+      # see fresh HTML immediately. Fail-safe: a purge hiccup logs a warning
+      # but never fails the deploy (the deploy itself already succeeded).
+      # Secrets are scoped to this repo (CLOUDFLARE_PURGE_TOKEN is purge-only).
+      - name: Purge Cloudflare cache
+        if: success()
+        continue-on-error: true
+        env:
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          CF_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+        run: |
+          if [ -z "$CF_ZONE_ID" ] || [ -z "$CF_PURGE_TOKEN" ]; then
+            echo "::warning::Cloudflare secrets unset — skipping edge purge."
+            exit 0
+          fi
+          resp=$(curl -sS -X POST \
+            "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CF_PURGE_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}')
+          echo "$resp"
+          if echo "$resp" | grep -q '"success":true'; then
+            echo "Cloudflare edge cache purged."
+          else
+            echo "::warning::Cloudflare purge did not report success (see response above)."
+          fi
