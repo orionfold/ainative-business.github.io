@@ -172,13 +172,13 @@
     ],
     "accuracy": [
       {
-        "label": "use to land the headline",
-        "value": "9% accuracy",
+        "label": "frontier ceiling on AutoResearchBench Deep Research",
+        "value": "9.39% Acc@1",
         "article_slug": "autoresearchbench-on-spark"
       },
       {
-        "label": "the query the bench's headline",
-        "value": "9% accuracy",
+        "label": "frontier ceiling on AutoResearchBench Wide Research",
+        "value": "9.31% IoU",
         "article_slug": "autoresearchbench-on-spark"
       },
       {
