@@ -20,6 +20,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          # Full history so the sitemap can derive a real per-page <lastmod>
+          # from each file's last-commit date (astro.config.mjs). A shallow
+          # clone would stamp every page with the deploy commit's date — a
+          # uniform freshness signal Google distrusts and ignores.
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v6

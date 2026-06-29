@@ -47,17 +47,27 @@ const pageTitle = 'Fieldkit — verified-on-Spark Python patterns — ainative';
 const pageDescription =
   "Open-source Python package the AI Native Field Notes are written against — KV-cache, NIM, RAG, eval, quant, and HF publish modules verified on a single Spark.";
 
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareSourceCode',
-  name: 'fieldkit',
-  description: pageDescription,
-  programmingLanguage: 'Python',
-  codeRepository: 'https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit',
-  license: 'https://www.apache.org/licenses/LICENSE-2.0',
-  version: fieldkitVersion,
-  url: `${SITE.url}/fieldkit/`,
-};
+const jsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareSourceCode',
+    name: 'fieldkit',
+    description: pageDescription,
+    programmingLanguage: 'Python',
+    codeRepository: 'https://github.com/manavsehgal/ai-field-notes/tree/main/fieldkit',
+    license: 'https://www.apache.org/licenses/LICENSE-2.0',
+    version: fieldkitVersion,
+    url: `${SITE.url}/fieldkit/`,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Fieldkit', item: `${SITE.url}/fieldkit/` },
+    ],
+  },
+];
 ---
 <Layout title={pageTitle} description={pageDescription} jsonLd={jsonLd}>
   <Nav />

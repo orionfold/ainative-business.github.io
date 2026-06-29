@@ -3,6 +3,7 @@ import mdx from '@astrojs/mdx';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
 import { readdirSync, existsSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import remarkDirective from 'remark-directive';
@@ -16,7 +17,8 @@ import react from '@astrojs/react';
 // ai-field-notes repo's `/articles/<slug>/` URL convention. This site serves
 // those at `/field-notes/<slug>/`, so generate an explicit redirect for every
 // article folder that has an article.{md,mdx}.
-const articlesDir = join(dirname(fileURLToPath(import.meta.url)), 'articles');
+const root = dirname(fileURLToPath(import.meta.url));
+const articlesDir = join(root, 'articles');
 const articleSlugRedirects = Object.fromEntries(
   readdirSync(articlesDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
@@ -48,6 +50,90 @@ const articleLastmod = Object.fromEntries(
     })
     .filter(Boolean),
 );
+
+// Helper: parse a `key: value` from a frontmatter block (first match only).
+const fmDate = (text, key) => {
+  const fm = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  return fm && fm[1].match(new RegExp(`^${key}:\\s*['"]?(\\d{4}-\\d{2}-\\d{2})`, 'm'));
+};
+
+// Product launch pages — real <lastmod> from each product.md's frontmatter
+// `date:`. Keyed by the canonical /products/<slug>/ URL.
+const productsDir = join(root, 'products');
+const productLastmod = Object.fromEntries(
+  (existsSync(productsDir) ? readdirSync(productsDir, { withFileTypes: true }) : [])
+    .filter((d) => d.isDirectory())
+    .map((d) => {
+      const file = join(productsDir, d.name, 'product.md');
+      if (!existsSync(file)) return null;
+      const m = fmDate(readFileSync(file, 'utf8'), 'date');
+      if (!m) return null;
+      return [`https://ainative.business/products/${d.name}/`,
+        new Date(`${m[1]}T00:00:00Z`).toISOString()];
+    })
+    .filter(Boolean),
+);
+
+// Artifact detail pages — real <lastmod> from each manifest's `published_at:`.
+// The route segment differs from the `kind:` value for a few kinds, so map it.
+const ARTIFACT_KIND_SEGMENT = {
+  quant: 'quants', lora: 'loras', adapter: 'adapters', dataset: 'datasets',
+  notebook: 'notebooks', bench: 'benches', skill: 'skills', harness: 'harnesses',
+  arena_run: 'apps',
+};
+const artifactsDir = join(root, 'src/content/artifacts');
+const artifactLastmod = Object.fromEntries(
+  (existsSync(artifactsDir) ? readdirSync(artifactsDir) : [])
+    .filter((f) => f.endsWith('.yaml'))
+    .map((f) => {
+      const txt = readFileSync(join(artifactsDir, f), 'utf8');
+      const slug = txt.match(/^slug:\s*['"]?([\w.-]+)/m);
+      const kind = txt.match(/^kind:\s*['"]?(\w+)/m);
+      const pub = txt.match(/^published_at:\s*['"]?([0-9T:.\-]+Z?)/m);
+      const seg = kind && ARTIFACT_KIND_SEGMENT[kind[1]];
+      if (!slug || !seg || !pub) return null;
+      return [`https://ainative.business/artifacts/${seg}/${slug[1]}/`,
+        new Date(pub[1]).toISOString()];
+    })
+    .filter(Boolean),
+);
+
+// Docs pages (.mdx) carry no frontmatter date, so derive a real, varied
+// <lastmod> from each file's last-commit date. Needs full git history — the
+// deploy workflow checks out with fetch-depth: 0 for exactly this. Falls back
+// to omitting lastmod (never a faked uniform date) if git is unavailable.
+const gitLastmod = (absPath) => {
+  try {
+    const iso = execFileSync('git', ['log', '-1', '--format=%cI', '--', absPath],
+      { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return iso ? new Date(iso).toISOString() : null;
+  } catch {
+    return null;
+  }
+};
+const walkMdx = (dir, base = '') =>
+  readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory()
+      ? walkMdx(join(dir, e.name), `${base}${e.name}/`)
+      : e.name.endsWith('.mdx')
+        ? [{ abs: join(dir, e.name), rel: `${base}${e.name.replace(/\.mdx$/, '')}` }]
+        : []);
+const docsDir = join(root, 'src/pages/docs');
+const docsLastmod = Object.fromEntries(
+  (existsSync(docsDir) ? walkMdx(docsDir) : [])
+    .map(({ abs, rel }) => {
+      const iso = gitLastmod(abs);
+      if (!iso) return null;
+      const path = rel.endsWith('/index') ? rel.slice(0, -'/index'.length) : rel;
+      return [`https://ainative.business/docs/${path}/`, iso];
+    })
+    .filter(Boolean),
+);
+
+// Single URL→lastmod lookup the sitemap serialize hook reads from.
+const lastmodByUrl = {
+  ...articleLastmod, ...productLastmod, ...artifactLastmod, ...docsLastmod,
+};
 
 export default defineConfig({
   site: 'https://ainative.business',
@@ -86,10 +172,11 @@ export default defineConfig({
     // sites with frequently updated editorial sections like /field-notes/.
     serialize(item) {
       const url = item.url;
-      // Attach a real per-article lastmod where we have one (field-notes).
-      // Other sections omit lastmod rather than emit a faked uniform date.
-      if (articleLastmod[url]) {
-        item = { ...item, lastmod: articleLastmod[url] };
+      // Attach a real per-page lastmod where we have one (field-notes,
+      // products, artifacts, docs). Sections without a real date source omit
+      // lastmod rather than emit a faked uniform date Google would distrust.
+      if (lastmodByUrl[url]) {
+        item = { ...item, lastmod: lastmodByUrl[url] };
       }
       if (url === 'https://ainative.business/') {
         return { ...item, changefreq: 'weekly', priority: 1.0 };
