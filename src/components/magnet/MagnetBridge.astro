@@ -1,0 +1,325 @@
+---
+// MagnetBridge — A17 cross-domain bridge from ainative.business surfaces to the
+// live Orionfold lead magnet (the free AI-Native-Business book/playbook,
+// email-gated → leads/). Sibling to the A13 ProofBridge: same shape, different
+// destination + campaign. Captures builder traffic as owned email contacts.
+//
+// Copy + destination + UTM are voice-locked in ./copy (relay 2026-06-28 A17).
+// Two layouts: 'band' (compact, for the global footer / site chrome) and
+// 'card' (end-of-content, matches the ProofBridge card footprint).
+import { magnetHref, MAGNET_COPY, MAGNET_OFFER } from './copy';
+
+interface Props {
+  /** 'bar' = slim sticky chrome strip; 'band' = compact footer strip; 'card' = end-of-content card. */
+  layout?: 'bar' | 'band' | 'card';
+  /** Doubles as utm_content placement AND the GA4 event surface, e.g. footer / sticky-bar / book-cta. */
+  surface: string;
+  /** Extra classes on the outer element (spacing control at the call site). */
+  class?: string;
+}
+
+const { layout = 'band', surface, class: extraClass = '' } = Astro.props;
+// Chrome/contextual surfaces use the price-anchored offer; prose surfaces use
+// the outcome framing.
+const copy = layout === 'bar' ? MAGNET_OFFER : MAGNET_COPY;
+const { eyebrow, body, cta } = copy;
+const href = magnetHref(surface);
+
+const arrow = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>`;
+---
+
+{layout === 'bar' ? (
+  <aside
+    class:list={['magnet-bridge magnet-bridge--bar', extraClass]}
+    data-magnet-bridge
+    data-surface={surface}
+  >
+    <a href={href} class="magnet-bridge__bar-link" rel="noopener" target="_blank">
+      <span class="magnet-bridge__bar-badge">{eyebrow}</span>
+      <span class="magnet-bridge__bar-text">{MAGNET_OFFER.short}</span>
+      <Fragment set:html={arrow} />
+    </a>
+  </aside>
+) : layout === 'band' ? (
+  <aside
+    class:list={['magnet-bridge magnet-bridge--band', extraClass]}
+    data-magnet-bridge
+    data-surface={surface}
+  >
+    <div class="magnet-bridge__band-inner">
+      <a
+        href={href}
+        class="magnet-bridge__cover"
+        rel="noopener"
+        target="_blank"
+        aria-hidden="true"
+        tabindex="-1"
+      >
+        <picture>
+          <source srcset="/book/images/ai-native-business-book.webp" type="image/webp" />
+          <img
+            src="/book/images/ai-native-business-book.jpg"
+            alt=""
+            width="1080"
+            height="1610"
+            loading="lazy"
+            decoding="async"
+          />
+        </picture>
+      </a>
+      <div class="magnet-bridge__band-content">
+        <p class="magnet-bridge__band-text">
+          <span class="magnet-bridge__eyebrow">{eyebrow}</span>
+          {body}
+        </p>
+        <a href={href} class="magnet-bridge__band-cta" rel="noopener" target="_blank">
+          {cta}
+          <Fragment set:html={arrow} />
+        </a>
+      </div>
+    </div>
+  </aside>
+) : (
+  <aside
+    class:list={['magnet-bridge magnet-bridge--card', extraClass]}
+    data-magnet-bridge
+    data-surface={surface}
+  >
+    <a href={href} class="magnet-bridge__link" rel="noopener" target="_blank">
+      <span class="magnet-bridge__eyebrow">{eyebrow}</span>
+      <p class="magnet-bridge__body">{body}</p>
+      <span class="magnet-bridge__cta">
+        {cta}
+        <Fragment set:html={arrow} />
+      </span>
+    </a>
+  </aside>
+)}
+
+<style>
+  .magnet-bridge__eyebrow {
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  /* --- bar (slim sticky chrome strip, lives inside the fixed nav wrapper) --- */
+  .magnet-bridge--bar {
+    border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg, var(--color-surface)));
+    backdrop-filter: blur(8px);
+  }
+  .magnet-bridge__bar-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0.4rem 1.5rem;
+    text-decoration: none;
+    color: var(--color-text, inherit);
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+  .magnet-bridge__bar-badge {
+    flex-shrink: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-bg, #000);
+    background: var(--color-primary);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+  }
+  .magnet-bridge__bar-text {
+    font-weight: 500;
+  }
+  .magnet-bridge__bar-link svg {
+    flex-shrink: 0;
+    color: var(--color-primary);
+    transition: transform 160ms ease;
+  }
+  .magnet-bridge__bar-link:hover svg {
+    transform: translate(2px, -2px);
+  }
+  @media (max-width: 480px) {
+    .magnet-bridge__bar-text {
+      font-size: 0.72rem;
+    }
+    .magnet-bridge__bar-badge {
+      display: none;
+    }
+  }
+
+  /* --- band (footer / site chrome) --- */
+  .magnet-bridge--band {
+    margin: 0 auto 1.5rem;
+    max-width: 48rem;
+  }
+  .magnet-bridge__band-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.5rem;
+    text-align: center;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 28%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in oklab, var(--color-primary) 5%, var(--color-surface-raised, var(--color-surface)));
+    padding: 1rem 1.5rem;
+  }
+  /* animating book-cover thumbnail */
+  .magnet-bridge__cover {
+    flex-shrink: 0;
+    line-height: 0;
+    perspective: 600px;
+    display: block;
+  }
+  .magnet-bridge__cover img {
+    width: 78px;
+    height: auto;
+    border-radius: 3px;
+    box-shadow: -4px 6px 16px rgba(0, 0, 0, 0.28),
+      0 0 28px color-mix(in oklab, var(--color-primary) 14%, transparent);
+    transform-style: preserve-3d;
+    will-change: transform;
+    animation: magnet-cover-float 6s ease-in-out infinite;
+  }
+  .magnet-bridge__cover:hover img {
+    animation-play-state: paused;
+    transform: perspective(600px) rotateY(-4deg) scale(1.06);
+  }
+  @keyframes magnet-cover-float {
+    0%, 100% {
+      transform: perspective(600px) rotateY(-11deg) rotateX(2deg) translateY(0);
+    }
+    50% {
+      transform: perspective(600px) rotateY(-2deg) rotateX(-1deg) translateY(-4px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .magnet-bridge__cover img {
+      animation: none;
+      transform: perspective(600px) rotateY(-8deg) rotateX(2deg);
+    }
+  }
+
+  .magnet-bridge__band-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .magnet-bridge__band-text {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--color-text, inherit);
+  }
+  .magnet-bridge__band-text .magnet-bridge__eyebrow {
+    margin-right: 0.6rem;
+  }
+  .magnet-bridge__band-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    text-decoration: none;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-bg, #000);
+    background: var(--color-primary);
+    border-radius: 0.5rem;
+    padding: 0.55rem 1rem;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .magnet-bridge__band-cta:hover {
+    opacity: 0.9;
+  }
+  .magnet-bridge__band-cta:hover svg {
+    transform: translate(2px, -2px);
+  }
+  .magnet-bridge__band-cta svg {
+    transition: transform 160ms ease;
+  }
+
+  /* --- card (end-of-content, matches ProofBridge footprint) --- */
+  .magnet-bridge--card {
+    margin: 3rem auto;
+    max-width: 42rem;
+  }
+  .magnet-bridge__link {
+    display: block;
+    text-decoration: none;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+    border-left-width: 3px;
+    border-radius: 0.75rem;
+    background: var(--color-surface-raised, var(--color-surface));
+    padding: 1.5rem 1.75rem;
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+  .magnet-bridge__link:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 5%, var(--color-surface-raised, var(--color-surface)));
+  }
+  .magnet-bridge__link .magnet-bridge__eyebrow {
+    display: block;
+    margin-bottom: 0.75rem;
+  }
+  .magnet-bridge__body {
+    color: var(--color-text, inherit);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin: 0 0 1.1rem;
+  }
+  .magnet-bridge__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+  .magnet-bridge__link:hover .magnet-bridge__cta svg {
+    transform: translate(2px, -2px);
+  }
+  .magnet-bridge__cta svg {
+    transition: transform 160ms ease;
+  }
+</style>
+
+<script>
+  // Fire a GA4 event on magnet-bridge click (delegated — one listener for all
+  // instances, survives view transitions). New-tab nav, but beacon transport
+  // is used for symmetry with the Proof bridge.
+  function bindMagnetBridge() {
+    if ((window as any).__magnetBridgeBound) return;
+    (window as any).__magnetBridgeBound = true;
+    document.addEventListener('click', (e) => {
+      const link = (e.target as HTMLElement)?.closest?.('[data-magnet-bridge] a');
+      if (!link) return;
+      const host = link.closest('[data-magnet-bridge]') as HTMLElement | null;
+      const gtag = (window as any).gtag;
+      if (typeof gtag === 'function') {
+        gtag('event', 'magnet_bridge_click', {
+          surface: host?.dataset.surface ?? 'unknown',
+          link_url: (link as HTMLAnchorElement).href,
+          transport_type: 'beacon',
+        });
+      }
+    });
+  }
+  bindMagnetBridge();
+  document.addEventListener('astro:after-swap', bindMagnetBridge);
+</script>

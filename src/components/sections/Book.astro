@@ -1,5 +1,6 @@
 ---
 import SectionLabel from '../ui/SectionLabel.astro';
+import MagnetLink from '../magnet/MagnetLink.astro';
 import { PARTS, CHAPTERS } from '../../lib/book/content';
 
 const totalReadingTime = CHAPTERS.reduce((sum, ch) => sum + ch.readingTime, 0);
@@ -68,17 +69,18 @@ const quotes = [
       </div>
 
       <!-- CTA -->
-      <a
-        href="/book/"
-        data-animate
-        class="inline-flex items-center gap-1.5 text-primary font-mono text-sm tracking-wider hover:underline mb-10"
-        style="transition-delay: 160ms"
-      >
-        Start Reading
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 12h14M12 5l7 7-7 7"/>
-        </svg>
-      </a>
+      <div data-animate class="flex flex-wrap items-center gap-x-6 gap-y-2 mb-10" style="transition-delay: 160ms">
+        <a
+          href="/book/"
+          class="inline-flex items-center gap-1.5 text-primary font-mono text-sm tracking-wider hover:underline"
+        >
+          Start Reading
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+        <MagnetLink surface="book-cta" />
+      </div>
 
       <!-- Validation quotes -->
       <div data-animate-stagger class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">

@@ -1,8 +1,13 @@
 ---
+// A17 (relay 2026-06-28): persistent site-wide magnet entry point — a slim
+// sticky bar at the top of the fixed nav wrapper, on every page that renders
+// the nav. Price-anchored copy ("the $20 book free, PDF+EPUB").
+import MagnetBridge from './magnet/MagnetBridge.astro';
 ---
 <div id="nav-wrapper" class="fixed top-0 left-0 right-0 z-40 transition-[background-color,backdrop-filter] duration-300">
+  <MagnetBridge layout="bar" surface="sticky-bar" />
   <nav id="main-nav" aria-label="Main navigation" class="border-b border-transparent transition-[border-color] duration-300">
-  <div class="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+  <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
     <div class="flex flex-col gap-1 -ml-6">
       <a
         href="/"

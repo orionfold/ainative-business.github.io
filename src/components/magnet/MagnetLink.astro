@@ -1,0 +1,52 @@
+---
+// A17 contextual magnet link — sits next to the on-site "Read book" CTAs so the
+// "read it free online" action and the "get the $20 PDF+EPUB free" download sit
+// together. Price-anchored copy from ./copy; GA4 magnet_bridge_click fires via
+// the delegated listener that MagnetBridge (the nav bar / footer band) binds on
+// every page, keyed on [data-magnet-bridge] a.
+import { magnetHref, MAGNET_OFFER } from './copy';
+
+interface Props {
+  /** Doubles as utm_content placement AND GA4 surface, e.g. book-cta. */
+  surface: string;
+  /** Override the link label (defaults to the price-anchored offer). */
+  label?: string;
+  class?: string;
+}
+
+const { surface, label = MAGNET_OFFER.short, class: extraClass = '' } = Astro.props;
+---
+
+<span data-magnet-bridge data-surface={surface} class:list={['magnet-link', extraClass]}>
+  <a href={magnetHref(surface)} class="magnet-link__a" rel="noopener" target="_blank">
+    {label}
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M7 17 17 7" />
+      <path d="M7 7h10v10" />
+    </svg>
+  </a>
+</span>
+
+<style>
+  .magnet-link__a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted, var(--color-text));
+    text-decoration: none;
+    transition: color 160ms ease;
+  }
+  .magnet-link__a:hover {
+    color: var(--color-primary);
+  }
+  .magnet-link__a svg {
+    color: var(--color-primary);
+    transition: transform 160ms ease;
+  }
+  .magnet-link__a:hover svg {
+    transform: translate(2px, -2px);
+  }
+</style>

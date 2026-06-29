@@ -1,7 +1,11 @@
 ---
+// A17 magnet bridge (relay 2026-06-28): global footer band → captures
+// builder traffic on every high-traffic page as an owned email contact.
+import MagnetBridge from './magnet/MagnetBridge.astro';
 ---
 <footer class="border-t border-border py-6 px-6">
   <div class="max-w-6xl mx-auto">
+    <MagnetBridge layout="band" surface="footer" />
     <p class="max-w-2xl mx-auto mb-6 pb-6 border-b border-border text-xs text-text-dim text-balance text-center">
       ainative.business is an <strong class="text-text-muted font-medium">Orionfold</strong> project, the AI studio folding the frontier down to one desk. Open software, custom models, and playbooks that run privately on your own machine.
       <a href="https://orionfold.com" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline whitespace-nowrap">Explore Orionfold&nbsp;→</a>

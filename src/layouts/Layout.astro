@@ -86,7 +86,13 @@ const jsonLdSchemas = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
           function gtag(){dataLayer.push(arguments);}
           window.gtag = gtag;
           gtag('js', new Date());
-          gtag('config', 'G-59FCBN11J6');
+          // A17: cross-domain linker so a click ainative.business → orionfold.com
+          // threads the _gl param and isn't double-counted as a new session on
+          // landing (relay 2026-06-28 attribution confirm #1; also covers the
+          // A13 Proof bridge). Both properties must list both domains.
+          gtag('config', 'G-59FCBN11J6', {
+            linker: { domains: ['ainative.business', 'orionfold.com'] }
+          });
         }
         if ('requestIdleCallback' in window) {
           requestIdleCallback(loadGA, { timeout: 3000 });
