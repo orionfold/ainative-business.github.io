@@ -20,8 +20,8 @@ const upcomingAsc = [...upcoming].sort((a, b) => a.data.date.getTime() - b.data.
 const countPadded = String(published.length).padStart(2, '0');
 const volLabel = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date());
 
-const pageTitle = 'AI Native Field Notes — research on building AI-native business';
-const pageDescription = `Field notes on building AI-native businesses — ${published.length} articles on agent orchestration, inference, training, RAG, and the AI Native Platform research papers.`;
+const pageTitle = 'Local LLM Field Notes — benchmarks, fine-tuning & evals on a DGX Spark';
+const pageDescription = `${published.length} hands-on field notes running, fine-tuning, and evaluating local LLMs on a single NVIDIA DGX Spark — Qwen, Mistral, Nemotron, LoRA, RAG, quantization, and LegalBench/curveball evals.`;
 
 const jsonLd = [
   {

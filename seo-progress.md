@@ -107,6 +107,54 @@ After 3 consecutive runs with the same `<file>:<issue-id>` unfixed, `issue-histo
 
 <!-- snapshots appended below this line; newest first -->
 
+## [2026-06-30 08:59] Snapshot — Lever 2 (CTR / title pass), SEO-1 relay follow-through
+
+- **Status**: changed (focused Lever-2 pass — title/description rewrites; not the full monthly snapshot)
+- **Scope**: SEO-1 relay (2026-06-29 Spark→Mac) Lever 2 — the CTR/position problem. GSC per-page breakdown pulled fresh (28d, window 2026-06-02 → 2026-06-29). Run from the **Mac** clone.
+- **Archive**: `./seo/2026-06-30-0859.md` (full GSC query + page tables)
+
+### GSC totals (28d)
+| Metric | Value |
+|--------|-------|
+| Total clicks | 12 |
+| Total impressions | 2.41K |
+| Average CTR | 0.5% |
+| Average position | 21.3 |
+
+### The finding — the CTR problem localizes to ONE page
+| Page | Impr | Clicks | CTR | Pos | Read |
+|------|------|--------|-----|-----|------|
+| **/field-notes/** | **1,613** | 0 | **0%** | **26.1** | 66% of all site impressions, page-3, zero clicks — the whole CTR story |
+| /fieldkit/ | 152 | 0 | 0% | 11.1 | #2 target — page-1-bottom, brand-led title |
+| / (home) | 552 | 7 | 1.3% | 9.2 | healthy — left as-is |
+| /book/ | 107 | 3 | 2.8% | 8.4 | healthy — left as-is |
+| /docs/, /docs/api/settings/ | 51, 31 | 1, 1 | 2–3.2% | 9–10 | healthy — left as-is |
+| tag pages (qwen3 3.3 · legalbench 4.2 · mistral 4.0) | 45–52 | 0 | 0% | **3–4** | rank great, ~no draw — not a rewrite target |
+
+The long-tail queries surfacing /field-notes/ are concrete & technical (lm studio tokens/sec, qwen image edit, apigen mt, lora fine-tune nemotron, legalbench), but the title led with the brand phrase "AI Native Field Notes" that nobody searches.
+
+### Applied auto fixes (title/description rewrites, intent-front-loaded)
+| # | File | Change |
+|---|------|--------|
+| 1 | src/pages/field-notes/index.astro:23 | title → `Local LLM Field Notes — benchmarks, fine-tuning & evals on a DGX Spark` |
+| 2 | src/pages/field-notes/index.astro:24 | desc → `N hands-on field notes running, fine-tuning, and evaluating local LLMs on a single NVIDIA DGX Spark — Qwen, Mistral, Nemotron, LoRA, RAG, quantization, and LegalBench/curveball evals.` |
+| 3 | src/pages/fieldkit/index.astro:46 | title → `Fieldkit — Python toolkit for local LLMs: KV-cache, NIM, RAG, eval & GGUF quant` |
+
+Rendered-HTML verified (`dist/field-notes/index.html`, `dist/fieldkit/index.html`); count interpolated to **56** published notes.
+
+### Console actions for the user (manual in Google UI)
+| Action | Where | Reason |
+|--------|-------|--------|
+| Mark `magnet_bridge_click` as a Key event | GA4 › Admin › Events | GA4 Home shows "Key events: 0" (A17 follow-up); confirmed live this run |
+
+### Not run this pass (deliberate — Lever-2 scope)
+Full indexing drilldown (193-URL backlog = Lever 1, shipped 06-29 `711aa7b`), GA4 landing-page grid, the 10-call PSI sweep, and the local 14-rule `audit_site.mjs`. Those are the broad monthly `/seo-monitor`.
+
+### Build
+- ✓ `node node_modules/astro/astro.js build` — **538 pages**, 18.12s (deps were not yet installed on the Mac clone; `npm install` run first)
+
+---
+
 ## [2026-05-30 10:21] Investigation + fix — the 355 "Discovered – currently not indexed"
 
 - **Status**: changed (root-caused via live GSC drilldown; 3 code fixes applied)

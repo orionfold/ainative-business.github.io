@@ -43,7 +43,7 @@ const usingFieldkit = articles
   .filter((a: FieldNote) => (a.data.fieldkit_modules ?? []).length > 0)
   .sort((a: FieldNote, b: FieldNote) => ordinalById.get(b.id)! - ordinalById.get(a.id)!);
 
-const pageTitle = 'Fieldkit — verified-on-Spark Python patterns — ainative';
+const pageTitle = 'Fieldkit — Python toolkit for local LLMs: KV-cache, NIM, RAG, eval & GGUF quant';
 const pageDescription =
   "Open-source Python package the AI Native Field Notes are written against — KV-cache, NIM, RAG, eval, quant, and HF publish modules verified on a single Spark.";
 
