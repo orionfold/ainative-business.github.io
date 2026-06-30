@@ -13,7 +13,7 @@
 # Deterministic shell only — no LLM call (invariant #4). Never blocks.
 set -uo pipefail
 
-REPO="/home/nvidia/ainative-business.github.io"
+REPO="${CLAUDE_PROJECT_DIR:-/home/nvidia/ainative-business.github.io}"
 payload="$(cat || true)"
 cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty' 2>/dev/null || true)"
 

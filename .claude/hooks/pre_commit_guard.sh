@@ -15,7 +15,7 @@
 # reason on stderr (the harness denies the tool call and feeds stderr back).
 set -uo pipefail
 
-REPO="/home/nvidia/ainative-business.github.io"
+REPO="${CLAUDE_PROJECT_DIR:-/home/nvidia/ainative-business.github.io}"
 HOOKS="$REPO/.claude/hooks"
 
 # Pull the Bash command out of the hook payload without a hard jq dependency.

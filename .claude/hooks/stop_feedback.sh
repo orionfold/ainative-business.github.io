@@ -11,7 +11,7 @@
 # Arena audit failure NEVER blocks a Stop (the `|| true` contract of §6.5).
 set -uo pipefail
 
-REPO="/home/nvidia/ainative-business.github.io"
+REPO="${CLAUDE_PROJECT_DIR:-/home/nvidia/ainative-business.github.io}"
 cd "$REPO" 2>/dev/null || exit 0
 
 dirty="$(git status --porcelain -- \
