@@ -1,11 +1,20 @@
-<!-- CLAUDE.md — onboarding / doc-navigation map. Last updated: 2026-06-12 -->
+<!-- CLAUDE.md — onboarding / doc-navigation map. Last updated: 2026-06-30 -->
 
 # CLAUDE.md — where things live
 
 This repo (`orionfold/ainative-business.github.io` — transferred from `manavsehgal` to the
-Orionfold account 2026-06-12) is the single **Spark-owned monorepo** — build workspace *and*
-website — since the 2026-05-29 cutover. There is no separate Mac sync repo; author directly here.
+Orionfold account 2026-06-12) is the single **Orionfold monorepo** — build workspace *and*
+website — since the 2026-05-29 cutover. Author directly here.
 Live at `ainative.business` (GitHub Pages, auto-deploy on push to `main`).
+
+**Two clones, one repo, never concurrent.** This repo is cloned on the **Mac** (operator cockpit —
+website design, marketing, analytics, SEO, migrations) and the **Spark** (DGX — field notes,
+`fieldkit`, Arena feature dev; anything Spark-envelope-dependent). Same operator, **never authoring
+on both at once** — they hand off. The mechanism that makes that real: **`git pull --rebase origin
+main` at session start, `git fetch` + confirm `0 behind` before every push.** A non-clean rebase at
+start is the early warning that the two clones diverged — reconcile before working, not after. Full
+protocol (routine loop · relay reachability · migration loop · the portable-path rule) in
+[`_SPECS/mac-spark-repo-flow-v1.md`](_SPECS/mac-spark-repo-flow-v1.md).
 
 ## Doc map
 
@@ -22,19 +31,27 @@ Live at `ainative.business` (GitHub Pages, auto-deploy on push to `main`).
   the active specs (`patent-strategist-v1`, `notebooks-as-artifacts-v1`, `spark-arena-v1`,
   `hermes-harness-v1`, `arena-field-edition-v1`) at root; superseded/historical under
   `_SPECS/archive/`.
-- **`_GUIDES/`, `_SPECS/`, `_IDEAS/` are private** (root, gitignored **symlinks**, since
-  2026-06-12 — `_IDEAS` first, `_SPECS`/`_GUIDES` followed) — each resolves into the local clone of
-  the private Orionfold repo at `/home/nvidia/orionfold-strategy/ainative-business-website/`.
-  Internal strategy, design intent, and guidance stay private; **only released code is public**
-  (privacy is structural, not a per-push scrub). Contract: `git pull` the strategy repo at session
-  start; commit+push it at session end if changed. Their content NEVER enters this public repo
-  (HANDOFF may reference paths only).
+- **`_GUIDES/`, `_SPECS/`, `_IDEAS/` (and `_RELAY.md`) are private** (root, **symlinks**, since
+  2026-06-12 — `_IDEAS` first, `_SPECS`/`_GUIDES` followed) — each resolves into the **local clone of
+  the private `orionfold/strategy` repo** at that machine's path (Spark:
+  `/home/nvidia/orionfold-strategy/...`; Mac: `~/orionfold/strategy/ainative-business-website/`).
+  Gitignored on both clones (`_RELAY.md` via local `.git/info/exclude` where the tracked
+  `.gitignore` doesn't cover it) so the private mailbox can never stage into the public repo.
+  `_RELAY.md` is the **cross-clone mailbox** (append-only, dated newest-first, `direction` +
+  `status`). Internal strategy, design intent, and guidance stay private; **only released code is
+  public** (privacy is structural, not a per-push scrub). Contract: `git pull` the strategy repo at
+  session start; commit+push it at session end if changed. Their content NEVER enters this public
+  repo (HANDOFF may reference paths only).
 - **Skill procedures** — `.claude/skills/<name>/SKILL.md` (authoritative per-skill workflow).
 - **Generated reports** (root, skill-written) — `ainative-stats.md`, `seo-progress.md`.
 
 ## Load-bearing invariants (full detail in `_GUIDES/the-machine-that-builds-machines.md` §1)
 
 1. **Solo-blog, direct-to-main** — commit subjects are the changelog; human review is the gate.
+   *Exception:* a **multi-repo migration/pivot** (e.g. moving platform content to `orionfold/ainative`
+   → `orionfold/relay`, republished on orionfold.com) gets a spec + a `_RELAY.md` announce + a branch
+   + **destination-first ordering with 301 redirects** — never direct-to-main (no atomic commit
+   spans repos; the risk is a half-done state that 404s indexed URLs). See `mac-spark-repo-flow-v1` §4.
 2. **One serving lane in 128 GB** — GB10 shares CPU+GPU memory; one model resident at a time.
 3. **Privacy-gated publish** — secret-scan + scoped captures before commit; no auto-push.
 4. **Deterministic scripts, not LLM coordination** — skills' `scripts/` do only mechanical
