@@ -24,10 +24,11 @@ import { flowHref, FLOW_COPY } from '../flow/copy';
 // glance than the review chrome, which needs reading to understand.
 import flowShot from '../../assets/flow/flow-images-shot.webp';
 
-// Both CTAs and the screenshot land at the top of the Flow page. They keep
-// distinct utm_content so we can still tell which affordance people click.
+// The button and the screenshot both land at the top of the Flow page, but keep
+// distinct utm_content so we can tell whether the copy or the picture is what
+// people actually click.
 const flowLandingHref = flowHref('home-band');
-const tourHref = flowHref('home-band-tour');
+const shotHref = flowHref('home-band-shot');
 ---
 <section class="flow-band py-24 px-6" data-flow-bridge data-surface="home-band" aria-labelledby="flow-band-heading">
   <div class="max-w-6xl mx-auto">
@@ -53,7 +54,10 @@ const tourHref = flowHref('home-band-tour');
           {FLOW_COPY.kicker}
         </p>
 
-        <div data-animate class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-sm sm:max-w-none mb-3" style="transition-delay: 240ms">
+        <!-- One button. A secondary "See the product tour" used to sit beside
+             this, but both went to the same place, so it was a second way to do
+             the identical thing dressed up as a choice. -->
+        <div data-animate class="mb-3" style="transition-delay: 240ms">
           <a
             href={flowLandingHref}
             rel="noopener"
@@ -62,14 +66,6 @@ const tourHref = flowHref('home-band-tour');
           >
             {FLOW_COPY.cta}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
-          </a>
-          <a
-            href={tourHref}
-            rel="noopener"
-            target="_blank"
-            class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase border border-primary/30 text-text px-6 py-3 rounded-md hover:border-primary/60 hover:text-primary transition-colors"
-          >
-            {FLOW_COPY.secondary}
           </a>
         </div>
 
@@ -80,14 +76,14 @@ const tourHref = flowHref('home-band-tour');
 
       <!-- Right: the real development build -->
       <a
-        href={tourHref}
+        href={shotHref}
         rel="noopener"
         target="_blank"
         data-animate
         class="of-surface of-pressable block rounded-xl overflow-hidden"
         style="transition-delay: 120ms"
-        aria-label="Orionfold Flow: see the product tour"
-        title="See Orionfold Flow"
+        aria-label="Orionfold Flow: explore the product"
+        title="Explore Orionfold Flow"
       >
         <Image
           src={flowShot}

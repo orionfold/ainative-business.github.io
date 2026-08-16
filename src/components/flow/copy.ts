@@ -69,8 +69,10 @@ export const FLOW_COPY = {
   body:
     'Flow is the Mac app where AI does real work in the document, shows you the exact diff, and leaves a receipt naming what ran, where it ran, and what it cost. It carries its own local inference runtime, and if you already run Ollama or LM Studio it serves the models you have pulled in place.',
   kicker: 'Arena scores local models with reruns you can verify. Flow brings the same discipline to the document.',
+  // One CTA per surface, deliberately. Every Flow link goes to the same page,
+  // so a second button is a second way to do the identical thing dressed up as
+  // a choice — it splits attention and measures nothing useful.
   cta: 'Explore Orionfold Flow',
-  secondary: 'See the product tour',
   fine: 'In development · Freemium subscription planned · Waitlist open on the Flow page',
 } as const;
 
