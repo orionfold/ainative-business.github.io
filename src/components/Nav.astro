@@ -2,10 +2,20 @@
 // A17 (relay 2026-06-28): persistent site-wide magnet entry point — a slim
 // sticky bar at the top of the fixed nav wrapper, on every page that renders
 // the nav. Price-anchored copy ("the $20 book free, PDF+EPUB").
-import MagnetBridge from './magnet/MagnetBridge.astro';
+//
+// 2026-08-15 Flow redirect: the sticky slot now carries the Flow waitlist bar,
+// matching the parent's Flow-first takeover of orionfold.com (2026-08-15). The
+// A17 magnet is DEMOTED, not removed — it keeps its footer band and
+// end-of-content card. Unlike the parent this nav is NOT Flow-only: Arena,
+// Fieldkit, Book and Field Notes stay, because this site keeps its own
+// AI-Research-Engineer persona. See _SPECS/flow-traffic-redirect-v1.md.
+import FlowBar from './flow/FlowBar.astro';
+import { flowHref } from './flow/copy';
+
+const flowNavHref = flowHref('nav');
 ---
 <div id="nav-wrapper" class="fixed top-0 left-0 right-0 z-40 transition-[background-color,backdrop-filter] duration-300">
-  <MagnetBridge layout="bar" surface="sticky-bar" />
+  <FlowBar surface="sticky-bar" />
   <nav id="main-nav" aria-label="Main navigation" class="border-b border-transparent transition-[border-color] duration-300">
   <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
     <div class="flex flex-col gap-1 -ml-6">
@@ -36,7 +46,16 @@ import MagnetBridge from './magnet/MagnetBridge.astro';
     </div>
 
     <!-- Desktop nav -->
-    <div class="hidden md:flex items-center gap-6">
+    <div class="hidden md:flex items-center gap-6" data-flow-bridge data-surface="nav">
+      <a
+        href={flowNavHref}
+        rel="noopener"
+        target="_blank"
+        class="font-mono text-xs tracking-widest text-text-muted hover:text-primary transition-colors"
+      >
+        Flow&nbsp;↗
+      </a>
+      <span class="h-4 w-px bg-border" aria-hidden="true"></span>
       <a
         href="/arena/"
         class="font-mono text-xs tracking-widest text-text-muted hover:text-primary transition-colors"
@@ -62,6 +81,12 @@ import MagnetBridge from './magnet/MagnetBridge.astro';
       >
         Field Notes
       </a>
+      <a
+        href={flowNavHref}
+        rel="noopener"
+        target="_blank"
+        class="hidden lg:inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 font-mono text-[0.68rem] font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover"
+      >Join the waitlist</a>
       <button
         id="theme-toggle"
         type="button"
@@ -95,7 +120,9 @@ import MagnetBridge from './magnet/MagnetBridge.astro';
 
   <!-- Mobile menu -->
   <div id="mobile-menu" class="hidden md:hidden border-t border-border bg-surface/95 backdrop-blur-md">
-    <div class="px-6 py-4 flex flex-col gap-3">
+    <div class="px-6 py-4 flex flex-col gap-3" data-flow-bridge data-surface="nav-mobile">
+      <a href={flowNavHref} rel="noopener" target="_blank" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Flow&nbsp;↗</a>
+      <hr class="border-border" />
       <a href="/arena/" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Arena</a>
       <a href="/fieldkit/" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Fieldkit</a>
       <hr class="border-border" />
@@ -107,6 +134,7 @@ import MagnetBridge from './magnet/MagnetBridge.astro';
         <span class="theme-label-light">Switch to dark</span>
         <span class="theme-label-dark hidden">Switch to light</span>
       </button>
+      <a href={flowNavHref} rel="noopener" target="_blank" class="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 font-mono text-xs font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover">Join the waitlist</a>
     </div>
   </div>
 </nav>

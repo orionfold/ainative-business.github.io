@@ -1,0 +1,205 @@
+---
+// Persistent site-wide Flow bar — the slim sticky strip at the top of the fixed
+// nav wrapper, on every page that renders the nav. Replaces the A17 magnet bar
+// in that slot (the magnet keeps its footer band + end-of-content card; this is
+// a demotion, not a removal). See _SPECS/flow-traffic-redirect-v1.md §3a.
+//
+// Ported from the parent's #magnet-bar in ~/orionfold/website/src/components/
+// Nav.astro so the two properties behave alike: hidden by default, revealed by
+// the controller unless dismissed, dismissal persisted in localStorage.
+//
+// HEIGHT IS LOAD-BEARING. Hero.astro clears the fixed chrome with a hardcoded
+// pt-[182px] and there is no scroll-padding-top anywhere on the site, so this
+// bar must render at the same height as the magnet bar it replaces: one line,
+// 0.4rem block padding, 0.8rem/1.2 text. Growing it to two lines silently
+// breaks hero spacing on every page.
+import { flowHref, FLOW_BAR } from './copy';
+
+interface Props {
+  /** Doubles as utm_content placement AND the GA4 event surface. */
+  surface?: string;
+}
+
+const { surface = 'sticky-bar' } = Astro.props;
+const href = flowHref(surface);
+---
+<aside
+  id="flow-bar"
+  class="flow-bar hidden"
+  data-flow-bridge
+  data-surface={surface}
+>
+  <div class="flow-bar__inner">
+    <a href={href} class="flow-bar__link" rel="noopener" target="_blank">
+      <span class="flow-bar__badge">{FLOW_BAR.eyebrow}</span>
+      <span class="flow-bar__text">
+        <span class="flow-bar__lead">{FLOW_BAR.lead}</span>
+        <span class="flow-bar__qualifier">· {FLOW_BAR.qualifier}</span>
+      </span>
+      <span class="flow-bar__cta">{FLOW_BAR.cta}&nbsp;&rarr;</span>
+    </a>
+    <button
+      id="flow-bar-close"
+      type="button"
+      aria-label="Dismiss"
+      class="flow-bar__close"
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12" /></svg>
+    </button>
+  </div>
+</aside>
+
+<style>
+  /* Matches .magnet-bridge--bar's metrics exactly (see the height note above). */
+  .flow-bar {
+    border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 22%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 10%, var(--color-bg, var(--color-surface)));
+    backdrop-filter: blur(8px);
+  }
+  .flow-bar.hidden { display: none; }
+
+  .flow-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0.4rem 1.5rem;
+  }
+  .flow-bar__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    text-decoration: none;
+    color: var(--color-text, inherit);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    min-width: 0;
+  }
+  .flow-bar__badge {
+    flex-shrink: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.58rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-bg, #000);
+    background: var(--color-primary);
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+  }
+  .flow-bar__text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .flow-bar__lead { font-weight: 600; }
+  .flow-bar__qualifier { color: var(--color-text-muted); }
+  .flow-bar__cta {
+    flex-shrink: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    color: var(--color-primary);
+    transition: transform 160ms ease;
+  }
+  .flow-bar__link:hover .flow-bar__cta { transform: translateX(2px); }
+
+  /* Zero block-height contribution: the close button is centered in the row but
+     must not make the bar taller than the magnet bar it replaced (33px), because
+     Hero.astro's pt-[182px] is hardcoded against that height. */
+  .flow-bar__close {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    border: 0;
+    background: none;
+    /* Inline padding widens the tap target; block padding is cancelled by the
+       negative block margin so the row height stays at 33px. */
+    padding: 0.4rem 0.5rem;
+    margin-block: -0.65rem;
+    margin-inline-end: -0.35rem;
+    border-radius: 4px;
+    color: var(--color-text-dim);
+    transition: color 160ms ease;
+  }
+  .flow-bar__close:hover { color: var(--color-text); }
+  .flow-bar__close:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* Progressive shedding so the bar never wraps to a second line. */
+  @media (max-width: 900px) {
+    .flow-bar__qualifier { display: none; }
+  }
+  @media (max-width: 560px) {
+    .flow-bar__badge { display: none; }
+    .flow-bar__link { font-size: 0.72rem; }
+    .flow-bar__cta { font-size: 0.66rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .flow-bar__cta { transition: none; }
+    .flow-bar__link:hover .flow-bar__cta { transform: none; }
+  }
+</style>
+
+<script>
+  function initFlowBar() {
+    const bar = document.getElementById('flow-bar');
+    if (!bar) return;
+
+    // Site-scoped key so it stays independent of the parent's
+    // 'of-flow-bar-dismissed', and so users who dismissed the old book bar
+    // still see this one once.
+    const DISMISSED = 'of-flow-bar-dismissed-ainative';
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(DISMISSED) === '1'; } catch (e) { /* no-op */ }
+
+    if (dismissed) return;
+
+    // Hidden in the markup and revealed here, so a dismissing user never sees a
+    // flash of the bar and the page never shifts under them.
+    bar.classList.remove('hidden');
+
+    const closeBtn = document.getElementById('flow-bar-close');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        try { localStorage.setItem(DISMISSED, '1'); } catch (e) { /* no-op */ }
+        bar.classList.add('hidden');
+      });
+    }
+  }
+
+  // Delegated click -> GA4. Covers every [data-flow-bridge] surface on the page
+  // (bar, band, closing CTA, nav), not just this one.
+  function bindFlowBridge() {
+    document.querySelectorAll('[data-flow-bridge]').forEach((el) => {
+      if ((el as HTMLElement).dataset.flowBound === '1') return;
+      (el as HTMLElement).dataset.flowBound = '1';
+      el.addEventListener('click', (event) => {
+        const link = (event.target as HTMLElement)?.closest?.('a') as HTMLAnchorElement | null;
+        if (!link) return;
+        // Several wrappers (nav, closing CTA) also contain non-Flow links, so
+        // only count clicks that actually leave for the Flow landing page.
+        // Otherwise an Arena or GitHub click would report as a Flow conversion.
+        if (!link.href || link.href.indexOf('orionfold.com/flow/') === -1) return;
+        const gtag = (window as any).gtag;
+        if (typeof gtag === 'function') {
+          gtag('event', 'flow_bridge_click', {
+            surface: (el as HTMLElement).dataset.surface || 'unknown',
+            link_url: (link as HTMLAnchorElement).href,
+            transport_type: 'beacon',
+          });
+        }
+      });
+    });
+  }
+
+  initFlowBar();
+  bindFlowBridge();
+  document.addEventListener('astro:after-swap', () => { initFlowBar(); bindFlowBridge(); });
+</script>

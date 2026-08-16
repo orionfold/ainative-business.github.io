@@ -1,37 +1,49 @@
 ---
 import AmberRule from '../ui/AmberRule.astro';
-import WaitlistForm from '../ui/WaitlistForm.astro';
+import { flowHref, FLOW_COPY } from '../flow/copy';
 
-// Email capture is hidden site-wide until marketing/website sends the relay
-// for the cross-website demand-gen honeypot form. Flip to true to re-enable.
-const showEmailCTA = false;
+// 2026-08-15 Flow redirect: the closing band now hands off to the Flow
+// waitlist. It previously carried a WaitlistForm switched off behind a
+// showEmailCTA flag, waiting on "the relay for the cross-website demand-gen
+// form" — that relay resolved the other way. Capture lives on orionfold.com
+// (the edge function's CORS allowlist is that origin only), so this band links
+// out rather than re-enabling a form that would fail on submit.
+// See _SPECS/flow-traffic-redirect-v1.md §3b.
+const waitlistHref = flowHref('cta-footer');
 ---
-<section class="py-32 px-6">
-  <div id="waitlist" class="scroll-mt-24">
+<section class="py-32 px-6" data-flow-bridge data-surface="cta-footer">
+  <div id="waitlist" class="scroll-mt-32">
     <AmberRule />
   </div>
 
   <div class="max-w-3xl mx-auto text-center">
     <p data-animate class="font-mono text-xs tracking-widest text-text-muted uppercase mb-6">
-      AI Native Business
+      Orionfold Flow · In development
     </p>
 
-    <h2 data-animate class="mb-6" style="transition-delay: 80ms">Curious about AI-native organizations?</h2>
+    <h2 data-animate class="mb-6" style="transition-delay: 80ms">{FLOW_COPY.title}</h2>
 
-    <p data-animate class="text-text-muted mb-10 max-w-lg mx-auto" style="transition-delay: 160ms">
-      Read the book and follow the field notes.
+    <p data-animate class="text-text-muted mb-8 max-w-xl mx-auto" style="transition-delay: 160ms">
+      The same discipline Arena brings to scoring local models, brought to the document itself.
+      Every AI change is a diff you approve, with a receipt naming what ran, where it ran, and
+      what it cost.
     </p>
 
-    {showEmailCTA && (
-      <div data-animate class="max-w-md mx-auto mb-10" style="transition-delay: 200ms">
-        <WaitlistForm
-          variant="cta"
-          id="cta-footer-waitlist"
-          source="field-notes-newsletter"
-          buttonText="Subscribe"
-        />
-      </div>
-    )}
+    <div data-animate class="mb-4" style="transition-delay: 200ms">
+      <a
+        href={waitlistHref}
+        rel="noopener"
+        target="_blank"
+        class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-8 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+      >
+        {FLOW_COPY.cta}
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+      </a>
+    </div>
+
+    <p data-animate class="font-mono text-[0.66rem] tracking-wider text-text-dim mb-12" style="transition-delay: 240ms">
+      {FLOW_COPY.fine}
+    </p>
 
     <div data-animate-stagger class="flex flex-col sm:flex-row items-center justify-center gap-4" style="transition-delay: 280ms">
       <a

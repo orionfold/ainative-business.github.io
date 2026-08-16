@@ -1,0 +1,143 @@
+---
+// Homepage Flow band — the flagship handoff to orionfold.com/flow/. Sits
+// directly under the Hero so the highest-intent slot on the page points at the
+// Flow waitlist, mirroring the parent's Flow-first takeover (2026-08-15).
+//
+// This site keeps its own persona, so the band leads with the LOCAL angle
+// (bundled runtime, Ollama/LM Studio detection, receipts) rather than the
+// parent's document-productivity framing. The kicker states the family logic
+// the parent itself wrote: Arena scores local models with reruns you can
+// verify; Flow brings that discipline to the document.
+//
+// No form here by design: the waitlist POSTs to a Supabase edge function whose
+// CORS allowlist is orionfold.com only, so capture lives on the parent and this
+// band links out. See _SPECS/flow-traffic-redirect-v1.md.
+import { Image } from 'astro:assets';
+import SectionLabel from '../ui/SectionLabel.astro';
+import { flowHref, flowPageHref, FLOW_COPY } from '../flow/copy';
+import flowShot from '../../assets/flow/flow-writing-you-approve-shot.webp';
+
+const waitlistHref = flowHref('home-band');
+const tourHref = flowPageHref('home-band-tour');
+---
+<section class="flow-band py-24 px-6" data-flow-bridge data-surface="home-band" aria-labelledby="flow-band-heading">
+  <div class="max-w-6xl mx-auto">
+    <div class="grid lg:grid-cols-[0.95fr_1.05fr] gap-10 lg:gap-14 items-center">
+
+      <!-- Left: the pitch -->
+      <div data-animate-stagger>
+        <div data-animate class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5">
+          <SectionLabel text="Orionfold Flow" />
+          <span class="flow-band__chip">Native Mac</span>
+          <span class="flow-band__chip flow-band__chip--accent">Patent pending</span>
+        </div>
+
+        <h2 id="flow-band-heading" data-animate class="mb-4" style="transition-delay: 80ms">
+          {FLOW_COPY.title}
+        </h2>
+
+        <p data-animate class="text-text-muted leading-relaxed mb-5 max-w-lg" style="transition-delay: 160ms">
+          {FLOW_COPY.body}
+        </p>
+
+        <p data-animate class="flow-band__kicker mb-7 max-w-lg" style="transition-delay: 200ms">
+          {FLOW_COPY.kicker}
+        </p>
+
+        <div data-animate class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-sm sm:max-w-none mb-3" style="transition-delay: 240ms">
+          <a
+            href={waitlistHref}
+            rel="noopener"
+            target="_blank"
+            class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-6 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+          >
+            {FLOW_COPY.cta}
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+          </a>
+          <a
+            href={tourHref}
+            rel="noopener"
+            target="_blank"
+            class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase border border-primary/30 text-text px-6 py-3 rounded-md hover:border-primary/60 hover:text-primary transition-colors"
+          >
+            {FLOW_COPY.secondary}
+          </a>
+        </div>
+
+        <p data-animate class="font-mono text-[0.66rem] tracking-wider text-text-dim" style="transition-delay: 280ms">
+          {FLOW_COPY.fine}
+        </p>
+      </div>
+
+      <!-- Right: the real development build -->
+      <a
+        href={tourHref}
+        rel="noopener"
+        target="_blank"
+        data-animate
+        class="of-surface of-pressable block rounded-xl overflow-hidden"
+        style="transition-delay: 120ms"
+        aria-label="Orionfold Flow: see the product tour"
+      >
+        <Image
+          src={flowShot}
+          alt="Orionfold Flow reviewing an AI proofread: the proposal, its permission scope, evidence, checks, and the exact diff beside the document."
+          widths={[720, 1080, 1440]}
+          sizes="(min-width: 1024px) 46rem, 100vw"
+          loading="lazy"
+          decoding="async"
+          class="w-full h-auto"
+        />
+        <p class="flow-band__caption">
+          The real development build. Every AI change is a diff you approve, with a receipt naming what ran, where it ran, and what it cost.
+        </p>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<style>
+  .flow-band {
+    border-top: 1px solid color-mix(in oklab, var(--color-primary) 14%, var(--color-border));
+    border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 14%, var(--color-border));
+    background: color-mix(in oklab, var(--color-primary) 4%, var(--color-surface-raised));
+  }
+
+  .flow-band__chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid color-mix(in oklab, var(--color-primary) 25%, var(--color-border));
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-primary) 7%, var(--color-surface));
+    padding: 0.2rem 0.6rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+  .flow-band__chip--accent {
+    border-color: color-mix(in oklab, var(--color-primary) 55%, var(--color-border));
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  .flow-band__kicker {
+    border-left: 2px solid var(--color-primary);
+    padding-left: 0.85rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--color-text);
+  }
+
+  .flow-band__caption {
+    border-top: 1px solid color-mix(in oklab, var(--color-primary) 15%, var(--color-border));
+    background: color-mix(in oklab, var(--color-primary) 3%, var(--color-surface));
+    padding: 0.75rem 1.25rem;
+    text-align: center;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: var(--color-text-muted);
+  }
+</style>
