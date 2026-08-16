@@ -1,7 +1,7 @@
 ---
 // Homepage Flow band — the flagship handoff to orionfold.com/flow/. Sits
-// directly under the Hero so the highest-intent slot on the page points at the
-// Flow waitlist, mirroring the parent's Flow-first takeover (2026-08-15).
+// directly under the Hero so the highest-intent slot on the page points at
+// Flow, mirroring the parent's Flow-first takeover (2026-08-15).
 //
 // This site keeps its own persona, so the band leads with the LOCAL angle
 // (bundled runtime, Ollama/LM Studio detection, receipts) rather than the
@@ -11,14 +11,18 @@
 //
 // No form here by design: the waitlist POSTs to a Supabase edge function whose
 // CORS allowlist is orionfold.com only, so capture lives on the parent and this
-// band links out. See _SPECS/flow-traffic-redirect-v1.md.
+// band links out. Links land at the TOP of the Flow page, never deep-linked to
+// its form — a visitor arriving from here has not seen the product yet.
+// See _SPECS/flow-traffic-redirect-v1.md.
 import { Image } from 'astro:assets';
 import SectionLabel from '../ui/SectionLabel.astro';
-import { flowHref, flowPageHref, FLOW_COPY } from '../flow/copy';
+import { flowHref, FLOW_COPY } from '../flow/copy';
 import flowShot from '../../assets/flow/flow-writing-you-approve-shot.webp';
 
-const waitlistHref = flowHref('home-band');
-const tourHref = flowPageHref('home-band-tour');
+// Both CTAs and the screenshot land at the top of the Flow page. They keep
+// distinct utm_content so we can still tell which affordance people click.
+const flowLandingHref = flowHref('home-band');
+const tourHref = flowHref('home-band-tour');
 ---
 <section class="flow-band py-24 px-6" data-flow-bridge data-surface="home-band" aria-labelledby="flow-band-heading">
   <div class="max-w-6xl mx-auto">
@@ -46,7 +50,7 @@ const tourHref = flowPageHref('home-band-tour');
 
         <div data-animate class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 max-w-sm sm:max-w-none mb-3" style="transition-delay: 240ms">
           <a
-            href={waitlistHref}
+            href={flowLandingHref}
             rel="noopener"
             target="_blank"
             class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-6 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"

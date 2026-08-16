@@ -29,27 +29,35 @@ const UTM =
   'utm_source=ainative-onsite&utm_medium=organic&utm_campaign=2026-q3-flow-waitlist';
 
 /**
- * Flow waitlist URL with per-placement utm_content (e.g. sticky-bar / home-band
- * / nav / cta-footer). Doubles as the GA4 event surface so we can read which
- * placement drives the click.
+ * Flow landing page URL with per-placement utm_content (e.g. sticky-bar /
+ * home-band / nav / cta-footer). Doubles as the GA4 event surface so we can
+ * read which placement drives the click.
+ *
+ * NO `#waitlist` ANCHOR, deliberately. An earlier version deep-linked every CTA
+ * to the form at the foot of the page, which dropped a first-time visitor
+ * mid-page at a bare email field before they had seen what Flow is. Someone
+ * arriving from this site has read one line of chrome copy; they need the hero,
+ * the screenshots, and the measured numbers before a form makes sense. Let them
+ * land at the top and let the destination page do its own selling. The Flow page
+ * carries a waitlist CTA in its own hero, so the form is still one click away.
  */
 export function flowHref(placement: string): string {
-  return `${FLOW_BASE}?${UTM}&utm_content=${encodeURIComponent(placement)}#waitlist`;
-}
-
-/** Flow landing page, no anchor. For "learn more" links that shouldn't jump to the form. */
-export function flowPageHref(placement: string): string {
   return `${FLOW_BASE}?${UTM}&utm_content=${encodeURIComponent(placement)}`;
 }
 
 // Chrome framing — the slim sticky bar. Opens with the parent's own line so the
 // two properties say the same thing, then swaps the qualifier for the
 // local-runtime angle this site's readers care about.
+//
+// CTA labels across these surfaces promise the PAGE, not the form, because that
+// is where the links now land. "Join the waitlist" on a link that opens a
+// landing page is a small broken promise; "Take a look" is honest and asks less
+// of someone who has read one line about a product they have never seen.
 export const FLOW_BAR = {
   eyebrow: 'New',
   lead: 'Orionfold Flow is coming to Mac',
   qualifier: 'AI agency for documents, with a local runtime and a receipt for every run',
-  cta: 'Join the waitlist',
+  cta: 'Take a look',
 } as const;
 
 // Prose framing — the homepage band and the closing CTA. Leads with the
@@ -61,9 +69,9 @@ export const FLOW_COPY = {
   body:
     'Flow is the Mac app where AI does real work in the document, shows you the exact diff, and leaves a receipt naming what ran, where it ran, and what it cost. It carries its own local inference runtime, and if you already run Ollama or LM Studio it serves the models you have pulled in place.',
   kicker: 'Arena scores local models with reruns you can verify. Flow brings the same discipline to the document.',
-  cta: 'Join the waitlist',
+  cta: 'Explore Orionfold Flow',
   secondary: 'See the product tour',
-  fine: 'In development · Freemium subscription planned · Free to join, one email a week',
+  fine: 'In development · Freemium subscription planned · Waitlist open on the Flow page',
 } as const;
 
 /**

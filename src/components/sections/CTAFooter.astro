@@ -9,7 +9,7 @@ import { flowHref, FLOW_COPY } from '../flow/copy';
 // (the edge function's CORS allowlist is that origin only), so this band links
 // out rather than re-enabling a form that would fail on submit.
 // See _SPECS/flow-traffic-redirect-v1.md §3b.
-const waitlistHref = flowHref('cta-footer');
+const flowLandingHref = flowHref('cta-footer');
 ---
 <section class="py-32 px-6" data-flow-bridge data-surface="cta-footer">
   <div id="waitlist" class="scroll-mt-32">
@@ -31,7 +31,7 @@ const waitlistHref = flowHref('cta-footer');
 
     <div data-animate class="mb-4" style="transition-delay: 200ms">
       <a
-        href={waitlistHref}
+        href={flowLandingHref}
         rel="noopener"
         target="_blank"
         class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-8 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
