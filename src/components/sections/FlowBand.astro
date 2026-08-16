@@ -17,7 +17,12 @@
 import { Image } from 'astro:assets';
 import SectionLabel from '../ui/SectionLabel.astro';
 import { flowHref, FLOW_COPY } from '../flow/copy';
-import flowShot from '../../assets/flow/flow-writing-you-approve-shot.webp';
+// The "images" capture: two real documents side by side carrying embedded
+// photographs, tables and headings, over a plain folder of Markdown files.
+// Chosen over the diff-review capture because this band's job is to make
+// someone want to open the Flow page — the finished artifact sells better at a
+// glance than the review chrome, which needs reading to understand.
+import flowShot from '../../assets/flow/flow-images-shot.webp';
 
 // Both CTAs and the screenshot land at the top of the Flow page. They keep
 // distinct utm_content so we can still tell which affordance people click.
@@ -82,10 +87,11 @@ const tourHref = flowHref('home-band-tour');
         class="of-surface of-pressable block rounded-xl overflow-hidden"
         style="transition-delay: 120ms"
         aria-label="Orionfold Flow: see the product tour"
+        title="See Orionfold Flow"
       >
         <Image
           src={flowShot}
-          alt="Orionfold Flow reviewing an AI proofread: the proposal, its permission scope, evidence, checks, and the exact diff beside the document."
+          alt="Orionfold Flow with two documents open side by side: a client proposal carrying an embedded photograph and a timeline-and-fees table, and an investment memo with its own photograph and a metrics table, over a plain folder of Markdown files."
           widths={[720, 1080, 1440]}
           sizes="(min-width: 1024px) 46rem, 100vw"
           loading="lazy"
@@ -93,7 +99,7 @@ const tourHref = flowHref('home-band-tour');
           class="w-full h-auto"
         />
         <p class="flow-band__caption">
-          The real development build. Every AI change is a diff you approve, with a receipt naming what ran, where it ran, and what it cost.
+          The real development build. Proposals and memos with embedded images and tables, side by side, all plain Markdown files in a folder you chose.
         </p>
       </a>
 
