@@ -1,23 +1,23 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-08-15",
+  "updated": "2026-09-19",
   "health": "green",
-  "focus": "FLOW REDIRECT SHIPPED (32e885b, live). Orionfold launched Flow as flagship 2026-08-15 and took over orionfold.com; this is the sibling move here. ainative.business now points its funnel at orionfold.com/flow/ across 3 surfaces / 5 instrumented placements (sticky-bar, nav, nav-mobile, home-band, cta-footer) under new campaign 2026-q3-flow-waitlist. NEW: flow/copy.ts (link+UTM+copy SSOT), flow/FlowBar.astro (dismissible sticky bar, 447 pages, key of-flow-bar-dismissed-ainative), sections/FlowBand.astro (homepage slot 2). EDITED: Nav (bar swap + Flow link + waitlist pill, desktop+mobile), CTAFooter (dead WaitlistForm removed, repointed at Flow), index (Book demoted to slot 5). KEY CONSTRAINT: this site LINKS, never captures - the waitlist edge fn's CORS allowlist is orionfold.com only. Did NOT copy the parent's Flow-only takeover: hero still sells Arena to the AI-Research-Engineer persona (protects SEO-1 equity); Flow copy is persona-matched to local runtime + receipts. Bar pinned to exactly 33px because Hero's pt-[182px] is hardcoded.",
+  "focus": "Flow live banner and Download Flow CTAs published as 9f2afcf and verified on ainative.business.",
   "blockers": [],
   "next": [
-    "Await website peer's call on the attribution join key (namespace source as ainative-<placement>, or confirm utm_content survives into the row) - relay 2026-08-15 open",
-    "Decide whether Field Notes pages get a Flow card (1,613 impressions = biggest lever AND biggest persona risk; measure first)",
-    "Fix pre-existing homepage hero screenshot (hero-arena-cockpit not rendering; predates this work, reproduced on clean main)",
-    "Delete orphaned NotificationBar.astro (dead code, zero imports, retired orange tokens)",
-    "Update _IDEAS/refocus.md: its 3-horizon plan predates Flow's launch"
+    "Verify parent-side download attribution; this site currently measures outbound clicks.",
+    "Mark flow_bridge_click and magnet_bridge_click as GA4 Key events.",
+    "Decide whether Field Notes pages should carry a Flow card.",
+    "Delete orphaned NotificationBar.astro when cleanup is authorized."
   ],
   "recent": [
-    "32e885b feat(flow): redirect site traffic to orionfold.com/flow/ (538 pages green, 3 verifiers pass)",
-    "_SPECS/flow-traffic-redirect-v1.md written then marked SHIPPED",
-    "_RELAY.md Mac->Website: campaign contract + attribution-join-key decision request + A17 magnet demotion notice"
+    "9f2afcf published the Flow availability copy, shared Download Flow CTA and launch campaign.",
+    "GitHub Pages run 35453633638 passed build, Lighthouse, artifact upload and deployment; Cloudflare cache purged.",
+    "Public homepage verified: live banner, updated CTAs and campaign links, no old launch copy or horizontal overflow.",
+    "Local 538-page build and three verifiers passed; task-owned preview stopped after publication."
   ],
-  "session": "S43 (flow-redirect)",
+  "session": "S44 (flow-live-cta)",
   "metrics": {
     "articles": 54,
     "models": 7,
