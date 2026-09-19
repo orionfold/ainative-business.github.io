@@ -152,10 +152,9 @@ const href = flowHref(surface);
     const bar = document.getElementById('flow-bar');
     if (!bar) return;
 
-    // Site-scoped key so it stays independent of the parent's
-    // 'of-flow-bar-dismissed', and so users who dismissed the old book bar
-    // still see this one once.
-    const DISMISSED = 'of-flow-bar-dismissed-ainative';
+    // A site-scoped launch key lets visitors who dismissed the prelaunch bar
+    // see the availability announcement once, then dismiss it independently.
+    const DISMISSED = 'of-flow-launch-bar-dismissed-ainative';
     let dismissed = false;
     try { dismissed = localStorage.getItem(DISMISSED) === '1'; } catch (e) { /* no-op */ }
 

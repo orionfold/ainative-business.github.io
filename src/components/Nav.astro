@@ -3,14 +3,14 @@
 // sticky bar at the top of the fixed nav wrapper, on every page that renders
 // the nav. Price-anchored copy ("the $20 book free, PDF+EPUB").
 //
-// 2026-08-15 Flow redirect: the sticky slot now carries the Flow waitlist bar,
+// 2026-09-19 Flow launch: the sticky slot carries the Flow availability bar,
 // matching the parent's Flow-first takeover of orionfold.com (2026-08-15). The
 // A17 magnet is DEMOTED, not removed — it keeps its footer band and
 // end-of-content card. Unlike the parent this nav is NOT Flow-only: Arena,
 // Fieldkit, Book and Field Notes stay, because this site keeps its own
 // AI-Research-Engineer persona. See _SPECS/flow-traffic-redirect-v1.md.
 import FlowBar from './flow/FlowBar.astro';
-import { flowHref } from './flow/copy';
+import { flowHref, FLOW_COPY } from './flow/copy';
 
 const flowNavHref = flowHref('nav');
 ---
@@ -86,7 +86,7 @@ const flowNavHref = flowHref('nav');
         rel="noopener"
         target="_blank"
         class="hidden lg:inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 font-mono text-[0.68rem] font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover"
-      >Meet Flow</a>
+      >{FLOW_COPY.cta}</a>
       <button
         id="theme-toggle"
         type="button"
@@ -134,7 +134,7 @@ const flowNavHref = flowHref('nav');
         <span class="theme-label-light">Switch to dark</span>
         <span class="theme-label-dark hidden">Switch to light</span>
       </button>
-      <a href={flowNavHref} rel="noopener" target="_blank" class="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 font-mono text-xs font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover">Meet Flow</a>
+      <a href={flowNavHref} rel="noopener" target="_blank" class="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 font-mono text-xs font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover">{FLOW_COPY.cta}</a>
     </div>
   </div>
 </nav>

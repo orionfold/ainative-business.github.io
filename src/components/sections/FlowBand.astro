@@ -9,10 +9,8 @@
 // the parent itself wrote: Arena scores local models with reruns you can
 // verify; Flow brings that discipline to the document.
 //
-// No form here by design: the waitlist POSTs to a Supabase edge function whose
-// CORS allowlist is orionfold.com only, so capture lives on the parent and this
-// band links out. Links land at the TOP of the Flow page, never deep-linked to
-// its form — a visitor arriving from here has not seen the product yet.
+// Downloads live on the parent. Links land at the top of the Flow page so a
+// visitor arriving from here can see the product and current download options.
 // See _SPECS/flow-traffic-redirect-v1.md.
 import { Image } from 'astro:assets';
 import SectionLabel from '../ui/SectionLabel.astro';
@@ -38,7 +36,7 @@ const shotHref = flowHref('home-band-shot');
       <div data-animate-stagger>
         <div data-animate class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5">
           <SectionLabel text="Orionfold Flow" />
-          <span class="flow-band__chip">Native Mac</span>
+          <span class="flow-band__chip">Available now for Mac</span>
           <span class="flow-band__chip flow-band__chip--accent">Patent pending</span>
         </div>
 
@@ -74,7 +72,7 @@ const shotHref = flowHref('home-band-shot');
         </p>
       </div>
 
-      <!-- Right: the real development build -->
+      <!-- Right: the existing product screenshot -->
       <a
         href={shotHref}
         rel="noopener"
@@ -95,7 +93,7 @@ const shotHref = flowHref('home-band-shot');
           class="w-full h-auto"
         />
         <p class="flow-band__caption">
-          The real development build. Proposals and memos with embedded images and tables, side by side, all plain Markdown files in a folder you chose.
+          Proposals and memos in Flow with embedded images and tables, side by side, all plain Markdown files in a folder you chose.
         </p>
       </a>
 
