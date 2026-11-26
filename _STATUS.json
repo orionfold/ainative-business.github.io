@@ -1,23 +1,23 @@
 {
   "version": 1,
   "project": "spark",
-  "updated": "2026-09-19",
+  "updated": "2026-11-25",
   "health": "green",
-  "focus": "Flow live banner and Download Flow CTAs published as 9f2afcf and verified on ainative.business.",
+  "focus": "Stack Assay replaced Flow as the site flagship: banner, nav, homepage bands, field-note end notes.",
   "blockers": [],
   "next": [
-    "Verify parent-side download attribution; this site currently measures outbound clicks.",
-    "Mark flow_bridge_click and magnet_bridge_click as GA4 Key events.",
-    "Decide whether Field Notes pages should carry a Flow card.",
-    "Delete orphaned NotificationBar.astro when cleanup is authorized."
+    "Stack Assay session to pick the mobile banner option (drop label, or site-wide top-padding fix).",
+    "Build the book-chapter Stack Assay end note once the chapter list is checked.",
+    "Mark stackassay_bridge_click as a GA4 Key event.",
+    "Fix pre-existing teal-as-text contrast failures (~87 per article page)."
   ],
   "recent": [
-    "9f2afcf published the Flow availability copy, shared Download Flow CTA and launch campaign.",
-    "GitHub Pages run 35453633638 passed build, Lighthouse, artifact upload and deployment; Cloudflare cache purged.",
-    "Public homepage verified: live banner, updated CTAs and campaign links, no old launch copy or horizontal overflow.",
-    "Local 538-page build and three verifiers passed; task-owned preview stopped after publication."
+    "19459bb: Stack Assay banner, nav, homepage band, closing band and 24 field-note end notes.",
+    "Copy approved by the Stack Assay messaging check, with the Codex claim fix.",
+    "New verify_stackassay_banner.mjs passes on 447 pages / 2,261 links; 538-page build green.",
+    "Browser-tested at 320-1280px, light and dark: contrast >= 5.27:1, CLS 0, keyboard dismissal."
   ],
-  "session": "S44 (flow-live-cta)",
+  "session": "S45 (stackassay-flagship)",
   "metrics": {
     "articles": 54,
     "models": 7,
