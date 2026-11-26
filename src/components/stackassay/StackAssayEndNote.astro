@@ -1,0 +1,88 @@
+---
+// Stack Assay end note — closes field notes about AI-native teams, agents and
+// coding tools (tags in SA_END_NOTE_TAGS). Takes the Proof card's slot on those
+// articles so a reader meets one pitch, not two. GA4 click tracking comes from
+// the delegated [data-sa-bridge] listener in StackAssayBar (mounted via Nav on
+// every article page).
+import { saHref, SA_END_NOTE } from './copy';
+
+interface Props {
+  /** utm_content value, e.g. fieldnote-<slug>. */
+  surface: string;
+}
+
+const { surface } = Astro.props;
+const href = saHref('referral', surface);
+---
+<aside class="sa-note" data-sa-bridge data-surface={surface} aria-label="Stack Assay">
+  <a href={href} class="sa-note__link">
+    <span class="sa-note__eyebrow">{SA_END_NOTE.eyebrow}</span>
+    <span class="sa-note__title">{SA_END_NOTE.title}</span>
+    <span class="sa-note__body">{SA_END_NOTE.body}</span>
+    <span class="sa-note__cta">{SA_END_NOTE.cta}</span>
+  </a>
+</aside>
+
+<style>
+  .sa-note {
+    margin: 3rem auto;
+    max-width: 42rem;
+  }
+  .sa-note__link {
+    display: block;
+    text-decoration: none;
+    color: var(--color-text);
+    border: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+    border-left-width: 3px;
+    border-radius: 0.75rem;
+    background: var(--color-surface-raised, var(--color-surface));
+    padding: 1.5rem 1.75rem;
+    transition: border-color 160ms ease, background-color 160ms ease;
+  }
+  .sa-note__link:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 5%, var(--color-surface-raised, var(--color-surface)));
+  }
+  .sa-note__link:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 3px;
+  }
+  .sa-note__eyebrow {
+    display: block;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 0.6rem;
+  }
+  .sa-note__title {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 0.5rem;
+  }
+  .sa-note__body {
+    display: block;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 1.1rem;
+  }
+  .sa-note__cta {
+    display: inline-block;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--color-primary);
+    text-decoration-thickness: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sa-note__link { transition: none; }
+  }
+</style>

@@ -1,21 +1,21 @@
 ---
-// A17 (relay 2026-06-28): persistent site-wide magnet entry point — a slim
-// sticky bar at the top of the fixed nav wrapper, on every page that renders
-// the nav. Price-anchored copy ("the $20 book free, PDF+EPUB").
+// A17 (relay 2026-06-28): persistent site-wide entry point — a slim sticky
+// bar at the top of the fixed nav wrapper, on every page that renders the nav.
 //
-// 2026-09-19 Flow launch: the sticky slot carries the Flow availability bar,
-// matching the parent's Flow-first takeover of orionfold.com (2026-08-15). The
-// A17 magnet is DEMOTED, not removed — it keeps its footer band and
-// end-of-content card. Unlike the parent this nav is NOT Flow-only: Arena,
-// Fieldkit, Book and Field Notes stay, because this site keeps its own
-// AI-Research-Engineer persona. See _SPECS/flow-traffic-redirect-v1.md.
-import FlowBar from './flow/FlowBar.astro';
-import { flowHref, FLOW_COPY } from './flow/copy';
+// 2026-11-25: Stack Assay is Orionfold's flagship (founder decision) and takes
+// both the sticky slot and the top-level nav item + filled button from Flow,
+// which held them since the 2026-09-19 Flow launch. Flow is demoted, not
+// removed: its homepage band and closing CTA stay for now. Arena, Fieldkit,
+// Book and Field Notes stay, because this site keeps its own persona.
+import StackAssayBar from './stackassay/StackAssayBar.astro';
+import { saHref, SA_NAV } from './stackassay/copy';
 
-const flowNavHref = flowHref('nav');
+// utm_content is "nav" for the menu item and the button alike (shared scheme);
+// the GA4 event's surface (nav / nav-mobile) still tells them apart by layout.
+const saNavHref = saHref('referral', 'nav');
 ---
 <div id="nav-wrapper" class="fixed top-0 left-0 right-0 z-40 transition-[background-color,backdrop-filter] duration-300">
-  <FlowBar surface="sticky-bar" />
+  <StackAssayBar />
   <nav id="main-nav" aria-label="Main navigation" class="border-b border-transparent transition-[border-color] duration-300">
   <div class="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
     <div class="flex flex-col gap-1 -ml-6">
@@ -46,14 +46,12 @@ const flowNavHref = flowHref('nav');
     </div>
 
     <!-- Desktop nav -->
-    <div class="hidden md:flex items-center gap-6" data-flow-bridge data-surface="nav">
+    <div class="hidden md:flex items-center gap-6" data-sa-bridge data-surface="nav">
       <a
-        href={flowNavHref}
-        rel="noopener"
-        target="_blank"
+        href={saNavHref}
         class="font-mono text-xs tracking-widest text-text-muted hover:text-primary transition-colors"
       >
-        Flow&nbsp;↗
+        {SA_NAV.item}
       </a>
       <span class="h-4 w-px bg-border" aria-hidden="true"></span>
       <a
@@ -82,11 +80,9 @@ const flowNavHref = flowHref('nav');
         Field Notes
       </a>
       <a
-        href={flowNavHref}
-        rel="noopener"
-        target="_blank"
-        class="hidden lg:inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 font-mono text-[0.68rem] font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover"
-      >{FLOW_COPY.cta}</a>
+        href={saNavHref}
+        class="hidden lg:inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 font-mono text-[0.68rem] font-semibold tracking-wider text-[oklch(15%_0.02_260)] transition-colors hover:bg-accent-hover"
+      >{SA_NAV.button}</a>
       <button
         id="theme-toggle"
         type="button"
@@ -120,8 +116,8 @@ const flowNavHref = flowHref('nav');
 
   <!-- Mobile menu -->
   <div id="mobile-menu" class="hidden md:hidden border-t border-border bg-surface/95 backdrop-blur-md">
-    <div class="px-6 py-4 flex flex-col gap-3" data-flow-bridge data-surface="nav-mobile">
-      <a href={flowNavHref} rel="noopener" target="_blank" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Flow&nbsp;↗</a>
+    <div class="px-6 py-4 flex flex-col gap-3" data-sa-bridge data-surface="nav-mobile">
+      <a href={saNavHref} class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">{SA_NAV.item}</a>
       <hr class="border-border" />
       <a href="/arena/" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Arena</a>
       <a href="/fieldkit/" class="font-mono text-sm text-text-muted hover:text-primary transition-colors py-2">Fieldkit</a>
@@ -134,7 +130,7 @@ const flowNavHref = flowHref('nav');
         <span class="theme-label-light">Switch to dark</span>
         <span class="theme-label-dark hidden">Switch to light</span>
       </button>
-      <a href={flowNavHref} rel="noopener" target="_blank" class="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 font-mono text-xs font-semibold tracking-wider text-surface transition-colors hover:bg-accent-hover">{FLOW_COPY.cta}</a>
+      <a href={saNavHref} class="mt-2 inline-flex items-center justify-center rounded-full bg-primary px-5 py-3 font-mono text-xs font-semibold tracking-wider text-[oklch(15%_0.02_260)] transition-colors hover:bg-accent-hover">{SA_NAV.button}</a>
     </div>
   </div>
 </nav>

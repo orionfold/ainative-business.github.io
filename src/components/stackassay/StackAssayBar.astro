@@ -1,0 +1,195 @@
+---
+// Stack Assay sticky banner — the slim strip at the top of the fixed nav
+// wrapper, on every page that renders the nav. Took the slot from FlowBar
+// (founder decision 2026-11-25: Stack Assay is the flagship).
+//
+// HEIGHT IS LOAD-BEARING (inherited from FlowBar / the A17 magnet bar).
+// Hero.astro clears the fixed chrome with a hardcoded pt-[182px] and there is
+// no scroll-padding-top on the site, so this bar stays ONE line at every width
+// (33px desktop, 29px under 560px, same as FlowBar). Narrow screens shed text
+// instead of wrapping: measured 2026-11-25, a two-line (46px) mobile bar pushed
+// content under the nav on most templates (field notes, artifacts, products).
+//
+// No layout shift: the bar renders visible and an inline script directly after
+// it hides it before first paint when the reader has dismissed it, so neither
+// the page nor the nav moves under anyone.
+import { saHref, SA_BANNER, SA_BANNER_KEY } from './copy';
+
+const href = saHref('banner', 'topbar');
+---
+<aside
+  id="sa-bar"
+  class="sa-bar"
+  aria-label="Announcement"
+  data-sa-bridge
+  data-surface="topbar"
+>
+  <div class="sa-bar__inner">
+    <a href={href} class="sa-bar__link">
+      <span class="sa-bar__text">
+        <span class="sa-bar__lead-1">{SA_BANNER.lead.split('. ')[0]}.</span>
+        <span class="sa-bar__lead-2">{SA_BANNER.lead.split('. ').slice(1).join('. ')}</span>
+        <span class="sa-bar__detail">{SA_BANNER.detail}</span>
+      </span>
+      <span class="sa-bar__cta">{SA_BANNER.cta}</span>
+    </a>
+    <button
+      id="sa-bar-close"
+      type="button"
+      class="sa-bar__close"
+      aria-label="Dismiss Stack Assay announcement"
+    ></button>
+  </div>
+</aside>
+<script is:inline define:vars={{ key: SA_BANNER_KEY }}>
+  try {
+    if (localStorage.getItem(key) === '1') {
+      var b = document.getElementById('sa-bar');
+      if (b) b.hidden = true;
+    }
+  } catch (e) { /* storage blocked: keep the bar visible */ }
+</script>
+
+<style>
+  .sa-bar {
+    border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 30%, transparent);
+    background: color-mix(in oklab, var(--color-primary) 9%, var(--color-surface-raised, #fff));
+  }
+  .sa-bar[hidden] { display: none; }
+
+  .sa-bar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    max-width: 80rem;
+    margin: 0 auto;
+    padding: 0.4rem 1.5rem;
+  }
+  .sa-bar__link {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+    text-decoration: none;
+    color: var(--color-text);
+    font-size: 0.8rem;
+    line-height: 1.2;
+    border-radius: 3px;
+  }
+  .sa-bar__text {
+    display: flex;
+    gap: 0.3em;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sa-bar__lead-1,
+  .sa-bar__lead-2 { font-weight: 600; }
+  .sa-bar__detail { color: var(--color-text-muted); }
+  .sa-bar__cta {
+    flex-shrink: 0;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-color: var(--color-primary);
+    text-decoration-thickness: 2px;
+  }
+  .sa-bar__link:hover .sa-bar__cta { text-decoration-thickness: 3px; }
+  .sa-bar__link:focus-visible,
+  .sa-bar__close:focus-visible {
+    outline: 2px solid var(--color-text);
+    outline-offset: 2px;
+  }
+
+  /* CSS-drawn x: no icon, no glyph. Zero block-height contribution: the
+     negative block margin cancels the padding so the row stays at 33px. */
+  .sa-bar__close {
+    position: relative;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    margin-block: -0.4rem;
+    margin-inline-end: -0.5rem;
+    border: 0;
+    border-radius: 4px;
+    background: none;
+    cursor: pointer;
+    color: var(--color-text-muted);
+  }
+  .sa-bar__close::before,
+  .sa-bar__close::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0.8rem;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+  }
+  .sa-bar__close::before { transform: translate(-50%, -50%) rotate(45deg); }
+  .sa-bar__close::after { transform: translate(-50%, -50%) rotate(-45deg); }
+  .sa-bar__close:hover { color: var(--color-text); }
+
+  /* Progressive shedding so the bar never wraps to a second line. */
+  @media (max-width: 900px) {
+    .sa-bar__detail { display: none; }
+  }
+  @media (max-width: 560px) {
+    .sa-bar__inner { padding-inline: 1rem; }
+    .sa-bar__link { font-size: 0.75rem; }
+  }
+  /* The full mobile line needs ~282px at 0.75rem; under 440px it would clip,
+     so keep the first sentence and the product name. */
+  @media (max-width: 440px) {
+    .sa-bar__lead-2 { display: none; }
+  }
+</style>
+
+<script>
+  import { SA_BANNER_KEY } from './copy';
+
+  function initSaBar() {
+    const bar = document.getElementById('sa-bar');
+    const closeBtn = document.getElementById('sa-bar-close');
+    if (!bar || !closeBtn || closeBtn.dataset.saBound === '1') return;
+    closeBtn.dataset.saBound = '1';
+    closeBtn.addEventListener('click', () => {
+      try { localStorage.setItem(SA_BANNER_KEY, '1'); } catch (e) { /* no-op */ }
+      bar.hidden = true;
+      // The button just vanished; hand keyboard focus to the site logo.
+      const home = document.querySelector<HTMLElement>('a[aria-label="ainative.business home"]');
+      home?.focus();
+    });
+  }
+
+  // Delegated click -> GA4 for every [data-sa-bridge] surface (bar, nav, end
+  // note). Only counts links that actually leave for stackassay.com.
+  function bindSaBridge() {
+    document.querySelectorAll<HTMLElement>('[data-sa-bridge]').forEach((el) => {
+      if (el.dataset.saBridgeBound === '1') return;
+      el.dataset.saBridgeBound = '1';
+      el.addEventListener('click', (event) => {
+        const link = (event.target as HTMLElement)?.closest?.('a') as HTMLAnchorElement | null;
+        if (!link || !link.href || link.href.indexOf('stackassay.com') === -1) return;
+        const gtag = (window as any).gtag;
+        if (typeof gtag === 'function') {
+          gtag('event', 'stackassay_bridge_click', {
+            surface: el.dataset.surface || 'unknown',
+            link_url: link.href,
+            transport_type: 'beacon',
+          });
+        }
+      });
+    });
+  }
+
+  initSaBar();
+  bindSaBridge();
+  document.addEventListener('astro:after-swap', () => { initSaBar(); bindSaBridge(); });
+</script>

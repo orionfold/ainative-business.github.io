@@ -1,44 +1,31 @@
 ---
 import AmberRule from '../ui/AmberRule.astro';
-import { flowHref, FLOW_COPY } from '../flow/copy';
+import { saHref, SA_CLOSING_BAND } from '../stackassay/copy';
 
-// The closing band sends visitors to Flow's live product and download page.
-// Keep the legacy #waitlist anchor below for existing inbound links.
-const flowLandingHref = flowHref('cta-footer');
+// The closing band hands off to Stack Assay, the flagship (2026-11-25; was
+// Flow). Keep the legacy #waitlist anchor below for existing inbound links.
+const saClosingHref = saHref('referral', 'closing-band');
 ---
-<section class="py-32 px-6" data-flow-bridge data-surface="cta-footer">
+<section class="py-32 px-6" data-sa-bridge data-surface="closing-band">
   <div id="waitlist" class="scroll-mt-32">
     <AmberRule />
   </div>
 
   <div class="max-w-3xl mx-auto text-center">
     <p data-animate class="font-mono text-xs tracking-widest text-text-muted uppercase mb-6">
-      {FLOW_COPY.eyebrow}
+      {SA_CLOSING_BAND.eyebrow}
     </p>
 
-    <h2 data-animate class="mb-6" style="transition-delay: 80ms">{FLOW_COPY.title}</h2>
+    <h2 data-animate class="mb-8" style="transition-delay: 80ms">{SA_CLOSING_BAND.title}</h2>
 
-    <p data-animate class="text-text-muted mb-8 max-w-xl mx-auto" style="transition-delay: 160ms">
-      The same discipline Arena brings to scoring local models, brought to the document itself.
-      Review and approve daytime AI edits as exact diffs, with receipts naming what ran, where it ran, and
-      what it cost.
-    </p>
-
-    <div data-animate class="mb-4" style="transition-delay: 200ms">
+    <div data-animate class="mb-4" style="transition-delay: 160ms">
       <a
-        href={flowLandingHref}
-        rel="noopener"
-        target="_blank"
-        class="inline-flex items-center justify-center gap-2 font-mono text-xs tracking-[0.12em] uppercase bg-primary text-surface px-8 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow"
+        href={saClosingHref}
+        class="inline-flex items-center justify-center font-mono text-xs tracking-[0.12em] uppercase bg-primary text-[oklch(15%_0.02_260)] px-8 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text"
       >
-        {FLOW_COPY.cta}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+        {SA_CLOSING_BAND.cta}
       </a>
     </div>
-
-    <p data-animate class="font-mono text-[0.66rem] tracking-wider text-text-dim" style="transition-delay: 240ms">
-      {FLOW_COPY.fine}
-    </p>
 
     <!-- The GitHub / Documentation / Field Notes outline trio was removed here.
          A closing CTA with four competing buttons has no CTA; this section now

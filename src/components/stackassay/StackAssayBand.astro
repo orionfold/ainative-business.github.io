@@ -1,0 +1,50 @@
+---
+// Homepage Stack Assay band — the flagship handoff, directly under the Hero.
+// Replaced FlowBand in this slot on 2026-11-25 (founder decision: Stack Assay
+// is the flagship and fits this site's audience far better than Flow).
+// Copy approved by the Stack Assay messaging check; no screenshot for now (if
+// one is added: the stackassay.com home hero at 1512 wide, light mode, numbers
+// left in frame).
+import SectionLabel from '../ui/SectionLabel.astro';
+import { saHref, SA_HOME_BAND } from './copy';
+
+const href = saHref('referral', 'home-band');
+---
+<section class="sa-band py-24 px-6" data-sa-bridge data-surface="home-band" aria-labelledby="sa-band-heading">
+  <div class="max-w-3xl mx-auto" data-animate-stagger>
+    <div data-animate class="mb-5">
+      <SectionLabel text={SA_HOME_BAND.eyebrow} />
+    </div>
+
+    <h2 id="sa-band-heading" data-animate class="mb-5" style="transition-delay: 80ms">
+      {SA_HOME_BAND.title}
+    </h2>
+
+    <p data-animate class="sa-band__body mb-8" style="transition-delay: 160ms">
+      {SA_HOME_BAND.body}
+    </p>
+
+    <div data-animate style="transition-delay: 240ms">
+      <a
+        href={href}
+        class="inline-flex items-center justify-center font-mono text-xs tracking-[0.12em] uppercase bg-primary text-[oklch(15%_0.02_260)] px-6 py-3 rounded-md hover:shadow-[0_0_0_4px_var(--color-primary-glow)] transition-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text"
+      >
+        {SA_HOME_BAND.cta}
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .sa-band {
+    border-top: 1px solid color-mix(in oklab, var(--color-primary) 14%, var(--color-border));
+    border-bottom: 1px solid color-mix(in oklab, var(--color-primary) 14%, var(--color-border));
+    background: color-mix(in oklab, var(--color-primary) 4%, var(--color-surface-raised));
+  }
+  .sa-band__body {
+    max-width: 40rem;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+</style>
