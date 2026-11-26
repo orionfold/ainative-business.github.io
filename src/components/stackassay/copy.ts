@@ -99,3 +99,24 @@ export const SA_END_NOTE_TAGS = new Set([
   'evaluation',
   'humaneval',
 ]);
+
+/**
+ * Book chapters (by chapter id) that close on the Stack Assay end note instead
+ * of the Proof card. Approved by the founder 2026-11-25. utm_content is
+ * book-<chapter-slug>, e.g. book-ch-4-the-forge.
+ */
+export const SA_END_NOTE_CHAPTERS = new Set([
+  'ch-4', // The Forge: task execution at scale
+  'ch-6', // The Arena: scheduled intelligence
+  'ch-8', // The Swarm: multi-agent coordination
+  'ch-9', // The Governance Layer: trust at scale
+  'ch-11', // The Machine That Builds Machines
+]);
+
+/** Fire the GA4 click event (no-op if gtag has not loaded yet). */
+export function fireSaBridgeClick(detail: { surface: string; link_url: string }): void {
+  const gtag = (globalThis as unknown as { gtag?: (...a: unknown[]) => void }).gtag;
+  if (typeof gtag === 'function') {
+    gtag('event', 'stackassay_bridge_click', { ...detail, transport_type: 'beacon' });
+  }
+}

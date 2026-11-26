@@ -10,6 +10,9 @@
  *      banner link is exactly the contract URL. Links open in the same tab.
  *   3. No arrow glyphs inside the banner, the end note, or any Stack Assay
  *      link text.
+ *   4. Book: exactly the approved chapters close on the Stack Assay end note,
+ *      linked with utm_medium=referral & utm_content=book-<chapter-slug>, and
+ *      carry no Proof card; every other chapter has no book-* Stack Assay link.
  *
  * Exit code = number of failed checks. Non-zero blocks the build.
  */
@@ -32,7 +35,15 @@ async function* walk(dir) {
 }
 
 const unescape = (s) => s.replace(/&amp;/g, '&');
+const BOOK_SA_CHAPTERS = new Set([
+  'ch-4-the-forge',
+  'ch-6-the-arena',
+  'ch-8-the-swarm',
+  'ch-9-the-governance-layer',
+  'ch-11-the-machine-that-builds-machines',
+]);
 const fails = [];
+let bookNotes = 0, bookPages = 0;
 let navPages = 0, saLinks = 0, endNotes = 0;
 
 for await (const file of walk(DIST)) {
@@ -52,6 +63,24 @@ for await (const file of walk(DIST)) {
         fails.push(`${rel}: banner link is ${JSON.stringify(hrefs)}, expected exactly the contract URL`);
       if (ARROWS.test(bar[0].replace(/<style[\s\S]*?<\/style>/g, '')))
         fails.push(`${rel}: arrow glyph inside banner`);
+    }
+  }
+
+  const bookMatch = rel.match(/^book\/(ch-\d+-[a-z0-9-]+)\/index\.html$/);
+  if (bookMatch) {
+    bookPages++;
+    const slug = bookMatch[1];
+    const bookLinks = [...html.matchAll(/href="(https:\/\/stackassay\.com[^"]*utm_content=book-[^"]*)"/g)].map((m) => new URL(unescape(m[1])));
+    if (BOOK_SA_CHAPTERS.has(slug)) {
+      bookNotes++;
+      if (bookLinks.length !== 1) fails.push(`${rel}: expected 1 book end-note link, found ${bookLinks.length}`);
+      for (const u of bookLinks) {
+        if (u.searchParams.get('utm_content') !== `book-${slug}`) fails.push(`${rel}: utm_content ${u.searchParams.get('utm_content')} != book-${slug}`);
+        if (u.searchParams.get('utm_medium') !== 'referral') fails.push(`${rel}: book link medium is not referral`);
+      }
+      if (html.includes('data-proof-bridge')) fails.push(`${rel}: approved chapter still renders the Proof card`);
+    } else if (bookLinks.length) {
+      fails.push(`${rel}: unapproved chapter carries a Stack Assay end note`);
     }
   }
 
@@ -76,7 +105,8 @@ for await (const file of walk(DIST)) {
   }
 }
 
-console.log(`stackassay: ${navPages} nav pages, ${saLinks} stackassay.com links, ${endNotes} end notes`);
+console.log(`stackassay: ${navPages} nav pages, ${saLinks} stackassay.com links, ${endNotes} end notes (field notes + book), ${bookNotes}/${bookPages} book chapters with the end note`);
+if (bookNotes !== BOOK_SA_CHAPTERS.size) fails.push(`expected ${BOOK_SA_CHAPTERS.size} book chapters with the end note, found ${bookNotes}`);
 if (navPages === 0) fails.push('no nav pages found (did the build run?)');
 for (const f of fails.slice(0, 40)) console.error('FAIL ' + f);
 if (fails.length > 40) console.error(`... and ${fails.length - 40} more`);

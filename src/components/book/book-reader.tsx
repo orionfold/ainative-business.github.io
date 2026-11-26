@@ -18,6 +18,8 @@ import type { BookChapter, ReaderPreferences, ReadingProgress, Bookmark } from "
 import { DEFAULT_READER_PREFS } from "../../lib/book/types";
 import { ContentBlockRenderer } from "./content-blocks";
 import { ProofBridgeReact } from "../proof/ProofBridgeReact";
+import { StackAssayEndNoteReact } from "../stackassay/StackAssayEndNoteReact";
+import { SA_END_NOTE_CHAPTERS } from "../stackassay/copy";
 import { PathSelector } from "./path-selector";
 import { PathProgress } from "./path-progress";
 import { getReadingPath, getNextPathChapter, isChapterInPath } from "../../lib/book/reading-paths";
@@ -761,11 +763,19 @@ export function BookReader({
             </div>
           )}
 
-          {/* A13 Proof cross-sell — economics variant, re-renders per active chapter */}
-          <ProofBridgeReact
-            variant="economics"
-            surface={`chapter-${CHAPTER_SLUG_MAP[currentChapter.id] ?? currentChapter.id}`}
-          />
+          {/* Chapter end card, re-renders per active chapter. Approved chapters on
+              agents and coding tools close on Stack Assay (2026-11-25); the rest
+              keep the A13 Proof cross-sell (economics variant). One card each. */}
+          {SA_END_NOTE_CHAPTERS.has(currentChapter.id) ? (
+            <StackAssayEndNoteReact
+              surface={`book-${CHAPTER_SLUG_MAP[currentChapter.id] ?? currentChapter.id}`}
+            />
+          ) : (
+            <ProofBridgeReact
+              variant="economics"
+              surface={`chapter-${CHAPTER_SLUG_MAP[currentChapter.id] ?? currentChapter.id}`}
+            />
+          )}
 
           {/* Chapter navigation */}
           <nav className="flex items-center justify-between border-t border-border/50 pt-8 mt-16">
