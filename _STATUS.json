@@ -3,19 +3,18 @@
   "project": "spark",
   "updated": "2026-11-25",
   "health": "green",
-  "focus": "Stack Assay replaced Flow as the site flagship: banner, nav, homepage bands, field-note end notes.",
+  "focus": "Stack Assay is the site flagship: banner, nav, homepage bands, field-note and book end notes all live.",
   "blockers": [],
   "next": [
-    "Stack Assay session to pick the mobile banner option (drop label, or site-wide top-padding fix).",
-    "Build the book-chapter Stack Assay end note once the chapter list is checked.",
     "Mark stackassay_bridge_click as a GA4 Key event.",
-    "Fix pre-existing teal-as-text contrast failures (~87 per article page)."
+    "Fix pre-existing teal-as-text contrast failures (~87 per article page).",
+    "Delete orphaned NotificationBar.astro and unmounted Flow components when cleanup is authorized."
   ],
   "recent": [
-    "19459bb: Stack Assay banner, nav, homepage band, closing band and 24 field-note end notes.",
-    "Copy approved by the Stack Assay messaging check, with the Codex claim fix.",
-    "New verify_stackassay_banner.mjs passes on 447 pages / 2,261 links; 538-page build green.",
-    "Browser-tested at 320-1280px, light and dark: contrast >= 5.27:1, CLS 0, keyboard dismissal."
+    "0c80ae7: Stack Assay end note on five book chapters (book-<chapter-slug> UTMs).",
+    "19459bb: Stack Assay banner, nav, homepage band, closing band, 24 field-note end notes.",
+    "Founder: mobile banner stays one line; no banner in the book reader.",
+    "verify_stackassay_banner.mjs now also checks the book chapters; 538-page build green."
   ],
   "session": "S45 (stackassay-flagship)",
   "metrics": {
